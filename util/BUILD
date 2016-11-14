@@ -11,6 +11,7 @@ chre_cc_library(
     name = "util",
     hdrs = [
         "include/chre/util/array_queue.h",
+        "include/chre/util/array_queue_impl.h",
         "include/chre/util/blocking_queue.h",
         "include/chre/util/blocking_queue_impl.h",
         "include/chre/util/dynamic_vector.h",
@@ -30,6 +31,7 @@ chre_cc_library(
     deps = [
         "//platform:assert",
         "//platform:condition_variable",
+        "//platform:log",
         "//platform:memory",
         "//platform:mutex",
         "//util:non_copyable",
@@ -49,7 +51,7 @@ gtest_cc_test(
         "tests/blocking_queue_test.cc",
     ],
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -59,7 +61,7 @@ gtest_cc_test(
         "tests/dynamic_vector_test.cc",
     ],
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -69,7 +71,7 @@ gtest_cc_test(
         "tests/fixed_size_vector_test.cc",
     ],
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -79,6 +81,16 @@ gtest_cc_test(
         "tests/memory_pool_test.cc",
     ],
     deps = [
-        "//util:util",
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "array_queue_test",
+    srcs = [
+        "tests/array_queue_test.cc",
+    ],
+    deps = [
+        "//util",
     ],
 )

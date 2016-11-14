@@ -21,118 +21,172 @@
 
 namespace chre {
 
-// TODO: this code is not done, just left for now as a reference
-
 /*
  * TODO: need to implement thread-safe fifo queue that doesn't use dynamic
- * memory... we can have something like this:
- *  - array of data types
- *  - head/tail index for data
- *  - head for free list (only needs to be singly-linked)
- *    - note that free list will use same array as linkage for active elements
- *
- * Don't worry about this for now, just use STL.
- *
- * This file is a WIP and probably doesn't work...
+ * memory.
+ * TODO: create a thread-safe wrapper for this, e.g. LockedArrayQueue. Starting
+ * with single-threaded implementation for now
  */
 
-
-// TODO: create a thread-safe wrapper for this, e.g. LockedArrayQueue. Starting
-// with single-threaded implementation for now
-
-template<typename ElementType, uint16_t kSize>
+template<typename ElementType, size_t kCapacity>
 class ArrayQueue {
  public:
-  ArrayQueue() {
-    for (size_t i = 0; i < kSize - 1; i++) {
-      mNext[i] = i + 1;
-    }
-    mNext[kSize - 1] = kInvalidItem;
-    mHead = kInvalidItem;
-    mTail = kInvalidItem;
-    mFreeHead = 0;
-  }
+  /**
+   * Calls the destructor of all the elements in the array queue.
+   */
+  ~ArrayQueue();
 
-  // TODO: assert that T is trivially move/copy constructable?
+  /**
+   * Determines whether the array queue is empty or not.
+   *
+   * @return true if the array queue is empty.
+   */
+  bool empty() const;
 
-  static_assert(kSize < UINT16_MAX,
-                "ArrayList only supports up to UINT16_MAX-1 elements");
-  typedef std::conditional<(kSize >= UINT8_MAX), uint16_t, uint8_t>::type
-      IndexType;
-  constexpr IndexType kInvalidItem = (sizeof(IndexType) == sizeof(uint8_t)) ?
-                                     UINT8_MAX : UINT16_MAX;
+  /**
+   * Obtains the number of elements currently stored in the array queue.
+   *
+   * @return The number of elements currently stored in the array queue.
+   */
+  size_t size() const;
 
-  bool pushBack(const ElementType &data) {
-    if (mFreeHead != kInvalidItem) {
-      mData[mFreeHead] = data;
-      mNext[mTail] = mFreeHead;
-      mTail = mFreeHead;
-      if (mHead == kInvalidItem) {
-        mHead = mTail;
-      }
-      mFreeHead = mNext[mFreeHead];
-      return true;
-    } else {
-      // todo: no space...
-      LOGE("Tried to push to full queue");
-      return false;
-    }
-  }
+  /**
+   * Obtains the front element of the array queue. It is illegal to access the
+   * front element when the array queue is empty. The user of the API must check
+   * the size() or empty() function prior to accessing the front element to
+   * ensure that they will not read out of bounds.
+   *
+   * @return The front element.
+   */
+  ElementType& front();
 
-  // todo: this queue needs to be single consumer, so we know that front()
-  // will not get freed while we're using it. maybe we add extra debug on here
-  // too like ASSERT(getThreadId() == mLastPopThreadId)...
+  /**
+   * Obtains the front element of the array queue. It is illegal to access the
+   * front element when the array queue is empty. The user of the API must check
+   * the size() or empty() function prior to accessing the front element to
+   * ensure that they will not read out of bounds.
+   *
+   * @return The front element.
+   */
+  const ElementType& front() const;
 
-  bool empty() const {
-    return (mHead == kInvalidItem);
-  }
+  /**
+   * Obtains an element of the array queue given an index. It is illegal to
+   * index this array queue out of bounds and the user of the API must check the
+   * size() function prior to indexing this array queue to ensure that they will
+   * not read out of bounds.
+   *
+   * @param index Requested index in range [0,size()-1]
+   * @return The element.
+   */
+  ElementType& operator[](size_t index);
 
-  ElementType &front() {
-    ASSERT(mHead < kSize);
-    return mData[mHead];
-  }
+  /**
+   * Obtains an element of the array queue given an index. It is illegal to
+   * index this array queue out of bounds and the user of the API must check the
+   * size() function prior to indexing this array queue to ensure that they will
+   * not read out of bounds.
+   *
+   * @param index Requested index in range [0,size()-1]
+   * @return The element.
+   */
+  const ElementType& operator[](size_t index) const;
 
-  const ElementType &front() const {
-    ASSERT(mHead < kSize);
-    return mData[mHead];
-  }
+  /**
+   * Pushes an element onto the back of the array queue. It returns false if
+   * the array queue is full already and there is no room for the element.
+   *
+   * @param element The element to push onto the array queue.
+   * @return true if the element is pushed successfully.
+   */
+  bool push(const ElementType& element);
 
-  // general usage semantics
-  // while (!q.empty()) { T x = q.front(); x.doSomething(); q.popFront(); }
+  /**
+   * Removes the front element from the array queue if the array queue is not
+   * empty.
+   */
+  void pop();
 
-  // Unlinks the front item from the list, and marks its storage as available
-  // for pushing new items to the queue.
-  void popFront() {
-    if (mHead != kInvalidItem) {
-      mData[mHead].~ElementType();
-      LinkType newHead = mNext[mHead];
-      mNext[mHead] = mFreeHead;
-      mFreeHead = mHead;
-      mHead = newHead;
-      if (mHead == kInvalidItem) {
-        mTail = kInvalidItem;
-      }
-    } else {
-      LOGE("Tried to pop empty list");
-    }
-  }
+  /**
+   * Removes an element from the array queue given an index. It returns false if the
+   * array queue contains fewer items than the index.
+   *
+   * @param index Requested index in range [0,size()-1]
+   * @return true if the indexed element has been removed successfully.
+   */
+  bool remove(size_t index);
+
+  /**
+   * Constructs an element onto the back of the array queue.
+   *
+   * @param The arguments to the constructor
+   * @return true if the element is constructed successfully.
+   */
+  template<typename... Args>
+  bool emplace(Args&&... args);
 
  private:
-  ElementType mData[kSize];
+  /**
+   * Storage for array queue elements. To avoid static initialization of
+   * members, std::aligned_storage is used.
+   */
+  typename std::aligned_storage<sizeof(ElementType),
+                                alignof(ElementType)>::type mData[kCapacity];
 
-  // Contains the index for the "next" element in the queue, or kInvalidItem
-  // if there is no next item. Note that this array contains two
-  // non-overlapping lists, one that identifies which indices in mData are
-  // free (starting from mFreeHead), and another for the active part of the
-  // list (mHead and mTail).
-  IndexType mNext[kSize];
-  IndexType mHead;
-  IndexType mTail;
-  IndexType mFreeHead;
+  /*
+   * Initialize mTail to be (kCapacity-1). When an element is pushed in,
+   * mHead and mTail will align. Also, this is consistent with
+   * mSize = (mTail - mHead)%kCapacity + 1 for mSize > 0.
+   */
+  //! Index of the front element
+  size_t mHead = 0;
 
-  // TODO: lock
+  //! Index of the back element
+  size_t mTail = kCapacity - 1;
+
+  //! Number of elements in the array queue
+  size_t mSize = 0;
+
+  /**
+   * Obtains a pointer to the underlying storage for the vector.
+   *
+   * @return A pointer to the storage used for elements in this vector.
+   */
+  ElementType *data();
+
+  /**
+   * Obtains a pointer to the underlying storage for the vector.
+   *
+   * @return A pointer to the storage used for elements in this vector.
+   */
+  const ElementType *data() const;
+
+  /**
+   * Converts relative index with respect to mHead to absolute index in the
+   * storage array.
+   *
+   * @param index Relative index in range [0,size()-1]
+   * @return The index of the storage array in range [0,kCapacity-1]
+   */
+  size_t relativeIndexToAbsolute(size_t index) const;
+
+  /*
+   * Pulls mHead to the next element in the array queue and decrements mSize
+   * accordingly. It is illegal to call this function on an empty array queue.
+   */
+  void pullHead();
+
+  /*
+   * Pushes mTail to the next available storage space and increments mSize
+   * accordingly.
+   *
+   * @return true if the array queue is not full.
+   */
+  bool pushTail();
 };
 
 }  // namespace chre
+
+#include "chre/util/array_queue_impl.h"
 
 #endif  // CHRE_UTIL_ARRAY_QUEUE_H_
