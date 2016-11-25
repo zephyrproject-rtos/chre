@@ -30,7 +30,6 @@ chre_cc_library(
     ],
     deps = [
         "//core:event",
-        "//core:memory_pool",
         "//core:nanoapp",
     ],
 )
@@ -45,13 +44,6 @@ chre_cc_library(
     ],
     deps = [
         "//platform:platform",
-    ],
-)
-
-chre_cc_library(
-    name = "memory_pool",
-    hdrs = [
-        "include/chre/core/memory_pool.h",
     ],
 )
 

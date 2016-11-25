@@ -19,6 +19,8 @@ chre_cc_library(
         "include/chre/util/fixed_size_vector_impl.h",
         "include/chre/util/id_from_string.h",
         "include/chre/util/id_from_string_impl.h",
+        "include/chre/util/memory_pool.h",
+        "include/chre/util/memory_pool_impl.h",
         "include/chre/util/non_copyable.h",
         "include/chre/util/time.h",
         "include/chre/util/time_impl.h",
@@ -49,6 +51,16 @@ gtest_cc_test(
     name = "fixed_size_vector_test",
     srcs = [
         "tests/fixed_size_vector_test.cc",
+    ],
+    deps = [
+        "//util:util",
+    ],
+)
+
+gtest_cc_test(
+    name = "memory_pool_test",
+    srcs = [
+        "tests/memory_pool_test.cc",
     ],
     deps = [
         "//util:util",

@@ -62,6 +62,15 @@ void FixedSizeVector<ElementType, kCapacity>::push_back(
 }
 
 template<typename ElementType, size_t kCapacity>
+template<typename... Args>
+void FixedSizeVector<ElementType, kCapacity>::emplace_back(Args&&... args) {
+  ASSERT(!full());
+  if (!full()) {
+    new (&data()[mSize++]) ElementType(std::forward<Args>(args)...);
+  }
+}
+
+template<typename ElementType, size_t kCapacity>
 ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
     size_t index) {
   ASSERT(index < mSize);

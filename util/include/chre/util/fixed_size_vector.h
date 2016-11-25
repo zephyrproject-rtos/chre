@@ -78,6 +78,16 @@ class FixedSizeVector {
   void push_back(const ElementType& element);
 
   /**
+   * Constructs an element onto the back of the vector. It is illegal to
+   * construct an item onto a full vector. The user of the API must check the
+   * return of the full() function prior to constructing another element.
+   *
+   * @param The arguments to the constructor
+   */
+  template<typename... Args>
+  void emplace_back(Args&&... args);
+
+  /**
    * Obtains an element of the vector given an index. It is illegal to index
    * this vector out of bounds and the user of the API must check the size()
    * function prior to indexing this vector to ensure that they will not read

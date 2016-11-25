@@ -17,7 +17,6 @@
 #include "chre/core/event_loop.h"
 
 #include "chre/core/event.h"
-#include "chre/core/memory_pool.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/log.h"
 
@@ -107,8 +106,16 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
   ASSERT_LOG(false, "Attempted to stop a nanoapp that is not already running");
 }
 
-void EventLoop::postEvent(Event *event) {
-  mEvents.push(event);
+void EventLoop::postEvent(uint16_t eventType, void *eventData,
+    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
+    uint32_t targetInstanceId) {
+  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
+      senderInstanceId, targetInstanceId);
+  if (event != nullptr) {
+    mEvents.push(event);
+  } else {
+    LOGE("Failed to allocate event");
+  }
 }
 
 void EventLoop::postEventDelayed(Event *event, uint64_t delayNs) {
@@ -118,12 +125,10 @@ void EventLoop::postEventDelayed(Event *event, uint64_t delayNs) {
 
 void EventLoop::stop() {
   mRunning = false;
-  // TODO: event pool/allocator to avoid heap
-  // or a better interface that lets us unblock the event loop so it notices
-  // that we want it to stop
-  Event *event = new Event(0, nullptr, nullptr, kSystemInstanceId,
-                           kSystemInstanceId);
-  postEvent(event);
+
+  // TODO: provide a better interface that lets us unblock the event loop so
+  // it notices that we want it to stop
+  postEvent(0, nullptr, nullptr, kSystemInstanceId, kSystemInstanceId);
 }
 
 const Nanoapp *EventLoop::getCurrentNanoapp() const {
@@ -166,7 +171,7 @@ void EventLoop::freeEvent(Event *event) {
     event->freeCallback(event->eventType, event->eventData);
     mCurrentApp = nullptr;
 
-    MemoryPool<Event>::deallocate(event);
+    mEventPool.deallocate(event);
   }
 }
 

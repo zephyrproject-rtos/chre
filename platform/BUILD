@@ -64,7 +64,6 @@ chre_cc_library(
     }),
     deps = [
         "//core:event_loop",
-        "//core:memory_pool",
         "//chre_api:chre_api",
         "//util:util",
     ],

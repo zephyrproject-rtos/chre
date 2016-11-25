@@ -18,7 +18,6 @@
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/init.h"
-#include "chre/core/memory_pool.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_timer.h"
@@ -35,10 +34,8 @@ chre::EventLoop *gTaskRunner = nullptr;
 
 void delayedEventTimerCallback(void *data) {
   LOGI("Got a delayed event callback");
-  chre::Event *event = new(chre::MemoryPool<chre::Event>::allocate())
-      chre::Event(1, nullptr, nullptr);
   auto *runner = static_cast<chre::EventLoop *>(data);
-  runner->postEvent(event);
+  runner->postEvent(1, nullptr, nullptr);
 }
 
 void timerCallback(void *data) {
@@ -80,10 +77,8 @@ int main() {
 
   runner.startNanoapp(&nanoapp);
 
-  chre::Event *event = new(chre::MemoryPool<chre::Event>::allocate())
-      chre::Event(1, nullptr, nullptr);
   nanoapp.registerForBroadcastEvent(1);
-  runner.postEvent(event);
+  runner.postEvent(1, nullptr, nullptr);
 
   chre::SystemTimer delayedEventTimer(delayedEventTimerCallback, &runner);
   chre::SystemTimer sysTimer(timerCallback, &runner);
