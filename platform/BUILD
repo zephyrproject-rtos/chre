@@ -92,6 +92,9 @@ chre_cc_library(
         "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
         "//conditions:default" : LINUX_PLATFORM_INCLUDES,
     }),
+    deps = [
+        "//platform:log",
+    ],
 )
 
 ################################################################################
