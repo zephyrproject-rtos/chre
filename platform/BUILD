@@ -43,7 +43,6 @@ chre_cc_library(
         "include/chre/platform/condition.h",
         "include/chre/platform/context.h",
         "include/chre/platform/memory.h",
-        "include/chre/platform/mutex.h",
         "include/chre/platform/system_time.h",
         "include/chre/platform/system_timer.h",
     ] + select({
@@ -148,6 +147,31 @@ chre_cc_library(
     ] + select({
         "//:platform_linux" : LINUX_PLATFORM_LOG_HDRS,
         "//conditions:default" : LINUX_PLATFORM_LOG_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+)
+
+################################################################################
+#
+# Platform Mutex
+#
+################################################################################
+
+LINUX_PLATFORM_MUTEX_HDRS = [
+    "linux/include/chre/target_platform/mutex_base.h",
+    "linux/include/chre/target_platform/mutex_base_impl.h",
+]
+
+chre_cc_library(
+    name = "mutex",
+    hdrs = [
+        "include/chre/platform/mutex.h",
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_MUTEX_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_MUTEX_HDRS,
     }),
     includes = select({
         "//:platform_linux" : LINUX_PLATFORM_INCLUDES,

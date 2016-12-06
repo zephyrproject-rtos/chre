@@ -21,11 +21,14 @@
 #include <atomic>
 #include <vector>
 
+ // TODO: Remove this once the SynchronizedMemoryPool is in place.
+#include "chre/util/memory_pool.h"
+
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
 #include "chre/util/blocking_queue.h"
-#include "chre/util/memory_pool.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/synchronized_memory_pool.h"
 
 namespace chre {
 
