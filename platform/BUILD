@@ -14,7 +14,6 @@ package(
 ################################################################################
 
 LINUX_PLATFORM_HDRS = [
-    "linux/include/chre/target_platform/condition.h",
     "linux/include/chre/target_platform/system_timer_base.h",
 ]
 
@@ -40,7 +39,6 @@ LINUX_PLATFORM_SRCS = [
 chre_cc_library(
     name = "platform",
     hdrs = [
-        "include/chre/platform/condition.h",
         "include/chre/platform/context.h",
         "include/chre/platform/memory.h",
         "include/chre/platform/system_time.h",
@@ -64,6 +62,7 @@ chre_cc_library(
     deps = [
         "//core:event_loop",
         "//chre_api:chre_api",
+        "//util:non_copyable",
         "//util:util",
     ],
 )
@@ -93,6 +92,31 @@ chre_cc_library(
     deps = [
         "//platform:log",
     ],
+)
+
+################################################################################
+#
+# Platform Condition Variable
+#
+################################################################################
+
+LINUX_PLATFORM_CONDITION_VARIABLE_HDRS = [
+    "linux/include/chre/target_platform/condition_variable_base.h",
+    "linux/include/chre/target_platform/condition_variable_impl.h",
+]
+
+chre_cc_library(
+    name = "condition_variable",
+    hdrs = [
+        "include/chre/platform/condition_variable.h",
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
 )
 
 ################################################################################

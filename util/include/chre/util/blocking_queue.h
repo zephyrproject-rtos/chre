@@ -14,46 +14,59 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_UTIL_BLOCKING_QUEUE_H
-#define CHRE_UTIL_BLOCKING_QUEUE_H
+#ifndef CHRE_UTIL_BLOCKING_QUEUE_H_
+#define CHRE_UTIL_BLOCKING_QUEUE_H_
 
-// TODO: using STL+stdlib mutex/condition_variable here, need to replace with
-// our platform abstraction and our own implementation that does not result in
-// copying, etc.
-// this is shamelessly pulled from stackoverflow to get the ball rolling
-
-#include <condition_variable>
 #include <deque>
-#include <mutex>
 
-template <typename T>
-class BlockingQueue
-{
+#include "chre/platform/condition_variable.h"
+#include "chre/platform/mutex.h"
+#include "chre/util/non_copyable.h"
+
+namespace chre {
+
+/**
+ * Implements a thread-safe blocking queue that blocks when popping an element
+ * if necessary.
+ */
+template <typename ElementType>
+class BlockingQueue : public NonCopyable {
  public:
-  void push(T const& value) {
-    {
-      std::unique_lock<std::mutex> lock(mMutex);
-      mQueue.push_back(value);
-    }
-    mCondition.notify_one();
-  }
+  /**
+   * Pushes an element into the queue and notifies any waiting threads that an
+   * element is available.
+   *
+   * @param The element to be pushed.
+   */
+  void push(const ElementType& element);
 
-  T pop() {
-    std::unique_lock<std::mutex> lock(mMutex);
-    mCondition.wait(lock, [=]{ return !mQueue.empty(); });
-    T rc(std::move(mQueue.back()));
-    mQueue.pop_front();
-    return rc;
-  }
+  /**
+   * Pops one element from the queue. If the queue is empty, the thread will
+   * block until an element has been pushed.
+   *
+   * @return The element that was popped.
+   */
+  ElementType pop();
 
-  bool empty() {
-    return mQueue.empty();
-  }
+  /**
+   * Determines whether or not the BlockingQueue is empty.
+   */
+  bool empty();
 
  private:
-  std::mutex mMutex;
-  std::condition_variable mCondition;
-  std::deque<T> mQueue;
+  //! The mutex used to ensure thread-safety.
+  Mutex mMutex;
+
+  //! The condition variable used to implement the blocking behavior of the
+  //! queue.
+  ConditionVariable mConditionVariable;
+
+  // TODO: Remove this when a non-STL version becomes available.
+  std::deque<ElementType> mQueue;
 };
 
-#endif  // CHRE_BLOCKING_QUEUE_H
+}  // namespace chre
+
+#include "chre/util/blocking_queue_impl.h"
+
+#endif  // CHRE_UTIL_BLOCKING_QUEUE_H_

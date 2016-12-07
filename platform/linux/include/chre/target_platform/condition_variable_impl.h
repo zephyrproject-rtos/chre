@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-#include "gtest/gtest.h"
+#ifndef CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_IMPL_H_
+#define CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_IMPL_H_
 
-#include "chre/util/blocking_queue.h"
+namespace chre {
 
-using chre::BlockingQueue;
+inline ConditionVariable::ConditionVariable() {}
 
-TEST(BlockingQueue, IsEmptyByDefault) {
-  BlockingQueue<int> blockingQueue;
-  ASSERT_TRUE(blockingQueue.empty());
+inline ConditionVariable::~ConditionVariable() {}
+
+inline void ConditionVariable::notify_one() {
+  mConditionVariable.notify_one();
 }
 
-TEST(BlockingQueue, PushPopVerifyOrder) {
-  BlockingQueue<int> blockingQueue;
-
-  blockingQueue.push(0x1337);
-  blockingQueue.push(0xcafe);
-
-  ASSERT_EQ(blockingQueue.pop(), 0x1337);
-  ASSERT_EQ(blockingQueue.pop(), 0xcafe);
+inline void ConditionVariable::wait(Mutex& mutex) {
+  mConditionVariable.wait(mutex);
 }
+
+}  // namespace chre
+
+#endif  // CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_IMPL_H_

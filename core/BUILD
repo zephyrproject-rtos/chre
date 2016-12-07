@@ -16,7 +16,7 @@ chre_cc_library(
         "//chre_api:chre_api",
         "//platform:assert",
         "//platform:log",
-        "//util:util",
+        "//util:non_copyable",
     ],
 )
 

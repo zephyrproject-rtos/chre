@@ -12,6 +12,7 @@ chre_cc_library(
     hdrs = [
         "include/chre/util/array_queue.h",
         "include/chre/util/blocking_queue.h",
+        "include/chre/util/blocking_queue_impl.h",
         "include/chre/util/dynamic_vector.h",
         "include/chre/util/dynamic_vector_impl.h",
         "include/chre/util/entry_points.h",
@@ -21,7 +22,6 @@ chre_cc_library(
         "include/chre/util/id_from_string_impl.h",
         "include/chre/util/memory_pool.h",
         "include/chre/util/memory_pool_impl.h",
-        "include/chre/util/non_copyable.h",
         "include/chre/util/synchronized_memory_pool.h",
         "include/chre/util/synchronized_memory_pool_impl.h",
         "include/chre/util/time.h",
@@ -29,7 +29,16 @@ chre_cc_library(
     ],
     deps = [
         "//platform:assert",
+        "//platform:condition_variable",
         "//platform:mutex",
+        "//util:non_copyable",
+    ],
+)
+
+chre_cc_library(
+    name = "non_copyable",
+    hdrs = [
+        "include/chre/util/non_copyable.h",
     ],
 )
 
@@ -37,6 +46,9 @@ gtest_cc_test(
     name = "blocking_queue_test",
     srcs = [
         "tests/blocking_queue_test.cc",
+    ],
+    deps = [
+        "//util:util",
     ],
 )
 

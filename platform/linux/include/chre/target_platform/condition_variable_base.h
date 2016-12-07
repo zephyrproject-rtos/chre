@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
-#include "gtest/gtest.h"
+#ifndef CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_BASE_H_
+#define CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_BASE_H_
 
-#include "chre/util/blocking_queue.h"
+#include <condition_variable>
 
-using chre::BlockingQueue;
+struct ConditionVariableBase {
+  std::condition_variable_any mConditionVariable;
+};
 
-TEST(BlockingQueue, IsEmptyByDefault) {
-  BlockingQueue<int> blockingQueue;
-  ASSERT_TRUE(blockingQueue.empty());
-}
-
-TEST(BlockingQueue, PushPopVerifyOrder) {
-  BlockingQueue<int> blockingQueue;
-
-  blockingQueue.push(0x1337);
-  blockingQueue.push(0xcafe);
-
-  ASSERT_EQ(blockingQueue.pop(), 0x1337);
-  ASSERT_EQ(blockingQueue.pop(), 0xcafe);
-}
+#endif  // CHRE_PLATFORM_LINUX_CONDITION_VARIABLE_BASE_H_
