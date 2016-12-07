@@ -21,9 +21,6 @@
 #include <atomic>
 #include <vector>
 
- // TODO: Remove this once the SynchronizedMemoryPool is in place.
-#include "chre/util/memory_pool.h"
-
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
 #include "chre/util/blocking_queue.h"
@@ -122,7 +119,7 @@ class EventLoop : public NonCopyable {
   uint32_t mLastInstanceId = kSystemInstanceId;
 
   //! The memory pool to allocate incoming events from.
-  MemoryPool<Event, kMaxEventCount> mEventPool;
+  SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
 
   // TODO: replace STL use with our own data structures
   std::vector<Nanoapp*> mNanoapps;

@@ -21,7 +21,20 @@
 
 namespace chre {
 
+template<typename ElementType, size_t kSize>
+template<typename... Args>
+ElementType *SynchronizedMemoryPool<ElementType, kSize>::allocate(
+    Args&&... args) {
+  std::lock_guard<Mutex> lock(mMutex);
+  return mMemoryPool.allocate(args...);
+}
 
+template<typename ElementType, size_t kSize>
+void SynchronizedMemoryPool<ElementType, kSize>::deallocate(
+    ElementType *element) {
+  std::lock_guard<Mutex> lock(mMutex);
+  mMemoryPool.deallocate(element);
+}
 
 }  // namespace chre
 

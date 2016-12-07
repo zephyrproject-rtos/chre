@@ -28,10 +28,35 @@ namespace chre {
 template<typename ElementType, size_t kSize>
 class SynchronizedMemoryPool : public NonCopyable {
  public:
-  // TODO: Implement this class.
+  /**
+   * Allocates space for an object, constructs it and returns the pointer to
+   * that object. This method is thread-safe and a lock will be acquired
+   * upon entry to this method.
+   *
+   * @param  The arguments to be forwarded to the constructor of the object.
+   * @return A pointer to a constructed object or nullptr if the allocation
+   *         fails.
+   */
+  template<typename... Args>
+  ElementType *allocate(Args&&... args);
+
+  /**
+   * Releases the memory of a previously allocated element. The pointer provided
+   * here must be one that was produced by a previous call to the allocate()
+   * function. The destructor is invoked on the object. This method is
+   * thread-safe and a lock will be acquired upon entry to this method.
+   *
+   * @param A pointer to an element that was previously allocated by the
+   *        allocate() function.
+   */
+  void deallocate(ElementType *element);
 
  private:
+  //! The mutex used to guard access to this memory pool.
   Mutex mMutex;
+
+  //! The non-synchronized MemoryPool that is used to implement this thread-safe
+  //! version.
   MemoryPool<ElementType, kSize> mMemoryPool;
 };
 
