@@ -1,8 +1,10 @@
 #include "chre/platform/system_timer.h"
 
 #include "chre/platform/log.h"
+#include "chre/util/time.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <string.h>
 
 namespace chre {
@@ -12,7 +14,7 @@ namespace {
 constexpr uint64_t kOneSecondInNanoseconds = 1000000000;
 
 void NanosecondsToTimespec(uint64_t ns, struct timespec *ts) {
-  ts->tv_sec  = ns / kOneSecondInNanoseconds;
+  ts->tv_sec = ns / kOneSecondInNanoseconds;
   ts->tv_nsec = ns % kOneSecondInNanoseconds;
 }
 
@@ -20,12 +22,10 @@ void NanosecondsToTimespec(uint64_t ns, struct timespec *ts) {
 
 void SystemTimerBase::systemTimerNotifyCallback(union sigval cookie) {
   SystemTimer *sysTimer = static_cast<SystemTimer*>(cookie.sival_ptr);
-
   sysTimer->mCallback(sysTimer->mData);
 }
 
-SystemTimer::SystemTimer(SystemTimerCallback *callback, void *data)
-    : mCallback(callback), mData(data) {}
+SystemTimer::SystemTimer() {}
 
 SystemTimer::~SystemTimer() {
   if (mInitialized) {
@@ -42,7 +42,6 @@ bool SystemTimer::init() {
     LOGW("Tried re-initializing timer");
   } else {
     struct sigevent sigevt = {};
-
     sigevt.sigev_notify = SIGEV_THREAD;
     sigevt.sigev_value.sival_ptr = this;
     sigevt.sigev_notify_function = systemTimerNotifyCallback;
@@ -59,18 +58,30 @@ bool SystemTimer::init() {
   return mInitialized;
 }
 
-bool SystemTimer::set(uint64_t delayNs, uint64_t intervalNs) {
+bool SystemTimer::set(SystemTimerCallback *callback, void *data,
+    Nanoseconds delay, Nanoseconds interval) {
   // 0 has a special meaning in POSIX, i.e. cancel the timer. In our API, a
   // value of 0 just means fire right away.
-  if (delayNs == 0) {
-    delayNs = 1;
+  if (delay.toRawNanoseconds() == 0) {
+    delay = Nanoseconds(1);
   }
-  return (mInitialized) ? setInternal(delayNs, intervalNs) : false;
+
+  if (mInitialized) {
+    mCallback = callback;
+    mData = data;
+    return setInternal(delay.toRawNanoseconds(), interval.toRawNanoseconds());
+  } else {
+    return false;
+  }
 }
 
 bool SystemTimer::cancel() {
-  // Setting delay to 0 disarms the timer
-  return (mInitialized) ? setInternal(0, 0) : false;
+  if (mInitialized) {
+    // Setting delay to 0 disarms the timer.
+    return setInternal(0, 0);
+  } else {
+    return false;
+  }
 }
 
 bool SystemTimerBase::setInternal(uint64_t delayNs, uint64_t intervalNs) {

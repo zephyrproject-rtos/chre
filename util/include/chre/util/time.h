@@ -74,6 +74,11 @@ class Nanoseconds {
   constexpr explicit Nanoseconds(uint64_t nanoseconds);
 
   /**
+   * Converts a milliseconds value to nanoseconds.
+   */
+  constexpr Nanoseconds(Milliseconds milliseconds);
+
+  /**
    * Converts the underlying nanoseconds to a raw uint64_t representation of
    * nanoseconds.
    *

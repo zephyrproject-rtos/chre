@@ -33,6 +33,9 @@ constexpr uint64_t Milliseconds::toRawNanoseconds() const {
 constexpr Nanoseconds::Nanoseconds(uint64_t nanoseconds)
     : mNanoseconds(nanoseconds) {}
 
+constexpr Nanoseconds::Nanoseconds(Milliseconds milliseconds)
+    : mNanoseconds(milliseconds.toRawNanoseconds()) {}
+
 constexpr uint64_t Nanoseconds::toRawNanoseconds() const {
   return mNanoseconds;
 }

@@ -17,24 +17,29 @@
 #ifndef CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_
 #define CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_
 
-/**
- * @file
- * POSIX implementation of the CHRE timer abstraction
- */
-
 #include <signal.h>
 #include <time.h>
 
 namespace chre {
 
+/**
+ * The Linux base class for the SystemTimer. The Linux implementation uses a
+ * POSIX timer.
+ */
 struct SystemTimerBase {
+  //! Tracks whether the timer has been initialized correctly.
+  bool mInitialized = false;
+
+  //! The timer id that is generated during the initialization phase.
   timer_t mTimerId;
 
+  //! A static method that is invoked by the underlying POSIX timer.
   static void systemTimerNotifyCallback(union sigval cookie);
 
+  //! A utility function to set a POSIX timer.
   bool setInternal(uint64_t delayNs, uint64_t intervalNs);
 };
 
-}
+}  // namespace chre
 
 #endif  // CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_

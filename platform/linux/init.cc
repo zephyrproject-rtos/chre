@@ -32,7 +32,7 @@ namespace {
 
 chre::EventLoop *gTaskRunner = nullptr;
 
-void delayedEventTimerCallback(void *data) {
+void delayedEventCallback(void *data) {
   LOGI("Got a delayed event callback");
   auto *runner = static_cast<chre::EventLoop *>(data);
   runner->postEvent(1, nullptr, nullptr);
@@ -80,12 +80,13 @@ int main() {
   nanoapp.registerForBroadcastEvent(1);
   runner.postEvent(1, nullptr, nullptr);
 
-  chre::SystemTimer delayedEventTimer(delayedEventTimerCallback, &runner);
-  chre::SystemTimer sysTimer(timerCallback, &runner);
+  chre::SystemTimer delayedEventTimer;
+  chre::SystemTimer sysTimer;
   if (!delayedEventTimer.init() || !sysTimer.init()) {
     LOGE("Couldn't init timer");
-  } else if (!delayedEventTimer.set(Milliseconds(500).toRawNanoseconds())
-        || !sysTimer.set(Milliseconds(1000).toRawNanoseconds())) {
+  } else if (
+      !delayedEventTimer.set(delayedEventCallback, &runner, Milliseconds(500))
+          || !sysTimer.set(timerCallback, &runner, Milliseconds(1000))) {
     LOGE("Couldn't set timer");
   } else {
     std::signal(SIGINT, signalHandler);

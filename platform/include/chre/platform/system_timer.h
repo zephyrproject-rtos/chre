@@ -17,8 +17,17 @@
 #ifndef CHRE_PLATFORM_TIMER_H_
 #define CHRE_PLATFORM_TIMER_H_
 
+#include <cstdint>
+
+#include "chre/target_platform/system_timer_base.h"
+#include "chre/util/non_copyable.h"
+#include "chre/util/time.h"
+
+namespace chre {
+
+typedef void (SystemTimerCallback)(void *data);
+
 /**
- * @file
  * Abstracts a system timer from the underlying platform, which will invoke the
  * supplied callback after at least the given amount of time has passed. The
  * calling context for the callback is undefined, and may be inside an
@@ -26,25 +35,22 @@
  * responsible for ensuring that it handles this potential concurrency
  * appropriately.
  */
-
-#include <stdint.h>
-
-#include "chre/target_platform/system_timer_base.h"
-#include "chre/util/non_copyable.h"
-
-namespace chre {
-
-typedef void (SystemTimerCallback)(void *data);
-
 class SystemTimer : private SystemTimerBase,
                     public NonCopyable {
  public:
-  SystemTimer(SystemTimerCallback *callback, void *data);
+  /**
+   * Allows the platform to construct a timer.
+   */
+  SystemTimer();
+
+  /**
+   * Cleans up a timer when it goes out of scope.
+   */
   ~SystemTimer();
 
   /**
    * Initializes the timer. This must be called before other methods in this
-   * function are called. It is an error
+   * class are called.
    *
    * @return true on successful, false on failure
    */
@@ -57,15 +63,16 @@ class SystemTimer : private SystemTimerBase,
    * Note that it is possible for the timer to fire before this function
    * returns.
    *
-   * @param delayNs Minimum delay until the first firing of the timer, in
-   *        nanoseconds.
-   * @param intervalNs Minimum delay for periodic firing of the timer after the
+   * @param The minimum delay until the first firing of the timer.
+   * @param The minimum delay for periodic firing of the timer after the
    *        first firing. If set to 0, the timer is only fires once and then
    *        stops.
-   *
+   * @param The callback to invoke when the timer has elapsed.
+   * @param The data to pass to the callback when it is invoked.
    * @return true on success, false on failure
    */
-  bool set(uint64_t delayNs, uint64_t intervalNs=0);
+  bool set(SystemTimerCallback *callback, void *data,
+      Nanoseconds delay, Nanoseconds interval = Nanoseconds(0));
 
   /**
    * Disarms the timer. If it was armed and is not currently in the process of
@@ -75,11 +82,15 @@ class SystemTimer : private SystemTimerBase,
   bool cancel();
 
  private:
+  // We make SystemTimerBase a friend to allow the base platform class to
+  // access the members of this class.
   friend class SystemTimerBase;
 
+  //! The callback to invoke when the timer has elapsed.
   SystemTimerCallback *mCallback;
+
+  //! The data to pass to the callback when invoked.
   void *mData;
-  bool mInitialized = false;
 };
 
 }
