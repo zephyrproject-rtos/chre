@@ -27,7 +27,6 @@ LINUX_PLATFORM_SRCS = [
     "linux/chre_api_version.cc",
     "linux/system_time.cc",
     "shared/chre_api_re.cc",
-    "shared/memory.cc",
     "shared/system_time.cc",
 ]
 
@@ -35,7 +34,6 @@ chre_cc_library(
     name = "platform",
     hdrs = [
         "include/chre/platform/context.h",
-        "include/chre/platform/memory.h",
         "include/chre/platform/system_time.h",
     ],
     srcs = select({
@@ -144,6 +142,33 @@ chre_cc_library(
         "//util:util",
     ],
 )
+
+################################################################################
+#
+# Platform Memory
+#
+################################################################################
+
+LINUX_PLATFORM_MEMORY_SRCS = [
+    "shared/memory.cc",
+]
+
+chre_cc_library(
+    name = "memory",
+    hdrs = [
+        "include/chre/platform/memory.h",
+    ],
+    srcs = select({
+        "//:platform_linux" : LINUX_PLATFORM_MEMORY_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_MEMORY_SRCS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+)
+
+
 
 ################################################################################
 #

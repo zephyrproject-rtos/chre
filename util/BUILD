@@ -30,6 +30,7 @@ chre_cc_library(
     deps = [
         "//platform:assert",
         "//platform:condition_variable",
+        "//platform:memory",
         "//platform:mutex",
         "//util:non_copyable",
     ],
