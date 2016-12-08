@@ -25,6 +25,12 @@
 
 namespace chre {
 
+/**
+ * The function signature of a timer callback.
+ *
+ * @param The data pointer here is passed in by the entity that requested the
+ *        timer and is used to provided a context in the callback.
+ */
 typedef void (SystemTimerCallback)(void *data);
 
 /**

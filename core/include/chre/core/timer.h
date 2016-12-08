@@ -17,11 +17,6 @@
 #ifndef CHRE_CORE_TIMER_H_
 #define CHRE_CORE_TIMER_H_
 
-/**
- * @file
- *
- */
-
 // TODO: common timer module
 //  - provide callback interface, build delayed event capability on top
 //  - eventually, condense to single system timer (i.e. one that fires next),
@@ -32,8 +27,12 @@
 
 namespace chre {
 
-// Note that this mirrors the CHRE API definition of a timer handle, so should
-// not be changed without appropriate consideration.
+/**
+ * The type to use when referring to a timer instance.
+ *
+ * Note that this mirrors the CHRE API definition of a timer handle, so should
+ * not be changed without appropriate consideration.
+ */
 typedef uint32_t TimerHandle;
 
 class Timer {

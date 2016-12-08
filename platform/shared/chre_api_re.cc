@@ -41,3 +41,13 @@ uint32_t chreGetInstanceId(void) {
   ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return currentApp->getInstanceId();
 }
+
+uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
+  // TODO: use core/timer.h for this.
+  return CHRE_TIMER_INVALID;
+}
+
+bool chreTimerCancel(uint32_t timerId) {
+  // TODO: Implement this.
+  return false;
+}
