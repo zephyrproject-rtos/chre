@@ -30,6 +30,9 @@ constexpr uint64_t Milliseconds::toRawNanoseconds() const {
       : mMilliseconds * kOneMillisecondInNanoseconds;
 }
 
+constexpr Nanoseconds::Nanoseconds()
+    : mNanoseconds(0) {}
+
 constexpr Nanoseconds::Nanoseconds(uint64_t nanoseconds)
     : mNanoseconds(nanoseconds) {}
 
@@ -45,9 +48,29 @@ constexpr Nanoseconds operator+(const Seconds& secs,
   return Nanoseconds(secs.toRawNanoseconds() + nanos.toRawNanoseconds());
 }
 
+constexpr Nanoseconds operator+(const Nanoseconds& nanos_a,
+                                const Nanoseconds& nanos_b) {
+  return Nanoseconds(nanos_a.toRawNanoseconds() + nanos_b.toRawNanoseconds());
+}
+
 constexpr Nanoseconds operator-(const Nanoseconds& nanos_a,
                                 const Nanoseconds& nanos_b) {
   return Nanoseconds(nanos_a.toRawNanoseconds() - nanos_b.toRawNanoseconds());
+}
+
+constexpr bool operator>=(const Nanoseconds& nanos_a,
+                          const Nanoseconds& nanos_b) {
+  return nanos_a.toRawNanoseconds() >= nanos_b.toRawNanoseconds();
+}
+
+constexpr bool operator<(const Nanoseconds& nanos_a,
+                         const Nanoseconds& nanos_b) {
+  return nanos_a.toRawNanoseconds() < nanos_b.toRawNanoseconds();
+}
+
+constexpr bool operator>(const Nanoseconds& nanos_a,
+                         const Nanoseconds& nanos_b) {
+  return nanos_a.toRawNanoseconds() > nanos_b.toRawNanoseconds();
 }
 
 }  // namespace chre

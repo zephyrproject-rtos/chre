@@ -248,6 +248,36 @@ chre_cc_library(
 
 ################################################################################
 #
+# Platform System Time
+#
+################################################################################
+
+LINUX_PLATFORM_SYSTEM_TIME_SRCS = [
+    "linux/system_time.cc",
+]
+
+chre_cc_library(
+    name = "system_time",
+    hdrs = [
+        "include/chre/platform/system_time.h",
+    ],
+    srcs = select({
+        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIME_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIME_SRCS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+    deps = [
+        "//util:util",
+    ],
+)
+
+
+
+################################################################################
+#
 # Platform System Timer
 #
 ################################################################################
@@ -301,6 +331,7 @@ chre_cc_binary(
     }),
     deps = [
         "//apps/hello_world:hello_world",
+        "//apps/timer_world:timer_world",
         "//core:init",
         "//core:nanoapp",
         "//platform:platform",

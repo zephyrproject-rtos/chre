@@ -69,6 +69,11 @@ class Milliseconds {
 class Nanoseconds {
  public:
   /**
+   * Default constructs a Nanoseconds time duration to zero.
+   */
+  constexpr Nanoseconds();
+
+  /**
    * Constructs a Nanoseconds time duration given a value.
    */
   constexpr explicit Nanoseconds(uint64_t nanoseconds);
@@ -93,22 +98,62 @@ class Nanoseconds {
 /**
  * Add seconds to nanoseconds.
  *
- * @param the seconds duration
- * @param the nanoseconds duration
+ * @param seconds the seconds duration
+ * @param nanoseconds the nanoseconds duration
  * @return the added time quantity expressed in nanoseconds
  */
 constexpr Nanoseconds operator+(const Seconds& seconds,
                                 const Nanoseconds& nanoseconds);
 
 /**
+ * Add nanoseconds to nanoseconds.
+ *
+ * @param nanos_a The first nanoseconds duration
+ * @param nanos_b The second nanoseconds duration
+ * @return The added time quantity expressed in nanoseconds
+ */
+constexpr Nanoseconds operator+(const Nanoseconds& nanos_a,
+                                const Nanoseconds& nanos_b);
+
+/**
  * Subtract two nanosecond durations.
  *
- * @param the first nanoseconds duration
- * @param the second nanoseconds duration
+ * @param nanos_a the first nanoseconds duration
+ * @param nanos_b the second nanoseconds duration
  * @return the difference between the two durations
  */
 constexpr Nanoseconds operator-(const Nanoseconds& nanos_a,
                                 const Nanoseconds& nanos_b);
+
+/**
+ * Performs a greater than or equal to comparison on two nanoseconds values.
+ *
+ * @param nanos_a the first nanoseconds duration
+ * @param nanos_b the second nanoseconds duration
+ * @return Whether nanos_a is greater than or equal to nanos_b.
+ */
+constexpr bool operator>=(const Nanoseconds& nanos_a,
+                          const Nanoseconds& nanos_b);
+
+/**
+ * Performs a less than comparison on two nanoseconds values.
+ *
+ * @param nanos_a the first nanoseconds duration
+ * @param nanos_b the second nanoseconds duration
+ * @return Whether nanos_a is less than nanos_b.
+ */
+constexpr bool operator<(const Nanoseconds& nanos_a,
+                         const Nanoseconds& nanos_b);
+
+/**
+ * Performs a greater than comparison on two nanoseconds values.
+ *
+ * @param nanos_a the first nanoseconds duration
+ * @param nanos_b the second nanoseconds duration
+ * @return Whether nanos_a is less than nanos_b.
+ */
+constexpr bool operator>(const Nanoseconds& nanos_a,
+                         const Nanoseconds& nanos_b);
 
 }  // namespace chre
 

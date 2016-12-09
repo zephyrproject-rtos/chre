@@ -33,6 +33,8 @@ chre_cc_library(
     deps = [
         "//core:event",
         "//core:nanoapp",
+        "//platform:fatal_error",
+        "//platform:system_time",
         "//platform:system_timer",
     ],
 )

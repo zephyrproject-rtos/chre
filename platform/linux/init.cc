@@ -15,6 +15,7 @@
  */
 
 #include "chre/apps/hello_world/hello_world.h"
+#include "chre/apps/timer_world/timer_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/init.h"
@@ -65,19 +66,32 @@ EventLoop *getCurrentEventLoop() {
 int main() {
   chre::init();
 
-  chre::PlatformNanoapp platformNanoapp;
-  platformNanoapp.mStart = chre::app::helloWorldStart;
-  platformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
-  platformNanoapp.mStop = chre::app::helloWorldStop;
+  chre::PlatformNanoapp helloWorldPlatformNanoapp;
+  helloWorldPlatformNanoapp.mStart = chre::app::helloWorldStart;
+  helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
+  helloWorldPlatformNanoapp.mStop = chre::app::helloWorldStop;
 
-  // TODO: Move/refactor most of this to shared init since it is portable.
+  chre::PlatformNanoapp timerWorldPlatformNanoapp;
+  timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
+  timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
+  timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
+
+  // Construct the event loop.
   chre::EventLoop runner;
   gTaskRunner = &runner;
-  chre::Nanoapp nanoapp(runner.getNextInstanceId(), &platformNanoapp);
 
-  runner.startNanoapp(&nanoapp);
+  // Start the hello world nanoapp.
+  chre::Nanoapp helloWorldNanoapp(runner.getNextInstanceId(),
+      &helloWorldPlatformNanoapp);
+  runner.startNanoapp(&helloWorldNanoapp);
+  helloWorldNanoapp.registerForBroadcastEvent(1);
 
-  nanoapp.registerForBroadcastEvent(1);
+  // Start the timer nanoapp.
+  chre::Nanoapp timerWorldNanoapp(runner.getNextInstanceId(),
+      &timerWorldPlatformNanoapp);
+  runner.startNanoapp(&timerWorldNanoapp);
+
+  // Send an event to all nanoapps.
   runner.postEvent(1, nullptr, nullptr);
 
   chre::SystemTimer delayedEventTimer;

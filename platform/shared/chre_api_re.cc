@@ -43,8 +43,13 @@ uint32_t chreGetInstanceId(void) {
 }
 
 uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
-  // TODO: use core/timer.h for this.
-  return CHRE_TIMER_INVALID;
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
+  ASSERT(eventLoop);
+
+  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
+  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  return eventLoop->getTimerPool().setTimer(currentApp,
+      chre::Nanoseconds(duration), cookie, oneShot);
 }
 
 bool chreTimerCancel(uint32_t timerId) {

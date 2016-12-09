@@ -157,6 +157,10 @@ uint32_t EventLoop::getNextInstanceId() {
   return nextInstanceId;
 }
 
+TimerPool& EventLoop::getTimerPool() {
+  return mTimerPool;
+}
+
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
   for (Nanoapp *app : mNanoapps) {
     if (app->getInstanceId() == instanceId) {

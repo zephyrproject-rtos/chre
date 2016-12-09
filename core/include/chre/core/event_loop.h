@@ -117,6 +117,13 @@ class EventLoop : public NonCopyable {
    */
   uint32_t getNextInstanceId();
 
+  /**
+   * Obtains the TimerPool associated with this event loop.
+   *
+   * @return The timer pool owned by this event loop.
+   */
+  TimerPool& getTimerPool();
+
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = 1024;
@@ -132,6 +139,7 @@ class EventLoop : public NonCopyable {
 
   // TODO: replace STL use with our own data structures
   std::vector<Nanoapp*> mNanoapps;
+
   BlockingQueue<Event*> mEvents;
 
   // TODO: we probably want our own atomic platform abstraction too

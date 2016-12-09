@@ -17,12 +17,9 @@
 #ifndef CHRE_CORE_TIMER_POOL_H_
 #define CHRE_CORE_TIMER_POOL_H_
 
-// TODO: common timer module
-//  - provide callback interface, build delayed event capability on top
-//  - eventually, condense to single system timer (i.e. one that fires next),
-//    but for now, can map 1:1 into system timer
-//  - collection of pending timer events (list initially, but priority queue would be nice)
+#include "chre_api/chre/re.h"
 
+#include "chre/platform/mutex.h"
 #include "chre/platform/system_timer.h"
 #include "chre/util/dynamic_vector.h"
 
@@ -53,14 +50,16 @@ class TimerPool {
   TimerPool(EventLoop& eventLoop);
 
   /**
-   * Requests a timer for the currently running nanoapp given a cookie to pass
-   * to the nanoapp when the timer event is published.
+   * Requests a timer for a nanoapp given a cookie to pass to the nanoapp when
+   * the timer event is published.
    *
-   * @param The duration of the timer.
-   * @param A cookie to pass to the app when the timer elapses.
-   * @param Whether or not the timer should automatically re-arm.
+   * @param nanoapp The nanoapp for which this timer is being requested.
+   * @param duration The duration of the timer.
+   * @param cookie A cookie to pass to the app when the timer elapses.
+   * @param oneShot false if the timer is expected to auto-reload.
    */
-  TimerHandle setTimer(Nanoseconds duration, void *cookie, bool oneShot);
+  TimerHandle setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
+      const void *cookie, bool oneShot);
 
   // TODO: should also add methods here to:
   //   - post an event after a delay
@@ -73,7 +72,7 @@ class TimerPool {
    */
   struct TimerRequest {
     //! The nanoapp from which this request was made.
-    Nanoapp *requestingNanoapp;
+    const Nanoapp *requestingNanoapp;
 
     //! The TimerHandle assigned to this request.
     TimerHandle timerHandle;
@@ -88,8 +87,18 @@ class TimerPool {
     bool isOneShot;
 
     //! The cookie pointer to be passed as an event to the requesting nanoapp.
-    void *cookie;
+    const void *cookie;
   };
+
+  //! The mutex used to lock the shared data structures below. The
+  //! handleSystemTimerCallback may be called from any context so we use a lock
+  //! to ensure exclusive access.
+  //
+  // Consider changing the design here to avoid the use of a mutex. There is
+  // another option to post an event to the system task to re-schedule the next
+  // timer. It would simplify the design and make it easier to make future
+  // extensions to this module.
+  Mutex mMutex;
 
   //! The event loop that owns this timer pool.
   EventLoop& mEventLoop;
@@ -100,6 +109,70 @@ class TimerPool {
 
   //! The underlying system timer used to schedule delayed callbacks.
   SystemTimer mSystemTimer;
+
+  //! The next timer handle for generateTimerHandle() to return.
+  TimerHandle mLastTimerHandle = CHRE_TIMER_INVALID;
+
+  //! Whether or not the timer handle generation logic needs to perform a
+  //! search for a vacant timer handle.
+  bool mGenerateTimerHandleMustCheckUniqueness = false;
+
+  /**
+   * Looks up a timer request given a timer handle.
+   *
+   * @param The timer handle referring to a given request.
+   * @return A pointer to a TimerRequest or nullptr if no match is found.
+   */
+  TimerRequest *getTimerRequestByTimerHandle(TimerHandle timerHandle);
+
+  /**
+   * Obtains a unique timer handle to return to an app requesting a timer.
+   *
+   * @return The guaranteed unique timer handle.
+   */
+  TimerHandle generateTimerHandle();
+
+  /**
+   * Obtains a unique timer handle by searching through the list of timer
+   * requests. This is a fallback for once the timer handles have been
+   * exhausted.
+   *
+   * @return A guaranteed unique timer handle.
+   */
+  TimerHandle generateUniqueTimerHandle();
+
+  /**
+   * Inserts a TimerRequest into the list of active timer requests. The order of
+   * mTimerRequests is always maintained such that the timer request with the
+   * closest expiration time is at the front of the list.
+   *
+   * @param timerRequest The timer request being inserted into the list.
+   * @return The index at which the request was inserted.
+   */
+   size_t insertTimerRequest(const TimerRequest& timerRequest);
+
+   /**
+    * Handles a completion callback for a timer by scheduling the next timer if
+    * available. If any timers have expired already an event is posted for them
+    * as well.
+    */
+   void onSystemTimerCallback();
+
+   /**
+    * Sets the underlying system timer to the next timer in the timer list if
+    * available. The lock must be acquired prior to entering this function.
+    *
+    * @return true if any timer events were posted
+    */
+   bool handleExpiredTimersAndScheduleNext();
+
+   /**
+    * This static method handles the callback from the system timer. The data
+    * pointer here is the TimerPool instance.
+    *
+    * @param data A pointer to the timer pool.
+    */
+   static void handleSystemTimerCallback(void *timerPoolPtr);
 };
 
 }  // namespace chre
