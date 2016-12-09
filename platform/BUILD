@@ -13,10 +13,6 @@ package(
 #
 ################################################################################
 
-LINUX_PLATFORM_HDRS = [
-    "linux/include/chre/target_platform/system_timer_base.h",
-]
-
 LINUX_PLATFORM_INCLUDES = [
     "linux/include",
 ]
@@ -30,7 +26,6 @@ LINUX_PLATFORM_SRCS = [
     "linux/chre_api_re.cc",
     "linux/chre_api_version.cc",
     "linux/system_time.cc",
-    "linux/system_timer.cc",
     "shared/chre_api_re.cc",
     "shared/memory.cc",
     "shared/system_time.cc",
@@ -42,11 +37,7 @@ chre_cc_library(
         "include/chre/platform/context.h",
         "include/chre/platform/memory.h",
         "include/chre/platform/system_time.h",
-        "include/chre/platform/system_timer.h",
-    ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_HDRS,
-    }),
+    ],
     srcs = select({
         "//:platform_linux" : LINUX_PLATFORM_SRCS,
         "//conditions:default" : LINUX_PLATFORM_SRCS,
@@ -205,6 +196,43 @@ chre_cc_library(
 
 ################################################################################
 #
+# Platform System Timer
+#
+################################################################################
+
+LINUX_PLATFORM_SYSTEM_TIMER_HDRS = [
+    "linux/include/chre/target_platform/system_timer_base.h",
+]
+
+
+LINUX_PLATFORM_SYSTEM_TIMER_SRCS = [
+    "linux/system_timer.cc",
+]
+
+chre_cc_library(
+    name = "system_timer",
+    hdrs = [
+        "include/chre/platform/system_timer.h",
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
+    }),
+    srcs = select({
+        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+    deps = [
+        "//util:non_copyable",
+        "//util:util",
+    ],
+)
+
+################################################################################
+#
 # Platform Binary
 #
 ################################################################################
@@ -224,6 +252,7 @@ chre_cc_binary(
         "//core:init",
         "//core:nanoapp",
         "//platform:platform",
+        "//platform:system_timer",
         "//platform:log",
     ],
 )

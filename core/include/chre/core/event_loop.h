@@ -23,6 +23,7 @@
 
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
+#include "chre/core/timer_pool.h"
 #include "chre/util/blocking_queue.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/synchronized_memory_pool.h"
@@ -34,6 +35,11 @@ namespace chre {
  */
 class EventLoop : public NonCopyable {
  public:
+  /**
+   * Setup the event loop.
+   */
+  EventLoop();
+
   // TODO: need a clear delineation for which methods are safe to call from
   // threads other than the one calling run()... should include stop() and
   // postEvent()... everything else would decidedly be not thread-safe
@@ -120,6 +126,9 @@ class EventLoop : public NonCopyable {
 
   //! The memory pool to allocate incoming events from.
   SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
+
+  //! The timer used schedule timed events for tasks running in this event loop.
+  TimerPool mTimerPool;
 
   // TODO: replace STL use with our own data structures
   std::vector<Nanoapp*> mNanoapps;

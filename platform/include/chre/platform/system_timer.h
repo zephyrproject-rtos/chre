@@ -99,6 +99,6 @@ class SystemTimer : private SystemTimerBase,
   void *mData;
 };
 
-}
+}  // namespace chre
 
 #endif  // CHRE_PLATFORM_TIMER_H_

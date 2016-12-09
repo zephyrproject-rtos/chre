@@ -22,6 +22,9 @@
 
 namespace chre {
 
+EventLoop::EventLoop()
+    : mTimerPool(*this) {}
+
 void EventLoop::run() {
   LOGI("EventLoop start");
   mRunning = true;

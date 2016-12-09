@@ -24,13 +24,16 @@ chre_cc_library(
     name = "event_loop",
     hdrs = [
         "include/chre/core/event_loop.h",
+        "include/chre/core/timer_pool.h",
     ],
     srcs = [
         "event_loop.cc",
+        "timer_pool.cc",
     ],
     deps = [
         "//core:event",
         "//core:nanoapp",
+        "//platform:system_timer",
     ],
 )
 
@@ -58,16 +61,5 @@ chre_cc_library(
     deps = [
         "//core:event",
         "//platform:platform_nanoapp",
-    ],
-)
-
-chre_cc_library(
-    name = "timer",
-    hdrs = [
-        "include/chre/core/timer.h",
-    ],
-    deps = [
-        "//chre_api:chre_api",
-        "//util:util",
     ],
 )
