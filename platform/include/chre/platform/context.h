@@ -22,13 +22,14 @@
 namespace chre {
 
 /**
- * If invoked from the execution context of an EventLoop (i.e. EventLoop::run()
- * is within the current call stack), returns the pointer to the associated
- * EventLoop.
+ * Obtains a pointer to the currently executing EventLoop or nullptr if there is
+ * no such event loop. In a multi-threaded system, this function will return the
+ * event loop bound to the current thread.
  *
- * @return pointer to the current EventLoop
+ * @return A pointer to the currently executing event loop or nullptr if there
+ *         is no event loop in the current context.
  */
-EventLoop *currentEventLoop();
+EventLoop *getCurrentEventLoop();
 
 }  // namespace chre
 

@@ -54,13 +54,13 @@ extern "C" void signalHandler(int sig) {
 
 namespace chre {
 
-EventLoop *currentEventLoop() {
+EventLoop *getCurrentEventLoop() {
   // note: on a multi-threaded implementation, we would likely use thread-local
   // storage here if available, or a map from thread ID --> taskrunner
   return gTaskRunner;
 }
 
-}
+}  // namespace chre
 
 int main() {
   chre::init();

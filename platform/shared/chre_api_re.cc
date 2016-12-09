@@ -25,7 +25,7 @@ uint64_t chreGetTime() {
 }
 
 uint64_t chreGetAppId(void) {
-  chre::EventLoop *eventLoop = chre::currentEventLoop();
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
   ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
@@ -34,7 +34,7 @@ uint64_t chreGetAppId(void) {
 }
 
 uint32_t chreGetInstanceId(void) {
-  chre::EventLoop *eventLoop = chre::currentEventLoop();
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
   ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
