@@ -19,6 +19,8 @@
 
 #include <type_traits>
 
+#include "chre/util/non_copyable.h"
+
 namespace chre {
 
 /*
@@ -28,8 +30,11 @@ namespace chre {
  * with single-threaded implementation for now
  */
 
+/**
+ * TODO: Write a doxygen comment for ArrayQueue.
+ */
 template<typename ElementType, size_t kCapacity>
-class ArrayQueue {
+class ArrayQueue : public NonCopyable {
  public:
   /**
    * Calls the destructor of all the elements in the array queue.

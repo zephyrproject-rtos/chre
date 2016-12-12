@@ -19,6 +19,8 @@
 
 #include <cstddef>
 
+#include "chre/util/non_copyable.h"
+
 namespace chre {
 
 /**
@@ -26,7 +28,7 @@ namespace chre {
  * resizes dynamically using heap allocations.
  */
 template<typename ElementType>
-class DynamicVector {
+class DynamicVector : public NonCopyable {
  public:
   /**
    * Destructs the objects and releases the memory owned by the vector.

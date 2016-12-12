@@ -19,10 +19,12 @@
 
 #include <type_traits>
 
+#include "chre/util/non_copyable.h"
+
 namespace chre {
 
 template<typename ElementType, size_t kCapacity>
-class FixedSizeVector {
+class FixedSizeVector : public NonCopyable {
  public:
   /**
    * Obtains a pointer to the underlying storage for the vector.
