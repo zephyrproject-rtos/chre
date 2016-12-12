@@ -149,6 +149,19 @@ bool DynamicVector<ElementType>::insert(size_t index,
 }
 
 template<typename ElementType>
+void DynamicVector<ElementType>::erase(size_t index) {
+  ASSERT(index < mSize);
+  if (index < mSize) {
+    mSize--;
+    for (size_t i = index; i < mSize; i++) {
+      mData[i] = std::move(mData[i + 1]);
+    }
+
+    mData[mSize].~ElementType();
+  }
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
   bool spaceAvailable = true;
   if (mSize == mCapacity) {

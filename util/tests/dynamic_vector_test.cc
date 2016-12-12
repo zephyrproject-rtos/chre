@@ -124,3 +124,21 @@ TEST(DynamicVector, PushBackInsertInMiddleAndRead) {
   ASSERT_EQ(vector[3], 0xcafe);
   ASSERT_EQ(vector.data()[3], 0xcafe);
 }
+
+TEST(DynamicVector, PushBackAndErase) {
+  DynamicVector<int> vector;
+  ASSERT_TRUE(vector.push_back(0x1337));
+  ASSERT_TRUE(vector.push_back(0xcafe));
+  ASSERT_TRUE(vector.push_back(0xbeef));
+  ASSERT_TRUE(vector.push_back(0xface));
+
+  vector.erase(1);
+
+  ASSERT_EQ(vector[0], 0x1337);
+  ASSERT_EQ(vector.data()[0], 0x1337);
+  ASSERT_EQ(vector[1], 0xbeef);
+  ASSERT_EQ(vector.data()[1], 0xbeef);
+  ASSERT_EQ(vector[2], 0xface);
+  ASSERT_EQ(vector.data()[2], 0xface);
+  ASSERT_EQ(vector.size(), 3);
+}

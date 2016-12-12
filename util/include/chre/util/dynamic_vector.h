@@ -142,6 +142,16 @@ class DynamicVector : public NonCopyable {
    */
   bool insert(size_t index, const ElementType& element);
 
+  /**
+   * Removes an element from the vector given an index. All elements are moved
+   * forward one position. The destructor is invoked. The index passed in must
+   * be less than the size() of the vector. If the index is greater than or
+   * equal to the size no operation is performed.
+   *
+   * @param index The index to remove an element at.
+   */
+  void erase(size_t index);
+
  private:
   //! A pointer to the underlying data buffer.
   ElementType *mData = nullptr;
