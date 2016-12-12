@@ -99,3 +99,28 @@ TEST(DynamicVector, EmplaceBackAndDestruct) {
 
   ASSERT_EQ(Foo::sConstructedCounter, 0);
 }
+
+TEST(DynamicVector, InsertEmpty) {
+  DynamicVector<int> vector;
+  ASSERT_FALSE(vector.insert(1, 0x1337));
+  ASSERT_TRUE(vector.insert(0, 0x1337));
+  ASSERT_EQ(vector[0], 0x1337);
+  ASSERT_EQ(vector.data()[0], 0x1337);
+}
+
+TEST(DynamicVector, PushBackInsertInMiddleAndRead) {
+  DynamicVector<int> vector;
+  ASSERT_TRUE(vector.push_back(0x1337));
+  ASSERT_TRUE(vector.push_back(0xface));
+  ASSERT_TRUE(vector.push_back(0xcafe));
+  ASSERT_TRUE(vector.insert(1, 0xbeef));
+
+  ASSERT_EQ(vector[0], 0x1337);
+  ASSERT_EQ(vector.data()[0], 0x1337);
+  ASSERT_EQ(vector[1], 0xbeef);
+  ASSERT_EQ(vector.data()[1], 0xbeef);
+  ASSERT_EQ(vector[2], 0xface);
+  ASSERT_EQ(vector.data()[2], 0xface);
+  ASSERT_EQ(vector[3], 0xcafe);
+  ASSERT_EQ(vector.data()[3], 0xcafe);
+}

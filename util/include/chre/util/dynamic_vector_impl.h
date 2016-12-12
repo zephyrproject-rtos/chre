@@ -122,6 +122,33 @@ bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
 }
 
 template<typename ElementType>
+bool DynamicVector<ElementType>::insert(size_t index,
+    const ElementType& element) {
+  // Ensure that the user is not trying to insert an element after the
+  // contiguous block of elements.
+  if (index > mSize) {
+    return false;
+  }
+
+  // Allocate space if needed.
+  if (!prepareForPush()) {
+    return false;
+  }
+
+  // Shift all elements starting at the given index backward one position.
+  for (size_t i = mSize; i > index; i--) {
+    mData[i] = std::move(mData[i - 1]);
+  }
+
+  mData[index].~ElementType();
+
+  // Insert the new element.
+  mData[index] = element;
+  mSize++;
+  return true;
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
   bool spaceAvailable = true;
   if (mSize == mCapacity) {

@@ -128,6 +128,20 @@ class DynamicVector : public NonCopyable {
    */
   bool reserve(size_t newCapacity);
 
+  /**
+   * Inserts an element into the vector at a given index. If a resize of the
+   * vector is required and the allocation fails, false will be returned. This
+   * will shift all vector elements after the given index one position backward
+   * in the list. The supplied index must be <= the size of the vector. It is
+   * not possible to have a sparse list of items. If the index is > the current
+   * size of the vector, false will be returned.
+   *
+   * @param index The index to insert an element at.
+   * @param element The element to insert.
+   * @return Whether or not the insert operation was successful.
+   */
+  bool insert(size_t index, const ElementType& element);
+
  private:
   //! A pointer to the underlying data buffer.
   ElementType *mData = nullptr;

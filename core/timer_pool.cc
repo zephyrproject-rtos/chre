@@ -24,8 +24,7 @@ TimerPool::TimerPool(EventLoop& eventLoop)
 
 TimerHandle TimerPool::setTimer(Nanoseconds duration, void *cookie,
     bool isOneShot) {
-  bool mTimerIsActive = false; // TODO: Remove this.
-  if (mTimerIsActive) {
+  if (mSystemTimer.isActive()) {
     // TODO: Push the request onto the list of requests.
   } else {
     // TODO: Immediately request the timer and set mTimerIsActive to true.
