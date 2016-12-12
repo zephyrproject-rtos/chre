@@ -59,7 +59,7 @@ bool SystemTimer::init() {
 }
 
 bool SystemTimer::set(SystemTimerCallback *callback, void *data,
-    Nanoseconds delay, Nanoseconds interval) {
+    Nanoseconds delay) {
   // 0 has a special meaning in POSIX, i.e. cancel the timer. In our API, a
   // value of 0 just means fire right away.
   if (delay.toRawNanoseconds() == 0) {
@@ -69,7 +69,7 @@ bool SystemTimer::set(SystemTimerCallback *callback, void *data,
   if (mInitialized) {
     mCallback = callback;
     mData = data;
-    return setInternal(delay.toRawNanoseconds(), interval.toRawNanoseconds());
+    return setInternal(delay.toRawNanoseconds());
   } else {
     return false;
   }
@@ -78,26 +78,40 @@ bool SystemTimer::set(SystemTimerCallback *callback, void *data,
 bool SystemTimer::cancel() {
   if (mInitialized) {
     // Setting delay to 0 disarms the timer.
-    return setInternal(0, 0);
+    return setInternal(0);
   } else {
     return false;
   }
 }
 
-bool SystemTimerBase::setInternal(uint64_t delayNs, uint64_t intervalNs) {
+bool SystemTimer::isActive() {
+  bool isActive = false;
+  if (mInitialized) {
+    struct itimerspec spec = {};
+    int ret = timer_gettime(mTimerId, &spec);
+    if (ret != 0) {
+      LOGE("Couldn't obtain current timer configuration: %s", strerror(errno));
+    }
+
+    isActive = (spec.it_value.tv_sec > 0 || spec.it_value.tv_nsec > 0);
+  }
+
+  return isActive;
+}
+
+bool SystemTimerBase::setInternal(uint64_t delayNs) {
   constexpr int kFlags = 0;
   struct itimerspec spec = {};
   bool success = false;
 
   NanosecondsToTimespec(delayNs, &spec.it_value);
-  NanosecondsToTimespec(intervalNs, &spec.it_interval);
+  NanosecondsToTimespec(0, &spec.it_interval);
 
   int ret = timer_settime(mTimerId, kFlags, &spec, nullptr);
   if (ret != 0) {
     LOGE("Couldn't set timer: %s", strerror(errno));
   } else {
-    LOGD("Set timer to expire in %.f ms with interval %.f ms",
-         (delayNs / 1000000.0), (intervalNs / 1000000.0));
+    LOGD("Set timer to expire in %.f ms", (delayNs / 1000000.0));
     success = true;
   }
 

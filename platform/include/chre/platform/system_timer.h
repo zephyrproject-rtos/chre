@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_TIMER_H_
-#define CHRE_PLATFORM_TIMER_H_
+#ifndef CHRE_PLATFORM_SYSTEM_TIMER_H_
+#define CHRE_PLATFORM_SYSTEM_TIMER_H_
 
 #include <cstdint>
 
@@ -69,23 +69,28 @@ class SystemTimer : private SystemTimerBase,
    * Note that it is possible for the timer to fire before this function
    * returns.
    *
-   * @param The minimum delay until the first firing of the timer.
-   * @param The minimum delay for periodic firing of the timer after the
-   *        first firing. If set to 0, the timer is only fires once and then
-   *        stops.
-   * @param The callback to invoke when the timer has elapsed.
-   * @param The data to pass to the callback when it is invoked.
+   * @param callback The callback to invoke when the timer has elapsed.
+   * @param data The data to pass to the callback when it is invoked.
+   * @param delay The minimum delay until the first firing of the timer.
    * @return true on success, false on failure
    */
-  bool set(SystemTimerCallback *callback, void *data,
-      Nanoseconds delay, Nanoseconds interval = Nanoseconds(0));
+  bool set(SystemTimerCallback *callback, void *data, Nanoseconds delay);
 
   /**
    * Disarms the timer. If it was armed and is not currently in the process of
    * firing, this prevents the callback from being invoked until the timer is
    * restarted by a subsequent call to set().
+   *
+   * @return Whether or not the timer was cancelled successfully.
    */
   bool cancel();
+
+  /**
+   * Determines whether or not the timer is currently timing.
+   *
+   * @return true if the timer is currently active and false if it is idle.
+   */
+  bool isActive();
 
  private:
   // We make SystemTimerBase a friend to allow the base platform class to
@@ -101,4 +106,4 @@ class SystemTimer : private SystemTimerBase,
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_TIMER_H_
+#endif  // CHRE_PLATFORM_SYSTEM_TIMER_H_

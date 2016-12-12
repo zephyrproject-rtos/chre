@@ -27,17 +27,17 @@ namespace chre {
  * POSIX timer.
  */
 struct SystemTimerBase {
-  //! Tracks whether the timer has been initialized correctly.
-  bool mInitialized = false;
-
   //! The timer id that is generated during the initialization phase.
   timer_t mTimerId;
+
+  //! Tracks whether the timer has been initialized correctly.
+  bool mInitialized = false;
 
   //! A static method that is invoked by the underlying POSIX timer.
   static void systemTimerNotifyCallback(union sigval cookie);
 
   //! A utility function to set a POSIX timer.
-  bool setInternal(uint64_t delayNs, uint64_t intervalNs);
+  bool setInternal(uint64_t delayNs);
 };
 
 }  // namespace chre
