@@ -23,6 +23,7 @@ namespace app {
 
 uint32_t gOneShotTimerHandle;
 uint32_t gCyclicTimerHandle;
+int gCyclicTimerCount;
 
 bool timerWorldStart() {
   chreLog(CHRE_LOG_INFO, "Timer World! - App started on platform ID %" PRIx64,
@@ -31,9 +32,10 @@ bool timerWorldStart() {
   gOneShotTimerHandle = chreTimerSet(100000000 /* duration: 100ms */,
       &gOneShotTimerHandle /* data */,
       true /* oneShot */);
-  gCyclicTimerHandle = chreTimerSet(400000000 /* duration: 400ms */,
+  gCyclicTimerHandle = chreTimerSet(150000000 /* duration: 400ms */,
       &gCyclicTimerHandle /* data */,
       false /* oneShot */);
+  gCyclicTimerCount = 0;
   return true;
 }
 
@@ -47,6 +49,10 @@ void timerWorldHandleEvent(uint32_t senderInstanceId,
         chreLog(CHRE_LOG_INFO, "Timer World! - One shot timer event received");
       } else if (*timerHandle == gCyclicTimerHandle) {
         chreLog(CHRE_LOG_INFO, "Timer World! - Cyclic timer event received");
+        gCyclicTimerCount++;
+        if (gCyclicTimerCount > 1) {
+          chreTimerCancel(gCyclicTimerHandle);
+        }
       }
     }
     break;

@@ -182,4 +182,4 @@ void EventLoop::freeEvent(Event *event) {
   }
 }
 
-}
+}  // namespace chre

@@ -60,10 +60,46 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
   return timerRequest.timerHandle;
 }
 
+bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
+  ASSERT(nanoapp);
+  std::lock_guard<Mutex> lock(mMutex);
+
+  size_t index;
+  bool success = false;
+  TimerRequest *timerRequest = getTimerRequestByTimerHandle(timerHandle,
+      &index);
+
+  if (timerRequest == nullptr) {
+    LOGW("Failed to cancel timer ID %" PRIu32 ": not found", timerHandle);
+  } else if (timerRequest->requestingNanoapp != nanoapp) {
+    LOGW("Failed to cancel timer ID %" PRIu32 ": permission denied",
+         timerHandle);
+  } else {
+    TimerHandle cancelledTimerHandle = timerRequest->timerHandle;
+    mTimerRequests.erase(index);
+    if (index == 0) {
+      if (mSystemTimer.isActive()) {
+        mSystemTimer.cancel();
+      }
+
+      handleExpiredTimersAndScheduleNext();
+    }
+
+    LOGD("App %" PRIx64 " cancelled timer %" PRIu32, nanoapp->getAppId(),
+         cancelledTimerHandle);
+    success = true;
+  }
+
+  return success;
+}
+
 TimerPool::TimerRequest *TimerPool::getTimerRequestByTimerHandle(
-    TimerHandle timerHandle) {
+    TimerHandle timerHandle, size_t *index) {
   for (size_t i = 0; i < mTimerRequests.size(); i++) {
     if (mTimerRequests[i].timerHandle == timerHandle) {
+      if (index != nullptr) {
+        *index = i;
+      }
       return &mTimerRequests[i];
     }
   }

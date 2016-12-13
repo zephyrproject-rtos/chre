@@ -61,6 +61,16 @@ class TimerPool {
   TimerHandle setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
       const void *cookie, bool oneShot);
 
+  /**
+   * Cancels a timer given a handle. If the timer handle is invalid or the timer
+   * is not owned by the passed in nanoapp, false is returned.
+   *
+   * @param nanoapp The nanoapp requesting a timer to be cancelled.
+   * @param timerHandle The handle for a timer to be cancelled.
+   * @return true if the timer was cancelled successfully.
+   */
+  bool cancelTimer(const Nanoapp* nanoapp, TimerHandle timerHandle);
+
   // TODO: should also add methods here to:
   //   - post an event after a delay
   //   - invoke a callback in "unsafe" context (i.e. from other thread), which the
@@ -118,12 +128,18 @@ class TimerPool {
   bool mGenerateTimerHandleMustCheckUniqueness = false;
 
   /**
-   * Looks up a timer request given a timer handle.
+   * Looks up a timer request given a timer handle. The lock must be acquired
+   * prior to entering this function.
    *
-   * @param The timer handle referring to a given request.
+   * @param timerHandle The timer handle referring to a given request.
+   * @param index A pointer to the index of the handle. If the handle is found
+   *        this will be populated with the index of the request from the list
+   *        of requests. This is optional and will only be populated if not
+   *        nullptr.
    * @return A pointer to a TimerRequest or nullptr if no match is found.
    */
-  TimerRequest *getTimerRequestByTimerHandle(TimerHandle timerHandle);
+  TimerRequest *getTimerRequestByTimerHandle(TimerHandle timerHandle,
+      size_t *index = nullptr);
 
   /**
    * Obtains a unique timer handle to return to an app requesting a timer.
@@ -135,7 +151,7 @@ class TimerPool {
   /**
    * Obtains a unique timer handle by searching through the list of timer
    * requests. This is a fallback for once the timer handles have been
-   * exhausted.
+   * exhausted. The lock must be acquired prior to entering this function.
    *
    * @return A guaranteed unique timer handle.
    */

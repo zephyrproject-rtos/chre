@@ -53,6 +53,10 @@ uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
 }
 
 bool chreTimerCancel(uint32_t timerId) {
-  // TODO: Implement this.
-  return false;
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
+  ASSERT(eventLoop);
+
+  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
+  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  return eventLoop->getTimerPool().cancelTimer(currentApp, timerId);
 }
