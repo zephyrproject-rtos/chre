@@ -110,6 +110,33 @@ chre_cc_library(
 
 ################################################################################
 #
+# Platform Fatal Error
+#
+################################################################################
+
+LINUX_PLATFORM_FATAL_ERROR_HDRS = [
+    "linux/include/chre/target_platform/fatal_error.h",
+]
+
+chre_cc_library(
+    name = "fatal_error",
+    hdrs = [
+        "include/chre/platform/fatal_error.h",
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_FATAL_ERROR_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_FATAL_ERROR_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+    deps = [
+        "//platform:log",
+    ],
+)
+
+################################################################################
+#
 # Platform Nanoapp
 #
 ################################################################################
