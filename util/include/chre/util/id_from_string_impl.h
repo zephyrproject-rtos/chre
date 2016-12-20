@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-#include "chre/util/id_from_string.h"
-
 #ifndef CHRE_UTIL_ID_FROM_STRING_IMPL_H_
 #define CHRE_UTIL_ID_FROM_STRING_IMPL_H_
+
+#include "chre/util/id_from_string.h"
+
+namespace chre {
 
 constexpr uint64_t createIdFromString(const char str[5]) {
   return (static_cast<uint64_t>(str[0]) << 56)
@@ -26,5 +28,14 @@ constexpr uint64_t createIdFromString(const char str[5]) {
       | (static_cast<uint64_t>(str[3]) << 32)
       | (static_cast<uint64_t>(str[4]) << 24);
 }
+
+constexpr uint64_t createPlatformIdFromVendorPlatform(uint64_t vendorId,
+                                                      uint32_t platformId) {
+  // Ensure that only the vendor ID can occupy the top 5 bytes and the
+  // platform ID can only occupy the bottom 3 bytes.
+  return (vendorId & 0xffffffffff000000) | (platformId & 0xffffff);
+}
+
+}  // namespace chre
 
 #endif  // CHRE_UTIL_ID_FROM_STRING_IMPL_H_

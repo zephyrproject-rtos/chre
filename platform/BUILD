@@ -21,12 +21,16 @@ LINUX_PLATFORM_LINKOPTS = [
     "-lrt",
 ]
 
+LINUX_PLATFORM_HDRS = [
+    "linux/include/chre/target_platform/platform_id_impl.h",
+]
+
 LINUX_PLATFORM_SRCS = [
     "linux/chre_api_core.cc",
     "linux/chre_api_re.cc",
-    "linux/chre_api_version.cc",
     "linux/system_time.cc",
     "shared/chre_api_re.cc",
+    "shared/chre_api_version.cc",
     "shared/system_time.cc",
 ]
 
@@ -34,8 +38,12 @@ chre_cc_library(
     name = "platform",
     hdrs = [
         "include/chre/platform/context.h",
+        "include/chre/platform/platform_id.h",
         "include/chre/platform/system_time.h",
-    ],
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_HDRS,
+    }),
     srcs = select({
         "//:platform_linux" : LINUX_PLATFORM_SRCS,
         "//conditions:default" : LINUX_PLATFORM_SRCS,

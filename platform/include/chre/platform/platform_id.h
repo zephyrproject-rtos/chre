@@ -14,28 +14,30 @@
  * limitations under the License.
  */
 
-#include "chre_api/chre/version.h"
+/**
+ * @file
+ * Provides platform IDs and versions for implementations of CHRE.
+ */
+
+#ifndef CHRE_PLATFORM_PLATFORM_ID_H_
+#define CHRE_PLATFORM_PLATFORM_ID_H_
 
 #include "chre/util/id_from_string.h"
 
-//! The vendor ID of the Linux variant: "Googl".
+namespace chre {
+
+//! The vendor ID for Google.
 constexpr uint64_t kVendorIdGoogle = createIdFromString("Googl");
 
 //! The vendor platform ID of the Linux variant is one. All other
 //  Google implementations will be greater than one. Zero is reserved.
-constexpr uint64_t kGoogleLinuxPlatformId = 0x001;
+constexpr uint32_t kGoogleLinuxPlatformId = 0x001;
 
-//! The patch version of the Linux platform.
-constexpr uint32_t kLinuxPatchVersion = 0x0001;
+//! The vendor platform ID of the Qualcomm SLPI variant.
+constexpr uint32_t kGoogleSlpiPlatformId = 0x002;
 
-uint32_t chreGetApiVersion(void) {
-  return CHRE_API_VERSION_1_1;
-}
+}  // namespace chre
 
-uint32_t chreGetVersion(void) {
-  return chreGetApiVersion() | kLinuxPatchVersion;
-}
+#include "chre/target_platform/platform_id_impl.h"
 
-uint64_t chreGetPlatformId(void) {
-  return kVendorIdGoogle | kGoogleLinuxPlatformId;
-}
+#endif  // CHRE_PLATFORM_PLATFORM_ID_H_

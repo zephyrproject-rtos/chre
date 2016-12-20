@@ -17,6 +17,7 @@ endif
 all:
 
 # Include mk files from each subdirectory.
+include chre_api/chre_api.mk
 include core/core.mk
 include platform/platform.mk
 include util/util.mk

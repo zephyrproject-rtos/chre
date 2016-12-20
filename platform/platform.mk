@@ -25,3 +25,4 @@ HEXAGON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 # Hexagon-specific Source Files ################################################
 
 HEXAGON_SRCS += platform/shared/system_time.cc
+HEXAGON_SRCS += platform/shared/chre_api_version.cc
