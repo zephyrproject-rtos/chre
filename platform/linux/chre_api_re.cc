@@ -23,11 +23,3 @@ void chreAbort(uint32_t abortCode) {
   LOGE("Aborting with error code %" PRIu32, abortCode);
   abort();
 }
-
-void *chreHeapAlloc(uint32_t bytes) {
-  return malloc(bytes);
-}
-
-void chreHeapFree(void *ptr) {
-  free(ptr);
-}

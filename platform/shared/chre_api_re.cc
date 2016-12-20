@@ -18,6 +18,7 @@
 #include "chre/core/event_loop.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/context.h"
+#include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
 
 uint64_t chreGetTime() {
@@ -59,4 +60,14 @@ bool chreTimerCancel(uint32_t timerId) {
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
   ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return eventLoop->getTimerPool().cancelTimer(currentApp, timerId);
+}
+
+void *chreHeapAlloc(uint32_t bytes) {
+  // TODO: Build a MemoryManager to track allocations to an app. If an app is
+  // unloaded or aborts we need to release any unfreed memory.
+  return chre::memoryAlloc(bytes);
+}
+
+void chreHeapFree(void *ptr) {
+  chre::memoryFree(ptr);
 }
