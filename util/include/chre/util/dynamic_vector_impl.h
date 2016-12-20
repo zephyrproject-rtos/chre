@@ -82,7 +82,7 @@ bool DynamicVector<ElementType>::emplace_back(Args&&... args) {
 
 template<typename ElementType>
 ElementType& DynamicVector<ElementType>::operator[](size_t index) {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   if (index >= mSize) {
     index = mSize - 1;
   }
@@ -92,7 +92,7 @@ ElementType& DynamicVector<ElementType>::operator[](size_t index) {
 
 template<typename ElementType>
 const ElementType& DynamicVector<ElementType>::operator[](size_t index) const {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   if (index >= mSize) {
     index = mSize - 1;
   }
@@ -150,7 +150,7 @@ bool DynamicVector<ElementType>::insert(size_t index,
 
 template<typename ElementType>
 void DynamicVector<ElementType>::erase(size_t index) {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   if (index < mSize) {
     mSize--;
     for (size_t i = index; i < mSize; i++) {

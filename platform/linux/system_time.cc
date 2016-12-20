@@ -28,8 +28,8 @@ namespace chre {
 Nanoseconds SystemTime::getMonotonicTime() {
   struct timespec timeNow;
   if (clock_gettime(CLOCK_MONOTONIC, &timeNow)) {
-    LOGE("Failed to obtain time with error: %s", strerror(errno));
-    ASSERT(false);
+    CHRE_ASSERT_LOG(false, "Failed to obtain time with error: %s",
+                    strerror(errno));
     return Nanoseconds(UINT64_MAX);
   }
 

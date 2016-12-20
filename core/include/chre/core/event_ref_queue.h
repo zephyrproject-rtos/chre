@@ -35,7 +35,7 @@ class EventRefQueue {
   }
 
   bool push(Event *event) {
-    ASSERT(event != nullptr);
+    CHRE_ASSERT(event != nullptr);
 
     mQueue.push_back(event);
     event->incrementRefCount();
@@ -44,7 +44,7 @@ class EventRefQueue {
   }
 
   Event *pop() {
-    ASSERT(!mQueue.empty());
+    CHRE_ASSERT(!mQueue.empty());
 
     Event *event = mQueue.front();
     mQueue.pop_front();

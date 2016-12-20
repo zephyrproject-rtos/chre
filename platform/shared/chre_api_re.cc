@@ -27,38 +27,38 @@ uint64_t chreGetTime() {
 
 uint64_t chreGetAppId(void) {
   chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  ASSERT(eventLoop);
+  CHRE_ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return currentApp->getAppId();
 }
 
 uint32_t chreGetInstanceId(void) {
   chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  ASSERT(eventLoop);
+  CHRE_ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return currentApp->getInstanceId();
 }
 
 uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
   chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  ASSERT(eventLoop);
+  CHRE_ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return eventLoop->getTimerPool().setTimer(currentApp,
       chre::Nanoseconds(duration), cookie, oneShot);
 }
 
 bool chreTimerCancel(uint32_t timerId) {
   chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  ASSERT(eventLoop);
+  CHRE_ASSERT(eventLoop);
 
   const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
   return eventLoop->getTimerPool().cancelTimer(currentApp, timerId);
 }
 

@@ -41,26 +41,26 @@ size_t ArrayQueue<ElementType, kCapacity>::size() const {
 
 template<typename ElementType, size_t kCapacity>
 ElementType& ArrayQueue<ElementType, kCapacity>::front() {
-  ASSERT(mSize > 0);
+  CHRE_ASSERT(mSize > 0);
   return data()[mHead];
 }
 
 template<typename ElementType, size_t kCapacity>
 const ElementType& ArrayQueue<ElementType, kCapacity>::front() const {
-  ASSERT(mSize > 0);
+  CHRE_ASSERT(mSize > 0);
   return data()[mHead];
 }
 
 template<typename ElementType, size_t kCapacity>
 ElementType& ArrayQueue<ElementType, kCapacity>::operator[](size_t index) {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   return data()[relativeIndexToAbsolute(index)];
 }
 
 template<typename ElementType, size_t kCapacity>
 const ElementType& ArrayQueue<ElementType, kCapacity>::operator[](
     size_t index) const {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   return data()[relativeIndexToAbsolute(index)];
 }
 
@@ -149,7 +149,7 @@ size_t ArrayQueue<ElementType, kCapacity>::relativeIndexToAbsolute(
 
 template<typename ElementType, size_t kCapacity>
 void ArrayQueue<ElementType, kCapacity>::pullHead() {
-  ASSERT(mSize > 0);
+  CHRE_ASSERT(mSize > 0);
   if (++mHead == kCapacity) {
       mHead = 0;
   }

@@ -48,11 +48,11 @@ class Event : public NonCopyable {
 
   void incrementRefCount() {
     mRefCount++;
-    ASSERT(mRefCount != 0);
+    CHRE_ASSERT(mRefCount != 0);
   }
 
   void decrementRefCount() {
-    ASSERT(mRefCount > 0);
+    CHRE_ASSERT(mRefCount > 0);
     mRefCount--;
   }
 
@@ -62,7 +62,7 @@ class Event : public NonCopyable {
 
   const uint16_t eventType;
   void * const eventData;
-  const chreEventCompleteFunction *freeCallback;
+  chreEventCompleteFunction * const freeCallback;
   const uint32_t senderInstanceId;
   const uint32_t targetInstanceId;
 

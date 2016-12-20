@@ -66,8 +66,7 @@ Event *Nanoapp::processNextEvent() {
     mPlatformNanoapp->handleEvent(event->senderInstanceId, event->eventType,
                              event->eventData);
   } else {
-    LOGE("Tried delivering event, but queue empty");
-    ASSERT(false);
+    CHRE_ASSERT_LOG(false, "Tried delivering event, but queue empty");
   }
 
   return event;

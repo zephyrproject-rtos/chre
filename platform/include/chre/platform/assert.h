@@ -25,7 +25,7 @@
  * The platform header must supply the following symbol as a macro or free
  * function:
  *
- *   ASSERT(scalar expression)
+ *   CHRE_ASSERT(scalar expression)
  *
  * Where expression will be checked to be false (ie: compares equal to zero) and
  * terminate the program if found to be the case.
@@ -35,29 +35,29 @@
 
 #include "chre/target_platform/assert.h"
 
-#ifndef ASSERT
-#error "ASSERT must be defined"
-#endif  // ASSERT
+#ifndef CHRE_ASSERT
+#error "CHRE_ASSERT must be defined"
+#endif  // CHRE_ASSERT
 
 /**
- * Provide an ASSERT_LOG macro based on LOGE and ASSERT. This allows asserting
- * and logging in one statement.
+ * Provide an CHRE_ASSERT_LOG macro based on LOGE and ASSERT. This allows
+ * asserting and logging in one statement.
  */
-#define ASSERT_LOG(condition, fmt, ...) do { \
-  if (!condition) {                          \
-    LOGE(fmt, ##__VA_ARGS__);                \
-  }                                          \
-                                             \
-  ASSERT(condition);                         \
+#define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
+  if (!condition) {                               \
+    LOGE(fmt, ##__VA_ARGS__);                     \
+  }                                               \
+                                                  \
+  CHRE_ASSERT(condition);                         \
 } while (0)
 
 #elif defined(CHRE_ASSERTIONS_DISABLED)
 
-#define ASSERT(condition) ((void) (condition))
+#define CHRE_ASSERT(condition) ((void) (condition))
 
-#define ASSERT_LOG(condition, fmt, ...) do { \
-  ASSERT(condition);                         \
-  chreLogNull(fmt, ##__VA_ARGS__);           \
+#define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
+  CHRE_ASSERT(condition);                         \
+  chreLogNull(fmt, ##__VA_ARGS__);                \
 } while(0)
 
 #else

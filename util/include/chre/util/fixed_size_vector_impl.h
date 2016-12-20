@@ -55,7 +55,7 @@ bool FixedSizeVector<ElementType, kCapacity>::full() const {
 template<typename ElementType, size_t kCapacity>
 void FixedSizeVector<ElementType, kCapacity>::push_back(
     const ElementType& element) {
-  ASSERT(!full());
+  CHRE_ASSERT(!full());
   if (!full()) {
     data()[mSize++] = element;
   }
@@ -64,7 +64,7 @@ void FixedSizeVector<ElementType, kCapacity>::push_back(
 template<typename ElementType, size_t kCapacity>
 template<typename... Args>
 void FixedSizeVector<ElementType, kCapacity>::emplace_back(Args&&... args) {
-  ASSERT(!full());
+  CHRE_ASSERT(!full());
   if (!full()) {
     new (&data()[mSize++]) ElementType(std::forward<Args>(args)...);
   }
@@ -73,7 +73,7 @@ void FixedSizeVector<ElementType, kCapacity>::emplace_back(Args&&... args) {
 template<typename ElementType, size_t kCapacity>
 ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
     size_t index) {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   if (index >= mSize) {
     index = mSize - 1;
   }
@@ -84,7 +84,7 @@ ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
 template<typename ElementType, size_t kCapacity>
 const ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
     size_t index) const {
-  ASSERT(index < mSize);
+  CHRE_ASSERT(index < mSize);
   if (index >= mSize) {
     index = mSize - 1;
   }

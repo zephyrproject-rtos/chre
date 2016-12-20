@@ -75,7 +75,7 @@ void EventLoop::run() {
 }
 
 bool EventLoop::startNanoapp(Nanoapp *nanoapp) {
-  ASSERT(nanoapp != nullptr);
+  CHRE_ASSERT(nanoapp != nullptr);
 
   // TODO: Test that the nanoapp list has space for one more nanoapp before
   // starting it. Return false if there is no space.
@@ -93,7 +93,7 @@ bool EventLoop::startNanoapp(Nanoapp *nanoapp) {
 }
 
 void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
-  ASSERT(nanoapp != nullptr);
+  CHRE_ASSERT(nanoapp != nullptr);
 
   for (size_t i = 0; i < mNanoapps.size(); i++) {
     if (nanoapp == mNanoapps[i]) {
@@ -106,7 +106,8 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
     }
   }
 
-  ASSERT_LOG(false, "Attempted to stop a nanoapp that is not already running");
+  CHRE_ASSERT_LOG(false,
+                  "Attempted to stop a nanoapp that is not already running");
 }
 
 void EventLoop::postEvent(uint16_t eventType, void *eventData,

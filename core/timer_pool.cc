@@ -30,7 +30,7 @@ TimerPool::TimerPool(EventLoop& eventLoop)
 
 TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
     const void *cookie, bool isOneShot) {
-  ASSERT(nanoapp);
+  CHRE_ASSERT(nanoapp);
 
   std::lock_guard<Mutex> lock(mMutex);
 
@@ -61,7 +61,7 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
 }
 
 bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
-  ASSERT(nanoapp);
+  CHRE_ASSERT(nanoapp);
   std::lock_guard<Mutex> lock(mMutex);
 
   size_t index;

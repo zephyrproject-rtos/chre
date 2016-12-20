@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_ASSERT_H_
-#define CHRE_PLATFORM_LINUX_ASSERT_H_
+#ifndef CHRE_PLATFORM_SLPI_ASSERT_H_
+#define CHRE_PLATFORM_SLPI_ASSERT_H_
 
-#include <cassert>
+// TODO: Replace this with something more intelligent. This implementation
+// is a no-op that just logs a message. We will need to spawn a thread for CHRE
+// to run in and then request that it be stopped when an assertion fails.
 
-#define CHRE_ASSERT(condition) assert(condition)
+#define CHRE_ASSERT(condition) do {                         \
+  if (!(condition)) {                                       \
+    LOGE("Assertion failure at %s:%d", __FILE__, __LINE__); \
+  }                                                         \
+} while (0)
 
-#endif  // CHRE_PLATFORM_LINUX_ASSERT_H_
+#endif  // CHRE_PLATFORM_SLPI_ASSERT_H_
