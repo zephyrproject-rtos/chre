@@ -47,6 +47,7 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/ms
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/cust
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
 
