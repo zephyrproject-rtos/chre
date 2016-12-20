@@ -64,6 +64,29 @@ class Milliseconds {
 };
 
 /**
+ * Represents a duration of time in microseconds.
+ */
+class Microseconds {
+ public:
+  /**
+   * Construct a Microseconds time duration given a value.
+   */
+  constexpr explicit Microseconds(uint64_t microseconds);
+
+  /**
+   * Converts the underlying microseconds to a raw uint64_t representation of
+   * nanoseconds. Handles overflow by returning UINT64_MAX.
+   *
+   * @return the value of microseconds converted to nanoseconds.
+   */
+  constexpr uint64_t toRawNanoseconds() const;
+
+ private:
+  //! Store the time duration.
+  uint64_t mMicroseconds;
+};
+
+/**
  * Represents a duration of time in nanoseconds.
  */
 class Nanoseconds {
@@ -82,6 +105,11 @@ class Nanoseconds {
    * Converts a milliseconds value to nanoseconds.
    */
   constexpr Nanoseconds(Milliseconds milliseconds);
+
+  /**
+   * Constructs a Nanoseconds time duration given microseconds.
+   */
+  constexpr Nanoseconds(Microseconds microseconds);
 
   /**
    * Converts the underlying nanoseconds to a raw uint64_t representation of

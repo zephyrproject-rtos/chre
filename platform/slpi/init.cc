@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+#include <cinttypes>
+
+#include "chre/core/init.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 
 /**
  * The main entry point to the SLPI CHRE runtime.
@@ -23,9 +27,10 @@
  * C-linkage.
  */
 extern "C" int chre_init() {
-  LOGI("SLPI CHRE init");
+  chre::init();
 
-  // TODO: call chre::init();
+  LOGI("SLPI CHRE initialized at time %" PRIu64,
+       chre::SystemTime::getMonotonicTime().toRawNanoseconds());
 
   return 0;
 }

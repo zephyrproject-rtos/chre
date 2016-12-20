@@ -17,8 +17,9 @@ endif
 all:
 
 # Include mk files from each subdirectory.
-# TODO: Add mk files for core, chre_api, util
+include core/core.mk
 include platform/platform.mk
+include util/util.mk
 
 # Include all build submodules.
 include build/hexagon.mk

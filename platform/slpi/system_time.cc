@@ -16,11 +16,16 @@
 
 #include "chre/platform/system_time.h"
 
+extern "C" {
+
+#include "uTimetick.h"
+
+}  // extern "C"
+
 namespace chre {
 
 Nanoseconds SystemTime::getMonotonicTime() {
-  // TODO: Implement me.
-  return Nanoseconds(0);
+  return Microseconds(uTimetick_CvtFromTicks(uTimetick_Get(), T_USEC));
 }
 
 }  // namespace chre

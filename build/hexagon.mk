@@ -23,6 +23,12 @@ $(error "You must supply a HEXAGON_SDK_PREFIX environment variable \
          containing a path to the hexagon SDK. Example: \
          $$HOME/Qualcomm/Hexagon_SDK/3.0")
 endif
+
+ifeq ($(SLPI_PREFIX),)
+$(error "You must supply an SLPI_PREFIX environemnt variable \
+         containing a path to the SLPI source tree. Example: \
+         $$HOME/slpi_proc")
+endif
 endif
 
 # Hexagon Tools ################################################################
@@ -36,7 +42,16 @@ HEXAGON_CFLAGS += $(COMMON_CFLAGS)
 
 # Include paths.
 HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs
-HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs/stddef/
+HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs/stddef
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/ms
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/cust
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
+
+# Define CUST_H to allow including the customer header file.
+HEXAGON_CFLAGS += -DCUST_H
 
 # Enable position independence.
 HEXAGON_CFLAGS += -fpic

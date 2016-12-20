@@ -6,6 +6,9 @@ constexpr uint64_t kOneSecondInNanoseconds(1000000000);
 //! The number of nanoseconds in one millisecond.
 constexpr uint64_t kOneMillisecondInNanoseconds(1000000);
 
+//! The number of nanoseconds in one millisecond.
+constexpr uint64_t kOneMicrosecondInNanoseconds(1000);
+
 namespace chre {
 
 constexpr Seconds::Seconds(uint64_t seconds)
@@ -30,6 +33,17 @@ constexpr uint64_t Milliseconds::toRawNanoseconds() const {
       : mMilliseconds * kOneMillisecondInNanoseconds;
 }
 
+constexpr Microseconds::Microseconds(uint64_t microseconds)
+    : mMicroseconds(microseconds) {}
+
+constexpr uint64_t Microseconds::toRawNanoseconds() const {
+  // Perform the simple unit conversion. Warning: overflow is caught and
+  // handled by returning UINT64_MAX. A ternary expression is used because
+  // constexpr requires it.
+  return mMicroseconds > (UINT64_MAX / kOneMicrosecondInNanoseconds) ? UINT64_MAX
+      : mMicroseconds * kOneMicrosecondInNanoseconds;
+}
+
 constexpr Nanoseconds::Nanoseconds()
     : mNanoseconds(0) {}
 
@@ -38,6 +52,9 @@ constexpr Nanoseconds::Nanoseconds(uint64_t nanoseconds)
 
 constexpr Nanoseconds::Nanoseconds(Milliseconds milliseconds)
     : mNanoseconds(milliseconds.toRawNanoseconds()) {}
+
+constexpr Nanoseconds::Nanoseconds(Microseconds microseconds)
+    : mNanoseconds(microseconds.toRawNanoseconds()) {}
 
 constexpr uint64_t Nanoseconds::toRawNanoseconds() const {
   return mNanoseconds;
