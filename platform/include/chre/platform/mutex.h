@@ -28,7 +28,7 @@ namespace chre {
  * subclassed here to allow platforms to inject their own storage for their
  * mutex implementation.
  */
-class Mutex : private MutexBase,
+class Mutex : public MutexBase,
               public NonCopyable {
  public:
   /**

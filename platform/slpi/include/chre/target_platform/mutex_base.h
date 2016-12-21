@@ -23,12 +23,20 @@ extern "C" {
 
 }  // extern "C"
 
+namespace chre {
+
 /**
  * The SLPI implementation of MutexBase.
  */
-struct MutexBase {
+class MutexBase {
+ protected:
   //! The underlying QURT mutex.
-  qurt_mutex_t mQurtMutex;
+  qurt_mutex_t mMutex;
+
+  //! Make the condition variable a friend so that wait() can be implemented.
+  friend class ConditionVariable;
 };
+
+}  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_MUTEX_BASE_H_

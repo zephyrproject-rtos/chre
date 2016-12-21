@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_MUTEX_BASE_IMPL_H_
-#define CHRE_PLATFORM_SLPI_MUTEX_BASE_IMPL_H_
+#ifndef CHRE_PLATFORM_SLPI_CONDITION_VARIABLE_IMPL_H_
+#define CHRE_PLATFORM_SLPI_CONDITION_VARIABLE_IMPL_H_
 
-#include "chre/platform/mutex.h"
+#include "chre/platform/condition_variable.h"
 
 namespace chre {
 
-inline Mutex::Mutex() {
-  qurt_mutex_init(&mMutex);
+inline ConditionVariable::ConditionVariable() {
+  qurt_cond_init(&mConditionVariable);
 }
 
-inline Mutex::~Mutex() {
-  qurt_mutex_destroy(&mMutex);
+inline ConditionVariable::~ConditionVariable() {
+  qurt_cond_destroy(&mConditionVariable);
 }
 
-inline void Mutex::lock() {
-  qurt_mutex_lock(&mMutex);
+inline void ConditionVariable::notify_one() {
+  qurt_cond_signal(&mConditionVariable);
 }
 
-inline void Mutex::unlock() {
-  qurt_mutex_unlock(&mMutex);
+inline void ConditionVariable::wait(Mutex& mutex) {
+  qurt_cond_wait(&mConditionVariable, &mutex.mMutex);
 }
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_MUTEX_BASE_IMPL_H_
+#endif  // CHRE_PLATFORM_SLPI_CONDITION_VARIABLE_IMPL_H_
