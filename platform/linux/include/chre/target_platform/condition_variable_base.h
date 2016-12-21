@@ -19,7 +19,12 @@
 
 #include <condition_variable>
 
-struct ConditionVariableBase {
+/**
+ * Storage for the Linux implementation of the condition variable.
+ */
+class ConditionVariableBase {
+ protected:
+  //! Defer to the std::condition_variable_any implementation.
   std::condition_variable_any mConditionVariable;
 };
 

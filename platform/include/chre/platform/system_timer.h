@@ -41,7 +41,7 @@ typedef void (SystemTimerCallback)(void *data);
  * responsible for ensuring that it handles this potential concurrency
  * appropriately.
  */
-class SystemTimer : private SystemTimerBase,
+class SystemTimer : public SystemTimerBase,
                     public NonCopyable {
  public:
   /**

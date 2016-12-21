@@ -27,7 +27,7 @@ namespace chre {
  * POSIX timer.
  */
 class SystemTimerBase {
- public:
+ protected:
   //! The timer id that is generated during the initialization phase.
   timer_t mTimerId;
 

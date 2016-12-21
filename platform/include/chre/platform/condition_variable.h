@@ -28,7 +28,7 @@ namespace chre {
  * similar to std::condition_variable. ConditionVariableBase is subclassed here
  * to allow platforms to inject their own storage for their implementation.
  */
-class ConditionVariable : private ConditionVariableBase,
+class ConditionVariable : public ConditionVariableBase,
                           public NonCopyable {
  public:
   /**
