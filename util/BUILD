@@ -21,6 +21,8 @@ chre_cc_library(
         "include/chre/util/fixed_size_vector_impl.h",
         "include/chre/util/id_from_string.h",
         "include/chre/util/id_from_string_impl.h",
+        "include/chre/util/lock_guard.h",
+        "include/chre/util/lock_guard_impl.h",
         "include/chre/util/memory_pool.h",
         "include/chre/util/memory_pool_impl.h",
         "include/chre/util/synchronized_memory_pool.h",
@@ -89,6 +91,16 @@ gtest_cc_test(
     name = "array_queue_test",
     srcs = [
         "tests/array_queue_test.cc",
+    ],
+    deps = [
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "lock_guard_test",
+    srcs = [
+        "tests/lock_guard_test.cc",
     ],
     deps = [
         "//util",
