@@ -18,6 +18,7 @@
 #include "chre/core/timer_pool.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/system_time.h"
+#include "chre/util/lock_guard.h"
 
 namespace chre {
 
@@ -31,8 +32,7 @@ TimerPool::TimerPool(EventLoop& eventLoop)
 TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
     const void *cookie, bool isOneShot) {
   CHRE_ASSERT(nanoapp);
-
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
 
   TimerRequest timerRequest;
   timerRequest.requestingNanoapp = nanoapp;
@@ -62,7 +62,7 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
 
 bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
   CHRE_ASSERT(nanoapp);
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
 
   size_t index;
   bool success = false;
@@ -163,7 +163,7 @@ size_t TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
 void TimerPool::onSystemTimerCallback() {
   // Gain exclusive access to the timer pool. This is needed because the context
   // of this callback is not defined.
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
   if (!handleExpiredTimersAndScheduleNext()) {
     LOGE("Timer callback invoked with no outstanding timers");
   }

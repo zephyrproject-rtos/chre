@@ -18,13 +18,14 @@
 #define CHRE_UTIL_BLOCKING_QUEUE_IMPL_H_
 
 #include "chre/util/blocking_queue.h"
+#include "chre/util/lock_guard.h"
 
 namespace chre {
 
 template<typename ElementType>
 void BlockingQueue<ElementType>::push(const ElementType& element) {
   {
-    std::lock_guard<Mutex> lock(mMutex);
+    LockGuard<Mutex> lock(mMutex);
     mQueue.push_back(element);
   }
   mConditionVariable.notify_one();
@@ -32,7 +33,7 @@ void BlockingQueue<ElementType>::push(const ElementType& element) {
 
 template<typename ElementType>
 ElementType BlockingQueue<ElementType>::pop() {
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
   while (mQueue.empty()) {
     mConditionVariable.wait(mMutex);
   }
@@ -44,7 +45,7 @@ ElementType BlockingQueue<ElementType>::pop() {
 
 template<typename ElementType>
 bool BlockingQueue<ElementType>::empty() {
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
   return mQueue.empty();
 }
 

@@ -17,6 +17,7 @@
 #ifndef CHRE_UTIL_SYNCHRONIZED_MEMORY_POOL_IMPL_H_
 #define CHRE_UTIL_SYNCHRONIZED_MEMORY_POOL_IMPL_H_
 
+#include "chre/util/lock_guard.h"
 #include "chre/util/synchronized_memory_pool.h"
 
 namespace chre {
@@ -25,14 +26,14 @@ template<typename ElementType, size_t kSize>
 template<typename... Args>
 ElementType *SynchronizedMemoryPool<ElementType, kSize>::allocate(
     Args&&... args) {
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
   return mMemoryPool.allocate(args...);
 }
 
 template<typename ElementType, size_t kSize>
 void SynchronizedMemoryPool<ElementType, kSize>::deallocate(
     ElementType *element) {
-  std::lock_guard<Mutex> lock(mMutex);
+  LockGuard<Mutex> lock(mMutex);
   mMemoryPool.deallocate(element);
 }
 
