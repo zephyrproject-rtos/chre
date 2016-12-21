@@ -21,6 +21,12 @@
 
 namespace chre {
 
+// Forward declare classes for unit-conversion constructors.
+class Milliseconds;
+class Microseconds;
+class Nanoseconds;
+
+
 class Seconds {
  public:
   /**
@@ -74,12 +80,24 @@ class Microseconds {
   constexpr explicit Microseconds(uint64_t microseconds);
 
   /**
+   * Constructs a Microseconds time duration given nanoseconds.
+   */
+  constexpr Microseconds(Nanoseconds nanoseconds);
+
+  /**
    * Converts the underlying microseconds to a raw uint64_t representation of
    * nanoseconds. Handles overflow by returning UINT64_MAX.
    *
    * @return the value of microseconds converted to nanoseconds.
    */
   constexpr uint64_t toRawNanoseconds() const;
+
+  /*
+   * Obtains the number of Microseconds stroed by this time duration.
+   *
+   * @return the value of microseconds.
+   */
+  constexpr uint64_t getMicroseconds() const;
 
  private:
   //! Store the time duration.

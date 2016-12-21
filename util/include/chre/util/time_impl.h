@@ -36,12 +36,20 @@ constexpr uint64_t Milliseconds::toRawNanoseconds() const {
 constexpr Microseconds::Microseconds(uint64_t microseconds)
     : mMicroseconds(microseconds) {}
 
+constexpr Microseconds::Microseconds(Nanoseconds nanoseconds)
+    : mMicroseconds(
+        nanoseconds.toRawNanoseconds() / kOneMicrosecondInNanoseconds) {}
+
 constexpr uint64_t Microseconds::toRawNanoseconds() const {
   // Perform the simple unit conversion. Warning: overflow is caught and
   // handled by returning UINT64_MAX. A ternary expression is used because
   // constexpr requires it.
   return mMicroseconds > (UINT64_MAX / kOneMicrosecondInNanoseconds) ? UINT64_MAX
       : mMicroseconds * kOneMicrosecondInNanoseconds;
+}
+
+constexpr uint64_t Microseconds::getMicroseconds() const {
+  return mMicroseconds;
 }
 
 constexpr Nanoseconds::Nanoseconds()

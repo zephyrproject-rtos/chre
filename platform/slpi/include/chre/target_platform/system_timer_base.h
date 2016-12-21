@@ -14,33 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_
-#define CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_
+#ifndef CHRE_PLATFORM_SLPI_SYSTEM_TIMER_BASE_H_
+#define CHRE_PLATFORM_SLPI_SYSTEM_TIMER_BASE_H_
 
-#include <signal.h>
-#include <time.h>
+extern "C" {
+
+// TODO: Investigate switching to utimer.h. The symbols are not currently
+// exported by the static image. I have tested a static image with utimer
+// symbols exported but an SLPI crash occurs when the callback is invoked.
+#include "timer.h"
+
+}  // extern "C"
 
 namespace chre {
 
-/**
- * The Linux base class for the SystemTimer. The Linux implementation uses a
- * POSIX timer.
- */
 class SystemTimerBase {
  public:
-  //! The timer id that is generated during the initialization phase.
-  timer_t mTimerId;
+  //! The underlying QURT timer.
+  timer_type mTimerHandle;
 
   //! Tracks whether the timer has been initialized correctly.
   bool mInitialized = false;
 
-  //! A static method that is invoked by the underlying POSIX timer.
-  static void systemTimerNotifyCallback(union sigval cookie);
-
-  //! A utility function to set a POSIX timer.
-  bool setInternal(uint64_t delayNs);
+  //! A static method that is invoked by the underlying QURT timer.
+  static void systemTimerNotifyCallback(timer_cb_data_type data);
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_LINUX_SYSTEM_TIMER_BASE_H_
+#endif  // CHRE_PLATFORM_SLPI_SYSTEM_TIMER_BASE_H_

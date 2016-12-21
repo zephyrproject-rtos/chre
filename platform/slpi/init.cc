@@ -16,9 +16,17 @@
 
 #include <cinttypes>
 
+#include "qurt_timer.h"
+#include "chre/platform/system_timer.h"
+
 #include "chre/core/init.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
+#include "chre/util/time.h"
+
+void logCallback(void *data) {
+  LOGI("timer callback invoked");
+}
 
 /**
  * The main entry point to the SLPI CHRE runtime.
@@ -31,6 +39,18 @@ extern "C" int chre_init() {
 
   LOGI("SLPI CHRE initialized at time %" PRIu64,
        chre::SystemTime::getMonotonicTime().toRawNanoseconds());
+
+  chre::SystemTimer delayedLogTimer;
+  if (!delayedLogTimer.init()) {
+    LOGE("Failed to initialize timer");
+  } else if (
+      !delayedLogTimer.set(logCallback, nullptr, chre::Milliseconds(500))) {
+    LOGE("Failed to set timer");
+  } else {
+    LOGI("sleeping");
+    qurt_timer_sleep(5000000);
+    LOGI("done sleeping");
+  }
 
   return 0;
 }
