@@ -36,7 +36,8 @@ void EventLoop::run() {
     // events
     if (!havePendingEvents || !mEvents.empty()) {
       Event *event = mEvents.pop();
-      for (Nanoapp *app : mNanoapps) {
+      for (size_t i = 0; i < mNanoapps.size(); i++) {
+        Nanoapp *app = mNanoapps[i];
         if ((event->targetInstanceId == chre::kBroadcastInstanceId
                 && app->isRegisteredForBroadcastEvent(event->eventType))
               || event->targetInstanceId == app->getInstanceId()) {
@@ -53,7 +54,8 @@ void EventLoop::run() {
     // TODO: most basic round-robin implementation - we might want to have some
     // kind of priority in the future, but this should be good enough for now
     havePendingEvents = false;
-    for (Nanoapp *app : mNanoapps) {
+    for (size_t i = 0; i < mNanoapps.size(); i++) {
+      Nanoapp *app = mNanoapps[i];
       if (app->hasPendingEvent()) {
         mCurrentApp = app;  // TODO: cleaner way to set/clear this? RAII-style?
         Event *event = app->processNextEvent();
@@ -97,7 +99,7 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
 
   for (size_t i = 0; i < mNanoapps.size(); i++) {
     if (nanoapp == mNanoapps[i]) {
-      mNanoapps.erase(mNanoapps.begin() + i);
+      mNanoapps.erase(i);
 
       mCurrentApp = nanoapp;
       nanoapp->stop();
@@ -163,7 +165,8 @@ TimerPool& EventLoop::getTimerPool() {
 }
 
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
-  for (Nanoapp *app : mNanoapps) {
+  for (size_t i = 0; i < mNanoapps.size(); i++) {
+    Nanoapp *app = mNanoapps[i];
     if (app->getInstanceId() == instanceId) {
       return app;
     }

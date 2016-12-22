@@ -19,12 +19,12 @@
 
 // TODO: using std lib for initial test... we can't do this in the real world
 #include <atomic>
-#include <vector>
 
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
 #include "chre/core/timer_pool.h"
 #include "chre/util/blocking_queue.h"
+#include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/synchronized_memory_pool.h"
 
@@ -137,10 +137,12 @@ class EventLoop : public NonCopyable {
   //! The timer used schedule timed events for tasks running in this event loop.
   TimerPool mTimerPool;
 
-  // TODO: replace STL use with our own data structures
-  std::vector<Nanoapp*> mNanoapps;
+  //! The list of nanoapps managed by this event loop.
+  DynamicVector<Nanoapp*> mNanoapps;
 
-  BlockingQueue<Event*> mEvents;
+  //! The blocking queue of incoming events from the system that have not been
+  //!  distributed out to apps yet.
+  FixedSizeBlockingQueue<Event*, kMaxUnscheduledEventCount> mEvents;
 
   // TODO: we probably want our own atomic platform abstraction too
   std::atomic<bool> mRunning{false};
