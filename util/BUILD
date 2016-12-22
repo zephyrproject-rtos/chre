@@ -25,6 +25,8 @@ chre_cc_library(
         "include/chre/util/lock_guard_impl.h",
         "include/chre/util/memory_pool.h",
         "include/chre/util/memory_pool_impl.h",
+        "include/chre/util/priority_queue.h",
+        "include/chre/util/priority_queue_impl.h",
         "include/chre/util/synchronized_memory_pool.h",
         "include/chre/util/synchronized_memory_pool_impl.h",
         "include/chre/util/time.h",
@@ -101,6 +103,16 @@ gtest_cc_test(
     name = "lock_guard_test",
     srcs = [
         "tests/lock_guard_test.cc",
+    ],
+    deps = [
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "priority_queue_test",
+    srcs = [
+        "tests/priority_queue_test.cc",
     ],
     deps = [
         "//util",

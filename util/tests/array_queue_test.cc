@@ -3,9 +3,6 @@
 
 using chre::ArrayQueue;
 
-// TODO: do we need this? go/deathtest
-//typedef ArrayQueueTest ArrayQueueDeathTest;
-
 namespace {
 constexpr int kMaxTestCapacity = 10;
 int destructor_count[kMaxTestCapacity];
@@ -84,7 +81,7 @@ TEST(ArrayQueueTest, PushWhenFull) {
   EXPECT_FALSE(q.push(3));
 }
 
-TEST(ArrayQueueTest, FrontWhenEmpty) {
+TEST(ArrayQueueDeathTest, FrontWhenEmpty) {
   ArrayQueue<int, 4> q;
   EXPECT_DEATH(q.front(), "");
 }
@@ -98,7 +95,7 @@ TEST(ArrayQueueTest, TestFront) {
   EXPECT_EQ(2, q.front());
 }
 
-TEST(ArrayQueueTest, InvalidSubscript) {
+TEST(ArrayQueueDeathTest, InvalidSubscript) {
   ArrayQueue<int, 2> q;
   EXPECT_DEATH(q[0], "");
  }
