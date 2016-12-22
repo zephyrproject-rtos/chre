@@ -152,6 +152,15 @@ class DynamicVector : public NonCopyable {
    */
   void erase(size_t index);
 
+  /**
+   * Searches the vector for an element.
+   *
+   * @param element The element to comare against.
+   * @return The index of the element found. If the return is equal to size()
+   *         then the element was not found.
+   */
+  size_t find(const ElementType& element) const;
+
  private:
   //! A pointer to the underlying data buffer.
   ElementType *mData = nullptr;

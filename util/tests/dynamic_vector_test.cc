@@ -142,3 +142,20 @@ TEST(DynamicVector, PushBackAndErase) {
   ASSERT_EQ(vector.data()[2], 0xface);
   ASSERT_EQ(vector.size(), 3);
 }
+
+TEST(DynamicVector, FindEmpty) {
+  DynamicVector<int> vector;
+  ASSERT_EQ(vector.find(0), 0);
+}
+
+TEST(DynamicVector, FindWithElements) {
+  DynamicVector<int> vector;
+  ASSERT_TRUE(vector.push_back(0x1337));
+  ASSERT_TRUE(vector.push_back(0xcafe));
+  ASSERT_TRUE(vector.push_back(0xbeef));
+
+  ASSERT_EQ(vector.find(0x1337), 0);
+  ASSERT_EQ(vector.find(0xcafe), 1);
+  ASSERT_EQ(vector.find(0xbeef), 2);
+  ASSERT_EQ(vector.find(1000), 3);
+}

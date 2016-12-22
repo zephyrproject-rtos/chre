@@ -17,6 +17,7 @@
 #ifndef CHRE_UTIL_DYNAMIC_VECTOR_IMPL_H_
 #define CHRE_UTIL_DYNAMIC_VECTOR_IMPL_H_
 
+#include <algorithm>
 #include <utility>
 
 #include "chre/platform/assert.h"
@@ -159,6 +160,18 @@ void DynamicVector<ElementType>::erase(size_t index) {
 
     mData[mSize].~ElementType();
   }
+}
+
+template<typename ElementType>
+size_t DynamicVector<ElementType>::find(const ElementType& element) const {
+  // TODO: Consider adding iterator support and making this a free function.
+  for (size_t i = 0; i < size(); i++) {
+    if (mData[i] == element) {
+      return i;
+    }
+  }
+
+  return size();
 }
 
 template<typename ElementType>
