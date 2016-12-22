@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_UTIL_BLOCKING_QUEUE_H_
-#define CHRE_UTIL_BLOCKING_QUEUE_H_
+#ifndef CHRE_UTIL_FIXED_SIZE_BLOCKING_QUEUE_H_
+#define CHRE_UTIL_FIXED_SIZE_BLOCKING_QUEUE_H_
 
 #include <deque>
 
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
+#include "chre/util/array_queue.h"
 #include "chre/util/non_copyable.h"
 
 namespace chre {
@@ -29,8 +30,8 @@ namespace chre {
  * Implements a thread-safe blocking queue that blocks when popping an element
  * if necessary.
  */
-template <typename ElementType>
-class BlockingQueue : public NonCopyable {
+template <typename ElementType, size_t kSize>
+class FixedSizeBlockingQueue : public NonCopyable {
  public:
   /**
    * Pushes an element into the queue and notifies any waiting threads that an
@@ -61,12 +62,12 @@ class BlockingQueue : public NonCopyable {
   //! queue.
   ConditionVariable mConditionVariable;
 
-  // TODO: Remove this when a non-STL version becomes available.
-  std::deque<ElementType> mQueue;
+  //! The underlying fixed size container backing the queue.
+  ArrayQueue<ElementType, kSize> mQueue;
 };
 
 }  // namespace chre
 
-#include "chre/util/blocking_queue_impl.h"
+#include "chre/util/fixed_size_blocking_queue_impl.h"
 
-#endif  // CHRE_UTIL_BLOCKING_QUEUE_H_
+#endif  // CHRE_UTIL_FIXED_SIZE_BLOCKING_QUEUE_H_

@@ -16,17 +16,17 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/util/blocking_queue.h"
+#include "chre/util/fixed_size_blocking_queue.h"
 
-using chre::BlockingQueue;
+using chre::FixedSizeBlockingQueue;
 
-TEST(BlockingQueue, IsEmptyByDefault) {
-  BlockingQueue<int> blockingQueue;
+TEST(FixedSizeBlockingQueue, IsEmptyByDefault) {
+  FixedSizeBlockingQueue<int, 16> blockingQueue;
   ASSERT_TRUE(blockingQueue.empty());
 }
 
-TEST(BlockingQueue, PushPopVerifyOrder) {
-  BlockingQueue<int> blockingQueue;
+TEST(FixedSizeBlockingQueue, PushPopVerifyOrder) {
+  FixedSizeBlockingQueue<int, 16> blockingQueue;
 
   blockingQueue.push(0x1337);
   blockingQueue.push(0xcafe);

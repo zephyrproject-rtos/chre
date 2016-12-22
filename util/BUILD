@@ -12,11 +12,11 @@ chre_cc_library(
     hdrs = [
         "include/chre/util/array_queue.h",
         "include/chre/util/array_queue_impl.h",
-        "include/chre/util/blocking_queue.h",
-        "include/chre/util/blocking_queue_impl.h",
         "include/chre/util/dynamic_vector.h",
         "include/chre/util/dynamic_vector_impl.h",
         "include/chre/util/entry_points.h",
+        "include/chre/util/fixed_size_blocking_queue.h",
+        "include/chre/util/fixed_size_blocking_queue_impl.h",
         "include/chre/util/fixed_size_vector.h",
         "include/chre/util/fixed_size_vector_impl.h",
         "include/chre/util/id_from_string.h",

@@ -62,6 +62,7 @@ chre_cc_library(
     ],
     deps = [
         "//core:event",
+        "//platform:fatal_error",
         "//platform:platform_nanoapp",
         "//util:util",
     ],

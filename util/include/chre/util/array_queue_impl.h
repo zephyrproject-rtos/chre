@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_ARRAY_QUEUE_IMPL_H_
 #define CHRE_UTIL_ARRAY_QUEUE_IMPL_H_
 
+#include <utility>
+
 #include "chre/platform/assert.h"
 #include "chre/util/array_queue.h"
 

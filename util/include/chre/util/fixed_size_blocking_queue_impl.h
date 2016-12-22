@@ -14,37 +14,38 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_UTIL_BLOCKING_QUEUE_IMPL_H_
-#define CHRE_UTIL_BLOCKING_QUEUE_IMPL_H_
+#ifndef CHRE_UTIL_FIXED_SIZE_BLOCKING_QUEUE_IMPL_H_
+#define CHRE_UTIL_FIXED_SIZE_BLOCKING_QUEUE_IMPL_H_
 
-#include "chre/util/blocking_queue.h"
+#include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
 
-template<typename ElementType>
-void BlockingQueue<ElementType>::push(const ElementType& element) {
+template<typename ElementType, size_t kSize>
+void FixedSizeBlockingQueue<ElementType, kSize>::push(
+    const ElementType& element) {
   {
     LockGuard<Mutex> lock(mMutex);
-    mQueue.push_back(element);
+    mQueue.push(element);
   }
   mConditionVariable.notify_one();
 }
 
-template<typename ElementType>
-ElementType BlockingQueue<ElementType>::pop() {
+template<typename ElementType, size_t kSize>
+ElementType FixedSizeBlockingQueue<ElementType, kSize>::pop() {
   LockGuard<Mutex> lock(mMutex);
   while (mQueue.empty()) {
     mConditionVariable.wait(mMutex);
   }
 
   ElementType element(std::move(mQueue.front()));
-  mQueue.pop_front();
+  mQueue.pop();
   return element;
 }
 
-template<typename ElementType>
-bool BlockingQueue<ElementType>::empty() {
+template<typename ElementType, size_t kSize>
+bool FixedSizeBlockingQueue<ElementType, kSize>::empty() {
   LockGuard<Mutex> lock(mMutex);
   return mQueue.empty();
 }
