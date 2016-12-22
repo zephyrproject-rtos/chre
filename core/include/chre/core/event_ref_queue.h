@@ -19,8 +19,7 @@
 
 #include "chre/core/event.h"
 #include "chre/platform/assert.h"
-
-#include <deque>
+#include "chre/util/array_queue.h"
 
 namespace chre {
 
@@ -37,24 +36,30 @@ class EventRefQueue {
   bool push(Event *event) {
     CHRE_ASSERT(event != nullptr);
 
-    mQueue.push_back(event);
-    event->incrementRefCount();
+    bool pushed = mQueue.push(event);
+    if (pushed) {
+      event->incrementRefCount();
+    }
 
-    return true;
+    return pushed;
   }
 
   Event *pop() {
     CHRE_ASSERT(!mQueue.empty());
 
     Event *event = mQueue.front();
-    mQueue.pop_front();
+    mQueue.pop();
     event->decrementRefCount();
 
     return event;
   }
 
  private:
-  std::deque<Event*> mQueue;
+  //! The maximum number of events that can be outstanding for an app.
+  static constexpr size_t kMaxPendingEvents = 16;
+
+  //! The queue of incoming events.
+  ArrayQueue<Event *, kMaxPendingEvents> mQueue;
 };
 
 }  // namespace chre
