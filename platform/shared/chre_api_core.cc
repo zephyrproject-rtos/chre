@@ -19,15 +19,12 @@
  * Implementation of core CHRE functionality, i.e. events, memory, etc.
  */
 
+#include <cstdarg>
 #include <cstring>
 
 #include "chre_api/chre/event.h"
 #include "chre_api/chre/re.h"
 
-#include "chre/core/event.h"
-#include "chre/core/nanoapp.h"
-#include "chre/core/event_loop.h"
-#include "chre/platform/context.h"
 #include "chre/platform/log.h"
 
 bool chreSendEvent(uint16_t eventType, void *eventData,

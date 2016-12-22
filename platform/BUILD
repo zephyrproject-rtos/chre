@@ -26,9 +26,9 @@ LINUX_PLATFORM_HDRS = [
 ]
 
 LINUX_PLATFORM_SRCS = [
-    "linux/chre_api_core.cc",
     "linux/chre_api_re.cc",
     "linux/system_time.cc",
+    "shared/chre_api_core.cc",
     "shared/chre_api_re.cc",
     "shared/chre_api_version.cc",
     "shared/system_time.cc",
