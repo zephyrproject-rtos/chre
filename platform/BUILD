@@ -154,7 +154,7 @@ LINUX_PLATFORM_NANOAPP_ENTRY_HDRS = [
 ]
 
 LINUX_PLATFORM_NANOAPP_ENTRY_SRCS = [
-    "linux/platform_nanoapp.cc",
+    "shared/platform_nanoapp.cc",
 ]
 
 chre_cc_library(
