@@ -18,12 +18,11 @@
 #define CHRE_CORE_NANOAPP_H_
 
 #include <cinttypes>
-#include <deque>
-#include <set>
 
 #include "chre/core/event.h"
 #include "chre/core/event_ref_queue.h"
 #include "chre/platform/platform_nanoapp.h"
+#include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 
 namespace chre {
@@ -53,6 +52,7 @@ class Nanoapp : public NonCopyable {
   /**
    * Updates the Nanoapp's registration so that it will receive broadcast events
    * with the given event ID.
+   *
    * @return true if event is newly registered
    */
   bool registerForBroadcastEvent(uint16_t eventId);
@@ -91,7 +91,12 @@ class Nanoapp : public NonCopyable {
   const uint64_t mAppId = 0;
   const uint32_t mInstanceId;
   PlatformNanoapp * const mPlatformNanoapp;
-  std::set<uint16_t> mRegisteredEvents;
+
+  //! The set of broadcast events that this app is registered for.
+  // TODO: Implement a set container and replace DynamicVector here. There may
+  // also be a better way of handling this (perhaps we map event type to apps
+  // who care about them).
+  DynamicVector<uint16_t> mRegisteredEvents;
 
   EventRefQueue mEventQueue;
 };

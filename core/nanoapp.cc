@@ -17,6 +17,7 @@
 #include "chre/core/nanoapp.h"
 
 #include "chre/platform/assert.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
 namespace chre {
@@ -25,12 +26,19 @@ Nanoapp::Nanoapp(uint32_t instanceId, PlatformNanoapp *platformNanoapp)
     : mInstanceId(instanceId), mPlatformNanoapp(platformNanoapp) {}
 
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
-  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.end());
+  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
 }
 
 bool Nanoapp::registerForBroadcastEvent(uint16_t eventId) {
-  auto result = mRegisteredEvents.insert(eventId);
-  return result.second;
+  if (isRegisteredForBroadcastEvent(eventId)) {
+    return false;
+  }
+
+  if (!mRegisteredEvents.push_back(eventId)) {
+    FATAL_ERROR("App failed to register for event. Out of memory.");
+  }
+
+  return true;
 }
 
 uint64_t Nanoapp::getAppId() const {

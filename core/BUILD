@@ -63,5 +63,6 @@ chre_cc_library(
     deps = [
         "//core:event",
         "//platform:platform_nanoapp",
+        "//util:util",
     ],
 )
