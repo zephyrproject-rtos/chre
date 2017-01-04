@@ -143,9 +143,10 @@ class DynamicVector : public NonCopyable {
   bool insert(size_t index, const ElementType& element);
 
   /**
-   * Removes an element from the vector given an index. All elements are moved
-   * forward one position. The destructor is invoked. The index passed in must
-   * be less than the size() of the vector. If the index is greater than or
+   * Removes an element from the vector given an index. All elements after the
+   * indexed one are moved forward one position. The destructor is invoked on
+   * on the invalid item left at the end of the vector. The index passed in
+   * must be less than the size() of the vector. If the index is greater than or
    * equal to the size no operation is performed.
    *
    * @param index The index to remove an element at.
@@ -160,6 +161,16 @@ class DynamicVector : public NonCopyable {
    *         then the element was not found.
    */
   size_t find(const ElementType& element) const;
+
+  /**
+   * Swaps the location of two elements stored in the vector. The indices
+   * passed in must be less than the size() of the vector. If the index is
+   * greater than or equal to the size, no operation is performed.
+   *
+   * @param index0 The index of the first element
+   * @param index1 The index of the second element
+   */
+  void swap(size_t index0, size_t index1);
 
  private:
   //! A pointer to the underlying data buffer.

@@ -20,6 +20,26 @@
 
 using chre::DynamicVector;
 
+namespace {
+constexpr int kMaxTestCapacity = 10;
+int destructor_count[kMaxTestCapacity];
+
+class Dummy {
+ public:
+  ~Dummy() {
+    if (mValue >= 0) {
+      destructor_count[mValue]++;
+    }
+  };
+  void setValue(int value) {
+    mValue = value;
+  }
+
+ private:
+  int mValue = -1;
+};
+}
+
 TEST(DynamicVector, EmptyByDefault) {
   DynamicVector<int> vector;
   ASSERT_EQ(vector.data(), nullptr);
@@ -158,4 +178,57 @@ TEST(DynamicVector, FindWithElements) {
   ASSERT_EQ(vector.find(0xcafe), 1);
   ASSERT_EQ(vector.find(0xbeef), 2);
   ASSERT_EQ(vector.find(1000), 3);
+}
+
+TEST(FixedSizeVector, EraseDestructorCalled) {
+  DynamicVector<Dummy> vector;
+  for (size_t i = 0; i < 4; ++i) {
+    vector.push_back(Dummy());
+    vector[i].setValue(i);
+  }
+
+  // last item before erase is '3'.
+  vector.erase(1);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(0, destructor_count[2]);
+  EXPECT_EQ(1, destructor_count[3]);
+
+  // last item before erase is still '3'.
+  vector.erase(2);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(0, destructor_count[2]);
+  EXPECT_EQ(2, destructor_count[3]);
+
+  // last item before erase is now '2'.
+  vector.erase(0);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(1, destructor_count[2]);
+  EXPECT_EQ(2, destructor_count[3]);
+}
+
+TEST(DynamicVectorDeathTest, SwapWithInvalidIndex) {
+  DynamicVector<int> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+  EXPECT_DEATH(vector.swap(0, 2), "");
+}
+
+TEST(DynamicVectorDeathTest, SwapWithInvalidIndices) {
+  DynamicVector<int> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+  EXPECT_DEATH(vector.swap(2, 3), "");
+}
+
+TEST(DynamicVector, Swap) {
+  DynamicVector<int> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+
+  vector.swap(0, 1);
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector[1], 0x1337);
 }

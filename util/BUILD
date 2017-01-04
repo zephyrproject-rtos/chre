@@ -19,6 +19,8 @@ chre_cc_library(
         "include/chre/util/fixed_size_blocking_queue_impl.h",
         "include/chre/util/fixed_size_vector.h",
         "include/chre/util/fixed_size_vector_impl.h",
+        "include/chre/util/heap.h",
+        "include/chre/util/heap_impl.h",
         "include/chre/util/id_from_string.h",
         "include/chre/util/id_from_string_impl.h",
         "include/chre/util/lock_guard.h",
@@ -113,6 +115,16 @@ gtest_cc_test(
     name = "priority_queue_test",
     srcs = [
         "tests/priority_queue_test.cc",
+    ],
+    deps = [
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "heap_test",
+    srcs = [
+        "tests/heap_test.cc",
     ],
     deps = [
         "//util",

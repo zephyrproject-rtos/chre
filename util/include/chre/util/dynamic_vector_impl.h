@@ -175,6 +175,14 @@ size_t DynamicVector<ElementType>::find(const ElementType& element) const {
 }
 
 template<typename ElementType>
+void DynamicVector<ElementType>::swap(size_t index0, size_t index1) {
+  CHRE_ASSERT(index0 < mSize && index1 < mSize);
+  ElementType temp = std::move(mData[index0]);
+  mData[index0] = std::move(mData[index1]);
+  mData[index1] = std::move(temp);
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
   bool spaceAvailable = true;
   if (mSize == mCapacity) {

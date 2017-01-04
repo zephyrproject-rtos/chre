@@ -111,6 +111,27 @@ class FixedSizeVector : public NonCopyable {
    */
   const ElementType& operator[](size_t index) const;
 
+  /**
+   * Removes an element from the vector given an index. All elements after the
+   * indexed one are moved forward one position. The destructor is invoked on
+   * on the invalid item left at the end of the vector. The index passed in
+   * must be less than the size() of the vector. If the index is greater than or
+   * equal to the size no operation is performed.
+   *
+   * @param index The index to remove an element at.
+   */
+  void erase(size_t index);
+
+  /**
+   * Swaps the location of two elements stored in the vector. The indices
+   * passed in must be less than the size() of the vector. If the index is
+   * greater than or equal to the size, no operation is performed.
+   *
+   * @param index0 The index of the first element
+   * @param index1 The index of the second element
+   */
+  void swap(size_t index0, size_t index1);
+
  private:
   //! Storage for vector elements. To avoid static initialization of members,
   //! std::aligned_storage is used.

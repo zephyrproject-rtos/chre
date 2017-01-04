@@ -92,6 +92,28 @@ const ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
   return data()[index];
 }
 
+template<typename ElementType, size_t kCapacity>
+void FixedSizeVector<ElementType, kCapacity>::erase(size_t index) {
+  CHRE_ASSERT(index < mSize);
+  if (index < mSize) {
+    mSize--;
+    for (size_t i = index; i < mSize; i++) {
+      data()[i] = std::move(data()[i + 1]);
+    }
+
+    data()[mSize].~ElementType();
+  }
+}
+
+template<typename ElementType, size_t kCapacity>
+void FixedSizeVector<ElementType, kCapacity>::swap(size_t index0,
+                                                   size_t index1) {
+  CHRE_ASSERT(index0 < mSize && index1 < mSize);
+  ElementType temp = std::move(data()[index0]);
+  data()[index0] = std::move(data()[index1]);
+  data()[index1] = std::move(temp);
+}
+
 }  // namespace chre
 
 #endif  // CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_

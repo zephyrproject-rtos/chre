@@ -20,6 +20,26 @@
 
 using chre::FixedSizeVector;
 
+namespace {
+constexpr int kMaxTestCapacity = 10;
+int destructor_count[kMaxTestCapacity];
+
+class Foo {
+ public:
+  ~Foo() {
+    if (mValue >= 0) {
+      destructor_count[mValue]++;
+    }
+  };
+  void setValue(int value) {
+    mValue = value;
+  }
+
+ private:
+  int mValue = -1;
+};
+}
+
 TEST(FixedSizeVector, EmptyWithCapacityWithDefault) {
   FixedSizeVector<int, 8> testVector;
   ASSERT_NE(testVector.data(), nullptr);
@@ -60,4 +80,74 @@ TEST(FixedSizeVector, PushBackUntilFullAndRead) {
   ASSERT_EQ(testVector.data()[1], 2000);
   ASSERT_EQ(testVector.data()[2], 3000);
   ASSERT_EQ(testVector.data()[3], 4000);
+}
+
+TEST(FixedSizeVector, PushBackAndErase) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+  vector.push_back(0xbeef);
+  vector.push_back(0xface);
+
+  vector.erase(1);
+  ASSERT_EQ(vector[0], 0x1337);
+  ASSERT_EQ(vector.data()[0], 0x1337);
+  ASSERT_EQ(vector[1], 0xbeef);
+  ASSERT_EQ(vector.data()[1], 0xbeef);
+  ASSERT_EQ(vector[2], 0xface);
+  ASSERT_EQ(vector.data()[2], 0xface);
+  ASSERT_EQ(vector.size(), 3);
+}
+
+TEST(FixedSizeVector, EraseDestructorCalled) {
+  FixedSizeVector<Foo, 4> vector;
+  for (size_t i = 0; i < 4; ++i) {
+    vector.push_back(Foo());
+    vector[i].setValue(i);
+  }
+
+  // last item before erase is '3'.
+  vector.erase(1);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(0, destructor_count[2]);
+  EXPECT_EQ(1, destructor_count[3]);
+
+  // last item before erase is still '3'.
+  vector.erase(2);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(0, destructor_count[2]);
+  EXPECT_EQ(2, destructor_count[3]);
+
+  // last item before erase is now '2'.
+  vector.erase(0);
+  EXPECT_EQ(0, destructor_count[0]);
+  EXPECT_EQ(0, destructor_count[1]);
+  EXPECT_EQ(1, destructor_count[2]);
+  EXPECT_EQ(2, destructor_count[3]);
+}
+
+TEST(FixedSizeVectorDeathTest, SwapWithInvalidIndex) {
+  FixedSizeVector<int, 4> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+  EXPECT_DEATH(vector.swap(0, 2), "");
+}
+
+TEST(FixedSizeVectorDeathTest, SwapWithInvalidIndices) {
+  FixedSizeVector<int, 4> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+  EXPECT_DEATH(vector.swap(2, 3), "");
+}
+
+TEST(FixedSizeVector, Swap) {
+  FixedSizeVector<int, 4> vector;
+  vector.push_back(0x1337);
+  vector.push_back(0xcafe);
+
+  vector.swap(0, 1);
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector[1], 0x1337);
 }
