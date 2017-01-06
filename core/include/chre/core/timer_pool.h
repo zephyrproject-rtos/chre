@@ -21,7 +21,7 @@
 
 #include "chre/platform/mutex.h"
 #include "chre/platform/system_timer.h"
-#include "chre/util/dynamic_vector.h"
+#include "chre/util/priority_queue.h"
 
 namespace chre {
 
@@ -98,6 +98,15 @@ class TimerPool {
 
     //! The cookie pointer to be passed as an event to the requesting nanoapp.
     const void *cookie;
+
+    /**
+     * Provides a greater than comparison of TimerRequests.
+     *
+     * @param request The other request to compare against.
+     * @return Returns true if this request is greater than the provided
+     *         request.
+     */
+    bool operator>(const TimerRequest& request) const;
   };
 
   //! The mutex used to lock the shared data structures below. The
@@ -113,9 +122,8 @@ class TimerPool {
   //! The event loop that owns this timer pool.
   EventLoop& mEventLoop;
 
-  //! The list of outstanding timer requests.
-  //TODO: Make this a priority queue.
-  DynamicVector<TimerRequest> mTimerRequests;
+  //! The queue of outstanding timer requests.
+  PriorityQueue<TimerRequest, std::greater<TimerRequest>> mTimerRequests;
 
   //! The underlying system timer used to schedule delayed callbacks.
   SystemTimer mSystemTimer;
@@ -163,9 +171,8 @@ class TimerPool {
    * closest expiration time is at the front of the list.
    *
    * @param timerRequest The timer request being inserted into the list.
-   * @return The index at which the request was inserted.
    */
-   size_t insertTimerRequest(const TimerRequest& timerRequest);
+   void insertTimerRequest(const TimerRequest& timerRequest);
 
    /**
     * Handles a completion callback for a timer by scheduling the next timer if

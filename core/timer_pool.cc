@@ -41,20 +41,23 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
   timerRequest.duration = duration;
   timerRequest.isOneShot = isOneShot;
   timerRequest.cookie = cookie;
-  size_t insertionIndex = insertTimerRequest(timerRequest);
 
-  LOGI("App %" PRIx64 " requested timer with duration %" PRIu64 "ns",
+  bool newTimerExpiresEarliest =
+      (!mTimerRequests.empty() && mTimerRequests.top() > timerRequest);
+  insertTimerRequest(timerRequest);
+
+  LOGD("App %" PRIx64 " requested timer with duration %" PRIu64 "ns",
       nanoapp->getAppId(), duration.toRawNanoseconds());
 
-  // The newly created timer has the earliest expiration time. We cancel the
-  // current timer and schedule the first timer. This also handles the case of a
-  // currently idle system timer.
-  if (insertionIndex == 0) {
+  if (newTimerExpiresEarliest) {
     if (mSystemTimer.isActive()) {
       mSystemTimer.cancel();
     }
 
     mSystemTimer.set(handleSystemTimerCallback, this, duration);
+  } else if (mTimerRequests.size() == 1) {
+    // If this timer request was the first, schedule it.
+    handleExpiredTimersAndScheduleNext();
   }
 
   return timerRequest.timerHandle;
@@ -76,7 +79,7 @@ bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
          timerHandle);
   } else {
     TimerHandle cancelledTimerHandle = timerRequest->timerHandle;
-    mTimerRequests.erase(index);
+    mTimerRequests.remove(index);
     if (index == 0) {
       if (mSystemTimer.isActive()) {
         mSystemTimer.cancel();
@@ -105,6 +108,10 @@ TimerPool::TimerRequest *TimerPool::getTimerRequestByTimerHandle(
   }
 
   return nullptr;
+}
+
+bool TimerPool::TimerRequest::operator>(const TimerRequest& request) const {
+  return (expirationTime > request.expirationTime);
 }
 
 TimerHandle TimerPool::generateTimerHandle() {
@@ -138,26 +145,11 @@ TimerHandle TimerPool::generateUniqueTimerHandle() {
   }
 }
 
-size_t TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
-  // Try to insert the timer request into the list by iterating through all but
-  // the last request.
-  size_t insertionIndex = mTimerRequests.size();
-
-  if (mTimerRequests.size() > 0) {
-    for (size_t i = 0; i < mTimerRequests.size() - 1; i++) {
-      if (timerRequest.expirationTime >= mTimerRequests[i].expirationTime
-          && timerRequest.expirationTime < mTimerRequests[i + 1].expirationTime) {
-        insertionIndex = i;
-        break;
-      }
-    }
-  }
-
+void TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
   // If the timer request was not inserted, simply append it to the list.
-  if (!mTimerRequests.insert(insertionIndex, timerRequest)) {
-    FATAL_ERROR("Failed to insert a timer request. Out of memory");
+  if (!mTimerRequests.push(timerRequest)) {
+    FATAL_ERROR("Failed to insert a timer request: out of memory");
   }
-  return insertionIndex;
 }
 
 void TimerPool::onSystemTimerCallback() {
@@ -173,26 +165,26 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
   bool eventWasPosted = false;
   while (!mTimerRequests.empty()) {
     Nanoseconds currentTime = SystemTime::getMonotonicTime();
-    if (currentTime >= mTimerRequests[0].expirationTime) {
+    TimerRequest& currentTimerRequest = mTimerRequests.top();
+    if (currentTime >= currentTimerRequest.expirationTime) {
       // Post an event for an expired timer.
-      TimerRequest *currentTimerRequest = &mTimerRequests[0];
       mEventLoop.postEvent(CHRE_EVENT_TIMER,
-          const_cast<void *>(currentTimerRequest->cookie), nullptr,
+          const_cast<void *>(currentTimerRequest.cookie), nullptr,
           kSystemInstanceId,
-          currentTimerRequest->requestingNanoapp->getInstanceId());
+          currentTimerRequest.requestingNanoapp->getInstanceId());
       eventWasPosted = true;
 
       // Reschedule the timer if needed.
-      if (!currentTimerRequest->isOneShot) {
-        currentTimerRequest->expirationTime = currentTime
-            + currentTimerRequest->duration;
-        insertTimerRequest(*currentTimerRequest);
+      if (!currentTimerRequest.isOneShot) {
+        currentTimerRequest.expirationTime = currentTime
+            + currentTimerRequest.duration;
+        insertTimerRequest(currentTimerRequest);
       }
 
       // Release the current request.
-      mTimerRequests.erase(0);
+      mTimerRequests.pop();
     } else {
-      Nanoseconds duration = mTimerRequests[0].expirationTime - currentTime;
+      Nanoseconds duration = currentTimerRequest.expirationTime - currentTime;
       mSystemTimer.set(handleSystemTimerCallback, this, duration);
       break;
     }
