@@ -21,6 +21,7 @@
 
 #include "chre/platform/assert.h"
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/heap.h"
 
 namespace chre {
 
@@ -50,8 +51,7 @@ template<typename ElementType, typename CompareType>
 bool PriorityQueue<ElementType, CompareType>::push(const ElementType& element) {
   bool success = mData.push_back(element);
   if (success) {
-    // TODO: replace by push_heap()
-    arrangeQueue();
+    push_heap(mData, mCompare);
   }
   return success;
 }
@@ -61,8 +61,7 @@ template<typename... Args>
 bool PriorityQueue<ElementType, CompareType>::emplace(Args&&... args) {
   bool success = mData.emplace_back(args...);
   if (success) {
-    // TODO: replace by push_heap()
-    arrangeQueue();
+    push_heap(mData, mCompare);
   }
   return success;
 }
@@ -90,35 +89,23 @@ const ElementType& PriorityQueue<ElementType, CompareType>::top() const {
 template<typename ElementType, typename CompareType>
 void PriorityQueue<ElementType, CompareType>::pop() {
   if (mData.size() > 0) {
-    // TODO: replace by pop_heap() & mData.erase(mData.size() - 1)
-    remove(0);
+    pop_heap(mData, mCompare);
+    mData.erase(mData.size() - 1);
   }
 }
 
 template<typename ElementType, typename CompareType>
 void PriorityQueue<ElementType, CompareType>::remove(size_t index) {
-  // TODO: replace by erase_heap(index) & mData.erase(mData.size() - 1)
-  mData.erase(index);
+  CHRE_ASSERT(index < mData.size());
+  if (index < mData.size()) {
+    remove_heap(mData, index, mCompare);
+    mData.erase(mData.size() - 1);
+  }
 
   // TODO: consider resizing the dynamic array to mData.capacity()/2
   // when mData.size() <= mData.capacity()/4.
 }
 
-template<typename ElementType, typename CompareType>
-void PriorityQueue<ElementType, CompareType>::arrangeQueue() {
-  // Search for the index where the newly added element should be,
-  // assuming that element is at the end of the dynamic vector.
-  for (size_t i = 0; i < mData.size() - 1; ++i) {
-    if (mCompare(mData[i], mData[mData.size() - 1])) {
-      // This is not the most efficient way even for a linear array,
-      // but just something to make it work till heap is ready.
-      ElementType e = mData[mData.size() - 1];
-      mData.erase(mData.size() - 1);
-      mData.insert(i, e);
-      break;
-    }
-  }
-}
 }  // namespace chre
 
 #endif  // CHRE_UTIL_PRIORITY_QUEUE_IMPL_H_

@@ -35,7 +35,7 @@ bool compareFunction(const DummyElement& left, const DummyElement& right) {
 
 class CompareClass {
  public:
-  bool operator() (const DummyElement& left, const DummyElement& right) {
+  bool operator() (const DummyElement& left, const DummyElement& right) const {
     return left.getValue() > right.getValue();
   }
 };

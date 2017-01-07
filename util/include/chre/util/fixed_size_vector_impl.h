@@ -109,9 +109,11 @@ template<typename ElementType, size_t kCapacity>
 void FixedSizeVector<ElementType, kCapacity>::swap(size_t index0,
                                                    size_t index1) {
   CHRE_ASSERT(index0 < mSize && index1 < mSize);
-  ElementType temp = std::move(data()[index0]);
-  data()[index0] = std::move(data()[index1]);
-  data()[index1] = std::move(temp);
+  if (index0 < mSize && index1 < mSize) {
+    ElementType temp = std::move(data()[index0]);
+    data()[index0] = std::move(data()[index1]);
+    data()[index1] = std::move(temp);
+  }
 }
 
 }  // namespace chre

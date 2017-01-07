@@ -147,12 +147,6 @@ class PriorityQueue : public NonCopyable {
 
   //! The comparator that is used to order the queue.
   CompareType mCompare;
-
-  /**
-   * Arranges the queue so the top element can be returned in O(1).
-   * This is a temporary helper function till heap is available.
-   */
-  void arrangeQueue();
 };
 
 }  // namespace chre
