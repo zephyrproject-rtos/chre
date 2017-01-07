@@ -21,6 +21,7 @@
 
 #include "chre/platform/mutex.h"
 #include "chre/platform/system_timer.h"
+#include "chre/util/non_copyable.h"
 #include "chre/util/priority_queue.h"
 
 namespace chre {
@@ -40,7 +41,7 @@ class EventLoop;
 /**
  * Tracks requests from CHRE apps for timed events.
  */
-class TimerPool {
+class TimerPool : public NonCopyable {
  public:
   /**
    * Sets up the timer instance initial conditions.
