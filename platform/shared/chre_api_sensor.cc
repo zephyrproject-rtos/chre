@@ -14,16 +14,9 @@
  * limitations under the License.
  */
 
-#include "chre/core/init.h"
+#include "chre_api/chre/sensor.h"
 
-#include "chre/platform/sensor_context.h"
-#include "chre/platform/system_time.h"
-
-namespace chre {
-
-void init() {
-  SystemTime::init();
-  SensorContext::init();
+bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
+  // TODO: Implement this function.
+  return false;
 }
-
-}  // namespace chre

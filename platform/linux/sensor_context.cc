@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-#include "chre/core/init.h"
-
 #include "chre/platform/sensor_context.h"
-#include "chre/platform/system_time.h"
 
 namespace chre {
 
-void init() {
-  SystemTime::init();
-  SensorContext::init();
+void SensorContext::init() {
+  // TODO: Implement this. Probably we would open some files provided to mock
+  // sensor data. Perhaps from command-line arguemnts.
 }
 
 }  // namespace chre

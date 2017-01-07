@@ -49,6 +49,7 @@ chre_cc_library(
     ],
     deps = [
         "//platform:platform",
+        "//platform:sensor_context",
     ],
 )
 

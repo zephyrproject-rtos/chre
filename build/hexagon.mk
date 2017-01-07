@@ -49,7 +49,9 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
 
 # Define CUST_H to allow including the customer header file.
 HEXAGON_CFLAGS += -DCUST_H

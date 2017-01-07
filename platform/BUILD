@@ -256,6 +256,34 @@ chre_cc_library(
 
 ################################################################################
 #
+# Platform Sensor Context
+#
+################################################################################
+
+LINUX_PLATFORM_SENSOR_CONTEXT_SRCS = [
+    "linux/sensor_context.cc",
+]
+
+chre_cc_library(
+    name = "sensor_context",
+    hdrs = [
+        "include/chre/platform/sensor_context.h",
+    ],
+    srcs = select({
+        "//:platform_linux" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
+    }),
+    includes = select({
+        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
+        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+    }),
+    deps = [
+        "//util:util",
+    ],
+)
+
+################################################################################
+#
 # Platform System Time
 #
 ################################################################################
@@ -281,8 +309,6 @@ chre_cc_library(
         "//util:util",
     ],
 )
-
-
 
 ################################################################################
 #

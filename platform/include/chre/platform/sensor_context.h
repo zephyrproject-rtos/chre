@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
-#include "chre/core/init.h"
+#ifndef CHRE_PLATFORM_SENSOR_CONTEXT_H_
+#define CHRE_PLATFORM_SENSOR_CONTEXT_H_
 
-#include "chre/platform/sensor_context.h"
-#include "chre/platform/system_time.h"
+#include "chre/util/non_copyable.h"
 
 namespace chre {
 
-void init() {
-  SystemTime::init();
-  SensorContext::init();
-}
+/**
+ * Provides a mechanism to interact with sensors provided by the platform. This
+ * includes requesting sensor data and querying available sensors.
+ */
+class SensorContext {
+ public:
+  /**
+   * Initializes the platform sensors subsystem. This must be called as part of
+   * the initialization of the runtime.
+   */
+  static void init();
+};
 
 }  // namespace chre
+
+#endif  // CHRE_PLATFORM_SENSOR_CONTEXT_H_
