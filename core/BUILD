@@ -54,6 +54,16 @@ chre_cc_library(
 )
 
 chre_cc_library(
+    name = "sensors",
+    hdrs = [
+        "include/chre/core/sensors.h",
+    ],
+    deps = [
+        "//chre_api:chre_api",
+    ],
+)
+
+chre_cc_library(
     name = "nanoapp",
     hdrs = [
         "include/chre/core/nanoapp.h",

@@ -18,17 +18,11 @@
 
 namespace chre {
 
-void SensorContext::init() {
-  // TODO: Implement this. Probably we would open some files provided to mock
-  // sensor data. Perhaps from command-line arguemnts.
-}
+PlatformSensor::PlatformSensor(SensorType sensorType)
+    : mSensorType(sensorType) {}
 
-bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
-  CHRE_ASSERT(sensors);
-
-  // TODO: Implement this. Perhaps look at all sensor trace files provided and
-  // return the list of sensor data available.
-  return false;
+SensorType PlatformSensor::getSensorType() {
+  return mSensorType;
 }
 
 }  // namespace chre

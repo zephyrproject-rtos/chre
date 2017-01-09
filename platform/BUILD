@@ -264,12 +264,21 @@ LINUX_PLATFORM_SENSOR_CONTEXT_SRCS = [
     "linux/sensor_context.cc",
 ]
 
+LINUX_PLATFORM_SENSOR_CONTEXT_HDRS = [
+    "linux/include/chre/target_platform/sensor_context_base.h",
+]
+
 chre_cc_library(
     name = "sensor_context",
     hdrs = [
         "include/chre/platform/sensor_context.h",
-    ],
-    srcs = select({
+    ] + select({
+        "//:platform_linux" : LINUX_PLATFORM_SENSOR_CONTEXT_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_SENSOR_CONTEXT_HDRS,
+    }),
+    srcs = [
+        "sensor_context.cc",
+    ] + select({
         "//:platform_linux" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
         "//conditions:default" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
     }),
@@ -278,6 +287,7 @@ chre_cc_library(
         "//conditions:default" : LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
+        "//core:sensors",
         "//util:util",
     ],
 )

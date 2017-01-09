@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-#include "chre/platform/sensor_context.h"
+#ifndef CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
+#define CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
 
 namespace chre {
 
-void SensorContext::init() {
-  // TODO: Implement this. Probably we would open some files provided to mock
-  // sensor data. Perhaps from command-line arguemnts.
-}
-
-bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
-  CHRE_ASSERT(sensors);
-
-  // TODO: Implement this. Perhaps look at all sensor trace files provided and
-  // return the list of sensor data available.
-  return false;
-}
+/**
+ * Storage for the Linux implementation of the PlatformSensor class.
+ */
+class PlatformSensorBase {
+ protected:
+};
 
 }  // namespace chre
+
+#endif  // CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
