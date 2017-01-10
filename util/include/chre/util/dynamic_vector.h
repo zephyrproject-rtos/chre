@@ -172,6 +172,22 @@ class DynamicVector : public NonCopyable {
    */
   void swap(size_t index0, size_t index1);
 
+  /**
+   * Returns a reference to the last element in the vector. It is illegal to
+   * call this on an empty vector.
+   *
+   * @return The last element in the vector.
+   */
+  ElementType& back();
+
+  /**
+   * Returns a const reference to the last element in the vector. It is illegal
+   * to call this on an empty vector.
+   *
+   * @return The last element in the vector.
+   */
+  const ElementType& back() const;
+
  private:
   //! A pointer to the underlying data buffer.
   ElementType *mData = nullptr;

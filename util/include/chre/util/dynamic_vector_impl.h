@@ -185,6 +185,18 @@ void DynamicVector<ElementType>::swap(size_t index0, size_t index1) {
 }
 
 template<typename ElementType>
+ElementType& DynamicVector<ElementType>::back() {
+  CHRE_ASSERT(mSize > 0);
+  return mData[mSize - 1];
+}
+
+template<typename ElementType>
+const ElementType& DynamicVector<ElementType>::back() const {
+  CHRE_ASSERT(mSize > 0);
+  return mData[mSize - 1];
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
   bool spaceAvailable = true;
   if (mSize == mCapacity) {

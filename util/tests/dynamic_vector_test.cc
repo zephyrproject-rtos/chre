@@ -180,7 +180,7 @@ TEST(DynamicVector, FindWithElements) {
   ASSERT_EQ(vector.find(1000), 3);
 }
 
-TEST(FixedSizeVector, EraseDestructorCalled) {
+TEST(DynamicVector, EraseDestructorCalled) {
   DynamicVector<Dummy> vector;
   for (size_t i = 0; i < 4; ++i) {
     vector.push_back(Dummy());
@@ -231,4 +231,12 @@ TEST(DynamicVector, Swap) {
   vector.swap(0, 1);
   EXPECT_EQ(vector[0], 0xcafe);
   EXPECT_EQ(vector[1], 0x1337);
+}
+
+TEST(DynamicVector, Back) {
+  DynamicVector<int> vector;
+  vector.push_back(0x1337);
+  EXPECT_EQ(vector.back(), 0x1337);
+  vector.push_back(0xcafe);
+  EXPECT_EQ(vector.back(), 0xcafe);
 }
