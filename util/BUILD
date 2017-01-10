@@ -35,6 +35,8 @@ chre_cc_library(
         "include/chre/util/synchronized_memory_pool_impl.h",
         "include/chre/util/time.h",
         "include/chre/util/time_impl.h",
+        "include/chre/util/unique_ptr.h",
+        "include/chre/util/unique_ptr_impl.h",
     ],
     deps = [
         "//platform:assert",
@@ -137,6 +139,16 @@ gtest_cc_test(
     name = "singleton_test",
     srcs = [
         "tests/singleton_test.cc",
+    ],
+    deps = [
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "unique_ptr_test",
+    srcs = [
+        "tests/unique_ptr_test.cc",
     ],
     deps = [
         "//util",
