@@ -18,6 +18,7 @@
 #include "chre/apps/timer_world/timer_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/log.h"
@@ -86,9 +87,7 @@ extern "C" int chre_init() {
   timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
   timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
 
-  gEventLoop = static_cast<chre::EventLoop *>(
-      chre::memoryAlloc(sizeof(chre::EventLoop)));
-  new (gEventLoop) chre::EventLoop();
+  gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
 
   // Start the hello world nanoapp.
   chre::Nanoapp helloWorldNanoapp(gEventLoop->getNextInstanceId(),

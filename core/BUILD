@@ -24,10 +24,12 @@ chre_cc_library(
     name = "event_loop",
     hdrs = [
         "include/chre/core/event_loop.h",
+        "include/chre/core/event_loop_manager.h",
         "include/chre/core/timer_pool.h",
     ],
     srcs = [
         "event_loop.cc",
+        "event_loop_manager.cc",
         "timer_pool.cc",
     ],
     deps = [

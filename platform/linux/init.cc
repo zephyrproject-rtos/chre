@@ -18,6 +18,7 @@
 #include "chre/apps/timer_world/timer_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/log.h"
@@ -31,24 +32,24 @@ using chre::Milliseconds;
 
 namespace {
 
-chre::EventLoop *gTaskRunner = nullptr;
+chre::EventLoop *gEventLoop = nullptr;
 
 void delayedEventCallback(void *data) {
   LOGI("Got a delayed event callback");
-  auto *runner = static_cast<chre::EventLoop *>(data);
-  runner->postEvent(1, nullptr, nullptr);
+  auto *eventLoop = static_cast<chre::EventLoop *>(data);
+  eventLoop->postEvent(1, nullptr, nullptr);
 }
 
 void timerCallback(void *data) {
   LOGI("Got timer callback");
-  auto *runner = static_cast<chre::EventLoop *>(data);
-  runner->stop();
+  auto *eventLoop = static_cast<chre::EventLoop *>(data);
+  eventLoop->stop();
 }
 
 extern "C" void signalHandler(int sig) {
   (void) sig;
   LOGI("Stop request received");
-  gTaskRunner->stop();
+  gEventLoop->stop();
 }
 
 }
@@ -57,8 +58,8 @@ namespace chre {
 
 EventLoop *getCurrentEventLoop() {
   // note: on a multi-threaded implementation, we would likely use thread-local
-  // storage here if available, or a map from thread ID --> taskrunner
-  return gTaskRunner;
+  // storage here if available, or a map from thread ID --> eventLoop
+  return gEventLoop;
 }
 
 }  // namespace chre
@@ -77,34 +78,34 @@ int main() {
   timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
 
   // Construct the event loop.
-  chre::EventLoop runner;
-  gTaskRunner = &runner;
+  gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
+  chre::EventLoop& eventLoop = *gEventLoop;
 
   // Start the hello world nanoapp.
-  chre::Nanoapp helloWorldNanoapp(runner.getNextInstanceId(),
+  chre::Nanoapp helloWorldNanoapp(eventLoop.getNextInstanceId(),
       &helloWorldPlatformNanoapp);
-  runner.startNanoapp(&helloWorldNanoapp);
+  eventLoop.startNanoapp(&helloWorldNanoapp);
   helloWorldNanoapp.registerForBroadcastEvent(1);
 
   // Start the timer nanoapp.
-  chre::Nanoapp timerWorldNanoapp(runner.getNextInstanceId(),
+  chre::Nanoapp timerWorldNanoapp(eventLoop.getNextInstanceId(),
       &timerWorldPlatformNanoapp);
-  runner.startNanoapp(&timerWorldNanoapp);
+  eventLoop.startNanoapp(&timerWorldNanoapp);
 
   // Send an event to all nanoapps.
-  runner.postEvent(1, nullptr, nullptr);
+  eventLoop.postEvent(1, nullptr, nullptr);
 
   chre::SystemTimer delayedEventTimer;
   chre::SystemTimer sysTimer;
   if (!delayedEventTimer.init() || !sysTimer.init()) {
     LOGE("Couldn't init timer");
   } else if (
-      !delayedEventTimer.set(delayedEventCallback, &runner, Milliseconds(500))
-          || !sysTimer.set(timerCallback, &runner, Milliseconds(1000))) {
+      !delayedEventTimer.set(delayedEventCallback, &eventLoop, Milliseconds(500))
+          || !sysTimer.set(timerCallback, &eventLoop, Milliseconds(1000))) {
     LOGE("Couldn't set timer");
   } else {
     std::signal(SIGINT, signalHandler);
-    runner.run();
+    eventLoop.run();
   }
 
   return 0;

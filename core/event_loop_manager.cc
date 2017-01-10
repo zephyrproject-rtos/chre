@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-#include "chre/core/init.h"
-
 #include "chre/core/event_loop_manager.h"
-#include "chre/platform/sensor_context.h"
-#include "chre/platform/system_time.h"
-#include "chre/util/singleton.h"
 
 namespace chre {
 
-void init() {
-  SystemTime::init();
-  SensorContext::init();
-  EventLoopManagerSingleton::init();
+EventLoop *EventLoopManager::createEventLoop() {
+  if (!mEventLoops.emplace_back()) {
+    return nullptr;
+  }
+
+  return mEventLoops.back().get();
 }
 
 }  // namespace chre
