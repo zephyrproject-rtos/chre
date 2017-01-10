@@ -65,6 +65,126 @@ TEST(DynamicVector, PushBackReserveAndRead) {
   ASSERT_EQ(vector.data()[1], 0xface);
 }
 
+class MovableButNonCopyable : public chre::NonCopyable {
+ public:
+  MovableButNonCopyable(int value) : mValue(value) {}
+
+  MovableButNonCopyable(MovableButNonCopyable&& other) {
+    mValue = other.mValue;
+  }
+
+  MovableButNonCopyable& operator=(MovableButNonCopyable&& other) {
+    mValue = other.mValue;
+    return *this;
+  }
+
+  int getValue() const {
+    return mValue;
+  }
+
+ private:
+  int mValue;
+};
+
+TEST(DynamicVector, PushBackReserveAndReadMovableButNonCopyable) {
+  DynamicVector<MovableButNonCopyable> vector;
+  ASSERT_TRUE(vector.emplace_back(0x1337));
+  ASSERT_TRUE(vector.emplace_back(0xface));
+  ASSERT_TRUE(vector.reserve(4));
+  EXPECT_EQ(vector[0].getValue(), 0x1337);
+  EXPECT_EQ(vector.data()[0].getValue(), 0x1337);
+  EXPECT_EQ(vector[1].getValue(), 0xface);
+  EXPECT_EQ(vector.data()[1].getValue(), 0xface);
+}
+
+class CopyableButNonMovable {
+ public:
+  CopyableButNonMovable(int value) : mValue(value) {}
+
+  CopyableButNonMovable(const CopyableButNonMovable& other) {
+    mValue = other.mValue;
+  }
+
+  CopyableButNonMovable(CopyableButNonMovable&& other) = delete;
+
+  CopyableButNonMovable& operator=(const CopyableButNonMovable& other) {
+    mValue = other.mValue;
+    return *this;
+  }
+
+  CopyableButNonMovable& operator=(CopyableButNonMovable&& other) = delete;
+
+  int getValue() const {
+    return mValue;
+  }
+
+ private:
+  int mValue;
+};
+
+TEST(DynamicVector, PushBackReserveAndReadCopyableButNonMovable) {
+  DynamicVector<CopyableButNonMovable> vector;
+  ASSERT_TRUE(vector.emplace_back(0xcafe));
+  ASSERT_TRUE(vector.emplace_back(0xface));
+  ASSERT_TRUE(vector.reserve(4));
+  EXPECT_EQ(vector[0].getValue(), 0xcafe);
+  EXPECT_EQ(vector.data()[0].getValue(), 0xcafe);
+  EXPECT_EQ(vector[1].getValue(), 0xface);
+  EXPECT_EQ(vector.data()[1].getValue(), 0xface);
+}
+
+class MovableAndCopyable {
+ public:
+  MovableAndCopyable(int value) : mValue(value) {}
+
+  MovableAndCopyable(const MovableAndCopyable& other) {
+    mValue = other.mValue;
+  }
+
+  MovableAndCopyable(MovableAndCopyable&& other) {
+    mValue = other.mValue;
+  }
+
+  MovableAndCopyable& operator=(const MovableAndCopyable& other) {
+    mValue = other.mValue;
+    return *this;
+  }
+
+  MovableAndCopyable& operator=(MovableAndCopyable&& other) {
+    // The move operation multiplies the value by 2 so that we can see that the
+    // move assignment operator was used.
+    mValue = other.mValue * 2;
+    return *this;
+  }
+
+  int getValue() const {
+    return mValue;
+  }
+
+ private:
+  int mValue;
+};
+
+TEST(DynamicVector, PushBackReserveAndReadMovableAndCopyable) {
+  // Ensure that preference is given to std::move.
+  DynamicVector<MovableAndCopyable> vector;
+
+  // Reserve enough space for the first two elements.
+  ASSERT_TRUE(vector.reserve(2));
+  ASSERT_TRUE(vector.emplace_back(1000));
+  ASSERT_TRUE(vector.emplace_back(2000));
+
+  // Reserve more than enough space causing a move to be required.
+  ASSERT_TRUE(vector.reserve(4));
+
+  // Move on this type results in a multiplication by 2. Verify that all
+  // elements have been multiplied by 2.
+  EXPECT_EQ(vector[0].getValue(), 2000);
+  EXPECT_EQ(vector.data()[0].getValue(), 2000);
+  EXPECT_EQ(vector[1].getValue(), 4000);
+  EXPECT_EQ(vector.data()[1].getValue(), 4000);
+}
+
 /**
  * A simple test helper object to count number of construction and destructions.
  */

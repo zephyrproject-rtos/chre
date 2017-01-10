@@ -101,6 +101,34 @@ const ElementType& DynamicVector<ElementType>::operator[](size_t index) const {
   return data()[index];
 }
 
+/**
+ *  Moves a range of data items. This is part of the template specialization for
+ *  when the underlying type is move-assignable.
+ *
+ *  @param data The beginning of the data to move.
+ *  @param count The number of data items to move.
+ *  @param newData The location to move these items to.
+ */
+template<typename ElementType>
+void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
+                std::true_type) {
+  std::move(data, data + count, newData);
+}
+
+/**
+ *  Copies a range of data items. This is part of the template specialization
+ *  for when the underlying type is not move-assignable.
+ *
+ *  @param data The beginning of the data to copy.
+ *  @param count The number of data items to copy.
+ *  @param newData The location to copy these items to.
+ */
+template<typename ElementType>
+void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
+                std::false_type) {
+  std::copy(data, data + count, newData);
+}
+
 template<typename ElementType>
 bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
   // If the new capacity is less than or equal to the current capacitywe can
@@ -115,7 +143,9 @@ bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
     return false;
   }
 
-  std::copy(mData, mData + mSize, newData);
+  moveOrCopy(mData, mSize, newData,
+             typename std::is_move_assignable<ElementType>::type());
+
   memoryFree(mData);
   mData = newData;
   mCapacity = newCapacity;
