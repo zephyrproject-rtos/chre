@@ -71,6 +71,11 @@ extern "C" int chre_init() {
     LOGE("Failed to obtain the list of platform sensors\n");
   }
 
+  for (size_t i = 0; i < sensors.size(); i++) {
+    LOGD("Found sensor %d (%s)", sensors[i].getSensorType(),
+         getSensorTypeName(sensors[i].getSensorType()));
+  }
+
   chre::PlatformNanoapp helloWorldPlatformNanoapp;
   helloWorldPlatformNanoapp.mStart = chre::app::helloWorldStart;
   helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;

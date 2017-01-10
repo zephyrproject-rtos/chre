@@ -40,7 +40,18 @@ enum class SensorType : uint8_t {
   Pressure         = CHRE_SENSOR_TYPE_PRESSURE,
   Light            = CHRE_SENSOR_TYPE_LIGHT,
   Proximity        = CHRE_SENSOR_TYPE_PROXIMITY,
+
+  // Note to future developers: don't forget to update the implementation of
+  // getSensorTypeName when adding a new entry here :) Have a nice day.
 };
+
+/**
+ * Returns a string representation of the given sensor type.
+ *
+ * @param sensorType The sensor type to obtain a string for.
+ * @return A string representation of the sensor type.
+ */
+const char *getSensorTypeName(SensorType sensorType);
 
 }  // namespace chre
 

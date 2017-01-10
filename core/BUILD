@@ -58,8 +58,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/core/sensors.h",
     ],
+    srcs = [
+        "sensors.cc",
+    ],
     deps = [
         "//chre_api:chre_api",
+        "//platform:assert",
     ],
 )
 
