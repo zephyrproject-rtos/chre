@@ -18,6 +18,7 @@
 #define CHRE_UTIL_PRIORITY_QUEUE_H_
 
 #include <cstddef>
+#include <functional>
 
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"

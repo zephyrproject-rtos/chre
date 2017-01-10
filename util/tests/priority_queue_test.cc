@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 #include "chre/util/priority_queue.h"
 
-#include <functional>
-
 using chre::PriorityQueue;
 
 namespace {
