@@ -29,6 +29,8 @@ chre_cc_library(
         "include/chre/util/memory_pool_impl.h",
         "include/chre/util/priority_queue.h",
         "include/chre/util/priority_queue_impl.h",
+        "include/chre/util/singleton.h",
+        "include/chre/util/singleton_impl.h",
         "include/chre/util/synchronized_memory_pool.h",
         "include/chre/util/synchronized_memory_pool_impl.h",
         "include/chre/util/time.h",
@@ -125,6 +127,16 @@ gtest_cc_test(
     name = "heap_test",
     srcs = [
         "tests/heap_test.cc",
+    ],
+    deps = [
+        "//util",
+    ],
+)
+
+gtest_cc_test(
+    name = "singleton_test",
+    srcs = [
+        "tests/singleton_test.cc",
     ],
     deps = [
         "//util",
