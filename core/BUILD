@@ -1,4 +1,5 @@
 load("//:chre.bzl", "chre_cc_library")
+load("//:chre.bzl", "gtest_cc_test")
 
 package(
     default_visibility = [
@@ -56,6 +57,18 @@ chre_cc_library(
 )
 
 chre_cc_library(
+    name = "request_multiplexer",
+    hdrs = [
+        "include/chre/core/request_multiplexer.h",
+        "include/chre/core/request_multiplexer_impl.h",
+    ],
+    deps = [
+        "//platform:assert",
+        "//util:util",
+    ],
+)
+
+chre_cc_library(
     name = "sensors",
     hdrs = [
         "include/chre/core/sensors.h",
@@ -82,5 +95,15 @@ chre_cc_library(
         "//platform:fatal_error",
         "//platform:platform_nanoapp",
         "//util:util",
+    ],
+)
+
+gtest_cc_test(
+    name = "request_multiplexer_test",
+    srcs = [
+        "tests/request_multiplexer_test.cc",
+    ],
+    deps = [
+        "//core:request_multiplexer",
     ],
 )
