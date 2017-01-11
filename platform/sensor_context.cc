@@ -25,4 +25,16 @@ SensorType PlatformSensor::getSensorType() {
   return mSensorType;
 }
 
+bool PlatformSensor::setRequest(const SensorRequest& request) {
+  bool configuredSuccessfully = true;
+  if (!mSensorRequest.isEquivalentTo(request)) {
+    configuredSuccessfully = updatePlatformSensorRequest(request);
+    if (configuredSuccessfully) {
+      mSensorRequest = request;
+    }
+  }
+
+  return configuredSuccessfully;
+}
+
 }  // namespace chre

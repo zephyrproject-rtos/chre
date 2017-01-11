@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#include "chre/core/sensors.h"
+#include <algorithm>
 
+#include "chre/core/sensors.h"
 #include "chre/platform/assert.h"
 
 namespace chre {
@@ -44,6 +45,64 @@ const char *getSensorTypeName(SensorType sensorType) {
       CHRE_ASSERT(false);
       return "";
   }
+}
+
+constexpr bool sensorModeIsActive(SensorMode sensorMode) {
+  return (sensorMode == SensorMode::ActiveContinuous
+      || sensorMode == SensorMode::ActiveOneShot);
+}
+
+SensorRequest::SensorRequest()
+    : SensorRequest(SensorMode::Off,
+                    Nanoseconds(0) /* interval */,
+                    Nanoseconds(0) /* latency */) {}
+
+SensorRequest::SensorRequest(SensorMode mode,
+                             Nanoseconds interval,
+                             Nanoseconds latency)
+    : mInterval(interval), mLatency(latency), mMode(mode) {}
+
+bool SensorRequest::isEquivalentTo(const SensorRequest& request) const {
+  return (mMode == request.mMode
+      && mInterval == request.mInterval
+      && mLatency == request.mLatency);
+}
+
+SensorRequest SensorRequest::generateIntersectionOf(
+    const SensorRequest& request) const {
+  SensorMode maximalSensorMode = SensorMode::Off;
+  Nanoseconds minimalInterval = std::min(mInterval, request.mInterval);
+  Nanoseconds minimalLatency = std::min(mLatency, request.mLatency);
+
+  // Compute the highest priority mode. Active continuous is the highest
+  // priority and passive one-shot is the lowest.
+  if (mMode == SensorMode::ActiveContinuous
+      || request.mMode == SensorMode::ActiveContinuous) {
+    maximalSensorMode = SensorMode::ActiveContinuous;
+  } else if (mMode == SensorMode::ActiveOneShot
+      || request.mMode == SensorMode::ActiveOneShot) {
+    maximalSensorMode = SensorMode::ActiveOneShot;
+  } else if (mMode == SensorMode::PassiveContinuous
+      || request.mMode == SensorMode::PassiveContinuous) {
+    maximalSensorMode = SensorMode::PassiveContinuous;
+  } else if (mMode == SensorMode::PassiveOneShot
+      || request.mMode == SensorMode::PassiveOneShot) {
+    maximalSensorMode = SensorMode::PassiveOneShot;
+  }
+
+  return SensorRequest(maximalSensorMode, minimalInterval, minimalLatency);
+}
+
+Nanoseconds SensorRequest::getInterval() const {
+  return mInterval;
+}
+
+Nanoseconds SensorRequest::getLatency() const {
+  return mLatency;
+}
+
+SensorMode SensorRequest::getMode() const {
+  return mMode;
 }
 
 }  // namespace chre

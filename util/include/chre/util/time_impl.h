@@ -68,6 +68,10 @@ constexpr uint64_t Nanoseconds::toRawNanoseconds() const {
   return mNanoseconds;
 }
 
+constexpr bool Nanoseconds::operator==(const Nanoseconds& nanos) const {
+  return (mNanoseconds == nanos.mNanoseconds);
+}
+
 constexpr Nanoseconds operator+(const Seconds& secs,
                                 const Nanoseconds& nanos) {
   return Nanoseconds(secs.toRawNanoseconds() + nanos.toRawNanoseconds());

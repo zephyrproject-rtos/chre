@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "chre_api/chre/sensor.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -52,6 +53,95 @@ enum class SensorType : uint8_t {
  * @return A string representation of the sensor type.
  */
 const char *getSensorTypeName(SensorType sensorType);
+
+/**
+ * This SensorMode is designed to wrap constants provided by the CHRE API to
+ * imrpove type-safety. The details of these modes are left to the CHRE API mode
+ * definitions contained in the chreSensorConfigureMode enum.
+ */
+enum class SensorMode : uint8_t {
+  Off               = CHRE_SENSOR_CONFIGURE_MODE_DONE,
+  ActiveContinuous  = CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
+  ActiveOneShot     = CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
+  PassiveContinuous = CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS,
+  PassiveOneShot    = CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_ONE_SHOT,
+};
+
+/**
+ * @return Returns true if the sensor mode is considered to be active and would
+ * cause a sensor to be powered on in order to get sensor data.
+ */
+constexpr bool sensorModeIsActive(SensorMode sensorMode);
+
+/**
+ * Models a request for sensor data. This class implements the API set forth by
+ * the RequestMultiplexer container.
+ */
+class SensorRequest {
+ public:
+  /**
+   * Default constructs a sensor request to the minimal possible configuration.
+   * The sensor is disabled and the interval and latency are both set to zero.
+   */
+  SensorRequest();
+
+  /**
+   * Constructs a sensor request given a mode, interval and latency.
+   *
+   * @param mode The mode of the sensor request.
+   * @param interval The interval between samples.
+   * @param latency The maximum amount of time to batch samples before
+   *        delivering to a client.
+   */
+  SensorRequest(SensorMode mode, Nanoseconds interval, Nanoseconds latency);
+
+  /**
+   * Performs an equivalency comparison of two sensor requests. This determines
+   * if the effective request for sensor data is the same as another.
+   *
+   * @param request The request to compare against.
+   * @return Returns true if this request is equivalent to another.
+   */
+  bool isEquivalentTo(const SensorRequest& request) const;
+
+  /**
+   * Generates a maximal intersection of this request and another and returns a
+   * request that contains the superset of the mode, rate and latency of this
+   * request.
+   *
+   * @param request The other request to compare the attributes of.
+   * @return Returns a request that contains attributes that are the maximal of
+   *         this request and the provided request.
+   */
+  SensorRequest generateIntersectionOf(const SensorRequest& request) const;
+
+  /**
+   * @return Returns the interval of samples for this request.
+   */
+  Nanoseconds getInterval() const;
+
+  /**
+   * @return Returns the maximum amount of time samples can be batched prior to
+   * dispatching to the client.
+   */
+  Nanoseconds getLatency() const;
+
+  /**
+   * @return The mode of this request.
+   */
+  SensorMode getMode() const;
+
+ private:
+  //! The interval between samples for this request.
+  Nanoseconds mInterval;
+
+  //! The maximum amount of time samples can be batched prior to dispatching to
+  //! the client
+  Nanoseconds mLatency;
+
+  //! The mode of this request.
+  SensorMode mMode;
+};
 
 }  // namespace chre
 

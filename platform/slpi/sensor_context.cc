@@ -176,4 +176,9 @@ bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
   return success;
 }
 
+bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
+  // TODO: Implement this. Use QMI to register for sensor samples.
+  return false;
+}
+
 }  // namespace chre

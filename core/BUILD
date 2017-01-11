@@ -79,6 +79,7 @@ chre_cc_library(
     deps = [
         "//chre_api:chre_api",
         "//platform:assert",
+        "//util:util",
     ],
 )
 
@@ -105,5 +106,15 @@ gtest_cc_test(
     ],
     deps = [
         "//core:request_multiplexer",
+    ],
+)
+
+gtest_cc_test(
+    name = "sensors_test",
+    srcs = [
+        "tests/sensors_test.cc",
+    ],
+    deps = [
+        "//core:sensors",
     ],
 )

@@ -44,9 +44,33 @@ class PlatformSensor : public PlatformSensorBase {
    */
   SensorType getSensorType();
 
+  /**
+   * Sets the configuration of this sensor. If the request differs from current
+   * request the platform sensor will be updated.
+   *
+   * @param request The configuration of the platform sensor.
+   * @return Returns true if the new configuration was set correctly or if no
+   *         change was required.
+   */
+  bool setRequest(const SensorRequest& request);
+
  private:
   //! The type of this sensor.
   SensorType mSensorType;
+
+  //! The most recent sensor request sent to this sensor.
+  SensorRequest mSensorRequest;
+
+  /**
+   * Sends the sensor request to the platform implementation. The implementation
+   * of this method is supplied by the platform and is invoked when the current
+   * request for this sensor changes.
+   *
+   * @param request The new request to set this sensor to.
+   * @return Returns true if the platform sensor was successfully configured
+   *         with the current request.
+   */
+  bool updatePlatformSensorRequest(const SensorRequest& request);
 };
 
 /**

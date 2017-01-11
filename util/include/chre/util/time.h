@@ -137,6 +137,13 @@ class Nanoseconds {
    */
   constexpr uint64_t toRawNanoseconds() const;
 
+  /**
+   * Performs an equality comparison to another Nanoseconds value.
+   *
+   * @return Returns true if this nanoseconds object is equal to another.
+   */
+  constexpr bool operator==(const Nanoseconds& nanos) const;
+
  private:
   uint64_t mNanoseconds;
 };
