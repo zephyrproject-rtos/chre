@@ -26,14 +26,43 @@ extern "C" {
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/sensor_context.h"
+#include "chre/target_platform/sensor_context_util.h"
+
+namespace {
+
+//! The QMI client handle.
+qmi_client_type gSensorContextQmiClientHandle = nullptr;
+
+//! The next ReportID to assign to a request for sensor data. The SMGR APIs use
+//! a ReportID to track requests. We will use one report ID per sensor to keep
+//! requests separate. Zero is reserved. If this wraps around 255, this is
+//! considered a fatal error. This will never happen because the report ID is
+//! assigned to the sensor when it is first enabled and reused for all future
+//! requests.
+uint8_t gNextSensorReportId = 1;
+
+}  // anonymous namespace
 
 namespace chre {
 
 //! The timeout for QMI messages in milliseconds.
 constexpr uint32_t kQmiTimeoutMs = 1000;
 
-//! The QMI client handle.
-qmi_client_type gSensorContextQmiClientHandle = nullptr;
+/**
+ * Generates a unique ReportID to provide to a request to the SMGR APIs for
+ * sensor data. Each sensor is assigned a unique ReportID and as such there will
+ * be few of these. If more than 255 are created, it is a fatal error.
+ *
+ * @return A unique ReportID for a request of sensor data.
+ */
+uint8_t generateUniqueReportId() {
+  uint8_t reportId = gNextSensorReportId++;
+  if (reportId == 0) {
+    FATAL_ERROR("Unique ReportIDs exhausted. Too many sensor requests");
+  }
+
+  return reportId;
+}
 
 void SensorContextQmiIndicationCallback(void *userHandle,
                                         unsigned int messageId,
@@ -135,8 +164,8 @@ bool getSensorsForSensorId(uint8_t sensorId,
                                                         sensorInfo->DataType);
       if (sensorType != SensorType::Unknown) {
         PlatformSensor platformSensor(sensorType);
-        platformSensor.sensorId = sensorInfo->SensorID;
-        platformSensor.dataType = sensorInfo->DataType;
+        platformSensor.mSensorId = sensorInfo->SensorID;
+        platformSensor.mDataType = sensorInfo->DataType;
         if (!sensors->push_back(platformSensor)) {
           FATAL_ERROR("Failed to allocate new sensor: out of memory");
         }
@@ -181,9 +210,89 @@ bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
   return success;
 }
 
+/**
+ * Converts a SensorMode into an SMGR request action. When the net request for
+ * a sensor is considered to be active an add operation is required for the
+ * SMGR request. When the sensor becomes inactive the request is deleted.
+ *
+ * @param mode The sensor mode.
+ * @return Returns the SMGR request action given the sensor mode.
+ */
+uint8_t getSmgrRequestActionForMode(SensorMode mode) {
+  if (sensorModeIsActive(mode)) {
+    return SNS_SMGR_REPORT_ACTION_ADD_V01;
+  } else {
+    return SNS_SMGR_REPORT_ACTION_DELETE_V01;
+  }
+}
+
 bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
-  // TODO: Implement this. Use QMI to register for sensor samples.
-  return false;
+  // If requestId for this sensor is zero and the mode is not active, the sensor
+  // has never been enabled. This means that the request is a no-op from the
+  // disabled state and true can be returned to indicate success.
+  if (mReportId == 0 && !sensorModeIsActive(request.getMode())) {
+    return true;
+  }
+
+  // Allocate request and response for the sensor request.
+  // TODO: Replace this with the templatized memoryAlloc to avoid these ugly
+  // casts.
+  sns_smgr_periodic_report_req_msg_v01 *sensorDataRequest =
+      static_cast<sns_smgr_periodic_report_req_msg_v01 *>(
+          memoryAlloc(sizeof(sns_smgr_periodic_report_req_msg_v01)));
+  sns_smgr_periodic_report_resp_msg_v01 *sensorDataResponse =
+      static_cast<sns_smgr_periodic_report_resp_msg_v01 *>(
+          memoryAlloc(sizeof(sns_smgr_periodic_report_resp_msg_v01)));
+  if (sensorDataRequest == nullptr || sensorDataResponse == nullptr) {
+    memoryFree(sensorDataRequest);
+    memoryFree(sensorDataResponse);
+    FATAL_ERROR("Failed to allocated sensor request/response: out of memory");
+  }
+
+  // Check if a new report ID is needed for this request.
+  if (mReportId == 0) {
+    mReportId = generateUniqueReportId();
+  }
+
+  // Zero the fields in the request. All mandatory and unused fields are
+  // specified to be set to false or zero so this is safe.
+  memset(sensorDataRequest, 0, sizeof(sns_smgr_periodic_report_req_msg_v01));
+
+  // Build the request for one sensor at the requested rate. An add action for a
+  // ReportID that is already in use causes a replacement of the last request.
+  uint16_t reportRate = intervalToSmgrReportRate(request.getInterval());
+  sensorDataRequest->ReportRate = reportRate;
+  sensorDataRequest->ReportId = mReportId;
+  sensorDataRequest->Action = getSmgrRequestActionForMode(request.getMode());
+  sensorDataRequest->Item_len = 1; // Each request is for one sensor.
+  sensorDataRequest->Item[0].SensorId = mSensorId;
+  sensorDataRequest->Item[0].DataType = mDataType;
+  sensorDataRequest->Item[0].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
+
+  bool success = false;
+  qmi_client_error_type status = qmi_client_send_msg_sync(
+      gSensorContextQmiClientHandle, SNS_SMGR_REPORT_REQ_V01,
+      sensorDataRequest, sizeof(sns_smgr_periodic_report_req_msg_v01),
+      sensorDataResponse, sizeof(sns_smgr_single_sensor_info_resp_msg_v01),
+      kQmiTimeoutMs);
+  if (status != QMI_NO_ERR) {
+    LOGE("Error requesting sensor data: %d", status);
+  } else if (sensorDataResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+    LOGE("Sensor data request failed with error: %d",
+         sensorDataResponse->Resp.sns_result_t);
+  } else {
+    if (sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
+        || sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_MODIFIED_V01) {
+      success = true;
+    } else {
+      LOGE("Sensor data AckNak failed with error: %d",
+           sensorDataResponse->AckNak);
+    }
+  }
+
+  memoryFree(sensorDataRequest);
+  memoryFree(sensorDataResponse);
+  return success;
 }
 
 }  // namespace chre

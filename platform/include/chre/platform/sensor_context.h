@@ -76,6 +76,9 @@ class PlatformSensor : public PlatformSensorBase {
 /**
  * Provides a mechanism to interact with sensors provided by the platform. This
  * includes requesting sensor data and querying available sensors.
+ *
+ * TODO: Refactor these static functions into PlatformSensor and remove this
+ * class.
  */
 class SensorContext {
  public:

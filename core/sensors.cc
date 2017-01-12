@@ -47,11 +47,6 @@ const char *getSensorTypeName(SensorType sensorType) {
   }
 }
 
-constexpr bool sensorModeIsActive(SensorMode sensorMode) {
-  return (sensorMode == SensorMode::ActiveContinuous
-      || sensorMode == SensorMode::ActiveOneShot);
-}
-
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
                     Nanoseconds(0) /* interval */,

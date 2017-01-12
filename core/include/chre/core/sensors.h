@@ -145,4 +145,6 @@ class SensorRequest {
 
 }  // namespace chre
 
+#include "chre/core/sensors_impl.h"
+
 #endif  // CHRE_CORE_SENSOR_H_

@@ -72,9 +72,20 @@ extern "C" int chre_init() {
     LOGE("Failed to obtain the list of platform sensors\n");
   }
 
+  chre::PlatformSensor *accel = nullptr;
   for (size_t i = 0; i < sensors.size(); i++) {
-    LOGD("Found sensor %d (%s)", sensors[i].getSensorType(),
-         getSensorTypeName(sensors[i].getSensorType()));
+    chre::PlatformSensor& sensor = sensors[i];
+    LOGD("Found sensor %d (%s)", sensor.getSensorType(),
+         getSensorTypeName(sensor.getSensorType()));
+
+    if (sensor.getSensorType() == chre::SensorType::Accelerometer) {
+      accel = &sensor;
+      chre::SensorRequest accelRequest(chre::SensorMode::ActiveContinuous,
+                                       Milliseconds(20), Milliseconds(0));
+      if (!accel->setRequest(accelRequest)) {
+        LOGE("Error setting accel request");
+      }
+    }
   }
 
   chre::PlatformNanoapp helloWorldPlatformNanoapp;
@@ -113,6 +124,11 @@ extern "C" int chre_init() {
     LOGE("Couldn't set timer");
   } else {
     gEventLoop->run();
+  }
+
+  if (accel != nullptr) {
+    // Stop the accel.
+    accel->setRequest(chre::SensorRequest());
   }
 
   chre::deinit();

@@ -72,6 +72,7 @@ chre_cc_library(
     name = "sensors",
     hdrs = [
         "include/chre/core/sensors.h",
+        "include/chre/core/sensors_impl.h",
     ],
     srcs = [
         "sensors.cc",

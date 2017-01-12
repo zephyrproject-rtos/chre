@@ -25,12 +25,17 @@ namespace chre {
 class PlatformSensorBase {
  public:
   //! The handle to uniquely identify this sensor.
-  uint8_t sensorId;
+  uint8_t mSensorId;
 
   //! The type of data that this sensor uses. SMGR overloads sensor IDs and
   //! allows them to behave as two sensors. The data type differentiates which
   //! sensor this object refers to.
-  uint8_t dataType;
+  uint8_t mDataType;
+
+  //! The ReportID that is assigned to this sensor. If this value is zero, it
+  //! means that sensor data for this sensor has never been requested and a new
+  //! ID is required.
+  uint8_t mReportId = 0;
 };
 
 }  // namespace chre
