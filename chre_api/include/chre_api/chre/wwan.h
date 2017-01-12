@@ -68,20 +68,21 @@ extern "C" {
 #define CHRE_WWAN_EVENT_ID(offset)  (CHRE_EVENT_WWAN_FIRST_EVENT + (offset))
 
 /**
- * nanoappHandleEvent argument: struct chreWwanCellInfoEvent
+ * nanoappHandleEvent argument: struct chreWwanCellInfoResult
  *
  * Provides the result of an asynchronous request for cell info sent via
  * chreWwanGetCellInfoAsync().
  */
-#define CHRE_EVENT_WWAN_CELL_INFO  CHRE_WWAN_EVENT_ID(0)
-
-/**
- * The current version of struct chreWwanCellInfoEvent associated with this API.
- */
-#define CHRE_WWAN_CELL_INFO_EVENT_VERSION  UINT8_C(1)
+#define CHRE_EVENT_WWAN_CELL_INFO_RESULT  CHRE_WWAN_EVENT_ID(0)
 
 // NOTE: Do not add new events with ID > 15; only values 0-15 are reserved
 // (see chre/event.h)
+
+/**
+ * The current version of struct chreWwanCellInfoResult associated with this
+ * API definition.
+ */
+#define CHRE_WWAN_CELL_INFO_RESULT_VERSION  UINT8_C(1)
 
 //! Reference: RIL_CellIdentityGsm_v12
 struct chreWwanCellIdentityGsm {
@@ -380,7 +381,7 @@ struct chreWwanCellInfo {
 };
 
 /**
- * Data structure provided with events of type CHRE_EVENT_WWAN_CELL_INFO.
+ * Data structure provided with events of type CHRE_EVENT_WWAN_CELL_INFO_RESULT.
  */
 struct chreWwanCellInfoResult {
     //! Indicates the version of the structure, for compatibility purposes.
@@ -429,8 +430,9 @@ uint32_t chreWwanGetCapabilities(void);
  * as a request for RIL_REQUEST_GET_CELL_INFO_LIST in the RIL.
  *
  * The requested cellular information is returned asynchronously via
- * CHRE_EVENT_WWAN_CELL_INFO. The implementation must send this event, either
- * with successful data or an error status, within CHRE_ASYNC_RESULT_TIMEOUT_NS.
+ * CHRE_EVENT_WWAN_CELL_INFO_RESULT. The implementation must send this event,
+ * either with successful data or an error status, within
+ * CHRE_ASYNC_RESULT_TIMEOUT_NS.
  *
  * @param cookie An opaque value that will be included in the chreAsyncResult
  *        sent in relation to this request.
