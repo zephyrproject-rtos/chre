@@ -108,5 +108,6 @@ int main() {
     eventLoop.run();
   }
 
+  chre::deinit();
   return 0;
 }

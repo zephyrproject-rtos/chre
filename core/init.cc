@@ -29,4 +29,8 @@ void init() {
   EventLoopManagerSingleton::init();
 }
 
+void deinit() {
+  SensorContext::deinit();
+}
+
 }  // namespace chre

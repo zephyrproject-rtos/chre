@@ -95,6 +95,12 @@ class SensorContext {
    * @return Returns true if the query was successful.
    */
   static bool getSensors(DynamicVector<PlatformSensor> *sensors);
+
+  /*
+   * Deinitializes the platform sensors subsystem. This must be called as part
+   * of the deinitialization of the runtime.
+   */
+  static void deinit();
 };
 
 }  // namespace chre

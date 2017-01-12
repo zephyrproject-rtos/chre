@@ -35,6 +35,24 @@ namespace chre {
  */
 void init();
 
+/**
+ * Performs deinitialization of CHRE. The order of deinitialization must be as
+ * follows:
+ *
+ * 1) [required] Perform CHRE deinitialization by invoking this function. All
+ *               platforms must invoke chre::deinit() after unloading all apps
+ *               and upon termination.
+ * 2) [optional] Perform any additional teardown as required by the platform but
+ *               not covered by common deinitialization logic.
+ *
+ * After step 1 is complete, chre common code has been deinitialized and calling
+ * into it is undefined behavior. Portions of the platform (ie: sensors) are
+ * also deinitialized by step 1. Only perform additional deinitialization after
+ * this function as not handled by common CHRE code. The goal is to minimize
+ * this additional teardown as much as possible.
+ */
+void deinit();
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_INIT_H_

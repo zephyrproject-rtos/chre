@@ -115,5 +115,6 @@ extern "C" int chre_init() {
     gEventLoop->run();
   }
 
+  chre::deinit();
   return 0;
 }

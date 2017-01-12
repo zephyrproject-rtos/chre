@@ -58,6 +58,11 @@ void SensorContext::init() {
   }
 }
 
+void SensorContext::deinit() {
+  qmi_client_release(&gSensorContextQmiClientHandle);
+  gSensorContextQmiClientHandle = nullptr;
+}
+
 SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
   // Here be dragons. These constants below are defined in
   // sns_smgr_common_v01.h. Refer to the section labelled "Define sensor

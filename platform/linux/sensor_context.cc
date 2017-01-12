@@ -23,6 +23,11 @@ void SensorContext::init() {
   // sensor data. Perhaps from command-line arguemnts.
 }
 
+void SensorContext::deinit() {
+  // TODO: Implement this. Probably we would close the files opened previously
+  // by init.
+}
+
 bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
   CHRE_ASSERT(sensors);
 
