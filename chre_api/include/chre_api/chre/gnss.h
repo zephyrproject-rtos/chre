@@ -109,50 +109,50 @@ extern "C" {
 
 // Flags indicating the Accumulated Delta Range's states
 // (ref: GnssAccumulatedDeltaRangeState)
-#define GNSS_ADR_STATE_UNKNOWN     UINT16_C(0)
-#define GNSS_ADR_STATE_VALID       UINT16_C(1 << 0)
-#define GNSS_ADR_STATE_RESET       UINT16_C(1 << 1)
-#define GNSS_ADR_STATE_CYCLE_SLIP  UINT16_C(1 << 2)
+#define CHRE_GNSS_ADR_STATE_UNKNOWN     UINT16_C(0)
+#define CHRE_GNSS_ADR_STATE_VALID       UINT16_C(1 << 0)
+#define CHRE_GNSS_ADR_STATE_RESET       UINT16_C(1 << 1)
+#define CHRE_GNSS_ADR_STATE_CYCLE_SLIP  UINT16_C(1 << 2)
 
-// Flags to indicate what fields in GnssClock are valid (ref: GnssClockFlags)
-#define GNSS_CLOCK_HAS_LEAP_SECOND        UINT16_C(1 << 0)
-#define GNSS_CLOCK_HAS_TIME_UNCERTAINTY   UINT16_C(1 << 1)
-#define GNSS_CLOCK_HAS_FULL_BIAS          UINT16_C(1 << 2)
-#define GNSS_CLOCK_HAS_BIAS               UINT16_C(1 << 3)
-#define GNSS_CLOCK_HAS_BIAS_UNCERTAINTY   UINT16_C(1 << 4)
-#define GNSS_CLOCK_HAS_DRIFT              UINT16_C(1 << 5)
-#define GNSS_CLOCK_HAS_DRIFT_UNCERTAINTY  UINT16_C(1 << 6)
+// Flags to indicate what fields in chreGnssClock are valid (ref: GnssClockFlags)
+#define CHRE_GNSS_CLOCK_HAS_LEAP_SECOND        UINT16_C(1 << 0)
+#define CHRE_GNSS_CLOCK_HAS_TIME_UNCERTAINTY   UINT16_C(1 << 1)
+#define CHRE_GNSS_CLOCK_HAS_FULL_BIAS          UINT16_C(1 << 2)
+#define CHRE_GNSS_CLOCK_HAS_BIAS               UINT16_C(1 << 3)
+#define CHRE_GNSS_CLOCK_HAS_BIAS_UNCERTAINTY   UINT16_C(1 << 4)
+#define CHRE_GNSS_CLOCK_HAS_DRIFT              UINT16_C(1 << 5)
+#define CHRE_GNSS_CLOCK_HAS_DRIFT_UNCERTAINTY  UINT16_C(1 << 6)
 
 // Flags to indicate which values are valid in a GpsLocation
 // (ref: GpsLocationFlags)
-#define GPS_LOCATION_HAS_LAT_LONG  UINT16_C(1 << 0)
-#define GPS_LOCATION_HAS_ALTITUDE  UINT16_C(1 << 1)
-#define GPS_LOCATION_HAS_SPEED     UINT16_C(1 << 2)
-#define GPS_LOCATION_HAS_BEARING   UINT16_C(1 << 3)
-#define GPS_LOCATION_HAS_ACCURACY  UINT16_C(1 << 4)
+#define CHRE_GPS_LOCATION_HAS_LAT_LONG  UINT16_C(1 << 0)
+#define CHRE_GPS_LOCATION_HAS_ALTITUDE  UINT16_C(1 << 1)
+#define CHRE_GPS_LOCATION_HAS_SPEED     UINT16_C(1 << 2)
+#define CHRE_GPS_LOCATION_HAS_BEARING   UINT16_C(1 << 3)
+#define CHRE_GPS_LOCATION_HAS_ACCURACY  UINT16_C(1 << 4)
 
 /**
- * The maximum number of instances of struct GnssMeasurement that may be
+ * The maximum number of instances of struct chreGnssMeasurement that may be
  * included in a single struct chreGnssDataEvent.
  */
-#define GNSS_MAX_MEASUREMENT  UINT8_C(64)
+#define CHRE_GNSS_MAX_MEASUREMENT  UINT8_C(64)
 
 // Flags indicating the GNSS measurement state (ref: GnssMeasurementState)
-#define GNSS_MEASUREMENT_STATE_UNKNOWN                UINT16_C(0)
-#define GNSS_MEASUREMENT_STATE_CODE_LOCK              UINT16_C(1 << 0)
-#define GNSS_MEASUREMENT_STATE_BIT_SYNC               UINT16_C(1 << 1)
-#define GNSS_MEASUREMENT_STATE_SUBFRAME_SYNC          UINT16_C(1 << 2)
-#define GNSS_MEASUREMENT_STATE_TOW_DECODED            UINT16_C(1 << 3)
-#define GNSS_MEASUREMENT_STATE_MSEC_AMBIGUOUS         UINT16_C(1 << 4)
-#define GNSS_MEASUREMENT_STATE_SYMBOL_SYNC            UINT16_C(1 << 5)
-#define GNSS_MEASUREMENT_STATE_GLO_STRING_SYNC        UINT16_C(1 << 6)
-#define GNSS_MEASUREMENT_STATE_GLO_TOD_DECODED        UINT16_C(1 << 7)
-#define GNSS_MEASUREMENT_STATE_BDS_D2_BIT_SYNC        UINT16_C(1 << 8)
-#define GNSS_MEASUREMENT_STATE_BDS_D2_SUBFRAME_SYNC   UINT16_C(1 << 9)
-#define GNSS_MEASUREMENT_STATE_GAL_E1BC_CODE_LOCK     UINT16_C(1 << 10)
-#define GNSS_MEASUREMENT_STATE_GAL_E1C_2ND_CODE_LOCK  UINT16_C(1 << 11)
-#define GNSS_MEASUREMENT_STATE_GAL_E1B_PAGE_SYNC      UINT16_C(1 << 12)
-#define GNSS_MEASUREMENT_STATE_SBAS_SYNC              UINT16_C(1 << 13)
+#define CHRE_GNSS_MEASUREMENT_STATE_UNKNOWN                UINT16_C(0)
+#define CHRE_GNSS_MEASUREMENT_STATE_CODE_LOCK              UINT16_C(1 << 0)
+#define CHRE_GNSS_MEASUREMENT_STATE_BIT_SYNC               UINT16_C(1 << 1)
+#define CHRE_GNSS_MEASUREMENT_STATE_SUBFRAME_SYNC          UINT16_C(1 << 2)
+#define CHRE_GNSS_MEASUREMENT_STATE_TOW_DECODED            UINT16_C(1 << 3)
+#define CHRE_GNSS_MEASUREMENT_STATE_MSEC_AMBIGUOUS         UINT16_C(1 << 4)
+#define CHRE_GNSS_MEASUREMENT_STATE_SYMBOL_SYNC            UINT16_C(1 << 5)
+#define CHRE_GNSS_MEASUREMENT_STATE_GLO_STRING_SYNC        UINT16_C(1 << 6)
+#define CHRE_GNSS_MEASUREMENT_STATE_GLO_TOD_DECODED        UINT16_C(1 << 7)
+#define CHRE_GNSS_MEASUREMENT_STATE_BDS_D2_BIT_SYNC        UINT16_C(1 << 8)
+#define CHRE_GNSS_MEASUREMENT_STATE_BDS_D2_SUBFRAME_SYNC   UINT16_C(1 << 9)
+#define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1BC_CODE_LOCK     UINT16_C(1 << 10)
+#define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1C_2ND_CODE_LOCK  UINT16_C(1 << 11)
+#define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1B_PAGE_SYNC      UINT16_C(1 << 12)
+#define CHRE_GNSS_MEASUREMENT_STATE_SBAS_SYNC              UINT16_C(1 << 13)
 
 /**
  * Indicates a type of request made in this API. Used to populate the resultType
@@ -168,33 +168,33 @@ enum chreGnssRequestType {
 /**
  * Constellation type associated with an SV
  */
-enum GnssConstellationType {
-    GNSS_CONSTELLATION_UNKNOWN = 0,
-    GNSS_CONSTELLATION_GPS     = 1,
-    GNSS_CONSTELLATION_SBAS    = 2,
-    GNSS_CONSTELLATION_GLONASS = 3,
-    GNSS_CONSTELLATION_QZSS    = 4,
-    GNSS_CONSTELLATION_BEIDOU  = 5,
-    GNSS_CONSTELLATION_GALILEO = 6,
+enum chreGnssConstellationType {
+    CHRE_GNSS_CONSTELLATION_UNKNOWN = 0,
+    CHRE_GNSS_CONSTELLATION_GPS     = 1,
+    CHRE_GNSS_CONSTELLATION_SBAS    = 2,
+    CHRE_GNSS_CONSTELLATION_GLONASS = 3,
+    CHRE_GNSS_CONSTELLATION_QZSS    = 4,
+    CHRE_GNSS_CONSTELLATION_BEIDOU  = 5,
+    CHRE_GNSS_CONSTELLATION_GALILEO = 6,
 };
 
 /**
- * Enumeration of available values for the GnssMeasurement multipath indicator
+ * Enumeration of available values for the chreGnssMeasurement multipath indicator
  */
-enum GnssMultipathIndicator {
+enum chreGnssMultipathIndicator {
     //! The indicator is not available or unknown
-    GNSS_MULTIPATH_INDICATOR_UNKNOWN     = 0,
+    CHRE_GNSS_MULTIPATH_INDICATOR_UNKNOWN     = 0,
     //! The measurement is indicated to be affected by multipath
-    GNSS_MULTIPATH_INDICATOR_PRESENT     = 1,
+    CHRE_GNSS_MULTIPATH_INDICATOR_PRESENT     = 1,
     //! The measurement is indicated to be not affected by multipath
-    GNSS_MULTIPATH_INDICATOR_NOT_PRESENT = 2,
+    CHRE_GNSS_MULTIPATH_INDICATOR_NOT_PRESENT = 2,
 };
 
 /**
  * Represents an estimate of the GNSS clock time (see the Android GPS HAL for
  * more detailed information)
  */
-struct GnssClock {
+struct chreGnssClock {
     //! The GNSS receiver hardware clock value in nanoseconds, including
     //! uncertainty
     int64_t time_ns;
@@ -231,7 +231,7 @@ struct GnssClock {
  * Represents a GNSS measurement; contains raw and computed information (see the
  * Android GPS HAL for more detailed information)
  */
-struct GnssMeasurement {
+struct chreGnssMeasurement {
     //! Hardware time offset from time_ns for this measurement, in nanoseconds
     int64_t time_offset_ns;
 
@@ -270,10 +270,10 @@ struct GnssMeasurement {
     int16_t svid;
 
     //! Constellation of the given satellite vehicle
-    //! @see #GnssConstellationType
+    //! @see #chreGnssConstellationType
     uint8_t constellation;
 
-    //! @see #GnssMultipathIndicator
+    //! @see #chreGnssMultipathIndicator
     uint8_t multipath_indicator;
 
     //! Reserved for future use; set to 0
@@ -291,17 +291,17 @@ struct chreGnssDataEvent {
     //! version it expects.
     uint8_t version;
 
-    //! Number of GnssMeasurement entries included in this event. Must be in the
-    //! range [0, GNSS_MAX_MEASUREMENT]
+    //! Number of chreGnssMeasurement entries included in this event. Must be in
+    //! the range [0, CHRE_GNSS_MAX_MEASUREMENT]
     uint8_t measurement_count;
 
     //! Reserved for future use; set to 0
     uint8_t reserved[6];
 
-    struct GnssClock clock;
+    struct chreGnssClock clock;
 
     //! Pointer to an array containing measurement_count measurements
-    const struct GnssMeasurement *measurements;
+    const struct chreGnssMeasurement *measurements;
 };
 
 /**
