@@ -25,12 +25,20 @@ constexpr uint64_t Seconds::toRawNanoseconds() const {
 constexpr Milliseconds::Milliseconds(uint64_t milliseconds)
     : mMilliseconds(milliseconds) {}
 
+constexpr Milliseconds::Milliseconds(Nanoseconds nanoseconds)
+    : mMilliseconds(
+        nanoseconds.toRawNanoseconds() / kOneMillisecondInNanoseconds) {}
+
 constexpr uint64_t Milliseconds::toRawNanoseconds() const {
   // Perform the simple unit conversion. Warning: overflow is caught and
   // handled by returning UINT64_MAX. A ternary expression is used because
   // constexpr requires it.
   return mMilliseconds > (UINT64_MAX / kOneMillisecondInNanoseconds) ? UINT64_MAX
       : mMilliseconds * kOneMillisecondInNanoseconds;
+}
+
+constexpr uint64_t Milliseconds::getMilliseconds() const {
+  return mMilliseconds;
 }
 
 constexpr Microseconds::Microseconds(uint64_t microseconds)
@@ -58,6 +66,9 @@ constexpr Nanoseconds::Nanoseconds()
 constexpr Nanoseconds::Nanoseconds(uint64_t nanoseconds)
     : mNanoseconds(nanoseconds) {}
 
+constexpr Nanoseconds::Nanoseconds(Seconds seconds)
+    : mNanoseconds(seconds.toRawNanoseconds()) {}
+
 constexpr Nanoseconds::Nanoseconds(Milliseconds milliseconds)
     : mNanoseconds(milliseconds.toRawNanoseconds()) {}
 
@@ -70,6 +81,10 @@ constexpr uint64_t Nanoseconds::toRawNanoseconds() const {
 
 constexpr bool Nanoseconds::operator==(const Nanoseconds& nanos) const {
   return (mNanoseconds == nanos.mNanoseconds);
+}
+
+constexpr bool Nanoseconds::operator!=(const Nanoseconds& nanos) const {
+  return !(mNanoseconds == nanos.mNanoseconds);
 }
 
 constexpr Nanoseconds operator+(const Seconds& secs,

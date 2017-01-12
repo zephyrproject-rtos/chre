@@ -57,12 +57,24 @@ class Milliseconds {
   constexpr explicit Milliseconds(uint64_t milliseconds);
 
   /**
+   * Constructs a Microseconds time duration given nanoseconds.
+   */
+  constexpr Milliseconds(Nanoseconds nanoseconds);
+
+  /**
    * Converts the underlying milliseconds to a raw uint64_t representation of
    * nanoseconds. Handles overflow by returning UINT64_MAX.
    *
    * @return the value of milliseconds converted to nanoseconds
    */
   constexpr uint64_t toRawNanoseconds() const;
+
+  /**
+   * Obtains the number of Milliseconds stroed by this time duration.
+   *
+   * @return the value of milliseconds.
+   */
+  constexpr uint64_t getMilliseconds() const;
 
  private:
   //! Store the time duration.
@@ -120,6 +132,11 @@ class Nanoseconds {
   constexpr explicit Nanoseconds(uint64_t nanoseconds);
 
   /**
+   * Converts a seconds value to nanoseconds.
+   */
+  constexpr Nanoseconds(Seconds seconds);
+
+  /**
    * Converts a milliseconds value to nanoseconds.
    */
   constexpr Nanoseconds(Milliseconds milliseconds);
@@ -143,6 +160,13 @@ class Nanoseconds {
    * @return Returns true if this nanoseconds object is equal to another.
    */
   constexpr bool operator==(const Nanoseconds& nanos) const;
+
+  /**
+   * Performs an inequality comparison to another Nanoseconds value.
+   *
+   * @return Returns true if this nanoseconds object is not equal to another.
+   */
+  constexpr bool operator!=(const Nanoseconds& nanos) const;
 
  private:
   uint64_t mNanoseconds;

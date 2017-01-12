@@ -1,5 +1,6 @@
 load("//:chre.bzl", "chre_cc_binary")
 load("//:chre.bzl", "chre_cc_library")
+load("//:chre.bzl", "gtest_cc_test")
 
 package(
     default_visibility = [
@@ -289,6 +290,41 @@ chre_cc_library(
     deps = [
         "//core:sensors",
         "//util:util",
+    ],
+)
+
+################################################################################
+#
+# Platform Sensor Context Util (SLPI-only)
+#
+################################################################################
+
+chre_cc_library(
+    name = "slpi_sensor_context_util",
+    hdrs = [
+        "slpi/include/chre/target_platform/sensor_context_util.h",
+    ],
+    srcs = [
+        "slpi/sensor_context_util.cc",
+    ],
+    includes = [
+        "slpi/include",
+    ],
+    defines = [
+        "GTEST",
+    ],
+    deps = [
+        "//util:util",
+    ],
+)
+
+gtest_cc_test(
+    name = "slpi_sensor_context_util_test",
+    srcs = [
+        "slpi/tests/sensor_context_test.cc",
+    ],
+    deps = [
+        "//platform:slpi_sensor_context_util",
     ],
 )
 
