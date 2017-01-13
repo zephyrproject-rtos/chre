@@ -18,11 +18,14 @@
 
 extern "C" {
 
+#include "fixed_point.h"
 #include "qmi_client.h"
 #include "sns_smgr_api_v01.h"
+#include "timetick.h"
 
 }  // extern "C"
 
+#include "chre_api/chre/sensor.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/sensor_context.h"
@@ -32,6 +35,12 @@ namespace {
 
 //! The QMI client handle.
 qmi_client_type gSensorContextQmiClientHandle = nullptr;
+
+//! A sensor report indication for deserializing sensor sample indications
+//! into. This global instance is used to avoid thrashy use of the heap by
+//! allocating and freeing this on the heap for every new sensor sample. This
+//! relies on the assumption that the QMI callback is not reentrant.
+sns_smgr_periodic_report_ind_msg_v01 gSensorReportIndication;
 
 //! The next ReportID to assign to a request for sensor data. The SMGR APIs use
 //! a ReportID to track requests. We will use one report ID per sensor to keep
@@ -64,34 +73,16 @@ uint8_t generateUniqueReportId() {
   return reportId;
 }
 
-void SensorContextQmiIndicationCallback(void *userHandle,
-                                        unsigned int messageId,
-                                        void *buffer, unsigned int bufferLength,
-                                        void *callbackData) {
-  LOGD("Received indication callback");
-}
-
-void SensorContext::init() {
-  qmi_idl_service_object_type sensorServiceObject =
-      SNS_SMGR_SVC_get_service_object_v01();
-  if (sensorServiceObject == nullptr) {
-    FATAL_ERROR("Failed to obtain the SNS SMGR service instance");
-  }
-
-  qmi_client_os_params sensorContextOsParams;
-  qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
-      QMI_CLIENT_INSTANCE_ANY, &SensorContextQmiIndicationCallback, nullptr,
-      &sensorContextOsParams, kQmiTimeoutMs, &gSensorContextQmiClientHandle);
-  if (status != QMI_NO_ERR) {
-    FATAL_ERROR("Failed to initialize the sensors QMI client: %d", status);
-  }
-}
-
-void SensorContext::deinit() {
-  qmi_client_release(&gSensorContextQmiClientHandle);
-  gSensorContextQmiClientHandle = nullptr;
-}
-
+/**
+ * Converts a sensorId and dataType as provided by SMGR to a CHRE SensorType as
+ * used by platform-independent CHRE code.
+ *
+ * @param sensorId The sensorID as provided by the SMGR request for sensor info.
+ * @param dataType The dataType for the sesnor as provided by the SMGR request
+ *                 for sensor info.
+ * @return Returns the platform-independent CHRE sensor type or Unknown if no
+ *         match is found.
+ */
 SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
   // Here be dragons. These constants below are defined in
   // sns_smgr_common_v01.h. Refer to the section labelled "Define sensor
@@ -125,6 +116,127 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
   }
 
   return SensorType::Unknown;
+}
+
+/**
+ * Converts SMGR ticks to nanoseconds as a uint64_t.
+ *
+ * @param ticks The number of ticks.
+ * @return The number of nanoseconds represented by the ticks value.
+ */
+uint64_t getNanosecondsFromSmgrTicks(uint32_t ticks) {
+  return (ticks * Seconds(1).toRawNanoseconds())
+      / TIMETICK_NOMINAL_FREQ_HZ;
+}
+
+/**
+ * Handles sensor data provided by the SMGR framework. This function does not
+ * return but logs errors and warnings.
+ *
+ * @param userHandle The userHandle is used by the QMI decode function.
+ * @param buffer The buffer to decode sensor data from.
+ * @param bufferLength The size of the buffer to decode.
+ */
+void handleSensorDataIndication(void *userHandle, void *buffer,
+                                unsigned int bufferLength) {
+  int status = qmi_client_message_decode(
+      userHandle, QMI_IDL_INDICATION, SNS_SMGR_REPORT_IND_V01, buffer,
+      bufferLength, &gSensorReportIndication,
+      sizeof(sns_smgr_periodic_report_ind_msg_v01));
+  if (status != QMI_NO_ERR) {
+    LOGE("Error parsing sensor data indication %d", status);
+    return;
+  }
+
+  // TODO: We send one event per sample at the moment. The CHRE API allows for
+  // multiple samples to be delivered per batch which should improve
+  // performance. Switch to that implementation.
+  for (size_t i = 0; i < gSensorReportIndication.Item_len; i++) {
+    const sns_smgr_data_item_s_v01& sensorData =
+        gSensorReportIndication.Item[i];
+    SensorType sensorType = getSensorTypeFromSensorId(sensorData.SensorId,
+                                                      sensorData.DataType);
+    if (sensorType == SensorType::Unknown) {
+      LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
+           sensorData.SensorId, sensorData.DataType);
+    } else {
+      chreSensorDataHeader header;
+      memset(&header.reserved, 0, sizeof(header.reserved));
+      header.baseTimestamp = getNanosecondsFromSmgrTicks(sensorData.TimeStamp);
+      header.sensorHandle = 0xbeef; // TODO: Get a real sensor handle.
+      header.readingCount = 1;
+
+      if (sensorType == SensorType::Accelerometer
+          || sensorType == SensorType::Gyroscope
+          || sensorType == SensorType::GeomagneticField) {
+        chreSensorThreeAxisData *data = memoryAlloc<chreSensorThreeAxisData>();
+        if (data == nullptr) {
+          LOGW("Dropping event due to allocation failure");
+        } else {
+          data->header = header;
+          data->readings[0].timestampDelta = 0;
+          data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
+          data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
+          data->readings[0].z = FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
+
+          // TODO: Post the event to the TBD SensorRequestManager.
+          LOGD("Accel sample at %" PRIu64 ": %f %f %f",
+               data->header.baseTimestamp,
+               data->readings[0].x, data->readings[0].y, data->readings[0].z);
+          memoryFree(data);
+        }
+      } else {
+        LOGW("Unhandled sensor data %" PRIu8, sensorType);
+      }
+    }
+  }
+}
+
+/**
+ * This callback is invoked by the QMI framework when an asynchronous message is
+ * delivered. Unhandled messages are logged. The signature is defined by the QMI
+ * library.
+ *
+ * @param userHandle The userHandle is used by the QMI library.
+ * @param messageId The type of the message to decode.
+ * @param buffer The buffer to decode.
+ * @param bufferLength The length of the buffer to decode.
+ * @param callbackData Data that is provided as a context to this callback. This
+ *                     is not used in this context.
+ */
+void sensorContextQmiIndicationCallback(void *userHandle,
+                                        unsigned int messageId,
+                                        void *buffer, unsigned int bufferLength,
+                                        void *callbackData) {
+  switch (messageId) {
+    case SNS_SMGR_REPORT_IND_V01:
+      handleSensorDataIndication(userHandle, buffer, bufferLength);
+      break;
+    default:
+      LOGW("Received unhandled sensor QMI indication message: %u", messageId);
+      break;
+  };
+}
+
+void SensorContext::init() {
+  qmi_idl_service_object_type sensorServiceObject =
+      SNS_SMGR_SVC_get_service_object_v01();
+  if (sensorServiceObject == nullptr) {
+    FATAL_ERROR("Failed to obtain the SNS SMGR service instance");
+  }
+
+  qmi_client_os_params sensorContextOsParams;
+  qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
+      QMI_CLIENT_INSTANCE_ANY, &sensorContextQmiIndicationCallback, nullptr,
+      &sensorContextOsParams, kQmiTimeoutMs, &gSensorContextQmiClientHandle);
+  if (status != QMI_NO_ERR) {
+    FATAL_ERROR("Failed to initialize the sensors QMI client: %d", status);
+  }
+}
+
+void SensorContext::deinit() {
+  qmi_client_release(&gSensorContextQmiClientHandle);
+  gSensorContextQmiClientHandle = nullptr;
 }
 
 /**

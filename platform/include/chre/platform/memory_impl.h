@@ -14,32 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_MEMORY_H_
-#define CHRE_PLATFORM_MEMORY_H_
-
-#include <cstddef>
+#ifndef CHRE_PLATFORM_MEMORY_IMPL_H_
+#define CHRE_PLATFORM_MEMORY_IMPL_H_
 
 namespace chre {
 
-/**
- * A platform abstraction for memory allocation. The semantics are the same as
- * malloc.
- */
-void *memoryAlloc(size_t size);
-
-/**
- * A platform abstraction for memory free. The semantics are the same as free.
- */
-void memoryFree(void *pointer);
-
-/**
- * Allocates memory for an object of size T.
- */
 template<typename T>
-T *memoryAlloc();
+T *memoryAlloc() {
+  return static_cast<T *>(memoryAlloc(sizeof(T)));
+}
 
 }  // namespace chre
 
-#include "chre/platform/memory_impl.h"
-
-#endif  // CHRE_PLATFORM_MEMORY_H_
+#endif  // CHRE_PLATFORM_MEMORY_IMPL_H_

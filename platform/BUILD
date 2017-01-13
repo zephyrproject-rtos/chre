@@ -193,6 +193,7 @@ chre_cc_library(
     name = "memory",
     hdrs = [
         "include/chre/platform/memory.h",
+        "include/chre/platform/memory_impl.h",
     ],
     srcs = select({
         "//:platform_linux" : LINUX_PLATFORM_MEMORY_SRCS,
