@@ -444,7 +444,7 @@ struct chreSensorInfo {
  *
  *   struct chreSensorTypeData {
  *       struct chreSensorDataHeader header;
- *       struct {
+ *       struct chreSensorTypeSampleData {
  *           uint32_t timestampDelta;
  *           union {
  *               <type> value;
@@ -512,7 +512,8 @@ struct chreSensorDataHeader {
 /**
  * Data for a sensor which reports on three axes.
  *
- * This is used by CHRE_EVENT_SENSOR_DATA, CHRE_EVENT_SENSOR_GYROSCOPE_DATA,
+ * This is used by CHRE_EVENT_SENSOR_ACCELEROMETER_DATA,
+ * CHRE_EVENT_SENSOR_GYROSCOPE_DATA,
  * CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO,
  * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA, and
  * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO.
@@ -522,7 +523,7 @@ struct chreSensorThreeAxisData {
      * @see chreSensorDataHeader
      */
     struct chreSensorDataHeader header;
-    struct {
+    struct chreSensorThreeAxisSampleData {
         /**
          * @see chreSensorDataHeader
          */
@@ -557,7 +558,7 @@ struct chreSensorThreeAxisData {
  */
 struct chreSensorOccurrenceData {
     struct chreSensorDataHeader header;
-    struct {
+    struct chreSensorOccurenceSampleData {
         uint32_t timestampDelta;
         // This space intentionally left blank.
         // Only the timestamp is meaningful here, there
@@ -570,7 +571,7 @@ struct chreSensorOccurrenceData {
  */
 struct chreSensorFloatData {
     struct chreSensorDataHeader header;
-    struct {
+    struct chreSensorFloatSampleData {
         uint32_t timestampDelta;
         union {
             float value;
@@ -585,7 +586,7 @@ struct chreSensorFloatData {
  */
 struct chreSensorByteData {
     struct chreSensorDataHeader header;
-    struct {
+    struct chreSensorByteSampleData {
         uint32_t timestampDelta;
         union {
             uint8_t value;
