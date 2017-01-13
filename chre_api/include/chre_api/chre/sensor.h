@@ -799,8 +799,8 @@ bool chreSensorConfigure(uint32_t sensorHandle,
  *
  * @see chreSensorConfigure
  */
-inline bool chreSensorConfigureModeOnly(uint32_t sensorHandle,
-                                        enum chreSensorConfigureMode mode) {
+static inline bool chreSensorConfigureModeOnly(
+        uint32_t sensorHandle, enum chreSensorConfigureMode mode) {
     return chreSensorConfigure(sensorHandle,
                                mode,
                                CHRE_SENSOR_INTERVAL_DEFAULT,
