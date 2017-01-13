@@ -26,6 +26,7 @@ extern "C" {
 }  // extern "C"
 
 #include "chre_api/chre/sensor.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/sensor_context.h"
@@ -129,6 +130,13 @@ uint64_t getNanosecondsFromSmgrTicks(uint32_t ticks) {
       / TIMETICK_NOMINAL_FREQ_HZ;
 }
 
+void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
+  // Events are allocated using the simple memoryAlloc/memoryFree platform
+  // functions.
+  // TODO: Consider using a MemoryPool.
+  memoryFree(eventData);
+}
+
 /**
  * Handles sensor data provided by the SMGR framework. This function does not
  * return but logs errors and warnings.
@@ -179,11 +187,10 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
           data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
           data->readings[0].z = FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
 
-          // TODO: Post the event to the TBD SensorRequestManager.
-          LOGD("Accel sample at %" PRIu64 ": %f %f %f",
-               data->header.baseTimestamp,
-               data->readings[0].x, data->readings[0].y, data->readings[0].z);
-          memoryFree(data);
+          // TODO: Map sensor type to event type and pass it in here.
+          EventLoopManagerSingleton::get()->postEvent(
+              CHRE_EVENT_SENSOR_ACCELEROMETER_DATA, data,
+              smgrSensorDataEventFree);
         }
       } else {
         LOGW("Unhandled sensor data %" PRIu8, sensorType);

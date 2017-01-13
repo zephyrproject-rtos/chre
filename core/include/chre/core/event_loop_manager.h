@@ -40,6 +40,22 @@ class EventLoopManager : public NonCopyable {
    */
   EventLoop *createEventLoop();
 
+  /**
+   * Posts an event to all event loops owned by this event loop manager. This
+   * method is thread-safe and is used to post events that all event loops would
+   * be interested in such as sensor event data.
+   *
+   * @param The type of data being posted.
+   * @param The data being posted.
+   * @param The callback to invoke when the event is no longer needed.
+   * @param The instance ID of the sender of this event.
+   * @param The instance ID of the destination of this event.
+   */
+  void postEvent(uint16_t eventType, void *eventData,
+                 chreEventCompleteFunction *freeCallback,
+                 uint32_t senderInstanceId = kSystemInstanceId,
+                 uint32_t targetInstanceId = kBroadcastInstanceId);
+
  private:
   //! The list of event loops managed by this event loop manager. The EventLoops
   //! are stored in UniquePtr because they are large objects. They do not

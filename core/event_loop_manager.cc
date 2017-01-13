@@ -26,4 +26,18 @@ EventLoop *EventLoopManager::createEventLoop() {
   return mEventLoops.back().get();
 }
 
+void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
+                                 chreEventCompleteFunction *freeCallback,
+                                 uint32_t senderInstanceId,
+                                 uint32_t targetInstanceId) {
+  // TODO: Acquire a lock here.
+  for (size_t i = 0; i < mEventLoops.size(); i++) {
+    // TODO: Check to see if anyone in the event loop cares about this event and
+    // consider not posting it.
+    mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
+                              senderInstanceId, targetInstanceId);
+  }
+}
+
+
 }  // namespace chre
