@@ -47,7 +47,7 @@ extern "C" {
 struct chrePalWifiCallbacks {
     /**
      * Callback invoked to inform the CHRE of the result of changes to the scan
-     * monitor registration status requested via controlScanMonitor in struct
+     * monitor registration status requested via configureScanMonitor in struct
      * chrePalWifiApi.
      *
      * Unsolicited calls to this function must not be made. In other words,
