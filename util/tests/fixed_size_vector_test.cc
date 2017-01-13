@@ -151,3 +151,21 @@ TEST(FixedSizeVector, Swap) {
   EXPECT_EQ(vector[0], 0xcafe);
   EXPECT_EQ(vector[1], 0x1337);
 }
+
+TEST(FixedSizeVector, Iterator) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  size_t index = 0;
+  for (FixedSizeVector<int, 8>::iterator it = vector.begin(); it != vector.end(); ++it) {
+    EXPECT_EQ(vector[index++], *it);
+  }
+
+  FixedSizeVector<int, 8>::iterator it = vector.begin() + vector.size() - 1;
+  EXPECT_EQ(vector[vector.size() - 1], *it);
+
+  it = vector.begin() + vector.size();
+  EXPECT_TRUE(it == vector.end());
+}

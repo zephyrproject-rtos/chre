@@ -132,6 +132,24 @@ class FixedSizeVector : public NonCopyable {
    */
   void swap(size_t index0, size_t index1);
 
+  /**
+   * Random-access iterator that points to some element in the container.
+   */
+  typedef ElementType* iterator;
+  typedef const ElementType* const_iterator;
+
+  /**
+   * @eturn A random-access iterator to the beginning.
+   */
+  typename FixedSizeVector<ElementType, kCapacity>::iterator begin();
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator begin() const;
+
+  /**
+   * @eturn A random-access iterator to the end.
+   */
+  typename FixedSizeVector<ElementType, kCapacity>::iterator end();
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator end() const;
+
  private:
   //! Storage for vector elements. To avoid static initialization of members,
   //! std::aligned_storage is used.

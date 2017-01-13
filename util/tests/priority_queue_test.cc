@@ -230,3 +230,16 @@ TEST(PriorityQueueTest, EmplaceCompareClass) {
   EXPECT_EQ(2, q.top().getValue());
   EXPECT_EQ(1, q.top().getIndex());
 }
+
+TEST(PriorityQueuetest, Iterator) {
+  PriorityQueue<int> q;
+  q.push(0);
+  q.push(1);
+  q.push(2);
+
+  PriorityQueue<int>::iterator it = q.begin();
+  EXPECT_EQ(q[0], *it);
+
+  it += q.size();
+  EXPECT_TRUE(it == q.end());
+}

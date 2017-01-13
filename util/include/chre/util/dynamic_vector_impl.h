@@ -237,6 +237,28 @@ const ElementType& DynamicVector<ElementType>::back() const {
 }
 
 template<typename ElementType>
+typename DynamicVector<ElementType>::iterator DynamicVector<ElementType>::begin() {
+  return mData;
+}
+
+template<typename ElementType>
+typename DynamicVector<ElementType>::iterator DynamicVector<ElementType>::end() {
+  return (mData + mSize);
+}
+
+template<typename ElementType>
+typename DynamicVector<ElementType>::const_iterator DynamicVector<ElementType>::
+    begin() const {
+  return mData;
+}
+
+template<typename ElementType>
+typename DynamicVector<ElementType>::const_iterator DynamicVector<ElementType>::
+    end() const {
+  return (mData + mSize);
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
   bool spaceAvailable = true;
   if (mSize == mCapacity) {

@@ -197,6 +197,24 @@ class DynamicVector : public NonCopyable {
    */
   const ElementType& back() const;
 
+  /**
+   * Random-access iterator that points to some element in the container.
+   */
+  typedef ElementType* iterator;
+  typedef const ElementType* const_iterator;
+
+  /**
+   * @return A random-access iterator to the beginning.
+   */
+  typename DynamicVector<ElementType>::iterator begin();
+  typename DynamicVector<ElementType>::const_iterator begin() const;
+
+  /**
+   * @return A random-access iterator to the end.
+   */
+  typename DynamicVector<ElementType>::iterator end();
+  typename DynamicVector<ElementType>::const_iterator end() const;
+
  private:
   //! A pointer to the underlying data buffer.
   ElementType *mData = nullptr;

@@ -360,3 +360,21 @@ TEST(DynamicVector, Back) {
   vector.push_back(0xcafe);
   EXPECT_EQ(vector.back(), 0xcafe);
 }
+
+TEST(DynamicVector, Iterator) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  size_t index = 0;
+  for (DynamicVector<int>::iterator it = vector.begin(); it != vector.end(); ++it) {
+    EXPECT_EQ(vector[index++], *it);
+  }
+
+  DynamicVector<int>::iterator it = vector.begin() + vector.size() - 1;
+  EXPECT_EQ(vector[vector.size() - 1], *it);
+
+  it = vector.begin() + vector.size();
+  EXPECT_TRUE(it == vector.end());
+}

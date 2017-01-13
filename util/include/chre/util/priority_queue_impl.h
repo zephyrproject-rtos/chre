@@ -106,6 +106,30 @@ void PriorityQueue<ElementType, CompareType>::remove(size_t index) {
   // when mData.size() <= mData.capacity()/4.
 }
 
+template<typename ElementType, typename CompareType>
+typename PriorityQueue<ElementType, CompareType>::iterator
+    PriorityQueue<ElementType, CompareType>::begin() {
+  return mData.begin();
+}
+
+template<typename ElementType, typename CompareType>
+typename PriorityQueue<ElementType, CompareType>::iterator
+PriorityQueue<ElementType, CompareType>::end() {
+  return mData.end();
+}
+
+template<typename ElementType, typename CompareType>
+typename PriorityQueue<ElementType, CompareType>::const_iterator
+    PriorityQueue<ElementType, CompareType>::begin() const {
+  return mData.begin();
+}
+
+template<typename ElementType, typename CompareType>
+typename PriorityQueue<ElementType, CompareType>::const_iterator
+PriorityQueue<ElementType, CompareType>::end() const {
+  return mData.end();
+}
+
 }  // namespace chre
 
 #endif  // CHRE_UTIL_PRIORITY_QUEUE_IMPL_H_

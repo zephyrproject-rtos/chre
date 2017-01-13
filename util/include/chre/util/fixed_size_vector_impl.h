@@ -116,6 +116,30 @@ void FixedSizeVector<ElementType, kCapacity>::swap(size_t index0,
   }
 }
 
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::iterator
+    FixedSizeVector<ElementType, kCapacity>::begin() {
+  return data();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::iterator
+    FixedSizeVector<ElementType, kCapacity>::end() {
+  return (data() + mSize);
+}
+
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::const_iterator
+    FixedSizeVector<ElementType, kCapacity>::begin() const {
+  return data();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::const_iterator
+    FixedSizeVector<ElementType, kCapacity>::end() const {
+  return (data() + mSize);
+}
+
 }  // namespace chre
 
 #endif  // CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_

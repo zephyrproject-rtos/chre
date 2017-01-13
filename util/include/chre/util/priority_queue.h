@@ -142,6 +142,25 @@ class PriorityQueue : public NonCopyable {
    */
   void remove(size_t index);
 
+  /**
+   * Random-access iterator that points to some element in the container.
+   */
+  typedef ElementType* iterator;
+  typedef const ElementType* const_iterator;
+
+  /**
+   * @return A random-access iterator to the beginning.
+   */
+  typename PriorityQueue<ElementType, CompareType>::iterator begin();
+  typename PriorityQueue<ElementType, CompareType>::const_iterator begin() const;
+
+  /**
+   * @return A random-access iterator to the end.
+   */
+  typename PriorityQueue<ElementType, CompareType>::iterator end();
+  typename PriorityQueue<ElementType, CompareType>::const_iterator end() const;
+
+
  private:
   //! The dynamic vector that serves as the underlying container.
   DynamicVector<ElementType> mData;
