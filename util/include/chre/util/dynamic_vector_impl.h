@@ -71,6 +71,16 @@ bool DynamicVector<ElementType>::push_back(const ElementType& element) {
 }
 
 template<typename ElementType>
+bool DynamicVector<ElementType>::push_back(ElementType&& element) {
+  bool spaceAvailable = prepareForPush();
+  if (spaceAvailable) {
+    mData[mSize++] = std::move(element);
+  }
+
+  return spaceAvailable;
+}
+
+template<typename ElementType>
 template<typename... Args>
 bool DynamicVector<ElementType>::emplace_back(Args&&... args) {
   bool spaceAvailable = prepareForPush();

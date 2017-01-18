@@ -85,6 +85,15 @@ class DynamicVector : public NonCopyable {
   bool push_back(const ElementType& element);
 
   /**
+   * Moves an element onto the back of the vector. If the vector requires a
+   * resize and that allocation fails this function will return false.
+   *
+   * @param The element to move onto the vector.
+   * @return Returns true if the element was moved successfully.
+   */
+  bool push_back(ElementType&& element);
+
+  /**
    * Constructs an element onto the back of the vector. It is illegal to
    * construct an item onto a full vector. The user of the API must check the
    * return of the full() function prior to constructing another element.
