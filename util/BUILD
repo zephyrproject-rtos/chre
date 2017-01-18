@@ -10,6 +10,7 @@ package(
 chre_cc_library(
     name = "util",
     hdrs = [
+        "include/chre/util/array.h",
         "include/chre/util/array_queue.h",
         "include/chre/util/array_queue_impl.h",
         "include/chre/util/dynamic_vector.h",

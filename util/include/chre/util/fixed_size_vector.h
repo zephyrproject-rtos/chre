@@ -133,6 +133,18 @@ class FixedSizeVector : public NonCopyable {
   void swap(size_t index0, size_t index1);
 
   /**
+   * Resizes the fixed size vector by default-constructing from the current
+   * size() to the newly requested size. If the new size is smaller than the
+   * current size(), the elements from the new size to the current size() are
+   * destructed and the vector is shrunk. A resize operation cannot be performed
+   * that is greater than kCapacity. This will result in an assertion failure
+   * and a resize to kCapacity if assertions are disabled.
+   *
+   * @param newSize The new size of the vector.
+   */
+  void resize(size_t newSize);
+
+  /**
    * Random-access iterator that points to some element in the container.
    */
   typedef ElementType* iterator;

@@ -140,6 +140,26 @@ typename FixedSizeVector<ElementType, kCapacity>::const_iterator
   return (data() + mSize);
 }
 
+template<typename ElementType, size_t kCapacity>
+void FixedSizeVector<ElementType, kCapacity>::resize(size_t newSize) {
+  CHRE_ASSERT(newSize <= kCapacity);
+  if (newSize > kCapacity) {
+    newSize = kCapacity;
+  }
+
+  if (newSize > size()) {
+    for (size_t i = size(); i < newSize; i++) {
+      emplace_back();
+    }
+  } else {
+    for (size_t i = newSize; i < size(); i++) {
+      data()[i].~ElementType();
+    }
+
+    mSize = newSize;
+  }
+}
+
 }  // namespace chre
 
 #endif  // CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_

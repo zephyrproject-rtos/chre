@@ -152,6 +152,28 @@ TEST(FixedSizeVector, Swap) {
   EXPECT_EQ(vector[1], 0x1337);
 }
 
+TEST(FixedSizeVector, ResizeLarger) {
+  FixedSizeVector<int, 4> vector;
+  vector.resize(4);
+  EXPECT_EQ(vector.size(), 4);
+}
+
+TEST(FixedSizeVector, ResizeSmaller) {
+  destructor_count[0] = 0;
+
+  FixedSizeVector<Foo, 4> vector;
+  for (size_t i = 0; i < 3; i++) {
+    vector.push_back(Foo());
+    vector[i].setValue(0);
+  }
+
+  EXPECT_EQ(vector.size(), 3);
+  EXPECT_EQ(destructor_count[0], 0);
+  vector.resize(2);
+  EXPECT_EQ(vector.size(), 2);
+  EXPECT_EQ(destructor_count[0], 1);
+}
+
 TEST(FixedSizeVector, Iterator) {
   FixedSizeVector<int, 8> vector;
   vector.push_back(0);
@@ -159,7 +181,8 @@ TEST(FixedSizeVector, Iterator) {
   vector.push_back(2);
 
   size_t index = 0;
-  for (FixedSizeVector<int, 8>::iterator it = vector.begin(); it != vector.end(); ++it) {
+  for (FixedSizeVector<int, 8>::iterator it = vector.begin();
+       it != vector.end(); ++it) {
     EXPECT_EQ(vector[index++], *it);
   }
 
