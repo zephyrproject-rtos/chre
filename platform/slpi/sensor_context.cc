@@ -285,7 +285,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
         PlatformSensor platformSensor(sensorType);
         platformSensor.mSensorId = sensorInfo->SensorID;
         platformSensor.mDataType = sensorInfo->DataType;
-        if (!sensors->push_back(platformSensor)) {
+        if (!sensors->push_back(std::move(platformSensor))) {
           FATAL_ERROR("Failed to allocate new sensor: out of memory");
         }
       }

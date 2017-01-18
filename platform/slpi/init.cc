@@ -15,6 +15,7 @@
  */
 
 #include "chre/apps/hello_world/hello_world.h"
+#include "chre/apps/sensor_world/sensor_world.h"
 #include "chre/apps/timer_world/timer_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
@@ -93,6 +94,11 @@ extern "C" int chre_init() {
   helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
   helloWorldPlatformNanoapp.mStop = chre::app::helloWorldStop;
 
+  chre::PlatformNanoapp sensorWorldPlatformNanoapp;
+  sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
+  sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
+  sensorWorldPlatformNanoapp.mStop = chre::app::sensorWorldStop;
+
   chre::PlatformNanoapp timerWorldPlatformNanoapp;
   timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
   timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
@@ -105,6 +111,11 @@ extern "C" int chre_init() {
       &helloWorldPlatformNanoapp);
   helloWorldNanoapp.registerForBroadcastEvent(1);
   gEventLoop->startNanoapp(&helloWorldNanoapp);
+
+  // Start the sensor world nanoapp.
+  chre::Nanoapp sensorWorldNanoapp(gEventLoop->getNextInstanceId(),
+      &sensorWorldPlatformNanoapp);
+  gEventLoop->startNanoapp(&sensorWorldNanoapp);
 
   // Start the timer nanoapp.
   chre::Nanoapp timerWorldNanoapp(gEventLoop->getNextInstanceId(),

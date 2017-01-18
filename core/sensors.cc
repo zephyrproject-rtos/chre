@@ -59,6 +59,29 @@ uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
   return CHRE_EVENT_SENSOR_DATA_EVENT_BASE + sensorTypeValue;
 }
 
+SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
+  switch (sensorType) {
+    case CHRE_SENSOR_TYPE_ACCELEROMETER:
+      return SensorType::Accelerometer;
+    case CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT:
+      return SensorType::InstantMotion;
+    case CHRE_SENSOR_TYPE_STATIONARY_DETECT:
+      return SensorType::StationaryDetect;
+    case CHRE_SENSOR_TYPE_GYROSCOPE:
+      return SensorType::Gyroscope;
+    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
+      return SensorType::GeomagneticField;
+    case CHRE_SENSOR_TYPE_PRESSURE:
+      return SensorType::Pressure;
+    case CHRE_SENSOR_TYPE_LIGHT:
+      return SensorType::Light;
+    case CHRE_SENSOR_TYPE_PROXIMITY:
+      return SensorType::Proximity;
+    default:
+      return SensorType::Unknown;
+  }
+}
+
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
                     Nanoseconds(0) /* interval */,

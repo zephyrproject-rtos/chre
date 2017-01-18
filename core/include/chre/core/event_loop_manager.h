@@ -18,6 +18,7 @@
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
 #include "chre/core/event_loop.h"
+#include "chre/core/sensor_request_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -57,6 +58,13 @@ class EventLoopManager : public NonCopyable {
                  uint32_t senderInstanceId = kSystemInstanceId,
                  uint32_t targetInstanceId = kBroadcastInstanceId);
 
+  /**
+   * @return Returns a reference to the sensor request manager. This allows
+   *         interacting with the platform sensors and managing requests from
+   *         various nanoapps.
+   */
+  SensorRequestManager& getSensorRequestManager();
+
  private:
   //! The mutex used to lock the shared data structures below. The postEvent
   //! method above may be called from any context so a lock is used to gain
@@ -68,6 +76,10 @@ class EventLoopManager : public NonCopyable {
   //! provide an implementation of the move constructor so it is best left to
   //! allocate each event loop and manage the pointers to those event loops.
   DynamicVector<UniquePtr<EventLoop>> mEventLoops;
+
+  //! The SensorRequestManager that handles requests for all nanoapps. This
+  //! manages the state of all sensors that runtime subscribes to.
+  SensorRequestManager mSensorRequestManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.

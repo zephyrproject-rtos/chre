@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
+#include "chre/core/event_loop_manager.h"
+#include "chre/core/sensors.h"
 #include "chre_api/chre/sensor.h"
 
+using chre::EventLoopManagerSingleton;
+using chre::SensorType;
+using chre::getSensorTypeFromUnsignedInt;
+
 bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
-  // TODO: Implement this function.
-  return false;
+  SensorType validatedSensorType = getSensorTypeFromUnsignedInt(sensorType);
+  return (validatedSensorType != SensorType::Unknown
+      && EventLoopManagerSingleton::get()->getSensorRequestManager()
+          .getSensorHandle(validatedSensorType, handle));
 }

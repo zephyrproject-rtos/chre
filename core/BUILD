@@ -36,6 +36,7 @@ chre_cc_library(
     deps = [
         "//core:event",
         "//core:nanoapp",
+        "//core:sensor_request_manager",
         "//platform:fatal_error",
         "//platform:mutex",
         "//platform:system_time",
@@ -80,9 +81,26 @@ chre_cc_library(
         "sensors.cc",
     ],
     deps = [
+        "//core:nanoapp",
         "//chre_api:chre_api",
         "//platform:assert",
         "//platform:fatal_error",
+        "//util:util",
+    ],
+)
+
+chre_cc_library(
+    name = "sensor_request_manager",
+    hdrs = [
+        "include/chre/core/sensor_request_manager.h",
+    ],
+    srcs = [
+        "sensor_request_manager.cc",
+    ],
+    deps = [
+        "//core:sensors",
+        "//core:request_multiplexer",
+        "//platform:sensor_context",
         "//util:util",
     ],
 )

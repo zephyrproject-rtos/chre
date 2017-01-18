@@ -31,6 +31,7 @@ LINUX_PLATFORM_SRCS = [
     "linux/system_time.cc",
     "shared/chre_api_core.cc",
     "shared/chre_api_re.cc",
+    "shared/chre_api_sensor.cc",
     "shared/chre_api_version.cc",
     "shared/system_time.cc",
 ]
@@ -412,6 +413,7 @@ chre_cc_binary(
     }),
     deps = [
         "//apps/hello_world:hello_world",
+        "//apps/sensor_world:sensor_world",
         "//apps/timer_world:timer_world",
         "//core:init",
         "//core:nanoapp",

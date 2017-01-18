@@ -26,6 +26,15 @@ constexpr bool sensorModeIsActive(SensorMode sensorMode) {
       || sensorMode == SensorMode::ActiveOneShot);
 }
 
+constexpr size_t getSensorTypeArrayIndex(SensorType sensorType) {
+  return static_cast<size_t>(sensorType) - 1;
+}
+
+constexpr size_t getSensorTypeCount() {
+  // The number of valid entries in the SensorType enum (not including Unknown).
+  return static_cast<size_t>(SensorType::SENSOR_TYPE_COUNT) - 1;
+}
+
 }  // namespace chre
 
 #endif  // CORE_INCLUDE_CHRE_CORE_SENSORS_IMPL_H_

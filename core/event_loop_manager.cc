@@ -41,5 +41,8 @@ void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
   }
 }
 
+SensorRequestManager& EventLoopManager::getSensorRequestManager() {
+  return mSensorRequestManager;
+}
 
 }  // namespace chre

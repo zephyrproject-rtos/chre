@@ -29,7 +29,8 @@ namespace chre {
  * sensor. The PlatformSensorBase is subclassed here to allow platforms to
  * inject their own storage for their implementation.
  */
-class PlatformSensor : public PlatformSensorBase {
+class PlatformSensor : public PlatformSensorBase,
+                       public NonCopyable {
  public:
   PlatformSensor();
 
@@ -55,6 +56,11 @@ class PlatformSensor : public PlatformSensorBase {
    *         change was required.
    */
   bool setRequest(const SensorRequest& request);
+
+  /**
+   * Performs a move operation on the PlatformSensor.
+   */
+  PlatformSensor& operator=(PlatformSensor&& other);
 
  private:
   //! The type of this sensor.

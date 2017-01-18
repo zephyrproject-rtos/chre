@@ -28,6 +28,12 @@ SensorType PlatformSensor::getSensorType() {
   return mSensorType;
 }
 
+PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+  mSensorType = other.mSensorType;
+  mSensorRequest = other.mSensorRequest;
+  return *this;
+}
+
 bool PlatformSensor::setRequest(const SensorRequest& request) {
   bool configuredSuccessfully = true;
   if (!mSensorRequest.isEquivalentTo(request)) {

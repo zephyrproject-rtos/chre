@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "chre_api/chre/sensor.h"
+#include "chre/core/nanoapp.h"
 #include "chre/util/time.h"
 
 namespace chre {
@@ -32,18 +33,22 @@ namespace chre {
  * sensor definitions.
  */
 enum class SensorType : uint8_t {
-  Unknown          = 0,
-  Accelerometer    = CHRE_SENSOR_TYPE_ACCELEROMETER,
-  InstantMotion    = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
-  StationaryDetect = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
-  Gyroscope        = CHRE_SENSOR_TYPE_GYROSCOPE,
-  GeomagneticField = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-  Pressure         = CHRE_SENSOR_TYPE_PRESSURE,
-  Light            = CHRE_SENSOR_TYPE_LIGHT,
-  Proximity        = CHRE_SENSOR_TYPE_PROXIMITY,
+  Unknown,
+  Accelerometer,
+  InstantMotion,
+  StationaryDetect,
+  Gyroscope,
+  GeomagneticField,
+  Pressure,
+  Light,
+  Proximity,
 
   // Note to future developers: don't forget to update the implementation of
-  // getSensorTypeName when adding a new entry here :) Have a nice day.
+  // getSensorTypeName and getSensorTypeFromUnsignedInt when adding or removing
+  // a new entry here :) Have a nice day.
+
+  //! The number of sensor types including unknown. This entry must be last.
+  SENSOR_TYPE_COUNT,
 };
 
 /**
@@ -62,6 +67,29 @@ const char *getSensorTypeName(SensorType sensorType);
  * @return The event type for a sensor sample of the given sensor type.
  */
 uint16_t getSampleEventTypeForSensorType(SensorType sensorType);
+
+/**
+ * @return An index into an array for a given sensor type. This is useful to map
+ * sensor type to array index quickly. The range returned corresponds to any
+ * SensorType except for Unknown starting from zero to the maximum value sensor
+ * with no gaps.
+ */
+constexpr size_t getSensorTypeArrayIndex(SensorType sensorType);
+
+/**
+ * @return The number of valid sensor types in the SensorType enum.
+ */
+constexpr size_t getSensorTypeCount();
+
+/**
+ * Translates an unsigned integer as provided by a CHRE-compliant nanoapp to a
+ * SensorType. If the integer sensor type does not match one of the internal
+ * sensor types, SensorType::Unknown is returned.
+ *
+ * @param sensorType The integer sensor type.
+ * @return The strongly-typed sensor if a match is found or SensorType::Unknown.
+ */
+SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType);
 
 /**
  * This SensorMode is designed to wrap constants provided by the CHRE API to
@@ -150,6 +178,10 @@ class SensorRequest {
 
   //! The mode of this request.
   SensorMode mMode;
+
+  //! The nanoapp that made this request. This will be nullptr when returned by
+  //! the generateIntersectionOf method.
+  Nanoapp *mNanoapp = nullptr;
 };
 
 }  // namespace chre

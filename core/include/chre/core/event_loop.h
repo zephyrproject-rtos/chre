@@ -142,11 +142,11 @@ class EventLoop : public NonCopyable {
   TimerPool mTimerPool;
 
   //! The list of nanoapps managed by this event loop.
-  DynamicVector<Nanoapp*> mNanoapps;
+  DynamicVector<Nanoapp *> mNanoapps;
 
   //! The blocking queue of incoming events from the system that have not been
   //!  distributed out to apps yet.
-  FixedSizeBlockingQueue<Event*, kMaxUnscheduledEventCount> mEvents;
+  FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
 
   // TODO: we probably want our own atomic platform abstraction too
   std::atomic<bool> mRunning{false};
