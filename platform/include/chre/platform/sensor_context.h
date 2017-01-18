@@ -31,6 +31,8 @@ namespace chre {
  */
 class PlatformSensor : public PlatformSensorBase {
  public:
+  PlatformSensor();
+
   /**
    * Constructs a platform sensor. All sensors must have a type and must be
    * supplied to this constructor.

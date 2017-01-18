@@ -18,6 +18,9 @@
 
 namespace chre {
 
+PlatformSensor::PlatformSensor()
+    : PlatformSensor(SensorType::Unknown) {}
+
 PlatformSensor::PlatformSensor(SensorType sensorType)
     : mSensorType(sensorType) {}
 
