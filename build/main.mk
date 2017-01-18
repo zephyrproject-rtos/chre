@@ -18,6 +18,7 @@ all:
 
 # Include mk files from each subdirectory.
 include apps/hello_world/hello_world.mk
+include apps/sensor_world/sensor_world.mk
 include apps/timer_world/timer_world.mk
 include chre_api/chre_api.mk
 include core/core.mk
