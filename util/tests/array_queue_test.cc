@@ -194,4 +194,128 @@ TEST(ArrayQueueTest, EmplaceTest) {
   EXPECT_EQ(2, q.size());
 }
 
-// TODO: StressTest
+TEST(ArrayQueueTest, EmptyQueueIterator) {
+  ArrayQueue<int, 4> q;
+
+  ArrayQueue<int, 4>::iterator it = q.begin();
+  EXPECT_TRUE(it == q.end());
+  EXPECT_FALSE(it != q.end());
+}
+
+TEST(ArrayQueueTest, SimpleIterator) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 3; ++i) {
+    q.push(i);
+  }
+
+  size_t index = 0;
+  for (ArrayQueue<int, 4>::iterator it = q.begin(); it != q.end(); ++it) {
+    EXPECT_EQ(q[index++], *it);
+  }
+
+  index = 0;
+  ArrayQueue<int, 4>::iterator it = q.begin();
+  while (it != q.end()) {
+    EXPECT_EQ(q[index++], *it++);
+  }
+
+  for (size_t i = 0; i < 3; ++i) {
+    q.pop();
+    q.push(i + 3);
+  }
+
+  index = 0;
+  it = q.begin();
+  while (it != q.end()) {
+    EXPECT_EQ(q[index++], *it++);
+  }
+}
+
+TEST(ArrayQueueTest, IteratorAndPush) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 2; ++i) {
+    q.push(i);
+  }
+
+  ArrayQueue<int, 4>::iterator it_b = q.begin();
+  ArrayQueue<int, 4>::iterator it_e = q.end();
+  q.push(3);
+
+  size_t index = 0;
+  while (it_b != it_e) {
+    EXPECT_EQ(q[index++], *it_b++);
+  }
+}
+
+TEST(ArrayQueueTest, IteratorAndPop) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 3; ++i) {
+    q.push(i);
+  }
+
+  ArrayQueue<int, 4>::iterator it_b = q.begin();
+  q.pop();
+  it_b++;
+
+  for (size_t i = 0; i < 2; ++i) {
+    EXPECT_EQ(q[i], *it_b++);
+  }
+}
+
+TEST(ArrayQueueTest, IteratorAndRemove) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 2; ++i) {
+    q.push(i);
+  }
+
+  ArrayQueue<int, 4>::iterator it_b = q.begin();
+  q.remove(1);
+
+  EXPECT_EQ(q[0], *it_b);
+}
+
+TEST(ArrayQueueTest, IteratorAndEmplace) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 2; ++i) {
+    q.push(i);
+  }
+
+  ArrayQueue<int, 4>::iterator it_b = q.begin();
+  ArrayQueue<int, 4>::iterator it_e = q.end();
+  q.emplace(3);
+
+  size_t index = 0;
+  while (it_b != it_e) {
+    EXPECT_EQ(q[index++], *it_b++);
+  }
+}
+
+TEST(ArrayQueueTest, SimpleConstIterator) {
+  ArrayQueue<int, 4> q;
+  for (size_t i = 0; i < 3; ++i) {
+    q.push(i);
+  }
+
+  size_t index = 0;
+  for (ArrayQueue<int, 4>::const_iterator cit = q.cbegin();
+       cit != q.cend(); ++cit) {
+    EXPECT_EQ(q[index++], *cit);
+  }
+
+  index = 0;
+  ArrayQueue<int, 4>::const_iterator cit = q.cbegin();
+  while (cit != q.cend()) {
+    EXPECT_EQ(q[index++], *cit++);
+  }
+
+  for (size_t i = 0; i < 3; ++i) {
+    q.pop();
+    q.push(i + 3);
+  }
+
+  index = 0;
+  cit = q.cbegin();
+  while (cit != q.cend()) {
+    EXPECT_EQ(q[index++], *cit++);
+  }
+}

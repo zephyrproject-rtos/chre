@@ -130,6 +130,32 @@ bool ArrayQueue<ElementType, kCapacity>::emplace(Args&&... args) {
 }
 
 template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::iterator
+ArrayQueue<ElementType, kCapacity>::begin() {
+  // Align begin() and end() outside of the memory block when empty.
+  return empty() ? end() : iterator(data() + mHead, data(), mTail);
+}
+
+template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::iterator
+    ArrayQueue<ElementType, kCapacity>::end() {
+  return iterator(data() + kCapacity, data(), mTail);
+}
+
+template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::const_iterator
+ArrayQueue<ElementType, kCapacity>::cbegin() const {
+  // Align begin() and end() outside of the memory block when empty.
+  return empty() ? cend() : const_iterator(data() + mHead, data(), mTail);
+}
+
+template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::const_iterator
+    ArrayQueue<ElementType, kCapacity>::cend() const {
+  return const_iterator(data() + kCapacity, data(), mTail);
+}
+
+template<typename ElementType, size_t kCapacity>
 ElementType *ArrayQueue<ElementType, kCapacity>::data() {
   return reinterpret_cast<ElementType *>(mData);
 }

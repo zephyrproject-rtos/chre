@@ -23,15 +23,9 @@
 
 namespace chre {
 
-/*
- * TODO: need to implement thread-safe fifo queue that doesn't use dynamic
- * memory.
- * TODO: create a thread-safe wrapper for this, e.g. LockedArrayQueue. Starting
- * with single-threaded implementation for now
- */
-
 /**
- * TODO: Write a doxygen comment for ArrayQueue.
+ * A fixed-size FIFO queue for storing elements. When the FIFO is full, new
+ * element will not be able to be pushed in.
  */
 template<typename ElementType, size_t kCapacity>
 class ArrayQueue : public NonCopyable {
@@ -99,7 +93,8 @@ class ArrayQueue : public NonCopyable {
 
   /**
    * Pushes an element onto the back of the array queue. It returns false if
-   * the array queue is full already and there is no room for the element.
+   * the array queue is full already and there is no room for the elements. All
+   * iterators and references are unaffected.
    *
    * @param element The element to push onto the array queue.
    * @return true if the element is pushed successfully.
@@ -108,13 +103,17 @@ class ArrayQueue : public NonCopyable {
 
   /**
    * Removes the front element from the array queue if the array queue is not
-   * empty.
+   * empty. Only iterators and references to the front of the queue are
+   * invalidated.
    */
   void pop();
 
   /**
-   * Removes an element from the array queue given an index. It returns false if the
-   * array queue contains fewer items than the index.
+   * Removes an element from the array queue given an index. It returns false if
+   * the array queue contains fewer items than the index. All iterators and
+   * references to elements before the removed one are unaffected. Iterators
+   * and references to the removed element or any elements after it are
+   * invalidated.
    *
    * @param index Requested index in range [0,size()-1]
    * @return true if the indexed element has been removed successfully.
@@ -122,13 +121,88 @@ class ArrayQueue : public NonCopyable {
   bool remove(size_t index);
 
   /**
-   * Constructs an element onto the back of the array queue.
+   * Constructs an element onto the back of the array queue. All iterators and
+   * references are unaffected.
    *
    * @param The arguments to the constructor
    * @return true if the element is constructed successfully.
    */
   template<typename... Args>
   bool emplace(Args&&... args);
+
+  /**
+   * A template class that implements a forward iterator for the array queue.
+   */
+  template<typename ValueType>
+  class ArrayQueueIterator {
+   public:
+    ArrayQueueIterator(
+        ValueType *pointer, ValueType *base, size_t tail)
+        : mPointer(pointer), mBase(base), mTail(tail) {}
+
+    bool operator==(const ArrayQueueIterator& right) {
+      return (mPointer == right.mPointer);
+    }
+
+    bool operator!=(const ArrayQueueIterator& right) {
+      return (mPointer != right.mPointer);
+    }
+
+    ValueType& operator*() {
+      return *mPointer;
+    }
+
+    ValueType *operator->() {
+      return mPointer;
+    }
+
+    ArrayQueueIterator& operator++() {
+      if (mPointer == (mBase + mTail)) {
+        // Jump to end() if at tail
+        mPointer = mBase + kCapacity;
+      } else if (mPointer == (mBase + kCapacity - 1)) {
+        // Wrap around in the memory
+        mPointer = mBase;
+      } else {
+        mPointer++;
+      }
+      return *this;
+    }
+
+    ArrayQueueIterator operator++(int) {
+      ArrayQueueIterator it(*this);
+      operator++();
+      return it;
+    }
+
+   private:
+    //! Pointer of the iterator.
+    ValueType *mPointer;
+
+    //! The memory base address of this container.
+    ValueType *mBase;
+
+    //! The tail offset relative to the memory base address.
+    size_t mTail;
+  };
+
+  /**
+   * Forward iterator that points to some element in the container.
+   */
+  typedef ArrayQueueIterator<ElementType> iterator;
+  typedef ArrayQueueIterator<const ElementType> const_iterator;
+
+  /**
+   * @return A forward iterator to the beginning.
+   */
+  typename ArrayQueue<ElementType, kCapacity>::iterator begin();
+  typename ArrayQueue<ElementType, kCapacity>::const_iterator cbegin() const;
+
+  /**
+   * @return A forward iterator to the end.
+   */
+  typename ArrayQueue<ElementType, kCapacity>::iterator end();
+  typename ArrayQueue<ElementType, kCapacity>::const_iterator cend() const;
 
  private:
   /**
