@@ -74,9 +74,13 @@ struct chrePalWifiCallbacks {
      * Unsolicited calls to this function must not be made. See
      * scanMonitorStatusChangeCallback() for more information.
      *
-     * @param pending true if the request was successful and the scan is
-     *        scheduled (or cached results are pending delivery), false
-     *        otherwise
+     * This function must only be called after the final status of the scan
+     * request is known. For example, it must not be called at the point when
+     * the scan is initially scheduled if it can still fail prior to delivering
+     * a result.
+     *
+     * @param pending true if the request was successful and the results of the
+     *        scan are pending delivery (via scanEventCallback), false otherwise
      * @param errorCode An error code from enum chreError
      */
     void (*scanResponseCallback)(bool pending, uint8_t errorCode);
@@ -144,18 +148,32 @@ struct chrePalWifiApi {
     /**
      * Request that the WiFi chipset perform a scan, or deliver results from its
      * cache if the parameters allow for it. If this function returns true, then
-     * the scanResponseCallback will be invoked to provide the result of
-     * requesting the scan. If that indicates a successful result (the scan is
-     * pending), then scanEventCallback() will be invoked one more more times to
-     * deliver the results of the scan. The results for the requested scan are
-     * delivered in scanEventCallback() regardless of the most recent setting
-     * passed to configureScanMonitor().
+     * the scanResponseCallback will be invoked to provide the result of the
+     * scan. If that indicates a successful result (the scan data is pending),
+     * then scanEventCallback() will be invoked one more more times to deliver
+     * the results of the scan. The results for the requested scan are delivered
+     * in scanEventCallback() regardless of the most recent setting passed to
+     * configureScanMonitor().
+     *
+     * The asynchronous flow of a scan request made through this API is
+     * as follows:
+     *
+     *  1. requestScan() called, returns true if request accepted, otherwise
+     *     false (in which case the request fails at this stage and further
+     *     steps do not occur)
+     *  2. Scan is performed, or an error is encountered preventing the
+     *     successful delivery of the scan result
+     *  3. scanResponseCallback() is invoked to indicate whether the scan
+     *     succeeded, or the reason for failure (in which case the request fails
+     *     at this stage and further steps do not occur)
+     *  4. scanEventCallback() is invoked 1 or more times (even if the scan
+     *     resulted in no visible APs)
      *
      * @param params See chreWifiRequestScanAsync()
      *
      * @return true if the request was accepted for further processing, in which
-     *         case its result will be indicated via a call to the scan monitor
-     *         status change callback.
+     *         case a subsequent call to scanResponseCallback will be used to
+     *         communicate the result of the operation
      *
      * @see #chreWifiScanParams
      * @see chreWifiRequestScanAsync()

@@ -32,6 +32,8 @@
  *
  */
 
+#include <chre/common.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -81,6 +83,14 @@ extern "C" {
 
 // NOTE: Do not add new events with ID > 15; only values 0-15 are reserved
 // (see chre/event.h)
+
+/**
+ * The maximum amount of time that is allowed to elapse between a call to
+ * chreWifiRequestScanAsync() that returns true, and the associated
+ * CHRE_EVENT_WIFI_ASYNC_RESULT used to indicate whether the scan completed
+ * successfully or not.
+ */
+#define CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS  (30 * CHRE_NSEC_PER_SEC)
 
 /**
  * The current compatibility version of the chreWifiScanEvent structure,
@@ -461,13 +471,14 @@ bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie);
  * scan, or be entirely serviced from cache, depending on the maxScanAgeMs
  * parameter.
  *
- * This result of this request is delivered asynchronously via an event of type
- * CHRE_EVENT_WIFI_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
- * for more details.
+ * This resulting status of this request is delivered asynchronously via an
+ * event of type CHRE_EVENT_WIFI_ASYNC_RESULT. The result must be delivered
+ * within CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS of the this request. Refer to the
+ * note in {@link #chreAsyncResult} for more details.
  *
  * A successful result provided in CHRE_EVENT_WIFI_ASYNC_RESULT indicates that
- * the scan result is pending or in progress and will be delivered in a
- * subsequent event of type CHRE_EVENT_WIFI_SCAN_RESULT.
+ * the scan results will be delivered in a subsequent event (or events) of type
+ * CHRE_EVENT_WIFI_SCAN_RESULT.
  *
  * It is not valid for a client to request a new scan while a result is pending
  * based on a previous scan request from the same client. In this situation, the
