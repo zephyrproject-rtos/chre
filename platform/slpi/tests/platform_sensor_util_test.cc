@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/target_platform/sensor_context_util.h"
+#include "chre/target_platform/platform_sensor_util.h"
 
 using chre::intervalToSmgrReportRate;
 using chre::Milliseconds;

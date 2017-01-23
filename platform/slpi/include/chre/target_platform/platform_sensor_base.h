@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_BASE_H_
-#define CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_BASE_H_
+#ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
+#define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
 
 namespace chre {
 
@@ -25,19 +25,19 @@ namespace chre {
 class PlatformSensorBase {
  public:
   //! The handle to uniquely identify this sensor.
-  uint8_t mSensorId;
+  uint8_t sensorId;
 
   //! The type of data that this sensor uses. SMGR overloads sensor IDs and
   //! allows them to behave as two sensors. The data type differentiates which
   //! sensor this object refers to.
-  uint8_t mDataType;
+  uint8_t dataType;
 
   //! The ReportID that is assigned to this sensor. If this value is zero, it
   //! means that sensor data for this sensor has never been requested and a new
   //! ID is required.
-  uint8_t mReportId = 0;
+  uint8_t reportId = 0;
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_BASE_H_
+#endif  // CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_

@@ -19,7 +19,7 @@
 
 #include "chre/core/request_multiplexer.h"
 #include "chre/core/sensors.h"
-#include "chre/platform/sensor_context.h"
+#include "chre/platform/platform_sensor.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"

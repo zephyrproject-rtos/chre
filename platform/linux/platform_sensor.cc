@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#include "chre/platform/sensor_context.h"
+#include "chre/platform/platform_sensor.h"
 
 namespace chre {
 
-void SensorContext::init() {
+void PlatformSensor::init() {
   // TODO: Implement this. Probably we would open some files provided to mock
   // sensor data. Perhaps from command-line arguemnts.
 }
 
-void SensorContext::deinit() {
+void PlatformSensor::deinit() {
   // TODO: Implement this. Probably we would close the files opened previously
   // by init.
 }
 
-bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
+bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
   CHRE_ASSERT(sensors);
 
   // TODO: Implement this. Perhaps look at all sensor trace files provided and

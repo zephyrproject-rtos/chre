@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/sensor_context.h"
+#include "chre/platform/platform_sensor.h"
 
 namespace chre {
 

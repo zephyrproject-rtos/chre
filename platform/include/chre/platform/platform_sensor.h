@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SENSOR_CONTEXT_H_
-#define CHRE_PLATFORM_SENSOR_CONTEXT_H_
+#ifndef CHRE_PLATFORM_PLATFORM_SENSOR_H_
+#define CHRE_PLATFORM_PLATFORM_SENSOR_H_
 
 #include "chre/core/sensors.h"
-#include "chre/target_platform/sensor_context_base.h"
+#include "chre/target_platform/platform_sensor_base.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 
@@ -29,9 +29,38 @@ namespace chre {
  * sensor. The PlatformSensorBase is subclassed here to allow platforms to
  * inject their own storage for their implementation.
  */
+// TODO: Remove common logic to core/ and have the common Sensor class own an
+// instance of the PlatformSensor class. This will clearly define the interface.
+// The static methods below can be moved to another context if needed.
 class PlatformSensor : public PlatformSensorBase,
                        public NonCopyable {
  public:
+  /**
+   * Initializes the platform sensors subsystem. This must be called as part of
+   * the initialization of the runtime.
+   */
+  static void init();
+
+  /**
+   * Obtains a list of the sensors that the platform provides. The supplied
+   * DynamicVector should be empty when passed in. If this method returns false
+   * the vector may be partially filled.
+   *
+   * @param sensors A non-null pointer to a DynamicVector to populate with the
+   *                list of sensors.
+   * @return Returns true if the query was successful.
+   */
+  static bool getSensors(DynamicVector<PlatformSensor> *sensors);
+
+  /*
+   * Deinitializes the platform sensors subsystem. This must be called as part
+   * of the deinitialization of the runtime.
+   */
+  static void deinit();
+
+  /**
+   * Default constructs a PlatformSensor with an unknown sensor type.
+   */
   PlatformSensor();
 
   /**
@@ -81,39 +110,6 @@ class PlatformSensor : public PlatformSensorBase,
   bool updatePlatformSensorRequest(const SensorRequest& request);
 };
 
-/**
- * Provides a mechanism to interact with sensors provided by the platform. This
- * includes requesting sensor data and querying available sensors.
- *
- * TODO: Refactor these static functions into PlatformSensor and remove this
- * class.
- */
-class SensorContext {
- public:
-  /**
-   * Initializes the platform sensors subsystem. This must be called as part of
-   * the initialization of the runtime.
-   */
-  static void init();
-
-  /**
-   * Obtains a list of the sensors that the platform provides. The supplied
-   * DynamicVector should be empty when passed in. If this method returns false
-   * the vector may be partially filled.
-   *
-   * @param sensors A non-null pointer to a DynamicVector to populate with the
-   *                list of sensors.
-   * @return Returns true if the query was successful.
-   */
-  static bool getSensors(DynamicVector<PlatformSensor> *sensors);
-
-  /*
-   * Deinitializes the platform sensors subsystem. This must be called as part
-   * of the deinitialization of the runtime.
-   */
-  static void deinit();
-};
-
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SENSOR_CONTEXT_H_
+#endif  // CHRE_PLATFORM_PLATFORM_SENSOR_H_

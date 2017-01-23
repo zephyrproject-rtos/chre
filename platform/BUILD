@@ -259,31 +259,31 @@ chre_cc_library(
 
 ################################################################################
 #
-# Platform Sensor Context
+# Platform Sensor
 #
 ################################################################################
 
-LINUX_PLATFORM_SENSOR_CONTEXT_SRCS = [
-    "linux/sensor_context.cc",
+LINUX_PLATFORM_PLATFORM_SENSOR_SRCS = [
+    "linux/platform_sensor.cc",
 ]
 
-LINUX_PLATFORM_SENSOR_CONTEXT_HDRS = [
-    "linux/include/chre/target_platform/sensor_context_base.h",
+LINUX_PLATFORM_PLATFORM_SENSOR_HDRS = [
+    "linux/include/chre/target_platform/platform_sensor_base.h",
 ]
 
 chre_cc_library(
-    name = "sensor_context",
+    name = "platform_sensor",
     hdrs = [
-        "include/chre/platform/sensor_context.h",
+        "include/chre/platform/platform_sensor.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_SENSOR_CONTEXT_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_SENSOR_CONTEXT_HDRS,
+        "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
+        "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
     }),
     srcs = [
-        "sensor_context.cc",
+        "platform_sensor.cc",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_SENSOR_CONTEXT_SRCS,
+        "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
     }),
     includes = select({
         "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
@@ -297,17 +297,17 @@ chre_cc_library(
 
 ################################################################################
 #
-# Platform Sensor Context Util (SLPI-only)
+# Platform Sensor Util (SLPI-only)
 #
 ################################################################################
 
 chre_cc_library(
-    name = "slpi_sensor_context_util",
+    name = "slpi_platform_sensor_util",
     hdrs = [
-        "slpi/include/chre/target_platform/sensor_context_util.h",
+        "slpi/include/chre/target_platform/platform_sensor_util.h",
     ],
     srcs = [
-        "slpi/sensor_context_util.cc",
+        "slpi/platform_sensor_util.cc",
     ],
     includes = [
         "slpi/include",
@@ -321,12 +321,12 @@ chre_cc_library(
 )
 
 gtest_cc_test(
-    name = "slpi_sensor_context_util_test",
+    name = "slpi_platform_sensor_util_test",
     srcs = [
-        "slpi/tests/sensor_context_test.cc",
+        "slpi/tests/platform_sensor_util_test.cc",
     ],
     deps = [
-        "//platform:slpi_sensor_context_util",
+        "//platform:slpi_platform_sensor_util",
     ],
 )
 

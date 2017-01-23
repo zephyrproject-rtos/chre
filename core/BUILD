@@ -55,7 +55,7 @@ chre_cc_library(
     ],
     deps = [
         "//platform:platform",
-        "//platform:sensor_context",
+        "//platform:platform_sensor",
     ],
 )
 
@@ -100,7 +100,7 @@ chre_cc_library(
     deps = [
         "//core:sensors",
         "//core:request_multiplexer",
-        "//platform:sensor_context",
+        "//platform:platform_sensor",
         "//util:util",
     ],
 )

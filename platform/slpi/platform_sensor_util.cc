@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/target_platform/sensor_context_util.h"
+#include "chre/platform/slpi/platform_sensor_util.h"
 
 #ifdef GTEST
 // This value is taken from the SMGR API definition.

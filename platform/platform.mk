@@ -9,7 +9,7 @@ COMMON_CFLAGS += -Iplatform/include
 
 # Common Source Files ##########################################################
 
-COMMON_SRCS += platform/sensor_context.cc
+COMMON_SRCS += platform/platform_sensor.cc
 
 # Hexagon-specific Compiler Flags ##############################################
 
@@ -31,7 +31,7 @@ HEXAGON_SRCS += platform/shared/memory.cc
 HEXAGON_SRCS += platform/shared/platform_nanoapp.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
 HEXAGON_SRCS += platform/slpi/init.cc
-HEXAGON_SRCS += platform/slpi/sensor_context.cc
-HEXAGON_SRCS += platform/slpi/sensor_context_util.cc
+HEXAGON_SRCS += platform/slpi/platform_sensor.cc
+HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc
 HEXAGON_SRCS += platform/slpi/system_time.cc
 HEXAGON_SRCS += platform/slpi/system_timer.cc

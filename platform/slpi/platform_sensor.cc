@@ -29,13 +29,13 @@ extern "C" {
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
-#include "chre/platform/sensor_context.h"
-#include "chre/target_platform/sensor_context_util.h"
+#include "chre/platform/platform_sensor.h"
+#include "chre/platform/slpi/platform_sensor_util.h"
 
 namespace {
 
 //! The QMI client handle.
-qmi_client_type gSensorContextQmiClientHandle = nullptr;
+qmi_client_type gPlatformSensorQmiClientHandle = nullptr;
 
 //! A sensor report indication for deserializing sensor sample indications
 //! into. This global instance is used to avoid thrashy use of the heap by
@@ -211,10 +211,11 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
  * @param callbackData Data that is provided as a context to this callback. This
  *                     is not used in this context.
  */
-void sensorContextQmiIndicationCallback(void *userHandle,
-                                        unsigned int messageId,
-                                        void *buffer, unsigned int bufferLength,
-                                        void *callbackData) {
+void platformSensorQmiIndicationCallback(void *userHandle,
+                                         unsigned int messageId,
+                                         void *buffer,
+                                         unsigned int bufferLength,
+                                         void *callbackData) {
   switch (messageId) {
     case SNS_SMGR_REPORT_IND_V01:
       handleSensorDataIndication(userHandle, buffer, bufferLength);
@@ -225,7 +226,7 @@ void sensorContextQmiIndicationCallback(void *userHandle,
   };
 }
 
-void SensorContext::init() {
+void PlatformSensor::init() {
   qmi_idl_service_object_type sensorServiceObject =
       SNS_SMGR_SVC_get_service_object_v01();
   if (sensorServiceObject == nullptr) {
@@ -234,16 +235,16 @@ void SensorContext::init() {
 
   qmi_client_os_params sensorContextOsParams;
   qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
-      QMI_CLIENT_INSTANCE_ANY, &sensorContextQmiIndicationCallback, nullptr,
-      &sensorContextOsParams, kQmiTimeoutMs, &gSensorContextQmiClientHandle);
+      QMI_CLIENT_INSTANCE_ANY, &platformSensorQmiIndicationCallback, nullptr,
+      &sensorContextOsParams, kQmiTimeoutMs, &gPlatformSensorQmiClientHandle);
   if (status != QMI_NO_ERR) {
     FATAL_ERROR("Failed to initialize the sensors QMI client: %d", status);
   }
 }
 
-void SensorContext::deinit() {
-  qmi_client_release(&gSensorContextQmiClientHandle);
-  gSensorContextQmiClientHandle = nullptr;
+void PlatformSensor::deinit() {
+  qmi_client_release(&gPlatformSensorQmiClientHandle);
+  gPlatformSensorQmiClientHandle = nullptr;
 }
 
 /**
@@ -262,7 +263,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
   sensorInfoRequest.SensorID = sensorId;
 
   qmi_client_error_type status = qmi_client_send_msg_sync(
-      gSensorContextQmiClientHandle, SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
+      gPlatformSensorQmiClientHandle, SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
       &sensorInfoRequest, sizeof(sns_smgr_single_sensor_info_req_msg_v01),
       &sensorInfoResponse, sizeof(sns_smgr_single_sensor_info_resp_msg_v01),
       kQmiTimeoutMs);
@@ -283,8 +284,8 @@ bool getSensorsForSensorId(uint8_t sensorId,
                                                         sensorInfo->DataType);
       if (sensorType != SensorType::Unknown) {
         PlatformSensor platformSensor(sensorType);
-        platformSensor.mSensorId = sensorInfo->SensorID;
-        platformSensor.mDataType = sensorInfo->DataType;
+        platformSensor.sensorId = sensorInfo->SensorID;
+        platformSensor.dataType = sensorInfo->DataType;
         if (!sensors->push_back(std::move(platformSensor))) {
           FATAL_ERROR("Failed to allocate new sensor: out of memory");
         }
@@ -297,14 +298,14 @@ bool getSensorsForSensorId(uint8_t sensorId,
   return success;
 }
 
-bool SensorContext::getSensors(DynamicVector<PlatformSensor> *sensors) {
+bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
   CHRE_ASSERT(sensors);
 
   sns_smgr_all_sensor_info_req_msg_v01 sensorListRequest;
   sns_smgr_all_sensor_info_resp_msg_v01 sensorListResponse;
 
   qmi_client_error_type status = qmi_client_send_msg_sync(
-      gSensorContextQmiClientHandle, SNS_SMGR_ALL_SENSOR_INFO_REQ_V01,
+      gPlatformSensorQmiClientHandle, SNS_SMGR_ALL_SENSOR_INFO_REQ_V01,
       &sensorListRequest, sizeof(sns_smgr_all_sensor_info_req_msg_v01),
       &sensorListResponse, sizeof(sns_smgr_all_sensor_info_resp_msg_v01),
       kQmiTimeoutMs);
@@ -349,7 +350,7 @@ bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
   // If requestId for this sensor is zero and the mode is not active, the sensor
   // has never been enabled. This means that the request is a no-op from the
   // disabled state and true can be returned to indicate success.
-  if (mReportId == 0 && !sensorModeIsActive(request.getMode())) {
+  if (this->reportId == 0 && !sensorModeIsActive(request.getMode())) {
     return true;
   }
 
@@ -369,8 +370,8 @@ bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
   }
 
   // Check if a new report ID is needed for this request.
-  if (mReportId == 0) {
-    mReportId = generateUniqueReportId();
+  if (this->reportId == 0) {
+    this->reportId = generateUniqueReportId();
   }
 
   // Zero the fields in the request. All mandatory and unused fields are
@@ -381,16 +382,16 @@ bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
   // ReportID that is already in use causes a replacement of the last request.
   uint16_t reportRate = intervalToSmgrReportRate(request.getInterval());
   sensorDataRequest->ReportRate = reportRate;
-  sensorDataRequest->ReportId = mReportId;
+  sensorDataRequest->ReportId = this->reportId;
   sensorDataRequest->Action = getSmgrRequestActionForMode(request.getMode());
   sensorDataRequest->Item_len = 1; // Each request is for one sensor.
-  sensorDataRequest->Item[0].SensorId = mSensorId;
-  sensorDataRequest->Item[0].DataType = mDataType;
+  sensorDataRequest->Item[0].SensorId = this->sensorId;
+  sensorDataRequest->Item[0].DataType = this->dataType;
   sensorDataRequest->Item[0].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
 
   bool success = false;
   qmi_client_error_type status = qmi_client_send_msg_sync(
-      gSensorContextQmiClientHandle, SNS_SMGR_REPORT_REQ_V01,
+      gPlatformSensorQmiClientHandle, SNS_SMGR_REPORT_REQ_V01,
       sensorDataRequest, sizeof(sns_smgr_periodic_report_req_msg_v01),
       sensorDataResponse, sizeof(sns_smgr_single_sensor_info_resp_msg_v01),
       kQmiTimeoutMs);

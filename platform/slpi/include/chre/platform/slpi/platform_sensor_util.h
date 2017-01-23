@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_UTIL_H_
-#define CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_UTIL_H_
-
-// TODO: Move this file to chre/platform/slpi/sensor_context_util.h as it does
-// not belong in target_platform (normally reserved for implementations of an
-// abstraction for common behavior).
+#ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_
+#define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_
 
 #include <cstdint>
 
@@ -40,4 +36,4 @@ uint16_t intervalToSmgrReportRate(Nanoseconds interval);
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_SENSOR_CONTEXT_UTIL_H_
+#endif  // CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_

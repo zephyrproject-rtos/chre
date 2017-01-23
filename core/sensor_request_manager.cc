@@ -22,7 +22,7 @@ SensorRequestManager::SensorRequestManager() {
   mSensorRequests.resize(mSensorRequests.capacity());
 
   DynamicVector<PlatformSensor> platformSensors;
-  if (!SensorContext::getSensors(&platformSensors)) {
+  if (!PlatformSensor::getSensors(&platformSensors)) {
     LOGE("Failed to query the platform for sensors");
     return;
   }

@@ -25,9 +25,8 @@
 #include "chre/platform/log.h"
 #include "chre/platform/system_timer.h"
 #include "chre/platform/platform_nanoapp.h"
+#include "chre/platform/platform_sensor.h"
 #include "chre/util/time.h"
-
-#include "chre/platform/sensor_context.h"
 
 using chre::Milliseconds;
 
@@ -69,7 +68,7 @@ extern "C" int chre_init() {
   chre::init();
 
   chre::DynamicVector<chre::PlatformSensor> sensors;
-  if (!chre::SensorContext::getSensors(&sensors)) {
+  if (!chre::PlatformSensor::getSensors(&sensors)) {
     LOGE("Failed to obtain the list of platform sensors\n");
   }
 

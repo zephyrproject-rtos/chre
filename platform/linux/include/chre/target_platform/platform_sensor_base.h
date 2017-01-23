@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
-#define CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
+#ifndef CHRE_PLATFORM_LINUX_PLATFORM_SENSOR_BASE_H_
+#define CHRE_PLATFORM_LINUX_PLATFORM_SENSOR_BASE_H_
 
 namespace chre {
 
@@ -28,4 +28,4 @@ class PlatformSensorBase {
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_LINUX_SENSOR_CONTEXT_BASE_H_
+#endif  // CHRE_PLATFORM_LINUX_PLATFORM_SENSOR_BASE_H_
