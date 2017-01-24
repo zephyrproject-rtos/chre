@@ -55,6 +55,15 @@ enum class SensorType : uint8_t {
 const char *getSensorTypeName(SensorType sensorType);
 
 /**
+ * Returns a sensor sample event type for a given sensor type. The sensor type
+ * must not be SensorType::Unknown. This is a fatal error.
+ *
+ * @param sensorType The type of the sensor.
+ * @return The event type for a sensor sample of the given sensor type.
+ */
+uint16_t getSampleEventTypeForSensorType(SensorType sensorType);
+
+/**
  * This SensorMode is designed to wrap constants provided by the CHRE API to
  * imrpove type-safety. The details of these modes are left to the CHRE API mode
  * definitions contained in the chreSensorConfigureMode enum.

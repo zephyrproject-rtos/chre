@@ -18,7 +18,6 @@
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
 #include "chre/core/event_loop.h"
-#include "chre/core/sensor_request_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"

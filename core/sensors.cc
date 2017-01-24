@@ -18,6 +18,7 @@
 
 #include "chre/core/sensors.h"
 #include "chre/platform/assert.h"
+#include "chre/platform/fatal_error.h"
 
 namespace chre {
 
@@ -45,6 +46,17 @@ const char *getSensorTypeName(SensorType sensorType) {
       CHRE_ASSERT(false);
       return "";
   }
+}
+
+uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
+  if (sensorType == SensorType::Unknown) {
+    FATAL_ERROR("Tried to obtain the sensor sample event index for an unknown "
+                "sensor type");
+  }
+
+  // The enum values of SensorType map to the defined values in the CHRE API.
+  uint8_t sensorTypeValue = static_cast<uint8_t>(sensorType);
+  return CHRE_EVENT_SENSOR_DATA_EVENT_BASE + sensorTypeValue;
 }
 
 SensorRequest::SensorRequest()

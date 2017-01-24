@@ -82,6 +82,7 @@ chre_cc_library(
     deps = [
         "//chre_api:chre_api",
         "//platform:assert",
+        "//platform:fatal_error",
         "//util:util",
     ],
 )
