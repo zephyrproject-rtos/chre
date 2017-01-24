@@ -45,9 +45,9 @@
  *
  * The following entry points are required to be handled by the CHRE
  * implementation, and the functions must all be implemented by nanoapps.
- * o nanoappStart function (see chre_nanoapp.h)
- * o nanoappHandleEvent function (see chre_nanoapp.h)
- * o nanoappEnd function (see chre_nanoapp.h)
+ * o nanoappStart function (see chre/nanoapp.h)
+ * o nanoappHandleEvent function (see chre/nanoapp.h)
+ * o nanoappEnd function (see chre/nanoapp.h)
  * o bss section zeroed out (prior to nanoappStart)
  * o static variables initialized (prior to nanoappStart)
  * o global C++ constructors called (prior to nanoappStart)
@@ -58,17 +58,28 @@
 /**
  * Threading model.
  *
- * A CHRE implementation is free to chose among many different
- * threading models, including a single threaded system or a multi-threaded
+ * A CHRE implementation is free to choose among many different
+ * threading models, including a single-threaded system or a multi-threaded
  * system with preemption.  The current platform definition is agnostic to this
- * underlying choice [1].
+ * underlying choice.  However, the CHRE implementation must ensure that time
+ * spent executing within a nanoapp does not significantly degrade or otherwise
+ * interfere with other functions of the system in which CHRE is implemented,
+ * especially latency-sensitive tasks such as sensor event delivery to the AP.
+ * In other words, it must ensure that these functions can either occur in
+ * parallel or preempt a nanoapp's execution.  The current version of the API
+ * does not specify whether the implementation allows for CPU sharing between
+ * nanoapps on a more granular level than the handling of individual events [1].
+ * In any case, event ordering from the perspective of an individual nanoapp
+ * must be FIFO, but the CHRE implementation may choose to violate total
+ * ordering of events across all nanoapps to achieve more fair resource sharing,
+ * but this is not required.
  *
- * However, the Platform does require that all nanoapps are treated as
- * non-reentrant.  That is, any of the functions of the nanoapp, including
- * the entry points defined above and the memory freeing callbacks defined
- * below, cannot be invoked by the CHRE if a previous invocation
- * hasn't completed.  Note this means no nanoapp function can be invoked
- * from an interrupt context.
+ * This version of the CHRE API does require that all nanoapps are treated as
+ * non-reentrant, meaning that only one instance of program flow can be inside
+ * an individual nanoapp at any given time.  That is, any of the functions of
+ * the nanoapp, including the entry points and all other callbacks, cannot be
+ * invoked if a previous invocation to the same or any other function in the
+ * nanoapp has not completed yet.
  *
  * For example, if a nanoapp is currently in nanoappHandleEvent(), the CHRE is
  * not allowed to call nanoappHandleEvent() again, or to call a memory freeing
@@ -110,20 +121,20 @@
  * be single threaded.  As a result, all methods invoked in a nanoapp
  * (like nanoappStart, nanoappHandleEvent, memory free callbacks, etc.)
  * must run "quickly".  "Quickly" is difficult to define, as there is a
- * diversity of Context Hub hardware.  For Android N, there is no firm
- * definition of "quickly", but expect this term to gain definition in
- * future releases as we get feedback from partners.
+ * diversity of Context Hub hardware.  Nanoapp authors are strongly recommended
+ * to limit their application to consuming no more than 1 second of CPU time
+ * prior to returning control to the CHRE implementation.  A CHRE implementation
+ * may consider a nanoapp as unresponsive if it spends more time than this to
+ * process a single event, and take corrective action.
  *
- * In order to write a nanoapp that will be able to adopt to future
- * stricter notions of "quickly", all nanoapp methods should be written so
- * they execute in a small amount of time.  Some nanoapps may have the need
- * to occasionally perform a large block of calculations, which may seem
- * to violate this.  The recommended approach in this case is to
- * split up the large block of calculations into smaller batches.  In one
- * call into the nanoapp, the nanoapp can perform the first batch, and then
- * send an event (chreSendEvent()) to itself indicating which batch should be
- * done next.  This will allow the nanoapp to perform the entire calculation
- * over time, without monopolizing system resources.
+ * A nanoapp may have the need to occasionally perform a large block of
+ * calculations that exceeds the 1 second guidance.  The recommended approach in
+ * this case is to split up the large block of calculations into smaller
+ * batches.  In one call into the nanoapp, the nanoapp can perform the first
+ * batch, and then set a timer or send an event (chreSendEvent()) to itself
+ * indicating which batch should be done next. This will allow the nanoapp to
+ * perform the entire calculation over time, without monopolizing system
+ * resources.
  */
 
 /**
@@ -145,50 +156,39 @@
 /**
  * CHRE and Nanoapp compatibility.
  *
- * The Android N release introduces the first version of this API.
- * It is anticipated that there will be a lot of feedback from
- * Android partners on this initial API.  To allow more flexibility
- * in addressing that feedback, there is no plan to assure
- * binary compatibility between the Android N and Android O CHRE
- * implementations and nanoapps.
+ * CHRE implementations must make affordances to maintain binary compatibility
+ * across minor revisions of the API version (e.g. v1.1 to v1.2).  This applies
+ * to both running a nanoapp compiled for a newer version of the API on a CHRE
+ * implementation built against an older version (backwards compatibility), and
+ * vice versa (forwards compatibility).  API changes that are acceptable in
+ * minor version changes that may require special measures to ensure binary
+ * compatibility include: addition of new functions; addition of arguments to
+ * existing functions when the default value used for nanoapps compiled against
+ * the old version is well-defined and does not affect existing functionality;
+ * and addition of fields to existing structures, even when this induces a
+ * binary layout change (this should be made rare via judicious use of reserved
+ * fields).  API changes that must only occur alongside a major version change
+ * and are therefore not compatible include: removal of any function, argument,
+ * field in a data structure, or mandatory functional behavior that a nanoapp
+ * may depend on; any change in the interpretation of an existing data structure
+ * field that alters the way it was defined previously (changing the units of a
+ * field would fall under this, but appropriating a previously reserved field
+ * for some new functionality would not); and any change in functionality or
+ * expected behavior that conflicts with the previous definition.
  *
- * That is, a nanoapp built with the Android O version of this
- * API should not expect to run on a CHRE built with
- * the Android N API.  Similarly, a nanoapp build with the
- * Android N API should not expect to run on a CHRE
- * build with the Android O API.  Such a nanoapp will need to
- * recompiled with the appropriate API in order to work.
- */
-
-/**
- * TODO: initial/suggested verbiage, should be incorporated with above where
- * appropriate
+ * Note that the CHRE API only specifies the software interface between a
+ * nanoapp and the CHRE system - the binary interface (ABI) between nanoapp and
+ * CHRE is necessarily implementation-dependent.  Therefore, the recommended
+ * approach to accomplish binary compatibility is to build a Nanoapp Support
+ * Library (NSL) that is specific to the CHRE implementation into the nanoapp
+ * binary, and use it to handle ABI details in a way that ensures compatibility.
+ * In addition, to accomplish forwards compatibility, the CHRE implementation is
+ * expected to recognize the CHRE API version that a nanoapp is targeting and
+ * engage compatibility behaviors where necessary.
  *
- * Preemption
- * The CHRE implementation must ensure that long-running computations within a
- * nanoapp do not interfere with other latency-sensitive system functions. In
- * other words, it must ensure that these functions can either occur in parallel
- * or preempt a nanoapp's execution. However, the current version of the API
- * does not specify whether the implementation allows for CPU sharing between
- * nanoapps on a more granular level than the handling of individual events.
- *
- * Event scheduling
- * [Brian] IMO we don't need to make any new requirements in this area, but it
- * might be helpful to note that event ordering from the perspective of an
- * individual nanoapp must be FIFO, but the CHRE may choose to violate total
- * ordering of events across all nanoapps to achieve more fair resource sharing,
- * but this is not required.
- *
- * Timing
- * Maybe we can provide guidance without imposing a strict limit in the current
- * version, e.g. "Nanoapp authors are recommended to limit themselves to
- * consuming no more than 1 second of CPU time in any 10 second timespan. The
- * CHRE implementation may consider a nanoapp as unresponsive if it spends more
- * than 1 second processing a single event, and take corrective action." Also,
- * should add a note that if an app author has a use case where they want to use
- * more CPU time than this guideline allows for, then they should contact the
- * authors of the API because this implies that the platform requirements are
- * insufficient to properly satisfy the new use case.
+ * By definition, major API version changes (e.g. v1.1 to v2.0) break
+ * compatibility.  Therefore, a CHRE implementation must not attempt to load a
+ * nanoapp that is targeting a newer major API version.
  */
 
 #endif  /* _CHRE_H_ */
