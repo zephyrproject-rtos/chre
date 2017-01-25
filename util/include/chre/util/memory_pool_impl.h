@@ -21,10 +21,6 @@
 
 #include <utility>
 
-/*
- * TODO: needs to be thread safe (or there needs to be a thread safe version)
- */
-
 namespace chre {
 
 template<typename ElementType, size_t kSize>
