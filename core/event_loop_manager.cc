@@ -16,6 +16,8 @@
 
 #include "chre/core/event_loop_manager.h"
 
+#include "chre/util/lock_guard.h"
+
 namespace chre {
 
 EventLoop *EventLoopManager::createEventLoop() {
@@ -30,7 +32,7 @@ void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,
                                  uint32_t targetInstanceId) {
-  // TODO: Acquire a lock here.
+  LockGuard<Mutex> lock(mMutex);
   for (size_t i = 0; i < mEventLoops.size(); i++) {
     // TODO: Check to see if anyone in the event loop cares about this event and
     // consider not posting it.

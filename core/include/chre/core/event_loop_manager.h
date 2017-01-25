@@ -18,6 +18,8 @@
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
 #include "chre/core/event_loop.h"
+#include "chre/core/sensor_request_manager.h"
+#include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/singleton.h"
@@ -57,6 +59,11 @@ class EventLoopManager : public NonCopyable {
                  uint32_t targetInstanceId = kBroadcastInstanceId);
 
  private:
+  //! The mutex used to lock the shared data structures below. The postEvent
+  //! method above may be called from any context so a lock is used to gain
+  //! exclusive access.
+  Mutex mMutex;
+
   //! The list of event loops managed by this event loop manager. The EventLoops
   //! are stored in UniquePtr because they are large objects. They do not
   //! provide an implementation of the move constructor so it is best left to

@@ -37,8 +37,10 @@ chre_cc_library(
         "//core:event",
         "//core:nanoapp",
         "//platform:fatal_error",
+        "//platform:mutex",
         "//platform:system_time",
         "//platform:system_timer",
+        "//util",
     ],
 )
 
