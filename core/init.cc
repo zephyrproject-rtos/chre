@@ -30,6 +30,7 @@ void init() {
 }
 
 void deinit() {
+  EventLoopManagerSingleton::deinit();
   PlatformSensor::deinit();
 }
 
