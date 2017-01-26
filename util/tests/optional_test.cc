@@ -48,3 +48,13 @@ TEST(Optional, MoveAssignAndRead) {
   EXPECT_TRUE(myInt.has_value());
   EXPECT_EQ(*myInt, 0xcafe);
 }
+
+TEST(Optional, OptionalMoveAssignAndRead) {
+  Optional<int> myInt(0x1337);
+  Optional<int> myMovedInt;
+  EXPECT_FALSE(myMovedInt.has_value());
+  myMovedInt = std::move(myInt);
+  EXPECT_FALSE(myInt.has_value());
+  EXPECT_TRUE(myMovedInt.has_value());
+  EXPECT_EQ(*myMovedInt, 0x1337);
+}

@@ -47,6 +47,15 @@ Optional<ObjectType>& Optional<ObjectType>::operator=(ObjectType&& other) {
 }
 
 template<typename ObjectType>
+Optional<ObjectType>& Optional<ObjectType>::operator=(
+    Optional<ObjectType>&& other) {
+  mObject = std::move(other.mObject);
+  mHasValue = other.mHasValue;
+  other.mHasValue = false;
+  return *this;
+}
+
+template<typename ObjectType>
 Optional<ObjectType>& Optional<ObjectType>::operator=(const ObjectType& other) {
   mObject = other;
   mHasValue = true;

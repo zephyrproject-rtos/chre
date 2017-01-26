@@ -62,6 +62,15 @@ class Optional : public NonCopyable {
   Optional<ObjectType>& operator=(ObjectType&& other);
 
   /**
+   * Performs a move assignment from one optional to another. The other is left
+   * in a state with no value.
+   *
+   * @param other The other object to move.
+   * @return Returns a reference to this object.
+   */
+  Optional<ObjectType>& operator=(Optional<ObjectType>&& other);
+
+  /**
    * Performs a copy assignment operation to the underlying object managed by
    * this container.
    *
