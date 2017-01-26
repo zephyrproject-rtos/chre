@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_CORE_SENSOR_H_
-#define CHRE_CORE_SENSOR_H_
+#ifndef CHRE_CORE_SENSOR_REQUEST_H_
+#define CHRE_CORE_SENSOR_REQUEST_H_
 
 #include <cstdint>
 
@@ -206,6 +206,6 @@ class SensorRequest {
 
 }  // namespace chre
 
-#include "chre/core/sensors_impl.h"
+#include "chre/core/sensor_request_impl.h"
 
-#endif  // CHRE_CORE_SENSOR_H_
+#endif  // CHRE_CORE_SENSOR_REQUEST_H_

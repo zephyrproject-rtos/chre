@@ -16,7 +16,7 @@
 
 #include <algorithm>
 
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 

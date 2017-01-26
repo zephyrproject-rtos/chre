@@ -290,7 +290,7 @@ chre_cc_library(
         "//conditions:default" : LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
-        "//core:sensors",
+        "//core:sensor_request",
         "//util:util",
     ],
 )

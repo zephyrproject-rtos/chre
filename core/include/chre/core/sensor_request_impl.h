@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef CORE_INCLUDE_CHRE_CORE_SENSORS_IMPL_H_
-#define CORE_INCLUDE_CHRE_CORE_SENSORS_IMPL_H_
+#ifndef CHRE_CORE_SENSOR_REQUEST_IMPL_H_
+#define CHRE_CORE_SENSOR_REQUEST_IMPL_H_
 
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 
 namespace chre {
 
@@ -47,4 +47,4 @@ constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle) {
 
 }  // namespace chre
 
-#endif  // CORE_INCLUDE_CHRE_CORE_SENSORS_IMPL_H_
+#endif  // CHRE_CORE_SENSOR_REQUEST_IMPL_H_

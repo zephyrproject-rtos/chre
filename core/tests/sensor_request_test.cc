@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 
 using chre::Nanoseconds;
 using chre::SensorMode;

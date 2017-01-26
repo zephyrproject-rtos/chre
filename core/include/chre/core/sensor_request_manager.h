@@ -18,7 +18,7 @@
 #define CHRE_CORE_SENSOR_REQUEST_MANAGER_H_
 
 #include "chre/core/request_multiplexer.h"
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"

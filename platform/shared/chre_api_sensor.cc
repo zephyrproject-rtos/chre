@@ -15,7 +15,7 @@
  */
 
 #include "chre/core/event_loop_manager.h"
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 #include "chre_api/chre/sensor.h"
 
 using chre::EventLoopManagerSingleton;

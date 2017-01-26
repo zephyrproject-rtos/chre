@@ -72,13 +72,13 @@ chre_cc_library(
 )
 
 chre_cc_library(
-    name = "sensors",
+    name = "sensor_request",
     hdrs = [
-        "include/chre/core/sensors.h",
-        "include/chre/core/sensors_impl.h",
+        "include/chre/core/sensor_request.h",
+        "include/chre/core/sensor_request_impl.h",
     ],
     srcs = [
-        "sensors.cc",
+        "sensor_request.cc",
     ],
     deps = [
         "//core:nanoapp",
@@ -98,7 +98,7 @@ chre_cc_library(
         "sensor_request_manager.cc",
     ],
     deps = [
-        "//core:sensors",
+        "//core:sensor_request",
         "//core:request_multiplexer",
         "//platform:platform_sensor",
         "//util:util",
@@ -132,11 +132,11 @@ gtest_cc_test(
 )
 
 gtest_cc_test(
-    name = "sensors_test",
+    name = "sensor_request_test",
     srcs = [
-        "tests/sensors_test.cc",
+        "tests/sensor_request_test.cc",
     ],
     deps = [
-        "//core:sensors",
+        "//core:sensor_request",
     ],
 )

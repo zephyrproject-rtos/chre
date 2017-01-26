@@ -17,7 +17,7 @@
 #ifndef CHRE_PLATFORM_PLATFORM_SENSOR_H_
 #define CHRE_PLATFORM_PLATFORM_SENSOR_H_
 
-#include "chre/core/sensors.h"
+#include "chre/core/sensor_request.h"
 #include "chre/target_platform/platform_sensor_base.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
