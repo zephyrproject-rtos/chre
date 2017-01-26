@@ -35,6 +35,16 @@ constexpr size_t getSensorTypeCount() {
   return static_cast<size_t>(SensorType::SENSOR_TYPE_COUNT) - 1;
 }
 
+constexpr uint32_t getSensorHandleFromSensorType(SensorType sensorType) {
+  return static_cast<uint32_t>(sensorType);
+}
+
+constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle) {
+  return (handle > static_cast<uint32_t>(SensorType::Unknown)
+          && handle < static_cast<uint32_t>(SensorType::SENSOR_TYPE_COUNT))
+      ? static_cast<SensorType>(handle) : SensorType::Unknown;
+}
+
 }  // namespace chre
 
 #endif  // CORE_INCLUDE_CHRE_CORE_SENSORS_IMPL_H_

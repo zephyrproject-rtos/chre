@@ -92,6 +92,26 @@ constexpr size_t getSensorTypeCount();
 SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType);
 
 /**
+ * Provides a stable handle for a CHRE sensor type. This handle is exposed to
+ * CHRE nanoapps as a way to refer to sensors that they are subscribing to. This
+ * API is not expected to be called with SensorType::Unknown as nanoapps are not
+ * able to subscribe to the Unknown sensor type.
+ *
+ * @param sensorType The type of the sensor to obtain a handle for.
+ * @return The handle for a given sensor.
+ */
+constexpr uint32_t getSensorHandleFromSensorType(SensorType sensorType);
+
+/**
+ * Maps a sensor handle to a SensorType or returns SensorType::Unknown if the
+ * provided handle is invalid.
+ *
+ * @param handle The sensor handle for a sensor.
+ * @return The sensor type for a given handle.
+ */
+constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle);
+
+/**
  * This SensorMode is designed to wrap constants provided by the CHRE API to
  * imrpove type-safety. The details of these modes are left to the CHRE API mode
  * definitions contained in the chreSensorConfigureMode enum.

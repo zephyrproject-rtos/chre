@@ -171,7 +171,7 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
       chreSensorDataHeader header;
       memset(&header.reserved, 0, sizeof(header.reserved));
       header.baseTimestamp = getNanosecondsFromSmgrTicks(sensorData.TimeStamp);
-      header.sensorHandle = 0xbeef; // TODO: Get a real sensor handle.
+      header.sensorHandle = getSensorHandleFromSensorType(sensorType);
       header.readingCount = 1;
 
       if (sensorType == SensorType::Accelerometer
