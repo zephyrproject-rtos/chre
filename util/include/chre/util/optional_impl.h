@@ -22,6 +22,13 @@
 namespace chre {
 
 template<typename ObjectType>
+Optional<ObjectType>::Optional() {}
+
+template<typename ObjectType>
+Optional<ObjectType>::Optional(const ObjectType& object)
+    : mObject(object), mHasValue(true) {}
+
+template<typename ObjectType>
 bool Optional<ObjectType>::has_value() const {
   return mHasValue;
 }

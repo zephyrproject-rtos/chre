@@ -29,6 +29,18 @@ template<typename ObjectType>
 class Optional : public NonCopyable {
  public:
   /**
+   * Default constructs the optional object with no initial value.
+   */
+  Optional();
+
+  /**
+   * Constructs an optional instance with an initial value.
+   *
+   * @param object The initial value of the object.
+   */
+  Optional(const ObjectType& object);
+
+  /**
    * @return Returns true if the object tracked by this container has been
    * assigned.
    */

@@ -22,7 +22,13 @@ using chre::Optional;
 
 TEST(Optional, NoValueByDefault) {
   Optional<int> myInt;
-  EXPECT_EQ(myInt.has_value(), false);
+  EXPECT_FALSE(myInt.has_value());
+}
+
+TEST(Optional, NonDefaultValueByDefault) {
+  Optional<int> myInt(0x1337);
+  EXPECT_TRUE(myInt.has_value());
+  EXPECT_EQ(*myInt, 0x1337);
 }
 
 TEST(Optional, CopyAssignAndRead) {
