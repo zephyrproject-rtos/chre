@@ -282,7 +282,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
       SensorType sensorType = getSensorTypeFromSensorId(sensorInfo->SensorID,
                                                         sensorInfo->DataType);
       if (sensorType != SensorType::Unknown) {
-        PlatformSensor platformSensor(sensorType);
+        PlatformSensor platformSensor;
         platformSensor.sensorId = sensorInfo->SensorID;
         platformSensor.dataType = sensorInfo->DataType;
         if (!sensors->push_back(std::move(platformSensor))) {
@@ -345,7 +345,7 @@ uint8_t getSmgrRequestActionForMode(SensorMode mode) {
   }
 }
 
-bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
+bool PlatformSensor::setRequest(const SensorRequest& request) {
   // If requestId for this sensor is zero and the mode is not active, the sensor
   // has never been enabled. This means that the request is a no-op from the
   // disabled state and true can be returned to indicate success.
@@ -412,6 +412,10 @@ bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
   memoryFree(sensorDataRequest);
   memoryFree(sensorDataResponse);
   return success;
+}
+
+SensorType PlatformSensor::getSensorType() const {
+  return getSensorTypeFromSensorId(this->sensorId, this->dataType);
 }
 
 }  // namespace chre

@@ -279,9 +279,7 @@ chre_cc_library(
         "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
         "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
     }),
-    srcs = [
-        "platform_sensor.cc",
-    ] + select({
+    srcs = select({
         "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
         "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
     }),

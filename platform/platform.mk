@@ -7,10 +7,6 @@
 # Include paths.
 COMMON_CFLAGS += -Iplatform/include
 
-# Common Source Files ##########################################################
-
-COMMON_SRCS += platform/platform_sensor.cc
-
 # Hexagon-specific Compiler Flags ##############################################
 
 # Include paths.

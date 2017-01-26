@@ -18,8 +18,8 @@
 #define CHRE_CORE_SENSOR_REQUEST_MANAGER_H_
 
 #include "chre/core/request_multiplexer.h"
+#include "chre/core/sensor.h"
 #include "chre/core/sensor_request.h"
-#include "chre/platform/platform_sensor.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
@@ -58,9 +58,8 @@ class SensorRequestManager : public NonCopyable {
    * for it and can trigger a change in rate/latency when required.
    */
   struct SensorRequests {
-    //! The platform sensor for this request manager if it was found during
-    //! initialization.
-    Optional<PlatformSensor> sensor;
+    //! The sensor associated with this request multiplexer.
+    Sensor sensor;
 
     //! The request multiplexer for this sensor.
     RequestMultiplexer<SensorRequest> requestMultiplexer;

@@ -32,21 +32,21 @@ SensorRequestManager::SensorRequestManager() {
   }
 
   for (size_t i = 0; i < platformSensors.size(); i++) {
-    PlatformSensor& sensor = platformSensors[i];
-    size_t sensorIndex = getSensorTypeArrayIndex(sensor.getSensorType());
-    LOGD("SensorRequestManager found sensor: %s",
-         getSensorTypeName(sensor.getSensorType()));
-    mSensorRequests[sensorIndex].sensor = std::move(sensor);
+    PlatformSensor& platformSensor = platformSensors[i];
+    SensorType sensorType = platformSensor.getSensorType();
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    LOGD("Found sensor: %s", getSensorTypeName(sensorType));
+
+    mSensorRequests[sensorIndex].sensor = Sensor(platformSensor);
   }
 }
 
 SensorRequestManager::~SensorRequestManager() {
+  SensorRequest nullRequest = SensorRequest();
   for (size_t i = 0; i < mSensorRequests.size(); i++) {
     // Disable sensors that have been enabled previously.
-    Optional<PlatformSensor>& sensor = mSensorRequests[i].sensor;
-    if (sensor.has_value()) {
-      sensor->setRequest(SensorRequest());
-    }
+    Sensor& sensor = mSensorRequests[i].sensor;
+    sensor.setRequest(nullRequest);
   }
 }
 
@@ -54,13 +54,13 @@ bool SensorRequestManager::getSensorHandle(SensorType sensorType,
                                            uint32_t *sensorHandle) const {
   CHRE_ASSERT(sensorHandle);
 
-  bool hasSensor = false;
+  bool sensorHandleIsValid = false;
   if (sensorType == SensorType::Unknown) {
     LOGW("Querying for unknown sensor type");
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
-    hasSensor = mSensorRequests[sensorIndex].sensor.has_value();
-    if (hasSensor) {
+    sensorHandleIsValid = mSensorRequests[sensorIndex].sensor.isValid();
+    if (sensorHandleIsValid) {
       // The sensorIndex obtained above will always be small so we do not need
       // to be concerned about integer overflow here. We increment by one to
       // avoid handles of zero being valid. Whenever a client provides a handle
@@ -69,7 +69,7 @@ bool SensorRequestManager::getSensorHandle(SensorType sensorType,
     }
   }
 
-  return hasSensor;
+  return sensorHandleIsValid;
 }
 
 }  // namespace chre

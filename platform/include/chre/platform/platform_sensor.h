@@ -29,11 +29,7 @@ namespace chre {
  * sensor. The PlatformSensorBase is subclassed here to allow platforms to
  * inject their own storage for their implementation.
  */
-// TODO: Remove common logic to core/ and have the common Sensor class own an
-// instance of the PlatformSensor class. This will clearly define the interface.
-// The static methods below can be moved to another context if needed.
-class PlatformSensor : public PlatformSensorBase,
-                       public NonCopyable {
+class PlatformSensor : public PlatformSensorBase {
  public:
   /**
    * Initializes the platform sensors subsystem. This must be called as part of
@@ -59,55 +55,23 @@ class PlatformSensor : public PlatformSensorBase,
   static void deinit();
 
   /**
-   * Default constructs a PlatformSensor with an unknown sensor type.
-   */
-  PlatformSensor();
-
-  /**
-   * Constructs a platform sensor. All sensors must have a type and must be
-   * supplied to this constructor.
-   */
-  PlatformSensor(SensorType sensorType);
-
-  /**
-   * Returns the SensorType for this sensor.
+   * Sends the sensor request to the platform sensor. The implementation
+   * of this method is supplied by the platform.
    *
-   * @return The type of this sensor.
-   */
-  SensorType getSensorType();
-
-  /**
-   * Sets the configuration of this sensor. If the request differs from current
-   * request the platform sensor will be updated.
-   *
-   * @param request The configuration of the platform sensor.
-   * @return Returns true if the new configuration was set correctly or if no
-   *         change was required.
+   * @param request The new request to set this sensor to.
+   * @return true if the platform sensor was successfully configured with the
+   *         supplied request.
    */
   bool setRequest(const SensorRequest& request);
 
   /**
-   * Performs a move operation on the PlatformSensor.
-   */
-  PlatformSensor& operator=(PlatformSensor&& other);
-
- private:
-  //! The type of this sensor.
-  SensorType mSensorType;
-
-  //! The most recent sensor request sent to this sensor.
-  SensorRequest mSensorRequest;
-
-  /**
-   * Sends the sensor request to the platform implementation. The implementation
-   * of this method is supplied by the platform and is invoked when the current
-   * request for this sensor changes.
+   * Obtains the SensorType of this platform sensor. The implementation of this
+   * method is supplied by the platform as the mechanism for determining the
+   * type may vary across platforms.
    *
-   * @param request The new request to set this sensor to.
-   * @return Returns true if the platform sensor was successfully configured
-   *         with the current request.
+   * @return The type of this sensor.
    */
-  bool updatePlatformSensorRequest(const SensorRequest& request);
+  SensorType getSensorType() const;
 };
 
 }  // namespace chre

@@ -36,12 +36,17 @@ bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
   return false;
 }
 
-bool PlatformSensor::updatePlatformSensorRequest(const SensorRequest& request) {
+bool PlatformSensor::setRequest(const SensorRequest& request) {
   // TODO: Implement this. Perhaps consider the request and start to pass in
   // sensor samples from mock sensor data once the sensor has transitioned to
   // being enabled. Maybe consider resampling input data if the provided mock
   // data rate is higher than requested.
   return false;
+}
+
+SensorType PlatformSensor::getSensorType() const {
+  // TODO: Implement this.
+  return SensorType::Unknown;
 }
 
 }  // namespace chre

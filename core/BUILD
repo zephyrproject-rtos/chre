@@ -72,6 +72,20 @@ chre_cc_library(
 )
 
 chre_cc_library(
+    name = "sensor",
+    hdrs = [
+        "include/chre/core/sensor.h",
+    ],
+    srcs = [
+        "sensor.cc",
+    ],
+    deps = [
+        "//platform:platform_sensor",
+        "//util:util",
+    ],
+)
+
+chre_cc_library(
     name = "sensor_request",
     hdrs = [
         "include/chre/core/sensor_request.h",
@@ -98,9 +112,9 @@ chre_cc_library(
         "sensor_request_manager.cc",
     ],
     deps = [
-        "//core:sensor_request",
         "//core:request_multiplexer",
-        "//platform:platform_sensor",
+        "//core:sensor",
+        "//core:sensor_request",
         "//util:util",
     ],
 )
