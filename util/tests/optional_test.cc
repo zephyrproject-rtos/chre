@@ -58,3 +58,14 @@ TEST(Optional, OptionalMoveAssignAndRead) {
   EXPECT_TRUE(myMovedInt.has_value());
   EXPECT_EQ(*myMovedInt, 0x1337);
 }
+
+TEST(Optional, OptionalCopyAssignAndRead) {
+  Optional<int> myInt(0x1337);
+  Optional<int> myCopiedInt;
+  EXPECT_FALSE(myCopiedInt.has_value());
+  myCopiedInt = myInt;
+  EXPECT_TRUE(myInt.has_value());
+  EXPECT_TRUE(myCopiedInt.has_value());
+  EXPECT_EQ(*myInt, 0x1337);
+  EXPECT_EQ(*myCopiedInt, 0x1337);
+}

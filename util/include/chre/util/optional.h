@@ -17,8 +17,6 @@
 #ifndef UTIL_CHRE_OPTIONAL_H_
 #define UTIL_CHRE_OPTIONAL_H_
 
-#include "chre/util/non_copyable.h"
-
 namespace chre {
 
 /**
@@ -26,7 +24,7 @@ namespace chre {
  * std::optional introduced in C++17.
  */
 template<typename ObjectType>
-class Optional : public NonCopyable {
+class Optional {
  public:
   /**
    * Default constructs the optional object with no initial value.
@@ -78,6 +76,14 @@ class Optional : public NonCopyable {
    * @return Returns a reference to this object.
    */
   Optional<ObjectType>& operator=(const ObjectType& other);
+
+  /**
+   * Performs a copy assignment from one optional to another.
+   *
+   * @param other The other object to copy.
+   * @return Returns a reference to this object.
+   */
+  Optional<ObjectType>& operator=(const Optional<ObjectType>& other);
 
   /**
    * Obtains a reference to the underlying object managed by this container.

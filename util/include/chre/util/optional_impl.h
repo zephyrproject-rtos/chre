@@ -63,6 +63,14 @@ Optional<ObjectType>& Optional<ObjectType>::operator=(const ObjectType& other) {
 }
 
 template<typename ObjectType>
+Optional<ObjectType>& Optional<ObjectType>::operator=(
+    const Optional<ObjectType>& other) {
+  mObject = other.mObject;
+  mHasValue = other.mHasValue;
+  return *this;
+}
+
+template<typename ObjectType>
 ObjectType& Optional<ObjectType>::operator*() {
   return mObject;
 }
