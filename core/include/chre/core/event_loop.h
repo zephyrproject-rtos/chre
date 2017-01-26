@@ -107,7 +107,7 @@ class EventLoop : public NonCopyable {
    * @return a pointer to the currently executing nanoapp and nullptr if not
    * currently in an app context.
    */
-  const Nanoapp *getCurrentNanoapp() const;
+  Nanoapp *getCurrentNanoapp() const;
 
   /**
    * Returns a guaranteed unique instance ID that can be used to construct a

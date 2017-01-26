@@ -137,7 +137,7 @@ void EventLoop::stop() {
   postEvent(0, nullptr, nullptr, kSystemInstanceId, kSystemInstanceId);
 }
 
-const Nanoapp *EventLoop::getCurrentNanoapp() const {
+Nanoapp *EventLoop::getCurrentNanoapp() const {
   return mCurrentApp;
 }
 
