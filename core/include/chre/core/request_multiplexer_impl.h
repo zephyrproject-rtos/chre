@@ -41,6 +41,18 @@ bool RequestMultiplexer<RequestType>::addRequest(const RequestType& request,
 }
 
 template<typename RequestType>
+void RequestMultiplexer<RequestType>::updateRequest(
+    size_t index, const RequestType& request, bool *maximalRequestChanged) {
+  CHRE_ASSERT(maximalRequestChanged);
+  CHRE_ASSERT(index < mRequests.size());
+
+  if (index < mRequests.size()) {
+    mRequests[index] = request;
+    updateMaximalRequest(maximalRequestChanged);
+  }
+}
+
+template<typename RequestType>
 void RequestMultiplexer<RequestType>::removeRequest(
     size_t index, bool *maximalRequestChanged) {
   CHRE_ASSERT(maximalRequestChanged);
@@ -48,18 +60,7 @@ void RequestMultiplexer<RequestType>::removeRequest(
 
   if (index < mRequests.size()) {
     mRequests.erase(index);
-
-    // TODO: We build the maximal request from scratch when removing which is
-    // an O(n) operation. Consider adding an API surface to the RequestType
-    // object along the lines of isLowerPriorityThan which returns true if all
-    // attributes of the request are lower priority than the current maximal and
-    // the request can be removed without re-computing the maximal.
-    RequestType newMaximalRequest = computeMaximalRequest();
-    *maximalRequestChanged = !mCurrentMaximalRequest.isEquivalentTo(
-        newMaximalRequest);
-    if (*maximalRequestChanged) {
-      mCurrentMaximalRequest = newMaximalRequest;
-    }
+    updateMaximalRequest(maximalRequestChanged);
   }
 }
 
@@ -75,13 +76,18 @@ RequestType RequestMultiplexer<RequestType>::getCurrentMaximalRequest() const {
 }
 
 template<typename RequestType>
-RequestType RequestMultiplexer<RequestType>::computeMaximalRequest() const {
+void RequestMultiplexer<RequestType>::updateMaximalRequest(
+    bool *maximalRequestChanged) {
   RequestType maximalRequest;
   for (size_t i = 0; i < mRequests.size(); i++) {
     maximalRequest = maximalRequest.generateIntersectionOf(mRequests[i]);
   }
 
-  return maximalRequest;
+  *maximalRequestChanged = !mCurrentMaximalRequest.isEquivalentTo(
+      maximalRequest);
+  if (*maximalRequestChanged) {
+    mCurrentMaximalRequest = maximalRequest;
+  }
 }
 
 }  // namespace chre

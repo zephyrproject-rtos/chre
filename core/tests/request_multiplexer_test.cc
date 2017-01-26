@@ -233,3 +233,123 @@ TEST(RequestMultiplexer, AddManyRemoveAfterMaximalThenRemoveMaximal) {
   EXPECT_EQ(multiplexer.getRequests()[0].getPriority(), 1);
   EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 5);
 }
+
+TEST(RequestMultiplexer, AddManyUpdateWithLowerPriority) {
+  RequestMultiplexer<DummyRequest> multiplexer;
+
+  {
+    DummyRequest request(1);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[0].getPriority(), 1);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 1);
+  }
+
+  {
+    DummyRequest request(5);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 5);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 5);
+  }
+
+  {
+    DummyRequest request(10);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[2].getPriority(), 10);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 10);
+  }
+
+  {
+    DummyRequest request(8);
+    bool maximalRequestChanged;
+    multiplexer.updateRequest(1, request, &maximalRequestChanged);
+    EXPECT_FALSE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 8);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 10);
+  }
+}
+
+TEST(RequestMultiplexer, AddManyUpdateWithNewMaximalLowerPriority) {
+  RequestMultiplexer<DummyRequest> multiplexer;
+
+  {
+    DummyRequest request(1);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[0].getPriority(), 1);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 1);
+  }
+
+  {
+    DummyRequest request(5);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 5);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 5);
+  }
+
+  {
+    DummyRequest request(10);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[2].getPriority(), 10);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 10);
+  }
+
+  {
+    DummyRequest request(8);
+    bool maximalRequestChanged;
+    multiplexer.updateRequest(2, request, &maximalRequestChanged);
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[2].getPriority(), 8);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 8);
+  }
+}
+
+TEST(RequestMultiplexer, AddManyUpdateNewMaximal) {
+  RequestMultiplexer<DummyRequest> multiplexer;
+
+  {
+    DummyRequest request(1);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[0].getPriority(), 1);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 1);
+  }
+
+  {
+    DummyRequest request(5);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 5);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 5);
+  }
+
+  {
+    DummyRequest request(10);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &maximalRequestChanged));
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[2].getPriority(), 10);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 10);
+  }
+
+  {
+    DummyRequest request(20);
+    bool maximalRequestChanged;
+    multiplexer.updateRequest(1, request, &maximalRequestChanged);
+    EXPECT_TRUE(maximalRequestChanged);
+    EXPECT_EQ(multiplexer.getRequests()[1].getPriority(), 20);
+    EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 20);
+  }
+}

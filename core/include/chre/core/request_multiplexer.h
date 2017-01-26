@@ -67,6 +67,21 @@ class RequestMultiplexer : public NonCopyable {
   bool addRequest(const RequestType& request, bool *maximalRequestChanged);
 
   /**
+   * Updates a request in the list of requests being managed by this
+   * multiplexer.
+   *
+   * @param index The index of the request to be updated. This param must fall
+   *        in the range of indices provided by getRequests().
+   * @param request The request to update to.
+   * @param maximalRequestChanged A non-null pointer to a bool that is set to
+   *        true if the current maximal request has changed. The user of this
+   *        API must query the getCurrentMaximalRequest() method to get the new
+   *        maximal request.
+   */
+  void updateRequest(size_t index, const RequestType& request,
+                     bool *maximalRequestChanged);
+
+  /**
    * Removes a request from the list of requests being managed by this
    * multiplexer.
    *
@@ -97,12 +112,13 @@ class RequestMultiplexer : public NonCopyable {
   RequestType mCurrentMaximalRequest;
 
   /**
-   * Computes the maximal request for all requests being managed by this
-   * multiplexer.
+   * Iterates over all tracked requests and updates the current maximal request
+   * if it has changed.
    *
-   * @return The maximal request of those managed by this multiplexer.
+   * @param maximalRequestChanged A non-null pointer to a bool that is set to
+   *        true if the current maximal request has changed.
    */
-  RequestType computeMaximalRequest() const;
+  void updateMaximalRequest(bool *maximalRequestChanged);
 };
 
 }  // namespace chre
