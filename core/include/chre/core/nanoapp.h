@@ -53,9 +53,17 @@ class Nanoapp : public NonCopyable {
    * Updates the Nanoapp's registration so that it will receive broadcast events
    * with the given event ID.
    *
-   * @return true if event is newly registered
+   * @return true if the event is newly registered
    */
   bool registerForBroadcastEvent(uint16_t eventId);
+
+  /**
+   * Updates the Nanoapp's registration so that it will not receive broadcast
+   * events with the given event ID.
+   *
+   * @return true if the event was previously registered
+   */
+  bool unregisterForBroadcastEvent(uint16_t eventId);
 
   void postEvent(Event *event);
 
