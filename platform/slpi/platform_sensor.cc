@@ -187,9 +187,8 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
           data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
           data->readings[0].z = FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
 
-          // TODO: Map sensor type to event type and pass it in here.
           EventLoopManagerSingleton::get()->postEvent(
-              CHRE_EVENT_SENSOR_ACCELEROMETER_DATA, data,
+              getSampleEventTypeForSensorType(sensorType), data,
               smgrSensorDataEventFree);
         }
       } else {
