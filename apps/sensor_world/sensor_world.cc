@@ -56,17 +56,30 @@ bool sensorWorldStart() {
                                                      &sensors[i].handle);
     chreLog(CHRE_LOG_INFO, "sensor initialized: %s with handle %" PRIu32,
             sensors[i].isInitialized ? "true" : "false", sensors[i].handle);
+
+    if (sensors[i].type == CHRE_SENSOR_TYPE_ACCELEROMETER
+        && sensors[i].isInitialized) {
+      bool status = chreSensorConfigure(sensors[i].handle,
+          CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, 20000000, 0);
+      chreLog(CHRE_LOG_INFO, "Requested accel data at 50Hz, 0 latency %d",
+              status);
+    }
   }
 
   return true;
 }
 
 void sensorWorldHandleEvent(uint32_t senderInstanceId,
-                           uint16_t eventType,
-                           const void *eventData) {
-  uint64_t currentTime = chreGetTime();
-  chreLog(CHRE_LOG_INFO, "Sensor World! - Received event 0x%" PRIx16
-          " at time %" PRIu64, eventType, currentTime);
+                            uint16_t eventType,
+                            const void *eventData) {
+  switch (eventType) {
+    case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
+      chreLog(CHRE_LOG_INFO, "accel sample");
+      break;
+    default:
+      chreLog(CHRE_LOG_INFO, "Unhandled event");
+      break;
+  }
 }
 
 void sensorWorldStop() {
