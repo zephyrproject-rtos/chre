@@ -60,6 +60,22 @@ chre_cc_library(
 )
 
 chre_cc_library(
+    name = "nanoapp",
+    hdrs = [
+        "include/chre/core/nanoapp.h",
+    ],
+    srcs = [
+        "nanoapp.cc",
+    ],
+    deps = [
+        "//core:event",
+        "//platform:fatal_error",
+        "//platform:platform_nanoapp",
+        "//util:util",
+    ],
+)
+
+chre_cc_library(
     name = "request_multiplexer",
     hdrs = [
         "include/chre/core/request_multiplexer.h",
@@ -115,22 +131,6 @@ chre_cc_library(
         "//core:request_multiplexer",
         "//core:sensor",
         "//core:sensor_request",
-        "//util:util",
-    ],
-)
-
-chre_cc_library(
-    name = "nanoapp",
-    hdrs = [
-        "include/chre/core/nanoapp.h",
-    ],
-    srcs = [
-        "nanoapp.cc",
-    ],
-    deps = [
-        "//core:event",
-        "//platform:fatal_error",
-        "//platform:platform_nanoapp",
         "//util:util",
     ],
 )
