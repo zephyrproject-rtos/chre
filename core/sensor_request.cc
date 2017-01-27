@@ -82,6 +82,24 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
   }
 }
 
+SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
+  switch (enumSensorMode) {
+    case CHRE_SENSOR_CONFIGURE_MODE_DONE:
+      return SensorMode::Off;
+    case CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS:
+      return SensorMode::ActiveContinuous;
+    case CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT:
+      return SensorMode::ActiveOneShot;
+    case CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS:
+      return SensorMode::PassiveContinuous;
+    case CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_ONE_SHOT:
+      return SensorMode::PassiveOneShot;
+    default:
+      // Default to off since it is the least harmful and has no power impact.
+      return SensorMode::Off;
+  }
+}
+
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
                     Nanoseconds(0) /* interval */,
@@ -91,6 +109,11 @@ SensorRequest::SensorRequest(SensorMode mode,
                              Nanoseconds interval,
                              Nanoseconds latency)
     : mInterval(interval), mLatency(latency), mMode(mode) {}
+
+SensorRequest::SensorRequest(Nanoapp *nanoapp, SensorMode mode,
+                             Nanoseconds interval,
+                             Nanoseconds latency)
+    : mNanoapp(nanoapp), mInterval(interval), mLatency(latency), mMode(mode) {}
 
 bool SensorRequest::isEquivalentTo(const SensorRequest& request) const {
   return (mMode == request.mMode
@@ -133,6 +156,10 @@ Nanoseconds SensorRequest::getLatency() const {
 
 SensorMode SensorRequest::getMode() const {
   return mMode;
+}
+
+Nanoapp *SensorRequest::getNanoapp() const {
+  return mNanoapp;
 }
 
 }  // namespace chre

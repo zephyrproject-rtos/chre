@@ -131,6 +131,16 @@ enum class SensorMode : uint8_t {
 constexpr bool sensorModeIsActive(SensorMode sensorMode);
 
 /**
+ * Translates a CHRE API enum sensor mode to a SensorMode. This function also
+ * performs input validation and will default to SensorMode::Off if the provided
+ * value is not a valid enum value.
+ *
+ * @param enumSensorMode A potentially unsafe CHRE API enum sensor mode.
+ * @return Returns a SensorMode given a CHRE API enum sensor mode.
+ */
+SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode);
+
+/**
  * Models a request for sensor data. This class implements the API set forth by
  * the RequestMultiplexer container.
  */
@@ -151,6 +161,19 @@ class SensorRequest {
    *        delivering to a client.
    */
   SensorRequest(SensorMode mode, Nanoseconds interval, Nanoseconds latency);
+
+  /**
+   * Constructs a sensor request given an owning nanoapp, mode, interval and
+   * latency.
+   *
+   * @param nanoapp The nanoapp that made this request.
+   * @param mode The mode of the sensor request.
+   * @param interval The interval between samples.
+   * @param latency The maximum amount of time to batch samples before
+   *        delivering to a client.
+   */
+  SensorRequest(Nanoapp *nanoapp, SensorMode mode, Nanoseconds interval,
+                Nanoseconds latency);
 
   /**
    * Performs an equivalency comparison of two sensor requests. This determines
@@ -188,7 +211,16 @@ class SensorRequest {
    */
   SensorMode getMode() const;
 
+  /**
+   * @return The nanoapp that owns this sensor request.
+   */
+  Nanoapp *getNanoapp() const;
+
  private:
+  //! The nanoapp that made this request. This will be nullptr when returned by
+  //! the generateIntersectionOf method.
+  Nanoapp *mNanoapp = nullptr;
+
   //! The interval between samples for this request.
   Nanoseconds mInterval;
 
@@ -198,10 +230,6 @@ class SensorRequest {
 
   //! The mode of this request.
   SensorMode mMode;
-
-  //! The nanoapp that made this request. This will be nullptr when returned by
-  //! the generateIntersectionOf method.
-  Nanoapp *mNanoapp = nullptr;
 };
 
 }  // namespace chre
