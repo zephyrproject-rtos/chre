@@ -47,6 +47,14 @@ WifiRequestManager::~WifiRequestManager() {
   }
 }
 
+uint32_t WifiRequestManager::getCapabilities() const {
+  if (mWifiApi != nullptr) {
+    return mWifiApi->getCapabilities();
+  } else {
+    return CHRE_WIFI_CAPABILITIES_NONE;
+  }
+}
+
 void WifiRequestManager::scanMonitorStatusChangeCallback(bool enabled,
                                                          uint8_t errorCode) {
   // TODO: Implement this.

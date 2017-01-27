@@ -66,6 +66,13 @@ class EventLoopManager : public NonCopyable {
    */
   SensorRequestManager& getSensorRequestManager();
 
+  /**
+   * @return Returns a reference to the wifi request manager. This allows
+   *         interacting with the platform wifi subsystem and manages the
+   *         requests from various nanoapps.
+   */
+  WifiRequestManager& getWifiRequestManager();
+
  private:
   //! The mutex used to lock the shared data structures below. The postEvent
   //! method above may be called from any context so a lock is used to gain

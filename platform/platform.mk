@@ -23,6 +23,7 @@ HEXAGON_SRCS += platform/shared/chre_api_core.cc
 HEXAGON_SRCS += platform/shared/chre_api_re.cc
 HEXAGON_SRCS += platform/shared/chre_api_sensor.cc
 HEXAGON_SRCS += platform/shared/chre_api_version.cc
+HEXAGON_SRCS += platform/shared/chre_api_wifi.cc
 HEXAGON_SRCS += platform/shared/memory.cc
 HEXAGON_SRCS += platform/shared/pal_wifi_stub.cc
 HEXAGON_SRCS += platform/shared/platform_nanoapp.cc

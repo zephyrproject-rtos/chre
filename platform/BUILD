@@ -33,6 +33,7 @@ LINUX_PLATFORM_SRCS = [
     "shared/chre_api_re.cc",
     "shared/chre_api_sensor.cc",
     "shared/chre_api_version.cc",
+    "shared/chre_api_wifi.cc",
     "shared/system_time.cc",
 ]
 

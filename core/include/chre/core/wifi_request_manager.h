@@ -45,6 +45,15 @@ class WifiRequestManager : public NonCopyable {
    */
   ~WifiRequestManager();
 
+  /**
+   * Returns the set of WiFi capabilities that the platform has exposed. This
+   * implementation maps directly into the PAL or returns
+   * CHRE_WIFI_CAPABILITIES_NONE if the PAL was not loaded.
+   *
+   * @return the WiFi capabilities exposed by this platform.
+   */
+  uint32_t getCapabilities() const;
+
  private:
   //! The instance of the CHRE PAL API. This will be set to nullptr if the
   //! platform does not supply an implementation.

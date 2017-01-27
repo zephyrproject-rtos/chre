@@ -45,4 +45,8 @@ SensorRequestManager& EventLoopManager::getSensorRequestManager() {
   return mSensorRequestManager;
 }
 
+WifiRequestManager& EventLoopManager::getWifiRequestManager() {
+  return mWifiRequestManager;
+}
+
 }  // namespace chre
