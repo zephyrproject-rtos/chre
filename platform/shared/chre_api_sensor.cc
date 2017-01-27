@@ -16,10 +16,17 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor_request.h"
+#include "chre/platform/context.h"
+#include "chre/util/time.h"
 #include "chre_api/chre/sensor.h"
 
 using chre::EventLoopManagerSingleton;
+using chre::Nanoseconds;
+using chre::SensorMode;
+using chre::SensorRequest;
 using chre::SensorType;
+
+using chre::getSensorModeFromEnum;
 using chre::getSensorTypeFromUnsignedInt;
 
 bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
@@ -27,4 +34,20 @@ bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
   return (validatedSensorType != SensorType::Unknown
       && EventLoopManagerSingleton::get()->getSensorRequestManager()
           .getSensorHandle(validatedSensorType, handle));
+}
+
+bool chreSensorConfigure(uint32_t sensorHandle,
+                         enum chreSensorConfigureMode mode,
+                         uint64_t interval, uint64_t latency) {
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
+  CHRE_ASSERT(eventLoop);
+
+  chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+
+  SensorMode sensorMode = getSensorModeFromEnum(mode);
+  SensorRequest sensorRequest(currentApp, sensorMode, Nanoseconds(interval),
+                              Nanoseconds(latency));
+  return EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .setSensorRequest(currentApp, sensorHandle, sensorRequest);
 }
