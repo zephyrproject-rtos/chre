@@ -259,6 +259,27 @@ chre_cc_library(
 
 ################################################################################
 #
+# Platform Wifi PAL
+#
+################################################################################
+
+LINUX_PLATFORM_PAL_WIFI_SRCS = [
+    "shared/pal_wifi_stub.cc",
+]
+
+chre_cc_library(
+    name = "pal_wifi",
+    srcs = select({
+        "//:platform_linux" : LINUX_PLATFORM_PAL_WIFI_SRCS,
+        "//conditions:default" : LINUX_PLATFORM_PAL_WIFI_SRCS,
+    }),
+    deps = [
+        "//pal:pal",
+    ],
+)
+
+################################################################################
+#
 # Platform Sensor
 #
 ################################################################################

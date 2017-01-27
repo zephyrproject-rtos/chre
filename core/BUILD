@@ -37,6 +37,7 @@ chre_cc_library(
         "//core:event",
         "//core:nanoapp",
         "//core:sensor_request_manager",
+        "//core:wifi_request_manager",
         "//platform:fatal_error",
         "//platform:mutex",
         "//platform:system_time",
@@ -152,5 +153,20 @@ gtest_cc_test(
     ],
     deps = [
         "//core:sensor_request",
+    ],
+)
+
+chre_cc_library(
+    name = "wifi_request_manager",
+    hdrs = [
+        "include/chre/core/wifi_request_manager.h",
+    ],
+    srcs = [
+        "wifi_request_manager.cc",
+    ],
+    deps = [
+        "//pal:pal",
+        "//platform:pal_wifi",
+        "//util:util",
     ],
 )

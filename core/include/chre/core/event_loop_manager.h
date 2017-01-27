@@ -19,6 +19,7 @@
 
 #include "chre/core/event_loop.h"
 #include "chre/core/sensor_request_manager.h"
+#include "chre/core/wifi_request_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -80,6 +81,10 @@ class EventLoopManager : public NonCopyable {
   //! The SensorRequestManager that handles requests for all nanoapps. This
   //! manages the state of all sensors that runtime subscribes to.
   SensorRequestManager mSensorRequestManager;
+
+  //! The WifiRequestManager that handles requests for nanoapps. This manages
+  //! the state of the wifi subsystem that the runtime subscribes to.
+  WifiRequestManager mWifiRequestManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.
