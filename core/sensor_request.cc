@@ -102,8 +102,8 @@ SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
 
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
-                    Nanoseconds(0) /* interval */,
-                    Nanoseconds(0) /* latency */) {}
+                    Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT),
+                    Nanoseconds(CHRE_SENSOR_LATENCY_DEFAULT)) {}
 
 SensorRequest::SensorRequest(SensorMode mode,
                              Nanoseconds interval,
@@ -121,14 +121,22 @@ bool SensorRequest::isEquivalentTo(const SensorRequest& request) const {
       && mLatency == request.mLatency);
 }
 
-SensorRequest SensorRequest::generateIntersectionOf(
-    const SensorRequest& request) const {
-  SensorMode maximalSensorMode = SensorMode::Off;
-  Nanoseconds minimalInterval = std::min(mInterval, request.mInterval);
-  Nanoseconds minimalLatency = std::min(mLatency, request.mLatency);
+bool SensorRequest::mergeWith(const SensorRequest& request) {
+  bool attributesChanged = false;
+
+  if (request.mInterval < mInterval) {
+    mInterval = request.mInterval;
+    attributesChanged = true;
+  }
+
+  if (request.mLatency < mLatency) {
+    mLatency = request.mLatency;
+    attributesChanged = true;
+  }
 
   // Compute the highest priority mode. Active continuous is the highest
   // priority and passive one-shot is the lowest.
+  SensorMode maximalSensorMode = SensorMode::Off;
   if (mMode == SensorMode::ActiveContinuous
       || request.mMode == SensorMode::ActiveContinuous) {
     maximalSensorMode = SensorMode::ActiveContinuous;
@@ -141,9 +149,16 @@ SensorRequest SensorRequest::generateIntersectionOf(
   } else if (mMode == SensorMode::PassiveOneShot
       || request.mMode == SensorMode::PassiveOneShot) {
     maximalSensorMode = SensorMode::PassiveOneShot;
+  } else {
+    CHRE_ASSERT(false);
   }
 
-  return SensorRequest(maximalSensorMode, minimalInterval, minimalLatency);
+  if (mMode != maximalSensorMode) {
+    mMode = maximalSensorMode;
+    attributesChanged = true;
+  }
+
+  return attributesChanged;
 }
 
 Nanoseconds SensorRequest::getInterval() const {

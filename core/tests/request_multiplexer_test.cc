@@ -32,8 +32,14 @@ class DummyRequest {
     return (mPriority == request.mPriority);
   }
 
-  DummyRequest generateIntersectionOf(const DummyRequest& request) const {
-    return DummyRequest(std::max(mPriority, request.mPriority));
+  bool mergeWith(const DummyRequest& request) {
+    bool newMaximal = false;
+    if (request.mPriority > mPriority) {
+      mPriority = request.mPriority;
+      newMaximal = true;
+    }
+
+    return newMaximal;
   }
 
   int getPriority() const {

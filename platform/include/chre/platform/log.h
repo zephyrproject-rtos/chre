@@ -106,4 +106,9 @@ inline void chreLogNull(const char *fmt, ...) {}
 #define LOGD(format, ...) chreLogNull(format, ##__VA_ARGS__)
 #endif
 
+/**
+ * Logs an out of memory error with file and line number.
+ */
+#define LOG_OOM() LOGE("Out of memory at %s:%d", __FILE__, __LINE__)
+
 #endif  // CHRE_PLATFORM_LOG_H_

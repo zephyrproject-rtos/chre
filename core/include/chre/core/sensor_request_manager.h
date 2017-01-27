@@ -78,26 +78,60 @@ class SensorRequestManager : public NonCopyable {
 
     //! The request multiplexer for this sensor.
     RequestMultiplexer<SensorRequest> multiplexer;
+
+    /**
+     * Searches through the list of sensor requests for a request owned by the
+     * given nanoapp. The provided non-null index pointer is populated with the
+     * index of the request if it is found.
+     *
+     * @param nanoapp The nanoapp whose request is being searched for.
+     * @param index A non-null pointer to an index that is populated if a request
+     *        for this nanoapp is found.
+     * @return A pointer to a SensorRequest that is owned by the provided nanoapp
+     *         if one is found otherwise nullptr.
+     */
+    const SensorRequest *find(const Nanoapp *nanoapp, size_t *index) const;
+
+    /**
+     * Adds a new sensor request to the request multiplexer for this sensor.
+     *
+     * @param request The request to add to the multiplexer.
+     * @param requestChanged A non-null pointer to a bool to indicate that the
+     *        net request made to the sensor has changed. This boolean is always
+     *        assigned to the status of the request changing (true or false).
+     * @return true if the add operation was successful.
+     */
+    bool add(const SensorRequest& request, bool *requestChanged);
+
+    /**
+     * Removes a sensor request from the request multiplexer for this sensor.
+     * The provided index must fall in the range of the sensor requests managed
+     * by the multiplexer.
+     *
+     * @param removeIndex The index to remove the request from.
+     * @param requestChanged A non-null pointer to a bool to indicate that the
+     *        net request made to the sensor has changed. This boolean is always
+     *        assigned to the status of the request changing (true or false).
+     * @return true if the remove operation was successful.
+     */
+    bool remove(size_t removeIndex, bool *requestChanged);
+
+    /**
+     * Updates a sensor request in the request multiplexer for this sensor. The
+     * provided index must fall in range of the sensor requests managed by the
+     * multiplexer.
+     *
+     * @param updateIndex The index to update the request at.
+     * @param request The new sensor request to replace the existing request
+     *        with.
+     * @return true if the update operation was successful.
+     */
+    bool update(size_t updateIndex, const SensorRequest& request,
+                bool *requestChanged);
   };
 
   //! The list of sensor requests
   FixedSizeVector<SensorRequests, getSensorTypeCount()> mSensorRequests;
-
-  /**
-   * Searches through a list of sensor requests for a previous sensor request
-   * from the given nanoapp. The provided index pointer is populated with the
-   * index of the request if it is found.
-   *
-   * @param requests The list of requests to search through.
-   * @param nanoapp The nanoapp whose request is being searched for.
-   * @param index A non-null pointer to an index that is populated if a request
-   *              for this nanoapp is found.
-   * @return A pointer to a SensorRequest that is owned by the provided nanoapp
-   *         if one is found otherwise nullptr.
-   */
-  const SensorRequest *getSensorRequestForNanoapp(
-      const SensorRequests& requests, const Nanoapp *nanoapp,
-      size_t *index) const;
 };
 
 }  // namespace chre

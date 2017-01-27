@@ -89,72 +89,57 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
     return false;
   }
 
-  Sensor& sensor = requests.sensor;
-  uint16_t eventType = getSampleEventTypeForSensorType(sensor.getSensorType());
+  size_t requestIndex;
+  uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
+  bool nanoappHasRequest = (requests.find(nanoapp, &requestIndex) != nullptr);
 
-  size_t requestIndex = SIZE_MAX;
-  const SensorRequest *previousSensorRequest =
-      getSensorRequestForNanoapp(requests, nanoapp, &requestIndex);
-
-  bool requestChanged = false;
-  if (sensorRequest.getMode() == SensorMode::Off
-      && previousSensorRequest != nullptr) {
-    // The request changes the mode to off and there was an existing request.
-    // The existing request is removed from the multiplexer.
-    nanoapp->unregisterForBroadcastEvent(eventType);
-    requests.multiplexer.removeRequest(requestIndex, &requestChanged);
-  } else if (sensorRequest.getMode() != SensorMode::Off
-      && previousSensorRequest == nullptr) {
+  bool success;
+  bool requestChanged;
+  if (sensorRequest.getMode() == SensorMode::Off) {
+    if (nanoappHasRequest) {
+      // The request changes the mode to off and there was an existing request.
+      // The existing request is removed from the multiplexer. The nanoapp is
+      // unregistered from events of this type if this request was successful.
+      success = requests.remove(requestIndex, &requestChanged);
+      if (success) {
+        nanoapp->unregisterForBroadcastEvent(eventType);
+      }
+    } else {
+      // The sensor is being configured to Off, but is already Off (there is no
+      // existing request). We assign to success to be true and no other
+      // operation is required.
+      requestChanged = false;
+      success = true;
+    }
+  } else if (!nanoappHasRequest) {
     // The request changes the mode to the enabled state and there was no
     // existing request. The request is newly created and added to the
-    // multiplexxer.
-    nanoapp->registerForBroadcastEvent(eventType);
-    requests.multiplexer.addRequest(sensorRequest, &requestChanged);
-    requestIndex = (requests.multiplexer.getRequests().size() - 1);
-  } else if (sensorRequest.getMode() != SensorMode::Off
-      && previousSensorRequest != nullptr) {
+    // multiplexer. The nanoapp is registered for events if this request was
+    // successful.
+    success = requests.add(sensorRequest, &requestChanged);
+    if (success) {
+      nanoapp->registerForBroadcastEvent(eventType);
+    }
+  } else {
     // The request changes the mode to the enabled state and there was an
     // existing request. The existing request is updated.
-    requests.multiplexer.updateRequest(requestIndex, sensorRequest,
-                                       &requestChanged);
+    success = requests.update(requestIndex, sensorRequest, &requestChanged);
   }
 
   if (requestChanged) {
-    auto maximalRequest = requests.multiplexer.getCurrentMaximalRequest();
-    requestChanged = sensor.setRequest(maximalRequest);
-    if (!requestChanged) {
-      // If the new maximal cannot be sent to the platform, roll the multiplexer
-      // back. This behavior relies on the platform sensor request not changing
-      // when a new request fails (ie: it will continue to sample with the
-      // previous request configuration).
-      //
-      // This failure can only happen on the add/update request path (ie: not
-      // when unsubscribing to a sensor request). This is considered a
-      // FATAL_ERROR if the platform sensor cannot handle a request that was
-      // already sent previously.
-      if (requestIndex == SIZE_MAX) {
-        FATAL_ERROR("Error rolling back the sensor request multiplexer");
-      } else {
-        // We remove the bad request from the multiplexer. The request will fall
-        // back to the previous maximal request and there is no need to reset
-        // the platform sensor.
-        requests.multiplexer.removeRequest(requestIndex, &requestChanged);
-      }
-    }
+    // TODO: Send an event to nanoapps to indicate the rate change.
   }
 
-  return requestChanged;
+  return success;
 }
 
-const SensorRequest *SensorRequestManager::getSensorRequestForNanoapp(
-    const SensorRequests& requests, const Nanoapp *nanoapp,
-    size_t *index) const {
-  CHRE_ASSERT(nanoapp);
+const SensorRequest *SensorRequestManager::SensorRequests::find(
+    const Nanoapp *nanoapp, size_t *index) const {
   CHRE_ASSERT(index);
 
-  const auto& requests_list = requests.multiplexer.getRequests();
-  for (size_t i = 0; i < requests_list.size(); i++) {
-    const SensorRequest& sensorRequest = requests_list[i];
+  const auto& requests = multiplexer.getRequests();
+  for (size_t i = 0; i < requests.size(); i++) {
+    const SensorRequest& sensorRequest = requests[i];
     if (sensorRequest.getNanoapp() == nanoapp) {
       *index = i;
       return &sensorRequest;
@@ -162,6 +147,85 @@ const SensorRequest *SensorRequestManager::getSensorRequestForNanoapp(
   }
 
   return nullptr;
+}
+
+bool SensorRequestManager::SensorRequests::add(const SensorRequest& request,
+                                               bool *requestChanged) {
+  CHRE_ASSERT(requestChanged != nullptr);
+
+  size_t addIndex;
+  bool success = true;
+  if (!multiplexer.addRequest(request, &addIndex, requestChanged)) {
+    *requestChanged = false;
+    success = false;
+    LOG_OOM();
+  } else if (*requestChanged) {
+    success = sensor.setRequest(multiplexer.getCurrentMaximalRequest());
+    if (!success) {
+      // Remove the newly added request since the platform failed to handle it.
+      // The sensor is expected to maintain the existing request so there is no
+      // need to reset the platform to the last maximal request.
+      multiplexer.removeRequest(addIndex, requestChanged);
+
+      // This is a roll-back operation so the maximal change in the multiplexer
+      // must not have changed. The request changed state is forced to false.
+      *requestChanged = false;
+    }
+  }
+
+  return success;
+}
+
+bool SensorRequestManager::SensorRequests::remove(size_t removeIndex,
+                                                  bool *requestChanged) {
+  CHRE_ASSERT(requestChanged != nullptr);
+
+  bool success = true;
+  multiplexer.removeRequest(removeIndex, requestChanged);
+  if (*requestChanged) {
+    success = sensor.setRequest(multiplexer.getCurrentMaximalRequest());
+    if (!success) {
+      LOGE("SensorRequestManager failed to remove a request");
+
+      // If the platform fails to handle this request in a debug build there is
+      // likely an error in the platform. This is not strictly a programming
+      // error but it does make sense to use assert semantics when a platform
+      // fails to handle a request that it had been sent previously.
+      CHRE_ASSERT(false);
+
+      // The request to the platform to set a request when removing has failed
+      // so the request has not changed.
+      *requestChanged = false;
+    }
+  }
+
+  return success;
+}
+
+bool SensorRequestManager::SensorRequests::update(size_t updateIndex,
+                                                  const SensorRequest& request,
+                                                  bool *requestChanged) {
+  CHRE_ASSERT(requestChanged != nullptr);
+
+  bool success = true;
+  SensorRequest previousRequest = multiplexer.getRequests()[updateIndex];
+  multiplexer.updateRequest(updateIndex, request, requestChanged);
+  if (*requestChanged) {
+    success = sensor.setRequest(multiplexer.getCurrentMaximalRequest());
+    if (!success) {
+      // Roll back the request since sending it to the sensor failed. The
+      // request will roll back to the previous maximal. The sensor is
+      // expected to maintain the existing request if a request fails so there
+      // is no need to reset the platform to the last maximal request.
+      multiplexer.updateRequest(updateIndex, previousRequest, requestChanged);
+
+      // This is a roll-back operation so the maximal change in the multiplexer
+      // must not have changed. The request changed state is forced to false.
+      *requestChanged = false;
+    }
+  }
+
+  return success;
 }
 
 }  // namespace chre

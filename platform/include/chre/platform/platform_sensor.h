@@ -56,7 +56,11 @@ class PlatformSensor : public PlatformSensorBase {
 
   /**
    * Sends the sensor request to the platform sensor. The implementation
-   * of this method is supplied by the platform.
+   * of this method is supplied by the platform. If the request is
+   * invalid/unsupported by this sensor, for example because it requests an
+   * interval that is too short, then this function must return false. If
+   * setting this new request fails due to a transient failure (example:
+   * inability to communicate with the sensor) false must also be returned.
    *
    * @param request The new request to set this sensor to.
    * @return true if the platform sensor was successfully configured with the

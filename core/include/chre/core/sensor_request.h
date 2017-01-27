@@ -185,15 +185,13 @@ class SensorRequest {
   bool isEquivalentTo(const SensorRequest& request) const;
 
   /**
-   * Generates a maximal intersection of this request and another and returns a
-   * request that contains the superset of the mode, rate and latency of this
-   * request.
+   * Assigns the current request to the maximal superset of the mode, rate
+   * and latency of the other request.
    *
    * @param request The other request to compare the attributes of.
-   * @return Returns a request that contains attributes that are the maximal of
-   *         this request and the provided request.
+   * @return true if any of the attributes of this request changed.
    */
-  SensorRequest generateIntersectionOf(const SensorRequest& request) const;
+  bool mergeWith(const SensorRequest& request);
 
   /**
    * @return Returns the interval of samples for this request.

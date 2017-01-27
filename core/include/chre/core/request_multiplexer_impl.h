@@ -23,18 +23,15 @@ namespace chre {
 
 template<typename RequestType>
 bool RequestMultiplexer<RequestType>::addRequest(const RequestType& request,
+                                                 size_t *index,
                                                  bool *maximalRequestChanged) {
+  CHRE_ASSERT(index);
   CHRE_ASSERT(maximalRequestChanged);
 
   bool requestStored = mRequests.push_back(request);
   if (requestStored) {
-    RequestType newMaximalRequest = mCurrentMaximalRequest
-        .generateIntersectionOf(request);
-    *maximalRequestChanged = !mCurrentMaximalRequest.isEquivalentTo(
-        newMaximalRequest);
-    if (*maximalRequestChanged) {
-      mCurrentMaximalRequest = newMaximalRequest;
-    }
+    *index = (mRequests.size() - 1);
+    *maximalRequestChanged = mCurrentMaximalRequest.mergeWith(request);
   }
 
   return requestStored;
@@ -80,7 +77,7 @@ void RequestMultiplexer<RequestType>::updateMaximalRequest(
     bool *maximalRequestChanged) {
   RequestType maximalRequest;
   for (size_t i = 0; i < mRequests.size(); i++) {
-    maximalRequest = maximalRequest.generateIntersectionOf(mRequests[i]);
+    maximalRequest.mergeWith(mRequests[i]);
   }
 
   *maximalRequestChanged = !mCurrentMaximalRequest.isEquivalentTo(

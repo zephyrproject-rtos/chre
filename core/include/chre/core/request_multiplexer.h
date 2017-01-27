@@ -31,10 +31,9 @@ namespace chre {
  *
  *     RequestTypes must be default constructable and constructed to a state
  *     that is the lowest possible priority for a request. The lowest priority
- *     state may be equivalent to being disabled for the RequestType.
+ *     state must be equivalent to being restored to the initial state for the
+ *     RequestType.
  *
- * TODO: Change this to bool mergeWith(constRequestType& request); to take a
- * request and update 'this' with the superset of the required attributes.
  * 2. bool isEquivalentTo(const RequestType& request) const;
  *
  *     Perform a comparison to another request to determine if they are
@@ -43,12 +42,12 @@ namespace chre {
  *     their net request is considered to be equal. This function returns true
  *     if the requests are equivalent.
  *
- * 3. RequestType generateIntersectionOf(const RequestType& request) const;
+ * 3. bool mergeWith(const RequestType& request);
  *
- *     Generates an intersection of one request and another. This method must
- *     take the highest priority attributes of the current request and another
- *     to yield a new request that is an intersection of the highest priority
- *     attributes of both.
+ *     Merges a request with the current request. This method must set the
+ *     attributes of the current request to the highest priority attributes of
+ *     both the current and other. The method returns true if the current
+ *     request has changed.
  */
 template<typename RequestType>
 class RequestMultiplexer : public NonCopyable {
@@ -57,6 +56,8 @@ class RequestMultiplexer : public NonCopyable {
    * Adds a request to the list of requests being managed by this multiplexer.
    *
    * @param request The request to add to the list.
+   * @param index A non-null pointer to an index that is populated with the
+   *              location that the request was added.
    * @param maximalRequestChanged A non-null pointer to a bool that is set to
    *        true if current maximal request has changed. The user of this API
    *        must query the getCurrentMaximalRequest method to get the new
@@ -64,7 +65,8 @@ class RequestMultiplexer : public NonCopyable {
    * @return Returns false if the request cannot be inserted into the
    *         multiplexer.
    */
-  bool addRequest(const RequestType& request, bool *maximalRequestChanged);
+  bool addRequest(const RequestType& request, size_t *index,
+                  bool *maximalRequestChanged);
 
   /**
    * Updates a request in the list of requests being managed by this

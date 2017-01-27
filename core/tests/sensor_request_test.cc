@@ -45,8 +45,8 @@ TEST(SensorType, SensorHandleToSensorTypeUnknownHandles) {
 
 TEST(SensorRequest, DefaultMinimalPriority) {
   SensorRequest request;
-  EXPECT_EQ(request.getInterval(), Nanoseconds(0));
-  EXPECT_EQ(request.getLatency(), Nanoseconds(0));
+  EXPECT_EQ(request.getInterval(), Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT));
+  EXPECT_EQ(request.getLatency(), Nanoseconds(CHRE_SENSOR_LATENCY_DEFAULT));
   EXPECT_EQ(request.getMode(), SensorMode::Off);
 }
 
@@ -55,8 +55,9 @@ TEST(SensorRequest, ActiveContinuousIsHigherPriorityThanActiveOneShot) {
                                  Nanoseconds(0), Nanoseconds(0));
   SensorRequest activeOneShot(SensorMode::ActiveOneShot,
                               Nanoseconds(0), Nanoseconds(0));
-  SensorRequest mergedRequest = activeContinuous
-      .generateIntersectionOf(activeOneShot);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(activeContinuous));
+  EXPECT_FALSE(mergedRequest.mergeWith(activeOneShot));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
@@ -67,8 +68,9 @@ TEST(SensorRequest, ActiveOneShotIsHigherPriorityThanPassiveContinuous) {
                               Nanoseconds(0), Nanoseconds(0));
   SensorRequest passiveContinuous(SensorMode::PassiveContinuous,
                                   Nanoseconds(0), Nanoseconds(0));
-  SensorRequest mergedRequest = activeOneShot
-      .generateIntersectionOf(passiveContinuous);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(activeOneShot));
+  EXPECT_FALSE(mergedRequest.mergeWith(passiveContinuous));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveOneShot);
@@ -80,8 +82,9 @@ TEST(SensorRequest, PassiveContinuousIsHigherPriorityThanPassiveOneShot) {
                                   Nanoseconds(0), Nanoseconds(0));
   SensorRequest passiveOneShot(SensorMode::PassiveOneShot,
                                Nanoseconds(0), Nanoseconds(0));
-  SensorRequest mergedRequest = passiveContinuous
-      .generateIntersectionOf(passiveOneShot);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(passiveContinuous));
+  EXPECT_FALSE(mergedRequest.mergeWith(passiveOneShot));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::PassiveContinuous);
@@ -91,8 +94,9 @@ TEST(SensorRequest, PassiveOneShotIsHigherPriorityThanOff) {
   SensorRequest passiveOneShot(SensorMode::PassiveOneShot,
                                Nanoseconds(0), Nanoseconds(0));
   SensorRequest off(SensorMode::Off, Nanoseconds(0), Nanoseconds(0));
-  SensorRequest mergedRequest = passiveOneShot
-      .generateIntersectionOf(off);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(passiveOneShot));
+  EXPECT_FALSE(mergedRequest.mergeWith(off));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::PassiveOneShot);
@@ -103,8 +107,9 @@ TEST(SensorRequest, LowerLatencyIsHigherPriorityThanHigherLatency) {
                                   Nanoseconds(10), Nanoseconds(10));
   SensorRequest highLatencyRequest(SensorMode::ActiveOneShot,
                                    Nanoseconds(10), Nanoseconds(100));
-  SensorRequest mergedRequest = lowLatencyRequest
-      .generateIntersectionOf(highLatencyRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(lowLatencyRequest));
+  EXPECT_FALSE(mergedRequest.mergeWith(highLatencyRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
@@ -115,8 +120,9 @@ TEST(SensorRequest, HigherFrequencyIsHigherPriorityThanLowerFrequency) {
                                Nanoseconds(100), Nanoseconds(10));
   SensorRequest highFreqRequest(SensorMode::ActiveContinuous,
                                 Nanoseconds(10), Nanoseconds(10));
-  SensorRequest mergedRequest = lowFreqRequest
-      .generateIntersectionOf(highFreqRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(lowFreqRequest));
+  EXPECT_TRUE(mergedRequest.mergeWith(highFreqRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
@@ -126,8 +132,8 @@ TEST(SensorRequest, OnlyDefaultFrequency) {
   SensorRequest defaultFreqRequest(SensorMode::ActiveContinuous,
                                    Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT),
                                    Nanoseconds(0));
-  SensorRequest mergedRequest = defaultFreqRequest
-      .generateIntersectionOf(defaultFreqRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(defaultFreqRequest));
   EXPECT_EQ(mergedRequest.getInterval(),
             Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
@@ -140,8 +146,9 @@ TEST(SensorRequest, NonDefaultAndDefaultFrequency) {
                                    Nanoseconds(0));
   SensorRequest nonDefaultFreqRequest(SensorMode::ActiveContinuous,
                                       Nanoseconds(20000000), Nanoseconds(0));
-  SensorRequest mergedRequest = defaultFreqRequest
-      .generateIntersectionOf(nonDefaultFreqRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(defaultFreqRequest));
+  EXPECT_TRUE(mergedRequest.mergeWith(nonDefaultFreqRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(20000000));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(0));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
@@ -151,8 +158,8 @@ TEST(SensorRequest, OnlyAsapLatency) {
   SensorRequest asapLatencyRequest(SensorMode::ActiveContinuous,
                                    Nanoseconds(10),
                                    Nanoseconds(CHRE_SENSOR_LATENCY_ASAP));
-  SensorRequest mergedRequest = asapLatencyRequest
-      .generateIntersectionOf(asapLatencyRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(asapLatencyRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(),
             Nanoseconds(CHRE_SENSOR_LATENCY_ASAP));
@@ -166,8 +173,9 @@ TEST(SensorRequest, NonAsapAndAsapLatency) {
   SensorRequest nonAsapLatencyRequest(SensorMode::ActiveContinuous,
                                       Nanoseconds(10),
                                       Nanoseconds(2000));
-  SensorRequest mergedRequest = asapLatencyRequest
-      .generateIntersectionOf(nonAsapLatencyRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(asapLatencyRequest));
+  EXPECT_FALSE(mergedRequest.mergeWith(nonAsapLatencyRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(),
             Nanoseconds(CHRE_SENSOR_LATENCY_ASAP));
@@ -178,8 +186,8 @@ TEST(SensorRequest, OnlyDefaultLatency) {
   SensorRequest defaultLatencyRequest(SensorMode::ActiveContinuous,
                                       Nanoseconds(10),
                                       Nanoseconds(CHRE_SENSOR_LATENCY_DEFAULT));
-  SensorRequest mergedRequest = defaultLatencyRequest
-      .generateIntersectionOf(defaultLatencyRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(defaultLatencyRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(),
             Nanoseconds(CHRE_SENSOR_LATENCY_DEFAULT));
@@ -193,8 +201,9 @@ TEST(SensorRequest, NonDefaultAndDefaultLatency) {
   SensorRequest nonDefaultLatencyRequest(SensorMode::ActiveContinuous,
                                          Nanoseconds(10),
                                          Nanoseconds(2000));
-  SensorRequest mergedRequest = defaultLatencyRequest
-      .generateIntersectionOf(nonDefaultLatencyRequest);
+  SensorRequest mergedRequest;
+  EXPECT_TRUE(mergedRequest.mergeWith(defaultLatencyRequest));
+  EXPECT_TRUE(mergedRequest.mergeWith(nonDefaultLatencyRequest));
   EXPECT_EQ(mergedRequest.getInterval(), Nanoseconds(10));
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(2000));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
