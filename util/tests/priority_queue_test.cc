@@ -243,3 +243,16 @@ TEST(PriorityQueuetest, Iterator) {
   it += q.size();
   EXPECT_TRUE(it == q.end());
 }
+
+TEST(PriorityQueuetest, ConstIterator) {
+  PriorityQueue<int> q;
+  q.push(0);
+  q.push(1);
+  q.push(2);
+
+  PriorityQueue<int>::const_iterator cit = q.cbegin();
+  EXPECT_EQ(q[0], *cit);
+
+  cit += q.size();
+  EXPECT_TRUE(cit == q.cend());
+}

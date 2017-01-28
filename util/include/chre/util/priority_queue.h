@@ -48,7 +48,7 @@ class PriorityQueue : public NonCopyable {
   /**
    * Returns the current number of elements in the queue.
    *
-   * @return the number of elements in the queue.
+   * @return The number of elements in the queue.
    */
   size_t size() const;
 
@@ -56,28 +56,30 @@ class PriorityQueue : public NonCopyable {
    * Returns the maximum number of elements that can be stored in this queue
    * without a resize operation.
    *
-   * @return the capacity of the queue.
+   * @return The capacity of the queue.
    */
   size_t capacity() const;
 
   /**
    * Determines whether the queue is empty or not.
    *
-   * @return Returns true if the queue is empty.
+   * @return true if the queue is empty.
    */
   bool empty() const;
 
   /**
-   * Pushes an element onto the queue. If the queue requires a
-   * resize and that allocation fails, this function will return false.
+   * Pushes an element onto the queue. If the queue requires a resize and that
+   * allocation fails, this function will return false. All iterators and
+   * references are invalidated.
    *
    * @param element The element to push onto the queue.
-   * @return Returns true if the element was pushed successfully.
+   * @return true if the element was pushed successfully.
    */
   bool push(const ElementType& element);
 
   /**
-   * Constructs an element onto the the queue.
+   * Constructs an element onto the the queue. All iterators and references are
+   * invalidated.
    *
    * @param args The arguments to the constructor of ElementType
    */
@@ -129,14 +131,16 @@ class PriorityQueue : public NonCopyable {
   const ElementType& top() const;
 
   /**
-   * Removes the top element from the queue if the queue is not empty.
+   * Removes the top element from the queue if the queue is not empty. All
+   * iterators and references are invalidated.
    */
   void pop();
 
   /**
    * Removes an element from the queue given an index. The index passed in must
    * be less than the size() of the queue. If the index is greater than or
-   * equal to the size no operation is performed.
+   * equal to the size no operation is performed. All iterators and references
+   * are invalidated.
    *
    * @param index The index to remove an element at.
    */
@@ -152,13 +156,13 @@ class PriorityQueue : public NonCopyable {
    * @return A random-access iterator to the beginning.
    */
   typename PriorityQueue<ElementType, CompareType>::iterator begin();
-  typename PriorityQueue<ElementType, CompareType>::const_iterator begin() const;
+  typename PriorityQueue<ElementType, CompareType>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
   typename PriorityQueue<ElementType, CompareType>::iterator end();
-  typename PriorityQueue<ElementType, CompareType>::const_iterator end() const;
+  typename PriorityQueue<ElementType, CompareType>::const_iterator cend() const;
 
 
  private:

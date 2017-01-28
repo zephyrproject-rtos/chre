@@ -114,20 +114,20 @@ typename PriorityQueue<ElementType, CompareType>::iterator
 
 template<typename ElementType, typename CompareType>
 typename PriorityQueue<ElementType, CompareType>::iterator
-PriorityQueue<ElementType, CompareType>::end() {
+    PriorityQueue<ElementType, CompareType>::end() {
   return mData.end();
 }
 
 template<typename ElementType, typename CompareType>
 typename PriorityQueue<ElementType, CompareType>::const_iterator
-    PriorityQueue<ElementType, CompareType>::begin() const {
-  return mData.begin();
+    PriorityQueue<ElementType, CompareType>::cbegin() const {
+  return mData.cbegin();
 }
 
 template<typename ElementType, typename CompareType>
 typename PriorityQueue<ElementType, CompareType>::const_iterator
-PriorityQueue<ElementType, CompareType>::end() const {
-  return mData.end();
+    PriorityQueue<ElementType, CompareType>::cend() const {
+  return mData.cend();
 }
 
 }  // namespace chre

@@ -59,21 +59,22 @@ class FixedSizeVector : public NonCopyable {
   /**
    * Determines whether the vector is empty or not.
    *
-   * @return Returns true if the vector is empty.
+   * @return true if the vector is empty.
    */
   bool empty() const;
 
   /**
-   * Determins whether the vector is full or not.
+   * Determines whether the vector is full or not.
    *
-   * @return Returns true if the vector is full.
+   * @return true if the vector is full.
    */
   bool full() const;
 
   /**
    * Pushes an element onto the back of the vector. It is illegal to push an
    * item onto a full vector. The user of the API must check the return of the
-   * full() function prior to pushing another element.
+   * full() function prior to pushing another element. All iterators and
+   * references are unaffected.
    *
    * @param The element to push onto the vector.
    */
@@ -82,7 +83,8 @@ class FixedSizeVector : public NonCopyable {
   /**
    * Constructs an element onto the back of the vector. It is illegal to
    * construct an item onto a full vector. The user of the API must check the
-   * return of the full() function prior to constructing another element.
+   * return of the full() function prior to constructing another element. All
+   * iterators and references are unaffected.
    *
    * @param The arguments to the constructor
    */
@@ -116,7 +118,8 @@ class FixedSizeVector : public NonCopyable {
    * indexed one are moved forward one position. The destructor is invoked on
    * on the invalid item left at the end of the vector. The index passed in
    * must be less than the size() of the vector. If the index is greater than or
-   * equal to the size no operation is performed.
+   * equal to the size no operation is performed. All iterators and references
+   * to elements before the indexed one are unaffected.
    *
    * @param index The index to remove an element at.
    */
@@ -125,7 +128,8 @@ class FixedSizeVector : public NonCopyable {
   /**
    * Swaps the location of two elements stored in the vector. The indices
    * passed in must be less than the size() of the vector. If the index is
-   * greater than or equal to the size, no operation is performed.
+   * greater than or equal to the size, no operation is performed. All iterators
+   * and references to these two indexed elements are invalidated.
    *
    * @param index0 The index of the first element
    * @param index1 The index of the second element
@@ -138,7 +142,8 @@ class FixedSizeVector : public NonCopyable {
    * current size(), the elements from the new size to the current size() are
    * destructed and the vector is shrunk. A resize operation cannot be performed
    * that is greater than kCapacity. This will result in an assertion failure
-   * and a resize to kCapacity if assertions are disabled.
+   * and a resize to kCapacity if assertions are disabled. All iterators and
+   * references to elements before newSize are unaffected.
    *
    * @param newSize The new size of the vector.
    */
@@ -151,16 +156,16 @@ class FixedSizeVector : public NonCopyable {
   typedef const ElementType* const_iterator;
 
   /**
-   * @eturn A random-access iterator to the beginning.
+   * @return A random-access iterator to the beginning.
    */
   typename FixedSizeVector<ElementType, kCapacity>::iterator begin();
-  typename FixedSizeVector<ElementType, kCapacity>::const_iterator begin() const;
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator cbegin() const;
 
   /**
-   * @eturn A random-access iterator to the end.
+   * @return A random-access iterator to the end.
    */
   typename FixedSizeVector<ElementType, kCapacity>::iterator end();
-  typename FixedSizeVector<ElementType, kCapacity>::const_iterator end() const;
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator cend() const;
 
  private:
   //! Storage for vector elements. To avoid static initialization of members,

@@ -40,7 +40,7 @@ class DynamicVector : public NonCopyable {
    * considered to be persistent as the vector will be moved and resized
    * automatically.
    *
-   * @return the pointer to the underlying buffer.
+   * @return The pointer to the underlying buffer.
    */
   ElementType *data();
 
@@ -49,14 +49,14 @@ class DynamicVector : public NonCopyable {
    * be considered to be persistent as the vector will be moved and resized
    * automatically.
    *
-   * @return the const pointer to the underlying buffer.
+   * @return The const pointer to the underlying buffer.
    */
   const ElementType *data() const;
 
   /**
    * Returns the current number of elements in the vector.
    *
-   * @return the number of elements in the vector.
+   * @return The number of elements in the vector.
    */
   size_t size() const;
 
@@ -64,41 +64,46 @@ class DynamicVector : public NonCopyable {
    * Returns the maximum number of elements that can be stored in this vector
    * without a resize operation.
    *
-   * @return the capacity of the vector.
+   * @return The capacity of the vector.
    */
   size_t capacity() const;
 
   /**
    * Determines whether the vector is empty or not.
    *
-   * @return Returns true if the vector is empty.
+   * @return true if the vector is empty.
    */
   bool empty() const;
 
   /**
    * Pushes an element onto the back of the vector. If the vector requires a
-   * resize and that allocation fails this function will return false.
+   * resize and that allocation fails this function will return false. All
+   * iterators and references are invalidated if the container has been
+   * resized. Otherwise, only the past-the-end iterator is invalidated.
    *
    * @param The element to push onto the vector.
-   * @return Returns true if the element was pushed successfully.
+   * @return true if the element was pushed successfully.
    */
   bool push_back(const ElementType& element);
 
   /**
    * Moves an element onto the back of the vector. If the vector requires a
-   * resize and that allocation fails this function will return false.
+   * resize and that allocation fails this function will return false. All
+   * iterators and references are invalidated if the container has been
+   * resized. Otherwise, only the past-the-end iterator is invalidated.
    *
    * @param The element to move onto the vector.
-   * @return Returns true if the element was moved successfully.
+   * @return true if the element was moved successfully.
    */
   bool push_back(ElementType&& element);
 
   /**
-   * Constructs an element onto the back of the vector. It is illegal to
-   * construct an item onto a full vector. The user of the API must check the
-   * return of the full() function prior to constructing another element.
+   * Constructs an element onto the back of the vector. All iterators and
+   * references are invalidated if the container has been resized. Otherwise,
+   * only the past-the-end iterator is invalidated.
    *
    * @param The arguments to the constructor
+   * @return true is the element is constructed successfully.
    */
   template<typename... Args>
   bool emplace_back(Args&&... args);
@@ -131,9 +136,11 @@ class DynamicVector : public NonCopyable {
    * the operation is a no-op and true is returned. If a memory allocation
    * fails, the contents of the vector are not modified and false is returned.
    * This is intended to be similar to the reserve function of the std::vector.
+   * All iterators and references are invalidated unless the container did not
+   * resize.
    *
    * @param The new capacity of the vector.
-   * @return True if the resize operation was successful.
+   * @return true if the resize operation was successful.
    */
   bool reserve(size_t newCapacity);
 
@@ -143,7 +150,9 @@ class DynamicVector : public NonCopyable {
    * will shift all vector elements after the given index one position backward
    * in the list. The supplied index must be <= the size of the vector. It is
    * not possible to have a sparse list of items. If the index is > the current
-   * size of the vector, false will be returned.
+   * size of the vector, false will be returned. All iterators and references
+   * to and after the indexed element are invalidated. Iterators and references
+   * to before the indexed elements are unaffected if the container did not resize.
    *
    * @param index The index to insert an element at.
    * @param element The element to insert.
@@ -156,7 +165,8 @@ class DynamicVector : public NonCopyable {
    * indexed one are moved forward one position. The destructor is invoked on
    * on the invalid item left at the end of the vector. The index passed in
    * must be less than the size() of the vector. If the index is greater than or
-   * equal to the size no operation is performed.
+   * equal to the size no operation is performed. All iterators and references
+   * to and after the indexed element are invalidated.
    *
    * @param index The index to remove an element at.
    */
@@ -174,7 +184,8 @@ class DynamicVector : public NonCopyable {
   /**
    * Swaps the location of two elements stored in the vector. The indices
    * passed in must be less than the size() of the vector. If the index is
-   * greater than or equal to the size, no operation is performed.
+   * greater than or equal to the size, no operation is performed. All
+   * iterators and references to these two indexed elements are invalidated.
    *
    * @param index0 The index of the first element
    * @param index1 The index of the second element
@@ -207,13 +218,13 @@ class DynamicVector : public NonCopyable {
    * @return A random-access iterator to the beginning.
    */
   typename DynamicVector<ElementType>::iterator begin();
-  typename DynamicVector<ElementType>::const_iterator begin() const;
+  typename DynamicVector<ElementType>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
   typename DynamicVector<ElementType>::iterator end();
-  typename DynamicVector<ElementType>::const_iterator end() const;
+  typename DynamicVector<ElementType>::const_iterator cend() const;
 
  private:
   //! A pointer to the underlying data buffer.

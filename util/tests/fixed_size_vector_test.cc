@@ -192,3 +192,111 @@ TEST(FixedSizeVector, Iterator) {
   it = vector.begin() + vector.size();
   EXPECT_TRUE(it == vector.end());
 }
+
+TEST(FixedSizeVector, ConstIterator) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  size_t index = 0;
+  for (FixedSizeVector<int, 8>::const_iterator cit = vector.cbegin();
+       cit != vector.cend(); ++cit) {
+    EXPECT_EQ(vector[index++], *cit);
+  }
+
+  FixedSizeVector<int, 8>::const_iterator cit =
+      vector.cbegin() + vector.size() - 1;
+  EXPECT_EQ(vector[vector.size() - 1], *cit);
+
+  cit = vector.cbegin() + vector.size();
+  EXPECT_TRUE(cit == vector.cend());
+}
+
+TEST(FixedSizeVector, IteratorAndPushBack) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  FixedSizeVector<int, 8>::iterator it_b = vector.begin();
+  FixedSizeVector<int, 8>::iterator it_e = vector.end();
+
+  vector.push_back(3);
+
+  size_t index = 0;
+  while (it_b != it_e) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}
+
+TEST(FixedSizeVector, IteratorAndEmplaceBack) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  FixedSizeVector<int, 8>::iterator it_b = vector.begin();
+  FixedSizeVector<int, 8>::iterator it_e = vector.end();
+
+  vector.emplace_back(3);
+
+  size_t index = 0;
+  while (it_b != it_e) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}
+
+TEST(FixedSizeVector, IteratorAndErase) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  FixedSizeVector<int, 8>::iterator it_b = vector.begin();
+
+  vector.erase(2);
+
+  size_t index = 0;
+  while (index < 2) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}
+
+TEST(FixedSizeVector, IteratorAndSwap) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  vector.push_back(3);
+
+  FixedSizeVector<int, 8>::iterator it_b = vector.begin();
+
+  vector.swap(1, 3);
+
+  size_t index = 0;
+  while (index < 4) {
+    if (index != 1 && index != 3) {
+      EXPECT_EQ(vector[index], *it_b);
+    }
+    index++;
+    it_b++;
+  }
+}
+
+TEST(FixedSizeVector, IteratorAndResize) {
+  FixedSizeVector<int, 8> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  vector.push_back(3);
+
+  FixedSizeVector<int, 8>::iterator it_b = vector.begin();
+
+  vector.resize(2);
+
+  size_t index = 0;
+  while (index < 2) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}

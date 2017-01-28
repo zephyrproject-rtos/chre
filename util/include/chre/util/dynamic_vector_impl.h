@@ -237,24 +237,26 @@ const ElementType& DynamicVector<ElementType>::back() const {
 }
 
 template<typename ElementType>
-typename DynamicVector<ElementType>::iterator DynamicVector<ElementType>::begin() {
+typename DynamicVector<ElementType>::iterator
+    DynamicVector<ElementType>::begin() {
   return mData;
 }
 
 template<typename ElementType>
-typename DynamicVector<ElementType>::iterator DynamicVector<ElementType>::end() {
+typename DynamicVector<ElementType>::iterator
+    DynamicVector<ElementType>::end() {
   return (mData + mSize);
 }
 
 template<typename ElementType>
-typename DynamicVector<ElementType>::const_iterator DynamicVector<ElementType>::
-    begin() const {
+typename DynamicVector<ElementType>::const_iterator
+    DynamicVector<ElementType>::cbegin() const {
   return mData;
 }
 
 template<typename ElementType>
-typename DynamicVector<ElementType>::const_iterator DynamicVector<ElementType>::
-    end() const {
+typename DynamicVector<ElementType>::const_iterator
+    DynamicVector<ElementType>::cend() const {
   return (mData + mSize);
 }
 

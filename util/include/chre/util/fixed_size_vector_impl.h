@@ -130,13 +130,13 @@ typename FixedSizeVector<ElementType, kCapacity>::iterator
 
 template<typename ElementType, size_t kCapacity>
 typename FixedSizeVector<ElementType, kCapacity>::const_iterator
-    FixedSizeVector<ElementType, kCapacity>::begin() const {
+    FixedSizeVector<ElementType, kCapacity>::cbegin() const {
   return data();
 }
 
 template<typename ElementType, size_t kCapacity>
 typename FixedSizeVector<ElementType, kCapacity>::const_iterator
-    FixedSizeVector<ElementType, kCapacity>::end() const {
+    FixedSizeVector<ElementType, kCapacity>::cend() const {
   return (data() + mSize);
 }
 

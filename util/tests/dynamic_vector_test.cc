@@ -368,7 +368,8 @@ TEST(DynamicVector, Iterator) {
   vector.push_back(2);
 
   size_t index = 0;
-  for (DynamicVector<int>::iterator it = vector.begin(); it != vector.end(); ++it) {
+  for (DynamicVector<int>::iterator it = vector.begin();
+       it != vector.end(); ++it) {
     EXPECT_EQ(vector[index++], *it);
   }
 
@@ -377,4 +378,135 @@ TEST(DynamicVector, Iterator) {
 
   it = vector.begin() + vector.size();
   EXPECT_TRUE(it == vector.end());
+}
+
+TEST(DynamicVector, ConstIterator) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  size_t index = 0;
+  for (DynamicVector<int>::const_iterator cit = vector.cbegin();
+       cit != vector.cend(); ++cit) {
+    EXPECT_EQ(vector[index++], *cit);
+  }
+
+  DynamicVector<int>::const_iterator cit = vector.cbegin() + vector.size() - 1;
+  EXPECT_EQ(vector[vector.size() - 1], *cit);
+
+  cit = vector.cbegin() + vector.size();
+  EXPECT_TRUE(cit == vector.cend());
+}
+
+TEST(DynamicVector, IteratorAndPushBack) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  size_t oldCapacity = vector.capacity();
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+  DynamicVector<int>::iterator it_e = vector.end();
+
+  vector.push_back(3);
+  ASSERT_TRUE(oldCapacity == vector.capacity());
+
+  size_t index = 0;
+  for (; it_b != it_e; ++it_b) {
+    EXPECT_EQ(vector[index++], *it_b);
+  }
+}
+
+TEST(DynamicVector, IteratorAndEmplaceBack) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  size_t oldCapacity = vector.capacity();
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+  DynamicVector<int>::iterator it_e = vector.end();
+
+  vector.emplace_back(3);
+  ASSERT_TRUE(oldCapacity == vector.capacity());
+
+  size_t index = 0;
+  for (; it_b != it_e; ++it_b) {
+    EXPECT_EQ(vector[index++], *it_b);
+  }
+}
+
+TEST(DynamicVector, IteratorAndReserve) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  size_t oldCapacity = vector.capacity();
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+  DynamicVector<int>::iterator it_e = vector.end();
+
+  vector.reserve(oldCapacity);
+  ASSERT_TRUE(oldCapacity == vector.capacity());
+
+  size_t index = 0;
+  for (; it_b != it_e; ++it_b) {
+    EXPECT_EQ(vector[index++], *it_b);
+  }
+}
+
+TEST(DynamicVector, IteratorAndInsert) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  size_t oldCapacity = vector.capacity();
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+
+  vector.insert(2, 3);
+  ASSERT_TRUE(oldCapacity == vector.capacity());
+
+  size_t index = 0;
+  while (index < 2) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}
+
+TEST(DynamicVector, IteratorAndErase) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+
+  vector.erase(2);
+
+  size_t index = 0;
+  while (index < 2) {
+    EXPECT_EQ(vector[index++], *it_b++);
+  }
+}
+
+TEST(DynamicVector, IteratorAndSwap) {
+  DynamicVector<int> vector;
+  vector.push_back(0);
+  vector.push_back(1);
+  vector.push_back(2);
+  vector.push_back(3);
+
+  DynamicVector<int>::iterator it_b = vector.begin();
+
+  vector.swap(1, 3);
+
+  size_t index = 0;
+  while (index < 4) {
+    if (index != 1 && index != 3) {
+      EXPECT_EQ(vector[index], *it_b);
+    }
+    index++;
+    it_b++;
+  }
 }
