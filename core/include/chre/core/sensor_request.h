@@ -32,7 +32,7 @@ namespace chre {
  * specification. The details of these sensors are left to the CHRE API
  * sensor definitions.
  */
-enum class SensorType : uint8_t {
+enum class SensorType {
   Unknown,
   Accelerometer,
   InstantMotion,
@@ -116,12 +116,12 @@ constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle);
  * imrpove type-safety. The details of these modes are left to the CHRE API mode
  * definitions contained in the chreSensorConfigureMode enum.
  */
-enum class SensorMode : uint8_t {
-  Off               = CHRE_SENSOR_CONFIGURE_MODE_DONE,
-  ActiveContinuous  = CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
-  ActiveOneShot     = CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
-  PassiveContinuous = CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS,
-  PassiveOneShot    = CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_ONE_SHOT,
+enum class SensorMode {
+  Off,
+  ActiveContinuous,
+  ActiveOneShot,
+  PassiveContinuous,
+  PassiveOneShot,
 };
 
 /**
