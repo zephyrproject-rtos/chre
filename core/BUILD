@@ -170,3 +170,28 @@ chre_cc_library(
         "//util:util",
     ],
 )
+
+chre_cc_library(
+    name = "wifi_scan_request",
+    hdrs = [
+        "include/chre/core/wifi_scan_request.h",
+    ],
+    srcs = [
+        "wifi_scan_request.cc",
+    ],
+    deps = [
+        "//chre_api:chre_api",
+    ],
+)
+
+
+
+gtest_cc_test(
+    name = "wifi_scan_request_test",
+    srcs = [
+        "tests/wifi_scan_request_test.cc",
+    ],
+    deps = [
+        "//core:wifi_scan_request",
+    ],
+)
