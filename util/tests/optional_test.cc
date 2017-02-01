@@ -31,6 +31,12 @@ TEST(Optional, NonDefaultValueByDefault) {
   EXPECT_EQ(*myInt, 0x1337);
 }
 
+TEST(Optional, NonDefaultMovedValueByDefault) {
+  Optional<int> myInt(std::move(0x1337));
+  EXPECT_TRUE(myInt.has_value());
+  EXPECT_EQ(*myInt, 0x1337);
+}
+
 TEST(Optional, CopyAssignAndRead) {
   Optional<int> myInt;
   EXPECT_FALSE(myInt.has_value());

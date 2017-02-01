@@ -39,6 +39,13 @@ class Optional {
   Optional(const ObjectType& object);
 
   /**
+   * Constructs an optional instance with an initial value by moving it.
+   *
+   * @param object The instance of the initial object to take ownership of.
+   */
+  Optional(ObjectType&& object);
+
+  /**
    * @return Returns true if the object tracked by this container has been
    * assigned.
    */
