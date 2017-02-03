@@ -18,6 +18,8 @@
 #define CHRE_CORE_WIFI_SCAN_REQUEST_H_
 
 #include "chre_api/chre/wifi.h"
+#include "chre/util/dynamic_vector.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -44,6 +46,11 @@ enum class WifiScanType {
 WifiScanType getWifiScanTypeForEnum(enum chreWifiScanType enumWifiScanType);
 
 /**
+ * An SSID can be modelled by a list of bytes.
+ */
+typedef DynamicVector<uint8_t> WifiSsid;
+
+/**
  * Models a request for wifi scans. This class implements the API set forth by
  * the RequestMultiplexer container in addition to specific functionality
  * required for requesting wifi scans.
@@ -58,14 +65,40 @@ class WifiScanRequest {
   WifiScanRequest();
 
   /**
-   * TODO: Write a doxygen comment once this class is complete.
+   * Constructs a request for wifi scan results given a scan type, maximum scan
+   * age, frequencies and SSID list as specified by the CHRE API. More details
+   * about the parameters here can be found in the CHRE API.
+   *
+   * @param wifiScanType The type of scan being requested.
+   * @param maxScanAge The maximum age of a detected wifi network to be
+   *        reported.
+   * @param frequencies The list of frequencies to search for networks on.
+   * @param ssids The list of SSIDs to specifically search for.
    */
-  WifiScanRequest(WifiScanType wifiScanType);
+  WifiScanRequest(WifiScanType wifiScanType,
+                  const Nanoseconds& maxScanAge,
+                  DynamicVector<uint32_t>&& frequencies,
+                  DynamicVector<WifiSsid>&& ssids);
 
   /**
    * @return the type of this scan request.
    */
   WifiScanType getScanType() const;
+
+  /**
+   * @return the maximum age of a scan result for this request.
+   */
+  const Nanoseconds& getMaxScanAge() const;
+
+  /**
+   * @return the frequencies associated with this request.
+   */
+  const DynamicVector<uint32_t>& getFrequencies() const;
+
+  /**
+   * @return the SSIDs associated with this request.
+   */
+  const DynamicVector<WifiSsid>& getSsids() const;
 
   // TODO: Implement the remaining methods required for the RequestMultiplexer
   // container.
@@ -73,6 +106,15 @@ class WifiScanRequest {
  private:
   //! The type of request for this scan.
   WifiScanType mScanType;
+
+  //! The maximum allowable age for a scan result.
+  Nanoseconds mMaxScanAge;
+
+  //! The list of frequencies associated with this scan request.
+  DynamicVector<uint32_t> mFrequencies;
+
+  //! The list of SSIDs associated with this scan request.
+  DynamicVector<WifiSsid> mSsids;
 };
 
 }  // namespace chre

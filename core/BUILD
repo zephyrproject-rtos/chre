@@ -181,6 +181,7 @@ chre_cc_library(
     ],
     deps = [
         "//chre_api:chre_api",
+        "//util:util",
     ],
 )
 
