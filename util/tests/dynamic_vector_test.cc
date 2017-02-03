@@ -510,3 +510,18 @@ TEST(DynamicVector, IteratorAndSwap) {
     it_b++;
   }
 }
+
+TEST(DynamicVector, MoveConstruct) {
+  DynamicVector<int> vector;
+  ASSERT_TRUE(vector.push_back(0));
+  ASSERT_TRUE(vector.push_back(1));
+  ASSERT_TRUE(vector.push_back(2));
+
+  DynamicVector<int> movedVector(std::move(vector));
+  EXPECT_EQ(vector.data(), nullptr);
+  EXPECT_NE(movedVector.data(), nullptr);
+  EXPECT_EQ(vector.size(), 0);
+  EXPECT_EQ(movedVector.size(), 3);
+  EXPECT_EQ(vector.capacity(), 0);
+  EXPECT_EQ(movedVector.capacity(), 4);
+}

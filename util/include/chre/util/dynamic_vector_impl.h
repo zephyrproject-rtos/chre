@@ -27,6 +27,19 @@
 namespace chre {
 
 template<typename ElementType>
+DynamicVector<ElementType>::DynamicVector() {}
+
+template<typename ElementType>
+DynamicVector<ElementType>::DynamicVector(DynamicVector<ElementType>&& other)
+    : mData(other.mData),
+      mSize(other.mSize),
+      mCapacity(other.mCapacity) {
+  other.mData = nullptr;
+  other.mSize = 0;
+  other.mCapacity = 0;
+}
+
+template<typename ElementType>
 DynamicVector<ElementType>::~DynamicVector() {
   for (size_t i = 0; i < mSize; i++) {
     mData[i].~ElementType();

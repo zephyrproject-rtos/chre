@@ -31,6 +31,19 @@ template<typename ElementType>
 class DynamicVector : public NonCopyable {
  public:
   /**
+   * Default-constructs a dynamic vector.
+   */
+  DynamicVector();
+
+  /**
+   * Move-constructs a dynamic vector from another. The other dynamic vector is
+   * left in an empty state.
+   *
+   * @param other The other vector to move from.
+   */
+  DynamicVector(DynamicVector<ElementType>&& other);
+
+  /**
    * Destructs the objects and releases the memory owned by the vector.
    */
   ~DynamicVector();
