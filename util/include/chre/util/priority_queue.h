@@ -27,9 +27,9 @@ namespace chre {
 
 /**
  * An implementation of a priority queue. This allows for efficient lookup of
- * the highest priority element as defined by the CompareType.
+ * the highest priority element as defined by the CompareFunction.
  */
-template<typename ElementType, typename CompareType = std::less<ElementType>>
+template<typename ElementType, typename CompareFunction = std::less<ElementType>>
 class PriorityQueue : public NonCopyable {
  public:
   /**
@@ -43,7 +43,7 @@ class PriorityQueue : public NonCopyable {
    *
    * @param compare The comparator that returns true if left < right.
    */
-  PriorityQueue(const CompareType& compare);
+  PriorityQueue(const CompareFunction& compare);
 
   /**
    * Returns the current number of elements in the queue.
@@ -155,14 +155,14 @@ class PriorityQueue : public NonCopyable {
   /**
    * @return A random-access iterator to the beginning.
    */
-  typename PriorityQueue<ElementType, CompareType>::iterator begin();
-  typename PriorityQueue<ElementType, CompareType>::const_iterator cbegin() const;
+  typename PriorityQueue<ElementType, CompareFunction>::iterator begin();
+  typename PriorityQueue<ElementType, CompareFunction>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
-  typename PriorityQueue<ElementType, CompareType>::iterator end();
-  typename PriorityQueue<ElementType, CompareType>::const_iterator cend() const;
+  typename PriorityQueue<ElementType, CompareFunction>::iterator end();
+  typename PriorityQueue<ElementType, CompareFunction>::const_iterator cend() const;
 
 
  private:
@@ -170,7 +170,7 @@ class PriorityQueue : public NonCopyable {
   DynamicVector<ElementType> mData;
 
   //! The comparator that is used to order the queue.
-  CompareType mCompare;
+  CompareFunction mCompare;
 };
 
 }  // namespace chre
