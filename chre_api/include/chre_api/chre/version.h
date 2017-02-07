@@ -117,7 +117,8 @@ uint32_t chreGetVersion(void);
  * Get the Platform ID of this CHRE.
  *
  * The most significant five bytes are the vendor ID as set out by the
- * NANOAPP_VENDOR convention in context_hub.h, as used by nanoapp IDs.
+ * NANOAPP_VENDOR convention in the original context hub HAL header file
+ * (context_hub.h), also used by nanoapp IDs.
  *
  * The least significant three bytes are set by the vendor, but must be
  * unique for each different CHRE implementation/hardware that the vendor
@@ -129,6 +130,8 @@ uint32_t chreGetVersion(void);
  * Thus, we require this uniqueness to allow such a setup to work.
  *
  * @returns The platform ID.
+ *
+ * @see CHRE_EXTRACT_VENDOR_ID
  */
 uint64_t chreGetPlatformId(void);
 

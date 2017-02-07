@@ -83,6 +83,30 @@ extern "C" {
 #define CHRE_EVENT_TIMER  UINT16_C(0x0002)
 
 /**
+ * nanoappHandleEvent argument: struct chreNanoappInfo
+ *
+ * Indicates that a nanoapp has successfully started (its nanoappStart()
+ * function has been called, and it returned true) and is able to receive events
+ * sent via chreSendEvent().  Note that this event is not sent for nanoapps that
+ * were started prior to the current nanoapp - use chreGetNanoappInfo() to
+ * determine if another nanoapp is already running.
+ *
+ * @since v1.1
+ */
+#define CHRE_EVENT_NANOAPP_STARTED  UINT16_C(0x0003)
+
+/**
+ * nanoappHandleEvent argument: struct chreNanoappInfo
+ *
+ * Indicates that a nanoapp has stopped executing and is no longer able to
+ * receive events sent via chreSendEvent().  Any events sent prior to receiving
+ * this event are not guaranteed to have been delivered.
+ *
+ * @since v1.1
+ */
+#define CHRE_EVENT_NANOAPP_STOPPED  UINT16_C(0x0004)
+
+/**
  * First possible value for CHRE_EVENT_SENSOR events.
  *
  * This allows us to separately define our CHRE_EVENT_SENSOR_* events in
@@ -137,7 +161,7 @@ extern "C" {
 
 
 /**
- * CHRE_EVENT_MESSAGE_FROM_HOST
+ * Data provided with CHRE_EVENT_MESSAGE_FROM_HOST.
  */
 struct chreMessageFromHostData {
     /**
@@ -164,6 +188,34 @@ struct chreMessageFromHostData {
      * is 0, this might be NULL.
      */
     const void *message;
+};
+
+/**
+ * Provides metadata for a nanoapp in the system.
+ */
+struct chreNanoappInfo {
+    /**
+     * Nanoapp identifier. The convention for populating this value is to set
+     * the most significant 5 bytes to a value that uniquely identifies the
+     * vendor, and the lower 3 bytes identify the nanoapp.
+     */
+    uint64_t appId;
+
+    /**
+     * Nanoapp version.  The semantics of this field are defined by the nanoapp,
+     * however nanoapps are recommended to follow the same scheme used for the
+     * CHRE version exposed in chreGetVersion().  That is, the most significant
+     * byte represents the major version, the next byte the minor version, and
+     * the lower two bytes the patch version.
+     */
+    uint32_t version;
+
+    /**
+     * The instance ID of this nanoapp, which can be used in chreSendEvent() to
+     * address an event specifically to this nanoapp.  This identifier is
+     * guaranteed to be unique among all nanoapps in the system.
+     */
+    uint32_t instanceId;
 };
 
 /**
@@ -283,6 +335,25 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
                            uint32_t reservedMessageType,
                            chreMessageFreeFunction *freeCallback);
+
+/**
+ * Queries for information about a nanoapp running in the system.
+ *
+ * In the current API, appId is required to be unique, i.e. there cannot be two
+ * nanoapps running concurrently with the same appId.  If this restriction is
+ * removed in a future API version and multiple instances of the same appId are
+ * present, this function must always return the first app to start.
+ *
+ * @param appId Identifier for the nanoapp that the caller is requesting
+ *     information about.
+ * @param info Output parameter.  If this function returns true, this structure
+ *     will be populated with details of the specified nanoapp.
+ * @returns true if a nanoapp with the given ID is currently running, and the
+ *     supplied info parameter was populated with its information.
+ *
+ * @since v1.1
+ */
+bool chreGetNanoappInfo(uint64_t appId, struct chreNanoappInfo *info);
 
 
 #ifdef __cplusplus

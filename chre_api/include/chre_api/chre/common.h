@@ -30,6 +30,33 @@ extern "C" {
 #endif
 
 /**
+ * Mask of the 5 most significant bytes in a 64-bit nanoapp or CHRE platform
+ * identifier, which represents the vendor ID portion of the ID.
+ */
+#define CHRE_VENDOR_ID_MASK  UINT64_C(0xFFFFFFFFFF000000)
+
+/**
+ * Vendor ID "Googl".  Used in nanoapp IDs and CHRE platform IDs developed and
+ * released by Google.
+ */
+#define CHRE_VENDOR_ID_GOOGLE  UINT64_C(0x476F6F676C000000)
+
+/**
+ * Vendor ID "GoogT".  Used for nanoapp IDs associated with testing done by
+ * Google.
+ */
+#define CHRE_VENDOR_ID_GOOGLE_TEST  UINT64_C(0x476F6F6754000000)
+
+/**
+ * Helper macro to mask off all bytes other than the vendor ID (most significant
+ * 5 bytes) in 64-bit nanoapp and CHRE platform identifiers.
+ *
+ * @see chreGetNanoappInfo()
+ * @see chreGetPlatformId()
+ */
+#define CHRE_EXTRACT_VENDOR_ID(id)  ((id) & CHRE_VENDOR_ID_MASK)
+
+/**
  * Number of nanoseconds in one second, represented as an unsigned 64-bit
  * integer
  */
