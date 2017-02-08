@@ -183,9 +183,11 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
         } else {
           data->header = header;
           data->readings[0].timestampDelta = 0;
-          data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
-          data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
-          data->readings[0].z = FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
+
+          // Convert from SMGR's NED coordinate to Android coordinate.
+          data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
+          data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
+          data->readings[0].z = -FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
 
           EventLoopManagerSingleton::get()->postEvent(
               getSampleEventTypeForSensorType(sensorType), data,
