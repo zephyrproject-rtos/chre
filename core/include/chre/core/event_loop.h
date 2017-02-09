@@ -70,7 +70,7 @@ class EventLoop : public NonCopyable {
 
   /**
    * Signals the event loop currently executing in run() to exit gracefully at
-   * the next available opportunity.
+   * the next available opportunity. This function is thread-safe.
    */
   void stop();
 
