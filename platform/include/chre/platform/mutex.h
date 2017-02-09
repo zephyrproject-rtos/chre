@@ -42,12 +42,23 @@ class Mutex : public MutexBase,
   ~Mutex();
 
   /**
-   * The target platform must supply an implementation of the lock method.
+   * Locks the mutex, or blocks if it is held by another thread. Illegal to call
+   * if the current thread already holds the lock.
    */
   void lock();
 
   /**
-   * The target platform must supply an implementation of the unlock method.
+   * Attempts to lock the mutex. If it is already held by some other thread,
+   * returns immediately. Illegal to call if the current thread already holds
+   * the lock.
+   *
+   * @return true if the mutex was acquired, false otherwise
+   */
+  bool try_lock();
+
+  /**
+   * Unlocks the mutex. Illegal to call if the current thread does not hold the
+   * lock.
    */
   void unlock();
 };

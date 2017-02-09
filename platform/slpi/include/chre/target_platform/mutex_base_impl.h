@@ -33,6 +33,10 @@ inline void Mutex::lock() {
   qurt_mutex_lock(&mMutex);
 }
 
+inline bool Mutex::try_lock() {
+  return (qurt_mutex_try_lock(&mMutex) == 0);
+}
+
 inline void Mutex::unlock() {
   qurt_mutex_unlock(&mMutex);
 }
