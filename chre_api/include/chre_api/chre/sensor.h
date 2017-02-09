@@ -57,7 +57,8 @@ extern "C" {
  *
  * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA
  *
- * @see CHRE_EVENT_SENSOR_ACCELEROMETER_DATA
+ * Note that the ACCELEROMETER_DATA is always the fully calibrated data,
+ * including factor calibration and runtime calibration if available.
  */
 #define CHRE_SENSOR_TYPE_ACCELEROMETER  UINT8_C(1)
 
@@ -89,10 +90,20 @@ extern "C" {
  * Generates: CHRE_EVENT_SENSOR_GYROSCOPE_DATA and
  *     CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO
  *
- * Note that the GYROSCOPE_DATA is always the calibrated data, and not
- * raw data.
+ * Note that the GYROSCOPE_DATA is always the fully calibrated data, including
+ * factory calibration and runtime calibration if available.
  */
 #define CHRE_SENSOR_TYPE_GYROSCOPE  UINT8_C(6)
+
+/**
+ * Uncalibrated gyroscope.
+ *
+ * Generates: CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA
+ *
+ * Note that the UNCALIBRATED_GYROSCOPE_DATA must be factory calibrated data,
+ * but not runtime calibrated.
+ */
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE  UINT8_C(7)
 
 /**
  * Magnetometer.
@@ -100,10 +111,19 @@ extern "C" {
  * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA and
  *     CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO
  *
- * Note that the GEOMAGNETIC_FIELD_DATA is always the calibrated data, and not
- * raw data.
+ * Note that the GEOMAGNETIC_FIELD_DATA is always the fully calibrated data.
  */
 #define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD  UINT8_C(8)
+
+/**
+ * Uncalibrated magnetometer.
+ *
+ * Generates: CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA
+ *
+ * Note that the UNCALIBRATED_GEOMAGNETIC_FIELD_DATA must not be runtime
+ * calibrated.
+ */
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD  UINT8_C(9)
 
 /**
  * Barometric pressure sensor.
@@ -129,6 +149,37 @@ extern "C" {
 #define CHRE_SENSOR_TYPE_PROXIMITY  UINT8_C(13)
 
 /**
+ * Uncalibrated accelerometer.
+ *
+ * Generates: CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA
+ *
+ * Note that the UNCALIBRATED_ACCELEROMETER_DATA must be factory calibrated
+ * data, but not runtime calibrated.
+ */
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER  UINT8_C(55)
+
+/**
+ * Accelerometer temperature.
+ *
+ * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA
+ */
+#define CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE  UINT8_C(56)
+
+/**
+ * Gyroscope temperature.
+ *
+ * Generates: CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA
+ */
+#define CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE  UINT8_C(57)
+
+/**
+ * Magnetometer temperature.
+ *
+ * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA
+ */
+#define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE  UINT8_C(58)
+
+/**
  * Base value for all of the data events for sensors.
  *
  * The value for a data event FOO is
@@ -145,8 +196,8 @@ extern "C" {
  * The data can be interpreted using the 'x', 'y', and 'z' fields within
  * 'readings', or by the 3D array 'v' (v[0] == x; v[1] == y; v[2] == z).
  *
- * All values are in SI units (m/s^2) and measure the acceleration of the
- * device minus the force of gravity.
+ * All values are in SI units (m/s^2) and measure the acceleration applied to
+ * the device.
  */
 #define CHRE_EVENT_SENSOR_ACCELEROMETER_DATA \
     (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_ACCELEROMETER)
@@ -228,6 +279,68 @@ extern "C" {
 #define CHRE_EVENT_SENSOR_PROXIMITY_DATA \
     (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_PROXIMITY)
 
+/**
+ * nanoappHandleEvent argument: struct chreSensorThreeAxisData
+ *
+ * The data can be interpreted using the 'x', 'y', and 'z' fields within
+ * 'readings', or by the 3D array 'v' (v[0] == x; v[1] == y; v[2] == z).
+ *
+ * All values are in SI units (m/s^2) and measure the acceleration applied to
+ * the device.
+ */
+#define CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorThreeAxisData
+ *
+ * The data can be interpreted using the 'x', 'y', and 'z' fields within
+ * 'readings', or by the 3D array 'v' (v[0] == x; v[1] == y; v[2] == z).
+ *
+ * All values are in radians/second and measure the rate of rotation
+ * around the X, Y and Z axis.
+ */
+#define CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorThreeAxisData
+ *
+ * The data can be interpreted using the 'x', 'y', and 'z' fields within
+ * 'readings', or by the 3D array 'v' (v[0] == x; v[1] == y; v[2] == z).
+ *
+ * All values are in micro-Tesla (uT) and measure the geomagnetic
+ * field in the X, Y and Z axis.
+ */
+#define CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorFloatData
+ *
+ * The data can be interpreted using the 'temperature' field within 'readings'.
+ * This value is in degrees Celsius.
+ */
+#define CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorFloatData
+ *
+ * The data can be interpreted using the 'temperature' field within 'readings'.
+ * This value is in degrees Celsius.
+ */
+#define CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorFloatData
+ *
+ * The data can be interpreted using the 'temperature' field within 'readings'.
+ * This value is in degrees Celsius.
+ */
+#define CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE)
 
 /**
  * First value for sensor events which are not data from the sensor.
@@ -574,8 +687,9 @@ struct chreSensorFloatData {
         uint32_t timestampDelta;
         union {
             float value;
-            float light;     //!< Unit: lux
-            float pressure;  //!< Unit: hectopascals (hPa)
+            float light;        //!< Unit: lux
+            float pressure;     //!< Unit: hectopascals (hPa)
+            float temperature;  //!< Unit: degrees Celsius
         };
     } readings[1];
 };
@@ -812,4 +926,3 @@ static inline bool chreSensorConfigureModeOnly(
 #endif
 
 #endif  /* _CHRE_SENSOR_H_ */
-
