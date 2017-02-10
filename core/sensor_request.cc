@@ -54,8 +54,9 @@ uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
                 "sensor type");
   }
 
-  // The enum values of SensorType map to the defined values in the CHRE API.
-  uint8_t sensorTypeValue = static_cast<uint8_t>(sensorType);
+  // The enum values of SensorType may not map to the defined values in the
+  // CHRE API.
+  uint8_t sensorTypeValue = getUnsignedIntFromSensorType(sensorType);
   return CHRE_EVENT_SENSOR_DATA_EVENT_BASE + sensorTypeValue;
 }
 
@@ -79,6 +80,32 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::Proximity;
     default:
       return SensorType::Unknown;
+  }
+}
+
+uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+      return CHRE_SENSOR_TYPE_ACCELEROMETER;
+    case SensorType::InstantMotion:
+      return CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT;
+    case SensorType::StationaryDetect:
+      return CHRE_SENSOR_TYPE_STATIONARY_DETECT;
+    case SensorType::Gyroscope:
+      return CHRE_SENSOR_TYPE_GYROSCOPE;
+    case SensorType::GeomagneticField:
+      return CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD;
+    case SensorType::Pressure:
+      return CHRE_SENSOR_TYPE_PRESSURE;
+    case SensorType::Light:
+      return CHRE_SENSOR_TYPE_LIGHT;
+    case SensorType::Proximity:
+      return CHRE_SENSOR_TYPE_PROXIMITY;
+    default:
+      // Update implementation to prevent undefined or SensorType::Unknown from
+      // being used.
+      CHRE_ASSERT(false);
+      return 0;
   }
 }
 

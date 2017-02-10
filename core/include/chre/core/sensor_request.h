@@ -44,8 +44,9 @@ enum class SensorType {
   Proximity,
 
   // Note to future developers: don't forget to update the implementation of
-  // getSensorTypeName and getSensorTypeFromUnsignedInt when adding or removing
-  // a new entry here :) Have a nice day.
+  // getSensorTypeName, getSensorTypeFromUnsignedInt and
+  // getUnsignedIntFromSensorType when adding or removing a new entry here :)
+  // Have a nice day.
 
   //! The number of sensor types including unknown. This entry must be last.
   SENSOR_TYPE_COUNT,
@@ -90,6 +91,15 @@ constexpr size_t getSensorTypeCount();
  * @return The strongly-typed sensor if a match is found or SensorType::Unknown.
  */
 SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType);
+
+/**
+ * Translates a SensorType to an unsigned integer as provided by CHRE API. If
+ * the sensor type is SensorType::Unknown, 0 is returned.
+ *
+ * @param sensorType The strongly-typed sensor.
+ * @return The integer sensor type if sensorType is not SensorType::Unknown.
+ */
+uint8_t getUnsignedIntFromSensorType(SensorType sensorType);
 
 /**
  * Provides a stable handle for a CHRE sensor type. This handle is exposed to
