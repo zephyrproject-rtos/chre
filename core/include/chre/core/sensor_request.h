@@ -53,6 +53,16 @@ enum class SensorType {
 };
 
 /**
+ * This SensorSampleType is designed to help classify SensorType's data type in
+ * event handling.
+ */
+enum class SensorSampleType {
+  Float,
+  ThreeAxis,
+  Unknown,
+};
+
+/**
  * Returns a string representation of the given sensor type.
  *
  * @param sensorType The sensor type to obtain a string for.
@@ -120,6 +130,14 @@ constexpr uint32_t getSensorHandleFromSensorType(SensorType sensorType);
  * @return The sensor type for a given handle.
  */
 constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle);
+
+/**
+ * Maps a sensorType to its SensorSampleType.
+ *
+ * @param sensorType The type of the sensor to obtain its SensorSampleType for.
+ * @return The SensorSampleType of the sensorType.
+ */
+SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType);
 
 /**
  * This SensorMode is designed to wrap constants provided by the CHRE API to

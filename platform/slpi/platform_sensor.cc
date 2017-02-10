@@ -138,6 +138,74 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
 }
 
 /**
+ * Populate the header
+ */
+void populateSensorDataHeader(SensorType sensorType,
+                              const sns_smgr_data_item_s_v01& sensorData,
+                              chreSensorDataHeader *header) {
+  memset(header->reserved, 0, sizeof(header->reserved));
+  header->baseTimestamp = getNanosecondsFromSmgrTicks(sensorData.TimeStamp);
+  header->sensorHandle = getSensorHandleFromSensorType(sensorType);
+  header->readingCount = 1;
+}
+
+/**
+ * Populate three-axis event data.
+ */
+void populateThreeAxisEvent(SensorType sensorType,
+                            const sns_smgr_data_item_s_v01& sensorData,
+                            chreSensorThreeAxisData *data) {
+  populateSensorDataHeader(sensorType, sensorData, &data->header);
+  data->readings[0].timestampDelta = 0;
+
+  // Convert from SMGR's NED coordinate to Android coordinate.
+  data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
+  data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
+  data->readings[0].z = -FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
+}
+
+/**
+ * Populate float event data.
+ */
+void populateFloatEvent(SensorType sensorType,
+                        const sns_smgr_data_item_s_v01& sensorData,
+                        chreSensorFloatData *data) {
+  populateSensorDataHeader(sensorType, sensorData, &data->header);
+  data->readings[0].timestampDelta = 0;
+  data->readings[0].value = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
+}
+
+/**
+ * Allocate event memory according to SensorType and populate event readings.
+ */
+void *allocateAndPopulateEvent(SensorType sensorType,
+                               const sns_smgr_data_item_s_v01& sensorData) {
+  // TODO: also take Item_len into account.
+  SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
+  switch (sampleType) {
+    case SensorSampleType::ThreeAxis: {
+      auto *event = memoryAlloc<chreSensorThreeAxisData>();
+      if (event != nullptr) {
+        populateThreeAxisEvent(sensorType, sensorData, event);
+      }
+      return event;
+    }
+
+    case SensorSampleType::Float: {
+      auto *event = memoryAlloc<chreSensorFloatData>();
+      if (event != nullptr) {
+        populateFloatEvent(sensorType, sensorData, event);
+      }
+      return event;
+    }
+
+    default:
+      LOGW("Unhandled sensor data %" PRIu8, sensorType);
+      return nullptr;
+  }
+}
+
+/**
  * Handles sensor data provided by the SMGR framework. This function does not
  * return but logs errors and warnings.
  *
@@ -168,33 +236,13 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
       LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
            sensorData.SensorId, sensorData.DataType);
     } else {
-      chreSensorDataHeader header;
-      memset(&header.reserved, 0, sizeof(header.reserved));
-      header.baseTimestamp = getNanosecondsFromSmgrTicks(sensorData.TimeStamp);
-      header.sensorHandle = getSensorHandleFromSensorType(sensorType);
-      header.readingCount = 1;
-
-      if (sensorType == SensorType::Accelerometer
-          || sensorType == SensorType::Gyroscope
-          || sensorType == SensorType::GeomagneticField) {
-        chreSensorThreeAxisData *data = memoryAlloc<chreSensorThreeAxisData>();
-        if (data == nullptr) {
-          LOGW("Dropping event due to allocation failure");
-        } else {
-          data->header = header;
-          data->readings[0].timestampDelta = 0;
-
-          // Convert from SMGR's NED coordinate to Android coordinate.
-          data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
-          data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
-          data->readings[0].z = -FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
-
-          EventLoopManagerSingleton::get()->postEvent(
-              getSampleEventTypeForSensorType(sensorType), data,
-              smgrSensorDataEventFree);
-        }
+      void *eventData = allocateAndPopulateEvent(sensorType, sensorData);
+      if (eventData == nullptr) {
+        LOGW("Dropping event due to allocation failure");
       } else {
-        LOGW("Unhandled sensor data %" PRIu8, sensorType);
+        EventLoopManagerSingleton::get()->postEvent(
+            getSampleEventTypeForSensorType(sensorType), eventData,
+            smgrSensorDataEventFree);
       }
     }
   }

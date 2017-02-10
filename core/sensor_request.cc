@@ -109,6 +109,21 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
   }
 }
 
+SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
+  if (sensorType == SensorType::Accelerometer
+      || sensorType == SensorType::Gyroscope
+      || sensorType == SensorType::GeomagneticField) {
+    return SensorSampleType::ThreeAxis;
+  } else if (sensorType == SensorType::Pressure
+             || sensorType == SensorType::Light
+             || sensorType == SensorType::Proximity) {
+    return SensorSampleType::Float;
+  } else {
+    CHRE_ASSERT(false);
+    return SensorSampleType::Unknown;
+  }
+}
+
 SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
   switch (enumSensorMode) {
     case CHRE_SENSOR_CONFIGURE_MODE_DONE:
