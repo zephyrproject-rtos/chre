@@ -1,10 +1,13 @@
 #
-# Cleanup the project by removing the output directory.
+# Clean Makefile
 #
 
-include build/defs.mk
+# Makefile Includes ############################################################
+
+include $(CHRE_PREFIX)/build/defs.mk
+
+# Clean Target #################################################################
 
 .PHONY: clean
-
 clean:
 	rm -rf $(OUT)

@@ -14,7 +14,6 @@ HEXAGON_CFLAGS += -Iplatform/slpi/include
 
 # Symbols required by the runtime for conditional compilation.
 HEXAGON_CFLAGS += -DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
-HEXAGON_CFLAGS += -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
 HEXAGON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 
 # Hexagon-specific Source Files ################################################

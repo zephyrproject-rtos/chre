@@ -1,0 +1,12 @@
+#
+# Clears Build Template Configuration Variables
+#
+
+TARGET_NAME =
+TARGET_CFLAGS =
+TARGET_CC =
+TARGET_LDFLAGS =
+TARGET_LD =
+TARGET_ARFLAGS =
+TARGET_AR =
+TARGET_VARIANT_SRCS =
