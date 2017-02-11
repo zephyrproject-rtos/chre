@@ -58,6 +58,8 @@ namespace chre {
 //! The timeout for QMI messages in milliseconds.
 constexpr uint32_t kQmiTimeoutMs = 1000;
 
+constexpr float kMicroTeslaPerGauss = 100.0f;
+
 /**
  * Generates a unique ReportID to provide to a request to the SMGR APIs for
  * sensor data. Each sensor is assigned a unique ReportID and as such there will
@@ -162,6 +164,13 @@ void populateThreeAxisEvent(SensorType sensorType,
   data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
   data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
   data->readings[0].z = -FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
+
+  // Convert from Gauss to micro Tesla
+  if (sensorType == SensorType::GeomagneticField) {
+    data->readings[0].x *= kMicroTeslaPerGauss;
+    data->readings[0].y *= kMicroTeslaPerGauss;
+    data->readings[0].z *= kMicroTeslaPerGauss;
+  }
 }
 
 /**
