@@ -42,6 +42,7 @@ extern "C" {
  */
 #define CHRE_ASYNC_RESULT_TIMEOUT_NS  (5 * CHRE_NSEC_PER_SEC)
 
+
 /**
  * A generic listing of error codes for use in {@link #chreAsyncResult} and
  * elsewhere. In general, module-specific error codes may be added to this enum,
@@ -136,6 +137,7 @@ struct chreAsyncResult {
     //! result
     const void *cookie;
 };
+
 
 #ifdef __cplusplus
 }

@@ -18,15 +18,13 @@
 #define _CHRE_H_
 
 /**
- * This header file includes all the headers which combine to fully defined
- * the interface for the Context Hub Runtime Environment (CHRE).  This is the
- * environment in which a nanoapp runs.
+ * @file
+ * This header file includes all the headers which combine to fully define the
+ * interface for the Context Hub Runtime Environment (CHRE).  This interface is
+ * of interest to both implementers of CHREs and authors of nanoapps.  The API
+ * documentation attempts to address concerns of both.
  *
- * This interface is of interest to both implementors of CHREs and
- * authors of nanoapps.  The API documentation attempts to address concerns
- * of both.
- *
- * See individual header files for API specific, and general comments below
+ * See individual header files for API details, and general comments below
  * for overall platform information.
  */
 
@@ -41,22 +39,33 @@
 #include <chre/wwan.h>
 
 /**
- * Entry points.
+ * @mainpage
+ * CHRE is the Context Hub Runtime Environment.  CHRE is used in Android to run
+ * contextual applications, called nanoapps, in a low-power processing domain
+ * other than the applications processor that runs Android itself.  The CHRE
+ * API, documented herein, is the common interface exposed to nanoapps for any
+ * compatible CHRE implementation.  The CHRE API provides the ability for
+ * creating nanoapps that are code-compatible across different CHRE
+ * implementations and underlying platforms. Refer to the following sections for
+ * a discussion on some important details of CHRE that aren't explicitly exposed
+ * in the API itself.
  *
- * The following entry points are required to be handled by the CHRE
- * implementation, and the functions must all be implemented by nanoapps.
- * o nanoappStart function (see chre/nanoapp.h)
- * o nanoappHandleEvent function (see chre/nanoapp.h)
- * o nanoappEnd function (see chre/nanoapp.h)
- * o bss section zeroed out (prior to nanoappStart)
- * o static variables initialized (prior to nanoappStart)
- * o global C++ constructors called (prior to nanoappStart)
- * o global C++ destructors called (after nanoappEnd)
- */
-
-
-/**
- * Threading model.
+ * @section entry_points Entry points
+ *
+ * The following entry points are used to bind a nanoapp to the CHRE system, and
+ * all three must be implemented by any nanoapp (see chre/nanoapp.h):
+ * - nanoappStart: initialization
+ * - nanoappHandleEvent: hook for event-driven processing
+ * - nanoappEnd: graceful teardown
+ *
+ * The CHRE implementation must also ensure that it performs these functions
+ * prior to invoking nanoappStart, or after nanoappEnd returns:
+ * - bss section zeroed out (prior to nanoappStart)
+ * - static variables initialized (prior to nanoappStart)
+ * - global C++ constructors called (prior to nanoappStart)
+ * - global C++ destructors called (after nanoappEnd)
+ *
+ * @section threading Threading model
  *
  * A CHRE implementation is free to choose among many different
  * threading models, including a single-threaded system or a multi-threaded
@@ -101,15 +110,12 @@
  * synchronization issues with global objects, as they will, by definition,
  * only be accessed by a single thread at once.
  *
- *
- * [1] Note to CHRE implementors: A future version of the CHRE platform may
+ * [1]: Note to CHRE implementers: A future version of the CHRE platform may
  * require multi-threading with preemption.  This is mentioned as a heads up,
  * and to allow implementors deciding between implementation approaches to
  * make the most informed choice.
- */
-
-/**
- * Notes on timing.
+ *
+ * @section timing Timing
  *
  * Nanoapps should expect to be running on a highly constrained system, with
  * little memory and little CPU.  Any single nanoapp should expect to
@@ -135,10 +141,8 @@
  * indicating which batch should be done next. This will allow the nanoapp to
  * perform the entire calculation over time, without monopolizing system
  * resources.
- */
-
-/**
- * Floating point support.
+ *
+ * @section floats Floating point support
  *
  * The C type 'float' is used in this API, and thus a CHRE implementation
  * is required to support 'float's.
@@ -151,10 +155,8 @@
  * If a CHRE implementation choses not to support 'double' or
  * 'long double', then the build toolchain setup provided needs to set
  * the preprocessor define CHRE_NO_DOUBLE_SUPPORT.
- */
-
-/**
- * CHRE and Nanoapp compatibility.
+ *
+ * @section compat CHRE and Nanoapp compatibility
  *
  * CHRE implementations must make affordances to maintain binary compatibility
  * across minor revisions of the API version (e.g. v1.1 to v1.2).  This applies

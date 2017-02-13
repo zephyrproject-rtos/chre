@@ -18,6 +18,7 @@
 #define _CHRE_RE_H_
 
 /**
+ * @file
  * Some of the core Runtime Environment utilities of the Context Hub
  * Runtime Environment.
  *
@@ -50,7 +51,6 @@ extern "C" {
 #define CHRE_TIMER_INVALID  UINT32_C(-1)
 
 
-
 /**
  * Logging levels used to indicate severity level of logging messages.
  *
@@ -81,7 +81,6 @@ enum chreLogLevel {
     CHRE_LOG_INFO,
     CHRE_LOG_DEBUG
 };
-
 
 
 /**
@@ -251,7 +250,7 @@ uint64_t chreGetTime(void);
  *
  * @see nanoappHandleEvent
  */
-uint32_t chreTimerSet(uint64_t duration, const void* cookie, bool oneShot);
+uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot);
 
 /**
  * Cancel a timer.
@@ -303,7 +302,7 @@ void chreAbort(uint32_t abortCode);
  *
  * @see chreHeapFree.
  */
-void* chreHeapAlloc(uint32_t bytes);
+void *chreHeapAlloc(uint32_t bytes);
 
 /**
  * Free a heap allocation.
@@ -318,7 +317,7 @@ void* chreHeapAlloc(uint32_t bytes);
  *
  * @see chreHeapAlloc.
  */
-void chreHeapFree(void* ptr);
+void chreHeapFree(void *ptr);
 
 
 #ifdef __cplusplus

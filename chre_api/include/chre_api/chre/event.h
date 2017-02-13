@@ -18,9 +18,9 @@
 #define _CHRE_EVENT_H_
 
 /**
+ * @file
  * Context Hub Runtime Environment API dealing with events and messages.
  */
-
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -196,7 +196,6 @@ typedef void (chreEventCompleteFunction)(uint16_t eventType, void *eventData);
  * @see chreSendMessageToHost
  */
 typedef void (chreMessageFreeFunction)(void *message, size_t messageSize);
-
 
 
 /**

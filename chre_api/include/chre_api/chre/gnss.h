@@ -35,10 +35,10 @@
  * applicable.
  */
 
-#include <chre/common.h>
-
 #include <stdbool.h>
 #include <stdint.h>
+
+#include <chre/common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,6 +153,7 @@ extern "C" {
 #define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1C_2ND_CODE_LOCK  UINT16_C(1 << 11)
 #define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1B_PAGE_SYNC      UINT16_C(1 << 12)
 #define CHRE_GNSS_MEASUREMENT_STATE_SBAS_SYNC              UINT16_C(1 << 13)
+
 
 /**
  * Indicates a type of request made in this API. Used to populate the resultType
@@ -341,6 +342,7 @@ struct chreGnssLocationEvent {
     uint16_t flags;
 };
 
+
 /**
  * Retrieves a set of flags indicating the GNSS features supported by the
  * current CHRE implementation. The value returned by this function must be
@@ -464,6 +466,7 @@ bool chreGnssMeasurementSessionStartAsync(uint32_t minIntervalMs,
  * @since v1.1
  */
 bool chreGnssMeasurementSessionStopAsync(const void *cookie);
+
 
 #ifdef __cplusplus
 }

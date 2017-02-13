@@ -18,19 +18,18 @@
 #define _CHRE_VERSION_H_
 
 /**
+ * @file
  * Definitions and methods for the versioning of the Context Hub Runtime
  * Environment.
  *
  * The CHRE API versioning pertains to all the chre_*.h files and chre.h.
  */
 
-
 #include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /**
  * Value for version 0.1 of the Context Hub Runtime Environment API interface.

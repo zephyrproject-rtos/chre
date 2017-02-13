@@ -18,6 +18,7 @@
 #define _CHRE_SENSOR_H_
 
 /**
+ * @file
  * API dealing with sensor interaction in the Context Hub Runtime
  * Environment.
  *
@@ -28,7 +29,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// For CHRE_EVENT_SENSOR_FIRST_EVENT and CHRE_EVENT_SENSOR_LAST_EVENT
 #include <chre/event.h>
 
 #ifdef __cplusplus
@@ -313,7 +313,6 @@ extern "C" {
 
 // This is used to define elements of enum chreSensorConfigureMode.
 #define CHRE_SENSOR_CONFIGURE_RAW_REPORT_ONE_SHOT    (2 << 1)
-
 
 
 /**
@@ -650,7 +649,6 @@ struct chreSensorSamplingStatusEvent {
      */
     struct chreSensorSamplingStatus status;
 };
-
 
 
 /**

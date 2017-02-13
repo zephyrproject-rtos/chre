@@ -408,6 +408,7 @@ struct chreWwanCellInfoResult {
     const struct chreWwanCellInfo *cells;
 };
 
+
 /**
  * Retrieves a set of flags indicating the WWAN features supported by the
  * current CHRE implementation. The value returned by this function must be
@@ -442,6 +443,7 @@ uint32_t chreWwanGetCapabilities(void);
  * @since v1.1
  */
 bool chreWwanGetCellInfoAsync(const void *cookie);
+
 
 #ifdef __cplusplus
 }

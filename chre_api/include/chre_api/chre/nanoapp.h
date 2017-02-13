@@ -18,6 +18,7 @@
 #define _CHRE_NANOAPP_H_
 
 /**
+ * @file
  * Methods in the Context Hub Runtime Environment which must be implemented
  * by the nanoapp.
  */
@@ -63,7 +64,7 @@ bool nanoappStart(void);
  *     need to establish what this data means.
  */
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                        const void* eventData);
+                        const void *eventData);
 
 /**
  * Method invoked by the CHRE when unloading the nanoapp.
@@ -72,11 +73,13 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
  * which will generate events to this app, within the nanoapp implementation of
  * this function.  That means it is illegal for the nanoapp invoke any of the
  * following:
+ *
  * - chreSendEvent()
  * - chreSendMessageToHost()
  * - chreSensorConfigure()
  * - chreSensorConfigureModeOnly()
  * - chreTimerSet()
+ * - etc.
  *
  * @see nanoappStart
  */
