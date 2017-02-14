@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PAL_VERSION_H
-#define CHRE_PAL_VERSION_H
+#ifndef CHRE_PAL_VERSION_H_
+#define CHRE_PAL_VERSION_H_
 
 /**
  * @file
@@ -88,4 +88,4 @@ extern "C" {
 }
 #endif
 
-#endif  // CHRE_VERSION_H
+#endif  // CHRE_VERSION_H_

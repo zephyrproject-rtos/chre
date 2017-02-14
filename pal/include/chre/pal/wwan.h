@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PAL_WWAN_H
-#define CHRE_PAL_WWAN_H
+#ifndef CHRE_PAL_WWAN_H_
+#define CHRE_PAL_WWAN_H_
 
 /**
  * @file
@@ -23,11 +23,12 @@
  * platform-specific WWAN module.
  */
 
-#include "chre_api/chre/wwan.h"
-#include "chre/pal/version.h"
-
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "chre_api/chre/wwan.h"
+#include "chre/pal/system.h"
+#include "chre/pal/version.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,13 +73,19 @@ struct chrePalWwanApi {
     /**
      * Initializes the WWAN module. Initialization must complete synchronously.
      *
+     * @param systemApi Structure containing CHRE system function pointers which
+     *        the PAL implementation should prefer to use over equivalent
+     *        functionality exposed by the underlying platform. The module does
+     *        not need to deep-copy this structure; its memory remains
+     *        accessible at least until after close() is called.
      * @param callbacks Structure containing entry points to the core CHRE
      *        system. The module does not need to deep-copy this structure; its
      *        memory remains accessible at least until after close() is called.
      *
      * @return true if initialization was successful, false otherwise
      */
-    bool (*open)(const struct chrePalWwanCallbacks *callbacks);
+    bool (*open)(const struct chrePalSystemApi *systemApi,
+                 const struct chrePalWwanCallbacks *callbacks);
 
     /**
      * Performs clean shutdown of the WWAN module, usually done in preparation
@@ -138,4 +145,4 @@ const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion);
 }
 #endif
 
-#endif  // CHRE_PAL_WWAN_H
+#endif  // CHRE_PAL_WWAN_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PAL_WIFI_H
-#define CHRE_PAL_WIFI_H
+#ifndef CHRE_PAL_WIFI_H_
+#define CHRE_PAL_WIFI_H_
 
 /**
  * @file
@@ -23,12 +23,13 @@
  * platform-specific WiFi module.
  */
 
-#include "chre_api/chre/common.h"
-#include "chre_api/chre/wifi.h"
-#include "chre/pal/version.h"
-
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "chre_api/chre/common.h"
+#include "chre_api/chre/wifi.h"
+#include "chre/pal/system.h"
+#include "chre/pal/version.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,13 +113,19 @@ struct chrePalWifiApi {
     /**
      * Initializes the WiFi module. Initialization must complete synchronously.
      *
+     * @param systemApi Structure containing CHRE system function pointers which
+     *        the PAL implementation should prefer to use over equivalent
+     *        functionality exposed by the underlying platform. The module does
+     *        not need to deep-copy this structure; its memory remains
+     *        accessible at least until after close() is called.
      * @param callbacks Structure containing entry points to the core CHRE
      *        system. The module does not need to deep-copy this structure; its
      *        memory remains accessible at least until after close() is called.
      *
      * @return true if initialization was successful, false otherwise
      */
-    bool (*open)(const struct chrePalWifiCallbacks *callbacks);
+    bool (*open)(const struct chrePalSystemApi *systemApi,
+                 const struct chrePalWifiCallbacks *callbacks);
 
     /**
      * Performs clean shutdown of the WiFi module, usually done in preparation
@@ -206,4 +213,4 @@ const struct chrePalWifiApi *chrePalWifiGetApi(uint32_t requestedApiVersion);
 }
 #endif
 
-#endif  // CHRE_PAL_WIFI_H
+#endif  // CHRE_PAL_WIFI_H_
