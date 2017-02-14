@@ -79,8 +79,6 @@ Event *Nanoapp::processNextEvent() {
   Event *event = mEventQueue.pop();
 
   if (event != nullptr) {
-    LOGD("Delivering event %" PRIu16 " to instance %" PRIu32,
-         event->eventType, mInstanceId);
     mPlatformNanoapp->handleEvent(event->senderInstanceId, event->eventType,
                              event->eventData);
   } else {
