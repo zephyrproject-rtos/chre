@@ -36,32 +36,33 @@
 #include "chre/target_platform/assert.h"
 
 #ifndef CHRE_ASSERT
-#error "CHRE_ASSERT must be defined"
+#error "CHRE_ASSERT must be defined by the target platform's assert.h"
 #endif  // CHRE_ASSERT
-
-/**
- * Provide an CHRE_ASSERT_LOG macro based on LOGE and ASSERT. This allows
- * asserting and logging in one statement.
- */
-#define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
-  if (!condition) {                               \
-    LOGE(fmt, ##__VA_ARGS__);                     \
-  }                                               \
-                                                  \
-  CHRE_ASSERT(condition);                         \
-} while (0)
 
 #elif defined(CHRE_ASSERTIONS_DISABLED)
 
 #define CHRE_ASSERT(condition) ((void) (condition))
 
-#define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
-  CHRE_ASSERT(condition);                         \
-  chreLogNull(fmt, ##__VA_ARGS__);                \
-} while(0)
-
 #else
 #error "CHRE_ASSERTIONS_ENABLED or CHRE_ASSERTIONS_DISABLED must be defined"
 #endif  // CHRE_ASSERTIONS_ENABLED
+
+/**
+ * Combination macro that always logs an error message if the condition
+ * evaluates to false.
+ *
+ * Note that the supplied condition may be evaluated more than once.
+ *
+ * @param condition Boolean expression which evaluates to false in the failure
+ *        case
+ * @param fmt Format string to pass to LOGE
+ * @param ... Arguments to pass to LOGE
+ */
+#define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
+  if (!(condition)) {                             \
+    LOGE(fmt, ##__VA_ARGS__);                     \
+    CHRE_ASSERT(condition);                       \
+  }                                               \
+} while (0)
 
 #endif  // CHRE_PLATFORM_ASSERT_H_
