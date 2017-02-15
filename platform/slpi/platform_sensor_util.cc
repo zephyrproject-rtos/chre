@@ -25,7 +25,7 @@
 
 namespace chre {
 
-uint16_t intervalToSmgrReportRate(Nanoseconds interval) {
+uint16_t intervalToSmgrSamplingRate(Nanoseconds interval) {
   Milliseconds millis = Milliseconds(interval);
   if (millis.getMilliseconds() > SNS_SMGR_SAMPLING_RATE_INVERSION_POINT_V01) {
     return millis.getMilliseconds();
@@ -35,6 +35,14 @@ uint16_t intervalToSmgrReportRate(Nanoseconds interval) {
   } else {
     return 0;
   }
+}
+
+uint32_t intervalToSmgrQ16ReportRate(Nanoseconds interval) {
+  uint64_t freq = UINT32_MAX;
+  if (interval != Nanoseconds(0)) {
+    freq = (Seconds(1).toRawNanoseconds() << 16) / interval.toRawNanoseconds();
+  }
+  return (freq > UINT32_MAX) ? UINT32_MAX : static_cast<uint32_t>(freq);
 }
 
 }  // namespace chre

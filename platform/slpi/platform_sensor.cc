@@ -27,6 +27,7 @@ extern "C" {
 
 #include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/platform_sensor.h"
@@ -41,7 +42,7 @@ qmi_client_type gPlatformSensorQmiClientHandle = nullptr;
 //! into. This global instance is used to avoid thrashy use of the heap by
 //! allocating and freeing this on the heap for every new sensor sample. This
 //! relies on the assumption that the QMI callback is not reentrant.
-sns_smgr_periodic_report_ind_msg_v01 gSensorReportIndication;
+sns_smgr_buffering_ind_msg_v01 gSmgrBufferingIndMsg;
 
 //! The next ReportID to assign to a request for sensor data. The SMGR APIs use
 //! a ReportID to track requests. We will use one report ID per sensor to keep
@@ -143,33 +144,41 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
  * Populate the header
  */
 void populateSensorDataHeader(SensorType sensorType,
-                              const sns_smgr_data_item_s_v01& sensorData,
                               chreSensorDataHeader *header) {
+  uint64_t baseTimestamp = getNanosecondsFromSmgrTicks(
+      gSmgrBufferingIndMsg.Indices[0].FirstSampleTimestamp);
   memset(header->reserved, 0, sizeof(header->reserved));
-  header->baseTimestamp = getNanosecondsFromSmgrTicks(sensorData.TimeStamp);
+  header->baseTimestamp = baseTimestamp;
   header->sensorHandle = getSensorHandleFromSensorType(sensorType);
-  header->readingCount = 1;
+  header->readingCount = gSmgrBufferingIndMsg.Samples_len;
 }
 
 /**
  * Populate three-axis event data.
  */
 void populateThreeAxisEvent(SensorType sensorType,
-                            const sns_smgr_data_item_s_v01& sensorData,
                             chreSensorThreeAxisData *data) {
-  populateSensorDataHeader(sensorType, sensorData, &data->header);
-  data->readings[0].timestampDelta = 0;
+  populateSensorDataHeader(sensorType, &data->header);
 
-  // Convert from SMGR's NED coordinate to Android coordinate.
-  data->readings[0].x = FX_FIXTOFLT_Q16(sensorData.ItemData[1]);
-  data->readings[0].y = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
-  data->readings[0].z = -FX_FIXTOFLT_Q16(sensorData.ItemData[2]);
+  for (size_t i = 0; i < gSmgrBufferingIndMsg.Samples_len; i++) {
+    const sns_smgr_buffering_sample_s_v01& sensorData =
+        gSmgrBufferingIndMsg.Samples[i];
 
-  // Convert from Gauss to micro Tesla
-  if (sensorType == SensorType::GeomagneticField) {
-    data->readings[0].x *= kMicroTeslaPerGauss;
-    data->readings[0].y *= kMicroTeslaPerGauss;
-    data->readings[0].z *= kMicroTeslaPerGauss;
+    // TimeStampOffset has max value of < 2 sec so it will not overflow here.
+    data->readings[i].timestampDelta =
+        getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
+
+    // Convert from SMGR's NED coordinate to Android coordinate.
+    data->readings[i].x = FX_FIXTOFLT_Q16(sensorData.Data[1]);
+    data->readings[i].y = FX_FIXTOFLT_Q16(sensorData.Data[0]);
+    data->readings[i].z = -FX_FIXTOFLT_Q16(sensorData.Data[2]);
+
+    // Convert from Gauss to micro Tesla
+    if (sensorType == SensorType::GeomagneticField) {
+      data->readings[i].x *= kMicroTeslaPerGauss;
+      data->readings[i].y *= kMicroTeslaPerGauss;
+      data->readings[i].z *= kMicroTeslaPerGauss;
+    }
   }
 }
 
@@ -177,33 +186,45 @@ void populateThreeAxisEvent(SensorType sensorType,
  * Populate float event data.
  */
 void populateFloatEvent(SensorType sensorType,
-                        const sns_smgr_data_item_s_v01& sensorData,
                         chreSensorFloatData *data) {
-  populateSensorDataHeader(sensorType, sensorData, &data->header);
-  data->readings[0].timestampDelta = 0;
-  data->readings[0].value = FX_FIXTOFLT_Q16(sensorData.ItemData[0]);
+  populateSensorDataHeader(sensorType, &data->header);
+
+  for (size_t i = 0; i < gSmgrBufferingIndMsg.Samples_len; i++) {
+    const sns_smgr_buffering_sample_s_v01& sensorData =
+        gSmgrBufferingIndMsg.Samples[i];
+
+    // TimeStampOffset has max value of < 2 sec so it will not overflow.
+    data->readings[i].timestampDelta =
+        getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
+    data->readings[i].value = FX_FIXTOFLT_Q16(sensorData.Data[0]);
+  }
 }
 
 /**
  * Allocate event memory according to SensorType and populate event readings.
  */
-void *allocateAndPopulateEvent(SensorType sensorType,
-                               const sns_smgr_data_item_s_v01& sensorData) {
-  // TODO: also take Item_len into account.
+void *allocateAndPopulateEvent(SensorType sensorType) {
   SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
+  size_t memorySize = sizeof(chreSensorDataHeader);
   switch (sampleType) {
     case SensorSampleType::ThreeAxis: {
-      auto *event = memoryAlloc<chreSensorThreeAxisData>();
+      memorySize += gSmgrBufferingIndMsg.Samples_len *
+          sizeof(chreSensorThreeAxisData::chreSensorThreeAxisSampleData);
+      auto *event =
+          static_cast<chreSensorThreeAxisData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
-        populateThreeAxisEvent(sensorType, sensorData, event);
+        populateThreeAxisEvent(sensorType, event);
       }
       return event;
     }
 
     case SensorSampleType::Float: {
-      auto *event = memoryAlloc<chreSensorFloatData>();
+      memorySize += gSmgrBufferingIndMsg.Samples_len *
+          sizeof(chreSensorFloatData::chreSensorFloatSampleData);
+      auto *event =
+          static_cast<chreSensorFloatData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
-        populateFloatEvent(sensorType, sensorData, event);
+        populateFloatEvent(sensorType, event);
       }
       return event;
     }
@@ -225,27 +246,28 @@ void *allocateAndPopulateEvent(SensorType sensorType,
 void handleSensorDataIndication(void *userHandle, void *buffer,
                                 unsigned int bufferLength) {
   int status = qmi_client_message_decode(
-      userHandle, QMI_IDL_INDICATION, SNS_SMGR_REPORT_IND_V01, buffer,
-      bufferLength, &gSensorReportIndication,
-      sizeof(sns_smgr_periodic_report_ind_msg_v01));
+      userHandle, QMI_IDL_INDICATION, SNS_SMGR_BUFFERING_IND_V01, buffer,
+      bufferLength, &gSmgrBufferingIndMsg,
+      sizeof(sns_smgr_buffering_ind_msg_v01));
   if (status != QMI_NO_ERR) {
     LOGE("Error parsing sensor data indication %d", status);
     return;
   }
 
-  // TODO: We send one event per sample at the moment. The CHRE API allows for
-  // multiple samples to be delivered per batch which should improve
-  // performance. Switch to that implementation.
-  for (size_t i = 0; i < gSensorReportIndication.Item_len; i++) {
-    const sns_smgr_data_item_s_v01& sensorData =
-        gSensorReportIndication.Item[i];
-    SensorType sensorType = getSensorTypeFromSensorId(sensorData.SensorId,
-                                                      sensorData.DataType);
+  // We only requested one sensor per request.
+  CHRE_ASSERT_LOG(gSmgrBufferingIndMsg.Indices_len == 1,
+                  "Got buffering indication from %" PRIu32 " sensors, "
+                  "expected 1", gSmgrBufferingIndMsg.Indices_len);
+  if (gSmgrBufferingIndMsg.Indices_len == 1) {
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex =
+        gSmgrBufferingIndMsg.Indices[0];
+    SensorType sensorType = getSensorTypeFromSensorId(sensorIndex.SensorId,
+                                                      sensorIndex.DataType);
     if (sensorType == SensorType::Unknown) {
       LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
-           sensorData.SensorId, sensorData.DataType);
+           sensorIndex.SensorId, sensorIndex.DataType);
     } else {
-      void *eventData = allocateAndPopulateEvent(sensorType, sensorData);
+      void *eventData = allocateAndPopulateEvent(sensorType);
       if (eventData == nullptr) {
         LOGW("Dropping event due to allocation failure");
       } else {
@@ -275,7 +297,7 @@ void platformSensorQmiIndicationCallback(void *userHandle,
                                          unsigned int bufferLength,
                                          void *callbackData) {
   switch (messageId) {
-    case SNS_SMGR_REPORT_IND_V01:
+    case SNS_SMGR_BUFFERING_IND_V01:
       handleSensorDataIndication(userHandle, buffer, bufferLength);
       break;
     default:
@@ -398,9 +420,9 @@ bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
  */
 uint8_t getSmgrRequestActionForMode(SensorMode mode) {
   if (sensorModeIsActive(mode)) {
-    return SNS_SMGR_REPORT_ACTION_ADD_V01;
+    return SNS_SMGR_BUFFERING_ACTION_ADD_V01;
   } else {
-    return SNS_SMGR_REPORT_ACTION_DELETE_V01;
+    return SNS_SMGR_BUFFERING_ACTION_DELETE_V01;
   }
 }
 
@@ -413,14 +435,8 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
   }
 
   // Allocate request and response for the sensor request.
-  // TODO: Replace this with the templatized memoryAlloc to avoid these ugly
-  // casts.
-  sns_smgr_periodic_report_req_msg_v01 *sensorDataRequest =
-      static_cast<sns_smgr_periodic_report_req_msg_v01 *>(
-          memoryAlloc(sizeof(sns_smgr_periodic_report_req_msg_v01)));
-  sns_smgr_periodic_report_resp_msg_v01 *sensorDataResponse =
-      static_cast<sns_smgr_periodic_report_resp_msg_v01 *>(
-          memoryAlloc(sizeof(sns_smgr_periodic_report_resp_msg_v01)));
+  auto *sensorDataRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
+  auto *sensorDataResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
   if (sensorDataRequest == nullptr || sensorDataResponse == nullptr) {
     memoryFree(sensorDataRequest);
     memoryFree(sensorDataResponse);
@@ -434,30 +450,35 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
 
   // Zero the fields in the request. All mandatory and unused fields are
   // specified to be set to false or zero so this is safe.
-  memset(sensorDataRequest, 0, sizeof(sns_smgr_periodic_report_req_msg_v01));
+  memset(sensorDataRequest, 0, sizeof(*sensorDataRequest));
 
   // Build the request for one sensor at the requested rate. An add action for a
   // ReportID that is already in use causes a replacement of the last request.
-  uint16_t reportRate = intervalToSmgrReportRate(request.getInterval());
-  sensorDataRequest->ReportRate = reportRate;
   sensorDataRequest->ReportId = this->reportId;
   sensorDataRequest->Action = getSmgrRequestActionForMode(request.getMode());
+  Nanoseconds batchingInterval =
+      (request.getLatency() > request.getInterval()) ?
+      request.getLatency() : request.getInterval();
+  sensorDataRequest->ReportRate =
+      intervalToSmgrQ16ReportRate(batchingInterval);
   sensorDataRequest->Item_len = 1; // Each request is for one sensor.
   sensorDataRequest->Item[0].SensorId = this->sensorId;
   sensorDataRequest->Item[0].DataType = this->dataType;
   sensorDataRequest->Item[0].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
+  sensorDataRequest->Item[0].SamplingRate =
+      intervalToSmgrSamplingRate(request.getInterval());
 
   bool success = false;
   qmi_client_error_type status = qmi_client_send_msg_sync(
-      gPlatformSensorQmiClientHandle, SNS_SMGR_REPORT_REQ_V01,
-      sensorDataRequest, sizeof(sns_smgr_periodic_report_req_msg_v01),
-      sensorDataResponse, sizeof(sns_smgr_single_sensor_info_resp_msg_v01),
+      gPlatformSensorQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
+      sensorDataRequest, sizeof(*sensorDataRequest),
+      sensorDataResponse, sizeof(*sensorDataResponse),
       kQmiTimeoutMs);
   if (status != QMI_NO_ERR) {
     LOGE("Error requesting sensor data: %d", status);
   } else if (sensorDataResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
     LOGE("Sensor data request failed with error: %d",
-         sensorDataResponse->Resp.sns_result_t);
+         sensorDataResponse->Resp.sns_err_t);
   } else {
     if (sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
         || sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_MODIFIED_V01) {

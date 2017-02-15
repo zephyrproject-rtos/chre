@@ -16,26 +16,49 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/target_platform/platform_sensor_util.h"
+#include "chre/platform/slpi/platform_sensor_util.h"
 
-using chre::intervalToSmgrReportRate;
+using chre::intervalToSmgrSamplingRate;
+using chre::intervalToSmgrQ16ReportRate;
 using chre::Milliseconds;
 using chre::Nanoseconds;
 using chre::Seconds;
 
-TEST(SmgrReportRateTest, Zero) {
-  uint16_t rate = intervalToSmgrReportRate(Nanoseconds(0));
+TEST(SmgrSamplingRateTest, Zero) {
+  uint16_t rate = intervalToSmgrSamplingRate(Nanoseconds(0));
   EXPECT_EQ(rate, 0);
 }
 
-TEST(SmgrReportRateTest, FiftyHertz) {
+TEST(SmgrSamplingRateTest, FiftyHertz) {
   constexpr Nanoseconds kTenHertzInterval(Milliseconds(20));
-  uint16_t rate = intervalToSmgrReportRate(kTenHertzInterval);
+  uint16_t rate = intervalToSmgrSamplingRate(kTenHertzInterval);
   EXPECT_EQ(rate, 50);
 }
 
-TEST(SmgrReportRateTest, ZeroPointFiveHertz) {
+TEST(SmgrSamplingRateTest, ZeroPointFiveHertz) {
   constexpr Nanoseconds kZeroPointFiveHertzInterval(Seconds(2));
-  uint16_t rate = intervalToSmgrReportRate(kZeroPointFiveHertzInterval);
+  uint16_t rate = intervalToSmgrSamplingRate(kZeroPointFiveHertzInterval);
   EXPECT_EQ(rate, 2000);
+}
+
+TEST(SmgrQ16ReportRateTest, Zero) {
+  uint32_t rate = intervalToSmgrQ16ReportRate(Nanoseconds(0));
+  EXPECT_EQ(rate, UINT32_MAX);
+}
+
+TEST(SmgrQ16ReportRateTest, FiftyHertz) {
+  constexpr Nanoseconds kTenHertzInterval(Milliseconds(20));
+  uint32_t rate = intervalToSmgrQ16ReportRate(kTenHertzInterval);
+  EXPECT_EQ(rate, 0x10000 * 50);
+}
+
+TEST(SmgrQ16ReportRateTest, ZeroPointFiveHertz) {
+  constexpr Nanoseconds kZeroPointFiveHertzInterval(Seconds(2));
+  uint32_t rate = intervalToSmgrQ16ReportRate(kZeroPointFiveHertzInterval);
+  EXPECT_EQ(rate, 0x10000 / 2);
+}
+
+TEST(SmgrQ16ReportRateTest, OneNanosecond) {
+  uint32_t rate = intervalToSmgrQ16ReportRate(Nanoseconds(1));
+  EXPECT_EQ(rate, UINT32_MAX);
 }

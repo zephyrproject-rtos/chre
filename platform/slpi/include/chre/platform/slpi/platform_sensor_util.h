@@ -32,7 +32,16 @@ namespace chre {
  * @param interval The sampling interval to convert to a report rate.
  * @return Returns the SMGR report rate for this interval.
  */
-uint16_t intervalToSmgrReportRate(Nanoseconds interval);
+uint16_t intervalToSmgrSamplingRate(Nanoseconds interval);
+
+/**
+ * Converts an interval in nanoseconds to an SMGR report rate in Hz and Q16
+ * format.
+ *
+ * @param interval The interval to convert to a report rate.
+ * @return Returns the SMGR uint32_t report rate for this interval.
+ */
+uint32_t intervalToSmgrQ16ReportRate(Nanoseconds interval);
 
 }  // namespace chre
 

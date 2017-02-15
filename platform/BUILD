@@ -39,31 +39,31 @@ LINUX_PLATFORM_SRCS = [
 
 chre_cc_library(
     name = "platform",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_SRCS,
+        "//conditions:default": LINUX_PLATFORM_SRCS,
+    }),
     hdrs = [
         "include/chre/platform/context.h",
         "include/chre/platform/platform_id.h",
         "include/chre/platform/system_time.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_HDRS,
-    }),
-    srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_SRCS,
+        "//:platform_linux": LINUX_PLATFORM_HDRS,
+        "//conditions:default": LINUX_PLATFORM_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     linkopts = select({
-        "//:platform_linux" : LINUX_PLATFORM_LINKOPTS,
-        "//conditions:default" : LINUX_PLATFORM_LINKOPTS,
+        "//:platform_linux": LINUX_PLATFORM_LINKOPTS,
+        "//conditions:default": LINUX_PLATFORM_LINKOPTS,
     }),
     deps = [
+        "//chre_api",
         "//core:event_loop",
-        "//chre_api:chre_api",
+        "//util",
         "//util:non_copyable",
-        "//util:util",
     ],
 )
 
@@ -82,12 +82,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/platform/assert.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_ASSERT_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_ASSERT_HDRS,
+        "//:platform_linux": LINUX_PLATFORM_ASSERT_HDRS,
+        "//conditions:default": LINUX_PLATFORM_ASSERT_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
         "//platform:log",
@@ -110,12 +110,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/platform/condition_variable.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
+        "//:platform_linux": LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
+        "//conditions:default": LINUX_PLATFORM_CONDITION_VARIABLE_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
 )
 
@@ -134,12 +134,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/platform/fatal_error.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_FATAL_ERROR_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_FATAL_ERROR_HDRS,
+        "//:platform_linux": LINUX_PLATFORM_FATAL_ERROR_HDRS,
+        "//conditions:default": LINUX_PLATFORM_FATAL_ERROR_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
         "//platform:log",
@@ -162,22 +162,22 @@ LINUX_PLATFORM_NANOAPP_ENTRY_SRCS = [
 
 chre_cc_library(
     name = "platform_nanoapp",
-    hdrs = [
-        "include/chre/platform/platform_nanoapp.h"
-    ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_NANOAPP_ENTRY_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_NANOAPP_ENTRY_HDRS,
-    }),
     srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_NANOAPP_ENTRY_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_NANOAPP_ENTRY_SRCS,
+        "//:platform_linux": LINUX_PLATFORM_NANOAPP_ENTRY_SRCS,
+        "//conditions:default": LINUX_PLATFORM_NANOAPP_ENTRY_SRCS,
+    }),
+    hdrs = [
+        "include/chre/platform/platform_nanoapp.h",
+    ] + select({
+        "//:platform_linux": LINUX_PLATFORM_NANOAPP_ENTRY_HDRS,
+        "//conditions:default": LINUX_PLATFORM_NANOAPP_ENTRY_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -193,21 +193,19 @@ LINUX_PLATFORM_MEMORY_SRCS = [
 
 chre_cc_library(
     name = "memory",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_MEMORY_SRCS,
+        "//conditions:default": LINUX_PLATFORM_MEMORY_SRCS,
+    }),
     hdrs = [
         "include/chre/platform/memory.h",
         "include/chre/platform/memory_impl.h",
     ],
-    srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_MEMORY_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_MEMORY_SRCS,
-    }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
 )
-
-
 
 ################################################################################
 #
@@ -224,12 +222,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/platform/log.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_LOG_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_LOG_HDRS,
+        "//:platform_linux": LINUX_PLATFORM_LOG_HDRS,
+        "//conditions:default": LINUX_PLATFORM_LOG_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
 )
 
@@ -249,12 +247,12 @@ chre_cc_library(
     hdrs = [
         "include/chre/platform/mutex.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_MUTEX_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_MUTEX_HDRS,
+        "//:platform_linux": LINUX_PLATFORM_MUTEX_HDRS,
+        "//conditions:default": LINUX_PLATFORM_MUTEX_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
 )
 
@@ -271,11 +269,11 @@ LINUX_PLATFORM_PAL_WIFI_SRCS = [
 chre_cc_library(
     name = "pal_wifi",
     srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_PAL_WIFI_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_PAL_WIFI_SRCS,
+        "//:platform_linux": LINUX_PLATFORM_PAL_WIFI_SRCS,
+        "//conditions:default": LINUX_PLATFORM_PAL_WIFI_SRCS,
     }),
     deps = [
-        "//pal:pal",
+        "//pal",
     ],
 )
 
@@ -295,23 +293,23 @@ LINUX_PLATFORM_PLATFORM_SENSOR_HDRS = [
 
 chre_cc_library(
     name = "platform_sensor",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
+        "//conditions:default": LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
+    }),
     hdrs = [
         "include/chre/platform/platform_sensor.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
-    }),
-    srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_PLATFORM_SENSOR_SRCS,
+        "//:platform_linux": LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
+        "//conditions:default": LINUX_PLATFORM_PLATFORM_SENSOR_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
         "//core:sensor_request",
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -323,20 +321,20 @@ chre_cc_library(
 
 chre_cc_library(
     name = "slpi_platform_sensor_util",
-    hdrs = [
-        "slpi/include/chre/target_platform/platform_sensor_util.h",
-    ],
     srcs = [
         "slpi/platform_sensor_util.cc",
     ],
-    includes = [
-        "slpi/include",
+    hdrs = [
+        "slpi/include/chre/platform/slpi/platform_sensor_util.h",
     ],
     defines = [
         "GTEST",
     ],
+    includes = [
+        "slpi/include",
+    ],
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -362,19 +360,19 @@ LINUX_PLATFORM_SYSTEM_TIME_SRCS = [
 
 chre_cc_library(
     name = "system_time",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_TIME_SRCS,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_TIME_SRCS,
+    }),
     hdrs = [
         "include/chre/platform/system_time.h",
     ],
-    srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIME_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIME_SRCS,
-    }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
-        "//util:util",
+        "//util",
     ],
 )
 
@@ -388,30 +386,29 @@ LINUX_PLATFORM_SYSTEM_TIMER_HDRS = [
     "linux/include/chre/target_platform/system_timer_base.h",
 ]
 
-
 LINUX_PLATFORM_SYSTEM_TIMER_SRCS = [
     "linux/system_timer.cc",
 ]
 
 chre_cc_library(
     name = "system_timer",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
+    }),
     hdrs = [
         "include/chre/platform/system_timer.h",
     ] + select({
-        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
-        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
-    }),
-    srcs = select({
-        "//:platform_linux" : LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
-        "//conditions:default" : LINUX_PLATFORM_SYSTEM_TIMER_SRCS,
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_TIMER_HDRS,
     }),
     includes = select({
-        "//:platform_linux" : LINUX_PLATFORM_INCLUDES,
-        "//conditions:default" : LINUX_PLATFORM_INCLUDES,
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
     }),
     deps = [
+        "//util",
         "//util:non_copyable",
-        "//util:util",
     ],
 )
 
@@ -428,17 +425,17 @@ LINUX_BINARY_SRCS = [
 chre_cc_binary(
     name = "chre",
     srcs = select({
-        "//:platform_linux" : LINUX_BINARY_SRCS,
-        "//conditions:default" : LINUX_BINARY_SRCS,
+        "//:platform_linux": LINUX_BINARY_SRCS,
+        "//conditions:default": LINUX_BINARY_SRCS,
     }),
     deps = [
-        "//apps/hello_world:hello_world",
-        "//apps/sensor_world:sensor_world",
-        "//apps/timer_world:timer_world",
+        "//apps/hello_world",
+        "//apps/sensor_world",
+        "//apps/timer_world",
         "//core:init",
         "//core:nanoapp",
-        "//platform:platform",
-        "//platform:system_timer",
+        "//platform",
         "//platform:log",
+        "//platform:system_timer",
     ],
 )
