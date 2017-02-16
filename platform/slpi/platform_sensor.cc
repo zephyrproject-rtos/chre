@@ -44,14 +44,6 @@ qmi_client_type gPlatformSensorQmiClientHandle = nullptr;
 //! relies on the assumption that the QMI callback is not reentrant.
 sns_smgr_buffering_ind_msg_v01 gSmgrBufferingIndMsg;
 
-//! The next ReportID to assign to a request for sensor data. The SMGR APIs use
-//! a ReportID to track requests. We will use one report ID per sensor to keep
-//! requests separate. Zero is reserved. If this wraps around 255, this is
-//! considered a fatal error. This will never happen because the report ID is
-//! assigned to the sensor when it is first enabled and reused for all future
-//! requests.
-uint8_t gNextSensorReportId = 1;
-
 }  // anonymous namespace
 
 namespace chre {
@@ -62,32 +54,19 @@ constexpr uint32_t kQmiTimeoutMs = 1000;
 constexpr float kMicroTeslaPerGauss = 100.0f;
 
 /**
- * Generates a unique ReportID to provide to a request to the SMGR APIs for
- * sensor data. Each sensor is assigned a unique ReportID and as such there will
- * be few of these. If more than 255 are created, it is a fatal error.
- *
- * @return A unique ReportID for a request of sensor data.
- */
-uint8_t generateUniqueReportId() {
-  uint8_t reportId = gNextSensorReportId++;
-  if (reportId == 0) {
-    FATAL_ERROR("Unique ReportIDs exhausted. Too many sensor requests");
-  }
-
-  return reportId;
-}
-
-/**
- * Converts a sensorId and dataType as provided by SMGR to a CHRE SensorType as
- * used by platform-independent CHRE code.
+ * Converts a sensorId, dataType and calType as provided by SMGR to a
+ * SensorType as used by platform-independent CHRE code. This is useful in
+ * sensor discovery.
  *
  * @param sensorId The sensorID as provided by the SMGR request for sensor info.
  * @param dataType The dataType for the sesnor as provided by the SMGR request
  *                 for sensor info.
- * @return Returns the platform-independent CHRE sensor type or Unknown if no
+ * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @return Returns the platform-independent sensor type or Unknown if no
  *         match is found.
  */
-SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
+SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType,
+                                     uint8_t calType) {
   // Here be dragons. These constants below are defined in
   // sns_smgr_common_v01.h. Refer to the section labelled "Define sensor
   // identifier" for more details. This function relies on the ordering of
@@ -96,13 +75,25 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
   if (dataType == SNS_SMGR_DATA_TYPE_PRIMARY_V01) {
     if (sensorId >= SNS_SMGR_ID_ACCEL_V01
         && sensorId < SNS_SMGR_ID_GYRO_V01) {
-      return SensorType::Accelerometer;
+      if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
+        return SensorType::Accelerometer;
+      } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
+        return SensorType::UncalibratedAccelerometer;
+      }
     } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
         && sensorId < SNS_SMGR_ID_MAG_V01) {
-      return SensorType::Gyroscope;
+      if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
+        return SensorType::Gyroscope;
+      } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
+        return SensorType::UncalibratedGyroscope;
+      }
     } else if (sensorId >= SNS_SMGR_ID_MAG_V01
         && sensorId < SNS_SMGR_ID_PRESSURE_V01) {
-      return SensorType::GeomagneticField;
+      if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
+        return SensorType::GeomagneticField;
+      } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
+        return SensorType::UncalibratedGeomagneticField;
+      }
     } else if (sensorId >= SNS_SMGR_ID_PRESSURE_V01
         && sensorId < SNS_SMGR_ID_PROX_LIGHT_V01) {
       return SensorType::Pressure;
@@ -111,8 +102,14 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
       return SensorType::Proximity;
     }
   } else if (dataType == SNS_SMGR_DATA_TYPE_SECONDARY_V01) {
-    if ((sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01
-            && sensorId < SNS_SMGR_ID_HUMIDITY_V01)
+    if (sensorId >= SNS_SMGR_ID_ACCEL_V01
+        && sensorId < SNS_SMGR_ID_GYRO_V01) {
+      return SensorType::AccelerometerTemperature;
+    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
+        && sensorId < SNS_SMGR_ID_MAG_V01) {
+      return SensorType::GyroscopeTemperature;
+    } else if ((sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01
+        && sensorId < SNS_SMGR_ID_HUMIDITY_V01)
         || (sensorId >= SNS_SMGR_ID_ULTRA_VIOLET_V01
             && sensorId < SNS_SMGR_ID_OBJECT_TEMP_V01)) {
       return SensorType::Light;
@@ -120,6 +117,87 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType) {
   }
 
   return SensorType::Unknown;
+}
+
+/**
+ * Converts a reportId as provided by SMGR to a SensorType.
+ *
+ * @param reportId The reportID as provided by the SMGR buffering index.
+ * @return Returns the sensorType that corresponds to the reportId.
+ */
+SensorType getSensorTypeFromReportId(uint8_t reportId) {
+  SensorType sensorType;
+  if (reportId < static_cast<uint8_t>(SensorType::SENSOR_TYPE_COUNT)) {
+    sensorType = static_cast<SensorType>(reportId);
+  } else {
+    sensorType = SensorType::Unknown;
+  }
+  return sensorType;
+}
+
+/**
+ * Converts a PlatformSensor to a unique report ID through SensorType. This is
+ * useful in making sensor request.
+ *
+ * @param sensorId The sensorID as provided by the SMGR request for sensor info.
+ * @param dataType The dataType for the sesnor as provided by the SMGR request
+ *                 for sensor info.
+ * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @return Returns a unique report ID that is based on SensorType.
+ */
+uint8_t getReportId(uint8_t sensorId, uint8_t dataType, uint8_t calType) {
+  SensorType sensorType = getSensorTypeFromSensorId(
+      sensorId, dataType, calType);
+
+  CHRE_ASSERT_LOG(sensorType != SensorType::Unknown,
+                  "sensorId %" PRIu8 ", dataType %" PRIu8 ", calType %" PRIu8,
+                  sensorId, dataType, calType);
+  return static_cast<uint8_t>(sensorType);
+}
+
+/**
+ * Checks whether the corresponding sensor is a sencondary temperature sensor.
+ *
+ * @param reportId The reportID as provided by the SMGR buffering index.
+ * @return true if the sensor is a secondary temperature sensor.
+ */
+bool isSecondaryTemperature(uint8_t reportId) {
+  SensorType sensorType = getSensorTypeFromReportId(reportId);
+  return (sensorType == SensorType::AccelerometerTemperature
+          || sensorType == SensorType::GyroscopeTemperature);
+}
+
+/**
+ * Verifies whether the buffering index's report ID matches the expected
+ * indices length.
+ *
+ * @return true if it's a valid pair of indices length and report ID.
+ */
+bool isValidIndicesLength() {
+  return ((gSmgrBufferingIndMsg.Indices_len == 1
+           && !isSecondaryTemperature(gSmgrBufferingIndMsg.ReportId))
+          || (gSmgrBufferingIndMsg.Indices_len == 2
+              && isSecondaryTemperature(gSmgrBufferingIndMsg.ReportId)));
+}
+
+/**
+ * Adds a Platform sensor to the sensor list.
+ *
+ * @param sensorId The sensorID as provided by the SMGR request for sensor info.
+ * @param dataType The dataType for the sesnor as provided by the SMGR request
+ *                 for sensor info.
+ * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @param sensor The sensor list.
+ */
+void addPlatformSensor(uint8_t sensorId, uint8_t dataType, uint8_t calType,
+                       DynamicVector<PlatformSensor> *sensors) {
+  PlatformSensor platformSensor;
+  platformSensor.sensorId = sensorId;
+  platformSensor.dataType = dataType;
+  platformSensor.calType = calType;
+  if (!sensors->push_back(std::move(platformSensor))) {
+    FATAL_ERROR("Failed to allocate new sensor: out of memory");
+  }
 }
 
 /**
@@ -143,26 +221,28 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
 /**
  * Populate the header
  */
-void populateSensorDataHeader(SensorType sensorType,
-                              chreSensorDataHeader *header) {
+void populateSensorDataHeader(
+    SensorType sensorType, chreSensorDataHeader *header,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
   uint64_t baseTimestamp = getNanosecondsFromSmgrTicks(
-      gSmgrBufferingIndMsg.Indices[0].FirstSampleTimestamp);
+      sensorIndex.FirstSampleTimestamp);
   memset(header->reserved, 0, sizeof(header->reserved));
   header->baseTimestamp = baseTimestamp;
   header->sensorHandle = getSensorHandleFromSensorType(sensorType);
-  header->readingCount = gSmgrBufferingIndMsg.Samples_len;
+  header->readingCount = sensorIndex.SampleCount;
 }
 
 /**
  * Populate three-axis event data.
  */
-void populateThreeAxisEvent(SensorType sensorType,
-                            chreSensorThreeAxisData *data) {
-  populateSensorDataHeader(sensorType, &data->header);
+void populateThreeAxisEvent(
+    SensorType sensorType, chreSensorThreeAxisData *data,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+  populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
-  for (size_t i = 0; i < gSmgrBufferingIndMsg.Samples_len; i++) {
+  for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
     const sns_smgr_buffering_sample_s_v01& sensorData =
-        gSmgrBufferingIndMsg.Samples[i];
+        gSmgrBufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow here.
     data->readings[i].timestampDelta =
@@ -174,7 +254,8 @@ void populateThreeAxisEvent(SensorType sensorType,
     data->readings[i].z = -FX_FIXTOFLT_Q16(sensorData.Data[2]);
 
     // Convert from Gauss to micro Tesla
-    if (sensorType == SensorType::GeomagneticField) {
+    if (sensorType == SensorType::GeomagneticField
+        || sensorType == SensorType::UncalibratedGeomagneticField) {
       data->readings[i].x *= kMicroTeslaPerGauss;
       data->readings[i].y *= kMicroTeslaPerGauss;
       data->readings[i].z *= kMicroTeslaPerGauss;
@@ -185,13 +266,14 @@ void populateThreeAxisEvent(SensorType sensorType,
 /**
  * Populate float event data.
  */
-void populateFloatEvent(SensorType sensorType,
-                        chreSensorFloatData *data) {
-  populateSensorDataHeader(sensorType, &data->header);
+void populateFloatEvent(
+    SensorType sensorType, chreSensorFloatData *data,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+  populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
-  for (size_t i = 0; i < gSmgrBufferingIndMsg.Samples_len; i++) {
+  for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
     const sns_smgr_buffering_sample_s_v01& sensorData =
-        gSmgrBufferingIndMsg.Samples[i];
+        gSmgrBufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow.
     data->readings[i].timestampDelta =
@@ -203,28 +285,30 @@ void populateFloatEvent(SensorType sensorType,
 /**
  * Allocate event memory according to SensorType and populate event readings.
  */
-void *allocateAndPopulateEvent(SensorType sensorType) {
+void *allocateAndPopulateEvent(
+    SensorType sensorType,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
   SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
   size_t memorySize = sizeof(chreSensorDataHeader);
   switch (sampleType) {
     case SensorSampleType::ThreeAxis: {
-      memorySize += gSmgrBufferingIndMsg.Samples_len *
+      memorySize += sensorIndex.SampleCount *
           sizeof(chreSensorThreeAxisData::chreSensorThreeAxisSampleData);
       auto *event =
           static_cast<chreSensorThreeAxisData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
-        populateThreeAxisEvent(sensorType, event);
+        populateThreeAxisEvent(sensorType, event, sensorIndex);
       }
       return event;
     }
 
     case SensorSampleType::Float: {
-      memorySize += gSmgrBufferingIndMsg.Samples_len *
+      memorySize += sensorIndex.SampleCount *
           sizeof(chreSensorFloatData::chreSensorFloatSampleData);
       auto *event =
           static_cast<chreSensorFloatData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
-        populateFloatEvent(sensorType, event);
+        populateFloatEvent(sensorType, event, sensorIndex);
       }
       return event;
     }
@@ -254,20 +338,34 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
     return;
   }
 
-  // We only requested one sensor per request.
-  CHRE_ASSERT_LOG(gSmgrBufferingIndMsg.Indices_len == 1,
-                  "Got buffering indication from %" PRIu32 " sensors, "
-                  "expected 1", gSmgrBufferingIndMsg.Indices_len);
-  if (gSmgrBufferingIndMsg.Indices_len == 1) {
+  // We only requested one sensor per request except for a secondary
+  // secondary temperature sensor.
+  bool validReport = isValidIndicesLength();
+  CHRE_ASSERT_LOG(validReport,
+                  "Got buffering indication from %" PRIu32
+                  " sensors with report ID %" PRIu8,
+                  gSmgrBufferingIndMsg.Indices_len,
+                  gSmgrBufferingIndMsg.ReportId);
+  if (validReport) {
+    // Identify the index for the desired sensor. It is always 0 except possibly
+    // for a secondary temperature sensor.
+    uint32_t index = 0;
+    if (isSecondaryTemperature(gSmgrBufferingIndMsg.ReportId)) {
+      index = (gSmgrBufferingIndMsg.Indices[0].DataType
+               == SNS_SMGR_DATA_TYPE_SECONDARY_V01) ? 0 : 1;
+    }
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex =
-        gSmgrBufferingIndMsg.Indices[0];
-    SensorType sensorType = getSensorTypeFromSensorId(sensorIndex.SensorId,
-                                                      sensorIndex.DataType);
+        gSmgrBufferingIndMsg.Indices[index];
+
+    // Use ReportID to identify sensors as gSmgrBufferingIndMsg.Samples[i].Flags
+    // are not populated.
+    SensorType sensorType = getSensorTypeFromReportId(
+        gSmgrBufferingIndMsg.ReportId);
     if (sensorType == SensorType::Unknown) {
       LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
            sensorIndex.SensorId, sensorIndex.DataType);
     } else {
-      void *eventData = allocateAndPopulateEvent(sensorType);
+      void *eventData = allocateAndPopulateEvent(sensorType, sensorIndex);
       if (eventData == nullptr) {
         LOGW("Dropping event due to allocation failure");
       } else {
@@ -360,14 +458,25 @@ bool getSensorsForSensorId(uint8_t sensorId,
     for (uint32_t i = 0; i < sensorInfoList.data_type_info_len; i++) {
       const sns_smgr_sensor_datatype_info_s_v01 *sensorInfo =
           &sensorInfoList.data_type_info[i];
-      SensorType sensorType = getSensorTypeFromSensorId(sensorInfo->SensorID,
-                                                        sensorInfo->DataType);
+      LOGD("SensorID %" PRIu8 ", DataType %" PRIu8 ", MaxRate %" PRIu16
+           "Hz, SensorName %s",
+           sensorInfo->SensorID, sensorInfo->DataType,
+           sensorInfo->MaxSampleRate, sensorInfo->SensorName);
+
+      SensorType sensorType = getSensorTypeFromSensorId(
+          sensorInfo->SensorID, sensorInfo->DataType,
+          SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
-        PlatformSensor platformSensor;
-        platformSensor.sensorId = sensorInfo->SensorID;
-        platformSensor.dataType = sensorInfo->DataType;
-        if (!sensors->push_back(std::move(platformSensor))) {
-          FATAL_ERROR("Failed to allocate new sensor: out of memory");
+        addPlatformSensor(sensorInfo->SensorID, sensorInfo->DataType,
+                          SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
+
+        // Add an uncalibrated version if defined.
+        SensorType uncalibratedType = getSensorTypeFromSensorId(
+            sensorInfo->SensorID, sensorInfo->DataType,
+            SNS_SMGR_CAL_SEL_FACTORY_CAL_V01);
+        if (sensorType != uncalibratedType) {
+          addPlatformSensor(sensorInfo->SensorID, sensorInfo->DataType,
+                            SNS_SMGR_CAL_SEL_FACTORY_CAL_V01, sensors);
         }
       }
     }
@@ -426,76 +535,90 @@ uint8_t getSmgrRequestActionForMode(SensorMode mode) {
   }
 }
 
-bool PlatformSensor::setRequest(const SensorRequest& request) {
-  // If requestId for this sensor is zero and the mode is not active, the sensor
-  // has never been enabled. This means that the request is a no-op from the
-  // disabled state and true can be returned to indicate success.
-  if (this->reportId == 0 && !sensorModeIsActive(request.getMode())) {
-    return true;
-  }
-
-  // Allocate request and response for the sensor request.
-  auto *sensorDataRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
-  auto *sensorDataResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
-  if (sensorDataRequest == nullptr || sensorDataResponse == nullptr) {
-    memoryFree(sensorDataRequest);
-    memoryFree(sensorDataResponse);
-    FATAL_ERROR("Failed to allocated sensor request/response: out of memory");
-  }
-
-  // Check if a new report ID is needed for this request.
-  if (this->reportId == 0) {
-    this->reportId = generateUniqueReportId();
-  }
-
+/**
+ * Populates a sns_smgr_buffering_req_msg_v01 struct to request sensor data.
+ *
+ * @param request The new request to set this sensor to.
+ * @param sensorId The sensorID as provided by the SMGR request for sensor info.
+ * @param dataType The dataType for the sesnor as provided by the SMGR request
+ *                 for sensor info.
+ * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @param sensorDataRequest The pointer to the data request to be populated.
+ */
+void populateSensorRequest(
+    const SensorRequest& request, uint8_t sensorId, uint8_t dataType,
+    uint8_t calType, sns_smgr_buffering_req_msg_v01 *sensorRequest) {
   // Zero the fields in the request. All mandatory and unused fields are
   // specified to be set to false or zero so this is safe.
-  memset(sensorDataRequest, 0, sizeof(*sensorDataRequest));
+  memset(sensorRequest, 0, sizeof(*sensorRequest));
 
   // Build the request for one sensor at the requested rate. An add action for a
   // ReportID that is already in use causes a replacement of the last request.
-  sensorDataRequest->ReportId = this->reportId;
-  sensorDataRequest->Action = getSmgrRequestActionForMode(request.getMode());
+  sensorRequest->ReportId = getReportId(sensorId, dataType, calType);
+  sensorRequest->Action = getSmgrRequestActionForMode(request.getMode());
   Nanoseconds batchingInterval =
       (request.getLatency() > request.getInterval()) ?
       request.getLatency() : request.getInterval();
-  sensorDataRequest->ReportRate =
-      intervalToSmgrQ16ReportRate(batchingInterval);
-  sensorDataRequest->Item_len = 1; // Each request is for one sensor.
-  sensorDataRequest->Item[0].SensorId = this->sensorId;
-  sensorDataRequest->Item[0].DataType = this->dataType;
-  sensorDataRequest->Item[0].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
-  sensorDataRequest->Item[0].SamplingRate =
+  sensorRequest->ReportRate = intervalToSmgrQ16ReportRate(batchingInterval);
+  sensorRequest->Item_len = 1; // One sensor per request if possible.
+  sensorRequest->Item[0].SensorId = sensorId;
+  sensorRequest->Item[0].DataType = dataType;
+  sensorRequest->Item[0].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
+  sensorRequest->Item[0].Calibration = calType;
+  sensorRequest->Item[0].SamplingRate =
       intervalToSmgrSamplingRate(request.getInterval());
 
+  // Add a dummy primary sensor to accompany a secondary temperature sensor.
+  // This is requred by the SMGR. The primary sensor is requested with the same
+  // (low) rate and the same latency, whose response data will be ignored.
+  if (isSecondaryTemperature(sensorRequest->ReportId)) {
+    sensorRequest->Item_len = 2;
+    sensorRequest->Item[1].SensorId = sensorId;
+    sensorRequest->Item[1].DataType = SNS_SMGR_DATA_TYPE_PRIMARY_V01;
+    sensorRequest->Item[1].Decimation = SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
+    sensorRequest->Item[1].Calibration = SNS_SMGR_CAL_SEL_FULL_CAL_V01;
+    sensorRequest->Item[1].SamplingRate = sensorRequest->Item[0].SamplingRate;
+  }
+}
+
+bool PlatformSensor::setRequest(const SensorRequest& request) {
+  // Allocate request and response for the sensor request.
+  auto *sensorRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
+  auto *sensorResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
+
   bool success = false;
-  qmi_client_error_type status = qmi_client_send_msg_sync(
-      gPlatformSensorQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
-      sensorDataRequest, sizeof(*sensorDataRequest),
-      sensorDataResponse, sizeof(*sensorDataResponse),
-      kQmiTimeoutMs);
-  if (status != QMI_NO_ERR) {
-    LOGE("Error requesting sensor data: %d", status);
-  } else if (sensorDataResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
-    LOGE("Sensor data request failed with error: %d",
-         sensorDataResponse->Resp.sns_err_t);
+  if (sensorRequest == nullptr || sensorResponse == nullptr) {
+    LOGE("Failed to allocated sensor request/response: out of memory");
   } else {
-    if (sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
-        || sensorDataResponse->AckNak == SNS_SMGR_RESPONSE_ACK_MODIFIED_V01) {
-      success = true;
+    populateSensorRequest(request, this->sensorId, this->dataType,
+                          this->calType, sensorRequest);
+
+    qmi_client_error_type status = qmi_client_send_msg_sync(
+        gPlatformSensorQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
+        sensorRequest, sizeof(*sensorRequest),
+        sensorResponse, sizeof(*sensorResponse),
+        kQmiTimeoutMs);
+
+    if (status != QMI_NO_ERR) {
+      LOGE("Error requesting sensor data: %d", status);
+    } else if (sensorResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01
+        || (sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
+            && sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_MODIFIED_V01)) {
+      LOGE("Sensor data request failed with error: %d, AckNak: %d",
+           sensorResponse->Resp.sns_err_t, sensorResponse->AckNak);
     } else {
-      LOGE("Sensor data AckNak failed with error: %d",
-           sensorDataResponse->AckNak);
+      success = true;
     }
   }
 
-  memoryFree(sensorDataRequest);
-  memoryFree(sensorDataResponse);
+  memoryFree(sensorRequest);
+  memoryFree(sensorResponse);
   return success;
 }
 
 SensorType PlatformSensor::getSensorType() const {
-  return getSensorTypeFromSensorId(this->sensorId, this->dataType);
+  return getSensorTypeFromSensorId(this->sensorId, this->dataType,
+                                   this->calType);
 }
 
 }  // namespace chre

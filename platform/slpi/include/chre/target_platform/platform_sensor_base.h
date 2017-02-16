@@ -32,10 +32,9 @@ class PlatformSensorBase {
   //! sensor this object refers to.
   uint8_t dataType;
 
-  //! The ReportID that is assigned to this sensor. If this value is zero, it
-  //! means that sensor data for this sensor has never been requested and a new
-  //! ID is required.
-  uint8_t reportId = 0;
+  //! The calibration type of this sensor. SMGR overloads sensorId and dataType
+  //! and allows them to represent both uncalibrated and calibrated sensors.
+  uint8_t calType = 0;
 };
 
 }  // namespace chre

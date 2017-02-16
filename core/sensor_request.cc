@@ -42,6 +42,16 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Light";
     case SensorType::Proximity:
       return "Proximity";
+    case SensorType::AccelerometerTemperature:
+      return "Accelerometer Temp";
+    case SensorType::GyroscopeTemperature:
+      return "Gyroscope Temp";
+    case SensorType::UncalibratedAccelerometer:
+      return "Uncal Accelerometer";
+    case SensorType::UncalibratedGyroscope:
+      return "Uncal Gyroscope";
+    case SensorType::UncalibratedGeomagneticField:
+      return "Uncal Geomagnetic Field";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -78,6 +88,16 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::Light;
     case CHRE_SENSOR_TYPE_PROXIMITY:
       return SensorType::Proximity;
+    case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
+      return SensorType::AccelerometerTemperature;
+    case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
+      return SensorType::GyroscopeTemperature;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
+      return SensorType::UncalibratedAccelerometer;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
+      return SensorType::UncalibratedGyroscope;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
+      return SensorType::UncalibratedGeomagneticField;
     default:
       return SensorType::Unknown;
   }
@@ -101,6 +121,16 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return CHRE_SENSOR_TYPE_LIGHT;
     case SensorType::Proximity:
       return CHRE_SENSOR_TYPE_PROXIMITY;
+    case SensorType::AccelerometerTemperature:
+      return CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE;
+    case SensorType::GyroscopeTemperature:
+      return CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE;
+    case SensorType::UncalibratedAccelerometer:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER;
+    case SensorType::UncalibratedGyroscope:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
+    case SensorType::UncalibratedGeomagneticField:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -112,11 +142,16 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
 SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
   if (sensorType == SensorType::Accelerometer
       || sensorType == SensorType::Gyroscope
-      || sensorType == SensorType::GeomagneticField) {
+      || sensorType == SensorType::GeomagneticField
+      || sensorType == SensorType::UncalibratedAccelerometer
+      || sensorType == SensorType::UncalibratedGyroscope
+      || sensorType == SensorType::UncalibratedGeomagneticField) {
     return SensorSampleType::ThreeAxis;
   } else if (sensorType == SensorType::Pressure
              || sensorType == SensorType::Light
-             || sensorType == SensorType::Proximity) {
+             || sensorType == SensorType::Proximity
+             || sensorType == SensorType::AccelerometerTemperature
+             || sensorType == SensorType::GyroscopeTemperature) {
     return SensorSampleType::Float;
   } else {
     CHRE_ASSERT(false);

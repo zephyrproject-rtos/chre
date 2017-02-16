@@ -42,10 +42,18 @@ enum class SensorType {
   Pressure,
   Light,
   Proximity,
+  AccelerometerTemperature,
+  GyroscopeTemperature,
+  UncalibratedAccelerometer,
+  UncalibratedGyroscope,
+  UncalibratedGeomagneticField,
 
   // Note to future developers: don't forget to update the implementation of
-  // getSensorTypeName, getSensorTypeFromUnsignedInt and
-  // getUnsignedIntFromSensorType when adding or removing a new entry here :)
+  // 1) getSensorTypeName,
+  // 2) getSensorTypeFromUnsignedInt,
+  // 3) getUnsignedIntFromSensorType,
+  // 4) getSensorSampleTypeFromSensorType
+  // when adding or removing a new entry here :)
   // Have a nice day.
 
   //! The number of sensor types including unknown. This entry must be last.
