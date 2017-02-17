@@ -165,11 +165,13 @@ extern "C" {
  */
 struct chreMessageFromHostData {
     /**
-     * Message type (NOTE: not implemented correctly in the Android N release).
+     * Message type supplied by the host.
      *
-     * In future releases, this will be a message type provided by the host.
+     * NOTE: In CHRE API v1.0, support for forwarding this field from the host
+     * was not strictly required, and some implementations did not support it.
+     * However, its support is mandatory as of v1.1.
      */
-    uint32_t reservedMessageType;
+    uint32_t messageType;
 
     /**
      * The size, in bytes of the following 'message'.
@@ -314,11 +316,10 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
  *     caller no longer owns this memory after the call.
  * @param messageSize  The size, in bytes, of the given message.
  *     This cannot exceed CHRE_MESSAGE_TO_HOST_MAX_SIZE.
- * @param reservedMessageType  Message type sent to the app on the host.
- *     NOTE: In the N release, there is a bug in some HAL implementations
- *     where this data does not make it to the app running on the host.
- *     Nanoapps cannot trust this across all platforms for N, but that
- *     will be fixed in O.
+ * @param messageType  Message type sent to the app on the host.
+ *     NOTE: In CHRE API v1.0, support for forwarding this field to the host was
+ *     not strictly required, and some implementations did not support it.
+ *     However, its support is mandatory as of v1.1.
  * @param freeCallback  A pointer to a callback function.  After the lifetime
  *     of 'message' is over (which does not assure that 'message' made it to
  *     the host, just that the transport layer no longer needs this memory),
@@ -333,7 +334,7 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
  * @see chreMessageFreeFunction
  */
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
-                           uint32_t reservedMessageType,
+                           uint32_t messageType,
                            chreMessageFreeFunction *freeCallback);
 
 /**
