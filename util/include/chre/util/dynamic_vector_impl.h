@@ -33,19 +33,28 @@ template<typename ElementType>
 DynamicVector<ElementType>::DynamicVector(DynamicVector<ElementType>&& other)
     : mData(other.mData),
       mSize(other.mSize),
-      mCapacity(other.mCapacity) {
+      mCapacity(other.mCapacity),
+      mDataIsWrapped(other.mDataIsWrapped) {
   other.mData = nullptr;
   other.mSize = 0;
   other.mCapacity = 0;
+  other.mDataIsWrapped = false;
 }
 
 template<typename ElementType>
 DynamicVector<ElementType>::~DynamicVector() {
+  if (owns_data()) {
+    clear();
+    memoryFree(mData);
+  }
+}
+
+template <typename ElementType>
+void DynamicVector<ElementType>::clear() {
   for (size_t i = 0; i < mSize; i++) {
     mData[i].~ElementType();
   }
-
-  memoryFree(mData);
+  mSize = 0;
 }
 
 template<typename ElementType>
@@ -139,12 +148,12 @@ void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
 }
 
 /**
- *  Copies a range of data items. This is part of the template specialization
- *  for when the underlying type is not move-assignable.
+ * Copies a range of data items. This is part of the template specialization
+ * for when the underlying type is not move-assignable.
  *
- *  @param data The beginning of the data to copy.
- *  @param count The number of data items to copy.
- *  @param newData The location to copy these items to.
+ * @param data The beginning of the data to copy.
+ * @param count The number of data items to copy.
+ * @param newData The location to copy these items to.
  */
 template<typename ElementType>
 void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
@@ -154,52 +163,49 @@ void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
-  // If the new capacity is less than or equal to the current capacitywe can
-  // avoid any memory allocation/deallocation/copying.
+  bool success = false;
+
+  CHRE_ASSERT_LOG(owns_data(), "Wrapped buffers can't be resized");
   if (newCapacity <= mCapacity) {
-    return true;
+    success = true;
+  } else if (owns_data()) {
+    ElementType *newData = static_cast<ElementType *>(
+        memoryAlloc(newCapacity * sizeof(ElementType)));
+    if (newData != nullptr) {
+      moveOrCopy(mData, mSize, newData,
+                 typename std::is_move_assignable<ElementType>::type());
+
+      memoryFree(mData);
+      mData = newData;
+      mCapacity = newCapacity;
+      success = true;
+    }
   }
 
-  ElementType *newData = static_cast<ElementType *>(
-      memoryAlloc(newCapacity * sizeof(ElementType)));
-  if (newData == nullptr) {
-    return false;
-  }
-
-  moveOrCopy(mData, mSize, newData,
-             typename std::is_move_assignable<ElementType>::type());
-
-  memoryFree(mData);
-  mData = newData;
-  mCapacity = newCapacity;
-  return true;
+  return success;
 }
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::insert(size_t index,
     const ElementType& element) {
-  // Ensure that the user is not trying to insert an element after the
-  // contiguous block of elements.
-  if (index > mSize) {
-    return false;
+  // Insertions are not allowed to create a sparse array.
+  CHRE_ASSERT(index <= mSize);
+
+  bool inserted = false;
+  if (index <= mSize && prepareForPush()) {
+    // Shift all elements starting at the given index backward one position.
+    for (size_t i = mSize; i > index; i--) {
+      mData[i] = std::move(mData[i - 1]);
+    }
+
+    mData[index].~ElementType();
+    mData[index] = element;
+    mSize++;
+
+    inserted = true;
   }
 
-  // Allocate space if needed.
-  if (!prepareForPush()) {
-    return false;
-  }
-
-  // Shift all elements starting at the given index backward one position.
-  for (size_t i = mSize; i > index; i--) {
-    mData[i] = std::move(mData[i - 1]);
-  }
-
-  mData[index].~ElementType();
-
-  // Insert the new element.
-  mData[index] = element;
-  mSize++;
-  return true;
+  return inserted;
 }
 
 template<typename ElementType>
@@ -218,13 +224,14 @@ void DynamicVector<ElementType>::erase(size_t index) {
 template<typename ElementType>
 size_t DynamicVector<ElementType>::find(const ElementType& element) const {
   // TODO: Consider adding iterator support and making this a free function.
-  for (size_t i = 0; i < size(); i++) {
+  size_t i;
+  for (i = 0; i < size(); i++) {
     if (mData[i] == element) {
-      return i;
+      break;
     }
   }
 
-  return size();
+  return i;
 }
 
 template<typename ElementType>
@@ -235,6 +242,33 @@ void DynamicVector<ElementType>::swap(size_t index0, size_t index1) {
     mData[index0] = std::move(mData[index1]);
     mData[index1] = std::move(temp);
   }
+}
+
+template<typename ElementType>
+void DynamicVector<ElementType>::wrap(ElementType *array, size_t elementCount) {
+  // If array is nullptr, elementCount must also be 0
+  CHRE_ASSERT(array != nullptr || elementCount == 0);
+  this->~DynamicVector();
+
+  mData = array;
+  mSize = elementCount;
+  mCapacity = mSize;
+  mDataIsWrapped = true;
+}
+
+template<typename ElementType>
+void DynamicVector<ElementType>::unwrap() {
+  if (mDataIsWrapped) {
+    mData = nullptr;
+    mSize = 0;
+    mCapacity = 0;
+    mDataIsWrapped = false;
+  }
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::owns_data() const {
+  return !mDataIsWrapped;
 }
 
 template<typename ElementType>

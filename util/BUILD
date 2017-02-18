@@ -76,6 +76,7 @@ gtest_cc_test(
     deps = [
         "//util",
     ],
+    timeout = "short",
 )
 
 gtest_cc_test(

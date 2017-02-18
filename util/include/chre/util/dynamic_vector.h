@@ -49,6 +49,12 @@ class DynamicVector : public NonCopyable {
   ~DynamicVector();
 
   /**
+   * Removes all elements from the vector, but does not change the capacity.
+   * All iterators and references are invalidated.
+   */
+  void clear();
+
+  /**
    * Returns a pointer to the underlying buffer. Note that this should not be
    * considered to be persistent as the vector will be moved and resized
    * automatically.
@@ -206,6 +212,43 @@ class DynamicVector : public NonCopyable {
   void swap(size_t index0, size_t index1);
 
   /**
+   * Wraps an existing C-style array so it can be used as a DynamicVector. A
+   * reference to the supplied array is kept, as opposed to making a copy. The
+   * caller retains ownership of the memory. Calling code must therefore ensure
+   * that the lifetime of the supplied array is at least as long as that of this
+   * vector, and that the memory is released after this vector is destructed, as
+   * the vector will not attempt to free the memory itself.
+   *
+   * Once a vector wraps another buffer, it cannot be resized except through
+   * another call to wrap(). However, elements can be erased to make room for
+   * adding new elements.
+   *
+   * Destruction of elements within a wrapped array remains the responsibility
+   * of the calling code. While the vector may invoke the element destructor as
+   * a result of explicit calls to functions like erase() or clear(), it will
+   * not destruct elements remaining in the array when the vector is destructed.
+   * Therefore, special care must be taken when wrapping an array of elements
+   * that have a non-trivial destructor.
+   *
+   * @param array Pointer to a pre-allocated array
+   * @param elementCount Number of elements in the array (NOT the array's size
+   *        in bytes); will become the vector's size() and capacity()
+   */
+  void wrap(ElementType *array, size_t elementCount);
+
+
+  /**
+   * Returns a vector that is wrapping an array to the newly-constructed state,
+   * with capacity equal to 0, and owns_data() is true.
+   */
+  void unwrap();
+
+  /**
+   * @return false if this vector is wrapping an array passed in via wrap()
+   */
+  bool owns_data() const;
+
+  /**
    * Returns a reference to the last element in the vector. It is illegal to
    * call this on an empty vector.
    *
@@ -249,6 +292,9 @@ class DynamicVector : public NonCopyable {
   //! The current capacity of the vector, as in the maximum number of elements
   //! that can be stored.
   size_t mCapacity = 0;
+
+  //! Set to true when the buffer (mData) was supplied via wrap()
+  bool mDataIsWrapped = false;
 
   /**
    * Prepares a vector to push one element onto the back. The vector may be
