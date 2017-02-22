@@ -23,13 +23,17 @@
 namespace chre {
 
 template<typename ElementType, size_t kSize>
-void FixedSizeBlockingQueue<ElementType, kSize>::push(
+bool FixedSizeBlockingQueue<ElementType, kSize>::push(
     const ElementType& element) {
+  bool success;
   {
     LockGuard<Mutex> lock(mMutex);
-    mQueue.push(element);
+    success = mQueue.push(element);
   }
-  mConditionVariable.notify_one();
+  if (success) {
+    mConditionVariable.notify_one();
+  }
+  return success;
 }
 
 template<typename ElementType, size_t kSize>

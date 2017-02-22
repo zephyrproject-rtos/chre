@@ -28,8 +28,8 @@ TEST(FixedSizeBlockingQueue, IsEmptyByDefault) {
 TEST(FixedSizeBlockingQueue, PushPopVerifyOrder) {
   FixedSizeBlockingQueue<int, 16> blockingQueue;
 
-  blockingQueue.push(0x1337);
-  blockingQueue.push(0xcafe);
+  ASSERT_TRUE(blockingQueue.push(0x1337));
+  ASSERT_TRUE(blockingQueue.push(0xcafe));
 
   ASSERT_EQ(blockingQueue.pop(), 0x1337);
   ASSERT_EQ(blockingQueue.pop(), 0xcafe);

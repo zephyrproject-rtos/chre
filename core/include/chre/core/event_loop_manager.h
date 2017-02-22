@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_EVENT_LOOP_MANAGER_H_
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
+#include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
@@ -27,6 +28,17 @@
 #include "chre/util/unique_ptr.h"
 
 namespace chre {
+
+//! An identifier for a system callback, which is mapped into a CHRE event type
+//! in the user-defined range.
+enum class SystemCallbackType : uint16_t {
+  FirstCallbackType = CHRE_EVENT_FIRST_USER_VALUE,
+  // TODO: add callback identifiers here
+};
+
+//! The function signature of a system callback mirrors the CHRE event free
+//! callback to allow it to use the same event infrastructure.
+typedef chreEventCompleteFunction SystemCallbackFunction;
 
 /**
  * A class that keeps track of all event loops in the system. This class
@@ -42,6 +54,23 @@ class EventLoopManager : public NonCopyable {
    * @return A pointer to an event loop. If creation fails, nullptr is returned.
    */
   EventLoop *createEventLoop();
+
+  /**
+   * Leverages the event queue mechanism to schedule a CHRE system callback to
+   * be invoked at some point in the future from within the context of the
+   * "main" EventLoop. Which EventLoop is considered to be the "main" one is
+   * currently not specified, but it is required to be exactly one EventLoop
+   * that does not change at runtime.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param type An identifier for the callback, which is passed through to the
+   *        callback as a uint16_t, and can also be useful for debugging
+   * @param data Arbitrary data to provide to the callback
+   * @param callback Function to invoke from within the
+   */
+  bool deferCallback(SystemCallbackType type, void *data,
+                     SystemCallbackFunction *callback);
 
   /**
    * Posts an event to all event loops owned by this event loop manager. This

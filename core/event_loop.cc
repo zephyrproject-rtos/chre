@@ -43,13 +43,18 @@ void EventLoop::run() {
         Nanoapp *app = mNanoapps[i];
         if ((event->targetInstanceId == chre::kBroadcastInstanceId
                 && app->isRegisteredForBroadcastEvent(event->eventType))
-              || event->targetInstanceId == app->getInstanceId()) {
+            || event->targetInstanceId == app->getInstanceId()) {
           app->postEvent(event);
         }
       }
 
       if (event->isUnreferenced()) {
-        LOGW("Dropping event 0x%" PRIx16, event->eventType);
+        // Events sent to the system instance ID are processed via the free
+        // callback and are not expected to be delivered to any nanoapp, so no
+        // need to log a warning in that case
+        if (event->senderInstanceId != kSystemInstanceId) {
+          LOGW("Dropping event 0x%" PRIx16, event->eventType);
+        }
         freeEvent(event);
       }
     }
@@ -115,16 +120,18 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
                   "Attempted to stop a nanoapp that is not already running");
 }
 
-void EventLoop::postEvent(uint16_t eventType, void *eventData,
+bool EventLoop::postEvent(uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
     uint32_t targetInstanceId) {
+  bool success = false;
   Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
       senderInstanceId, targetInstanceId);
   if (event != nullptr) {
-    mEvents.push(event);
+    success = mEvents.push(event);
   } else {
     LOGE("Failed to allocate event");
   }
+  return success;
 }
 
 void EventLoop::postEventDelayed(Event *event, uint64_t delayNs) {
@@ -168,10 +175,14 @@ TimerPool& EventLoop::getTimerPool() {
 }
 
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
-  for (size_t i = 0; i < mNanoapps.size(); i++) {
-    Nanoapp *app = mNanoapps[i];
-    if (app->getInstanceId() == instanceId) {
-      return app;
+  // The system instance ID always has nullptr as its Nanoapp pointer, so can
+  // skip iterating through the nanoapp list for that case
+  if (instanceId != kSystemInstanceId) {
+    for (size_t i = 0; i < mNanoapps.size(); i++) {
+      Nanoapp *app = mNanoapps[i];
+      if (app->getInstanceId() == instanceId) {
+        return app;
+      }
     }
   }
 

@@ -32,6 +32,15 @@ EventLoop *EventLoopManager::createEventLoop() {
   return mEventLoops.back().get();
 }
 
+bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
+                                     SystemCallbackFunction *callback) {
+  // TODO: when multiple EventLoops are supported, consider allowing the
+  // platform to define which EventLoop is used to process system callbacks.
+  CHRE_ASSERT(!mEventLoops.empty());
+  return mEventLoops[0]->postEvent(static_cast<uint16_t>(type), data, callback,
+                                   kSystemInstanceId, kSystemInstanceId);
+}
+
 void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,

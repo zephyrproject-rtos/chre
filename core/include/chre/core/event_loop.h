@@ -76,7 +76,9 @@ class EventLoop : public NonCopyable {
 
   /**
    * Posts an event to a nanoapp that is currently running (or all nanoapps if
-   * the broadcast instance ID is used).
+   * the target instance ID is kBroadcastInstanceId).
+   *
+   * This function is safe to call from any thread.
    *
    * @param The type of data being posted.
    * @param The data being posted.
@@ -84,17 +86,12 @@ class EventLoop : public NonCopyable {
    * @param The instance ID of the sender of this event.
    * @param The instance ID of the destination of this event.
    *
-   * TODO: this is safe to call from other threads, and posts to the incoming
-   * event queue, then it is doled out to interested nanoapp queues later
+   * @return true if the event was successfully added to the queue
    */
-  void postEvent(uint16_t eventType, void *eventData,
+  bool postEvent(uint16_t eventType, void *eventData,
                  chreEventCompleteFunction *freeCallback,
                  uint32_t senderInstanceId = kSystemInstanceId,
                  uint32_t targetInstanceId = kBroadcastInstanceId);
-
-  // TODO: static method that allocates + constructs + posts an Event to all
-  // EventLoops (i.e. just the one for now), to simplify external code that will
-  // call this (they don't need to worry about how events are allocated, etc)
 
   // TODO: do we need this? it might be a helpful convenience function that
   // handles creation of a timer and stuff

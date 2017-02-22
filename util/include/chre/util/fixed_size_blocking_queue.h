@@ -38,8 +38,10 @@ class FixedSizeBlockingQueue : public NonCopyable {
    * element is available.
    *
    * @param The element to be pushed.
+   *
+   * @return true if the element is pushed successfully.
    */
-  void push(const ElementType& element);
+  bool push(const ElementType& element);
 
   /**
    * Pops one element from the queue. If the queue is empty, the thread will
