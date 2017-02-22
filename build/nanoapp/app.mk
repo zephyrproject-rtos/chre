@@ -12,6 +12,11 @@ $(error "The NANOAPP_NAME variable must be set to the name of the nanoapp. \
          This should be assigned by the Makefile that includes app.mk.")
 endif
 
+ifeq ($(NANOAPP_ID),)
+$(error "The NANOAPP_ID variable must be set to the ID of the nanoapp. \
+         This should be assigned by the Makefile that includes app.mk.")
+endif
+
 # Nanoapp Build ################################################################
 
 # This variable indicates to the variants that some post-processing may be
