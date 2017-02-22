@@ -8,6 +8,7 @@ cc_library(
     name = "pal",
     hdrs = [
         "include/chre/pal/gnss.h",
+        "include/chre/pal/system.h",
         "include/chre/pal/version.h",
         "include/chre/pal/wifi.h",
         "include/chre/pal/wwan.h",
