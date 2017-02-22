@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-#include <cinttypes>
-
-#include "chre/core/wifi_request_manager.h"
-#include "chre/platform/log.h"
+#include "chre/pal/system.h"
 
 namespace chre {
 
-uint32_t WifiRequestManager::getCapabilities() {
-  return mPlatformWifi.getCapabilities();
-}
+//! Provides a global instance of the PAL system API for all PAL subsystems to
+//! leverage.
+extern const chrePalSystemApi gChrePalSystemApi;
 
 }  // namespace chre

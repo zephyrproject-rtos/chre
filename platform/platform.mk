@@ -10,6 +10,7 @@ COMMON_CFLAGS += -Iplatform/include
 # Hexagon-specific Compiler Flags ##############################################
 
 # Include paths.
+HEXAGON_CFLAGS += -Iplatform/shared/include
 HEXAGON_CFLAGS += -Iplatform/slpi/include
 
 # Symbols required by the runtime for conditional compilation.
@@ -24,8 +25,10 @@ HEXAGON_SRCS += platform/shared/chre_api_sensor.cc
 HEXAGON_SRCS += platform/shared/chre_api_version.cc
 HEXAGON_SRCS += platform/shared/chre_api_wifi.cc
 HEXAGON_SRCS += platform/shared/memory.cc
+HEXAGON_SRCS += platform/shared/pal_system_api.cc
 HEXAGON_SRCS += platform/shared/pal_wifi_stub.cc
 HEXAGON_SRCS += platform/shared/platform_nanoapp.cc
+HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
 HEXAGON_SRCS += platform/slpi/init.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor.cc

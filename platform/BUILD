@@ -262,27 +262,6 @@ chre_cc_library(
 
 ################################################################################
 #
-# Platform Wifi PAL
-#
-################################################################################
-
-LINUX_PLATFORM_PAL_WIFI_SRCS = [
-    "shared/pal_wifi_stub.cc",
-]
-
-chre_cc_library(
-    name = "pal_wifi",
-    srcs = select({
-        "//:platform_linux": LINUX_PLATFORM_PAL_WIFI_SRCS,
-        "//conditions:default": LINUX_PLATFORM_PAL_WIFI_SRCS,
-    }),
-    deps = [
-        "//pal",
-    ],
-)
-
-################################################################################
-#
 # Platform Sensor
 #
 ################################################################################
@@ -351,6 +330,46 @@ gtest_cc_test(
 
 ################################################################################
 #
+# PAL System API
+#
+################################################################################
+
+LINUX_PLATFORM_SYSTEM_API_SRCS = [
+    "shared/pal_system_api.cc",
+]
+
+LINUX_PLATFORM_SYSTEM_API_HDRS = [
+    "shared/include/chre/platform/shared/pal_system_api.h",
+]
+
+LINUX_PLATFORM_SYSTEM_API_INCLUDES = [
+    "shared/include",
+] + LINUX_PLATFORM_INCLUDES
+
+chre_cc_library(
+    name = "pal_system_api",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_API_SRCS,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_API_SRCS,
+    }),
+    hdrs = select({
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_API_HDRS,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_API_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux": LINUX_PLATFORM_SYSTEM_API_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_SYSTEM_API_INCLUDES,
+    }),
+    deps = [
+        "//pal:pal",
+        "//platform:log",
+        "//platform:memory",
+        "//platform:system_time",
+    ],
+)
+
+################################################################################
+#
 # Platform System Time
 #
 ################################################################################
@@ -410,6 +429,69 @@ chre_cc_library(
     deps = [
         "//util",
         "//util:non_copyable",
+    ],
+)
+
+################################################################################
+#
+# Platform Wifi
+#
+################################################################################
+
+LINUX_PLATFORM_PLATFORM_WIFI_SRCS = [
+    "shared/platform_wifi.cc",
+]
+
+LINUX_PLATFORM_PLATFORM_WIFI_HDRS = [
+    "shared/include/chre/target_platform/platform_wifi_base.h",
+]
+
+LINUX_PLATFORM_PLATFORM_WIFI_INCLUDES = [
+    "shared/include",
+] + LINUX_PLATFORM_INCLUDES
+
+chre_cc_library(
+    name = "platform_wifi",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_PLATFORM_WIFI_SRCS,
+        "//conditions:default": LINUX_PLATFORM_PLATFORM_WIFI_SRCS,
+    }),
+    hdrs = [
+        "include/chre/platform/platform_wifi.h",
+    ] + select({
+        "//:platform_linux": LINUX_PLATFORM_PLATFORM_WIFI_HDRS,
+        "//conditions:default": LINUX_PLATFORM_PLATFORM_WIFI_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux": LINUX_PLATFORM_PLATFORM_WIFI_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_PLATFORM_WIFI_INCLUDES,
+    }),
+    deps = [
+        "//pal:pal",
+        "//platform:log",
+        "//platform:pal_system_api",
+        "//platform:pal_wifi",
+    ],
+)
+
+################################################################################
+#
+# Platform Wifi PAL
+#
+################################################################################
+
+LINUX_PLATFORM_PAL_WIFI_SRCS = [
+    "shared/pal_wifi_stub.cc",
+]
+
+chre_cc_library(
+    name = "pal_wifi",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_PAL_WIFI_SRCS,
+        "//conditions:default": LINUX_PLATFORM_PAL_WIFI_SRCS,
+    }),
+    deps = [
+        "//pal",
     ],
 )
 

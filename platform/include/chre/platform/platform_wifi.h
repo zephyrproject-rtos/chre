@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_CORE_WIFI_REQUEST_MANAGER_H_
-#define CHRE_CORE_WIFI_REQUEST_MANAGER_H_
+#ifndef CHRE_PLATFORM_PLATFORM_WIFI_H_
+#define CHRE_PLATFORM_PLATFORM_WIFI_H_
 
-#include "chre/platform/platform_wifi.h"
-#include "chre/util/non_copyable.h"
+#include "chre/target_platform/platform_wifi_base.h"
 
 namespace chre {
 
-/**
- * The WifiRequestManager handles requests from nanoapps for Wifi information.
- * This includes multiplexing multiple requests into one for the platform to
- * handle.
- *
- * This class is effectively a singleton as there can only be one entity of the
- * PlatformWifi instance.
- */
-class WifiRequestManager : public NonCopyable {
+class PlatformWifi : public PlatformWifiBase {
  public:
   /**
+   * Performs platform-specific initialization of the PlatformWifi instance.
+   */
+  PlatformWifi();
+
+  /**
+   * Performs platform-specific deinitialization of the PlatformWifi instance.
+   */
+  ~PlatformWifi();
+
+  /**
+   * Returns the set of WiFi capabilities that the platform has exposed. This
+   * may return CHRE_WIFI_CAPABILITIES_NONE if wifi is not supported.
+   *
    * @return the WiFi capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
-
- private:
-  //! The instance of the platform wifi interface.
-  PlatformWifi mPlatformWifi;
 };
 
 }  // namespace chre
 
-#endif  // CHRE_CORE_WIFI_REQUEST_MANAGER_H_
+#endif  // CHRE_PLATFORM_PLATFORM_WIFI_H_

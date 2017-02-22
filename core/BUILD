@@ -165,8 +165,7 @@ chre_cc_library(
         "wifi_request_manager.cc",
     ],
     deps = [
-        "//pal:pal",
-        "//platform:pal_wifi",
+        "//platform:platform_wifi",
         "//util:util",
     ],
 )
