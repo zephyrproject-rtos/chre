@@ -21,6 +21,10 @@
 namespace chre {
 
 EventLoop *EventLoopManager::createEventLoop() {
+  // TODO: The current EventLoop implementation requires refactoring to properly
+  // support multiple EventLoop instances, for example the Event freeing
+  // mechanism is not thread-safe.
+  CHRE_ASSERT(mEventLoops.empty());
   if (!mEventLoops.emplace_back()) {
     return nullptr;
   }
@@ -34,8 +38,6 @@ void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  uint32_t targetInstanceId) {
   LockGuard<Mutex> lock(mMutex);
   for (size_t i = 0; i < mEventLoops.size(); i++) {
-    // TODO: Check to see if anyone in the event loop cares about this event and
-    // consider not posting it.
     mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
                               senderInstanceId, targetInstanceId);
   }

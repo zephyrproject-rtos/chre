@@ -35,6 +35,9 @@ void EventLoop::run() {
     // idea is we block in mEvents.pop() if we know that no apps have pending
     // events
     if (!havePendingEvents || !mEvents.empty()) {
+      // TODO: this is *not* thread-safe; if we have multiple EventLoops, then
+      // there is no safety mechanism that ensures an event is not freed twice,
+      // or that its free callback is invoked in the proper EventLoop, etc.
       Event *event = mEvents.pop();
       for (size_t i = 0; i < mNanoapps.size(); i++) {
         Nanoapp *app = mNanoapps[i];

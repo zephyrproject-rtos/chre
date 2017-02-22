@@ -46,7 +46,7 @@ class EventLoopManager : public NonCopyable {
   /**
    * Posts an event to all event loops owned by this event loop manager. This
    * method is thread-safe and is used to post events that all event loops would
-   * be interested in such as sensor event data.
+   * be interested in, such as sensor event data.
    *
    * @param The type of data being posted.
    * @param The data being posted.
@@ -74,9 +74,9 @@ class EventLoopManager : public NonCopyable {
   WifiRequestManager& getWifiRequestManager();
 
  private:
-  //! The mutex used to lock the shared data structures below. The postEvent
-  //! method above may be called from any context so a lock is used to gain
-  //! exclusive access.
+  //! The mutex used to ensure that postEvent() completes for all event loops
+  //! before another thread can start posting an event. This ensures consistency
+  //! of event order between event loops.
   Mutex mMutex;
 
   //! The list of event loops managed by this event loop manager. The EventLoops
