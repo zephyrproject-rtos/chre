@@ -18,9 +18,14 @@ cc_library(
     ]),
     copts = [
         "-Iexternal/gtest/googlemock",
-        "-Iexternal/gtest/googlemock/include",
         "-Iexternal/gtest/googletest",
-        "-Iexternal/gtest/googletest/include",
+    ],
+    defines = [
+        "GTEST",
+    ],
+    includes = [
+        "googlemock/include",
+        "googletest/include",
     ],
     linkopts = ["-pthread"],
     visibility = ["//visibility:public"],

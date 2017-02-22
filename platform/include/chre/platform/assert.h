@@ -60,7 +60,7 @@
  */
 #define CHRE_ASSERT_LOG(condition, fmt, ...) do { \
   if (!(condition)) {                             \
-    LOGE(fmt, ##__VA_ARGS__);                     \
+    LOGE("Assert: " fmt, ##__VA_ARGS__);          \
     CHRE_ASSERT(condition);                       \
   }                                               \
 } while (0)

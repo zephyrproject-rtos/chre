@@ -79,6 +79,9 @@ LINUX_PLATFORM_ASSERT_HDRS = [
 
 chre_cc_library(
     name = "assert",
+    srcs = [
+        "linux/assert.cc",
+    ],
     hdrs = [
         "include/chre/platform/assert.h",
     ] + select({
@@ -91,6 +94,7 @@ chre_cc_library(
     }),
     deps = [
         "//platform:log",
+        "@gtest//:main",
     ],
 )
 
@@ -326,9 +330,6 @@ chre_cc_library(
     ],
     hdrs = [
         "slpi/include/chre/platform/slpi/platform_sensor_util.h",
-    ],
-    defines = [
-        "GTEST",
     ],
     includes = [
         "slpi/include",
