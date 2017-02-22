@@ -4,9 +4,9 @@
 
 # Common Compiler Flags ########################################################
 
-# CHRE requires C++11 support.
-# TODO: Add support for CXX_SRCS and C_SRCS and break this out.
-COMMON_CFLAGS += -std=c++11
+# CHRE requires C++11 and C99 support.
+COMMON_CXX_CFLAGS += -std=c++11
+COMMON_C_CFLAGS += -std=c99
 
 # Configure warnings.
 COMMON_CFLAGS += -Wall

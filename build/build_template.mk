@@ -38,14 +38,18 @@ define BUILD_TEMPLATE
 # Target Objects ###############################################################
 
 # Source files.
-$$(1)_SRCS = $(COMMON_SRCS) $(8)
+$$(1)_CXX_SRCS = $$(filter %.cc, $(COMMON_SRCS) $(8))
+$$(1)_C_SRCS = $$(filter %.c, $(COMMON_SRCS) $(8))
 
 # Object files.
 $$(1)_OBJS_DIR = $(1)_objs
-$$(1)_OBJS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, $$($$(1)_SRCS))
+$$(1)_CXX_OBJS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
+                             $$($$(1)_CXX_SRCS))
+$$(1)_C_OBJS = $$(patsubst %.c, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
+                           $$($$(1)_C_SRCS))
 
 # Add object file directories.
-$$$(1)_DIRS = $$(sort $$(dir $$($$(1)_OBJS)))
+$$$(1)_DIRS = $$(sort $$(dir $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)))
 
 # Outputs ######################################################################
 
@@ -81,17 +85,20 @@ endif
 $$$(1)_CFLAGS = $(COMMON_CFLAGS) \
     $(2)
 
-$$($$(1)_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
-	$(3) $$($$$(1)_CFLAGS) -c $$< -o $$@
+$$($$(1)_CXX_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
+	$(3) $(COMMON_CXX_CFLAGS) $$($$$(1)_CFLAGS) -c $$< -o $$@
+
+$$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
+	$(3) $(COMMON_C_CFLAGS) $$($$$(1)_CFLAGS) -c $$< -o $$@
 
 # Archive ######################################################################
 
-$$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_OBJS)
+$$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 	$(7) $(6) $$@ $$(filter %.o, $$^)
 
 # Link #########################################################################
 
-$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_OBJS)
+$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 	$(5) $(4) -o $$@ $$(filter %.o, $$^)
 
 # Output Directories ###########################################################
