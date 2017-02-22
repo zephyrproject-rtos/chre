@@ -55,7 +55,8 @@ def chre_cc_library(includes = [], defines = [], **kwargs):
 def gtest_cc_test(copts = [], deps = [], **kwargs):
     native.cc_test(
         copts = copts + [
-            "-Iexternal/gtest/include",
+            "-Iexternal/gtest/googlemock/include",
+            "-Iexternal/gtest/googletest/include",
         ],
         deps = deps + [
             "@gtest//:main",
