@@ -427,11 +427,16 @@ TEST(DynamicVector, Swap) {
   EXPECT_EQ(vector[1], 0x1337);
 }
 
-TEST(DynamicVector, Back) {
+TEST(DynamicVector, BackFront) {
   DynamicVector<int> vector;
   vector.push_back(0x1337);
+  EXPECT_EQ(vector.front(), 0x1337);
   EXPECT_EQ(vector.back(), 0x1337);
   vector.push_back(0xcafe);
+  EXPECT_EQ(vector.front(), 0x1337);
+  EXPECT_EQ(vector.back(), 0xcafe);
+  vector.erase(0);
+  EXPECT_EQ(vector.front(), 0xcafe);
   EXPECT_EQ(vector.back(), 0xcafe);
 }
 

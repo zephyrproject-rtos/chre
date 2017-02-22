@@ -272,6 +272,18 @@ bool DynamicVector<ElementType>::owns_data() const {
 }
 
 template<typename ElementType>
+ElementType& DynamicVector<ElementType>::front() {
+  CHRE_ASSERT(mSize > 0);
+  return mData[0];
+}
+
+template<typename ElementType>
+const ElementType& DynamicVector<ElementType>::front() const {
+  CHRE_ASSERT(mSize > 0);
+  return mData[0];
+}
+
+template<typename ElementType>
 ElementType& DynamicVector<ElementType>::back() {
   CHRE_ASSERT(mSize > 0);
   return mData[mSize - 1];

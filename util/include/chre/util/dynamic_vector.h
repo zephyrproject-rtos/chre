@@ -249,6 +249,22 @@ class DynamicVector : public NonCopyable {
   bool owns_data() const;
 
   /**
+   * Returns a reference to the first element in the vector. It is illegal to
+   * call this on an empty vector.
+   *
+   * @return The first element in the vector.
+   */
+  ElementType& front();
+
+  /**
+   * Returns a const reference to the first element in the vector. It is illegal
+   * to call this on an empty vector.
+   *
+   * @return The first element in the vector.
+   */
+  const ElementType& front() const;
+
+  /**
    * Returns a reference to the last element in the vector. It is illegal to
    * call this on an empty vector.
    *
