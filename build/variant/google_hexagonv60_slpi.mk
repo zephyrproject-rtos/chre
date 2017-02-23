@@ -6,6 +6,7 @@ include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
 TARGET_NAME = google_hexagonv60_slpi
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
+TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV60_SLPI_SRCS)
 HEXAGON_ARCH = v60
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)

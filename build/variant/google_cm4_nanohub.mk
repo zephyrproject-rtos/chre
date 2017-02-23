@@ -6,6 +6,7 @@ include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
 TARGET_NAME = google_cm4_nanohub
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=128
+TARGET_VARIANT_SRCS = $(GOOGLE_CM4_NANOHUB_SRCS)
 CORTEXM_ARCH = m4
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
