@@ -19,33 +19,115 @@
 #include <cinttypes>
 
 #include "chre/util/array.h"
+#include "chre/util/time.h"
 
 namespace chre {
 namespace app {
+namespace {
 
 struct SensorState {
   const uint8_t type;
   uint32_t handle;
   bool isInitialized;
+  bool enable;
+  uint64_t interval;  // nsec
+  uint64_t latency;  // nsec
 };
 
 SensorState sensors[] = {
-  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER, },
-  { .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT, },
-  { .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT, },
-  { .type = CHRE_SENSOR_TYPE_GYROSCOPE, },
-  { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD, },
-  { .type = CHRE_SENSOR_TYPE_PRESSURE, },
-  { .type = CHRE_SENSOR_TYPE_LIGHT, },
-  { .type = CHRE_SENSOR_TYPE_PROXIMITY, },
+  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
+    .enable = false,
+  },
+  { .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
+    .enable = false,
+  },
+  { .type = CHRE_SENSOR_TYPE_GYROSCOPE,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_PRESSURE,
+    .enable = true,
+    .interval = Milliseconds(200).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_LIGHT,
+    .enable = true,
+    .interval = Milliseconds(200).toRawNanoseconds(),
+    .latency = 0,
+  },
+  { .type = CHRE_SENSOR_TYPE_PROXIMITY,
+    .enable = true,
+    .interval = Milliseconds(200).toRawNanoseconds(),
+    .latency = 0,
+  },
+  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
+    .enable = true,
+    .interval = Seconds(2).toRawNanoseconds(),
+    .latency = 0,
+  },
+  { .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
+    .enable = true,
+    .interval = Seconds(2).toRawNanoseconds(),
+    .latency = 0,
+  },
+  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
+  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
+    .enable = true,
+    .interval = Milliseconds(80).toRawNanoseconds(),
+    .latency = Seconds(4).toRawNanoseconds(),
+  },
 };
 
-void getSensorAndLog(uint8_t sensorType, uint32_t *sensorHandle) {
-  bool success = chreSensorFindDefault(sensorType, sensorHandle);
-  chreLog(CHRE_LOG_INFO,
-          "chreSensorFindDefault returned %s with handle %" PRIu32,
-          success ? "true" : "false", *sensorHandle);
+const char *getSensorName(uint32_t eventType) {
+  switch (eventType) {
+    case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
+      return "Accel";
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
+      return "Uncal Accel";
+    case CHRE_EVENT_SENSOR_GYROSCOPE_DATA:
+      return "Gyro";
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
+      return "Uncal Gyro";
+    case CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA:
+      return "Mag";
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA:
+      return "Uncal Mag";
+    case CHRE_EVENT_SENSOR_PRESSURE_DATA:
+      return "Baro";
+    case CHRE_EVENT_SENSOR_LIGHT_DATA:
+      return "Light";
+    case CHRE_EVENT_SENSOR_PROXIMITY_DATA:
+      return "Prox";
+    case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
+      return "Accel Temp";
+    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA:
+      return "Gyro Temp";
+    default:
+      return "Unknown";
+  }
 }
+
+} // namespace
 
 bool sensorWorldStart() {
   chreLog(CHRE_LOG_INFO, "Sensor World! - App started on platform ID %" PRIx64,
@@ -54,15 +136,17 @@ bool sensorWorldStart() {
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     sensors[i].isInitialized = chreSensorFindDefault(sensors[i].type,
                                                      &sensors[i].handle);
-    chreLog(CHRE_LOG_INFO, "sensor initialized: %s with handle %" PRIu32,
-            sensors[i].isInitialized ? "true" : "false", sensors[i].handle);
+    chreLog(CHRE_LOG_INFO, "sensor %d initialized: %s with handle %" PRIu32,
+            i, sensors[i].isInitialized ? "true" : "false", sensors[i].handle);
 
-    if (sensors[i].type == CHRE_SENSOR_TYPE_ACCELEROMETER
-        && sensors[i].isInitialized) {
+    if (sensors[i].enable && sensors[i].isInitialized) {
+      float odrHz = 1e9 / sensors[i].interval;
+      float latencySec = sensors[i].latency / 1e9;
       bool status = chreSensorConfigure(sensors[i].handle,
-          CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, 20000000, 0);
-      chreLog(CHRE_LOG_INFO, "Requested accel data at 50Hz, 0 latency %d",
-              status);
+          CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensors[i].interval,
+          sensors[i].latency);
+      chreLog(CHRE_LOG_INFO, "Requested data: odr %f Hz, latency %f sec, %s",
+              odrHz, latencySec, status ? "success" : "failure");
     }
   }
 
@@ -74,10 +158,51 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
                             const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
-      chreLog(CHRE_LOG_INFO, "accel sample");
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
+    case CHRE_EVENT_SENSOR_GYROSCOPE_DATA:
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
+    case CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA:
+    case CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA: {
+      const auto *ev = static_cast<const chreSensorThreeAxisData *>(eventData);
+      const auto header = ev->header;
+      const auto *data = ev->readings;
+
+      float x = 0, y = 0, z = 0;
+      for (size_t i = 0; i < header.readingCount; i++) {
+        x += data[i].v[0];
+        y += data[i].v[1];
+        z += data[i].v[2];
+      }
+      x /= header.readingCount;
+      y /= header.readingCount;
+      z /= header.readingCount;
+
+      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f %f %f",
+              getSensorName(eventType), header.readingCount, x, y, z);
       break;
+    }
+
+    case CHRE_EVENT_SENSOR_PRESSURE_DATA:
+    case CHRE_EVENT_SENSOR_LIGHT_DATA:
+    case CHRE_EVENT_SENSOR_PROXIMITY_DATA:
+    case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
+    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA: {
+      const auto *ev = static_cast<const chreSensorFloatData *>(eventData);
+      const auto header = ev->header;
+
+      float v = 0;
+      for (size_t i = 0; i < header.readingCount; i++) {
+        v += ev->readings[i].value;
+      }
+      v /= header.readingCount;
+
+      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f",
+              getSensorName(eventType), header.readingCount, v);
+      break;
+    }
+
     default:
-      chreLog(CHRE_LOG_INFO, "Unhandled event");
+      chreLog(CHRE_LOG_ERROR, "Unhandled event %d", eventType);
       break;
   }
 }
