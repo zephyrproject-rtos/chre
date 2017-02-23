@@ -39,6 +39,6 @@ include $(CHRE_PREFIX)/build/common.mk
 
 # Supported Variants Includes.
 include $(CHRE_PREFIX)/build/variant/google_cm4_nanohub.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagon_v60_slpi.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagon_v62_slpi.mk
-include $(CHRE_PREFIX)/build/variant/qcom_hexagon_v60_nanohub.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
+include $(CHRE_PREFIX)/build/variant/qcom_hexagonv60_nanohub.mk

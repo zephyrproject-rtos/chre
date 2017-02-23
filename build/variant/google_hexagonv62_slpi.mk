@@ -1,12 +1,12 @@
 #
-# Google CHRE Reference Implementation for Hexagon v60 Architecture on SLPI
+# Google CHRE Reference Implementation for Hexagon v62 Architecture on SLPI
 #
 
 include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
-TARGET_NAME = google_hexagon_v60_slpi
+TARGET_NAME = google_hexagonv62_slpi
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
-HEXAGON_ARCH = v60
+HEXAGON_ARCH = v62
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 include $(CHRE_PREFIX)/build/arch/hexagon.mk

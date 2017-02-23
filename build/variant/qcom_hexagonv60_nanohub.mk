@@ -4,7 +4,7 @@
 
 include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
-TARGET_NAME = qcom_hexagon_v60_nanohub
+TARGET_NAME = qcom_hexagonv60_nanohub
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4080
 HEXAGON_ARCH = v60
 
