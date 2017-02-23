@@ -10,10 +10,10 @@ TARGET_VARIANT_SRCS = $(QCOM_HEXAGONV60_NANOHUB_SRCS)
 HEXAGON_ARCH = v60
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
+ifneq ($(IS_NANOAPP_BUILD),)
+include $(CHRE_PREFIX)/build/nanoapp/qcom_nanohub.mk
+endif
+
 include $(CHRE_PREFIX)/build/arch/hexagon.mk
 include $(CHRE_PREFIX)/build/build_template.mk
-
-ifneq ($(IS_NANOAPP_BUILD),)
-# TODO: Add support for building a nanoapp that can be loaded via the HAL.
-endif
 endif
