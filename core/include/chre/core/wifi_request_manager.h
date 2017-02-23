@@ -37,6 +37,18 @@ class WifiRequestManager : public NonCopyable {
    */
   uint32_t getCapabilities();
 
+  /**
+   * Handles the result of a request to PlatformWifi to change the state of the
+   * scan monitor.
+   *
+   * @param enabled true if the result of the operation was an enabled scan
+   *        monitor.
+   * @param errorCode an error code that is provided to indicate success or what
+   *        type of error has occurred. See the the chreError enum in the CHRE
+   *        API for additional details.
+   */
+  void handleScanMonitorStateChange(bool enabled, uint8_t errorCode);
+
  private:
   //! The instance of the platform wifi interface.
   PlatformWifi mPlatformWifi;

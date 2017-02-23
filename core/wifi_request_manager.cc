@@ -25,4 +25,8 @@ uint32_t WifiRequestManager::getCapabilities() {
   return mPlatformWifi.getCapabilities();
 }
 
+void WifiRequestManager::handleScanMonitorStateChange() {
+  // TODO: Implement this.
+}
+
 }  // namespace chre

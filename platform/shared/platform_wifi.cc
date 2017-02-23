@@ -56,9 +56,18 @@ uint32_t PlatformWifi::getCapabilities() {
   }
 }
 
+bool PlatformWifi::configureScanMonitor(bool enable) {
+  if (mWifiApi != nullptr) {
+    return mWifiApi->configureScanMonitor(enable);
+  } else {
+    return false;
+  }
+}
+
 void PlatformWifiBase::scanMonitorStatusChangeCallback(bool enabled,
                                                        uint8_t errorCode) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getWifiRequestManager()
+      .handleScanMonitorStatusChange(enabled, errorCode);
 }
 
 void PlatformWifiBase::scanResponseCallback(bool pending, uint8_t errorCode) {

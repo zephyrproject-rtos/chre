@@ -40,6 +40,17 @@ class PlatformWifi : public PlatformWifiBase {
    * @return the WiFi capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
+
+  /**
+   * Configures the scan monitoring function of the platform Wifi. For more info
+   * see the WiFi PAL documentation. The result of this operation is
+   * asynchronous and must be delivered to CHRE by invoking the
+   * WifiRequestManager::handleScanMonitorStateChange method.
+   *
+   * @param enable true to enable listening for scan results.
+   * @return true to indicate that the request was accepted.
+   */
+  bool configureScanMonitor(bool enable);
 };
 
 }  // namespace chre
