@@ -25,7 +25,8 @@ uint32_t WifiRequestManager::getCapabilities() {
   return mPlatformWifi.getCapabilities();
 }
 
-void WifiRequestManager::handleScanMonitorStateChange() {
+void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
+                                                      uint8_t errorCode) {
   // TODO: Implement this.
 }
 

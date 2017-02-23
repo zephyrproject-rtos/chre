@@ -66,8 +66,10 @@ bool PlatformWifi::configureScanMonitor(bool enable) {
 
 void PlatformWifiBase::scanMonitorStatusChangeCallback(bool enabled,
                                                        uint8_t errorCode) {
-  EventLoopManagerSingleton::get()->getWifiRequestManager()
-      .handleScanMonitorStatusChange(enabled, errorCode);
+// TODO: Uncomment these two lines below. A build error prevents this due to a
+// cyclic dependency.
+//  EventLoopManagerSingleton::get()->getWifiRequestManager()
+//      .handleScanMonitorStateChange(enabled, errorCode);
 }
 
 void PlatformWifiBase::scanResponseCallback(bool pending, uint8_t errorCode) {
