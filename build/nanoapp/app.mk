@@ -41,3 +41,4 @@ include $(CHRE_PREFIX)/build/common.mk
 include $(CHRE_PREFIX)/build/variant/google_cm4_nanohub.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagon_v60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagon_v62_slpi.mk
+include $(CHRE_PREFIX)/build/variant/qcom_hexagon_v60_nanohub.mk
