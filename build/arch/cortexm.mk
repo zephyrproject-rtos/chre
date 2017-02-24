@@ -2,8 +2,6 @@
 # Build targets for a Cortex-M-based processor
 #
 
-include $(CHRE_PREFIX)/build/defs.mk
-
 # Hexagon Environment Checks ###################################################
 
 # If building for the Cortex-M target, ensure that the user has specified a path
@@ -33,10 +31,6 @@ TARGET_CFLAGS += -mfloat-abi=softfp
 TARGET_CFLAGS += -mno-thumb-interwork
 TARGET_CFLAGS += -ffast-math
 TARGET_CFLAGS += -fsingle-precision-constant
-
-# Cortex-M Archive Flags #######################################################
-
-TARGET_ARFLAGS = -rsc
 
 # Cortex-M Linker Flags ########################################################
 

@@ -32,4 +32,4 @@ endif
 
 # Common Includes
 include $(CHRE_PREFIX)/build/clean.mk
-include $(CHRE_PREFIX)/build/compiler_config.mk
+include $(CHRE_PREFIX)/build/tools_config.mk

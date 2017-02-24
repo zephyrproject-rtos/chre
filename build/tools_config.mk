@@ -19,3 +19,7 @@ COMMON_CFLAGS += -fno-rtti
 # Enable the linker to garbage collect unused code and variables.
 COMMON_CFLAGS += -fdata-sections
 COMMON_CFLAGS += -ffunction-sections
+
+# Common Archive Flags #########################################################
+
+COMMON_ARFLAGS += -rsc

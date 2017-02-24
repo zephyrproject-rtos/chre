@@ -2,8 +2,6 @@
 # Build targets for a Hexagon-based processor
 #
 
-include $(CHRE_PREFIX)/build/defs.mk
-
 # Hexagon Environment Checks ###################################################
 
 # Ensure that the user has specified a path to the Hexagon toolchain that they
@@ -37,10 +35,6 @@ TARGET_CFLAGS += -mthread-model posix
 # This code is loaded into a dynamic module. Define this symbol in the event
 # that any Qualcomm code needs it.
 TARGET_CFLAGS += -D__V_DYNAMIC__
-
-# Hexagon Archive Flags ########################################################
-
-TARGET_ARFLAGS += -rsc
 
 # Hexagon Linker Flags #########################################################
 
