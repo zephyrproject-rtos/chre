@@ -35,6 +35,7 @@ chre_cc_library(
     ],
     deps = [
         "//core:event",
+        "//core:host_comms_manager",
         "//core:nanoapp",
         "//core:sensor_request_manager",
         "//core:wifi_request_manager",
@@ -43,6 +44,22 @@ chre_cc_library(
         "//platform:system_time",
         "//platform:system_timer",
         "//util",
+    ],
+)
+
+chre_cc_library(
+    name = "host_comms_manager",
+    hdrs = [
+        "include/chre/core/host_comms_manager.h",
+    ],
+    srcs = [
+        "host_comms_manager.cc",
+    ],
+    deps = [
+        "//chre_api:chre_api",
+        "//core:event_loop",
+        "//platform:platform_host_link",
+        "//util:util",
     ],
 )
 

@@ -150,6 +150,42 @@ chre_cc_library(
     ],
 )
 
+
+################################################################################
+#
+# Platform Host Link
+#
+################################################################################
+
+LINUX_PLATFORM_HOST_LINK_HDRS = [
+    "linux/include/chre/target_platform/host_link_base.h",
+]
+
+LINUX_PLATFORM_HOST_LINK_SRCS = [
+    "linux/host_link.cc",
+]
+
+chre_cc_library(
+    name = "platform_host_link",
+    srcs = select({
+        "//:platform_linux": LINUX_PLATFORM_HOST_LINK_SRCS,
+        "//conditions:default": LINUX_PLATFORM_HOST_LINK_SRCS,
+    }),
+    hdrs = [
+        "include/chre/platform/host_link.h",
+    ] + select({
+        "//:platform_linux": LINUX_PLATFORM_HOST_LINK_HDRS,
+        "//conditions:default": LINUX_PLATFORM_HOST_LINK_HDRS,
+    }),
+    includes = select({
+        "//:platform_linux": LINUX_PLATFORM_INCLUDES,
+        "//conditions:default": LINUX_PLATFORM_INCLUDES,
+    }),
+    deps = [
+        "//util",
+    ],
+)
+
 ################################################################################
 #
 # Platform Nanoapp

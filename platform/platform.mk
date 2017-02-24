@@ -30,6 +30,7 @@ HEXAGON_SRCS += platform/shared/pal_wifi_stub.cc
 HEXAGON_SRCS += platform/shared/platform_nanoapp.cc
 HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
+HEXAGON_SRCS += platform/slpi/host_link.cc
 HEXAGON_SRCS += platform/slpi/init.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc

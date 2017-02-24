@@ -19,6 +19,7 @@
 
 #include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/host_comms_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
 #include "chre/platform/mutex.h"
@@ -33,7 +34,8 @@ namespace chre {
 //! in the user-defined range.
 enum class SystemCallbackType : uint16_t {
   FirstCallbackType = CHRE_EVENT_FIRST_USER_VALUE,
-  // TODO: add callback identifiers here
+
+  MessageToHostComplete,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free
@@ -89,6 +91,12 @@ class EventLoopManager : public NonCopyable {
                  uint32_t targetInstanceId = kBroadcastInstanceId);
 
   /**
+   * @return A reference to the host communications manager that enables
+   *         transferring arbitrary data between the host processor and CHRE.
+   */
+  HostCommsManager& getHostCommsManager();
+
+  /**
    * @return Returns a reference to the sensor request manager. This allows
    *         interacting with the platform sensors and managing requests from
    *         various nanoapps.
@@ -113,6 +121,9 @@ class EventLoopManager : public NonCopyable {
   //! provide an implementation of the move constructor so it is best left to
   //! allocate each event loop and manage the pointers to those event loops.
   DynamicVector<UniquePtr<EventLoop>> mEventLoops;
+
+  //! Handles communications with the host processor
+  HostCommsManager mHostCommsManager;
 
   //! The SensorRequestManager that handles requests for all nanoapps. This
   //! manages the state of all sensors that runtime subscribes to.

@@ -52,6 +52,10 @@ void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
   }
 }
 
+HostCommsManager& EventLoopManager::getHostCommsManager() {
+  return mHostCommsManager;
+}
+
 SensorRequestManager& EventLoopManager::getSensorRequestManager() {
   return mSensorRequestManager;
 }

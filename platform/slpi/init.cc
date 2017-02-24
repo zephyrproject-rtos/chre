@@ -31,6 +31,7 @@ extern "C" {
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
 #include "chre/platform/platform_nanoapp.h"
+#include "chre/platform/slpi/fastrpc.h"
 #include "chre/util/lock_guard.h"
 
 using chre::EventLoop;
@@ -40,12 +41,6 @@ using chre::Mutex;
 extern "C" int chre_slpi_stop_thread(void);
 
 namespace {
-
-//! FastRPC mandates that return value of 0 indicates success. Any other value
-//! is considered an error and will result in skipping transfer of output
-//! parameters.
-constexpr int kFastRpcSuccess = 0;
-constexpr int kFastRpcFailure = -1;
 
 //! Size of the stack for the CHRE thread, in bytes.
 constexpr unsigned int kStackSize = (8 * 1024);
@@ -158,7 +153,7 @@ EventLoop *getCurrentEventLoop() {
 extern "C" int chre_slpi_start_thread(void) {
   // This lock ensures that we only start the thread once
   LockGuard<Mutex> lock(*gThreadMutex);
-  int fastRpcResult = kFastRpcFailure;
+  int fastRpcResult = CHRE_FASTRPC_ERROR;
 
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
@@ -181,7 +176,7 @@ extern "C" int chre_slpi_start_thread(void) {
     } else {
       LOGD("Started CHRE thread");
       gThreadRunning = true;
-      fastRpcResult = kFastRpcSuccess;
+      fastRpcResult = CHRE_FASTRPC_SUCCESS;
     }
   }
 
@@ -206,7 +201,7 @@ extern "C" int chre_slpi_wait_on_thread_exit(void) {
     LOGI("Detected CHRE thread exit");
   }
 
-  return kFastRpcSuccess;
+  return CHRE_FASTRPC_SUCCESS;
 }
 
 /**
@@ -235,16 +230,22 @@ extern "C" int chre_slpi_stop_thread(void) {
     }
     gThreadHandle = 0;
 
+    // TODO: need to figure out the right place to put this, to make sure we're
+    // not trying to post events to an EventLoop that is already stopped, etc.
+    // Becomes even trickier when log messages get routed through the HostLink.
+    chre::HostLinkBase::shutdown();
+
     if (gTlsKeyValid) {
       int ret = qurt_tls_delete_key(gTlsKey);
       if (ret != QURT_EOK) {
-        LOGE("Deleting TLS key failed: %d", ret);
+        // Note: LOGE is not necessarily safe to use after stopping CHRE
+        FARF(ERROR, "Deleting TLS key failed: %d", ret);
       }
       gTlsKeyValid = false;
     }
   }
 
-  return kFastRpcSuccess;
+  return CHRE_FASTRPC_SUCCESS;
 }
 
 /**
@@ -278,5 +279,5 @@ extern "C" int chre_slpi_initialize_reverse_monitor(void) {
     }
   }
 
-  return (gTlsKeyValid) ? kFastRpcSuccess : kFastRpcFailure;
+  return (gTlsKeyValid) ? CHRE_FASTRPC_SUCCESS : CHRE_FASTRPC_ERROR;
 }

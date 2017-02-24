@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-/**
- * @file
- * Implementation of core CHRE functionality, i.e. events, memory, etc.
- */
-
 #include <cstdarg>
 #include <cstring>
 
 #include "chre_api/chre/event.h"
 #include "chre_api/chre/re.h"
-
+#include "chre/core/event_loop_manager.h"
+#include "chre/core/host_comms_manager.h"
 #include "chre/platform/log.h"
 
 bool chreSendEvent(uint16_t eventType, void *eventData,
@@ -37,14 +33,13 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
 }
 
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
-                           uint32_t reservedMessageType,
+                           uint32_t messageType,
                            chreMessageFreeFunction *freeCallback) {
-  // TODO: we probably won't actually support this until the replay framework
-  // is in place...
-  if (freeCallback) {
-    freeCallback(message, messageSize);
-  }
-  return false;
+  auto& hostCommsManager =
+      chre::EventLoopManagerSingleton::get()->getHostCommsManager();
+  return hostCommsManager.sendMessageToHostFromCurrentNanoapp(
+      message, messageSize, messageType, chre::kHostEndpointBroadcast,
+      freeCallback);
 }
 
 void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
