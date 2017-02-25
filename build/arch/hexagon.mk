@@ -36,10 +36,10 @@ TARGET_CFLAGS += -mthread-model posix
 # that any Qualcomm code needs it.
 TARGET_CFLAGS += -D__V_DYNAMIC__
 
-# Hexagon Linker Flags #########################################################
+# Hexagon Shared Object Linker Flags ###########################################
 
-TARGET_LDFLAGS += -shared
-TARGET_LDFLAGS += -call_shared
+TARGET_SO_LDFLAGS += -shared
+TARGET_SO_LDFLAGS += -call_shared
 
 # Supported Hexagon Architectures ##############################################
 

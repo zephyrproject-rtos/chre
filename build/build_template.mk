@@ -24,7 +24,7 @@ include $(CHRE_PREFIX)/build/defs.mk
 #     $1 - TARGET_NAME         - The name of the target being built.
 #     $2 - TARGET_CFLAGS       - The compiler flags to use for this target.
 #     $3 - TARGET_CC           - The C/C++ compiler for the target variant.
-#     $4 - TARGET_LDFLAGS      - The linker flags to use for this target.
+#     $4 - TARGET_SO_LDFLAGS   - The linker flags to use for this target.
 #     $5 - TARGET_LD           - The linker for the target variant.
 #     $6 - TARGET_ARFLAGS      - The archival flags to use for this target.
 #     $7 - TARGET_AR           - The archival tool for the targer variant.
@@ -121,7 +121,7 @@ endif
 $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME), \
                               $(TARGET_CFLAGS), \
                               $(TARGET_CC), \
-                              $(TARGET_LDFLAGS), \
+                              $(TARGET_SO_LDFLAGS), \
                               $(TARGET_LD), \
                               $(TARGET_ARFLAGS), \
                               $(TARGET_AR), \

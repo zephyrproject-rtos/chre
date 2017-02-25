@@ -32,9 +32,9 @@ TARGET_CFLAGS += -mno-thumb-interwork
 TARGET_CFLAGS += -ffast-math
 TARGET_CFLAGS += -fsingle-precision-constant
 
-# Cortex-M Linker Flags ########################################################
+# Cortex-M Shared Object Linker Flags ##########################################
 
-TARGET_LDFLAGS += -shared
+TARGET_SO_LDFLAGS += -shared
 
 # Supported Cortex-M Architectures #############################################
 
