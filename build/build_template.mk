@@ -95,7 +95,7 @@ $$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
 
 # Add common and target-specific archive flags.
 $$$(1)_ARFLAGS = $(COMMON_ARFLAGS) \
-    $(7)
+    $(6)
 
 $$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 	$(7) $$($$$(1)_ARFLAGS) $$@ $$(filter %.o, $$^)
