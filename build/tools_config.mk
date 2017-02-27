@@ -22,4 +22,4 @@ COMMON_CFLAGS += -ffunction-sections
 
 # Common Archive Flags #########################################################
 
-COMMON_ARFLAGS += -rsc
+COMMON_ARFLAGS += rsc
