@@ -11,6 +11,8 @@ HEXAGON_ARCH = v60
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 ifneq ($(IS_NANOAPP_BUILD),)
+TARGET_SO_LATE_LIBS += $(CHRE_PREFIX)/build/app_support/qcom_nanohub/chre.so
+TARGET_SO_LATE_LIBS += $(CHRE_PREFIX)/build/app_support/qcom_nanohub/chre_platform.so
 include $(CHRE_PREFIX)/build/nanoapp/qcom_nanohub.mk
 endif
 

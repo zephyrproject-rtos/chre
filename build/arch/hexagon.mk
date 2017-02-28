@@ -29,9 +29,6 @@ TARGET_CFLAGS += -fpic
 # Disable splitting double registers.
 TARGET_CFLAGS += -mllvm -disable-hsdr
 
-# Enable the POSIX threading model.
-TARGET_CFLAGS += -mthread-model posix
-
 # This code is loaded into a dynamic module. Define this symbol in the event
 # that any Qualcomm code needs it.
 TARGET_CFLAGS += -D__V_DYNAMIC__
@@ -40,6 +37,17 @@ TARGET_CFLAGS += -D__V_DYNAMIC__
 
 TARGET_SO_LDFLAGS += -shared
 TARGET_SO_LDFLAGS += -call_shared
+TARGET_SO_LDFLAGS += -Bsymbolic
+TARGET_SO_LDFLAGS += --wrap=malloc
+TARGET_SO_LDFLAGS += --wrap=calloc
+TARGET_SO_LDFLAGS += --wrap=free
+TARGET_SO_LDFLAGS += --wrap=realloc
+TARGET_SO_LDFLAGS += --wrap=memalign
+TARGET_SO_LDFLAGS += --wrap=__stack_chk_fail
+
+HEXAGON_LIB_PATH = $(HEXAGON_TOOLS_PREFIX)/Tools/target/hexagon/lib
+TARGET_SO_EARLY_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/initS.o
+TARGET_SO_LATE_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/finiS.o
 
 # Supported Hexagon Architectures ##############################################
 
