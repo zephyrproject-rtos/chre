@@ -6,6 +6,7 @@ include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
 TARGET_NAME = google_x86_linux
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
+TARGET_CFLAGS += $(GOOGLE_X86_LINUX_CFLAGS)
 TARGET_VARIANT_SRCS = $(GOOGLE_X86_LINUX_SRCS)
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)

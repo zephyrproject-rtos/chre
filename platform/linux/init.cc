@@ -22,6 +22,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/core/nanoapp.h"
+#include "chre/platform/context.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_timer.h"
 #include "chre/platform/platform_nanoapp.h"
@@ -32,8 +33,6 @@
 using chre::Milliseconds;
 
 namespace {
-
-chre::EventLoop *gEventLoop = nullptr;
 
 void delayedEventCallback(void *data) {
   LOGI("Got a delayed event callback");
@@ -50,20 +49,10 @@ void timerCallback(void *data) {
 extern "C" void signalHandler(int sig) {
   (void) sig;
   LOGI("Stop request received");
-  gEventLoop->stop();
+  chre::getCurrentEventLoop()->stop();
 }
 
 }
-
-namespace chre {
-
-EventLoop *getCurrentEventLoop() {
-  // note: on a multi-threaded implementation, we would likely use thread-local
-  // storage here if available, or a map from thread ID --> eventLoop
-  return gEventLoop;
-}
-
-}  // namespace chre
 
 int main() {
   chre::init();
@@ -84,8 +73,7 @@ int main() {
   timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
 
   // Construct the event loop.
-  gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
-  chre::EventLoop& eventLoop = *gEventLoop;
+  chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
 
   // Start the hello world nanoapp.
   chre::Nanoapp helloWorldNanoapp(eventLoop.getNextInstanceId(),

@@ -51,8 +51,8 @@ X86_SRCS += platform/shared/chre_api_re.cc
 X86_SRCS += platform/shared/chre_api_sensor.cc
 X86_SRCS += platform/shared/chre_api_version.cc
 X86_SRCS += platform/shared/chre_api_wifi.cc
+X86_SRCS += platform/linux/event_loop.cc
 X86_SRCS += platform/linux/host_link.cc
-X86_SRCS += platform/linux/init.cc
 X86_SRCS += platform/linux/system_time.cc
 X86_SRCS += platform/linux/system_timer.cc
 X86_SRCS += platform/linux/platform_sensor.cc
@@ -62,3 +62,5 @@ X86_SRCS += platform/shared/pal_system_api.cc
 X86_SRCS += platform/shared/platform_nanoapp.cc
 X86_SRCS += platform/shared/platform_wifi.cc
 X86_SRCS += platform/shared/system_time.cc
+
+GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc

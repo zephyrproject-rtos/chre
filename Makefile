@@ -15,13 +15,13 @@ CHRE_PREFIX = .
 ifeq ($(HEXAGON_SDK_PREFIX),)
 $(error "You must supply a HEXAGON_SDK_PREFIX environment variable \
          containing a path to the hexagon SDK. Example: \
-         $$HOME/Qualcomm/Hexagon_SDK/3.0")
+         export HEXAGON_SDK_PREFIX=$$HOME/Qualcomm/Hexagon_SDK/3.0")
 endif
 
 ifeq ($(SLPI_PREFIX),)
-$(error "You must supply an SLPI_PREFIX environemnt variable \
+$(error "You must supply an SLPI_PREFIX environment variable \
          containing a path to the SLPI source tree. Example: \
-         $$HOME/slpi_proc")
+         export SLPI_PREFIX=$$HOME/slpi_proc")
 endif
 
 # Build Configuration ##########################################################
@@ -56,6 +56,7 @@ include apps/sensor_world/sensor_world.mk
 include apps/timer_world/timer_world.mk
 include chre_api/chre_api.mk
 include core/core.mk
+include external/external.mk
 include pal/pal.mk
 include platform/platform.mk
 include util/util.mk
@@ -69,3 +70,4 @@ include build/common.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
+include $(CHRE_PREFIX)/build/variant/google_x86_googletest.mk
