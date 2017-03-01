@@ -44,10 +44,31 @@ class WifiRequestManager : public NonCopyable {
    * @param enabled true if the result of the operation was an enabled scan
    *        monitor.
    * @param errorCode an error code that is provided to indicate success or what
-   *        type of error has occurred. See the the chreError enum in the CHRE
-   *        API for additional details.
+   *        type of error has occurred. See the chreError enum in the CHRE API
+   *        for additional details.
    */
   void handleScanMonitorStateChange(bool enabled, uint8_t errorCode);
+
+  /**
+   * Handles the result of a request to the PlatformWifi to request an active
+   * Wifi scan.
+   *
+   * @param pending The result of the request was successful and the results
+   *        be sent via the handleScanEvent method.
+   * @param errorCode an error code that is used to indicate success or what
+   *        type of error has occurred. See the chreError enum in the CHRE API
+   *        for additional details.
+   */
+  void handleScanResponse(bool pending, uint8_t errorCode);
+
+  /**
+   * Handles a CHRE wifi scan event.
+   *
+   * @param event The wifi scan event provided to the wifi request manager. This
+   *        memory is guaranteed not to be modified until it has been explicitly
+   *        released through the PlatformWifi instance.
+   */
+  void handleScanEvent(chreWifiScanEvent *event);
 
  private:
   //! The instance of the platform wifi interface.

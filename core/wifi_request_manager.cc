@@ -30,4 +30,13 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
   // TODO: Implement this.
 }
 
+void WifiRequestManager::handleScanResponse(bool pending,
+                                            uint8_t errorCode) {
+  // TODO: Implement this.
+}
+
+void WifiRequestManager::handleScanEvent(chreWifiScanEvent *event) {
+  // TODO: Implement this.
+}
+
 }  // namespace chre
