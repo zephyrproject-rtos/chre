@@ -1,6 +1,1 @@
-bazel-bin
-bazel-chre
-bazel-genfiles
-bazel-out
-bazel-testlogs
 out
