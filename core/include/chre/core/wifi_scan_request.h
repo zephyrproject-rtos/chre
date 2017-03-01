@@ -17,11 +17,20 @@
 #ifndef CHRE_CORE_WIFI_SCAN_REQUEST_H_
 #define CHRE_CORE_WIFI_SCAN_REQUEST_H_
 
+#include <cstddef>
+
 #include "chre_api/chre/wifi.h"
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/fixed_size_vector.h"
 #include "chre/util/time.h"
 
 namespace chre {
+
+/**
+ * The maximum length for a Wifi SSID. This value is taken from 802.11 7.3.2.1
+ * and can also be found in the CHRE API wifi.h.
+ */
+constexpr size_t kMaxWifiSsidLength = 32;
 
 /**
  * This WifiScanType is designed to wrap constants provided by the CHRE API to
@@ -48,7 +57,7 @@ WifiScanType getWifiScanTypeForEnum(enum chreWifiScanType enumWifiScanType);
 /**
  * An SSID can be modelled by a list of bytes.
  */
-typedef DynamicVector<uint8_t> WifiSsid;
+typedef FixedSizeVector<uint8_t, kMaxWifiSsidLength> WifiSsid;
 
 /**
  * Models a request for wifi scans. This class implements the API set forth by
@@ -99,9 +108,6 @@ class WifiScanRequest {
    * @return the SSIDs associated with this request.
    */
   const DynamicVector<WifiSsid>& getSsids() const;
-
-  // TODO: Implement the remaining methods required for the RequestMultiplexer
-  // container.
 
  private:
   //! The type of request for this scan.
