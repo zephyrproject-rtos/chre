@@ -69,3 +69,13 @@ X86_SRCS += platform/shared/platform_wifi.cc
 X86_SRCS += platform/shared/system_time.cc
 
 GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+
+# GoogleTest Compiler Flags ####################################################
+
+GOOGLETEST_CFLAGS += -Iplatform/slpi/include
+
+# GoogleTest Source Files ######################################################
+
+GOOGLETEST_SRCS += platform/linux/assert.cc
+GOOGLETEST_SRCS += platform/slpi/platform_sensor_util.cc
+GOOGLETEST_SRCS += platform/slpi/tests/platform_sensor_util_test.cc

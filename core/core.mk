@@ -20,3 +20,9 @@ COMMON_SRCS += core/sensor_request_manager.cc
 COMMON_SRCS += core/timer_pool.cc
 COMMON_SRCS += core/wifi_request_manager.cc
 COMMON_SRCS += core/wifi_scan_request.cc
+
+# GoogleTest Source Files ######################################################
+
+GOOGLETEST_SRCS += core/tests/request_multiplexer_test.cc
+GOOGLETEST_SRCS += core/tests/sensor_request_test.cc
+GOOGLETEST_SRCS += core/tests/wifi_scan_request_test.cc
