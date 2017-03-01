@@ -23,6 +23,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/log.h"
+#include "chre/platform/shared/host_messages_generated.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 
@@ -33,6 +34,29 @@ namespace {
 constexpr size_t kOutboundQueueSize = 32;
 FixedSizeBlockingQueue<const MessageToHost *, kOutboundQueueSize>
     gOutboundQueue;
+
+/**
+ * Encodes a MessageToHost structure into the FlatBuffers format
+ *
+ * @param msgToHost CHRE representation of a nanoapp message to the host
+ * @param builder Builder to use to create the FlatBuffer representation
+ */
+void encodeNanoappMessage(const MessageToHost& msgToHost,
+                          flatbuffers::FlatBufferBuilder& builder) {
+  // Message payload is optional; don't include it in the buffer if not supplied
+  // by the nanoapp
+  flatbuffers::Offset<flatbuffers::Vector<uint8_t>> messageData = 0;
+  if (msgToHost.message.size() > 0) {
+    messageData = builder.CreateVector(msgToHost.message);
+  }
+
+  auto nanoappMessage = chre::fbs::CreateNanoappMessage(
+      builder, msgToHost.appId, msgToHost.hostEndpoint, msgToHost.messageType,
+      messageData);
+  auto container = chre::fbs::CreateMessageContainer(
+      builder, chre::fbs::ChreMessage::NanoappMessage, nanoappMessage.Union());
+  builder.Finish(container);
+}
 
 /**
  * FastRPC method invoked by the host to block on messages
@@ -51,7 +75,6 @@ extern "C" int chre_slpi_get_message_to_host(
   CHRE_ASSERT(messageLen != nullptr);
 
   const MessageToHost *message = gOutboundQueue.pop();
-
   int result;
   if (message == nullptr) {
     // A null message is used during shutdown so the calling thread can exit
@@ -66,11 +89,24 @@ extern "C" int chre_slpi_get_message_to_host(
            message->message.size());
       result = CHRE_FASTRPC_ERROR;
     } else {
-      // TODO: wrap in a FlatBuffer or some other structure so we pass metadata
-      LOGD("Copying message of size %zu", message->message.size());
-      memcpy(buffer, message->message.data(), message->message.size());
-      *messageLen = message->message.size();
-      result = CHRE_FASTRPC_SUCCESS;
+      // TODO: ideally we'd construct our flatbuffer directly in the
+      // host-supplied buffer
+      constexpr size_t kInitialFlatBufferSize = 256;
+      flatbuffers::FlatBufferBuilder builder(kInitialFlatBufferSize);
+      encodeNanoappMessage(*message, builder);
+
+      uint8_t *data = builder.GetBufferPointer();
+      size_t size = builder.GetSize();
+      if (size > bufferLen) {
+        LOGE("Encoded structure size %zu too big for host buffer %d; dropping",
+             size, bufferLen);
+        CHRE_ASSERT(false);
+        result = CHRE_FASTRPC_ERROR;
+      } else {
+        memcpy(buffer, data, size);
+        *messageLen = size;
+        result = CHRE_FASTRPC_SUCCESS;
+      }
     }
 
     auto& hostCommsManager =
