@@ -2,6 +2,8 @@
 # Platform Makefile
 #
 
+include $(CHRE_PREFIX)/external/flatbuffers/flatbuffers.mk
+
 # Common Compiler Flags ########################################################
 
 # Include paths.
@@ -18,6 +20,9 @@ COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 # Include paths.
 HEXAGON_CFLAGS += -Iplatform/shared/include
 HEXAGON_CFLAGS += -Iplatform/slpi/include
+
+# We use FlatBuffers in the Hexagon (SLPI) platform layer
+HEXAGON_CFLAGS += $(FLATBUFFERS_CFLAGS)
 
 # Hexagon-specific Source Files ################################################
 

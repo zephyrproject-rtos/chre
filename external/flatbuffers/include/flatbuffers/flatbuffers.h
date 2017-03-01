@@ -17,19 +17,48 @@
 #ifndef FLATBUFFERS_H_
 #define FLATBUFFERS_H_
 
-#include <assert.h>
+/**
+ * @file
+ * A customized version of the FlatBuffers implementation header file targeted
+ * for use within CHRE. This file differs from the mainline FlatBuffers release
+ * via the introduction of the feature flag FLATBUFFERS_CHRE. When defined,
+ * standard library features not used in CHRE are removed or remapped to their
+ * CHRE-specific alternatives. This includes removing support for strings,
+ * replacing std::vector with chre::DynamicVector, use of CHRE_ASSERT instead of
+ * assert(), etc.
+ */
 
 #include <cstdint>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
-#include <string>
 #include <utility>
 #include <type_traits>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <memory>
+
+#ifndef FLATBUFFERS_CHRE
+  #include <assert.h>
+
+  #include <set>
+  #include <string>
+#else
+  // TODO: we should be able to leave this flag unset if we connect unique_ptr_t
+  // to chre::UniquePtr, but the features wrapped by this flag (e.g. use of
+  // std::function) aren't strictly required, so setting it for now.
+  #define FLATBUFFERS_CPP98_STL
+
+  #include "chre/platform/assert.h"
+  #include "chre/util/dynamic_vector.h"
+  #include "chre/util/unique_ptr.h"
+
+  #ifdef assert
+    #define FLATBUFFERS_PRIOR_ASSERT assert
+    #undef assert
+  #endif
+  #define assert CHRE_ASSERT
+#endif  // FLATBUFFERS_CHRE
 
 #ifdef _STLPORT_VERSION
   #define FLATBUFFERS_CPP98_STL
@@ -471,6 +500,7 @@ template<typename T> static inline size_t VectorLength(const Vector<T> *v) {
   return v ? v->Length() : 0;
 }
 
+#ifndef FLATBUFFERS_CHRE
 struct String : public Vector<char> {
   const char *c_str() const { return reinterpret_cast<const char *>(Data()); }
   std::string str() const { return std::string(c_str(), Length()); }
@@ -479,14 +509,27 @@ struct String : public Vector<char> {
     return strcmp(c_str(), o.c_str()) < 0;
   }
 };
+#endif  // FLATBUFFERS_CHRE
 
 // Simple indirection for buffer allocation, to allow this to be overridden
 // with custom allocation (see the FlatBufferBuilder constructor).
 class simple_allocator {
  public:
   virtual ~simple_allocator() {}
-  virtual uint8_t *allocate(size_t size) const { return new uint8_t[size]; }
-  virtual void deallocate(uint8_t *p) const { delete[] p; }
+  virtual uint8_t *allocate(size_t size) const {
+    #ifndef FLATBUFFERS_CHRE
+      return new uint8_t[size];
+    #else
+      return static_cast<uint8_t *>(chre::memoryAlloc(size));
+    #endif
+  }
+  virtual void deallocate(uint8_t *p) const {
+    #ifndef FLATBUFFERS_CHRE
+      delete[] p;
+    #else
+      return chre::memoryFree(p);
+    #endif
+  }
 };
 
 // This is a minimal replication of std::vector<uint8_t> functionality,
@@ -658,14 +701,20 @@ FLATBUFFERS_FINAL_CLASS
                              const simple_allocator *allocator = nullptr)
       : buf_(initial_size, allocator ? *allocator : default_allocator),
         nested(false), finished(false), minalign_(1), force_defaults_(false),
-        dedup_vtables_(true), string_pool(nullptr) {
+        dedup_vtables_(true) {
+    #ifndef FLATBUFFERS_CHRE
+    string_pool = nullptr;
+    #endif
+
     offsetbuf_.reserve(16);  // Avoid first few reallocs.
     vtables_.reserve(16);
     EndianCheck();
   }
 
   ~FlatBufferBuilder() {
+    #ifndef FLATBUFFERS_CHRE
     if (string_pool) delete string_pool;
+    #endif
   }
 
   /// @brief Reset all the state in this FlatBufferBuilder so it can be reused
@@ -677,7 +726,9 @@ FLATBUFFERS_FINAL_CLASS
     finished = false;
     vtables_.clear();
     minalign_ = 1;
+    #ifndef FLATBUFFERS_CHRE
     if (string_pool) string_pool->clear();
+    #endif
   }
 
   /// @brief The current size of the serialized buffer, counting from the end.
@@ -934,6 +985,7 @@ FLATBUFFERS_FINAL_CLASS
   }
   /// @endcond
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Store a string in the buffer, which can contain any binary data.
   /// @param[in] str A const char pointer to the data to be stored as a string.
   /// @param[in] len The number of bytes that should be stored from `str`.
@@ -1019,6 +1071,7 @@ FLATBUFFERS_FINAL_CLASS
   Offset<String> CreateSharedString(const String *str) {
     return CreateSharedString(str->c_str(), str->Length());
   }
+  #endif  // FLATBUFFERS_CHRE
 
   /// @cond FLATBUFFERS_INTERNAL
   uoffset_t EndVector(size_t len) {
@@ -1063,6 +1116,7 @@ FLATBUFFERS_FINAL_CLASS
     return Offset<Vector<T>>(EndVector(len));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize a `std::vector` into a FlatBuffer `vector`.
   /// @tparam T The data type of the `std::vector` elements.
   /// @param v A const reference to the `std::vector` to serialize into the
@@ -1083,6 +1137,27 @@ FLATBUFFERS_FINAL_CLASS
     }
     return Offset<Vector<uint8_t>>(EndVector(v.size()));
   }
+  #else  // FLATBUFFERS_CHRE
+  // We need to define this function as it's optionally used in the
+  // Create<Type>Direct() helper functions generated by the FlatBuffer compiler,
+  // however its use at runtime is not supported.
+  template<typename T> Offset<Vector<T>> CreateVector(const std::vector<T> &v) {
+    CHRE_ASSERT_LOG(false,
+                    "std::vector use by FlatBuffers is not supported in CHRE");
+    return 0;
+  }
+
+  /// @brief Serialize a `chre::DynamicVector` into a FlatBuffer `vector`.
+  /// @tparam T The data type of the `chre::DynamicVector` elements.
+  /// @param v A const reference to the `chre::DynamicVector` to serialize into
+  /// the buffer as a `vector`.
+  /// @return Returns a typed `Offset` into the serialized data indicating
+  /// where the vector is stored.
+  template<typename T> Offset<Vector<T>> CreateVector(
+      const chre::DynamicVector<T> &v) {
+    return CreateVector(v.data(), v.size());
+  }
+  #endif  // FLATBUFFERS_CHRE
 
   #ifndef FLATBUFFERS_CPP98_STL
   /// @brief Serialize values returned by a function into a FlatBuffer `vector`.
@@ -1100,6 +1175,7 @@ FLATBUFFERS_FINAL_CLASS
   }
   #endif
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize a `std::vector<std::string>` into a FlatBuffer `vector`.
   /// This is a convenience function for a common case.
   /// @param v A const reference to the `std::vector` to serialize into the
@@ -1112,6 +1188,7 @@ FLATBUFFERS_FINAL_CLASS
     for (size_t i = 0; i < v.size(); i++) offsets[i] = CreateString(v[i]);
     return CreateVector(offsets);
   }
+  #endif  // FLATBUFFERS_CHRE
 
   /// @brief Serialize an array of structs into a FlatBuffer `vector`.
   /// @tparam T The data type of the struct array elements.
@@ -1175,6 +1252,7 @@ FLATBUFFERS_FINAL_CLASS
   };
   /// @endcond
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize an array of `table` offsets as a `vector` in the buffer
   /// in sorted order.
   /// @tparam T The data type that the offset refers to.
@@ -1200,6 +1278,7 @@ FLATBUFFERS_FINAL_CLASS
       std::vector<Offset<T>> *v) {
     return CreateVectorOfSortedTables(data(*v), v->size());
   }
+  #endif  // FLATBUFFERS_CHRE
 
   /// @brief Specialized version of `CreateVector` for non-copying use cases.
   /// Write the data any time later to the returned buffer pointer `buf`.
@@ -1290,8 +1369,12 @@ FLATBUFFERS_FINAL_CLASS
 
   vector_downward buf_;
 
+  #ifndef FLATBUFFERS_CHRE
   // Accumulating offsets of table members while it is being built.
   std::vector<FieldLoc> offsetbuf_;
+  #else
+  chre::DynamicVector<FieldLoc> offsetbuf_;
+  #endif  // FLATBUFFERS_CHRE
 
   // Ensure objects are not nested.
   bool nested;
@@ -1299,7 +1382,11 @@ FLATBUFFERS_FINAL_CLASS
   // Ensure the buffer is finished before it is being accessed.
   bool finished;
 
+  #ifndef FLATBUFFERS_CHRE
   std::vector<uoffset_t> vtables_;  // todo: Could make this into a map?
+  #else
+  chre::DynamicVector<uoffset_t> vtables_;
+  #endif
 
   size_t minalign_;
 
@@ -1307,6 +1394,7 @@ FLATBUFFERS_FINAL_CLASS
 
   bool dedup_vtables_;
 
+  #ifndef FLATBUFFERS_CHRE
   struct StringOffsetCompare {
     StringOffsetCompare(const vector_downward &buf) : buf_(&buf) {}
     bool operator() (const Offset<String> &a, const Offset<String> &b) const {
@@ -1321,6 +1409,7 @@ FLATBUFFERS_FINAL_CLASS
   // For use with CreateSharedString. Instantiated on first use only.
   typedef std::set<Offset<String>, StringOffsetCompare> StringOffsetMap;
   StringOffsetMap *string_pool;
+  #endif  // FLATBUFFERS_CHRE
 };
 /// @}
 
@@ -1419,6 +1508,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     return Verify(reinterpret_cast<const Vector<T> *>(vec));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   // Verify a pointer (may be NULL) to string.
   bool Verify(const String *str) const {
     const uint8_t *end;
@@ -1427,6 +1517,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
             Verify(end, 1) &&      // Must have terminator
             Check(*end == '\0'));  // Terminating byte must be 0.
   }
+  #endif  // FLATBUFFERS_CHRE
 
   // Common code between vectors and strings.
   bool VerifyVector(const uint8_t *vec, size_t elem_size,
@@ -1444,6 +1535,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     return Verify(vec, byte_size);
   }
 
+  #ifndef FLATBUFFERS_CHRE
   // Special case for string contents, after the above has been called.
   bool VerifyVectorOfStrings(const Vector<Offset<String>> *vec) const {
       if (vec) {
@@ -1453,6 +1545,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
       }
       return true;
   }
+  #endif  // FLATBUFFERS_CHRE
 
   // Special case for table contents, after the above has been called.
   template<typename T> bool VerifyVectorOfTables(const Vector<Offset<T>> *vec) {
@@ -1848,5 +1941,13 @@ volatile __attribute__((weak)) const char *flatbuffer_version_string =
     }
 /// @endcond
 }  // namespace flatbuffers
+
+#ifdef FLATBUFFERS_CHRE
+  #undef assert
+
+  #ifdef FLATBUFFERS_PRIOR_ASSERT
+    #define assert FLATBUFFERS_PRIOR_ASSERT
+  #endif
+#endif
 
 #endif  // FLATBUFFERS_H_
