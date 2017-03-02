@@ -18,12 +18,40 @@
 
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
+#include "chre/platform/context.h"
 #include "chre/platform/log.h"
 
 namespace chre {
 
 EventLoop::EventLoop()
     : mTimerPool(*this) {}
+
+bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
+                                             uint32_t *instanceId) {
+  CHRE_ASSERT(instanceId != nullptr);
+
+  // TODO: would be nice to have a ConditionalLockGuard where we just pass this
+  // bool to the constructor and it automatically handles the unlock for us
+  bool needLock = (getCurrentEventLoop() == this);
+  if (needLock) {
+    mNanoappsLock.lock();
+  }
+
+  bool found = false;
+  for (Nanoapp *app : mNanoapps) {
+    if (app->getAppId() == appId) {
+      *instanceId = app->getInstanceId();
+      found = true;
+      break;
+    }
+  }
+
+  if (needLock) {
+    mNanoappsLock.unlock();
+  }
+
+  return found;
+}
 
 void EventLoop::run() {
   LOGI("EventLoop start");
@@ -98,7 +126,10 @@ bool EventLoop::startNanoapp(Nanoapp *nanoapp) {
     return false;
   }
 
-  mNanoapps.push_back(nanoapp);
+  {
+    LockGuard<Mutex> lock(mNanoappsLock);
+    mNanoapps.push_back(nanoapp);
+  }
   return true;
 }
 
@@ -107,7 +138,10 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
 
   for (size_t i = 0; i < mNanoapps.size(); i++) {
     if (nanoapp == mNanoapps[i]) {
-      mNanoapps.erase(i);
+      {
+        LockGuard<Mutex> lock(mNanoappsLock);
+        mNanoapps.erase(i);
+      }
 
       mCurrentApp = nanoapp;
       nanoapp->stop();
@@ -134,11 +168,6 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
-void EventLoop::postEventDelayed(Event *event, uint64_t delayNs) {
-  // TODO: use timer
-  mEvents.push(event);
-}
-
 void EventLoop::stop() {
   mRunning = false;
 
@@ -148,6 +177,7 @@ void EventLoop::stop() {
 }
 
 Nanoapp *EventLoop::getCurrentNanoapp() const {
+  CHRE_ASSERT(getCurrentEventLoop() == this);
   return mCurrentApp;
 }
 

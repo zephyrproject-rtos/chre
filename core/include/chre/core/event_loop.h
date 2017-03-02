@@ -17,12 +17,10 @@
 #ifndef CHRE_CORE_EVENT_LOOP_H_
 #define CHRE_CORE_EVENT_LOOP_H_
 
-// TODO: using std lib for initial test... we can't do this in the real world
-#include <atomic>
-
 #include "chre/core/event.h"
 #include "chre/core/nanoapp.h"
 #include "chre/core/timer_pool.h"
+#include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
@@ -31,7 +29,9 @@
 namespace chre {
 
 /**
- * TODO: document this better
+ * The EventLoop represents a single thread of execution that is shared among
+ * zero or more nanoapps. As the name implies, the EventLoop is built around a
+ * loop that delivers events to the nanoapps managed within for processing.
  */
 class EventLoop : public NonCopyable {
  public:
@@ -40,9 +40,20 @@ class EventLoop : public NonCopyable {
    */
   EventLoop();
 
-  // TODO: need a clear delineation for which methods are safe to call from
-  // threads other than the one calling run()... should include stop() and
-  // postEvent()... everything else would decidedly be not thread-safe
+  /**
+   * Searches the set of nanoapps managed by this EventLoop for one with the
+   * given app ID. If found, provides its instance ID, which can be used to send
+   * events to the app.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param appId The nanoapp identifier to search for.
+   * @param instanceId If this function returns true, will be populated with the
+   *        instanceId associated with the given appId; otherwise unmodified.
+   *        Must not be null.
+   * @return true if the given app ID was found and instanceId was populated
+   */
+  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId);
 
   /**
    * Starts a nanoapp by invoking the start entry point. If this is successful,
@@ -63,8 +74,9 @@ class EventLoop : public NonCopyable {
   void stopNanoapp(Nanoapp *nanoapp);
 
   /**
-   * Start the main task run loop. Only returns after stop() is called
-   * (from another context).
+   * Executes the loop that blocks on the event queue and delivers received
+   * events to nanoapps. Only returns after stop() is called (from another
+   * context).
    */
   void run();
 
@@ -93,16 +105,12 @@ class EventLoop : public NonCopyable {
                  uint32_t senderInstanceId = kSystemInstanceId,
                  uint32_t targetInstanceId = kBroadcastInstanceId);
 
-  // TODO: do we need this? it might be a helpful convenience function that
-  // handles creation of a timer and stuff
-  void postEventDelayed(Event *event, uint64_t delayNs);
-
   /**
    * Returns a pointer to the currently executing Nanoapp, or nullptr if none is
-   * currently executing.
+   * currently executing. Must only be called from within the thread context
+   * associated with this EventLoop.
    *
-   * @return a pointer to the currently executing nanoapp and nullptr if not
-   * currently in an app context.
+   * @return the currently executing nanoapp, or nullptr
    */
   Nanoapp *getCurrentNanoapp() const;
 
@@ -112,6 +120,8 @@ class EventLoop : public NonCopyable {
    *
    * @return a unique instance ID to assign to a nanoapp.
    */
+  // TODO: move this to EventLoopManager as it must be unique across all event
+  // loops; we currently really only support one EventLoop so it's OK for now
   uint32_t getNextInstanceId();
 
   /**
@@ -141,21 +151,40 @@ class EventLoop : public NonCopyable {
   //! The list of nanoapps managed by this event loop.
   DynamicVector<Nanoapp *> mNanoapps;
 
+  //! This lock *must* be held whenever we:
+  //!   (1) make changes to the mNanoapps vector, or
+  //!   (2) read the mNanoapps vector from a thread other than the one
+  //!       associated with this EventLoop
+  //! It is not necessary to acquire the lock when reading mNanoapps from within
+  //! the thread context of this EventLoop.
+  Mutex mNanoappsLock;
+
   //! The blocking queue of incoming events from the system that have not been
   //!  distributed out to apps yet.
   FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
 
-  // TODO: we probably want our own atomic platform abstraction too
-  std::atomic<bool> mRunning{false};
+  // TODO: should probably be atomic to be fully correct
+  volatile bool mRunning = false;
 
   Nanoapp *mCurrentApp = nullptr;
 
+  /**
+   * Call after when an Event has been delivered to all intended recipients.
+   * Invokes the event's free callback (if given) and releases resources.
+   *
+   * @param event The event to be freed
+   */
   void freeEvent(Event *event);
-  Nanoapp *lookupAppByInstanceId(uint32_t instanceId);
 
-  // TODO: we probably want a to model kSystemInstanceId as an actual nanoapp
-  // with entry points and all that to make it simpler to post events to ourself
-  // and the like...
+  /**
+   * Finds a Nanoapp with the given instanceId.
+   *
+   * Only safe to call within this EventLoop's thread.
+   *
+   * @param instanceId Nanoapp instance identifier
+   * @return Nanoapp with the given instanceId, or nullptr if not found
+   */
+  Nanoapp *lookupAppByInstanceId(uint32_t instanceId);
 };
 
 }  // namespace chre

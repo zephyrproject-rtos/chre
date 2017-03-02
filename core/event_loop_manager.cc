@@ -41,11 +41,31 @@ bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
                                    kSystemInstanceId, kSystemInstanceId);
 }
 
+bool EventLoopManager::findNanoappInstanceIdByAppId(
+    uint64_t appId, uint32_t *instanceId, EventLoop **eventLoop) {
+  bool found = false;
+
+  for (size_t i = 0; i < mEventLoops.size(); i++) {
+    if (mEventLoops[i]->findNanoappInstanceIdByAppId(appId, instanceId)) {
+      found = true;
+      if (eventLoop != nullptr) {
+        *eventLoop = mEventLoops[i].get();
+      }
+      break;
+    }
+  }
+
+  return found;
+}
+
 void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,
                                  uint32_t targetInstanceId) {
   LockGuard<Mutex> lock(mMutex);
+
+  // TODO: for unicast events, ideally we'd just post the event to the EventLoop
+  // that has the target
   for (size_t i = 0; i < mEventLoops.size(); i++) {
     mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
                               senderInstanceId, targetInstanceId);

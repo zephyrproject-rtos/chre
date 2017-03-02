@@ -75,6 +75,28 @@ class EventLoopManager : public NonCopyable {
                      SystemCallbackFunction *callback);
 
   /**
+   * Search all event loops to look up the instance ID associated with a Nanoapp
+   * via its app ID, and optionally the EventLoop that is hosting it.
+   *
+   * Note that this function makes the assumption that there is only one
+   * instance of a given appId executing within CHRE at any given time, i.e. the
+   * mapping between appId and instanceId is 1:1. This assumption holds due to
+   * restrictions imposed in v1.0 of the context hub HAL, but is not guaranteed
+   * for all future versions.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param appId The nanoapp ID to search for
+   * @param instanceId On success, will be populated with the instanceId
+   *        associated with the app. Must not be null.
+   * @param eventLoop If not null, will be populated with a pointer to the
+   *        EventLoop where this nanoapp executes
+   * @return true if an app with the given ID was found
+   */
+  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId,
+                                    EventLoop **eventLoop = nullptr);
+
+  /**
    * Posts an event to all event loops owned by this event loop manager. This
    * method is thread-safe and is used to post events that all event loops would
    * be interested in, such as sensor event data.
