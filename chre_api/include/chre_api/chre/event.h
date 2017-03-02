@@ -159,6 +159,27 @@ extern "C" {
  */
 #define CHRE_EVENT_INTERNAL_LAST_EVENT  UINT16_C(0x7FFF)
 
+/**
+ * A special value for the hostEndpoint argument in
+ * chreSendMessageToHostEndpoint() that indicates that the message should be
+ * delivered to all host endpoints.  This value will not be used in the
+ * hostEndpoint field of struct chreMessageFromHostData supplied with
+ * CHRE_EVENT_MESSAGE_FROM_HOST.
+ *
+ * @since v1.1
+ */
+#define CHRE_HOST_ENDPOINT_BROADCAST  UINT16_C(0xFFFF)
+
+/**
+ * A special value for hostEndpoint in struct chreMessageFromHostData that
+ * indicates that a host endpoint is unknown or otherwise unspecified.  This
+ * value may be received in CHRE_EVENT_MESSAGE_FROM_HOST, but it is not valid to
+ * provide it to chreSendMessageToHostEndpoint().
+ *
+ * @since v1.1
+ */
+#define CHRE_HOST_ENDPOINT_UNSPECIFIED  UINT16_C(0xFFFE)
+
 
 /**
  * Data provided with CHRE_EVENT_MESSAGE_FROM_HOST.
@@ -190,6 +211,21 @@ struct chreMessageFromHostData {
      * is 0, this might be NULL.
      */
     const void *message;
+
+    /**
+     * An identifier for the host-side entity that sent this message.  Unless
+     * this is set to CHRE_HOST_ENDPOINT_UNSPECIFIED, it can be used in
+     * chreSendMessageToHostEndpoint() to send a directed reply that will only
+     * be received by the given entity on the host.  Endpoint identifiers are
+     * opaque values assigned at runtime, so they cannot be assumed to always
+     * describe a specific entity across restarts.
+     *
+     * If running on a CHRE API v1.0 implementation, this field will always be
+     * set to CHRE_HOST_ENDPOINT_UNSPECIFIED.
+     *
+     * @since v1.1
+     */
+    uint16_t hostEndpoint;
 };
 
 /**
@@ -287,6 +323,21 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
                    uint32_t targetInstanceId);
 
 /**
+ * Send a message to the host, using the broadcast endpoint
+ * CHRE_HOST_ENDPOINT_BROADCAST.  Refer to chreSendMessageToHostEndpoint() for
+ * further details.
+ *
+ * @see chreSendMessageToHostEndpoint
+ *
+ * @deprecated New code should use chreSendMessageToHostEndpoint() instead of
+ * this function.  A future update to the API may cause references to this
+ * function to produce a compiler warning.
+ */
+bool chreSendMessageToHost(void *message, uint32_t messageSize,
+                           uint32_t messageType,
+                           chreMessageFreeFunction *freeCallback);
+
+/**
  * Send a message to the host.
  *
  * This message is by definition arbitrarily defined.  Since we're not
@@ -320,6 +371,13 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
  *     NOTE: In CHRE API v1.0, support for forwarding this field to the host was
  *     not strictly required, and some implementations did not support it.
  *     However, its support is mandatory as of v1.1.
+ * @param hostEndpoint  An identifier for the intended recipient of the message,
+ *     or CHRE_HOST_ENDPOINT_BROADCAST if all registered endpoints on the host
+ *     should receive the message.  Endpoint identifiers are assigned on the
+ *     host side, and nanoapps may learn of the host endpoint ID of an intended
+ *     recipient via an initial message sent by the host.  This parameter is
+ *     always treated as CHRE_HOST_ENDPOINT_BROADCAST if running on a CHRE API
+ *     v1.0 implementation.
  * @param freeCallback  A pointer to a callback function.  After the lifetime
  *     of 'message' is over (which does not assure that 'message' made it to
  *     the host, just that the transport layer no longer needs this memory),
@@ -332,10 +390,12 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
  *     for nanoapp authors to avoid possible recursion with this.
  *
  * @see chreMessageFreeFunction
+ *
+ * @since v1.1
  */
-bool chreSendMessageToHost(void *message, uint32_t messageSize,
-                           uint32_t messageType,
-                           chreMessageFreeFunction *freeCallback);
+bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
+                                   uint32_t messageType, uint16_t hostEndpoint,
+                                   chreMessageFreeFunction *freeCallback);
 
 /**
  * Queries for information about a nanoapp running in the system.
