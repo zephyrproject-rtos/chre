@@ -307,6 +307,15 @@ class DynamicVector : public NonCopyable {
   const ElementType& back() const;
 
   /**
+   * Prepares a vector to push a minimum of one element onto the back. The
+   * vector may be resized if required. The capacity of the vector increases
+   * with the growth policy of this vector (doubles for each resize for now).
+   *
+   * @return Whether or not the resize was successful.
+   */
+  bool prepareForPush();
+
+  /**
    * Random-access iterator that points to some element in the container.
    */
   typedef ElementType* iterator;
@@ -337,14 +346,6 @@ class DynamicVector : public NonCopyable {
 
   //! Set to true when the buffer (mData) was supplied via wrap()
   bool mDataIsWrapped = false;
-
-  /**
-   * Prepares a vector to push one element onto the back. The vector may be
-   * resized if required.
-   *
-   * @return Whether or not the resize was successful.
-   */
-  bool prepareForPush();
 };
 
 }  // namespace chre

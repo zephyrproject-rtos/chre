@@ -312,6 +312,23 @@ const ElementType& DynamicVector<ElementType>::back() const {
 }
 
 template<typename ElementType>
+bool DynamicVector<ElementType>::prepareForPush() {
+  bool spaceAvailable = true;
+  if (mSize == mCapacity) {
+    size_t newCapacity = mCapacity * 2;
+    if (newCapacity == 0) {
+      newCapacity = 1;
+    }
+
+    if (!reserve(newCapacity)) {
+      spaceAvailable = false;
+    }
+  }
+
+  return spaceAvailable;
+}
+
+template<typename ElementType>
 typename DynamicVector<ElementType>::iterator
     DynamicVector<ElementType>::begin() {
   return mData;
@@ -333,23 +350,6 @@ template<typename ElementType>
 typename DynamicVector<ElementType>::const_iterator
     DynamicVector<ElementType>::cend() const {
   return (mData + mSize);
-}
-
-template<typename ElementType>
-bool DynamicVector<ElementType>::prepareForPush() {
-  bool spaceAvailable = true;
-  if (mSize == mCapacity) {
-    size_t newCapacity = mCapacity * 2;
-    if (newCapacity == 0) {
-      newCapacity = 1;
-    }
-
-    if (!reserve(newCapacity)) {
-      spaceAvailable = false;
-    }
-  }
-
-  return spaceAvailable;
 }
 
 }  // namespace chre

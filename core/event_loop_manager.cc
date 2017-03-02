@@ -58,6 +58,22 @@ bool EventLoopManager::findNanoappInstanceIdByAppId(
   return found;
 }
 
+Nanoapp *EventLoopManager::findNanoappByInstanceId(uint32_t instanceId,
+                                                   EventLoop **eventLoop) {
+  Nanoapp *nanoapp = nullptr;
+  for (size_t i = 0; i < mEventLoops.size(); i++) {
+    nanoapp = mEventLoops[i]->findNanoappByInstanceId(instanceId);
+    if (nanoapp != nullptr) {
+      if (eventLoop != nullptr) {
+        *eventLoop = mEventLoops[i].get();
+      }
+      break;
+    }
+  }
+
+  return nanoapp;
+}
+
 bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,

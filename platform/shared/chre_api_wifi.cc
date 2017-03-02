@@ -24,3 +24,8 @@ uint32_t chreWifiGetCapabilities() {
   return chre::EventLoopManagerSingleton::get()->getWifiRequestManager()
       .getCapabilities();
 }
+
+bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie) {
+  return EventLoopManagerSingleton::get()->getWifiRequestManager()
+      .configureScanMonitor(nullptr, enable, cookie);
+}
