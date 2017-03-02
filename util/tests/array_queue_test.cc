@@ -319,3 +319,13 @@ TEST(ArrayQueueTest, SimpleConstIterator) {
     EXPECT_EQ(q[index++], *cit++);
   }
 }
+
+TEST(ArrayQueueTest, Full) {
+  ArrayQueue<size_t, 4> q;
+  for (size_t i = 0; i < 4; i++) {
+    EXPECT_FALSE(q.full());
+    q.push(i);
+  }
+
+  EXPECT_TRUE(q.full());
+}

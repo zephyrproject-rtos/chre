@@ -43,6 +43,11 @@ class ArrayQueue : public NonCopyable {
   bool empty() const;
 
   /**
+   * @return true if the array queue is full.
+   */
+  bool full() const;
+
+  /**
    * Obtains the number of elements currently stored in the array queue.
    *
    * @return The number of elements currently stored in the array queue.

@@ -37,6 +37,11 @@ bool ArrayQueue<ElementType, kCapacity>::empty() const {
 }
 
 template<typename ElementType, size_t kCapacity>
+bool ArrayQueue<ElementType, kCapacity>::full() const {
+  return (mSize == kCapacity);
+}
+
+template<typename ElementType, size_t kCapacity>
 size_t ArrayQueue<ElementType, kCapacity>::size() const {
   return mSize;
 }
