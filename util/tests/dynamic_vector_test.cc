@@ -35,6 +35,9 @@ class Dummy {
   void setValue(int value) {
     mValue = value;
   }
+  int getValue() {
+    return mValue;
+  }
 
  private:
   int mValue = -1;
@@ -625,6 +628,7 @@ TEST(DynamicVector, Wrap) {
   EXPECT_CHRE_ASSERT(EXPECT_FALSE(vector.push_back(-1)));
   EXPECT_CHRE_ASSERT(EXPECT_FALSE(vector.emplace_back(-1)));
   EXPECT_CHRE_ASSERT(EXPECT_FALSE(vector.insert(1, -1)));
+  EXPECT_CHRE_ASSERT(EXPECT_FALSE(vector.copy_array(buf, kSize)));
 
   for (size_t i = 0; i < kSize; i++) {
     EXPECT_EQ(vector[i], i);
@@ -679,4 +683,68 @@ TEST(DynamicVector, Unwrap) {
   EXPECT_EQ(vec.data(), nullptr);
 
   EXPECT_TRUE(vec.push_back(1));
+}
+
+TEST(DynamicVector, CopyArray) {
+  constexpr size_t kSize = 4;
+  int buf[kSize];
+  for (size_t i = 0; i < kSize; i++) {
+    buf[i] = i;
+  }
+
+  DynamicVector<int> vec;
+  ASSERT_TRUE(vec.copy_array(buf, kSize));
+  EXPECT_TRUE(vec.owns_data());
+
+  EXPECT_EQ(vec.size(), kSize);
+  EXPECT_EQ(vec.capacity(), kSize);
+  EXPECT_NE(vec.data(), buf);
+
+  EXPECT_TRUE(vec.push_back(kSize));
+  EXPECT_EQ(vec.size(), kSize + 1);
+  EXPECT_GE(vec.capacity(), kSize + 1);
+
+  for (size_t i = 0; i < kSize + 1; i++) {
+    EXPECT_EQ(vec[i], i);
+  }
+}
+
+TEST(DynamicVector, CopyArrayHandlesDestructor) {
+  resetDestructorCounts();
+  constexpr size_t kSize = 4;
+
+  {
+    DynamicVector<Dummy> vec;
+    {
+      Dummy array[kSize];
+      for (size_t i = 0; i < kSize; i++) {
+        array[i].setValue(i);
+      }
+
+      ASSERT_TRUE(vec.copy_array(array, kSize));
+    }
+
+    for (size_t i = 0; i < kSize; i++) {
+      EXPECT_EQ(gDestructorCount[i], 1);
+    }
+
+    for (size_t i = 0; i < kSize; i++) {
+      ASSERT_TRUE(vec[i].getValue() == i);
+    }
+  }
+
+  for (size_t i = 0; i < kSize; i++) {
+    EXPECT_EQ(gDestructorCount[i], 2);
+  }
+}
+
+TEST(DynamicVector, CopyEmptyArray) {
+  DynamicVector<int> vec;
+
+  EXPECT_TRUE(vec.copy_array(nullptr, 0));
+  EXPECT_EQ(vec.size(), 0);
+
+  vec.emplace_back(1);
+  EXPECT_TRUE(vec.copy_array(nullptr, 0));
+  EXPECT_EQ(vec.size(), 0);
 }

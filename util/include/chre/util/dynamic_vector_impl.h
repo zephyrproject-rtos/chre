@@ -187,7 +187,7 @@ bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::insert(size_t index,
-    const ElementType& element) {
+                                        const ElementType& element) {
   // Insertions are not allowed to create a sparse array.
   CHRE_ASSERT(index <= mSize);
 
@@ -206,6 +206,22 @@ bool DynamicVector<ElementType>::insert(size_t index,
   }
 
   return inserted;
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::copy_array(const ElementType *array,
+                                            size_t elementCount) {
+  CHRE_ASSERT(owns_data());
+
+  bool success = false;
+  if (owns_data() && reserve(elementCount)) {
+    clear();
+    std::copy(array, array + elementCount, mData);
+    mSize = elementCount;
+    success = true;
+  }
+
+  return success;
 }
 
 template<typename ElementType>

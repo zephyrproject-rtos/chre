@@ -180,6 +180,32 @@ class DynamicVector : public NonCopyable {
   bool insert(size_t index, const ElementType& element);
 
   /**
+   * Similar to wrap(), except makes a copy of the supplied C-style array,
+   * maintaining ownership of the buffer within the DynamicVector container. The
+   * vector's capacity is increased if necessary to fit the given array, though
+   * note that this function will not cause the capacity to shrink. Upon
+   * successful reservation of necessary capacity, any pre-existing items in the
+   * vector are removed (via clear()), the supplied array is copied, and the
+   * vector's size is set to elementCount. All iterators and references are
+   * invalidated unless the container did not resize.
+   *
+   * This is essentially equivalent to calling these functions from std::vector:
+   *   vector.clear();
+   *   vector.insert(vector.begin(), array, &array[elementCount]);
+   *
+   * This function is not valid to call on a vector where owns_data() is false.
+   * Use unwrap() first in that case.
+   *
+   * @param array Pointer to the start of an array
+   * @param elementCount Number of elements in the supplied array to copy
+   *
+   * @return true if capacity was reserved to fit the supplied array (or the
+   *         vector already had sufficient capacity), and the supplied array was
+   *         copied into the vector. If false, the vector is not modified.
+   */
+  bool copy_array(const ElementType *array, size_t elementCount);
+
+  /**
    * Removes an element from the vector given an index. All elements after the
    * indexed one are moved forward one position. The destructor is invoked on
    * on the invalid item left at the end of the vector. The index passed in
