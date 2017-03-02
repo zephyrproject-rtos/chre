@@ -102,6 +102,15 @@ class Optional {
   ObjectType& operator*();
 
   /**
+   * Obtains a const reference to the underlying object managed by this
+   * container. The behavior of this is undefined if has_value() returns false.
+   *
+   * @return Returns a const reference to the underlying object tracked by this
+   *         container.
+   */
+  const ObjectType& operator*() const;
+
+  /**
    * Obtains a pointer to the underlying object managed by this container. The
    * object may not be well-formed if has_value() returns false.
    *
@@ -109,6 +118,15 @@ class Optional {
    *         container.
    */
   ObjectType *operator->();
+
+  /**
+   * Obtains a const pointer to the underlying object managed by this container.
+   * The object may not be well-formed if has_value() returns false.
+   *
+   * @return Returns a const pointer to the underlying object tracked by this
+   *         container.
+   */
+  const ObjectType *operator->() const;
 
  private:
   //! The optional object being tracked by this container.

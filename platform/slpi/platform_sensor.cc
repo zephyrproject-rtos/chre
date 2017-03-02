@@ -193,17 +193,16 @@ bool isValidIndicesLength() {
 /**
  * Adds a Platform sensor to the sensor list.
  *
- * @param sensorId The sensorID as provided by the SMGR request for sensor info.
- * @param dataType The dataType for the sesnor as provided by the SMGR request
- *                 for sensor info.
+ * @param sensorInfo The sensorInfo as provided by the SMGR.
  * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
  * @param sensor The sensor list.
  */
-void addPlatformSensor(uint8_t sensorId, uint8_t dataType, uint8_t calType,
-                       DynamicVector<PlatformSensor> *sensors) {
-  PlatformSensor platformSensor;
-  platformSensor.sensorId = sensorId;
-  platformSensor.dataType = dataType;
+void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
+                       uint8_t calType, DynamicVector<PlatformSensor> *sensors) {
+  PlatformSensor platformSensor(static_cast<uint64_t>(
+      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate));
+  platformSensor.sensorId = sensorInfo.SensorID;
+  platformSensor.dataType = sensorInfo.DataType;
   platformSensor.calType = calType;
   if (!sensors->push_back(std::move(platformSensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
@@ -346,7 +345,7 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
     LOGE("Error parsing sensor data indication %d", status);
   } else {
     // We only requested one sensor per request except for a secondary
-    // secondary temperature sensor.
+    // temperature sensor.
     bool validReport = isValidIndicesLength();
     CHRE_ASSERT_LOG(validReport,
                     "Got buffering indication from %" PRIu32
@@ -381,7 +380,7 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
               smgrSensorDataEventFree);
         }
       }
-    }
+    }  // if (validReport)
   }
 }
 
@@ -538,28 +537,27 @@ bool getSensorsForSensorId(uint8_t sensorId,
     const sns_smgr_sensor_info_s_v01& sensorInfoList =
         sensorInfoResponse.SensorInfo;
     for (uint32_t i = 0; i < sensorInfoList.data_type_info_len; i++) {
-      const sns_smgr_sensor_datatype_info_s_v01 *sensorInfo =
-          &sensorInfoList.data_type_info[i];
+      const sns_smgr_sensor_datatype_info_s_v01& sensorInfo =
+          sensorInfoList.data_type_info[i];
       LOGD("SensorID %" PRIu8 ", DataType %" PRIu8 ", MaxRate %" PRIu16
            "Hz, SensorName %s",
-           sensorInfo->SensorID, sensorInfo->DataType,
-           sensorInfo->MaxSampleRate, sensorInfo->SensorName);
+           sensorInfo.SensorID, sensorInfo.DataType,
+           sensorInfo.MaxSampleRate, sensorInfo.SensorName);
 
       SensorType sensorType = getSensorTypeFromSensorId(
-          sensorInfo->SensorID, sensorInfo->DataType,
+          sensorInfo.SensorID, sensorInfo.DataType,
           SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
         isSensorIdSupported = true;
-        addPlatformSensor(sensorInfo->SensorID, sensorInfo->DataType,
-                          SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
+        addPlatformSensor(sensorInfo, SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
 
         // Add an uncalibrated version if defined.
         SensorType uncalibratedType = getSensorTypeFromSensorId(
-            sensorInfo->SensorID, sensorInfo->DataType,
+            sensorInfo.SensorID, sensorInfo.DataType,
             SNS_SMGR_CAL_SEL_FACTORY_CAL_V01);
         if (sensorType != uncalibratedType) {
-          addPlatformSensor(sensorInfo->SensorID, sensorInfo->DataType,
-                            SNS_SMGR_CAL_SEL_FACTORY_CAL_V01, sensors);
+          addPlatformSensor(sensorInfo, SNS_SMGR_CAL_SEL_FACTORY_CAL_V01,
+                            sensors);
         }
       }
     }
@@ -643,6 +641,12 @@ void populateSensorRequest(
 }
 
 }  // anonymous namespace
+
+PlatformSensor::PlatformSensor()
+    : mMinInterval(CHRE_SENSOR_INTERVAL_DEFAULT) {}
+
+PlatformSensor::PlatformSensor(uint64_t minInterval)
+    : mMinInterval(minInterval) {}
 
 void PlatformSensor::init() {
   // sns_smgr_api_v01
@@ -761,6 +765,23 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
 SensorType PlatformSensor::getSensorType() const {
   return getSensorTypeFromSensorId(this->sensorId, this->dataType,
                                    this->calType);
+}
+
+bool PlatformSensor::isOneShot() const {
+  SensorType sensorType = getSensorType();
+  return (sensorType == SensorType::InstantMotion ||
+          sensorType == SensorType::StationaryDetect);
+}
+
+bool PlatformSensor::isOnChange() const {
+  SensorType sensorType = getSensorType();
+  // Defined in sns_smgr_is_on_change_sensor().
+  return (sensorType == SensorType::Light ||
+          sensorType == SensorType::Proximity);
+}
+
+uint64_t PlatformSensor::getMinInterval() const {
+  return mMinInterval;
 }
 
 }  // namespace chre

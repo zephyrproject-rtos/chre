@@ -80,7 +80,17 @@ ObjectType& Optional<ObjectType>::operator*() {
 }
 
 template<typename ObjectType>
+const ObjectType& Optional<ObjectType>::operator*() const {
+  return mObject;
+}
+
+template<typename ObjectType>
 ObjectType *Optional<ObjectType>::operator->() {
+  return &mObject;
+}
+
+template<typename ObjectType>
+const ObjectType *Optional<ObjectType>::operator->() const {
   return &mObject;
 }
 

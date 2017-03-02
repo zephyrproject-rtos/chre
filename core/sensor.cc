@@ -18,15 +18,13 @@
 
 namespace chre {
 
-Sensor::Sensor()
-    : mSensorType(SensorType::Unknown) {}
+Sensor::Sensor() {}
 
 Sensor::Sensor(const PlatformSensor& platformSensor)
-    : mSensorType(platformSensor.getSensorType()),
-      mPlatformSensor(platformSensor) {}
+    : mPlatformSensor(platformSensor) {}
 
-SensorType Sensor::getSensorType() {
-  return mSensorType;
+SensorType Sensor::getSensorType() const {
+  return isValid() ? mPlatformSensor->getSensorType() : SensorType::Unknown;
 }
 
 bool Sensor::isValid() const {
@@ -45,10 +43,22 @@ bool Sensor::setRequest(const SensorRequest& request) {
 }
 
 Sensor& Sensor::operator=(Sensor&& other) {
-  mSensorType = other.mSensorType;
   mSensorRequest = other.mSensorRequest;
   mPlatformSensor = other.mPlatformSensor;
   return *this;
+}
+
+bool Sensor::isOneShot() const {
+  return isValid() ? mPlatformSensor->isOneShot() : false;
+}
+
+bool Sensor::isOnChange() const {
+  return isValid() ? mPlatformSensor->isOnChange() : false;
+}
+
+uint64_t Sensor::getMinInterval() const {
+  return isValid() ? mPlatformSensor->getMinInterval() :
+      CHRE_SENSOR_INTERVAL_DEFAULT;
 }
 
 }  // namespace chre

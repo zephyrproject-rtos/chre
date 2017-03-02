@@ -32,6 +32,18 @@ namespace chre {
 class PlatformSensor : public PlatformSensorBase {
  public:
   /**
+   * Default constructs a PlatformSensor.
+   */
+  PlatformSensor();
+
+  /**
+   * Constructs a platform sensor with its minimum interval specified.
+   *
+   * @param minInterval The minimum interval in nanoseconds of this sensor.
+   */
+  PlatformSensor(uint64_t minInterval);
+
+  /**
    * Initializes the platform sensors subsystem. This must be called as part of
    * the initialization of the runtime.
    */
@@ -76,6 +88,24 @@ class PlatformSensor : public PlatformSensorBase {
    * @return The type of this sensor.
    */
   SensorType getSensorType() const;
+
+  /**
+   * @return true if it is a one-shot sensor.
+   */
+  bool isOneShot() const;
+
+  /**
+   * @return true if it is an on-change sensor.
+   */
+  bool isOnChange() const;
+
+  /**
+   * @return The minimum interval in nanoseconds of this sensor.
+   */
+  uint64_t getMinInterval() const;
+
+ private:
+  uint64_t mMinInterval;
 };
 
 }  // namespace chre

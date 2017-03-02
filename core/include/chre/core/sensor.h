@@ -40,7 +40,7 @@ class Sensor : public NonCopyable {
   /**
    * @return The type of this sensor.
    */
-  SensorType getSensorType();
+  SensorType getSensorType() const;
 
   /**
    * @return true if this Sensor instance has an instance of the underlying
@@ -68,10 +68,22 @@ class Sensor : public NonCopyable {
    */
   Sensor& operator=(Sensor&& other);
 
- private:
-  //! The type of this sensor.
-  SensorType mSensorType;
+  /**
+   * @return true if it is a one-shot sensor.
+   */
+  bool isOneShot() const;
 
+  /**
+   * @return true if it is an on-change sensor.
+   */
+  bool isOnChange() const;
+
+  /**
+   * @return The minimal interval in nanoseconds of this sensor.
+   */
+  uint64_t getMinInterval() const;
+
+ private:
   //! The most recent sensor request sent to this sensor.
   SensorRequest mSensorRequest;
 
