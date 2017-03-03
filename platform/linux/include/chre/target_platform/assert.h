@@ -19,8 +19,6 @@
 
 #include <cassert>
 
-// TODO: ideally we'd only expose the mock for test builds; right now all Linux
-// builds have GTEST defined
 #ifdef GTEST
 
 #include "chre/platform/log.h"
