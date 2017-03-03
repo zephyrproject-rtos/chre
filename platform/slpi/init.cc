@@ -22,7 +22,9 @@ extern "C" {
 
 }  // extern "C"
 
+#include "chre/apps/message_world/message_world.h"
 #include "chre/apps/sensor_world/sensor_world.h"
+#include "chre/apps/timer_world/timer_world.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
@@ -106,6 +108,7 @@ void chreThreadEntry(void * /*data*/) {
     // TODO: work up a better way of handling built-in nanoapps (or don't have
     // any at all). Also, sensor world test functionality should be replaced by
     // a more automated framework.
+#if 0
     chre::PlatformNanoapp sensorWorldPlatformNanoapp;
     sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
     sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
@@ -114,6 +117,30 @@ void chreThreadEntry(void * /*data*/) {
     chre::Nanoapp sensorWorldNanoapp(
         gEventLoop->getNextInstanceId(), &sensorWorldPlatformNanoapp);
     gEventLoop->startNanoapp(&sensorWorldNanoapp);
+#endif
+
+#if 0
+    chre::PlatformNanoapp messageWorldPlatformNanoapp;
+    messageWorldPlatformNanoapp.mStart = chre::app::messageWorldStart;
+    messageWorldPlatformNanoapp.mHandleEvent =
+        chre::app::messageWorldHandleEvent;
+    messageWorldPlatformNanoapp.mStop = chre::app::messageWorldStop;
+
+    chre::Nanoapp messageWorldNanoapp(
+        gEventLoop->getNextInstanceId(), &messageWorldPlatformNanoapp);
+    gEventLoop->startNanoapp(&messageWorldNanoapp);
+#endif
+
+#if 0
+    chre::PlatformNanoapp timerWorldPlatformNanoapp;
+    timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
+    timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
+    timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
+
+    chre::Nanoapp timerWorldNanoapp(
+        gEventLoop->getNextInstanceId(), &timerWorldPlatformNanoapp);
+    gEventLoop->startNanoapp(&timerWorldNanoapp);
+#endif
 
     gEventLoop->run();
   }
