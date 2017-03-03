@@ -170,11 +170,8 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
 }
 
 void EventLoop::stop() {
-  mRunning = false;
-
-  // TODO: provide a better interface that lets us unblock the event loop so
-  // it notices that we want it to stop
   postEvent(0, nullptr, nullptr, kSystemInstanceId, kSystemInstanceId);
+  mRunning = false;
 }
 
 Nanoapp *EventLoop::getCurrentNanoapp() const {
