@@ -32,7 +32,7 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
 
   // TODO: would be nice to have a ConditionalLockGuard where we just pass this
   // bool to the constructor and it automatically handles the unlock for us
-  bool needLock = (getCurrentEventLoop() == this);
+  bool needLock = (getCurrentEventLoop() != this);
   if (needLock) {
     mNanoappsLock.lock();
   }
