@@ -106,8 +106,11 @@ class EventLoopManager : public NonCopyable {
    * @param The callback to invoke when the event is no longer needed.
    * @param The instance ID of the sender of this event.
    * @param The instance ID of the destination of this event.
+   * @return true if the event was successfully sent to all nanoapps targeted
+   *         by the instance ID (ie: for broadcast, all nanoapps were sent the
+   *         event).
    */
-  void postEvent(uint16_t eventType, void *eventData,
+  bool postEvent(uint16_t eventType, void *eventData,
                  chreEventCompleteFunction *freeCallback,
                  uint32_t senderInstanceId = kSystemInstanceId,
                  uint32_t targetInstanceId = kBroadcastInstanceId);

@@ -21,15 +21,21 @@
 #include "chre_api/chre/re.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/platform/context.h"
 #include "chre/platform/log.h"
 
 bool chreSendEvent(uint16_t eventType, void *eventData,
                    chreEventCompleteFunction *freeCallback,
                    uint32_t targetInstanceId) {
-  if (freeCallback) {
-    freeCallback(eventType, eventData);
-  }
-  return false; // TODO
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
+  CHRE_ASSERT(eventLoop);
+
+  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
+  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
+
+  return chre::EventLoopManagerSingleton::get()->postEvent(
+      eventType, eventData, freeCallback, currentApp->getInstanceId(),
+      targetInstanceId);
 }
 
 bool chreSendMessageToHost(void *message, uint32_t messageSize,

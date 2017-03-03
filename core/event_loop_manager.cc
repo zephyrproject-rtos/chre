@@ -58,7 +58,7 @@ bool EventLoopManager::findNanoappInstanceIdByAppId(
   return found;
 }
 
-void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
+bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,
                                  uint32_t targetInstanceId) {
@@ -66,10 +66,13 @@ void EventLoopManager::postEvent(uint16_t eventType, void *eventData,
 
   // TODO: for unicast events, ideally we'd just post the event to the EventLoop
   // that has the target
+  bool success = true;
   for (size_t i = 0; i < mEventLoops.size(); i++) {
-    mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
-                              senderInstanceId, targetInstanceId);
+    success &= mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
+                                         senderInstanceId, targetInstanceId);
   }
+
+  return success;
 }
 
 HostCommsManager& EventLoopManager::getHostCommsManager() {
