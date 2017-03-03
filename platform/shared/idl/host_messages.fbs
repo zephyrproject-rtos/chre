@@ -16,9 +16,13 @@ namespace chre.fbs;
 
 /// Represents a message sent to/from a nanoapp from/to a client on the host
 table NanoappMessage {
-  app_id:ulong;
-  message_type:uint;
-  host_endpoint:ushort;
+  app_id:ulong = 0;
+  message_type:uint = 0;
+
+  /// Identifies the host-side endpoint on the host that sent or should receive
+  /// this message. The default value is a special value defined in the HAL and
+  /// elsewhere that indicates that the endpoint is unspecified.
+  host_endpoint:ushort = 0xfffe;
 
   /// Vector containing arbitrary application-specific message data
   message:[ubyte];

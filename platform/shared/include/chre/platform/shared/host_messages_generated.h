@@ -61,8 +61,11 @@ struct NanoappMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint32_t message_type() const {
     return GetField<uint32_t>(VT_MESSAGE_TYPE, 0);
   }
+  /// Identifies the host-side endpoint on the host that sent or should receive
+  /// this message. The default value is a special value defined in the HAL and
+  /// elsewhere that indicates that the endpoint is unspecified.
   uint16_t host_endpoint() const {
-    return GetField<uint16_t>(VT_HOST_ENDPOINT, 0);
+    return GetField<uint16_t>(VT_HOST_ENDPOINT, 65534);
   }
   /// Vector containing arbitrary application-specific message data
   const flatbuffers::Vector<uint8_t> *message() const {
@@ -89,7 +92,7 @@ struct NanoappMessageBuilder {
     fbb_.AddElement<uint32_t>(NanoappMessage::VT_MESSAGE_TYPE, message_type, 0);
   }
   void add_host_endpoint(uint16_t host_endpoint) {
-    fbb_.AddElement<uint16_t>(NanoappMessage::VT_HOST_ENDPOINT, host_endpoint, 0);
+    fbb_.AddElement<uint16_t>(NanoappMessage::VT_HOST_ENDPOINT, host_endpoint, 65534);
   }
   void add_message(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> message) {
     fbb_.AddOffset(NanoappMessage::VT_MESSAGE, message);
@@ -110,7 +113,7 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t app_id = 0,
     uint32_t message_type = 0,
-    uint16_t host_endpoint = 0,
+    uint16_t host_endpoint = 65534,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> message = 0) {
   NanoappMessageBuilder builder_(_fbb);
   builder_.add_app_id(app_id);
@@ -124,7 +127,7 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t app_id = 0,
     uint32_t message_type = 0,
-    uint16_t host_endpoint = 0,
+    uint16_t host_endpoint = 65534,
     const std::vector<uint8_t> *message = nullptr) {
   return chre::fbs::CreateNanoappMessage(
       _fbb,
