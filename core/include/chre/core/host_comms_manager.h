@@ -17,7 +17,10 @@
 #ifndef CHRE_CORE_HOST_COMMS_MANAGER_H_
 #define CHRE_CORE_HOST_COMMS_MANAGER_H_
 
+#include <cstddef>
+
 #include "chre_api/chre/event.h"
+#include "chre/core/event_loop.h"
 #include "chre/platform/host_link.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -25,40 +28,47 @@
 
 namespace chre {
 
-// TODO: these special endpoint values should come from the CHRE API
-
 //! Only valid for messages from host to CHRE - indicates that the sender of the
 //! message is not specified.
-constexpr uint16_t kHostEndpointUnspecified = 0xFFFE;
+constexpr uint16_t kHostEndpointUnspecified = CHRE_HOST_ENDPOINT_UNSPECIFIED;
 
 //! Only valid for messages from CHRE to host - delivers the message to all
 //! registered clients of the Context Hub HAL, which is the default behavior.
-constexpr uint16_t kHostEndpointBroadcast = 0xFFFF;
+constexpr uint16_t kHostEndpointBroadcast = CHRE_HOST_ENDPOINT_BROADCAST;
 
 /**
  * Data associated with a message either to or from the host.
  */
 struct HostMessage : public NonCopyable {
+  // This union must be first, as this structure is aliased with
+  // chreMessageFromHostData
+  union {
+    // Fields use when the message was received from the host
+    struct chreMessageFromHostData fromHostData;
+
+    // Fields used when the messsage is directed to the host
+    struct {
+      //! Application-specific message ID
+      uint32_t messageType;
+
+      //! Padding used to align this structure with chreMessageFromHostData
+      uint32_t reserved;
+
+      //! Message free callback supplied by the nanoapp. Must only be invoked from
+      //! the EventLoop where the nanoapp runs.
+      chreMessageFreeFunction *nanoappFreeFunction;
+
+      //! Identifier for the host-side entity that should receive this message, or
+      //! that which sent it
+      uint16_t hostEndpoint;
+    } toHostData;
+  };
+
   //! Source/destination nanoapp ID
   uint64_t appId;
 
-  //! Instance identifier associated with the source/destination nanoapp
-  // TODO: do we need to keep this around? right now we assume appId is unique
-  uint32_t instanceId;
-
-  //! Identifier for the host-side entity that should receive this message, or
-  //! that which sent it
-  uint16_t hostEndpoint;
-
-  //! Application-specific message ID
-  uint32_t messageType;
-
   //! Application-defined message data
   DynamicVector<uint8_t> message;
-
-  //! Message free callback supplied by the nanoapp. Must only be invoked from
-  //! the EventLoop where the nanoapp runs.
-  chreMessageFreeFunction *nanoappFreeFunction;
 };
 
 typedef HostMessage MessageFromHost;
@@ -73,10 +83,10 @@ class HostCommsManager : public NonCopyable {
  public:
   /**
    * Formulates a MessageToHost using the supplied message contents and passes
-   * it to the HostLink for transmission to the host processor.
+   * it to HostLink for transmission to the host.
    *
    * @param messageData Pointer to message payload. Can be null if messageSize
-   *        is 0
+   *        is 0. This buffer must remain valid until freeCallback is invoked.
    * @param messageSize Size of the message to send, in bytes
    * @param messageType Application-defined identifier for the message
    * @param hostEndpoint Identifier for the entity on the host that should
@@ -89,21 +99,26 @@ class HostCommsManager : public NonCopyable {
    * @see chreSendMessageToHost
    */
   bool sendMessageToHostFromCurrentNanoapp(
-      void *messageData, uint32_t messageSize, uint32_t messageType,
+      void *messageData, size_t messageSize, uint32_t messageType,
       uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback);
 
   /**
-   * TODO: implement and document
+   * Makes a copy of the supplied message data and posts it to the queue for
+   * later delivery to the addressed nanoapp.
    *
-   * @param nanoappId
-   * @param hostEndpoint
-   * @param messageType
-   * @param messageData
-   * @param messageSize
+   * This function is safe to call from any thread.
+   *
+   * @param appId Identifier for the destination nanoapp
+   * @param hostEndpoint Identifier for the entity on the host that sent this
+   *        message
+   * @param messageType Application-defined message identifier
+   * @param messageData Buffer containing application-specific message data; can
+   *        be null if messageSize is 0
+   * @param messageSize Size of messageData, in bytes
    */
-  void onMessageReceivedFromHost(
-      uint64_t nanoappId, uint16_t hostEndpoint, uint32_t messageType,
-      void *messageData, size_t messageSize);
+  void sendMessageToNanoappFromHost(
+      uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+      const void *messageData, size_t messageSize);
 
   /**
    * Invoked by the HostLink platform layer when it is done with a message to
@@ -129,6 +144,24 @@ class HostCommsManager : public NonCopyable {
   HostLink mHostLink;
 
   /**
+   * Allocates and populates the event structure used to notify a nanoapp of an
+   * incoming message from the host, and posts an event to the nanoapp for
+   * processing. Used to implement sendMessageToNanoappFromHost() - see that
+   * function for parameter documentation.
+   *
+   * All parameters must be sanitized before invoking this function.
+   *
+   * @param targetEventLoop EventLoop containing the target app
+   * @param targetInstanceId Instance ID of the destination nanoapp
+   *
+   * @see sendMessageToNanoappFromHost
+   */
+  void deliverNanoappMessageFromHost(
+      uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+      const void *messageData, uint32_t messageSize, EventLoop *targetEventLoop,
+      uint32_t targetInstanceId);
+
+  /**
    * Releases memory associated with a message to the host, including invoking
    * the Nanoapp's free callback (if given). Must be called from within the
    * context of the EventLoop that contains the sending Nanoapp.
@@ -138,12 +171,13 @@ class HostCommsManager : public NonCopyable {
   void freeMessageToHost(MessageToHost *msgToHost);
 
   /**
-   * System callback invoked inside the main CHRE event loop to
+   * Event free callback used to release memory allocated to deliver a message
+   * to a nanoapp from the host.
    *
-   * @param type Callback type (informational only)
-   * @param data Pointer to the MessageToHost that is complete
+   * @param type Event type
+   * @param data Event data
    */
-  static void onMessageToHostCompleteCallback(uint16_t type, void *data);
+  static void freeMessageFromHostCallback(uint16_t type, void *data);
 };
 
 } // namespace chre

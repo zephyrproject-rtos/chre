@@ -51,8 +51,8 @@ void encodeNanoappMessage(const MessageToHost& msgToHost,
   }
 
   auto nanoappMessage = chre::fbs::CreateNanoappMessage(
-      builder, msgToHost.appId, msgToHost.hostEndpoint, msgToHost.messageType,
-      messageData);
+      builder, msgToHost.appId, msgToHost.toHostData.messageType,
+      msgToHost.toHostData.hostEndpoint, messageData);
   auto container = chre::fbs::CreateMessageContainer(
       builder, chre::fbs::ChreMessage::NanoappMessage, nanoappMessage.Union());
   builder.Finish(container);
@@ -118,6 +118,39 @@ extern "C" int chre_slpi_get_message_to_host(
 }
 
 /**
+ * Delivers a message from the host to the common CHRE layer, which will in turn
+ * deliver the message to the intended nanoapp.
+ *
+ * @param msgFromHost pointer to FlatBuffers-encoded message (nullptr if it
+ *        was not supplied by the host)
+ */
+void handleNanoappMessageFromHost(const fbs::NanoappMessage *msgFromHost) {
+  if (msgFromHost == nullptr) {
+    LOGE("Dropping empty nanoapp message from host");
+  } else {
+    HostCommsManager& manager =
+        EventLoopManagerSingleton::get()->getHostCommsManager();
+
+    const void *payload = nullptr;
+    size_t payloadSize = 0;
+    const flatbuffers::Vector<uint8_t> *msgData = msgFromHost->message();
+    if (msgData != nullptr) {
+      payload = msgData->data();
+      payloadSize = msgData->size();
+    }
+
+    LOGD("Parsed nanoapp message from host: app ID 0x%016" PRIx64 ", endpoint "
+         "0x%" PRIx16 ", msgType %" PRIu32 ", payload size %zu",
+         msgFromHost->app_id(), msgFromHost->host_endpoint(),
+         msgFromHost->message_type(), payloadSize);
+
+    manager.sendMessageToNanoappFromHost(
+        msgFromHost->app_id(), msgFromHost->host_endpoint(),
+        msgFromHost->message_type(), payload, payloadSize);
+  }
+}
+
+/**
  * FastRPC method invoked by the host to send a message to the system
  *
  * @param buffer
@@ -127,8 +160,37 @@ extern "C" int chre_slpi_get_message_to_host(
  */
 extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
                                                    int messageLen) {
-  // TODO: implement
-  return CHRE_FASTRPC_SUCCESS;
+  CHRE_ASSERT(message != nullptr);
+  CHRE_ASSERT(messageLen > 0);
+  int result = CHRE_FASTRPC_ERROR;
+
+  if (message == nullptr && messageLen <= 0) {
+    LOGE("Got null or invalid size (%d) message from host", messageLen);
+  } else {
+    flatbuffers::Verifier verifier(message, static_cast<size_t>(messageLen));
+    if (!fbs::VerifyMessageContainerBuffer(verifier)
+        || fbs::GetMessageContainer(message) == nullptr) {
+      LOGE("Got corrupted or invalid message from host (size %d)", messageLen);
+    } else {
+      const fbs::MessageContainer *container =
+          fbs::GetMessageContainer(message);
+
+      switch (container->message_type()) {
+        case fbs::ChreMessage::NanoappMessage:
+          handleNanoappMessageFromHost(static_cast<const fbs::NanoappMessage *>(
+              container->message()));
+          break;
+
+        default:
+          LOGW("Got invalid/unexpected CHRE message type %" PRIu8 " from host",
+               static_cast<uint8_t>(container->message_type()));
+      }
+
+      result = CHRE_FASTRPC_SUCCESS;
+    }
+  }
+
+  return result;
 }
 
 }  // anonymous namespace

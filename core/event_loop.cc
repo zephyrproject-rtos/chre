@@ -157,6 +157,7 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
 bool EventLoop::postEvent(uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
     uint32_t targetInstanceId) {
+  CHRE_ASSERT(mRunning);
   bool success = false;
   Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
       senderInstanceId, targetInstanceId);

@@ -35,11 +35,18 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
                            uint32_t messageType,
                            chreMessageFreeFunction *freeCallback) {
+  return chreSendMessageToHostEndpoint(
+      message, static_cast<size_t>(messageSize), messageType,
+      CHRE_HOST_ENDPOINT_BROADCAST, freeCallback);
+}
+
+bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
+                                   uint32_t messageType, uint16_t hostEndpoint,
+                                   chreMessageFreeFunction *freeCallback) {
   auto& hostCommsManager =
       chre::EventLoopManagerSingleton::get()->getHostCommsManager();
   return hostCommsManager.sendMessageToHostFromCurrentNanoapp(
-      message, messageSize, messageType, chre::kHostEndpointBroadcast,
-      freeCallback);
+      message, messageSize, messageType, hostEndpoint, freeCallback);
 }
 
 void chreLog(enum chreLogLevel level, const char *formatStr, ...) {

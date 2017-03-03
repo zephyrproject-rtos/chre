@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-#include "chre/core/host_comms_manager.h"
+#include <cinttypes>
+#include <type_traits>
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/core/host_comms_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/context.h"
 #include "chre/platform/host_link.h"
 
 namespace chre {
 
+constexpr uint32_t kMessageToHostReservedFieldValue = UINT32_MAX;
+
 bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
-    void *messageData, uint32_t messageSize, uint32_t messageType,
+    void *messageData, size_t messageSize, uint32_t messageType,
     uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback) {
   EventLoop *eventLoop = chre::getCurrentEventLoop();
   CHRE_ASSERT(eventLoop);
@@ -44,15 +48,17 @@ bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
     MessageToHost *msgToHost = mMessagePool.allocate();
 
     if (msgToHost == nullptr) {
-      LOGE("Couldn't allocate messageData to host");
+      LOGE("Couldn't allocate message to host");
     } else {
       msgToHost->appId = currentApp->getAppId();
-      msgToHost->instanceId = currentApp->getInstanceId();
-      // TODO: add support for hostEndpoint in the CHRE API
-      msgToHost->hostEndpoint = hostEndpoint;
-      msgToHost->messageType = messageType;
       msgToHost->message.wrap(static_cast<uint8_t *>(messageData), messageSize);
-      msgToHost->nanoappFreeFunction = freeCallback;
+      msgToHost->toHostData.hostEndpoint = hostEndpoint;
+      msgToHost->toHostData.messageType = messageType;
+      msgToHost->toHostData.nanoappFreeFunction = freeCallback;
+
+      // Populate a special value to help disambiguate message direction when
+      // debugging
+      msgToHost->toHostData.reserved = kMessageToHostReservedFieldValue;
 
       success = mHostLink.sendMessage(msgToHost);
       if (!success) {
@@ -64,12 +70,63 @@ bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
   return success;
 }
 
-void HostCommsManager::onMessageReceivedFromHost(
-    uint64_t nanoappId, uint16_t hostEndpoint, uint32_t messageType,
-    void *messageData, size_t messageSize) {
-  // TODO: implement, also need to consider how to differentiate messages
-  // intended for the CHRE system vs. those intended for nanoapps (likely use a
-  // different callback for system messages)
+void HostCommsManager::deliverNanoappMessageFromHost(
+    uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+    const void *messageData, uint32_t messageSize, EventLoop *targetEventLoop,
+    uint32_t targetInstanceId) {
+  CHRE_ASSERT(targetEventLoop != nullptr);
+  bool success = false;
+
+  MessageFromHost *msgFromHost = mMessagePool.allocate();
+  if (msgFromHost == nullptr) {
+    LOGE("Couldn't allocate message from host");
+  } else if (!msgFromHost->message.copy_array(
+      static_cast<const uint8_t *>(messageData), messageSize)) {
+    LOGE("Couldn't allocate %zu bytes for message data from host (endpoint "
+             "0x%" PRIx16 " type %" PRIu32 ")", messageSize, hostEndpoint,
+         messageType);
+  } else {
+    msgFromHost->appId = appId;
+    msgFromHost->fromHostData.messageType = messageType;
+    msgFromHost->fromHostData.messageSize = static_cast<uint32_t>(
+        messageSize);
+    msgFromHost->fromHostData.message = msgFromHost->message.data();
+    msgFromHost->fromHostData.hostEndpoint = hostEndpoint;
+
+    success = targetEventLoop->postEvent(
+        CHRE_EVENT_MESSAGE_FROM_HOST, &msgFromHost->fromHostData,
+        freeMessageFromHostCallback, kSystemInstanceId, targetInstanceId);
+  }
+
+  if (!success && msgFromHost != nullptr) {
+    mMessagePool.deallocate(msgFromHost);
+  }
+}
+
+void HostCommsManager::sendMessageToNanoappFromHost(
+    uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+    const void *messageData, size_t messageSize) {
+  EventLoopManager *eventLoopMgr = EventLoopManagerSingleton::get();
+  EventLoop *targetEventLoop;
+  uint32_t targetInstanceId;
+
+  if (hostEndpoint == kHostEndpointBroadcast) {
+    LOGE("Received invalid message from host from broadcast endpoint");
+  } else if (messageSize > ((UINT32_MAX))) {
+    // The current CHRE API uses uint32_t to represent the message size in
+    // struct chreMessageFromHostData. We don't expect to ever need to exceed
+    // this, but the check ensures we're on the up and up.
+    LOGE("Rejecting message of size %zu (too big)", messageSize);
+  } else if (!eventLoopMgr->findNanoappInstanceIdByAppId(appId,
+                                                         &targetInstanceId,
+                                                         &targetEventLoop)) {
+    LOGE("Dropping message; destination app ID 0x%16" PRIx64 " not found",
+         appId);
+  } else {
+    deliverNanoappMessageFromHost(appId, hostEndpoint, messageType, messageData,
+                                  static_cast<uint32_t>(messageSize),
+                                  targetEventLoop, targetInstanceId);
+  }
 }
 
 void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
@@ -80,27 +137,51 @@ void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
   // If there's no free callback, we can free the message right away as the
   // message pool is thread-safe; otherwise, we need to do it from within the
   // EventLoop context.
-  if (msgToHost->nanoappFreeFunction == nullptr) {
+  if (msgToHost->toHostData.nanoappFreeFunction == nullptr) {
     mMessagePool.deallocate(msgToHost);
   } else {
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::MessageToHostComplete, msgToHost,
-        onMessageToHostCompleteCallback);
+    auto freeMsgCallback = [](uint16_t /*type*/, void *data) {
+      EventLoopManagerSingleton::get()->getHostCommsManager().freeMessageToHost(
+          static_cast<MessageToHost *>(data));
+    };
+
+    bool eventPosted = EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::MessageToHostComplete, msgToHost, freeMsgCallback);
+
+    // If this assert/log triggers, we're leaking resources
+    // TODO: should have reserved space in event queue to prevent nanoapps from
+    // negatively impacting system functionality
+    CHRE_ASSERT_LOG(eventPosted, "Couldn't defer callback to clean up message "
+                    "to host!");
   }
 }
 
 void HostCommsManager::freeMessageToHost(MessageToHost *msgToHost) {
-  if (msgToHost->nanoappFreeFunction != nullptr) {
-    msgToHost->nanoappFreeFunction(msgToHost->message.data(),
-                                   msgToHost->message.size());
+  if (msgToHost->toHostData.nanoappFreeFunction != nullptr) {
+    msgToHost->toHostData.nanoappFreeFunction(msgToHost->message.data(),
+                                              msgToHost->message.size());
   }
   mMessagePool.deallocate(msgToHost);
 }
 
-void HostCommsManager::onMessageToHostCompleteCallback(
-    uint16_t /*type*/, void *data) {
-  EventLoopManagerSingleton::get()->getHostCommsManager().freeMessageToHost(
-      static_cast<MessageToHost *>(data));
+void HostCommsManager::freeMessageFromHostCallback(uint16_t /*type*/,
+                                                   void *data) {
+  // We pass the chreMessageFromHostData structure to the nanoapp as the event's
+  // data pointer, but we need to return to the enclosing HostMessage pointer.
+  // As long as HostMessage is standard-layout, and fromHostData is the first
+  // field, we can convert between these two pointers via reinterpret_cast.
+  // These static assertions ensure this assumption is held.
+  static_assert(std::is_standard_layout<HostMessage>::value,
+                "HostMessage* is derived from HostMessage::fromHostData*, "
+                "therefore it must be standard layout");
+  static_assert(offsetof(MessageFromHost, fromHostData) == 0,
+                "fromHostData must be the first field in HostMessage");
+
+  auto *eventData = static_cast<chreMessageFromHostData *>(data);
+  auto *msgFromHost = reinterpret_cast<MessageFromHost *>(eventData);
+  auto& hostCommsMgr = EventLoopManagerSingleton::get()->getHostCommsManager();
+  hostCommsMgr.mMessagePool.deallocate(msgFromHost);
 }
+
 
 }  // namespace chre

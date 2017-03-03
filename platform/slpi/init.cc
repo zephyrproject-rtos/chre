@@ -161,13 +161,7 @@ void onHostProcessTerminated(void * /*data*/) {
 namespace chre {
 
 EventLoop *getCurrentEventLoop() {
-  if (qurt_thread_get_id() == gThreadHandle) {
-    return gEventLoop;
-  } else {
-    LOGE("getCurrentEventLoop() called from unexpected thread %d",
-         qurt_thread_get_id());
-    return nullptr;
-  }
+  return (qurt_thread_get_id() == gThreadHandle) ? gEventLoop : nullptr;
 }
 
 }  // namespace chre
