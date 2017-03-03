@@ -34,18 +34,6 @@ using chre::Milliseconds;
 
 namespace {
 
-void delayedEventCallback(void *data) {
-  LOGI("Got a delayed event callback");
-  auto *eventLoop = static_cast<chre::EventLoop *>(data);
-  eventLoop->postEvent(1, nullptr, nullptr);
-}
-
-void timerCallback(void *data) {
-  LOGI("Got timer callback");
-  auto *eventLoop = static_cast<chre::EventLoop *>(data);
-  eventLoop->stop();
-}
-
 extern "C" void signalHandler(int sig) {
   (void) sig;
   LOGI("Stop request received");
@@ -91,21 +79,8 @@ int main() {
       &timerWorldPlatformNanoapp);
   eventLoop.startNanoapp(&timerWorldNanoapp);
 
-  // Send an event to all nanoapps.
-  eventLoop.postEvent(1, nullptr, nullptr);
-
-  chre::SystemTimer delayedEventTimer;
-  chre::SystemTimer sysTimer;
-  if (!delayedEventTimer.init() || !sysTimer.init()) {
-    LOGE("Couldn't init timer");
-  } else if (
-      !delayedEventTimer.set(delayedEventCallback, &eventLoop, Milliseconds(500))
-          || !sysTimer.set(timerCallback, &eventLoop, Milliseconds(1000))) {
-    LOGE("Couldn't set timer");
-  } else {
-    std::signal(SIGINT, signalHandler);
-    eventLoop.run();
-  }
+  std::signal(SIGINT, signalHandler);
+  eventLoop.run();
 
   chre::deinit();
   return 0;
