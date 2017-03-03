@@ -40,7 +40,7 @@ bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
   if (messageSize > 0 && messageData == nullptr) {
     LOGW("Rejecting malformed message (null data but non-zero size)");
   } else if (messageSize > CHRE_MESSAGE_TO_HOST_MAX_SIZE) {
-    LOGW("Rejecting message of size %" PRIu32 " bytes (max %d)",
+    LOGW("Rejecting message of size %zu bytes (max %d)",
          messageSize, CHRE_MESSAGE_TO_HOST_MAX_SIZE);
   } else if (hostEndpoint == kHostEndpointUnspecified) {
     LOGW("Rejecting message to invalid host endpoint");
@@ -82,9 +82,9 @@ void HostCommsManager::deliverNanoappMessageFromHost(
     LOGE("Couldn't allocate message from host");
   } else if (!msgFromHost->message.copy_array(
       static_cast<const uint8_t *>(messageData), messageSize)) {
-    LOGE("Couldn't allocate %zu bytes for message data from host (endpoint "
-             "0x%" PRIx16 " type %" PRIu32 ")", messageSize, hostEndpoint,
-         messageType);
+    LOGE("Couldn't allocate %" PRIu32 " bytes for message data from host "
+             "(endpoint 0x%" PRIx16 " type %" PRIu32 ")", messageSize,
+         hostEndpoint, messageType);
   } else {
     msgFromHost->appId = appId;
     msgFromHost->fromHostData.messageType = messageType;
