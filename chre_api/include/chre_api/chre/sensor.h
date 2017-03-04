@@ -402,7 +402,8 @@ extern "C" {
 #define CHRE_SENSOR_LATENCY_ASAP  UINT64_C(0)
 
 /**
- * Special value indicating non-importance of the interval.
+ * Special value indicating non-importance, or non-applicability of the sampling
+ * interval.
  *
  * @see chreSensorConfigure
  * @see chreSensorSamplingStatus
@@ -547,6 +548,20 @@ struct chreSensorInfo {
      */
     uint8_t isOneShot   : 1;
     uint8_t unusedFlags : 6;
+
+    /**
+     * The minimum sampling interval supported by this sensor, in nanoseconds.
+     *
+     * Requests to chreSensorConfigure with a lower interval than this will
+     * fail.  If the sampling interval is not applicable to this sensor, this
+     * will be set to CHRE_SENSOR_INTERVAL_DEFAULT.
+     *
+     * This field will be set to 0 when running on CHRE API versions prior to
+     * v1.1, indicating that the minimum interval is not known.
+     *
+     * @since v1.1
+     */
+    uint64_t minInterval;
 };
 
 /**
