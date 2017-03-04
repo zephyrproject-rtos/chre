@@ -414,7 +414,23 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
  *
  * @since v1.1
  */
-bool chreGetNanoappInfo(uint64_t appId, struct chreNanoappInfo *info);
+bool chreGetNanoappInfoByAppId(uint64_t appId, struct chreNanoappInfo *info);
+
+/**
+ * Queries for information about a nanoapp running in the system, using the
+ * runtime unique identifier.  This method can be used to get information about
+ * the sender of an event.
+ *
+ * @param instanceId
+ * @param info Output parameter.  If this function returns true, this structure
+ *     will be populated with details of the specified nanoapp.
+ * @returns true if a nanoapp with the given instance ID is currently running,
+ *     and the supplied info parameter was populated with its information.
+ *
+ * @since v1.1
+ */
+bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
+                                    struct chreNanoappInfo *info);
 
 
 #ifdef __cplusplus
