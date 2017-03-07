@@ -70,7 +70,7 @@ class SensorRequestManager : public NonCopyable {
  private:
   /**
    * This allows tracking the state of a sensor with the various requests for it
-   * and can trigger a change in rate/latency when required.
+   * and can trigger a change in mode/rate/latency when required.
    */
   struct SensorRequests {
     //! The sensor associated with this request multiplexer.

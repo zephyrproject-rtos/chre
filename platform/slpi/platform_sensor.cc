@@ -21,6 +21,7 @@ extern "C" {
 #include "fixed_point.h"
 #include "qmi_client.h"
 #include "sns_smgr_api_v01.h"
+#include "sns_smgr_internal_api_v02.h"
 #include "timetick.h"
 
 }  // extern "C"
@@ -33,10 +34,19 @@ extern "C" {
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/slpi/platform_sensor_util.h"
 
+namespace chre {
 namespace {
 
-//! The QMI client handle.
-qmi_client_type gPlatformSensorQmiClientHandle = nullptr;
+//! The timeout for QMI messages in milliseconds.
+constexpr uint32_t kQmiTimeoutMs = 1000;
+
+constexpr float kMicroTeslaPerGauss = 100.0f;
+
+//! The QMI sensor service client handle.
+qmi_client_type gPlatformSensorServiceQmiClientHandle = nullptr;
+
+//! The QMI sensor internal service client handle.
+qmi_client_type gPlatformSensorInternalServiceQmiClientHandle = nullptr;
 
 //! A sensor report indication for deserializing sensor sample indications
 //! into. This global instance is used to avoid thrashy use of the heap by
@@ -44,14 +54,14 @@ qmi_client_type gPlatformSensorQmiClientHandle = nullptr;
 //! relies on the assumption that the QMI callback is not reentrant.
 sns_smgr_buffering_ind_msg_v01 gSmgrBufferingIndMsg;
 
-}  // anonymous namespace
+//! A struct to store the sensor monitor status indication results.
+struct SensorStatus {
+  uint8_t sensorId;
+  uint8_t numClients;
+};
 
-namespace chre {
-
-//! The timeout for QMI messages in milliseconds.
-constexpr uint32_t kQmiTimeoutMs = 1000;
-
-constexpr float kMicroTeslaPerGauss = 100.0f;
+//! A vector that tracks the number clients of each supported sensorId.
+DynamicVector<SensorStatus> gSensorStatusMonitor;
 
 /**
  * Converts a sensorId, dataType and calType as provided by SMGR to a
@@ -320,8 +330,7 @@ void *allocateAndPopulateEvent(
 }
 
 /**
- * Handles sensor data provided by the SMGR framework. This function does not
- * return but logs errors and warnings.
+ * Handles sensor data provided by the SMGR framework.
  *
  * @param userHandle The userHandle is used by the QMI decode function.
  * @param buffer The buffer to decode sensor data from.
@@ -335,43 +344,42 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
       sizeof(sns_smgr_buffering_ind_msg_v01));
   if (status != QMI_NO_ERR) {
     LOGE("Error parsing sensor data indication %d", status);
-    return;
-  }
+  } else {
+    // We only requested one sensor per request except for a secondary
+    // secondary temperature sensor.
+    bool validReport = isValidIndicesLength();
+    CHRE_ASSERT_LOG(validReport,
+                    "Got buffering indication from %" PRIu32
+                    " sensors with report ID %" PRIu8,
+                    gSmgrBufferingIndMsg.Indices_len,
+                    gSmgrBufferingIndMsg.ReportId);
+    if (validReport) {
+      // Identify the index for the desired sensor. It is always 0 except
+      // possibly for a secondary temperature sensor.
+      uint32_t index = 0;
+      if (isSecondaryTemperature(gSmgrBufferingIndMsg.ReportId)) {
+        index = (gSmgrBufferingIndMsg.Indices[0].DataType
+                 == SNS_SMGR_DATA_TYPE_SECONDARY_V01) ? 0 : 1;
+      }
+      const sns_smgr_buffering_sample_index_s_v01& sensorIndex =
+          gSmgrBufferingIndMsg.Indices[index];
 
-  // We only requested one sensor per request except for a secondary
-  // secondary temperature sensor.
-  bool validReport = isValidIndicesLength();
-  CHRE_ASSERT_LOG(validReport,
-                  "Got buffering indication from %" PRIu32
-                  " sensors with report ID %" PRIu8,
-                  gSmgrBufferingIndMsg.Indices_len,
-                  gSmgrBufferingIndMsg.ReportId);
-  if (validReport) {
-    // Identify the index for the desired sensor. It is always 0 except possibly
-    // for a secondary temperature sensor.
-    uint32_t index = 0;
-    if (isSecondaryTemperature(gSmgrBufferingIndMsg.ReportId)) {
-      index = (gSmgrBufferingIndMsg.Indices[0].DataType
-               == SNS_SMGR_DATA_TYPE_SECONDARY_V01) ? 0 : 1;
-    }
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex =
-        gSmgrBufferingIndMsg.Indices[index];
-
-    // Use ReportID to identify sensors as gSmgrBufferingIndMsg.Samples[i].Flags
-    // are not populated.
-    SensorType sensorType = getSensorTypeFromReportId(
-        gSmgrBufferingIndMsg.ReportId);
-    if (sensorType == SensorType::Unknown) {
-      LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
-           sensorIndex.SensorId, sensorIndex.DataType);
-    } else {
-      void *eventData = allocateAndPopulateEvent(sensorType, sensorIndex);
-      if (eventData == nullptr) {
-        LOGW("Dropping event due to allocation failure");
+      // Use ReportID to identify sensors as
+      // gSmgrBufferingIndMsg.Samples[i].Flags are not populated.
+      SensorType sensorType = getSensorTypeFromReportId(
+          gSmgrBufferingIndMsg.ReportId);
+      if (sensorType == SensorType::Unknown) {
+        LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
+             sensorIndex.SensorId, sensorIndex.DataType);
       } else {
-        EventLoopManagerSingleton::get()->postEvent(
-            getSampleEventTypeForSensorType(sensorType), eventData,
-            smgrSensorDataEventFree);
+        void *eventData = allocateAndPopulateEvent(sensorType, sensorIndex);
+        if (eventData == nullptr) {
+          LOGW("Dropping event due to allocation failure");
+        } else {
+          EventLoopManagerSingleton::get()->postEvent(
+              getSampleEventTypeForSensorType(sensorType), eventData,
+              smgrSensorDataEventFree);
+        }
       }
     }
   }
@@ -389,40 +397,113 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
  * @param callbackData Data that is provided as a context to this callback. This
  *                     is not used in this context.
  */
-void platformSensorQmiIndicationCallback(void *userHandle,
-                                         unsigned int messageId,
-                                         void *buffer,
-                                         unsigned int bufferLength,
-                                         void *callbackData) {
+void platformSensorServiceQmiIndicationCallback(void *userHandle,
+                                                unsigned int messageId,
+                                                void *buffer,
+                                                unsigned int bufferLength,
+                                                void *callbackData) {
   switch (messageId) {
     case SNS_SMGR_BUFFERING_IND_V01:
       handleSensorDataIndication(userHandle, buffer, bufferLength);
       break;
     default:
-      LOGW("Received unhandled sensor QMI indication message: %u", messageId);
+      LOGW("Received unhandled sensor service message: 0x%x", messageId);
       break;
   };
 }
 
-void PlatformSensor::init() {
-  qmi_idl_service_object_type sensorServiceObject =
-      SNS_SMGR_SVC_get_service_object_v01();
-  if (sensorServiceObject == nullptr) {
-    FATAL_ERROR("Failed to obtain the SNS SMGR service instance");
+uint8_t getNumClients(uint8_t sensorId) {
+  for (size_t i = 0; i < gSensorStatusMonitor.size(); i++) {
+    if (gSensorStatusMonitor[i].sensorId == sensorId) {
+      return gSensorStatusMonitor[i].numClients;
+    }
   }
+  return 0;
+}
 
-  qmi_client_os_params sensorContextOsParams;
-  qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
-      QMI_CLIENT_INSTANCE_ANY, &platformSensorQmiIndicationCallback, nullptr,
-      &sensorContextOsParams, kQmiTimeoutMs, &gPlatformSensorQmiClientHandle);
-  if (status != QMI_NO_ERR) {
-    FATAL_ERROR("Failed to initialize the sensors QMI client: %d", status);
+void setNumClients(uint8_t sensorId, uint8_t numClients) {
+  for (size_t i = 0; i < gSensorStatusMonitor.size(); i++) {
+    if (gSensorStatusMonitor[i].sensorId == sensorId) {
+      gSensorStatusMonitor[i].numClients = numClients;
+    }
   }
 }
 
-void PlatformSensor::deinit() {
-  qmi_client_release(&gPlatformSensorQmiClientHandle);
-  gPlatformSensorQmiClientHandle = nullptr;
+/**
+ * Handles sensor status provided by the SMGR framework.
+ *
+ * @param userHandle The userHandle is used by the QMI decode function.
+ * @param buffer The buffer to decode sensor data from.
+ * @param bufferLength The size of the buffer to decode.
+ */
+void handleSensorStatusMonitorIndication(void *userHandle, void *buffer,
+                                         unsigned int bufferLength) {
+  sns_smgr_sensor_status_monitor_ind_msg_v02 smgrMonitorIndMsg;
+
+  int status = qmi_client_message_decode(
+      userHandle, QMI_IDL_INDICATION, SNS_SMGR_SENSOR_STATUS_MONITOR_IND_V02,
+      buffer, bufferLength, &smgrMonitorIndMsg, sizeof(smgrMonitorIndMsg));
+  if (status != QMI_NO_ERR) {
+    LOGE("Error parsing sensor status monitor indication %d", status);
+  } else {
+    uint8_t numClients = getNumClients(smgrMonitorIndMsg.sensor_id);
+    if (numClients != smgrMonitorIndMsg.num_clients) {
+      LOGD("Status: id %" PRIu64 ", num lients: curr %" PRIu8 " new %" PRIu8,
+           smgrMonitorIndMsg.sensor_id, numClients,
+           smgrMonitorIndMsg.num_clients);
+      setNumClients(smgrMonitorIndMsg.sensor_id,
+                    smgrMonitorIndMsg.num_clients);
+
+      //TODO: add onNumClientsChange()
+    }
+  }
+}
+
+/**
+ * This callback is invoked by the QMI framework when an asynchronous message is
+ * delivered. Unhandled messages are logged. The signature is defined by the QMI
+ * library.
+ *
+ * @param userHandle The userHandle is used by the QMI library.
+ * @param messageId The type of the message to decode.
+ * @param buffer The buffer to decode.
+ * @param bufferLength The length of the buffer to decode.
+ * @param callbackData Data that is provided as a context to this callback. This
+ *                     is not used in this context.
+ */
+void platformSensorInternalServiceQmiIndicationCallback(void *userHandle,
+    unsigned int messageId, void *buffer, unsigned int bufferLength,
+    void *callbackData) {
+  switch (messageId) {
+    case SNS_SMGR_SENSOR_STATUS_MONITOR_IND_V02:
+      handleSensorStatusMonitorIndication(userHandle, buffer, bufferLength);
+      break;
+    default:
+      LOGW("Received unhandled sensor internal service message: 0x%x",
+           messageId);
+      break;
+  };
+}
+
+void setSensorStatusMonitor(uint8_t sensorId, bool enable) {
+  sns_smgr_sensor_status_monitor_req_msg_v02 monitorRequest;
+  sns_smgr_sensor_status_monitor_resp_msg_v02 monitorResponse;
+  monitorRequest.sensor_id = sensorId;
+  monitorRequest.registering = enable ? TRUE : FALSE;
+
+  qmi_client_error_type status = qmi_client_send_msg_sync(
+      gPlatformSensorInternalServiceQmiClientHandle,
+      SNS_SMGR_SENSOR_STATUS_MONITOR_REQ_V02,
+      &monitorRequest, sizeof(monitorRequest),
+      &monitorResponse, sizeof(monitorResponse), kQmiTimeoutMs);
+
+  if (status != QMI_NO_ERR) {
+    LOGE("Error setting sensor status monitor: %d", status);
+  } else if (monitorResponse.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+    LOGE("Sensor status monitor request failed with error: %" PRIu8
+         " sensor ID %" PRIu8 " enable %d",
+         monitorResponse.resp.sns_err_t, sensorId, enable);
+  }
 }
 
 /**
@@ -441,7 +522,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
   sensorInfoRequest.SensorID = sensorId;
 
   qmi_client_error_type status = qmi_client_send_msg_sync(
-      gPlatformSensorQmiClientHandle, SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
+      gPlatformSensorServiceQmiClientHandle, SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
       &sensorInfoRequest, sizeof(sns_smgr_single_sensor_info_req_msg_v01),
       &sensorInfoResponse, sizeof(sns_smgr_single_sensor_info_resp_msg_v01),
       kQmiTimeoutMs);
@@ -453,6 +534,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
     LOGE("Single sensor info request failed with error: %d",
          sensorInfoResponse.Resp.sns_err_t);
   } else {
+    bool isSensorIdSupported = false;
     const sns_smgr_sensor_info_s_v01& sensorInfoList =
         sensorInfoResponse.SensorInfo;
     for (uint32_t i = 0; i < sensorInfoList.data_type_info_len; i++) {
@@ -467,6 +549,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
           sensorInfo->SensorID, sensorInfo->DataType,
           SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
+        isSensorIdSupported = true;
         addPlatformSensor(sensorInfo->SensorID, sensorInfo->DataType,
                           SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
 
@@ -481,39 +564,17 @@ bool getSensorsForSensorId(uint8_t sensorId,
       }
     }
 
-    success = true;
-  }
+    // If CHRE supports sensors with this sensor ID, enable its status monitor.
+    if (isSensorIdSupported) {
+      // Initialize monitor status before making a QMI request.
+      SensorStatus sensorStatus;
+      sensorStatus.sensorId = sensorId;
+      sensorStatus.numClients = 0;
+      gSensorStatusMonitor.push_back(sensorStatus);
 
-  return success;
-}
-
-bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
-  CHRE_ASSERT(sensors);
-
-  sns_smgr_all_sensor_info_req_msg_v01 sensorListRequest;
-  sns_smgr_all_sensor_info_resp_msg_v01 sensorListResponse;
-
-  qmi_client_error_type status = qmi_client_send_msg_sync(
-      gPlatformSensorQmiClientHandle, SNS_SMGR_ALL_SENSOR_INFO_REQ_V01,
-      &sensorListRequest, sizeof(sns_smgr_all_sensor_info_req_msg_v01),
-      &sensorListResponse, sizeof(sns_smgr_all_sensor_info_resp_msg_v01),
-      kQmiTimeoutMs);
-
-  bool success = false;
-  if (status != QMI_NO_ERR) {
-    LOGE("Error requesting sensor list: %d", status);
-  } else if (sensorListResponse.Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
-    LOGE("Sensor list lequest failed with error: %d",
-         sensorListResponse.Resp.sns_err_t);
-  } else {
-    success = true;
-    for (uint32_t i = 0; i < sensorListResponse.SensorInfo_len; i++) {
-      uint8_t sensorId = sensorListResponse.SensorInfo[i].SensorID;
-      if (!getSensorsForSensorId(sensorId, sensors)) {
-        success = false;
-        break;
-      }
+      setSensorStatusMonitor(sensorId, true);
     }
+    success = true;
   }
 
   return success;
@@ -581,6 +642,87 @@ void populateSensorRequest(
   }
 }
 
+}  // anonymous namespace
+
+void PlatformSensor::init() {
+  // sns_smgr_api_v01
+  qmi_idl_service_object_type sensorServiceObject =
+      SNS_SMGR_SVC_get_service_object_v01();
+  if (sensorServiceObject == nullptr) {
+    FATAL_ERROR("Failed to obtain the SNS SMGR service instance");
+  }
+
+  qmi_client_os_params sensorContextOsParams;
+  qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
+      QMI_CLIENT_INSTANCE_ANY, &platformSensorServiceQmiIndicationCallback,
+      nullptr, &sensorContextOsParams, kQmiTimeoutMs,
+      &gPlatformSensorServiceQmiClientHandle);
+  if (status != QMI_NO_ERR) {
+    FATAL_ERROR("Failed to initialize the sensor service QMI client: %d",
+                status);
+  }
+
+  // sns_smgr_interal_api_v02
+  sensorServiceObject = SNS_SMGR_INTERNAL_SVC_get_service_object_v02();
+  if (sensorServiceObject == nullptr) {
+    FATAL_ERROR("Failed to obtain the SNS SMGR internal service instance");
+  }
+
+  status = qmi_client_init_instance(sensorServiceObject,
+      QMI_CLIENT_INSTANCE_ANY,
+      &platformSensorInternalServiceQmiIndicationCallback, nullptr,
+      &sensorContextOsParams, kQmiTimeoutMs,
+      &gPlatformSensorInternalServiceQmiClientHandle);
+  if (status != QMI_NO_ERR) {
+    FATAL_ERROR("Failed to initialize the sensor internal service QMI client: "
+                "%d", status);
+  }
+}
+
+void PlatformSensor::deinit() {
+  qmi_client_release(&gPlatformSensorServiceQmiClientHandle);
+  gPlatformSensorServiceQmiClientHandle = nullptr;
+
+  // Removing all sensor status monitor requests. Releaseing a QMI client also
+  // releases all of its subscriptions.
+  gSensorStatusMonitor.clear();
+
+  qmi_client_release(&gPlatformSensorInternalServiceQmiClientHandle);
+  gPlatformSensorInternalServiceQmiClientHandle = nullptr;
+}
+
+bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
+  CHRE_ASSERT(sensors);
+
+  sns_smgr_all_sensor_info_req_msg_v01 sensorListRequest;
+  sns_smgr_all_sensor_info_resp_msg_v01 sensorListResponse;
+
+  qmi_client_error_type status = qmi_client_send_msg_sync(
+      gPlatformSensorServiceQmiClientHandle, SNS_SMGR_ALL_SENSOR_INFO_REQ_V01,
+      &sensorListRequest, sizeof(sns_smgr_all_sensor_info_req_msg_v01),
+      &sensorListResponse, sizeof(sns_smgr_all_sensor_info_resp_msg_v01),
+      kQmiTimeoutMs);
+
+  bool success = false;
+  if (status != QMI_NO_ERR) {
+    LOGE("Error requesting sensor list: %d", status);
+  } else if (sensorListResponse.Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+    LOGE("Sensor list lequest failed with error: %d",
+         sensorListResponse.Resp.sns_err_t);
+  } else {
+    success = true;
+    for (uint32_t i = 0; i < sensorListResponse.SensorInfo_len; i++) {
+      uint8_t sensorId = sensorListResponse.SensorInfo[i].SensorID;
+      if (!getSensorsForSensorId(sensorId, sensors)) {
+        success = false;
+        break;
+      }
+    }
+  }
+
+  return success;
+}
+
 bool PlatformSensor::setRequest(const SensorRequest& request) {
   // Allocate request and response for the sensor request.
   auto *sensorRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
@@ -594,7 +736,7 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
                           this->calType, sensorRequest);
 
     qmi_client_error_type status = qmi_client_send_msg_sync(
-        gPlatformSensorQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
+        gPlatformSensorServiceQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
         sensorRequest, sizeof(*sensorRequest),
         sensorResponse, sizeof(*sensorResponse),
         kQmiTimeoutMs);
