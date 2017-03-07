@@ -177,6 +177,16 @@ SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
   }
 }
 
+bool sensorTypeIsOneShot(SensorType sensorType) {
+  return (sensorType == SensorType::InstantMotion ||
+          sensorType == SensorType::StationaryDetect);
+}
+
+bool sensorTypeIsOnChange(SensorType sensorType) {
+  return (sensorType == SensorType::Light ||
+          sensorType == SensorType::Proximity);
+}
+
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
                     Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT),

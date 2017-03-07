@@ -27,10 +27,11 @@ bool isSensorRequestValid(const Sensor& sensor,
       sensorRequest.getMode());
   bool isRequestOneShot = sensorModeIsOneShot(sensorRequest.getMode());
   uint64_t requestedInterval = sensorRequest.getInterval().toRawNanoseconds();
+  SensorType sensorType = sensor.getSensorType();
 
   bool success = true;
   if (isRequestContinuous) {
-    if (sensor.isOneShot()) {
+    if (sensorTypeIsOneShot(sensorType)) {
       success = false;
       LOGE("Invalid continuous request for a one-shot sensor.");
     } else if (requestedInterval < sensor.getMinInterval()) {
@@ -39,7 +40,7 @@ bool isSensorRequestValid(const Sensor& sensor,
            " with minInterval %" PRIu64,
            requestedInterval, sensor.getMinInterval());
     }
-  } else if (isRequestOneShot && !sensor.isOneShot()) {
+  } else if (isRequestOneShot && !sensorTypeIsOneShot(sensorType)) {
     success = false;
     LOGE("Invalid one-shot request for a continuous sensor.");
   }
@@ -162,6 +163,40 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
     // TODO: Send an event to nanoapps to indicate the rate change.
   }
 
+  return success;
+}
+
+bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
+                                         const Nanoapp *nanoapp,
+                                         struct chreSensorInfo *info) const {
+  CHRE_ASSERT(nanoapp);
+  CHRE_ASSERT(info);
+
+  bool success = false;
+
+  // Validate the input to ensure that a valid handle has been provided.
+  SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
+  if (sensorType == SensorType::Unknown) {
+    LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
+         sensorHandle);
+  } else {
+    success = true;
+
+    // Platform-independent properties.
+    info->sensorType = getUnsignedIntFromSensorType(sensorType);
+    info->isOnChange = sensorTypeIsOnChange(sensorType);
+    info->isOneShot = sensorTypeIsOneShot(sensorType);
+    info->unusedFlags = 0;
+
+    // Platform-specific properties.
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    const Sensor& sensor = mSensorRequests[sensorIndex].sensor;
+    info->sensorName = sensor.getSensorName();
+
+    // TODO: populate minInterval if Nanoapp is compiled against API 1.1+.
+    //info->minInterval = info->isOneShot ? CHRE_SENSOR_INTERVAL_DEFAULT :
+    //    sensor->getMinInterval();
+  }
   return success;
 }
 

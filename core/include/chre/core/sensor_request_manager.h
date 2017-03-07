@@ -67,6 +67,17 @@ class SensorRequestManager : public NonCopyable {
   bool setSensorRequest(Nanoapp *nanoapp, uint32_t sensorHandle,
                         const SensorRequest& sensorRequest);
 
+  /**
+   * Populates the supplied info struct if the sensor handle exists.
+   *
+   * @param sensorHandle The handle of the sensor.
+   * @param nanoapp A non-null pointer to the nanoapp requesting this change.
+   * @param info A non-null pointer to a chreSensorInfo struct.
+   * @return true if the supplied sensor handle exists.
+   */
+  bool getSensorInfo(uint32_t sensorHandle, const Nanoapp *nanoapp,
+                     struct chreSensorInfo *info) const;
+
  private:
   /**
    * This allows tracking the state of a sensor with the various requests for it

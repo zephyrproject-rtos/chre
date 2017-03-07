@@ -36,6 +36,23 @@ bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
           .getSensorHandle(validatedSensorType, handle));
 }
 
+bool chreGetSensorInfo(uint32_t sensorHandle, struct chreSensorInfo *info) {
+  CHRE_ASSERT(info);
+
+  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
+  CHRE_ASSERT(eventLoop);
+
+  const chre::Nanoapp *nanoapp = eventLoop->getCurrentNanoapp();
+  CHRE_ASSERT_LOG(nanoapp, "%s called with no CHRE app context", __func__);
+
+  bool success = false;
+  if (info != nullptr) {
+    success = EventLoopManagerSingleton::get()->getSensorRequestManager().
+        getSensorInfo(sensorHandle, nanoapp, info);
+  }
+  return success;
+}
+
 bool chreSensorConfigure(uint32_t sensorHandle,
                          enum chreSensorConfigureMode mode,
                          uint64_t interval, uint64_t latency) {

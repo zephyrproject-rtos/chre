@@ -53,6 +53,8 @@ enum class SensorType {
   // 2) getSensorTypeFromUnsignedInt,
   // 3) getUnsignedIntFromSensorType,
   // 4) getSensorSampleTypeFromSensorType
+  // 5) sensorTypeIsOneShot
+  // 6) sensorTypeIsOnChange
   // when adding or removing a new entry here :)
   // Have a nice day.
 
@@ -185,6 +187,22 @@ constexpr bool sensorModeIsOneShot(SensorMode sensorMode);
  * @return Returns a SensorMode given a CHRE API enum sensor mode.
  */
 SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode);
+
+/**
+ * Indicates whether the sensor type is a one-shot sensor.
+ *
+ * @param sensorType The sensor type of the sensor.
+ * @return true if the sensor is a one-shot sensor.
+ */
+bool sensorTypeIsOneShot(SensorType sensorType);
+
+/**
+ * Indicates whether the sensor type is an on-change sensor.
+ *
+ * @param sensorType The sensor type of the sensor.
+ * @return true if the sensor is an on-change sensor.
+ */
+bool sensorTypeIsOnChange(SensorType sensorType);
 
 /**
  * Models a request for sensor data. This class implements the API set forth by

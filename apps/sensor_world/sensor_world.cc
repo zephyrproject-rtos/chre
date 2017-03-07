@@ -32,6 +32,7 @@ struct SensorState {
   bool enable;
   uint64_t interval;  // nsec
   uint64_t latency;  // nsec
+  chreSensorInfo info;
 };
 
 SensorState sensors[] = {
@@ -134,19 +135,35 @@ bool sensorWorldStart() {
           chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
-    sensors[i].isInitialized = chreSensorFindDefault(sensors[i].type,
-                                                     &sensors[i].handle);
+    SensorState& sensor = sensors[i];
+    sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
     chreLog(CHRE_LOG_INFO, "sensor %d initialized: %s with handle %" PRIu32,
-            i, sensors[i].isInitialized ? "true" : "false", sensors[i].handle);
+            i, sensor.isInitialized ? "true" : "false", sensor.handle);
 
-    if (sensors[i].enable && sensors[i].isInitialized) {
-      float odrHz = 1e9 / sensors[i].interval;
-      float latencySec = sensors[i].latency / 1e9;
-      bool status = chreSensorConfigure(sensors[i].handle,
-          CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensors[i].interval,
-          sensors[i].latency);
-      chreLog(CHRE_LOG_INFO, "Requested data: odr %f Hz, latency %f sec, %s",
-              odrHz, latencySec, status ? "success" : "failure");
+    if (sensor.isInitialized) {
+      // Get sensor info
+      chreSensorInfo& info = sensor.info;
+      bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
+      if (infoStatus) {
+        chreLog(CHRE_LOG_INFO, "SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
+                " OneShot=%d minInterval=%" PRIu64 "nsec",
+                info.sensorName, info.sensorType, info.isOnChange,
+                info.isOneShot, info.minInterval);
+      } else {
+        chreLog(CHRE_LOG_ERROR, "chreGetSensorInfo failed");
+      }
+
+
+      // Subscribe to sensors
+      if (sensor.enable) {
+        float odrHz = 1e9 / sensor.interval;
+        float latencySec = sensor.latency / 1e9;
+        bool status = chreSensorConfigure(sensor.handle,
+            CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
+            sensor.latency);
+        chreLog(CHRE_LOG_INFO, "Requested data: odr %f Hz, latency %f sec, %s",
+                odrHz, latencySec, status ? "success" : "failure");
+      }
     }
   }
 
