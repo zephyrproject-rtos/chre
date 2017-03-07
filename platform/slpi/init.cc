@@ -25,6 +25,7 @@ extern "C" {
 #include "chre/apps/message_world/message_world.h"
 #include "chre/apps/sensor_world/sensor_world.h"
 #include "chre/apps/timer_world/timer_world.h"
+#include "chre/apps/wifi_world/wifi_world.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
@@ -140,6 +141,17 @@ void chreThreadEntry(void * /*data*/) {
     chre::Nanoapp timerWorldNanoapp(
         gEventLoop->getNextInstanceId(), &timerWorldPlatformNanoapp);
     gEventLoop->startNanoapp(&timerWorldNanoapp);
+#endif
+
+#if 0
+    chre::PlatformNanoapp wifiWorldPlatformNanoapp;
+    wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
+    wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
+    wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
+
+    chre::Nanoapp wifiWorldNanoapp(
+        gEventLoop->getNextInstanceId(), &wifiWorldPlatformNanoapp);
+    gEventLoop->startNanoapp(&wifiWorldNanoapp);
 #endif
 
     gEventLoop->run();
