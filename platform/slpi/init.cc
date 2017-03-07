@@ -46,7 +46,7 @@ extern "C" int chre_slpi_stop_thread(void);
 namespace {
 
 //! Size of the stack for the CHRE thread, in bytes.
-constexpr unsigned int kStackSize = (8 * 1024);
+constexpr size_t kStackSize = (8 * 1024);
 
 //! Memory partition where the thread control block (TCB) should be stored,
 //! which controls micro-image support (0 = big image, 1 = micro image).
@@ -62,7 +62,7 @@ constexpr qurt_timer_duration_t kThreadStatusPollingIntervalUsec = 5000;  // 5ms
 EventLoop *gEventLoop;
 
 //! Buffer to use for the CHRE thread's stack.
-uint8_t gStack[kStackSize];
+typename std::aligned_storage<kStackSize>::type gStack;
 
 //! QuRT OS handle for the CHRE thread.
 qurt_thread_t gThreadHandle;
@@ -70,7 +70,7 @@ qurt_thread_t gThreadHandle;
 //! Protects access to thread metadata, like gThreadRunning, during critical
 //! sections (starting/stopping the CHRE thread).
 Mutex *gThreadMutex;
-typename std::aligned_storage<sizeof(Mutex), alignof(Mutex)>
+typename std::aligned_storage<sizeof(Mutex), alignof(Mutex)>::type
     gThreadMutexStorage;
 
 //! Set to true when the CHRE thread starts, and false when it exits normally.
@@ -197,7 +197,7 @@ extern "C" int chre_slpi_start_thread(void) {
     qurt_thread_attr_t attributes;
 
     qurt_thread_attr_init(&attributes);
-    qurt_thread_attr_set_stack_addr(&attributes, gStack);
+    qurt_thread_attr_set_stack_addr(&attributes, &gStack);
     qurt_thread_attr_set_stack_size(&attributes, kStackSize);
     qurt_thread_attr_set_name(&attributes, threadName);
     qurt_thread_attr_set_tcb_partition(&attributes, kTcbPartition);
