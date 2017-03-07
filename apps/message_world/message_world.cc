@@ -68,7 +68,7 @@ void messageWorldHandleEvent(uint32_t senderInstanceId,
 }
 
 void messageWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Message world app started");
+  chreLog(CHRE_LOG_INFO, "Message world app stopped");
 }
 
 }  // namespace app
