@@ -82,6 +82,10 @@ int main() {
   std::signal(SIGINT, signalHandler);
   eventLoop.run();
 
+  eventLoop.stopNanoapp(&helloWorldNanoapp);
+  eventLoop.stopNanoapp(&sensorWorldNanoapp);
+  eventLoop.stopNanoapp(&timerWorldNanoapp);
+
   chre::deinit();
   return 0;
 }
