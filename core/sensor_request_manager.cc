@@ -19,6 +19,34 @@
 #include "chre/platform/fatal_error.h"
 
 namespace chre {
+namespace {
+
+bool isSensorRequestValid(const Sensor& sensor,
+                          const SensorRequest& sensorRequest) {
+  bool isRequestContinuous = sensorModeIsContinuous(
+      sensorRequest.getMode());
+  bool isRequestOneShot = sensorModeIsOneShot(sensorRequest.getMode());
+  uint64_t requestedInterval = sensorRequest.getInterval().toRawNanoseconds();
+
+  bool success = true;
+  if (isRequestContinuous) {
+    if (sensor.isOneShot()) {
+      success = false;
+      LOGE("Invalid continuous request for a one-shot sensor.");
+    } else if (requestedInterval < sensor.getMinInterval()) {
+      success = false;
+      LOGE("Invalid requested interval %" PRIu64 " for a continuous sensor"
+           " with minInterval %" PRIu64,
+           requestedInterval, sensor.getMinInterval());
+    }
+  } else if (isRequestOneShot && !sensor.isOneShot()) {
+    success = false;
+    LOGE("Invalid one-shot request for a continuous sensor.");
+  }
+  return success;
+}
+
+}  // namespace
 
 SensorRequestManager::SensorRequestManager() {
   mSensorRequests.resize(mSensorRequests.capacity());
@@ -84,8 +112,12 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
   // Ensure that the runtime is aware of this sensor type.
   size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
   SensorRequests& requests = mSensorRequests[sensorIndex];
-  if (!requests.sensor.isValid()) {
+  const Sensor& sensor = requests.sensor;
+
+  if (!sensor.isValid()) {
     LOGW("Attempting to configure non-existent sensor");
+    return false;
+  } else if (!isSensorRequestValid(sensor, sensorRequest)) {
     return false;
   }
 

@@ -161,10 +161,20 @@ enum class SensorMode {
 };
 
 /**
- * @return Returns true if the sensor mode is considered to be active and would
- * cause a sensor to be powered on in order to get sensor data.
+ * @return true if the sensor mode is considered to be active and would cause a
+ * sensor to be powered on in order to get sensor data.
  */
 constexpr bool sensorModeIsActive(SensorMode sensorMode);
+
+/**
+ * @return true if the sensor mode is considered to be contunuous.
+ */
+constexpr bool sensorModeIsContinuous(SensorMode sensorMode);
+
+/**
+ * @return true if the sensor mode is considered to be one-shot.
+ */
+constexpr bool sensorModeIsOneShot(SensorMode sensorMode);
 
 /**
  * Translates a CHRE API enum sensor mode to a SensorMode. This function also
