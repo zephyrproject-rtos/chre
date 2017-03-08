@@ -35,6 +35,7 @@ HEXAGON_SRCS += platform/shared/memory.cc
 HEXAGON_SRCS += platform/shared/pal_system_api.cc
 HEXAGON_SRCS += platform/shared/pal_wifi_stub.cc
 HEXAGON_SRCS += platform/shared/platform_nanoapp.cc
+HEXAGON_SRCS += platform/shared/platform_sensor.cc
 HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
 HEXAGON_SRCS += platform/slpi/host_link.cc
@@ -65,6 +66,7 @@ X86_SRCS += platform/shared/memory.cc
 X86_SRCS += platform/shared/pal_wifi_stub.cc
 X86_SRCS += platform/shared/pal_system_api.cc
 X86_SRCS += platform/shared/platform_nanoapp.cc
+X86_SRCS += platform/shared/platform_sensor.cc
 X86_SRCS += platform/shared/platform_wifi.cc
 X86_SRCS += platform/shared/system_time.cc
 

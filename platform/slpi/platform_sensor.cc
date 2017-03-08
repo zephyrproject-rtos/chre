@@ -642,12 +642,6 @@ void populateSensorRequest(
 
 }  // anonymous namespace
 
-PlatformSensor::PlatformSensor()
-    : mMinInterval(CHRE_SENSOR_INTERVAL_DEFAULT) {}
-
-PlatformSensor::PlatformSensor(uint64_t minInterval)
-    : mMinInterval(minInterval) {}
-
 void PlatformSensor::init() {
   // sns_smgr_api_v01
   qmi_idl_service_object_type sensorServiceObject =
@@ -765,23 +759,6 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
 SensorType PlatformSensor::getSensorType() const {
   return getSensorTypeFromSensorId(this->sensorId, this->dataType,
                                    this->calType);
-}
-
-bool PlatformSensor::isOneShot() const {
-  SensorType sensorType = getSensorType();
-  return (sensorType == SensorType::InstantMotion ||
-          sensorType == SensorType::StationaryDetect);
-}
-
-bool PlatformSensor::isOnChange() const {
-  SensorType sensorType = getSensorType();
-  // Defined in sns_smgr_is_on_change_sensor().
-  return (sensorType == SensorType::Light ||
-          sensorType == SensorType::Proximity);
-}
-
-uint64_t PlatformSensor::getMinInterval() const {
-  return mMinInterval;
 }
 
 }  // namespace chre
