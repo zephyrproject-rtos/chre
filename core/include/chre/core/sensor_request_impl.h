@@ -26,6 +26,16 @@ constexpr bool sensorModeIsActive(SensorMode sensorMode) {
       || sensorMode == SensorMode::ActiveOneShot);
 }
 
+constexpr bool sensorModeIsContinuous(SensorMode sensorMode) {
+  return (sensorMode == SensorMode::ActiveContinuous
+      || sensorMode == SensorMode::PassiveContinuous);
+}
+
+constexpr bool sensorModeIsOneShot(SensorMode sensorMode) {
+  return (sensorMode == SensorMode::ActiveOneShot
+      || sensorMode == SensorMode::PassiveOneShot);
+}
+
 constexpr size_t getSensorTypeArrayIndex(SensorType sensorType) {
   return static_cast<size_t>(sensorType) - 1;
 }
