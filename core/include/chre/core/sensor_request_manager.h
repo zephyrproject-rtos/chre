@@ -77,6 +77,15 @@ class SensorRequestManager : public NonCopyable {
    */
   bool getSensorInfo(uint32_t sensorHandle, const Nanoapp *nanoapp,
                      struct chreSensorInfo *info) const;
+  /*
+   * Removes all requests of a sensorType and unregisters all nanoapps for its
+   * events.
+   *
+   * @param sensorType The sensor type whose requests are to be removed.
+   * @return true if all requests of the sensor type have been successfully
+   *         removed.
+   */
+  bool removeAllRequests(SensorType sensorType);
 
  private:
   /**
@@ -139,6 +148,15 @@ class SensorRequestManager : public NonCopyable {
      */
     bool update(size_t updateIndex, const SensorRequest& request,
                 bool *requestChanged);
+
+    /**
+     * Removes all requests and consolidates all the maximal request changes
+     * into one sensor configuration update.
+     *
+     * @return true if all the requests have been removed and sensor
+     *         configuration successfully updated.
+     */
+    bool removeAll();
   };
 
   //! The list of sensor requests

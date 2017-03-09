@@ -342,6 +342,18 @@ typename DynamicVector<ElementType>::iterator
 
 template<typename ElementType>
 typename DynamicVector<ElementType>::const_iterator
+    DynamicVector<ElementType>::begin() const {
+  return mData;
+}
+
+template<typename ElementType>
+typename DynamicVector<ElementType>::const_iterator
+    DynamicVector<ElementType>::end() const {
+  return (mData + mSize);
+}
+
+template<typename ElementType>
+typename DynamicVector<ElementType>::const_iterator
     DynamicVector<ElementType>::cbegin() const {
   return mData;
 }
