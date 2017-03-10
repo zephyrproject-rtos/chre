@@ -16,50 +16,38 @@
 
 #include "chre_api/chre/re.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/context.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
+
+using chre::EventLoopManager;
 
 uint64_t chreGetTime() {
   return chre::SystemTime::getMonotonicTime().toRawNanoseconds();
 }
 
 uint64_t chreGetAppId(void) {
-  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
-
-  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
-  return currentApp->getAppId();
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->getAppId();
 }
 
 uint32_t chreGetInstanceId(void) {
-  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
-
-  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
-  return currentApp->getInstanceId();
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->getInstanceId();
 }
 
 uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
-  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
-
-  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
-  return eventLoop->getTimerPool().setTimer(currentApp,
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::getCurrentEventLoop()->getTimerPool().setTimer(nanoapp,
       chre::Nanoseconds(duration), cookie, oneShot);
 }
 
 bool chreTimerCancel(uint32_t timerId) {
-  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
-
-  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
-  return eventLoop->getTimerPool().cancelTimer(currentApp, timerId);
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::getCurrentEventLoop()->getTimerPool().cancelTimer(nanoapp,
+                                                                 timerId);
 }
 
 void *chreHeapAlloc(uint32_t bytes) {

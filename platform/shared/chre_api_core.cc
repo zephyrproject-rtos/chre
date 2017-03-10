@@ -24,17 +24,14 @@
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
 
+using chre::EventLoopManager;
+
 bool chreSendEvent(uint16_t eventType, void *eventData,
                    chreEventCompleteFunction *freeCallback,
                    uint32_t targetInstanceId) {
-  chre::EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
-
-  const chre::Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT_LOG(currentApp, "%s called with no CHRE app context", __func__);
-
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return chre::EventLoopManagerSingleton::get()->postEvent(
-      eventType, eventData, freeCallback, currentApp->getInstanceId(),
+      eventType, eventData, freeCallback, nanoapp->getInstanceId(),
       targetInstanceId);
 }
 
