@@ -17,6 +17,11 @@
 #include "chre/core/sensor.h"
 
 namespace chre {
+namespace {
+
+static const char *kInvalidSensorName = "Invalid Sensor";
+
+}  // namespace
 
 Sensor::Sensor() {}
 
@@ -48,17 +53,13 @@ Sensor& Sensor::operator=(Sensor&& other) {
   return *this;
 }
 
-bool Sensor::isOneShot() const {
-  return isValid() ? mPlatformSensor->isOneShot() : false;
-}
-
-bool Sensor::isOnChange() const {
-  return isValid() ? mPlatformSensor->isOnChange() : false;
-}
-
 uint64_t Sensor::getMinInterval() const {
   return isValid() ? mPlatformSensor->getMinInterval() :
       CHRE_SENSOR_INTERVAL_DEFAULT;
+}
+
+const char *Sensor::getSensorName() const {
+  return isValid() ? mPlatformSensor->getSensorName() : kInvalidSensorName;
 }
 
 }  // namespace chre

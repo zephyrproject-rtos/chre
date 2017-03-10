@@ -90,19 +90,16 @@ class PlatformSensor : public PlatformSensorBase {
   SensorType getSensorType() const;
 
   /**
-   * @return true if it is a one-shot sensor.
-   */
-  bool isOneShot() const;
-
-  /**
-   * @return true if it is an on-change sensor.
-   */
-  bool isOnChange() const;
-
-  /**
    * @return The minimum interval in nanoseconds of this sensor.
    */
   uint64_t getMinInterval() const;
+
+  /**
+   * Returns the name (type and model) of this sensor.
+   *
+   * @return A pointer to a static string.
+   */
+  const char *getSensorName() const;
 
  private:
   uint64_t mMinInterval;

@@ -23,6 +23,10 @@ namespace chre {
  * Storage for the Linux implementation of the PlatformSensor class.
  */
 class PlatformSensorBase {
+  constexpr size_t kMaxSensorNameSize = 32;
+
+  char sensorName[kMaxSensorNameSize];
+
  protected:
 };
 

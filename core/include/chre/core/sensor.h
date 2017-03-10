@@ -69,19 +69,14 @@ class Sensor : public NonCopyable {
   Sensor& operator=(Sensor&& other);
 
   /**
-   * @return true if it is a one-shot sensor.
-   */
-  bool isOneShot() const;
-
-  /**
-   * @return true if it is an on-change sensor.
-   */
-  bool isOnChange() const;
-
-  /**
    * @return The minimal interval in nanoseconds of this sensor.
    */
   uint64_t getMinInterval() const;
+
+  /**
+   * @return The name (type and model) of this sensor.
+   */
+  const char *getSensorName() const;
 
  private:
   //! The most recent sensor request sent to this sensor.

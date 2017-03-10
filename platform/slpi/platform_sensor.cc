@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cinttypes>
 
 extern "C" {
@@ -198,12 +199,17 @@ bool isValidIndicesLength() {
  * @param sensor The sensor list.
  */
 void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
-                       uint8_t calType, DynamicVector<PlatformSensor> *sensors) {
+                       uint8_t calType,
+                       DynamicVector<PlatformSensor> *sensors) {
   PlatformSensor platformSensor(static_cast<uint64_t>(
       Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate));
   platformSensor.sensorId = sensorInfo.SensorID;
   platformSensor.dataType = sensorInfo.DataType;
   platformSensor.calType = calType;
+  size_t bytesToCopy = std::min(sizeof(platformSensor.sensorName) - 1,
+                                static_cast<size_t>(sensorInfo.SensorName_len));
+  memcpy(platformSensor.sensorName, sensorInfo.SensorName, bytesToCopy);
+  platformSensor.sensorName[bytesToCopy] = '\0';
   if (!sensors->push_back(std::move(platformSensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }

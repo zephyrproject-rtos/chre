@@ -17,6 +17,12 @@
 #ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
 #define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
 
+extern "C" {
+
+#include "sns_smgr_api_v01.h"
+
+}  // extern "C"
+
 namespace chre {
 
 /**
@@ -35,6 +41,9 @@ class PlatformSensorBase {
   //! The calibration type of this sensor. SMGR overloads sensorId and dataType
   //! and allows them to represent both uncalibrated and calibrated sensors.
   uint8_t calType = 0;
+
+  //! The name (type and model) of this sensor.
+  char sensorName[SNS_SMGR_MAX_SENSOR_NAME_SIZE_V01];
 };
 
 }  // namespace chre

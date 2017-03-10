@@ -24,20 +24,12 @@ PlatformSensor::PlatformSensor()
 PlatformSensor::PlatformSensor(uint64_t minInterval)
     : mMinInterval(minInterval) {}
 
-bool PlatformSensor::isOneShot() const {
-  SensorType sensorType = getSensorType();
-  return (sensorType == SensorType::InstantMotion ||
-          sensorType == SensorType::StationaryDetect);
-}
-
-bool PlatformSensor::isOnChange() const {
-  SensorType sensorType = getSensorType();
-  return (sensorType == SensorType::Light ||
-          sensorType == SensorType::Proximity);
-}
-
 uint64_t PlatformSensor::getMinInterval() const {
   return mMinInterval;
+}
+
+const char *PlatformSensor::getSensorName() const {
+  return sensorName;
 }
 
 }  // namespace chre
