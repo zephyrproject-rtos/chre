@@ -51,6 +51,18 @@ class PlatformWifi : public PlatformWifiBase {
    * @return true to indicate that the request was accepted.
    */
   bool configureScanMonitor(bool enable);
+
+  /**
+   * Requests that the WiFi chipset perform an active wifi scan. Refer to the
+   * {@link chrePalWifiApi} struct of the CHRE API which includes further
+   * documentation. Note that the implementation of this method may be supplied
+   * by the CHRE PAL but is not required to be. The semantics of this
+   * implementation, however, must be the same those of the requestScan PAL API.
+   *
+   * @param params The configuration of the wifi scan.
+   * @return true to indicate that the request was accepted.
+   */
+  bool requestScan(const struct chreWifiScanParams *params);
 };
 
 }  // namespace chre

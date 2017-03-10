@@ -65,6 +65,14 @@ bool PlatformWifi::configureScanMonitor(bool enable) {
   }
 }
 
+bool PlatformWifi::requestScan(const struct chreWifiScanParams *params) {
+  if (mWifiApi != nullptr) {
+    return mWifiApi->requestScan(params);
+  } else {
+    return false;
+  }
+}
+
 void PlatformWifiBase::scanMonitorStatusChangeCallback(bool enabled,
                                                        uint8_t errorCode) {
   EventLoopManagerSingleton::get()->getWifiRequestManager()
