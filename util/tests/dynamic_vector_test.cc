@@ -748,3 +748,29 @@ TEST(DynamicVector, CopyEmptyArray) {
   EXPECT_TRUE(vec.copy_array(nullptr, 0));
   EXPECT_EQ(vec.size(), 0);
 }
+
+TEST(DynamicVector, PrepareForPush) {
+  DynamicVector<int> vector;
+  EXPECT_EQ(vector.size(), 0);
+  EXPECT_EQ(vector.capacity(), 0);
+
+  // Perform an initial prepareForPush operation which causes a size of one.
+  ASSERT_TRUE(vector.prepareForPush());
+  EXPECT_EQ(vector.size(), 0);
+  EXPECT_EQ(vector.capacity(), 1);
+  ASSERT_TRUE(vector.push_back(0xcafe));
+  EXPECT_EQ(vector.size(), 1);
+  EXPECT_EQ(vector.capacity(), 1);
+
+  // Verify that it becomes larger
+  ASSERT_TRUE(vector.prepareForPush());
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector.size(), 1);
+  EXPECT_EQ(vector.capacity(), 2);
+
+  // The vector should not become any larger than necessary.
+  ASSERT_TRUE(vector.prepareForPush());
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector.size(), 1);
+  EXPECT_EQ(vector.capacity(), 2);
+}

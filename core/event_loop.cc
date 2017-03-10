@@ -202,6 +202,21 @@ TimerPool& EventLoop::getTimerPool() {
   return mTimerPool;
 }
 
+Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) {
+  bool needLock = (getCurrentEventLoop() != this);
+  if (needLock) {
+    mNanoappsLock.lock();
+  }
+
+  Nanoapp *nanoapp = lookupAppByInstanceId(instanceId);
+
+  if (needLock) {
+    mNanoappsLock.unlock();
+  }
+
+  return nanoapp;
+}
+
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case

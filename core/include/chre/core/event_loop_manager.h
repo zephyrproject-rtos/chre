@@ -36,6 +36,7 @@ enum class SystemCallbackType : uint16_t {
   FirstCallbackType = CHRE_EVENT_FIRST_USER_VALUE,
 
   MessageToHostComplete,
+  WifiScanMonitorStateChange,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free
@@ -95,6 +96,17 @@ class EventLoopManager : public NonCopyable {
    */
   bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId,
                                     EventLoop **eventLoop = nullptr);
+
+  /**
+   * Search all event loops to find a nanoapp with a given instance ID.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param instanceId The nanoapp instance ID to search for.
+   * @return a pointer to the found nanoapp or nullptr.
+   */
+  Nanoapp *findNanoappByInstanceId(uint32_t instanceId,
+                                   EventLoop **eventLoop = nullptr);
 
   /**
    * Posts an event to all event loops owned by this event loop manager. This

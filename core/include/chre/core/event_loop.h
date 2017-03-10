@@ -131,6 +131,17 @@ class EventLoop : public NonCopyable {
    */
   TimerPool& getTimerPool();
 
+  /**
+   * Searches the set of nanoapps managed by this EventLoop for one with the
+   * given instance ID.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param instanceId The nanoapp instance ID to search for.
+   * @return a pointer to the found nanoapp or nullptr if no match was found.
+   */
+  Nanoapp *findNanoappByInstanceId(uint32_t instanceId);
+
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = 1024;
