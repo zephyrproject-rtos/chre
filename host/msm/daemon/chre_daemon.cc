@@ -34,20 +34,24 @@
  *     message from CHRE
  *   - Message to CHRE (TX) thread: blocks waiting on outbound queue, delivers
  *     messages to CHRE over FastRPC
+ *
+ * TODO: This file originated from an implementation for another device, and was
+ * written in C, but then it was converted to C++ when adding socket support. It
+ * should be fully converted to C++.
  */
-
-#include "chre/platform/slpi/fastrpc.h"
-#include "chre_host/log.h"
-#include "generated/chre_slpi.h"
 
 #include <ctype.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "chre/platform/slpi/fastrpc.h"
+#include "chre_host/log.h"
+#include "generated/chre_slpi.h"
+#include "socket_server.h"
 
 typedef void *(thread_entry_point_f)(void *);
 
@@ -61,12 +65,9 @@ static void *chre_message_to_host_thread(void *arg);
 static void *chre_monitor_thread(void *arg);
 static void *chre_reverse_monitor_thread(void *arg);
 static bool init_reverse_monitor(struct reverse_monitor_thread_data *data);
-static bool set_signal_handler(void);
 static bool start_thread(pthread_t *thread_handle,
                          thread_entry_point_f *thread_entry,
                          void *arg);
-static void signal_handler(int sig);
-static void wait_on_signal(void);
 
 //! Set to true when we request a graceful shutdown of CHRE
 static volatile bool chre_shutdown_requested = false;
@@ -116,7 +117,7 @@ static void *chre_message_to_host_thread(void *arg) {
   unsigned char messageBuffer[4096];
   unsigned int messageLen;
   int result = 0;
-  (void) arg;
+  auto *server = static_cast<::android::chre::SocketServer *>(arg);
 
   while (!chre_shutdown_requested) {
     messageLen = 0;
@@ -129,8 +130,8 @@ static void *chre_message_to_host_thread(void *arg) {
       LOGD("CHRE shutting down, exiting CHRE->Host message thread");
       break;
     } else {
-      // TODO: deliver message to clients
       log_buffer(messageBuffer, messageLen);
+      server->sendToAllClients(messageBuffer, static_cast<size_t>(messageLen));
     }
   }
 
@@ -210,37 +211,6 @@ static bool init_reverse_monitor(struct reverse_monitor_thread_data *data) {
 }
 
 /**
- * Installs a signal handler to catch SIGINT/SIGTERM
- *
- * @return true on success
- */
-static bool set_signal_handler(void) {
-  struct sigaction sa;
-  int ret;
-
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = signal_handler;
-
-  if ((ret = sigaction(SIGINT, &sa, NULL)) != 0) {
-    LOG_ERROR("Couldn't set handler for SIGINT", ret);
-  } else if ((ret = sigaction(SIGTERM, &sa, NULL)) != 0) {
-    LOG_ERROR("Couldn't set handler for SIGTERM", ret);
-  }
-
-  return (ret == 0);
-}
-
-/**
- * Simple signal handler installed by set_signal_handler()
- */
-static void signal_handler(int sig) {
-  // Don't do anything here: this exists to allow SIGINT/SIGTERM to cause
-  // sigwait() to return before terminating the process, which leads to
-  // graceful shutdown
-  LOGD("Caught signal %d", sig);
-}
-
-/**
  * Start a thread with default attributes, or log an error on failure
  *
  * @return bool true if the thread was successfully started
@@ -255,30 +225,37 @@ static bool start_thread(pthread_t *thread_handle,
   return (ret == 0);
 }
 
-/**
- * Installs the signal handler and blocks until a signal is caught
- */
-static void wait_on_signal(void) {
-  if (set_signal_handler()) {
-    sigset_t signal_mask;
+namespace {
 
-    sigemptyset(&signal_mask);
-    sigaddset(&signal_mask, SIGINT);
-    sigaddset(&signal_mask, SIGTERM);
+void onMessageReceivedFromClient(uint16_t /*clientId*/, const void *data,
+                                 size_t length) {
+  constexpr size_t kMaxPayloadSize = 1024 * 1024;  // 1 MiB
 
-    int sig;
-    int ret = sigwait(&signal_mask, &sig);
+  // This limitation is due to FastRPC, but there's no case where we should come
+  // close to this limit...
+  static_assert(kMaxPayloadSize <= INT32_MAX,
+                "SLPI uses 32-bit signed integers to represent message size");
+
+  if (length > kMaxPayloadSize) {
+    LOGE("Message too large to pass to SLPI (got %zu, max %zu bytes)", length,
+         kMaxPayloadSize);
+  } else {
+    int ret = chre_slpi_deliver_message_from_host(
+        static_cast<const unsigned char *>(data), static_cast<int>(length));
     if (ret != 0) {
-      LOG_ERROR("Failed to wait on signal mask", ret);
+      LOGE("Failed to deliver message from host to CHRE: %d", ret);
     }
   }
 }
+
+}  // anonymous namespace
 
 int main() {
   int ret = -1;
   pthread_t monitor_thread;
   pthread_t msg_to_host_thread;
   struct reverse_monitor_thread_data reverse_monitor;
+  ::android::chre::SocketServer server;
 
   if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
@@ -288,11 +265,12 @@ int main() {
     if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
       LOGE("Couldn't start monitor thread");
     } else if (!start_thread(&msg_to_host_thread, chre_message_to_host_thread,
-                             NULL)) {
+                             &server)) {
       LOGE("Couldn't start CHRE->Host message thread");
     } else {
       LOGI("CHRE on SLPI started");
-      wait_on_signal();
+      // TODO: take 2nd argument as command-line parameter
+      server.run("chre", true, onMessageReceivedFromClient);
     }
 
     chre_shutdown_requested = true;
