@@ -63,6 +63,14 @@ class PlatformWifi : public PlatformWifiBase {
    * @return true to indicate that the request was accepted.
    */
   bool requestScan(const struct chreWifiScanParams *params);
+
+  /**
+   * Releases a previously published wifi scan event. Refer to the
+   * {@link chrePalWifiApi} struct of the CHRE API for further documentation.
+   *
+   * @param event A pointer to an event to be released.
+   */
+  void releaseScanEvent(struct chreWifiScanEvent *event);
 };
 
 }  // namespace chre
