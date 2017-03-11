@@ -22,6 +22,7 @@ extern "C" {
 
 }  // extern "C"
 
+#include "chre/apps/imu_cal/imu_cal.h"
 #include "chre/apps/message_world/message_world.h"
 #include "chre/apps/sensor_world/sensor_world.h"
 #include "chre/apps/timer_world/timer_world.h"
@@ -109,6 +110,16 @@ void chreThreadEntry(void * /*data*/) {
     // TODO: work up a better way of handling built-in nanoapps (or don't have
     // any at all). Also, sensor world test functionality should be replaced by
     // a more automated framework.
+#if 0
+    chre::PlatformNanoapp imuCalPlatformNanoapp;
+    imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
+    imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
+    imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
+
+    chre::Nanoapp imuCalNanoapp(
+        gEventLoop->getNextInstanceId(), &imuCalPlatformNanoapp);
+    gEventLoop->startNanoapp(&imuCalNanoapp);
+#endif
 #if 0
     chre::PlatformNanoapp sensorWorldPlatformNanoapp;
     sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;

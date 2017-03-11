@@ -15,6 +15,7 @@
  */
 
 #include "chre/apps/hello_world/hello_world.h"
+#include "chre/apps/imu_cal/imu_cal.h"
 #include "chre/apps/sensor_world/sensor_world.h"
 #include "chre/apps/timer_world/timer_world.h"
 #include "chre/apps/wifi_world/wifi_world.h"
@@ -51,6 +52,11 @@ int main() {
   helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
   helloWorldPlatformNanoapp.mStop = chre::app::helloWorldStop;
 
+  chre::PlatformNanoapp imuCalPlatformNanoapp;
+  imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
+  imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
+  imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
+
   chre::PlatformNanoapp sensorWorldPlatformNanoapp;
   sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
   sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
@@ -75,6 +81,11 @@ int main() {
   eventLoop.startNanoapp(&helloWorldNanoapp);
   helloWorldNanoapp.registerForBroadcastEvent(1);
 
+  // Start the imu cal nanoapp.
+  chre::Nanoapp imuCalNanoapp(eventLoop.getNextInstanceId(),
+      &imuCalPlatformNanoapp);
+  eventLoop.startNanoapp(&imuCalNanoapp);
+
   // Start the sensor world nanoapp.
   chre::Nanoapp sensorWorldNanoapp(eventLoop.getNextInstanceId(),
       &sensorWorldPlatformNanoapp);
@@ -95,6 +106,7 @@ int main() {
   eventLoop.run();
 
   eventLoop.stopNanoapp(&helloWorldNanoapp);
+  eventLoop.stopNanoapp(&imuCalNanoapp);
   eventLoop.stopNanoapp(&sensorWorldNanoapp);
   eventLoop.stopNanoapp(&timerWorldNanoapp);
   eventLoop.stopNanoapp(&wifiWorldNanoapp);
