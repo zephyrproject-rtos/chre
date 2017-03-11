@@ -149,6 +149,18 @@ typename ArrayQueue<ElementType, kCapacity>::iterator
 
 template<typename ElementType, size_t kCapacity>
 typename ArrayQueue<ElementType, kCapacity>::const_iterator
+ArrayQueue<ElementType, kCapacity>::begin() const {
+  return cbegin();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::const_iterator
+    ArrayQueue<ElementType, kCapacity>::end() const {
+  return cend();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename ArrayQueue<ElementType, kCapacity>::const_iterator
 ArrayQueue<ElementType, kCapacity>::cbegin() const {
   // Align begin() and end() outside of the memory block when empty.
   return empty() ? cend() : const_iterator(data() + mHead, data(), mTail);

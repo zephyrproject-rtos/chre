@@ -201,12 +201,14 @@ class ArrayQueue : public NonCopyable {
    * @return A forward iterator to the beginning.
    */
   typename ArrayQueue<ElementType, kCapacity>::iterator begin();
+  typename ArrayQueue<ElementType, kCapacity>::const_iterator begin() const;
   typename ArrayQueue<ElementType, kCapacity>::const_iterator cbegin() const;
 
   /**
    * @return A forward iterator to the end.
    */
   typename ArrayQueue<ElementType, kCapacity>::iterator end();
+  typename ArrayQueue<ElementType, kCapacity>::const_iterator end() const;
   typename ArrayQueue<ElementType, kCapacity>::const_iterator cend() const;
 
  private:

@@ -156,12 +156,14 @@ class PriorityQueue : public NonCopyable {
    * @return A random-access iterator to the beginning.
    */
   typename PriorityQueue<ElementType, CompareFunction>::iterator begin();
+  typename PriorityQueue<ElementType, CompareFunction>::const_iterator begin() const;
   typename PriorityQueue<ElementType, CompareFunction>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
   typename PriorityQueue<ElementType, CompareFunction>::iterator end();
+  typename PriorityQueue<ElementType, CompareFunction>::const_iterator end() const;
   typename PriorityQueue<ElementType, CompareFunction>::const_iterator cend() const;
 
 

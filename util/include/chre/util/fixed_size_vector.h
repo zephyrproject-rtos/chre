@@ -159,12 +159,14 @@ class FixedSizeVector : public NonCopyable {
    * @return A random-access iterator to the beginning.
    */
   typename FixedSizeVector<ElementType, kCapacity>::iterator begin();
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator begin() const;
   typename FixedSizeVector<ElementType, kCapacity>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
   typename FixedSizeVector<ElementType, kCapacity>::iterator end();
+  typename FixedSizeVector<ElementType, kCapacity>::const_iterator end() const;
   typename FixedSizeVector<ElementType, kCapacity>::const_iterator cend() const;
 
  private:
