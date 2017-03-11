@@ -62,6 +62,15 @@ void RequestMultiplexer<RequestType>::removeRequest(
 }
 
 template<typename RequestType>
+void RequestMultiplexer<RequestType>::removeAllRequests(
+    bool *maximalRequestChanged) {
+  CHRE_ASSERT(maximalRequestChanged);
+
+  mRequests.clear();
+  updateMaximalRequest(maximalRequestChanged);
+}
+
+template<typename RequestType>
 const DynamicVector<RequestType>&
     RequestMultiplexer<RequestType>::getRequests() const {
   return mRequests;

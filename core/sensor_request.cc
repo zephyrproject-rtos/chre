@@ -70,6 +70,11 @@ uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
   return CHRE_EVENT_SENSOR_DATA_EVENT_BASE + sensorTypeValue;
 }
 
+SensorType getSensorTypeForSampleEventType(uint16_t eventType) {
+  return getSensorTypeFromUnsignedInt(
+      eventType - CHRE_EVENT_SENSOR_DATA_EVENT_BASE);
+}
+
 SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
   switch (sensorType) {
     case CHRE_SENSOR_TYPE_ACCELEROMETER:

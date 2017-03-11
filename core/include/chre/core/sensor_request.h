@@ -90,6 +90,14 @@ const char *getSensorTypeName(SensorType sensorType);
 uint16_t getSampleEventTypeForSensorType(SensorType sensorType);
 
 /**
+ * Returns a sensor type for a given sensor sample event type.
+ *
+ * @param eventType The event type for a sensor sample.
+ * @return The type of the sensor.
+ */
+SensorType getSensorTypeForSampleEventType(uint16_t eventType);
+
+/**
  * @return An index into an array for a given sensor type. This is useful to map
  * sensor type to array index quickly. The range returned corresponds to any
  * SensorType except for Unknown starting from zero to the maximum value sensor

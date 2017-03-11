@@ -390,3 +390,31 @@ TEST(RequestMultiplexer, AddManyUpdateNewMaximal) {
     EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 20);
   }
 }
+
+TEST(RequestMultiplexer, RemoveAllRequestsEmpty) {
+  RequestMultiplexer<DummyRequest> multiplexer;
+
+  bool maximalRequestChanged;
+  multiplexer.removeAllRequests(&maximalRequestChanged);
+
+  EXPECT_FALSE(maximalRequestChanged);
+  EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 0);
+}
+
+TEST(RequestMultiplexer, RemoveAllRequestsNonEmpty) {
+  RequestMultiplexer<DummyRequest> multiplexer;
+  size_t index;
+
+  {
+    DummyRequest request(1);
+    bool maximalRequestChanged;
+    ASSERT_TRUE(multiplexer.addRequest(request, &index,
+                                       &maximalRequestChanged));
+  }
+
+  bool maximalRequestChanged;
+  multiplexer.removeAllRequests(&maximalRequestChanged);
+
+  EXPECT_TRUE(maximalRequestChanged);
+  EXPECT_EQ(multiplexer.getCurrentMaximalRequest().getPriority(), 0);
+}

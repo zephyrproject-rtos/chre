@@ -200,6 +200,25 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
   return success;
 }
 
+bool SensorRequestManager::removeAllRequests(SensorType sensorType) {
+  bool success = false;
+  if (sensorType == SensorType::Unknown) {
+    LOGW("Attempting to remove all requests of an invalid sensor type");
+  } else {
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    SensorRequests& requests = mSensorRequests[sensorIndex];
+    uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
+
+    for (const SensorRequest& request : requests.multiplexer.getRequests()) {
+      Nanoapp *nanoapp = request.getNanoapp();
+      nanoapp->unregisterForBroadcastEvent(eventType);
+    }
+
+    success = requests.removeAll();
+  }
+  return success;
+}
+
 const SensorRequest *SensorRequestManager::SensorRequests::find(
     const Nanoapp *nanoapp, size_t *index) const {
   CHRE_ASSERT(index);
@@ -292,6 +311,27 @@ bool SensorRequestManager::SensorRequests::update(size_t updateIndex,
     }
   }
 
+  return success;
+}
+
+bool SensorRequestManager::SensorRequests::removeAll() {
+  bool requestChanged;
+  multiplexer.removeAllRequests(&requestChanged);
+
+  bool success = true;
+  if (requestChanged) {
+    SensorRequest maximalRequest = multiplexer.getCurrentMaximalRequest();
+    success = sensor.setRequest(maximalRequest);
+    if (!success) {
+      LOGE("SensorRequestManager failed to remove all request");
+
+      // If the platform fails to handle this request in a debug build there is
+      // likely an error in the platform. This is not strictly a programming
+      // error but it does make sense to use assert semantics when a platform
+      // fails to handle a request that it had been sent previously.
+      CHRE_ASSERT(false);
+    }
+  }
   return success;
 }
 

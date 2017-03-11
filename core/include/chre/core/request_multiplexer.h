@@ -96,6 +96,15 @@ class RequestMultiplexer : public NonCopyable {
    */
   void removeRequest(size_t index, bool *maximalRequestChanged);
 
+  /*
+   * Removes all requests managed by this multiplexer. The maximal request will
+   * change if the multiplexer is not empty.
+   *
+   * @param maximalRequestChanged A non-null pointer to a bool that is set to
+   *        true if the current maximal request has changed.
+   */
+  void removeAllRequests(bool *maximalRequestChanged);
+
   /**
    * @return The list of requests managed by this multiplexer.
    */

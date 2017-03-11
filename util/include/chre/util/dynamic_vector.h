@@ -325,12 +325,14 @@ class DynamicVector : public NonCopyable {
    * @return A random-access iterator to the beginning.
    */
   typename DynamicVector<ElementType>::iterator begin();
+  typename DynamicVector<ElementType>::const_iterator begin() const;
   typename DynamicVector<ElementType>::const_iterator cbegin() const;
 
   /**
    * @return A random-access iterator to the end.
    */
   typename DynamicVector<ElementType>::iterator end();
+  typename DynamicVector<ElementType>::const_iterator end() const;
   typename DynamicVector<ElementType>::const_iterator cend() const;
 
  private:
