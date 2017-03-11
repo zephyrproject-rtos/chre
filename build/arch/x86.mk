@@ -4,12 +4,12 @@
 
 # x86 Environment Checks #######################################################
 
-ifeq ($(X86_TOOLS_PREFIX),)
-$(error "You should supply an X86_TOOLS_PREFIX environment variable \
-         containing a path to the x86 toolchain. This is typically provided by \
-         the Android source tree. Example: export X86_TOOLS_PREFIX=$$HOME/\
-         android/master/prebuilts/clang/host/linux-x86/clang-3688880/bin/")
+ifeq ($(ANDROID_BUILD_TOP),)
+$(error "You should supply an ANDROID_BUILD_TOP environment variable \
+         containing a path to the Android source tree. This is typically \
+         provided by initializing the Android build environment.")
 endif
+export X86_TOOLS_PREFIX=$(ANDROID_BUILD_TOP)/prebuilts/clang/host/linux-x86/clang-3688880/bin/
 
 # x86 Tools ####################################################################
 

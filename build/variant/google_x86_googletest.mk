@@ -13,12 +13,13 @@ TARGET_VARIANT_SRCS += $(GOOGLETEST_SRCS)
 TARGET_CFLAGS += -DGTEST
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
-ifeq ($(GOOGLETEST_PREFIX),)
-$(error "You must supply a GOOGLETEST_PREFIX environment variable \
-         containing a path to the Google Test project tree. Example \
-         export GOOGLETEST_PREFIX=$$HOME/android/master/external/googletest")
-endif
 
+ifeq ($(ANDROID_BUILD_TOP),)
+$(error "You should supply an ANDROID_BUILD_TOP environment variable \
+         containing a path to the Android source tree. This is typically \
+         provided by initializing the Android build environment.")
+endif
+export GOOGLETEST_PREFIX=$(ANDROID_BUILD_TOP)/external/googletest
 include $(CHRE_PREFIX)/build/arch/x86.mk
 
 TARGET_CFLAGS += $(GOOGLETEST_CFLAGS)
