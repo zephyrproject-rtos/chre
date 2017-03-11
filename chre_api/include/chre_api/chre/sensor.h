@@ -55,10 +55,11 @@ extern "C" {
 /**
  * Accelerometer.
  *
- * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA
+ * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA and
+ *     CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO
  *
  * Note that the ACCELEROMETER_DATA is always the fully calibrated data,
- * including factor calibration and runtime calibration if available.
+ * including factory calibration and runtime calibration if available.
  */
 #define CHRE_SENSOR_TYPE_ACCELEROMETER  UINT8_C(1)
 
@@ -136,6 +137,8 @@ extern "C" {
  * Ambient light sensor.
  *
  * Generates: CHRE_EVENT_SENSOR_LIGHT_DATA
+ *
+ * This is an on-change sensor.
  */
 #define CHRE_SENSOR_TYPE_LIGHT  UINT8_C(12)
 
@@ -272,7 +275,7 @@ extern "C" {
  *       if set to 0, we are far.
  * o 'invalid': If set to 1, this is not a valid reading of this data.
  *
- * As an on-change sensor, there is an event generated upon configuring
+ * As an on-change sensor, there can be an event generated upon configuring
  * this sensor.  This is when we might get an 'invalid' reading.  Thus,
  * this field must be checked on the first event before interpreting 'isNear'.
  */
@@ -367,11 +370,24 @@ extern "C" {
  * field within 'readings', or by the 3D array 'bias' (bias[0] == x_bias;
  * bias[1] == y_bias; bias[2] == z_bias).
  *
+ * All values are in SI units (m/s^2) and measure the acceleration applied to
+ * the device.
+ */
+#define CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO \
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 1)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorThreeAxisData
+ *
+ * The data can be interpreted using the 'x_bias', 'y_bias', and 'z_bias'
+ * field within 'readings', or by the 3D array 'bias' (bias[0] == x_bias;
+ * bias[1] == y_bias; bias[2] == z_bias).
+ *
  * All values are in radians/second and measure the rate of rotation
  * around the X, Y and Z axis.
  */
 #define CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO \
-    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 1)
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 2)
 
 /**
  * nanoappHandleEvent argument: struct chreSensorThreeAxisData
@@ -384,7 +400,7 @@ extern "C" {
  * field in the X, Y and Z axis.
  */
 #define CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO \
-    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 2)
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 3)
 
 
 #if CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO > CHRE_EVENT_SENSOR_LAST_EVENT
@@ -640,10 +656,14 @@ struct chreSensorDataHeader {
  * Data for a sensor which reports on three axes.
  *
  * This is used by CHRE_EVENT_SENSOR_ACCELEROMETER_DATA,
+ * CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO,
+ * CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA,
  * CHRE_EVENT_SENSOR_GYROSCOPE_DATA,
  * CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO,
- * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA, and
- * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO.
+ * CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA,
+ * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA,
+ * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO, and
+ * CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA.
  */
 struct chreSensorThreeAxisData {
     /**
@@ -694,7 +714,11 @@ struct chreSensorOccurrenceData {
 };
 
 /**
- * CHRE_EVENT_SENSOR_LIGHT_DATA and CHRE_EVENT_SENSOR_PRESSURE_DATA.
+ * This is used by CHRE_EVENT_SENSOR_LIGHT_DATA,
+ * CHRE_EVENT_SENSOR_PRESSURE_DATA,
+ * CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA,
+ * CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA, and
+ * CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA.
  */
 struct chreSensorFloatData {
     struct chreSensorDataHeader header;
@@ -834,6 +858,9 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *
  * If this sensor's chreSensorInfo has isOneShot set to 1,
  * then the mode must be one of the ONE_SHOT modes, or this method will fail.
+ * The supplied interval and latency must be set to
+ * CHRE_SENSOR_INTERVAL_DEFAULT and CHRE_SENSOR_LATENCY_DEFAULT, respectively,
+ * if the sensor is one-shot, or this method will fail.
  *
  * The CHRE wants to power as few sensors as possible, in keeping with its
  * low power design.  As such, it only turns on sensors when there are clients
