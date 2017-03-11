@@ -124,6 +124,18 @@ typename PriorityQueue<ElementType, CompareFunction>::iterator
 
 template<typename ElementType, typename CompareFunction>
 typename PriorityQueue<ElementType, CompareFunction>::const_iterator
+    PriorityQueue<ElementType, CompareFunction>::begin() const {
+  return cbegin();
+}
+
+template<typename ElementType, typename CompareFunction>
+typename PriorityQueue<ElementType, CompareFunction>::const_iterator
+    PriorityQueue<ElementType, CompareFunction>::end() const {
+  return cend();
+}
+
+template<typename ElementType, typename CompareFunction>
+typename PriorityQueue<ElementType, CompareFunction>::const_iterator
     PriorityQueue<ElementType, CompareFunction>::cbegin() const {
   return mData.cbegin();
 }

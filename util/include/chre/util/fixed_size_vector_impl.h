@@ -132,6 +132,18 @@ typename FixedSizeVector<ElementType, kCapacity>::iterator
 
 template<typename ElementType, size_t kCapacity>
 typename FixedSizeVector<ElementType, kCapacity>::const_iterator
+    FixedSizeVector<ElementType, kCapacity>::begin() const {
+  return cbegin();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::const_iterator
+    FixedSizeVector<ElementType, kCapacity>::end() const {
+  return cend();
+}
+
+template<typename ElementType, size_t kCapacity>
+typename FixedSizeVector<ElementType, kCapacity>::const_iterator
     FixedSizeVector<ElementType, kCapacity>::cbegin() const {
   return data();
 }
