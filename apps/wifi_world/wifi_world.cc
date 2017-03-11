@@ -23,6 +23,43 @@
 namespace chre {
 namespace app {
 
+//! A dummy cookie to pass into the configure scan monitoring async request.
+const uint32_t kScanMonitoringCookie = 0x1337;
+
+namespace {
+
+/**
+ * Handles the result of an asynchronous request for a wifi resource.
+ *
+ * @param result a pointer to the event structure containing the result of the
+ * request.
+ */
+void handleWifiAsyncResult(const chreAsyncResult *result) {
+  if (result->requestType == CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR) {
+    if (result->success) {
+      chreLog(CHRE_LOG_INFO, "Successfully requested wifi scan monitoring");
+    } else {
+      chreLog(CHRE_LOG_ERROR, "Error requesting wifi scan monitoring with %"
+              PRIu8, result->errorCode);
+    }
+
+    if (result->cookie != &kScanMonitoringCookie) {
+      chreLog(CHRE_LOG_ERROR, "Scan monitoring request cookie mismatch");
+    }
+  }
+}
+
+/**
+ * Handles a wifi scan event.
+ *
+ * @param event a pointer to the details of the wifi scan event.
+ */
+void handleWifiScanEvent(const chreWifiScanEvent *event) {
+  // TODO: Log the scan result.
+}
+
+}  // namespace
+
 bool wifiWorldStart() {
   chreLog(CHRE_LOG_INFO, "Wifi world app started as instance %" PRIu32,
       chreGetInstanceId());
@@ -49,12 +86,31 @@ bool wifiWorldStart() {
 
   chreLog(CHRE_LOG_INFO, "Detected WiFi support as: %s (%" PRIu32 ")",
           wifiCapabilitiesStr, wifiCapabilities);
+
+  if (wifiCapabilities & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
+    if (chreWifiConfigureScanMonitorAsync(true, &kScanMonitoringCookie)) {
+      chreLog(CHRE_LOG_INFO, "Scan monitor enable request successful");
+    } else {
+      chreLog(CHRE_LOG_ERROR, "Error sending scan monitoring request");
+    }
+  }
+
   return true;
 }
 
 void wifiWorldHandleEvent(uint32_t senderInstanceId,
                           uint16_t eventType,
                           const void *eventData) {
+  switch (eventType) {
+    case CHRE_EVENT_WIFI_ASYNC_RESULT:
+      handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+      break;
+    case CHRE_EVENT_WIFI_SCAN_RESULT:
+      handleWifiScanEvent(static_cast<const chreWifiScanEvent *>(eventData));
+      break;
+    default:
+      chreLog(CHRE_LOG_ERROR, "Unhandled event type %" PRIu16, eventType);
+  }
 }
 
 void wifiWorldStop() {

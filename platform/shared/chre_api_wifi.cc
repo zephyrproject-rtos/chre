@@ -18,6 +18,7 @@
 
 #include "chre/core/event_loop_manager.h"
 
+using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
 
 uint32_t chreWifiGetCapabilities() {
@@ -26,6 +27,7 @@ uint32_t chreWifiGetCapabilities() {
 }
 
 bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return EventLoopManagerSingleton::get()->getWifiRequestManager()
-      .configureScanMonitor(nullptr, enable, cookie);
+      .configureScanMonitor(nanoapp, enable, cookie);
 }

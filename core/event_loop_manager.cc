@@ -16,9 +16,20 @@
 
 #include "chre/core/event_loop_manager.h"
 
+#include "chre/platform/context.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
+
+Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
+  chre::EventLoop *eventLoop = getCurrentEventLoop();
+  CHRE_ASSERT(eventLoop);
+
+  chre::Nanoapp *currentNanoapp = eventLoop->getCurrentNanoapp();
+  CHRE_ASSERT_LOG(currentNanoapp, "%s called with no CHRE app context", __func__);
+
+  return currentNanoapp;
+}
 
 EventLoop *EventLoopManager::createEventLoop() {
   // TODO: The current EventLoop implementation requires refactoring to properly

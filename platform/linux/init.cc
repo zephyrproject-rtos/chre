@@ -17,6 +17,7 @@
 #include "chre/apps/hello_world/hello_world.h"
 #include "chre/apps/sensor_world/sensor_world.h"
 #include "chre/apps/timer_world/timer_world.h"
+#include "chre/apps/wifi_world/wifi_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
@@ -60,6 +61,11 @@ int main() {
   timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
   timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
 
+  chre::PlatformNanoapp wifiWorldPlatformNanoapp;
+  wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
+  wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
+  wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
+
   // Construct the event loop.
   chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
 
@@ -79,12 +85,19 @@ int main() {
       &timerWorldPlatformNanoapp);
   eventLoop.startNanoapp(&timerWorldNanoapp);
 
+  // Start the wifi nanoapp.
+  chre::Nanoapp wifiWorldNanoapp(eventLoop.getNextInstanceId(),
+      &wifiWorldPlatformNanoapp);
+  eventLoop.startNanoapp(&wifiWorldNanoapp);
+
+
   std::signal(SIGINT, signalHandler);
   eventLoop.run();
 
   eventLoop.stopNanoapp(&helloWorldNanoapp);
   eventLoop.stopNanoapp(&sensorWorldNanoapp);
   eventLoop.stopNanoapp(&timerWorldNanoapp);
+  eventLoop.stopNanoapp(&wifiWorldNanoapp);
 
   chre::deinit();
   return 0;

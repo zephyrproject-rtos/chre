@@ -50,6 +50,19 @@ typedef chreEventCompleteFunction SystemCallbackFunction;
  */
 class EventLoopManager : public NonCopyable {
  public:
+   /**
+    * Validates that a CHRE API is invoked from a valid nanoapp context and
+    * returns a pointer to the currently executing nanoapp. This should be
+    * called by most CHRE API methods that require accessing details about the
+    * event loop or the nanoapp itself. If the current event loop or nanoapp are
+    * null, this is an assertion error.
+    *
+    * @param functionName The name of the CHRE API. This should be __func__.
+    * @return A pointer to the currently executing nanoapp or null if outside
+    *         the context of a nanoapp.
+    */
+  static Nanoapp *validateChreApiCall(const char *functionName);
+
   /**
    * Constructs an event loop and returns a pointer to it. The event loop is not
    * started by this method.
