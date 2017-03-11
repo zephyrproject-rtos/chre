@@ -306,6 +306,28 @@ void populateFloatEvent(
 }
 
 /**
+ * Populate byte event data.
+ */
+void populateByteEvent(
+    SensorType sensorType, chreSensorByteData *data,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+  populateSensorDataHeader(sensorType, &data->header, sensorIndex);
+
+  for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
+    const sns_smgr_buffering_sample_s_v01& sensorData =
+        gSmgrBufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
+
+    // TimeStampOffset has max value of < 2 sec so it will not overflow.
+    data->readings[i].timestampDelta =
+        getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
+    // Zero out fields invalid and padding0.
+    data->readings[i].value = 0;
+    // SMGR reports 1 in Q16 for near, and 0 for far.
+    data->readings[i].isNear = sensorData.Data[0] ? 1 : 0;
+  }
+}
+
+/**
  * Allocate event memory according to SensorType and populate event readings.
  */
 void *allocateAndPopulateEvent(
@@ -332,6 +354,17 @@ void *allocateAndPopulateEvent(
           static_cast<chreSensorFloatData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
         populateFloatEvent(sensorType, event, sensorIndex);
+      }
+      return event;
+    }
+
+    case SensorSampleType::Byte: {
+      memorySize += sensorIndex.SampleCount *
+          sizeof(chreSensorByteData::chreSensorByteSampleData);
+      auto *event =
+          static_cast<chreSensorByteData *>(memoryAlloc(memorySize));
+      if (event != nullptr) {
+        populateByteEvent(sensorType, event, sensorIndex);
       }
       return event;
     }
