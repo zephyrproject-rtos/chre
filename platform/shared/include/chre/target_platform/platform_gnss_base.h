@@ -14,33 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SHARED_PLATFORM_WIFI_BASE_H_
-#define CHRE_PLATFORM_SHARED_PLATFORM_WIFI_BASE_H_
+#ifndef CHRE_PLATFORM_SHARED_PLATFORM_GNSS_BASE_H_
+#define CHRE_PLATFORM_SHARED_PLATFORM_GNSS_BASE_H_
 
-#include "chre/pal/wifi.h"
+#include "chre/pal/gnss.h"
 
 namespace chre {
 
 /**
- * Provides an instance of the PlatformWifiBase class that uses the CHRE PAL to
+ * Provides an instance of the PlatformGnssBase class that uses the CHRE PAL to
  * access the wifi subsystem.
  */
-class PlatformWifiBase {
+class PlatformGnssBase {
  protected:
   //! The instance of the CHRE PAL API. This will be set to nullptr if the
   //! platform does not supply an implementation.
-  const chrePalWifiApi *mWifiApi;
+  const chrePalGnssApi *mGnssApi;
 
   //! The instance of callbacks that are provided to the CHRE PAL.
-  chrePalWifiCallbacks mWifiCallbacks;
+  chrePalGnssCallbacks mGnssCallbacks;
 
-  //! Event handlers for the CHRE WiFi PAL. Refer to chre/pal/wifi.h for futher
+  //! Event handlers for the CHRE GNSS PAL. Refer to chre/pal/gnss.h for futher
   //! information.
-  static void scanMonitorStatusChangeCallback(bool enabled, uint8_t errorCode);
-  static void scanResponseCallback(bool pending, uint8_t errorCode);
-  static void scanEventCallback(struct chreWifiScanEvent *event);
+  static void requestStateResyncCallback();
+  static void locationStatusChangeCallback(bool enabled, uint8_t errorCode);
+  static void locationEventCallback(struct chreGnssLocationEvent *event);
+  static void measurementStatusChangeCallback(bool enabled, uint8_t errorCode);
+  static void measurementEventCallback(struct chreGnssDataEvent *event);
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SHARED_PLATFORM_WIFI_BASE_H_
+#endif  // CHRE_PLATFORM_SHARED_PLATFORM_GNSS_BASE_H_
