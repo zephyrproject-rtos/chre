@@ -111,6 +111,17 @@ void chreThreadEntry(void * /*data*/) {
     // any at all). Also, sensor world test functionality should be replaced by
     // a more automated framework.
 #if 0
+    chre::PlatformNanoapp gnssWorldPlatformNanoapp;
+    gnssWorldPlatformNanoapp.mStart = chre::app::gnssWorldStart;
+    gnssWorldPlatformNanoapp.mHandleEvent = chre::app::gnssWorldHandleEvent;
+    gnssWorldPlatformNanoapp.mStop = chre::app::gnssWorldStop;
+
+    chre::Nanoapp gnssWorldNanoapp(
+        gEventLoop->getNextInstanceId(), &gnssWorldPlatformNanoapp);
+    gEventLoop->startNanoapp(&gnssWorldNanoapp);
+#endif
+
+#if 0
     chre::PlatformNanoapp imuCalPlatformNanoapp;
     imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
     imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
@@ -120,6 +131,7 @@ void chreThreadEntry(void * /*data*/) {
         gEventLoop->getNextInstanceId(), &imuCalPlatformNanoapp);
     gEventLoop->startNanoapp(&imuCalNanoapp);
 #endif
+
 #if 0
     chre::PlatformNanoapp sensorWorldPlatformNanoapp;
     sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;

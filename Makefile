@@ -52,6 +52,7 @@ HEXAGON_CFLAGS += -DCUST_H
 
 # Makefile Includes ############################################################
 
+include apps/gnss_world/gnss_world.mk
 include apps/hello_world/hello_world.mk
 include apps/imu_cal/imu_cal.mk
 include apps/message_world/message_world.mk
