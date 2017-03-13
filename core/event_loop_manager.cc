@@ -102,6 +102,10 @@ bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
+GnssRequestManager& EventLoopManager::getGnssRequestManager() {
+  return mGnssRequestManager;
+}
+
 HostCommsManager& EventLoopManager::getHostCommsManager() {
   return mHostCommsManager;
 }

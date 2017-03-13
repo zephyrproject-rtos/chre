@@ -28,8 +28,8 @@ namespace chre {
  * This includes multiplexing multiple requests into one for the platform to
  * handle.
  *
- * This class is effectively a singleton as there can only be one entity of the
- * PlatformWifi instance.
+ * This class is effectively a singleton as there can only be one instance of
+ * the PlatformWifi instance.
  */
 class WifiRequestManager : public NonCopyable {
  public:
