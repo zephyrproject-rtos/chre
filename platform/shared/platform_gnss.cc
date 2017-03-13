@@ -53,6 +53,14 @@ PlatformGnss::~PlatformGnss() {
   }
 }
 
+uint32_t PlatformGnss::getCapabilities() {
+  if (mGnssApi != nullptr) {
+    return mGnssApi->getCapabilities();
+  } else {
+    return CHRE_GNSS_CAPABILITIES_NONE;
+  }
+}
+
 void PlatformGnssBase::requestStateResyncCallback() {
   // TODO: Implement this.
 }

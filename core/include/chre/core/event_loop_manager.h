@@ -19,6 +19,7 @@
 
 #include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/gnss_request_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
@@ -141,6 +142,13 @@ class EventLoopManager : public NonCopyable {
                  uint32_t targetInstanceId = kBroadcastInstanceId);
 
   /**
+   * @return A reference to the GNSS request manager. This allows interacting
+   *         with the platform GNSS subsystem and manages requests from various
+   *         nanoapps.
+   */
+  GnssRequestManager& getGnssRequestManager();
+
+  /**
    * @return A reference to the host communications manager that enables
    *         transferring arbitrary data between the host processor and CHRE.
    */
@@ -171,6 +179,10 @@ class EventLoopManager : public NonCopyable {
   //! provide an implementation of the move constructor so it is best left to
   //! allocate each event loop and manage the pointers to those event loops.
   DynamicVector<UniquePtr<EventLoop>> mEventLoops;
+
+  //! The GnssRequestManager that handles requests for all nanoapps. This
+  //! manages the state of the GNSS subsystem that the runtime subscribes to.
+  GnssRequestManager mGnssRequestManager;
 
   //! Handles communications with the host processor
   HostCommsManager mHostCommsManager;

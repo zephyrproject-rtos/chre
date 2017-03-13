@@ -14,34 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_PLATFORM_GNSS_H_
-#define CHRE_PLATFORM_PLATFORM_GNSS_H_
+#ifndef CHRE_CORE_GNSS_REQUEST_MANAGER_H_
+#define CHRE_CORE_GNSS_REQUEST_MANAGER_H_
 
-#include "chre/target_platform/platform_gnss_base.h"
+#include <cstdint>
+
+#include "chre/platform/platform_gnss.h"
+#include "chre/util/non_copyable.h"
 
 namespace chre {
 
-class PlatformGnss : public PlatformGnssBase {
+/**
+ * The GnssRequestManager handles requests from nanoapps for GNSS data. This
+ * includes multiplexing multiple requests into one for the platform to handle.
+ *
+ * This class is effectively a singleton as there can only be one instance of
+ * the PlatformGnss instance.
+ */
+class GnssRequestManager : public NonCopyable {
  public:
   /**
-   * Performs platform-specific initialization of the PlatformGnss instance.
-   */
-  PlatformGnss();
-
-  /**
-   * Performs platform-specific deinitialization of the PlatformGnss instance.
-   */
-  ~PlatformGnss();
-
-  /**
-   * Returns the set of GNSS capabilities that the platform has exposed. This
-   * may return CHRE_GNSS_CAPABILITIES_NONE if GNSS is not supported.
-   *
    * @return the GNSS capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
+
+ private:
+  //! The instance of the platform GNSS interface.
+  PlatformGnss mPlatformGnss;
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_PLATFORM_GNSS_H_
+#endif  // CHRE_CORE_GNSS_REQUEST_MANAGER_H_

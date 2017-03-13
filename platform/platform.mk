@@ -27,6 +27,7 @@ HEXAGON_CFLAGS += $(FLATBUFFERS_CFLAGS)
 # Hexagon-specific Source Files ################################################
 
 HEXAGON_SRCS += platform/shared/chre_api_core.cc
+HEXAGON_SRCS += platform/shared/chre_api_gnss.cc
 HEXAGON_SRCS += platform/shared/chre_api_re.cc
 HEXAGON_SRCS += platform/shared/chre_api_sensor.cc
 HEXAGON_SRCS += platform/shared/chre_api_version.cc
@@ -53,6 +54,7 @@ X86_CFLAGS += -Iplatform/linux/include
 # x86-specific Source Files ####################################################
 
 X86_SRCS += platform/shared/chre_api_core.cc
+X86_SRCS += platform/shared/chre_api_gnss.cc
 X86_SRCS += platform/shared/chre_api_re.cc
 X86_SRCS += platform/shared/chre_api_sensor.cc
 X86_SRCS += platform/shared/chre_api_version.cc
