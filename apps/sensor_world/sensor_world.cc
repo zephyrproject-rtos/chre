@@ -201,7 +201,6 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
 
     case CHRE_EVENT_SENSOR_PRESSURE_DATA:
     case CHRE_EVENT_SENSOR_LIGHT_DATA:
-    case CHRE_EVENT_SENSOR_PROXIMITY_DATA:
     case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
     case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA: {
       const auto *ev = static_cast<const chreSensorFloatData *>(eventData);
@@ -215,6 +214,17 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
 
       chreLog(CHRE_LOG_INFO, "%s, %d samples: %f",
               getSensorName(eventType), header.readingCount, v);
+      break;
+    }
+
+    case CHRE_EVENT_SENSOR_PROXIMITY_DATA: {
+      const auto *ev = static_cast<const chreSensorByteData *>(eventData);
+      const auto header = ev->header;
+      const auto reading = ev->readings[0];
+
+      chreLog(CHRE_LOG_INFO, "%s, %d samples: isNear %d, invalid %d",
+              getSensorName(eventType), header.readingCount,
+              reading.isNear, reading.invalid);
       break;
     }
 

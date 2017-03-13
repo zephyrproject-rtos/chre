@@ -67,7 +67,9 @@ enum class SensorType {
  * event handling.
  */
 enum class SensorSampleType {
+  Byte,
   Float,
+  Occurrence,
   ThreeAxis,
   Unknown,
 };

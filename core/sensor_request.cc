@@ -145,22 +145,27 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
 }
 
 SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
-  if (sensorType == SensorType::Accelerometer
-      || sensorType == SensorType::Gyroscope
-      || sensorType == SensorType::GeomagneticField
-      || sensorType == SensorType::UncalibratedAccelerometer
-      || sensorType == SensorType::UncalibratedGyroscope
-      || sensorType == SensorType::UncalibratedGeomagneticField) {
-    return SensorSampleType::ThreeAxis;
-  } else if (sensorType == SensorType::Pressure
-             || sensorType == SensorType::Light
-             || sensorType == SensorType::Proximity
-             || sensorType == SensorType::AccelerometerTemperature
-             || sensorType == SensorType::GyroscopeTemperature) {
-    return SensorSampleType::Float;
-  } else {
-    CHRE_ASSERT(false);
-    return SensorSampleType::Unknown;
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+    case SensorType::Gyroscope:
+    case SensorType::GeomagneticField:
+    case SensorType::UncalibratedAccelerometer:
+    case SensorType::UncalibratedGyroscope:
+    case SensorType::UncalibratedGeomagneticField:
+      return SensorSampleType::ThreeAxis;
+    case SensorType::Pressure:
+    case SensorType::Light:
+    case SensorType::AccelerometerTemperature:
+    case SensorType::GyroscopeTemperature:
+      return SensorSampleType::Float;
+    case SensorType::InstantMotion:
+    case SensorType::StationaryDetect:
+      return SensorSampleType::Occurrence;
+    case SensorType::Proximity:
+      return SensorSampleType::Byte;
+    default:
+      CHRE_ASSERT(false);
+      return SensorSampleType::Unknown;
   }
 }
 
