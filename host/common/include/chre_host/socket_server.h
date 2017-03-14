@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef CHRE_HOST_SOCKET_SERVER_H_
+#define CHRE_HOST_SOCKET_SERVER_H_
+
 #include <poll.h>
 
 #include <atomic>
@@ -45,7 +48,7 @@ class SocketServer {
 
   /**
    * Opens the socket, and runs the receive loop until an error is encountered,
-   * or SIGINT/SIGTERM is received.
+   * or SIGINT/SIGTERM is received. Masks off all other signals.
    *
    * @param socketName Android socket name to use when listening
    * @param allowSocketCreation If true, allow creation of the socket rather
@@ -74,6 +77,7 @@ class SocketServer {
 
   int mSockFd = INVALID_SOCKET;
   uint16_t mNextClientId = 1;
+  // TODO: std::vector-ify this
   struct pollfd mPollFds[1 + kMaxActiveClients] = {};
 
   struct ClientData {
@@ -100,3 +104,5 @@ class SocketServer {
 
 }  // namespace chre
 }  // namespace android
+
+#endif  // CHRE_HOST_SOCKET_SERVER_H_

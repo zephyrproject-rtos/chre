@@ -50,8 +50,8 @@
 
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre_host/log.h"
+#include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
-#include "socket_server.h"
 
 typedef void *(thread_entry_point_f)(void *);
 

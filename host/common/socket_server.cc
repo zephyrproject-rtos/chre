@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "socket_server.h"
+#include "chre_host/socket_server.h"
 
 #include <poll.h>
 
