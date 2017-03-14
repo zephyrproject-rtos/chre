@@ -23,6 +23,7 @@ namespace app {
 
 namespace {
 
+constexpr uint32_t kMessageType = 1234;
 uint8_t gMessageData[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 void messageFreeCallback(void *message, size_t messageSize) {
@@ -37,7 +38,6 @@ void messageFreeCallback(void *message, size_t messageSize) {
 bool messageWorldStart() {
   chreLog(CHRE_LOG_INFO, "Message world app started as instance %" PRIu32,
           chreGetInstanceId());
-  constexpr uint32_t kMessageType = 1234;
 
   bool success = chreSendMessageToHostEndpoint(
       gMessageData, sizeof(gMessageData), kMessageType,
@@ -64,6 +64,11 @@ void messageWorldHandleEvent(uint32_t senderInstanceId,
       chreLog(CHRE_LOG_ERROR, "Message from host came from unexpected instance "
               "ID %" PRIu32, senderInstanceId);
     }
+
+    bool success = chreSendMessageToHostEndpoint(
+      gMessageData, sizeof(gMessageData), kMessageType,
+      CHRE_HOST_ENDPOINT_BROADCAST, messageFreeCallback);
+    chreLog(CHRE_LOG_INFO, "Result of sending reply: %d", success);
   }
 }
 
