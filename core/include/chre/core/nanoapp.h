@@ -46,6 +46,7 @@ class Nanoapp : public NonCopyable {
 
   uint64_t getAppId() const;
   uint32_t getInstanceId() const;
+  uint32_t getTargetApiVersion() const;
 
   bool isRegisteredForBroadcastEvent(uint16_t eventType) const;
 
