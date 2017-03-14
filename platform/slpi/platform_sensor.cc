@@ -111,6 +111,10 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType,
     } else if (sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01
         && sensorId < SNS_SMGR_ID_HUMIDITY_V01) {
       return SensorType::Proximity;
+    } else if (sensorId == SNS_SMGR_ID_OEM_SENSOR_09_V01) {
+      return SensorType::StationaryDetect;
+    } else if (sensorId == SNS_SMGR_ID_OEM_SENSOR_10_V01) {
+      return SensorType::InstantMotion;
     }
   } else if (dataType == SNS_SMGR_DATA_TYPE_SECONDARY_V01) {
     if (sensorId >= SNS_SMGR_ID_ACCEL_V01
@@ -328,6 +332,24 @@ void populateByteEvent(
 }
 
 /**
+ * Populate occurrence event data.
+ */
+void populateOccurrenceEvent(
+    SensorType sensorType, chreSensorOccurrenceData *data,
+    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+  populateSensorDataHeader(sensorType, &data->header, sensorIndex);
+
+  for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
+    const sns_smgr_buffering_sample_s_v01& sensorData =
+        gSmgrBufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
+
+    // TimeStampOffset has max value of < 2 sec so it will not overflow.
+    data->readings[i].timestampDelta =
+        getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
+  }
+}
+
+/**
  * Allocate event memory according to SensorType and populate event readings.
  */
 void *allocateAndPopulateEvent(
@@ -365,6 +387,17 @@ void *allocateAndPopulateEvent(
           static_cast<chreSensorByteData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
         populateByteEvent(sensorType, event, sensorIndex);
+      }
+      return event;
+    }
+
+    case SensorSampleType::Occurrence: {
+      memorySize += sensorIndex.SampleCount *
+          sizeof(chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
+      auto *event =
+          static_cast<chreSensorOccurrenceData *>(memoryAlloc(memorySize));
+      if (event != nullptr) {
+        populateOccurrenceEvent(sensorType, event, sensorIndex);
       }
       return event;
     }
@@ -494,7 +527,7 @@ void handleSensorStatusMonitorIndication(void *userHandle, void *buffer,
   } else {
     uint8_t numClients = getNumClients(smgrMonitorIndMsg.sensor_id);
     if (numClients != smgrMonitorIndMsg.num_clients) {
-      LOGD("Status: id %" PRIu64 ", num lients: curr %" PRIu8 " new %" PRIu8,
+      LOGD("Status: id %" PRIu64 ", num clients: curr %" PRIu8 " new %" PRIu8,
            smgrMonitorIndMsg.sensor_id, numClients,
            smgrMonitorIndMsg.num_clients);
       setNumClients(smgrMonitorIndMsg.sensor_id,
@@ -649,19 +682,32 @@ uint8_t getSmgrRequestActionForMode(SensorMode mode) {
  * @param dataType The dataType for the sesnor as provided by the SMGR request
  *                 for sensor info.
  * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @param minInterval The minimum interval allowed by this sensor.
  * @param sensorDataRequest The pointer to the data request to be populated.
  */
 void populateSensorRequest(
-    const SensorRequest& request, uint8_t sensorId, uint8_t dataType,
-    uint8_t calType, sns_smgr_buffering_req_msg_v01 *sensorRequest) {
+    const SensorRequest& chreRequest, uint8_t sensorId, uint8_t dataType,
+    uint8_t calType, uint64_t minInterval,
+    sns_smgr_buffering_req_msg_v01 *sensorRequest) {
   // Zero the fields in the request. All mandatory and unused fields are
   // specified to be set to false or zero so this is safe.
   memset(sensorRequest, 0, sizeof(*sensorRequest));
+
+  // Reconstruts a request as CHRE API requires one-shot sensors to be
+  // requested with pre-defined interval and latency that may not be accepted
+  // by SMGR.
+  bool isOneShot = sensorTypeIsOneShot(getSensorTypeFromSensorId(
+      sensorId, dataType, calType));
+  SensorRequest request(
+      chreRequest.getMode(),
+      isOneShot ? Nanoseconds(minInterval) : chreRequest.getInterval(),
+      isOneShot ? Nanoseconds(0) : chreRequest.getLatency());
 
   // Build the request for one sensor at the requested rate. An add action for a
   // ReportID that is already in use causes a replacement of the last request.
   sensorRequest->ReportId = getReportId(sensorId, dataType, calType);
   sensorRequest->Action = getSmgrRequestActionForMode(request.getMode());
+  // If latency < interval, request to SMGR would fail.
   Nanoseconds batchingInterval =
       (request.getLatency() > request.getInterval()) ?
       request.getLatency() : request.getInterval();
@@ -778,7 +824,7 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
     LOGE("Failed to allocated sensor request/response: out of memory");
   } else {
     populateSensorRequest(request, this->sensorId, this->dataType,
-                          this->calType, sensorRequest);
+        this->calType, this->getMinInterval(), sensorRequest);
 
     qmi_client_error_type status = qmi_client_send_msg_sync(
         gPlatformSensorServiceQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,

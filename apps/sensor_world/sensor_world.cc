@@ -123,9 +123,30 @@ const char *getSensorName(uint32_t eventType) {
       return "Accel Temp";
     case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA:
       return "Gyro Temp";
+    case CHRE_EVENT_SENSOR_INSTANT_MOTION_DETECT_DATA:
+      return "Instant Motion";
+    case CHRE_EVENT_SENSOR_STATIONARY_DETECT_DATA:
+      return "Stationary Detect";
     default:
       return "Unknown";
   }
+}
+
+// Helpers for testing InstantMotion and StationaryDetect
+enum class MotionMode {
+  Instant,
+  Stationary,
+};
+
+// Storage to help access InstantMotion and StationaryDetect sensor handle and
+// info
+static size_t motionSensorIndices[2];
+static MotionMode motionMode = MotionMode::Instant;
+
+size_t getMotionSensorIndex() {
+  motionMode = (motionMode == MotionMode::Instant) ?
+      MotionMode::Stationary : MotionMode::Instant;
+  return motionSensorIndices[static_cast<size_t>(motionMode)];
 }
 
 } // namespace
@@ -140,6 +161,12 @@ bool sensorWorldStart() {
     chreLog(CHRE_LOG_INFO, "sensor %d initialized: %s with handle %" PRIu32,
             i, sensor.isInitialized ? "true" : "false", sensor.handle);
 
+    if (sensor.type == CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT) {
+      motionSensorIndices[static_cast<size_t>(MotionMode::Instant)] = i;
+    } else if (sensor.type == CHRE_SENSOR_TYPE_STATIONARY_DETECT) {
+      motionSensorIndices[static_cast<size_t>(MotionMode::Stationary)] = i;
+    }
+
     if (sensor.isInitialized) {
       // Get sensor info
       chreSensorInfo& info = sensor.info;
@@ -152,7 +179,6 @@ bool sensorWorldStart() {
       } else {
         chreLog(CHRE_LOG_ERROR, "chreGetSensorInfo failed");
       }
-
 
       // Subscribe to sensors
       if (sensor.enable) {
@@ -225,6 +251,28 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
       chreLog(CHRE_LOG_INFO, "%s, %d samples: isNear %d, invalid %d",
               getSensorName(eventType), header.readingCount,
               reading.isNear, reading.invalid);
+
+      // Enable InstantMotion and StationaryDetect alternatively on near->far.
+      if (reading.isNear == 0) {
+        size_t motionSensorIndex = getMotionSensorIndex();
+        bool status = chreSensorConfigure(sensors[motionSensorIndex].handle,
+            CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
+            CHRE_SENSOR_INTERVAL_DEFAULT,
+            CHRE_SENSOR_LATENCY_DEFAULT);
+        chreLog(CHRE_LOG_INFO, "Requested %s: %s",
+                sensors[motionSensorIndex].info.sensorName,
+                status ? "success" : "failure");
+      }
+      break;
+    }
+
+    case CHRE_EVENT_SENSOR_INSTANT_MOTION_DETECT_DATA:
+    case CHRE_EVENT_SENSOR_STATIONARY_DETECT_DATA: {
+      const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
+      const auto header = ev->header;
+
+      chreLog(CHRE_LOG_INFO, "%s, %d samples",
+              getSensorName(eventType), header.readingCount);
       break;
     }
 
