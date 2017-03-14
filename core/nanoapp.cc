@@ -19,6 +19,7 @@
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre_api/chre/version.h"
 
 namespace chre {
 
@@ -57,6 +58,11 @@ uint64_t Nanoapp::getAppId() const {
 
 uint32_t Nanoapp::getInstanceId() const {
   return mInstanceId;
+}
+
+// TODO: properly implement this.
+uint32_t Nanoapp::getTargetApiVersion() const {
+  return CHRE_API_VERSION_1_1;
 }
 
 void Nanoapp::postEvent(Event *event) {

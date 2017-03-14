@@ -17,6 +17,7 @@
 #include "chre/core/sensor_request_manager.h"
 
 #include "chre/platform/fatal_error.h"
+#include "chre_api/chre/version.h"
 
 namespace chre {
 namespace {
@@ -200,9 +201,11 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
     const Sensor& sensor = mSensorRequests[sensorIndex].sensor;
     info->sensorName = sensor.getSensorName();
 
-    // TODO: populate minInterval if Nanoapp is compiled against API 1.1+.
-    //info->minInterval = info->isOneShot ? CHRE_SENSOR_INTERVAL_DEFAULT :
-    //    sensor->getMinInterval();
+    // minInterval was added in CHRE API 1.1.
+    if (nanoapp->getTargetApiVersion() >= CHRE_API_VERSION_1_1) {
+      info->minInterval = info->isOneShot ? CHRE_SENSOR_INTERVAL_DEFAULT :
+          sensor.getMinInterval();
+    }
   }
   return success;
 }
