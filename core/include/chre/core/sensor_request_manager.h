@@ -87,6 +87,15 @@ class SensorRequestManager : public NonCopyable {
    */
   bool removeAllRequests(SensorType sensorType);
 
+  /**
+   * Obtains a pointer to the Sensor of the specified sensorType.
+   *
+   * @param sensorType The SensorType of the sensor.
+   * @return A pointer to the Sensor of sensorType. It returns a nullptr if
+   *         sensorType is SensorType::Unknown.
+   */
+  Sensor *getSensor(SensorType sensorType);
+
  private:
   /**
    * This allows tracking the state of a sensor with the various requests for it

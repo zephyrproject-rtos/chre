@@ -78,9 +78,25 @@ class Sensor : public NonCopyable {
    */
   const char *getSensorName() const;
 
+  /**
+   * @return Pointer to this sensor's last event. It returns a nullptr if the
+   * the platform doesn't provide it or the last data event is invalid.
+   */
+  ChreSensorData *getLastEvent() const;
+
+  /**
+   * Copies the supplied event to the sensor's last event.
+   *
+   * @param event The pointer to the event to copy from.
+   */
+  void setLastEvent(const ChreSensorData *event);
+
  private:
   //! The most recent sensor request sent to this sensor.
   SensorRequest mSensorRequest;
+
+  //! The validity of this sensor's last event.
+  bool mLastEventValid = false;
 
   //! The underlying platform sensor that is managed by this common interface.
   Optional<PlatformSensor> mPlatformSensor;

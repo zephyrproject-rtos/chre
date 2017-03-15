@@ -42,6 +42,11 @@ bool Sensor::setRequest(const SensorRequest& request) {
       && mPlatformSensor->setRequest(request)) {
     mSensorRequest = request;
     requestWasSet = true;
+
+    // Mark last event as invalid when sensor is disabled.
+    if (request.getMode() == SensorMode::Off) {
+      mLastEventValid = false;
+    }
   }
 
   return requestWasSet;
@@ -60,6 +65,23 @@ uint64_t Sensor::getMinInterval() const {
 
 const char *Sensor::getSensorName() const {
   return isValid() ? mPlatformSensor->getSensorName() : kInvalidSensorName;
+}
+
+ChreSensorData *Sensor::getLastEvent() const {
+  return (isValid() && mLastEventValid) ? mPlatformSensor->getLastEvent() :
+      nullptr;
+}
+
+void Sensor::setLastEvent(const ChreSensorData *event) {
+  if (isValid()) {
+    mPlatformSensor->setLastEvent(event);
+
+    // Mark last event as valid only if the sensor is enabled. Event data may
+    // arrive after sensor is disabled.
+    if (mSensorRequest.getMode() != SensorMode::Off) {
+      mLastEventValid = true;
+    }
+  }
 }
 
 }  // namespace chre

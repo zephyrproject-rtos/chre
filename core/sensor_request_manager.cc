@@ -16,6 +16,7 @@
 
 #include "chre/core/sensor_request_manager.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre_api/chre/version.h"
 
@@ -160,6 +161,14 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
     success = requests.add(sensorRequest, &requestChanged);
     if (success) {
       nanoapp->registerForBroadcastEvent(eventType);
+
+      // Deliver last valid event to new clients of on-change sensors
+      if (sensorTypeIsOnChange(sensor.getSensorType())
+          && sensor.getLastEvent() != nullptr) {
+        EventLoopManagerSingleton::get()->postEvent(
+            getSampleEventTypeForSensorType(sensorType), sensor.getLastEvent(),
+            nullptr, kSystemInstanceId, nanoapp->getInstanceId());
+      }
     }
   } else {
     // The request changes the mode to the enabled state and there was an
@@ -227,6 +236,17 @@ bool SensorRequestManager::removeAllRequests(SensorType sensorType) {
     success = requests.removeAll();
   }
   return success;
+}
+
+Sensor *SensorRequestManager::getSensor(SensorType sensorType) {
+  Sensor *sensorPtr = nullptr;
+  if (sensorType == SensorType::Unknown) {
+    LOGW("Attempting to get Sensor of an invalid SensorType");
+  } else {
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    sensorPtr = &mSensorRequests[sensorIndex].sensor;
+  }
+  return sensorPtr;
 }
 
 const SensorRequest *SensorRequestManager::SensorRequests::find(
