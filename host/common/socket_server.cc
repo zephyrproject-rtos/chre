@@ -87,9 +87,16 @@ void SocketServer::run(const char *socketName, bool allowSocketCreation,
       serviceSocket();
     }
 
-    for (const auto& pair : mClients) {
-      int clientSocket = pair.first;
-      disconnectClient(clientSocket);
+    {
+      std::lock_guard<std::mutex> lock(mClientsMutex);
+      for (const auto& pair : mClients) {
+        int clientSocket = pair.first;
+        if (close(clientSocket) != 0) {
+          LOGI("Couldn't close client %" PRIu16 "'s socket: %s",
+               pair.second.clientId, strerror(errno));
+        }
+      }
+      mClients.clear();
     }
     close(mSockFd);
   }
