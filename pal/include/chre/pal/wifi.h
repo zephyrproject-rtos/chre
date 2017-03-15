@@ -94,9 +94,22 @@ struct chrePalWifiCallbacks {
      * system, i.e. the PAL module must not modify the referenced data until the
      * associated API function is called to release the memory.
      *
+     * If the results of a given scan are be split across multiple events, and
+     * therefore multiple calls to this callback, then the events must be
+     * delivered in order, and in one contiguous series of callbacks with no
+     * interleaving of events that correspond to any other scan.
+     *
+     * The PAL module must not deliver the same scan event twice. As a specific
+     * example: if an explicit scan request is made via requestScan(), the PAL
+     * implementation must not redeliver the result a second time because scan
+     * monitoring is enabled.
+     *
      * @param event Event data to distribute to clients. The WiFi module
      *        must ensure that this memory remains accessible until it is passed
      *        to the releaseScanEvent() function in struct chrePalWifiApi.
+     *
+     * @see #configureScanMonitor
+     * @see #requestScan
      */
     void (*scanEventCallback)(struct chreWifiScanEvent *event);
 };
@@ -175,6 +188,11 @@ struct chrePalWifiApi {
      *     at this stage and further steps do not occur)
      *  4. scanEventCallback() is invoked 1 or more times (even if the scan
      *     resulted in no visible APs)
+     *
+     * Note that the callbacks in steps 3 and 4 must complete in the sequence
+     * given, and the call(s) to scanEventCallback() occurring immediately after
+     * scanResponseCallback() must be associated with this scan request, and not
+     * results delivered pursuant to an active scan monitor registration.
      *
      * @param params See chreWifiRequestScanAsync()
      *
