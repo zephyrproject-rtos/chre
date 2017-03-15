@@ -59,6 +59,7 @@ include apps/message_world/message_world.mk
 include apps/sensor_world/sensor_world.mk
 include apps/timer_world/timer_world.mk
 include apps/wifi_world/wifi_world.mk
+include apps/wwan_world/wwan_world.mk
 include chre_api/chre_api.mk
 include core/core.mk
 include external/external.mk
