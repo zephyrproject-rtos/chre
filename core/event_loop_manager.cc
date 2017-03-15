@@ -118,4 +118,8 @@ WifiRequestManager& EventLoopManager::getWifiRequestManager() {
   return mWifiRequestManager;
 }
 
+WwanRequestManager& EventLoopManager::getWwanRequestManager() {
+  return mWwanRequestManager;
+}
+
 }  // namespace chre

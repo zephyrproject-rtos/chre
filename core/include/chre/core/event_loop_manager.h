@@ -23,6 +23,7 @@
 #include "chre/core/host_comms_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
+#include "chre/core/wwan_request_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -168,6 +169,13 @@ class EventLoopManager : public NonCopyable {
    */
   WifiRequestManager& getWifiRequestManager();
 
+  /**
+   * @return A reference to the WWAN request manager. This allows interacting
+   *         with the platform WWAN subsystem and manages requests from various
+   *         nanoapps.
+   */
+  WwanRequestManager& getWwanRequestManager();
+
  private:
   //! The mutex used to ensure that postEvent() completes for all event loops
   //! before another thread can start posting an event. This ensures consistency
@@ -194,6 +202,10 @@ class EventLoopManager : public NonCopyable {
   //! The WifiRequestManager that handles requests for nanoapps. This manages
   //! the state of the wifi subsystem that the runtime subscribes to.
   WifiRequestManager mWifiRequestManager;
+
+  //! The WwanRequestManager that handles requests for nanoapps. This manages
+  //! the state of the WWAN subsystem that the runtime subscribes to.
+  WwanRequestManager mWwanRequestManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.
