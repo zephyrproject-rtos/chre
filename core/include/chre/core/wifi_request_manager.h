@@ -61,6 +61,23 @@ class WifiRequestManager : public NonCopyable {
   bool configureScanMonitor(Nanoapp *nanoapp, bool enable, const void *cookie);
 
   /**
+   * Performs an active wifi scan.
+   *
+   * This is currently a 1:1 mapping into the PAL. If more than one nanoapp
+   * requests an active wifi scan, this will be an assertion failure for debug
+   * builds and a no-op in production (ie: subsequent requests are ignored).
+   *
+   * @param nanoapp The nanoapp that has requested an active wifi scan.
+   * @param params The parameters of the wifi scan.
+   * @param cookie A cookie that is round-tripped back to the nanoapp to provide
+   *        a context when making the request.
+   * @return true if the request was accepted. The result is delivered
+   *         asynchronously through a CHRE event.
+   */
+  bool requestScan(Nanoapp *nanoapp, const chreWifiScanParams *params,
+                   const void *cookie);
+
+  /**
    * Handles the result of a request to PlatformWifi to change the state of the
    * scan monitor.
    *
@@ -129,6 +146,17 @@ class WifiRequestManager : public NonCopyable {
   //! made and the scan monitor must remain enabled when an active request has
   //! completed.
   DynamicVector<uint32_t> mScanMonitorNanoapps;
+
+  // TODO: Support multiple requests for active wifi scans.
+  //! The instance ID of the nanoapp that has a pending active scan request. At
+  //! this time, only one nanoapp can have a pending request for an active WiFi
+  //! scan.
+  Optional<uint32_t> mScanRequestingNanoappInstanceId;
+
+  //! The cookie passed in by a nanoapp making an active request for wifi scans.
+  //! Note that this will only be valid if the mScanRequestingNanoappInstanceId
+  //! is set.
+  const void *mScanRequestingNanoappCookie;
 
   /**
    * @return true if the scan monitor is enabled by any nanoapps.
@@ -212,6 +240,32 @@ class WifiRequestManager : public NonCopyable {
       const void *cookie);
 
   /**
+   * Posts an event to a nanoapp indicating the result of a request for an
+   * active wifi scan.
+   *
+   * @param nanoappInstanceId The nanoapp instance ID to direct the event to.
+   * @param success If the request for a wifi resource was successful.
+   * @param errorCode The error code when success is set to false.
+   * @param cookie The cookie to be provided to the nanoapp. This is
+   *        round-tripped from the nanoapp to provide context.
+   * @return true if the event was successfully posted to the event loop.
+   */
+  bool postScanRequestAsyncResultEvent(
+      uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+      const void *cookie);
+
+  /**
+   * Calls through to postScanRequestAsyncResultEvent but invokes the
+   * FATAL_ERROR macro if the event is not posted successfully. This is used in
+   * asynchronous contexts where a nanoapp could be stuck waiting for a response
+   * but CHRE failed to enqueue one. For parameter details,
+   * @see postScanRequestAsyncResultEvent
+   */
+  void postScanRequestAsyncResultEventFatal(
+      uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+      const void *cookie);
+
+  /**
    * Handles the result of a request to PlatformWifi to change the state of the
    * scan monitor. See the handleScanMonitorStateChange method which may be
    * called from any thread. This method is intended to be invoked on the CHRE
@@ -224,6 +278,20 @@ class WifiRequestManager : public NonCopyable {
    *        for additional details.
    */
   void handleScanMonitorStateChangeSync(bool enabled, uint8_t errorCode);
+
+  /**
+   * Handles the result of a request to PlatformWifi to perform an active WiFi
+   * scan. See the handleScanResponse method which may be called from any
+   * thread. This method is intended to be invoked on the CHRE event loop
+   * thread.
+   *
+   * @param enabled true if the result of the operation was an enabled scan
+   *        monitor.
+   * @param errorCode an error code that is provided to indicate success or what
+   *        type of error has occurred. See the chreError enum in the CHRE API
+   *        for additional details.
+   */
+  void handleScanResponseSync(bool pending, uint8_t errorCode);
 
   /**
    * Releases the memory associated with an asynchronous wifi event.
