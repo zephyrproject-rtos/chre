@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
+
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[HelloWorld]"
 
 namespace chre {
 namespace app {
 
 bool helloWorldStart() {
-  chreLog(CHRE_LOG_INFO, "Hello, World! - App started on platform ID %" PRIx64,
-      chreGetPlatformId());
+  LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
   return true;
 }
 
@@ -31,12 +33,12 @@ void helloWorldHandleEvent(uint32_t senderInstanceId,
                            uint16_t eventType,
                            const void *eventData) {
   uint64_t currentTime = chreGetTime();
-  chreLog(CHRE_LOG_INFO, "Hello, World! - Received event 0x%" PRIx16
-          " at time %" PRIu64, eventType, currentTime);
+  LOGI("Received event 0x%" PRIx16 " at time %" PRIu64,
+       eventType, currentTime);
 }
 
 void helloWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Hello, World! - Stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app

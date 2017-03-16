@@ -47,6 +47,11 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
 
 # Compiler Flags ###############################################################
 
+# Symbols required by the runtime for conditional compilation.
+COMMON_CFLAGS += -DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
+COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
+COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
+
 # Define CUST_H to allow including the customer header file.
 HEXAGON_CFLAGS += -DCUST_H
 

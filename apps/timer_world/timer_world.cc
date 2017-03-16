@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
+
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[TimerWorld]"
 
 namespace chre {
 namespace app {
@@ -26,8 +29,7 @@ uint32_t gCyclicTimerHandle;
 int gCyclicTimerCount;
 
 bool timerWorldStart() {
-  chreLog(CHRE_LOG_INFO, "Timer World! - App started on platform ID %" PRIx64,
-      chreGetPlatformId());
+  LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   gOneShotTimerHandle = chreTimerSet(100000000 /* duration: 100ms */,
       &gOneShotTimerHandle /* data */,
@@ -39,31 +41,34 @@ bool timerWorldStart() {
   return true;
 }
 
+void handleTimerEvent(const void *eventData) {
+  const uint32_t *timerHandle = static_cast<const uint32_t *>(eventData);
+  if (*timerHandle == gOneShotTimerHandle) {
+    LOGI("One shot timer event received");
+  } else if (*timerHandle == gCyclicTimerHandle) {
+    LOGI("Cyclic timer event received");
+    gCyclicTimerCount++;
+    if (gCyclicTimerCount > 1) {
+      chreTimerCancel(gCyclicTimerHandle);
+    }
+  }
+}
+
 void timerWorldHandleEvent(uint32_t senderInstanceId,
                            uint16_t eventType,
                            const void *eventData) {
   switch (eventType) {
-    case CHRE_EVENT_TIMER: {
-      const uint32_t *timerHandle = static_cast<const uint32_t *>(eventData);
-      if (*timerHandle == gOneShotTimerHandle) {
-        chreLog(CHRE_LOG_INFO, "Timer World! - One shot timer event received");
-      } else if (*timerHandle == gCyclicTimerHandle) {
-        chreLog(CHRE_LOG_INFO, "Timer World! - Cyclic timer event received");
-        gCyclicTimerCount++;
-        if (gCyclicTimerCount > 1) {
-          chreTimerCancel(gCyclicTimerHandle);
-        }
-      }
-    }
-    break;
+    case CHRE_EVENT_TIMER:
+      handleTimerEvent(eventData);
+      break;
     default:
-      chreLog(CHRE_LOG_ERROR, "Timer World! - Unknown event received");
-    break;
+      LOGW("Unknown event received");
+      break;
   }
 }
 
 void timerWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Timer World! - Stopping");
+  LOGI("Stopped");
 }
 
 }  // namespace app

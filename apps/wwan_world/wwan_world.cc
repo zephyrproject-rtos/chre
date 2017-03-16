@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
+
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[WwanWorld]"
 
 namespace chre {
 namespace app {
 
 bool wwanWorldStart() {
-  chreLog(CHRE_LOG_INFO, "WWAN world app started as instance %" PRIu32,
-      chreGetInstanceId());
+  LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *wwanCapabilitiesStr;
   uint32_t wwanCapabilities = chreWwanGetCapabilities();
@@ -38,8 +40,8 @@ bool wwanWorldStart() {
       wwanCapabilitiesStr = "INVALID";
   }
 
-  chreLog(CHRE_LOG_INFO, "Detected WWAN support as: %s (%" PRIu32 ")",
-          wwanCapabilitiesStr, wwanCapabilities);
+  LOGI("Detected WWAN support as: %s (%" PRIu32 ")",
+       wwanCapabilitiesStr, wwanCapabilities);
   return true;
 }
 
@@ -50,7 +52,7 @@ void wwanWorldHandleEvent(uint32_t senderInstanceId,
 }
 
 void wwanWorldStop() {
-  chreLog(CHRE_LOG_INFO, "WWAN world app stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app

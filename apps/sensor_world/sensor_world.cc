@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
 
 #include "chre/util/array.h"
+#include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
+
+#define LOG_TAG "[SensorWorld]"
 
 namespace chre {
 namespace app {
@@ -152,14 +154,13 @@ size_t getMotionSensorIndex() {
 } // namespace
 
 bool sensorWorldStart() {
-  chreLog(CHRE_LOG_INFO, "Sensor World! - App started on platform ID %" PRIx64,
-          chreGetPlatformId());
+  LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     SensorState& sensor = sensors[i];
     sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
-    chreLog(CHRE_LOG_INFO, "sensor %d initialized: %s with handle %" PRIu32,
-            i, sensor.isInitialized ? "true" : "false", sensor.handle);
+    LOGI("Sensor %d initialized: %s with handle %" PRIu32,
+         i, sensor.isInitialized ? "true" : "false", sensor.handle);
 
     if (sensor.type == CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT) {
       motionSensorIndices[static_cast<size_t>(MotionMode::Instant)] = i;
@@ -172,12 +173,12 @@ bool sensorWorldStart() {
       chreSensorInfo& info = sensor.info;
       bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
       if (infoStatus) {
-        chreLog(CHRE_LOG_INFO, "SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
-                " OneShot=%d minInterval=%" PRIu64 "nsec",
-                info.sensorName, info.sensorType, info.isOnChange,
-                info.isOneShot, info.minInterval);
+        LOGI("SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
+             " OneShot=%d minInterval=%" PRIu64 "nsec",
+             info.sensorName, info.sensorType, info.isOnChange,
+             info.isOneShot, info.minInterval);
       } else {
-        chreLog(CHRE_LOG_ERROR, "chreGetSensorInfo failed");
+        LOGE("chreGetSensorInfo failed");
       }
 
       // Subscribe to sensors
@@ -187,8 +188,8 @@ bool sensorWorldStart() {
         bool status = chreSensorConfigure(sensor.handle,
             CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
             sensor.latency);
-        chreLog(CHRE_LOG_INFO, "Requested data: odr %f Hz, latency %f sec, %s",
-                odrHz, latencySec, status ? "success" : "failure");
+        LOGI("Requested data: odr %f Hz, latency %f sec, %s",
+             odrHz, latencySec, status ? "success" : "failure");
       }
     }
   }
@@ -220,8 +221,8 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
       y /= header.readingCount;
       z /= header.readingCount;
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f %f %f",
-              getSensorName(eventType), header.readingCount, x, y, z);
+      LOGI("%s, %d samples: %f %f %f",
+           getSensorName(eventType), header.readingCount, x, y, z);
       break;
     }
 
@@ -238,8 +239,8 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
       }
       v /= header.readingCount;
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f",
-              getSensorName(eventType), header.readingCount, v);
+      LOGI("%s, %d samples: %f",
+           getSensorName(eventType), header.readingCount, v);
       break;
     }
 
@@ -248,9 +249,9 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
       const auto header = ev->header;
       const auto reading = ev->readings[0];
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples: isNear %d, invalid %d",
-              getSensorName(eventType), header.readingCount,
-              reading.isNear, reading.invalid);
+      LOGI("%s, %d samples: isNear %d, invalid %d",
+           getSensorName(eventType), header.readingCount,
+           reading.isNear, reading.invalid);
 
       // Enable InstantMotion and StationaryDetect alternatively on near->far.
       if (reading.isNear == 0) {
@@ -259,9 +260,8 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
             CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
             CHRE_SENSOR_INTERVAL_DEFAULT,
             CHRE_SENSOR_LATENCY_DEFAULT);
-        chreLog(CHRE_LOG_INFO, "Requested %s: %s",
-                sensors[motionSensorIndex].info.sensorName,
-                status ? "success" : "failure");
+        LOGI("Requested %s: %s", sensors[motionSensorIndex].info.sensorName,
+              status ? "success" : "failure");
       }
       break;
     }
@@ -271,19 +271,19 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
       const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
       const auto header = ev->header;
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples",
-              getSensorName(eventType), header.readingCount);
+      LOGI("%s, %d samples",
+           getSensorName(eventType), header.readingCount);
       break;
     }
 
     default:
-      chreLog(CHRE_LOG_ERROR, "Unhandled event %d", eventType);
+      LOGW("Unhandled event %d", eventType);
       break;
   }
 }
 
 void sensorWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Sensor World! - Stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app

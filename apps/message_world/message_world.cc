@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#include <chre.h>
 #include <cinttypes>
 
-#include "chre.h"
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[MsgWorld]"
 
 namespace chre {
 namespace app {
@@ -27,53 +30,49 @@ constexpr uint32_t kMessageType = 1234;
 uint8_t gMessageData[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 void messageFreeCallback(void *message, size_t messageSize) {
-  chreLog(CHRE_LOG_INFO, "Message world got message free callback for message @"
-          " %p (expected %d) size %zu (expected %d)",
-          message, (message == gMessageData),
-          messageSize, (messageSize == sizeof(gMessageData)));
+  LOGI("Got message free callback for message @"
+       " %p (expected %d) size %zu (expected %d)",
+       message, (message == gMessageData),
+       messageSize, (messageSize == sizeof(gMessageData)));
 }
 
 }  // anonymous namespace
 
 bool messageWorldStart() {
-  chreLog(CHRE_LOG_INFO, "Message world app started as instance %" PRIu32,
-          chreGetInstanceId());
+  LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   bool success = chreSendMessageToHostEndpoint(
       gMessageData, sizeof(gMessageData), kMessageType,
       CHRE_HOST_ENDPOINT_BROADCAST, messageFreeCallback);
-  chreLog(CHRE_LOG_INFO, "Sent message to host from start callback, result %d",
-          success);
-
+  LOGI("Sent message to host from start callback, result %d", success);
   return true;
 }
 
 void messageWorldHandleEvent(uint32_t senderInstanceId,
                              uint16_t eventType,
                              const void *eventData) {
-  chreLog(CHRE_LOG_INFO, "Message world got event 0x%" PRIx16 " from instance "
-          "%" PRIu32, eventType, senderInstanceId);
+  LOGI("Got event 0x%" PRIx16 " from instance %" PRIu32,
+       eventType, senderInstanceId);
 
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
-    chreLog(CHRE_LOG_INFO, "Message world got message from host with type %"
-            PRIu32 " size %" PRIu32 " data @ %p hostEndpoint 0x%" PRIx16,
-            msg->messageType, msg->messageSize, msg->message,
-            msg->hostEndpoint);
+    LOGI("Got message from host with type %" PRIu32 " size %" PRIu32
+         " data @ %p hostEndpoint 0x%" PRIx16,
+         msg->messageType, msg->messageSize, msg->message, msg->hostEndpoint);
     if (senderInstanceId != CHRE_INSTANCE_ID) {
-      chreLog(CHRE_LOG_ERROR, "Message from host came from unexpected instance "
-              "ID %" PRIu32, senderInstanceId);
+      LOGE("Message from host came from unexpected instance ID %" PRIu32,
+           senderInstanceId);
     }
 
     bool success = chreSendMessageToHostEndpoint(
       gMessageData, sizeof(gMessageData), kMessageType,
       CHRE_HOST_ENDPOINT_BROADCAST, messageFreeCallback);
-    chreLog(CHRE_LOG_INFO, "Result of sending reply: %d", success);
+    LOGI("Result of sending reply: %d", success);
   }
 }
 
 void messageWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Message world app stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app

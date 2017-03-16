@@ -32,6 +32,7 @@
  * the log levels Error, Warning, Informational, and Debug, respectively.
  */
 
+#include "chre/util/log_common.h"
 #include "chre/target_platform/log.h"
 
 /*
@@ -53,29 +54,6 @@
 #ifndef LOGD
 #error "LOGD must be defined"
 #endif  // LOGD
-
-
-/**
- * An inline stub function to direct log messages to when logging is disabled.
- * This avoids unused variable warnings and will result in no overhead.
- */
-inline void chreLogNull(const char *fmt, ...) {}
-
-
-//! The logging level to specify that no logs are output.
-#define CHRE_LOG_LEVEL_MUTE 0
-
-//! The logging level to specify that only LOGE is output.
-#define CHRE_LOG_LEVEL_ERROR 1
-
-//! The logging level to specify that LOGW and LOGE are output.
-#define CHRE_LOG_LEVEL_WARN 2
-
-//! The logging level to specify that LOGI, LOGW and LOGE are output.
-#define CHRE_LOG_LEVEL_INFO 3
-
-//! The logging level to specify that LOGD, LOGI, LOGW and LOGE are output.
-#define CHRE_LOG_LEVEL_DEBUG 4
 
 /*
  * Supply a stub implementation of the LOGx macros when the build is
