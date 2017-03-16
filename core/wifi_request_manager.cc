@@ -68,6 +68,25 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
   return success;
 }
 
+bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
+                                     const chreWifiScanParams *params,
+                                     const void *cookie) {
+  CHRE_ASSERT(nanoapp);
+
+  bool success = false;
+  if (!mScanRequestingNanoappInstanceId.has_value()) {
+    success = mPlatformWifi.requestScan(params);
+    if (success) {
+      mScanRequestingNanoappInstanceId = nanoapp->getInstanceId();
+      mScanRequestingNanoappCookie = cookie;
+    }
+  } else {
+    LOGE("Active wifi scan request made while a request is in flight");
+  }
+
+  return success;
+}
+
 void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
                                                       uint8_t errorCode) {
   struct CallbackState {
@@ -96,7 +115,28 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
 
 void WifiRequestManager::handleScanResponse(bool pending,
                                             uint8_t errorCode) {
-  // TODO: Implement this.
+  struct CallbackState {
+    bool pending;
+    uint8_t errorCode;
+  };
+
+  auto *state = memoryAlloc<CallbackState>();
+  if (state == nullptr) {
+    LOGE("Failed to allocate callback state for wifi scan response");
+  } else {
+    state->pending = pending;
+    state->errorCode = errorCode;
+
+    auto callback = [](uint16_t eventType, void *eventData) {
+      auto *state = static_cast<CallbackState *>(eventData);
+      EventLoopManagerSingleton::get()->getWifiRequestManager()
+          .handleScanResponseSync(state->pending, state->errorCode);
+      memoryFree(state);
+    };
+
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::WifiRequestScanResponse, state, callback);
+  }
 }
 
 void WifiRequestManager::handleScanEvent(chreWifiScanEvent *event) {
@@ -212,6 +252,38 @@ void WifiRequestManager::postScanMonitorAsyncResultEventFatal(
   }
 }
 
+bool WifiRequestManager::postScanRequestAsyncResultEvent(
+    uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+    const void *cookie) {
+  bool eventPosted = false;
+  chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
+  if (event == nullptr) {
+    LOGE("Failed to allocate wifi scan request async result event");
+  } else {
+    event->requestType = CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN;
+    event->success = success;
+    event->errorCode = errorCode;
+    event->reserved = 0;
+    event->cookie = cookie;
+
+    // Post the event.
+    eventPosted = EventLoopManagerSingleton::get()->postEvent(
+        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeWifiAsyncResultCallback,
+        kSystemInstanceId, nanoappInstanceId);
+  }
+
+  return eventPosted;
+}
+
+void WifiRequestManager::postScanRequestAsyncResultEventFatal(
+    uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+    const void *cookie) {
+  if (!postScanRequestAsyncResultEvent(nanoappInstanceId, success, errorCode,
+                                       cookie)) {
+    FATAL_ERROR("Failed to send WiFi scan request async result event");
+  }
+}
+
 void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
                                                           uint8_t errorCode) {
   // Success is defined as having no errors ... in life ༼ つ ◕_◕ ༽つ
@@ -219,7 +291,7 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
 
   // Always check the front of the queue.
   CHRE_ASSERT_LOG(!mScanMonitorStateTransitions.empty(),
-                  "handleScanMonitorStateChange called with no transitions");
+                  "handleScanMonitorStateChangeSync called with no transitions");
   if (!mScanMonitorStateTransitions.empty()) {
     const auto& stateTransition = mScanMonitorStateTransitions.front();
     success &= (stateTransition.enable == enabled);
@@ -256,6 +328,24 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
     }
 
     mScanMonitorStateTransitions.pop();
+  }
+}
+
+void WifiRequestManager::handleScanResponseSync(bool pending,
+                                                uint8_t errorCode) {
+  CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
+                  "handleScanResponseSync called with no outstanding request");
+  if (mScanRequestingNanoappInstanceId.has_value()) {
+    bool success = (pending && errorCode == CHRE_ERROR_NONE);
+    postScanRequestAsyncResultEventFatal(*mScanRequestingNanoappInstanceId,
+                                         success, errorCode,
+                                         mScanRequestingNanoappCookie);
+    if (!pending) {
+      // If the scan results are not pending, clear the nanoapp instance ID.
+      // Otherwise, wait for the results to be delivered and then clear the
+      // instance ID.
+      mScanRequestingNanoappInstanceId.reset();
+    }
   }
 }
 

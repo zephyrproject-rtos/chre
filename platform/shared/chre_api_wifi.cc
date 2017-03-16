@@ -31,3 +31,10 @@ bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie) {
   return EventLoopManagerSingleton::get()->getWifiRequestManager()
       .configureScanMonitor(nanoapp, enable, cookie);
 }
+
+bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
+                              const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return EventLoopManagerSingleton::get()->getWifiRequestManager()
+      .requestScan(nanoapp, params, cookie);
+}
