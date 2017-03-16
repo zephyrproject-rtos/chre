@@ -38,7 +38,7 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
   }
 
   bool found = false;
-  for (Nanoapp *app : mNanoapps) {
+  for (auto& app : mNanoapps) {
     if (app->getAppId() == appId) {
       *instanceId = app->getInstanceId();
       found = true;
@@ -67,8 +67,7 @@ void EventLoop::run() {
       // there is no safety mechanism that ensures an event is not freed twice,
       // or that its free callback is invoked in the proper EventLoop, etc.
       Event *event = mEvents.pop();
-      for (size_t i = 0; i < mNanoapps.size(); i++) {
-        Nanoapp *app = mNanoapps[i];
+      for (auto& app : mNanoapps) {
         if ((event->targetInstanceId == chre::kBroadcastInstanceId
                 && app->isRegisteredForBroadcastEvent(event->eventType))
             || event->targetInstanceId == app->getInstanceId()) {
@@ -90,10 +89,10 @@ void EventLoop::run() {
     // TODO: most basic round-robin implementation - we might want to have some
     // kind of priority in the future, but this should be good enough for now
     havePendingEvents = false;
-    for (size_t i = 0; i < mNanoapps.size(); i++) {
-      Nanoapp *app = mNanoapps[i];
+    for (auto& app : mNanoapps) {
       if (app->hasPendingEvent()) {
-        mCurrentApp = app;  // TODO: cleaner way to set/clear this? RAII-style?
+        // TODO: cleaner way to set/clear this? RAII-style?
+        mCurrentApp = app.get();
         Event *event = app->processNextEvent();
         mCurrentApp = nullptr;
 
@@ -106,38 +105,46 @@ void EventLoop::run() {
     }
   }
 
+  while (!mNanoapps.empty()) {
+    stopNanoapp(mNanoapps.front().get());
+  }
+
   LOGI("Exiting EventLoop");
 
-  // TODO: need to purge/cleanup events, call task stop, etc.
-
+  // TODO: need to purge/cleanup events, etc.
 }
 
-bool EventLoop::startNanoapp(Nanoapp *nanoapp) {
-  CHRE_ASSERT(nanoapp != nullptr);
+bool EventLoop::startNanoapp(PlatformNanoapp *platformNanoapp) {
+  CHRE_ASSERT(platformNanoapp != nullptr);
 
-  // TODO: Test that the nanoapp list has space for one more nanoapp before
-  // starting it. Return false if there is no space.
-
-  mCurrentApp = nanoapp;
-  bool nanoappIsStarted = nanoapp->start();
-  mCurrentApp = nullptr;
-
-  if (!nanoappIsStarted) {
-    return false;
+  bool success = false;
+  if (!mNanoapps.prepareForPush()) {
+    LOGE("Failed to allocate space for new nanoapp");
+  } else {
+    UniquePtr<Nanoapp> nanoapp(getNextInstanceId(), platformNanoapp);
+    if (nanoapp.isNull()) {
+      LOGE("Failed to allocate new nanoapp");
+    } else {
+      mCurrentApp = nanoapp.get();
+      success = nanoapp->start();
+      mCurrentApp = nullptr;
+      if (!success) {
+        LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
+      } else {
+        LockGuard<Mutex> lock(mNanoappsLock);
+        mNanoapps.push_back(std::move(nanoapp));
+      }
+    }
   }
 
-  {
-    LockGuard<Mutex> lock(mNanoappsLock);
-    mNanoapps.push_back(nanoapp);
-  }
-  return true;
+  return success;
 }
 
 void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
   CHRE_ASSERT(nanoapp != nullptr);
 
   for (size_t i = 0; i < mNanoapps.size(); i++) {
-    if (nanoapp == mNanoapps[i]) {
+    if (nanoapp == mNanoapps[i].get()) {
       {
         LockGuard<Mutex> lock(mNanoappsLock);
         mNanoapps.erase(i);
@@ -221,10 +228,9 @@ Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case
   if (instanceId != kSystemInstanceId) {
-    for (size_t i = 0; i < mNanoapps.size(); i++) {
-      Nanoapp *app = mNanoapps[i];
+    for (auto& app : mNanoapps) {
       if (app->getInstanceId() == instanceId) {
-        return app;
+        return app.get();
       }
     }
   }

@@ -21,10 +21,12 @@
 #include "chre/core/nanoapp.h"
 #include "chre/core/timer_pool.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/platform_nanoapp.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/synchronized_memory_pool.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 
@@ -56,14 +58,15 @@ class EventLoop : public NonCopyable {
   bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId);
 
   /**
-   * Starts a nanoapp by invoking the start entry point. If this is successful,
-   * the app is managed by the event loop and the pointer passed in must remain
-   * valid.
+   * Starts a nanoapp by constructing a Nanoapp instance, invoking the start
+   * entry point and adding it to the list of nanoapps owned by this event
+   * loop.
    *
-   * @param A pointer to the nanoapp to start.
+   * @param platformNanoapp A pointer to the platform nanoapp to start. This
+   *        pointer must remain valid after this function returns.
    * @return True if the app was started successfully.
    */
-  bool startNanoapp(Nanoapp *nanoapp);
+  bool startNanoapp(PlatformNanoapp *platformNanoapp);
 
   /**
    * Stops a nanoapp by invoking the stop entry point. The nanoapp passed in
@@ -160,7 +163,7 @@ class EventLoop : public NonCopyable {
   TimerPool mTimerPool;
 
   //! The list of nanoapps managed by this event loop.
-  DynamicVector<Nanoapp *> mNanoapps;
+  DynamicVector<UniquePtr<Nanoapp>> mNanoapps;
 
   //! This lock *must* be held whenever we:
   //!   (1) make changes to the mNanoapps vector, or

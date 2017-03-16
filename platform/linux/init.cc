@@ -47,69 +47,41 @@ extern "C" void signalHandler(int sig) {
 int main() {
   chre::init();
 
+  // Construct the event loop.
+  chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
+
   chre::PlatformNanoapp helloWorldPlatformNanoapp;
   helloWorldPlatformNanoapp.mStart = chre::app::helloWorldStart;
   helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
   helloWorldPlatformNanoapp.mStop = chre::app::helloWorldStop;
+  eventLoop.startNanoapp(&helloWorldPlatformNanoapp);
 
   chre::PlatformNanoapp imuCalPlatformNanoapp;
   imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
   imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
   imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
+  eventLoop.startNanoapp(&imuCalPlatformNanoapp);
 
   chre::PlatformNanoapp sensorWorldPlatformNanoapp;
   sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
   sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
   sensorWorldPlatformNanoapp.mStop = chre::app::sensorWorldStop;
+  eventLoop.startNanoapp(&sensorWorldPlatformNanoapp);
 
   chre::PlatformNanoapp timerWorldPlatformNanoapp;
   timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
   timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
   timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
+  eventLoop.startNanoapp(&timerWorldPlatformNanoapp);
 
   chre::PlatformNanoapp wifiWorldPlatformNanoapp;
   wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
   wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
   wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
-
-  // Construct the event loop.
-  chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
-
-  // Start the hello world nanoapp.
-  chre::Nanoapp helloWorldNanoapp(eventLoop.getNextInstanceId(),
-      &helloWorldPlatformNanoapp);
-  eventLoop.startNanoapp(&helloWorldNanoapp);
-  helloWorldNanoapp.registerForBroadcastEvent(1);
-
-  // Start the imu cal nanoapp.
-  chre::Nanoapp imuCalNanoapp(eventLoop.getNextInstanceId(),
-      &imuCalPlatformNanoapp);
-  eventLoop.startNanoapp(&imuCalNanoapp);
-
-  // Start the sensor world nanoapp.
-  chre::Nanoapp sensorWorldNanoapp(eventLoop.getNextInstanceId(),
-      &sensorWorldPlatformNanoapp);
-  eventLoop.startNanoapp(&sensorWorldNanoapp);
-
-  // Start the timer nanoapp.
-  chre::Nanoapp timerWorldNanoapp(eventLoop.getNextInstanceId(),
-      &timerWorldPlatformNanoapp);
-  eventLoop.startNanoapp(&timerWorldNanoapp);
-
-  // Start the wifi nanoapp.
-  chre::Nanoapp wifiWorldNanoapp(eventLoop.getNextInstanceId(),
-      &wifiWorldPlatformNanoapp);
-  eventLoop.startNanoapp(&wifiWorldNanoapp);
-
+  eventLoop.startNanoapp(&wifiWorldPlatformNanoapp);
 
   std::signal(SIGINT, signalHandler);
   eventLoop.run();
-
-  eventLoop.stopNanoapp(&helloWorldNanoapp);
-  eventLoop.stopNanoapp(&imuCalNanoapp);
-  eventLoop.stopNanoapp(&sensorWorldNanoapp);
-  eventLoop.stopNanoapp(&timerWorldNanoapp);
-  eventLoop.stopNanoapp(&wifiWorldNanoapp);
 
   chre::deinit();
   return 0;

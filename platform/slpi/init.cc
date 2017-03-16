@@ -22,6 +22,7 @@ extern "C" {
 
 }  // extern "C"
 
+#include "chre/apps/gnss_world/gnss_world.h"
 #include "chre/apps/imu_cal/imu_cal.h"
 #include "chre/apps/message_world/message_world.h"
 #include "chre/apps/sensor_world/sensor_world.h"
@@ -115,10 +116,7 @@ void chreThreadEntry(void * /*data*/) {
     gnssWorldPlatformNanoapp.mStart = chre::app::gnssWorldStart;
     gnssWorldPlatformNanoapp.mHandleEvent = chre::app::gnssWorldHandleEvent;
     gnssWorldPlatformNanoapp.mStop = chre::app::gnssWorldStop;
-
-    chre::Nanoapp gnssWorldNanoapp(
-        gEventLoop->getNextInstanceId(), &gnssWorldPlatformNanoapp);
-    gEventLoop->startNanoapp(&gnssWorldNanoapp);
+    gEventLoop->startNanoapp(&gnssWorldPlatformNanoapp);
 #endif
 
 #if 0
@@ -126,10 +124,7 @@ void chreThreadEntry(void * /*data*/) {
     imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
     imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
     imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
-
-    chre::Nanoapp imuCalNanoapp(
-        gEventLoop->getNextInstanceId(), &imuCalPlatformNanoapp);
-    gEventLoop->startNanoapp(&imuCalNanoapp);
+    gEventLoop->startNanoapp(&imuCalPlatformNanoapp);
 #endif
 
 #if 0
@@ -137,10 +132,7 @@ void chreThreadEntry(void * /*data*/) {
     sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
     sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
     sensorWorldPlatformNanoapp.mStop = chre::app::sensorWorldStop;
-
-    chre::Nanoapp sensorWorldNanoapp(
-        gEventLoop->getNextInstanceId(), &sensorWorldPlatformNanoapp);
-    gEventLoop->startNanoapp(&sensorWorldNanoapp);
+    gEventLoop->startNanoapp(&sensorWorldPlatformNanoapp);
 #endif
 
 #if 0
@@ -149,10 +141,7 @@ void chreThreadEntry(void * /*data*/) {
     messageWorldPlatformNanoapp.mHandleEvent =
         chre::app::messageWorldHandleEvent;
     messageWorldPlatformNanoapp.mStop = chre::app::messageWorldStop;
-
-    chre::Nanoapp messageWorldNanoapp(
-        gEventLoop->getNextInstanceId(), &messageWorldPlatformNanoapp);
-    gEventLoop->startNanoapp(&messageWorldNanoapp);
+    gEventLoop->startNanoapp(&messageWorldPlatformNanoapp);
 #endif
 
 #if 0
@@ -160,10 +149,7 @@ void chreThreadEntry(void * /*data*/) {
     timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
     timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
     timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
-
-    chre::Nanoapp timerWorldNanoapp(
-        gEventLoop->getNextInstanceId(), &timerWorldPlatformNanoapp);
-    gEventLoop->startNanoapp(&timerWorldNanoapp);
+    gEventLoop->startNanoapp(&timerWorldPlatformNanoapp);
 #endif
 
 #if 0
@@ -171,10 +157,7 @@ void chreThreadEntry(void * /*data*/) {
     wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
     wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
     wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
-
-    chre::Nanoapp wifiWorldNanoapp(
-        gEventLoop->getNextInstanceId(), &wifiWorldPlatformNanoapp);
-    gEventLoop->startNanoapp(&wifiWorldNanoapp);
+    gEventLoop->startNanoapp(&wifiWorldPlatformNanoapp);
 #endif
 
     gEventLoop->run();
