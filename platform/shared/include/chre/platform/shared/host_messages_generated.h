@@ -76,7 +76,7 @@ struct NanoappMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint64_t>(verifier, VT_APP_ID) &&
            VerifyField<uint32_t>(verifier, VT_MESSAGE_TYPE) &&
            VerifyField<uint16_t>(verifier, VT_HOST_ENDPOINT) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, VT_MESSAGE) &&
+           VerifyFieldRequired<flatbuffers::uoffset_t>(verifier, VT_MESSAGE) &&
            verifier.Verify(message()) &&
            verifier.EndTable();
   }
@@ -105,6 +105,7 @@ struct NanoappMessageBuilder {
   flatbuffers::Offset<NanoappMessage> Finish() {
     const auto end = fbb_.EndTable(start_, 4);
     auto o = flatbuffers::Offset<NanoappMessage>(end);
+    fbb_.Required(o, NanoappMessage::VT_MESSAGE);
     return o;
   }
 };

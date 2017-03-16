@@ -109,15 +109,15 @@ class HostCommsManager : public NonCopyable {
    * This function is safe to call from any thread.
    *
    * @param appId Identifier for the destination nanoapp
+   * @param messageType Application-defined message identifier
    * @param hostEndpoint Identifier for the entity on the host that sent this
    *        message
-   * @param messageType Application-defined message identifier
    * @param messageData Buffer containing application-specific message data; can
    *        be null if messageSize is 0
    * @param messageSize Size of messageData, in bytes
    */
   void sendMessageToNanoappFromHost(
-      uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+      uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
       const void *messageData, size_t messageSize);
 
   /**

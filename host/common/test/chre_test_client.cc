@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+#include "chre/platform/shared/host_protocol.h"
 #include "chre_host/log.h"
 #include "chre_host/socket_client.h"
 
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -33,17 +35,33 @@
 
 using android::sp;
 using android::chre::SocketClient;
+using chre::HostProtocol;
+using flatbuffers::FlatBufferBuilder;
 
 namespace {
 
-class SocketCallbacks : public SocketClient::ICallbacks {
+//! The host endpoint we use when sending; set to CHRE_HOST_ENDPOINT_UNSPECIFIED
+constexpr uint16_t kHostEndpoint = 0xfffe;
+
+class SocketCallbacks : public SocketClient::ICallbacks,
+                        public HostProtocol::IMessageHandlers {
  public:
   void onMessageReceived(const void *data, size_t length) override {
-    LOGD("Got message @ %p with %zu bytes", data, length);
+    if (!HostProtocol::decodeMessage(data, length, *this)) {
+      LOGE("Failed to decode message");
+    }
   }
 
   void onSocketDisconnectedByRemote() override {
     LOGI("Socket disconnected");
+  }
+
+  void handleNanoappMessage(
+      uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
+      const void * /*messageData*/, size_t messageLen) override {
+    LOGI("Got message from nanoapp 0x%" PRIx64 " to endpoint 0x%" PRIx16
+         " with type 0x%" PRIx32 " and length %zu", appId, hostEndpoint,
+         messageType, messageLen);
   }
 };
 
@@ -54,34 +72,21 @@ int main() {
   SocketClient client;
   sp<SocketCallbacks> callbacks = new SocketCallbacks();
 
-  if (!client.connect("chre", false /*reconnectAutomatically*/, callbacks)) {
+  if (!client.connect("chre", true /*reconnectAutomatically*/, callbacks)) {
     LOGE("Couldn't connect to socket");
   } else {
-    // TODO: this should use the client library - right now using a hard-coded
-    // message to nanoapp for testing in conjunction with MessageWorld
-    const uint8_t sendBuf[] = {
-      0x0c, 0x00, 0x00, 0x00, 0x08, 0x00, 0x0c, 0x00,
-      0x07, 0x00, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00,
-      0x0c, 0x00, 0x10, 0x00, 0x00, 0x00, 0x08, 0x00,
-      0x06, 0x00, 0x0c, 0x00, 0x0c, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0xfe, 0xff, 0xd2, 0x04, 0x00, 0x00,
-      0x04, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
-      0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-    };
-    LOGI("Sending message (%zu bytes)", sizeof(sendBuf));
-    if (!client.sendMessage(sendBuf, sizeof(sendBuf))) {
+    FlatBufferBuilder builder(2048);
+    uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    HostProtocol::encodeNanoappMessage(
+        builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
+
+    LOGI("Sending message (%u bytes)", builder.GetSize());
+    if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
       LOGE("Failed to send message");
     }
 
     LOGI("Sleeping, waiting on responses");
     std::this_thread::sleep_for(std::chrono::seconds(5));
-
-    LOGI("Performing graceful disconnect");
-    client.disconnect();
-
-    LOGI("Disconnect again");
-    client.disconnect();
   }
 
  return 0;

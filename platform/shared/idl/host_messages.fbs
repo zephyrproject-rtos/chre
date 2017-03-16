@@ -25,7 +25,7 @@ table NanoappMessage {
   host_endpoint:ushort = 0xfffe;
 
   /// Vector containing arbitrary application-specific message data
-  message:[ubyte];
+  message:[ubyte] (required);
 }
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
@@ -40,7 +40,7 @@ union ChreMessage {
 /// per FlatBuffers requirements, we can't use a union as the top-level structure
 /// (root type), so we must wrap it in a table.
 table MessageContainer {
-  message:ChreMessage;
+  message:ChreMessage (required);
 }
 
 root_type MessageContainer;
