@@ -18,10 +18,14 @@ cc_binary {
         "system/chre/host/common/include",
     ],
     proprietary: true,
-    srcs: ["chre_test_client.cc"],
+    srcs: [
+        "socket_client.cc",
+        "test/chre_test_client.cc",
+    ],
     shared_libs: [
         "libcutils",
         "liblog",
+        "libutils",
     ],
     tags: ["optional"],
 }
