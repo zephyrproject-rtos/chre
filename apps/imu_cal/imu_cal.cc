@@ -19,6 +19,7 @@
 
 #include "chre/util/array.h"
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/nanoapp/sensor.h"
 #include "chre/util/time.h"
 
 #define LOG_TAG "[ImuCal]"
@@ -64,35 +65,6 @@ SensorState sensors[] = {
     .latency = Seconds(4).toRawNanoseconds(),
   },
 };
-
-const char *getSensorName(uint32_t eventType) {
-  switch (eventType) {
-    case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
-      return "Accel";
-    case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
-      return "Uncal Accel";
-    case CHRE_EVENT_SENSOR_GYROSCOPE_DATA:
-      return "Gyro";
-    case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
-      return "Uncal Gyro";
-    case CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA:
-      return "Mag";
-    case CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA:
-      return "Uncal Mag";
-    case CHRE_EVENT_SENSOR_PRESSURE_DATA:
-      return "Baro";
-    case CHRE_EVENT_SENSOR_LIGHT_DATA:
-      return "Light";
-    case CHRE_EVENT_SENSOR_PROXIMITY_DATA:
-      return "Prox";
-    case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
-      return "Accel Temp";
-    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA:
-      return "Gyro Temp";
-    default:
-      return "Unknown";
-  }
-}
 
 } // namespace
 
@@ -158,7 +130,7 @@ void imuCalHandleEvent(uint32_t senderInstanceId,
       z /= header.readingCount;
 
       LOGI("%s, %d samples: %f %f %f",
-           getSensorName(eventType), header.readingCount, x, y, z);
+           getSensorNameForEventType(eventType), header.readingCount, x, y, z);
       break;
     }
 
@@ -175,7 +147,7 @@ void imuCalHandleEvent(uint32_t senderInstanceId,
       v /= header.readingCount;
 
       LOGI("%s, %d samples: %f",
-           getSensorName(eventType), header.readingCount, v);
+           getSensorNameForEventType(eventType), header.readingCount, v);
       break;
     }
 

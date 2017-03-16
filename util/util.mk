@@ -7,6 +7,10 @@
 # Include paths.
 COMMON_CFLAGS += -Iutil/include
 
+# Common Source Files ##########################################################
+
+COMMON_SRCS += util/nanoapp/sensor.cc
+
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += util/tests/array_queue_test.cc

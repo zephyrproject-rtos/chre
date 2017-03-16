@@ -25,6 +25,11 @@
 
 namespace chre {
 
+// TODO: Move SensorType and related functions to a new file called
+// sensor_type.h and include it here. This will allow using this logic in util
+// code withput pulling in the entire SensorRequest class which is only intended
+// to be used by the CHRE implementation.
+
 /**
  * This SensorType is designed to wrap constants provided by the CHRE API
  * to improve type-safety. In addition, an unknown sensor type is provided
