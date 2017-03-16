@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
 
-#include "chre/platform/log.h"
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[WifiWorld]"
 
 namespace chre {
 namespace app {
@@ -37,14 +38,14 @@ namespace {
 void handleWifiAsyncResult(const chreAsyncResult *result) {
   if (result->requestType == CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR) {
     if (result->success) {
-      chreLog(CHRE_LOG_INFO, "Successfully requested wifi scan monitoring");
+      LOGI("Successfully requested wifi scan monitoring");
     } else {
-      chreLog(CHRE_LOG_ERROR, "Error requesting wifi scan monitoring with %"
-              PRIu8, result->errorCode);
+      LOGI("Error requesting wifi scan monitoring with %" PRIu8,
+           result->errorCode);
     }
 
     if (result->cookie != &kScanMonitoringCookie) {
-      chreLog(CHRE_LOG_ERROR, "Scan monitoring request cookie mismatch");
+      LOGE("Scan monitoring request cookie mismatch");
     }
   }
 }
@@ -61,8 +62,7 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
 }  // namespace
 
 bool wifiWorldStart() {
-  chreLog(CHRE_LOG_INFO, "Wifi world app started as instance %" PRIu32,
-      chreGetInstanceId());
+  LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *wifiCapabilitiesStr;
   uint32_t wifiCapabilities = chreWifiGetCapabilities();
@@ -84,14 +84,14 @@ bool wifiWorldStart() {
       wifiCapabilitiesStr = "INVALID";
   }
 
-  chreLog(CHRE_LOG_INFO, "Detected WiFi support as: %s (%" PRIu32 ")",
-          wifiCapabilitiesStr, wifiCapabilities);
+  LOGI("Detected WiFi support as: %s (%" PRIu32 ")",
+       wifiCapabilitiesStr, wifiCapabilities);
 
   if (wifiCapabilities & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
     if (chreWifiConfigureScanMonitorAsync(true, &kScanMonitoringCookie)) {
-      chreLog(CHRE_LOG_INFO, "Scan monitor enable request successful");
+      LOGI("Scan monitor enable request successful");
     } else {
-      chreLog(CHRE_LOG_ERROR, "Error sending scan monitoring request");
+      LOGE("Error sending scan monitoring request");
     }
   }
 
@@ -109,12 +109,12 @@ void wifiWorldHandleEvent(uint32_t senderInstanceId,
       handleWifiScanEvent(static_cast<const chreWifiScanEvent *>(eventData));
       break;
     default:
-      chreLog(CHRE_LOG_ERROR, "Unhandled event type %" PRIu16, eventType);
+      LOGW("Unhandled event type %" PRIu16, eventType);
   }
 }
 
 void wifiWorldStop() {
-  chreLog(CHRE_LOG_INFO, "Wifi world app stopped");
+  LOGI("Wifi world app stopped");
 }
 
 }  // namespace app

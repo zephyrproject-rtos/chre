@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
+
+#include "chre/util/nanoapp/log.h"
+
+#define LOG_TAG "[GnssWorld]"
 
 namespace chre {
 namespace app {
 
 bool gnssWorldStart() {
-  chreLog(CHRE_LOG_INFO, "GNSS world app started as instance %" PRIu32,
-      chreGetInstanceId());
+  LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *gnssCapabilitiesStr;
   uint32_t gnssCapabilities = chreGnssGetCapabilities();
@@ -45,8 +47,8 @@ bool gnssWorldStart() {
       gnssCapabilitiesStr = "INVALID";
   }
 
-  chreLog(CHRE_LOG_INFO, "Detected GNSS support as: %s (%" PRIu32 ")",
-          gnssCapabilitiesStr, gnssCapabilities);
+  LOGI("Detected GNSS support as: %s (%" PRIu32 ")",
+       gnssCapabilitiesStr, gnssCapabilities);
   return true;
 }
 
@@ -57,7 +59,7 @@ void gnssWorldHandleEvent(uint32_t senderInstanceId,
 }
 
 void gnssWorldStop() {
-  chreLog(CHRE_LOG_INFO, "GNSS world app stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app

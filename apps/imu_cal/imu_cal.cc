@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#include "chre.h"
-
+#include <chre.h>
 #include <cinttypes>
 
 #include "chre/util/array.h"
+#include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
+
+#define LOG_TAG "[ImuCal]"
 
 namespace chre {
 namespace app {
@@ -95,26 +97,25 @@ const char *getSensorName(uint32_t eventType) {
 } // namespace
 
 bool imuCalStart() {
-  chreLog(CHRE_LOG_INFO, "IMU CAL! - App started on platform ID %" PRIx64,
-          chreGetPlatformId());
+  LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     SensorState& sensor = sensors[i];
     sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
-    chreLog(CHRE_LOG_INFO, "sensor %d initialized: %s with handle %" PRIu32,
-            i, sensor.isInitialized ? "true" : "false", sensor.handle);
+    LOGI("sensor %d initialized: %s with handle %" PRIu32,
+         i, sensor.isInitialized ? "true" : "false", sensor.handle);
 
     if (sensor.isInitialized) {
       // Get sensor info
       chreSensorInfo& info = sensor.info;
       bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
       if (infoStatus) {
-        chreLog(CHRE_LOG_INFO, "SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
-                " OneShot=%d minInterval=%" PRIu64 "nsec",
-                info.sensorName, info.sensorType, info.isOnChange,
-                info.isOneShot, info.minInterval);
+        LOGI("SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
+             " OneShot=%d minInterval=%" PRIu64 "nsec",
+             info.sensorName, info.sensorType, info.isOnChange,
+             info.isOneShot, info.minInterval);
       } else {
-        chreLog(CHRE_LOG_ERROR, "chreGetSensorInfo failed");
+        LOGE("chreGetSensorInfo failed");
       }
 
 
@@ -125,8 +126,8 @@ bool imuCalStart() {
         bool status = chreSensorConfigure(sensor.handle,
             CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
             sensor.latency);
-        chreLog(CHRE_LOG_INFO, "Requested data: odr %f Hz, latency %f sec, %s",
-                odrHz, latencySec, status ? "success" : "failure");
+        LOGI("Requested data: odr %f Hz, latency %f sec, %s",
+             odrHz, latencySec, status ? "success" : "failure");
       }
     }
   }
@@ -156,8 +157,8 @@ void imuCalHandleEvent(uint32_t senderInstanceId,
       y /= header.readingCount;
       z /= header.readingCount;
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f %f %f",
-              getSensorName(eventType), header.readingCount, x, y, z);
+      LOGI("%s, %d samples: %f %f %f",
+           getSensorName(eventType), header.readingCount, x, y, z);
       break;
     }
 
@@ -173,20 +174,20 @@ void imuCalHandleEvent(uint32_t senderInstanceId,
       }
       v /= header.readingCount;
 
-      chreLog(CHRE_LOG_INFO, "%s, %d samples: %f",
-              getSensorName(eventType), header.readingCount, v);
+      LOGI("%s, %d samples: %f",
+           getSensorName(eventType), header.readingCount, v);
       break;
     }
 
     default:
-      chreLog(CHRE_LOG_ERROR, "Unhandled event %d", eventType);
+      LOGW("Unhandled event %d", eventType);
       break;
   }
 }
 
 void imuCalStop() {
   // TODO: Unscribe to sensors
-  chreLog(CHRE_LOG_INFO, "IMU CAL! - Stopped");
+  LOGI("Stopped");
 }
 
 }  // namespace app
