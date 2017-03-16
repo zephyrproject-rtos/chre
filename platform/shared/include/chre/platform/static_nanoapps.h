@@ -14,21 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_APPS_GNSS_WORLD_GNSS_WORLD_H_
-#define CHRE_APPS_GNSS_WORLD_GNSS_WORLD_H_
+#ifndef CHRE_PLATFORM_STATIC_NANOAPPS_H_
+#define CHRE_PLATFORM_STATIC_NANOAPPS_H_
 
-#include <cstdint>
+#include "chre/core/event_loop.h"
 
 namespace chre {
-namespace app {
 
-bool gnssWorldStart();
-void gnssWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData);
-void gnssWorldStop();
+//! The list of static nanoapps to load.
+extern PlatformNanoapp *const kStaticNanoappList[];
 
-}  // namespace app
+//! The number of static nanoapps to load.
+extern const size_t kStaticNanoappCount;
+
+/**
+ * Loads the static nanoapps as required for this variant. All nanoapps are
+ * loaded into one event loop. Failure to load static nanoapps is considered a
+ * FATAL_ERROR.
+ *
+ * @param eventLoop the event loops to load nanoapps into.
+ */
+void loadStaticNanoapps(EventLoop *eventLoop);
+
 }  // namespace chre
 
-#endif  // CHRE_APPS_GNSS_WORLD_GNSS_WORLD_H_
+#endif  // CHRE_PLATFORM_STATIC_NANOAPPS_H_

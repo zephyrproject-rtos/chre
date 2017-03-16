@@ -21,14 +21,18 @@
 
 #define LOG_TAG "[TimerWorld]"
 
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
+
 namespace chre {
-namespace app {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
 
 uint32_t gOneShotTimerHandle;
 uint32_t gCyclicTimerHandle;
 int gCyclicTimerCount;
 
-bool timerWorldStart() {
+bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   gOneShotTimerHandle = chreTimerSet(100000000 /* duration: 100ms */,
@@ -54,9 +58,9 @@ void handleTimerEvent(const void *eventData) {
   }
 }
 
-void timerWorldHandleEvent(uint32_t senderInstanceId,
-                           uint16_t eventType,
-                           const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_TIMER:
       handleTimerEvent(eventData);
@@ -67,9 +71,14 @@ void timerWorldHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void timerWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(TimerWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

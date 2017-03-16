@@ -21,8 +21,12 @@
 
 #define LOG_TAG "[WifiWorld]"
 
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
+
 namespace chre {
-namespace app {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
 
 //! A dummy cookie to pass into the configure scan monitoring async request.
 const uint32_t kScanMonitoringCookie = 0x1337;
@@ -61,7 +65,7 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
 
 }  // namespace
 
-bool wifiWorldStart() {
+bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *wifiCapabilitiesStr;
@@ -98,9 +102,9 @@ bool wifiWorldStart() {
   return true;
 }
 
-void wifiWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_WIFI_ASYNC_RESULT:
       handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
@@ -113,9 +117,14 @@ void wifiWorldHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void wifiWorldStop() {
+void nanoappStop() {
   LOGI("Wifi world app stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(WifiWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

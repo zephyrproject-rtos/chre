@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_APPS_MESSAGE_WORLD_MESSAGE_WORLD_H_
-#define CHRE_APPS_MESSAGE_WORLD_MESSAGE_WORLD_H_
+#ifndef CHRE_APPS_APPS_H_
+#define CHRE_APPS_APPS_H_
 
-#include <cstdint>
+#include "chre/platform/platform_nanoapp.h"
 
 namespace chre {
-namespace app {
 
-bool messageWorldStart();
-void messageWorldHandleEvent(uint32_t senderInstanceId,
-                             uint16_t eventType,
-                             const void *eventData);
-void messageWorldStop();
+extern PlatformNanoapp gNanoappGnssWorld;
+extern PlatformNanoapp gNanoappHelloWorld;
+extern PlatformNanoapp gNanoappImuCal;
+extern PlatformNanoapp gNanoappMessageWorld;
+extern PlatformNanoapp gNanoappSensorWorld;
+extern PlatformNanoapp gNanoappTimerWorld;
+extern PlatformNanoapp gNanoappWifiWorld;
+extern PlatformNanoapp gNanoappWwanWorld;
 
-}  // namespace app
-}  // namespace chre
+} // namespace chre
 
-#endif  // CHRE_APPS_MESSAGE_WORLD_MESSAGE_WORLD_H_
+#endif  // CHRE_APPS_APPS_H_

@@ -21,25 +21,34 @@
 
 #define LOG_TAG "[HelloWorld]"
 
-namespace chre {
-namespace app {
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
 
-bool helloWorldStart() {
+namespace chre {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
+
+bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
   return true;
 }
 
-void helloWorldHandleEvent(uint32_t senderInstanceId,
-                           uint16_t eventType,
-                           const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   uint64_t currentTime = chreGetTime();
   LOGI("Received event 0x%" PRIx16 " at time %" PRIu64,
        eventType, currentTime);
 }
 
-void helloWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(HelloWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

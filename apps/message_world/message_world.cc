@@ -21,8 +21,12 @@
 
 #define LOG_TAG "[MsgWorld]"
 
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
+
 namespace chre {
-namespace app {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
 
 namespace {
 
@@ -38,7 +42,7 @@ void messageFreeCallback(void *message, size_t messageSize) {
 
 }  // anonymous namespace
 
-bool messageWorldStart() {
+bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   bool success = chreSendMessageToHostEndpoint(
@@ -48,9 +52,9 @@ bool messageWorldStart() {
   return true;
 }
 
-void messageWorldHandleEvent(uint32_t senderInstanceId,
-                             uint16_t eventType,
-                             const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   LOGI("Got event 0x%" PRIx16 " from instance %" PRIu32,
        eventType, senderInstanceId);
 
@@ -71,9 +75,14 @@ void messageWorldHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void messageWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(MessageWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

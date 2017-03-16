@@ -76,6 +76,30 @@ The CHRE project is organized as follows:
 Within each of these directories, you may find a ``tests`` subdirectory
 containing tests written against the googletest framework.
 
+## Supplied Nanoapps
+
+This project includes a number of nanoapps that serve as both examples of how to
+use CHRE, debugging tools and can perform some useful function.
+
+All nanoapps in the ``apps`` directory are placed in a namespace when built
+statically with this CHRE implementation. When compiled as standalone nanoapps,
+there is no outer namespace on their entry points. This allows testing various
+CHRE subsystems without requiring dynamic loading and allows these nanoapps to
+coexist within a CHRE binary. Refer to ``apps/hello_world/hello_world.cc`` for
+a minimal example.
+
+### FeatureWorld
+
+Any of the nanoapps that end with the term World are intended to test some
+feature of the system. The HelloWorld nanoapp simply exercises logging
+functionality, TimerWorld exercises timers and WifiWorld uses wifi, for example.
+These nanoapps log all results via chreLog which makes them effective tools when
+bringing up a new CHRE implementation.
+
+### ImuCal
+
+This nanoapp implements IMU calibration.
+
 ## Porting CHRE
 
 This codebase is intended to be ported to a variety of operating systems. If you

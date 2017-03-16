@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_APPS_WWAN_WORLD_WWAN_WORLD_H_
-#define CHRE_APPS_WWAN_WORLD_WWAN_WORLD_H_
-
-#include <cstdint>
+#include "chre/platform/static_nanoapps.h"
 
 namespace chre {
-namespace app {
 
-bool wwanWorldStart();
-void wwanWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData);
-void wwanWorldStop();
+void loadStaticNanoapps(EventLoop *eventLoop) {
+  for (size_t i = 0; i < kStaticNanoappCount; i++) {
+    eventLoop->startNanoapp(kStaticNanoappList[i]);
+  }
+}
 
-}  // namespace app
 }  // namespace chre
-
-#endif  // CHRE_APPS_WWAN_WORLD_WWAN_WORLD_H_

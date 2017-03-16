@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_APPS_WIFI_WORLD_WIFI_WORLD_H_
-#define CHRE_APPS_WIFI_WORLD_WIFI_WORLD_H_
+#include <cstddef>
 
-#include <cstdint>
+#include "chre/apps/apps.h"
+#include "chre/platform/static_nanoapps.h"
+#include "chre/util/array.h"
 
 namespace chre {
-namespace app {
 
-bool wifiWorldStart();
-void wifiWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData);
-void wifiWorldStop();
+//! The list of static nanoapps to load for the Linux platform.
+__attribute__((weak))
+PlatformNanoapp *const kStaticNanoappList[] = {
+  &gNanoappGnssWorld,
+  &gNanoappHelloWorld,
+  &gNanoappImuCal,
+  &gNanoappMessageWorld,
+  &gNanoappSensorWorld,
+  &gNanoappTimerWorld,
+  &gNanoappWifiWorld,
+  &gNanoappWwanWorld,
+};
 
-}  // namespace app
+//! The size of the static nanoapp list.
+__attribute__((weak))
+const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
+
 }  // namespace chre
-
-#endif  // CHRE_APPS_WIFI_WORLD_WIFI_WORLD_H_

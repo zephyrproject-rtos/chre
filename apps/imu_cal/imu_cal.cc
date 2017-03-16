@@ -24,8 +24,13 @@
 
 #define LOG_TAG "[ImuCal]"
 
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
+
 namespace chre {
-namespace app {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
+
 namespace {
 
 struct SensorState {
@@ -68,7 +73,7 @@ SensorState sensors[] = {
 
 } // namespace
 
-bool imuCalStart() {
+bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
@@ -107,9 +112,9 @@ bool imuCalStart() {
   return true;
 }
 
-void imuCalHandleEvent(uint32_t senderInstanceId,
-                            uint16_t eventType,
-                            const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
@@ -157,10 +162,15 @@ void imuCalHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void imuCalStop() {
+void nanoappStop() {
   // TODO: Unscribe to sensors
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(ImuCal);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

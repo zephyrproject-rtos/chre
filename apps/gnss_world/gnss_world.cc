@@ -21,10 +21,14 @@
 
 #define LOG_TAG "[GnssWorld]"
 
-namespace chre {
-namespace app {
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
 
-bool gnssWorldStart() {
+namespace chre {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
+
+bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *gnssCapabilitiesStr;
@@ -52,15 +56,20 @@ bool gnssWorldStart() {
   return true;
 }
 
-void gnssWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   // TODO: Implement this.
 }
 
-void gnssWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(GnssWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

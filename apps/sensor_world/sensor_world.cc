@@ -24,8 +24,13 @@
 
 #define LOG_TAG "[SensorWorld]"
 
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
+
 namespace chre {
-namespace app {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
+
 namespace {
 
 struct SensorState {
@@ -121,7 +126,7 @@ size_t getMotionSensorIndex() {
 
 } // namespace
 
-bool sensorWorldStart() {
+bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
@@ -165,9 +170,9 @@ bool sensorWorldStart() {
   return true;
 }
 
-void sensorWorldHandleEvent(uint32_t senderInstanceId,
-                            uint16_t eventType,
-                            const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
@@ -250,9 +255,14 @@ void sensorWorldHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void sensorWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(SensorWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

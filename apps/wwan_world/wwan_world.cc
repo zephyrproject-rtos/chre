@@ -21,10 +21,14 @@
 
 #define LOG_TAG "[WwanWorld]"
 
-namespace chre {
-namespace app {
+#ifdef CHRE_NANOAPP_INTERNAL
+#include "chre/platform/platform_static_nanoapp_init.h"
 
-bool wwanWorldStart() {
+namespace chre {
+namespace {
+#endif  // CHRE_NANOAPP_INTERNAL
+
+bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
   const char *wwanCapabilitiesStr;
@@ -45,15 +49,20 @@ bool wwanWorldStart() {
   return true;
 }
 
-void wwanWorldHandleEvent(uint32_t senderInstanceId,
-                          uint16_t eventType,
-                          const void *eventData) {
+void nanoappHandleEvent(uint32_t senderInstanceId,
+                        uint16_t eventType,
+                        const void *eventData) {
   // TODO: Implement this.
 }
 
-void wwanWorldStop() {
+void nanoappStop() {
   LOGI("Stopped");
 }
 
-}  // namespace app
+#ifdef CHRE_NANOAPP_INTERNAL
+}  // namespace
+
+PLATFORM_STATIC_NANOAPP_INIT(WwanWorld);
+
 }  // namespace chre
+#endif  // CHRE_NANOAPP_INTERNAL

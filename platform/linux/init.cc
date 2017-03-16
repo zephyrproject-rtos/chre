@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-#include "chre/apps/hello_world/hello_world.h"
-#include "chre/apps/imu_cal/imu_cal.h"
-#include "chre/apps/sensor_world/sensor_world.h"
-#include "chre/apps/timer_world/timer_world.h"
-#include "chre/apps/wifi_world/wifi_world.h"
 #include "chre/core/event.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
@@ -26,8 +21,8 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
+#include "chre/platform/static_nanoapps.h"
 #include "chre/platform/system_timer.h"
-#include "chre/platform/platform_nanoapp.h"
 #include "chre/util/time.h"
 
 #include <csignal>
@@ -47,40 +42,12 @@ extern "C" void signalHandler(int sig) {
 int main() {
   chre::init();
 
-  // Construct the event loop.
+  // Construct the event loop and register the signal handler.
   chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
-
-  chre::PlatformNanoapp helloWorldPlatformNanoapp;
-  helloWorldPlatformNanoapp.mStart = chre::app::helloWorldStart;
-  helloWorldPlatformNanoapp.mHandleEvent = chre::app::helloWorldHandleEvent;
-  helloWorldPlatformNanoapp.mStop = chre::app::helloWorldStop;
-  eventLoop.startNanoapp(&helloWorldPlatformNanoapp);
-
-  chre::PlatformNanoapp imuCalPlatformNanoapp;
-  imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
-  imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
-  imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
-  eventLoop.startNanoapp(&imuCalPlatformNanoapp);
-
-  chre::PlatformNanoapp sensorWorldPlatformNanoapp;
-  sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
-  sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
-  sensorWorldPlatformNanoapp.mStop = chre::app::sensorWorldStop;
-  eventLoop.startNanoapp(&sensorWorldPlatformNanoapp);
-
-  chre::PlatformNanoapp timerWorldPlatformNanoapp;
-  timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
-  timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
-  timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
-  eventLoop.startNanoapp(&timerWorldPlatformNanoapp);
-
-  chre::PlatformNanoapp wifiWorldPlatformNanoapp;
-  wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
-  wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
-  wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
-  eventLoop.startNanoapp(&wifiWorldPlatformNanoapp);
-
   std::signal(SIGINT, signalHandler);
+
+  // Load any static nanoapps and start the event loop.
+  chre::loadStaticNanoapps(&eventLoop);
   eventLoop.run();
 
   chre::deinit();

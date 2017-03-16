@@ -22,12 +22,6 @@ extern "C" {
 
 }  // extern "C"
 
-#include "chre/apps/gnss_world/gnss_world.h"
-#include "chre/apps/imu_cal/imu_cal.h"
-#include "chre/apps/message_world/message_world.h"
-#include "chre/apps/sensor_world/sensor_world.h"
-#include "chre/apps/timer_world/timer_world.h"
-#include "chre/apps/wifi_world/wifi_world.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
@@ -37,6 +31,7 @@ extern "C" {
 #include "chre/platform/mutex.h"
 #include "chre/platform/platform_nanoapp.h"
 #include "chre/platform/slpi/fastrpc.h"
+#include "chre/platform/static_nanoapps.h"
 #include "chre/util/lock_guard.h"
 
 using chre::EventLoop;
@@ -108,58 +103,7 @@ void chreThreadEntry(void * /*data*/) {
   if (gEventLoop == nullptr) {
     LOGE("Failed to create event loop!");
   } else {
-    // TODO: work up a better way of handling built-in nanoapps (or don't have
-    // any at all). Also, sensor world test functionality should be replaced by
-    // a more automated framework.
-#if 0
-    chre::PlatformNanoapp gnssWorldPlatformNanoapp;
-    gnssWorldPlatformNanoapp.mStart = chre::app::gnssWorldStart;
-    gnssWorldPlatformNanoapp.mHandleEvent = chre::app::gnssWorldHandleEvent;
-    gnssWorldPlatformNanoapp.mStop = chre::app::gnssWorldStop;
-    gEventLoop->startNanoapp(&gnssWorldPlatformNanoapp);
-#endif
-
-#if 0
-    chre::PlatformNanoapp imuCalPlatformNanoapp;
-    imuCalPlatformNanoapp.mStart = chre::app::imuCalStart;
-    imuCalPlatformNanoapp.mHandleEvent = chre::app::imuCalHandleEvent;
-    imuCalPlatformNanoapp.mStop = chre::app::imuCalStop;
-    gEventLoop->startNanoapp(&imuCalPlatformNanoapp);
-#endif
-
-#if 0
-    chre::PlatformNanoapp sensorWorldPlatformNanoapp;
-    sensorWorldPlatformNanoapp.mStart = chre::app::sensorWorldStart;
-    sensorWorldPlatformNanoapp.mHandleEvent = chre::app::sensorWorldHandleEvent;
-    sensorWorldPlatformNanoapp.mStop = chre::app::sensorWorldStop;
-    gEventLoop->startNanoapp(&sensorWorldPlatformNanoapp);
-#endif
-
-#if 0
-    chre::PlatformNanoapp messageWorldPlatformNanoapp;
-    messageWorldPlatformNanoapp.mStart = chre::app::messageWorldStart;
-    messageWorldPlatformNanoapp.mHandleEvent =
-        chre::app::messageWorldHandleEvent;
-    messageWorldPlatformNanoapp.mStop = chre::app::messageWorldStop;
-    gEventLoop->startNanoapp(&messageWorldPlatformNanoapp);
-#endif
-
-#if 0
-    chre::PlatformNanoapp timerWorldPlatformNanoapp;
-    timerWorldPlatformNanoapp.mStart = chre::app::timerWorldStart;
-    timerWorldPlatformNanoapp.mHandleEvent = chre::app::timerWorldHandleEvent;
-    timerWorldPlatformNanoapp.mStop = chre::app::timerWorldStop;
-    gEventLoop->startNanoapp(&timerWorldPlatformNanoapp);
-#endif
-
-#if 0
-    chre::PlatformNanoapp wifiWorldPlatformNanoapp;
-    wifiWorldPlatformNanoapp.mStart = chre::app::wifiWorldStart;
-    wifiWorldPlatformNanoapp.mHandleEvent = chre::app::wifiWorldHandleEvent;
-    wifiWorldPlatformNanoapp.mStop = chre::app::wifiWorldStop;
-    gEventLoop->startNanoapp(&wifiWorldPlatformNanoapp);
-#endif
-
+    loadStaticNanoapps(gEventLoop);
     gEventLoop->run();
   }
 

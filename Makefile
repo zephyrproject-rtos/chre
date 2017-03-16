@@ -52,11 +52,15 @@ COMMON_CFLAGS += -DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
 COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
 COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 
+# Place nanoapps in a namespace.
+COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
+
 # Define CUST_H to allow including the customer header file.
 HEXAGON_CFLAGS += -DCUST_H
 
 # Makefile Includes ############################################################
 
+include apps/apps.mk
 include apps/gnss_world/gnss_world.mk
 include apps/hello_world/hello_world.mk
 include apps/imu_cal/imu_cal.mk
