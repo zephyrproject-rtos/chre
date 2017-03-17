@@ -158,6 +158,13 @@ class WifiRequestManager : public NonCopyable {
   //! is set.
   const void *mScanRequestingNanoappCookie;
 
+  //! This is set to true if the results of an active scan request are pending.
+  bool mScanRequestResultsArePending = false;
+
+  //! Accumulates the number of scan event results to determine when the last
+  //! in a scan event stream has been received.
+  uint8_t mScanEventResultCountAccumulator = 0;
+
   /**
    * @return true if the scan monitor is enabled by any nanoapps.
    */
@@ -266,6 +273,15 @@ class WifiRequestManager : public NonCopyable {
       const void *cookie);
 
   /**
+   * Posts a broadcast event containing the results of a wifi scan. Failure to
+   * post this event is a FATAL_ERROR. This is unrecoverable as the nanoapp will
+   * be stuck waiting for wifi scan results but there may be a gap.
+   *
+   * @param event the wifi scan event.
+   */
+  void postScanEventFatal(chreWifiScanEvent *event);
+
+  /**
    * Handles the result of a request to PlatformWifi to change the state of the
    * scan monitor. See the handleScanMonitorStateChange method which may be
    * called from any thread. This method is intended to be invoked on the CHRE
@@ -294,12 +310,34 @@ class WifiRequestManager : public NonCopyable {
   void handleScanResponseSync(bool pending, uint8_t errorCode);
 
   /**
+   * Handles a WiFi scan event. See the handleScanEvent method with may be
+   * called from any thread. This method is intended to be invoked on the CHRE
+   * event loop thread.
+   *
+   * @param event The wifi event to distribute to nanoapps.
+   */
+  void handleScanEventSync(chreWifiScanEvent *event);
+
+  /**
+   * TODO: this.
+   */
+  void handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent);
+
+  /**
    * Releases the memory associated with an asynchronous wifi event.
    *
    * @param eventType The type of event being freed.
    * @param eventData A pointer to the data to release.
    */
   static void freeWifiAsyncResultCallback(uint16_t eventType, void *eventData);
+
+  /**
+   * Releases a wifi scan event after nanoapps have consumed it.
+   *
+   * @param eventType the type of event being freed.
+   * @param eventData a pointer to the scan event to release.
+   */
+  static void freeWifiScanEventCallback(uint16_t eventType, void *eventData);
 };
 
 }  // namespace chre

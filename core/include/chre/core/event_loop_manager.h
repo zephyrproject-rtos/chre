@@ -40,6 +40,7 @@ enum class SystemCallbackType : uint16_t {
   MessageToHostComplete,
   WifiScanMonitorStateChange,
   WifiRequestScanResponse,
+  WifiHandleScanEvent,
   NanoappListResponse,
 };
 
