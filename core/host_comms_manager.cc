@@ -104,7 +104,7 @@ void HostCommsManager::deliverNanoappMessageFromHost(
 }
 
 void HostCommsManager::sendMessageToNanoappFromHost(
-    uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
+    uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
     const void *messageData, size_t messageSize) {
   EventLoopManager *eventLoopMgr = EventLoopManagerSingleton::get();
   EventLoop *targetEventLoop;
