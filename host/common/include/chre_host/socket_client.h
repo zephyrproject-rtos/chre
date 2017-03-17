@@ -74,7 +74,7 @@ class SocketClient {
    * and starts a receive thread to handle messages received on the socket.
    * Returns
    *
-   * @param socketName
+   * @param socketName Name of the Android domain socket to connect to
    * @param reconnectAutomatically If true, automatically attempt to re-connect
    *        to the socket if disconnected by the remote end. This does not
    *        influence the initial connection attempt, which happens
@@ -84,7 +84,7 @@ class SocketClient {
    * @return true if the connection was successful
    */
   bool connect(const char *socketName, bool reconnectAutomatically,
-               ::android::sp<ICallbacks> callbacks);
+               const ::android::sp<ICallbacks>& callbacks);
 
   /**
    * Performs graceful teardown of the socket. After this function returns, this

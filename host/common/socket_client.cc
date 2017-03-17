@@ -40,7 +40,7 @@ SocketClient::~SocketClient() {
 }
 
 bool SocketClient::connect(const char *socketName, bool reconnectAutomatically,
-                           sp<ICallbacks> callbacks) {
+                           const sp<ICallbacks>& callbacks) {
   bool success = false;
   if (inReceiveThread()) {
     LOGE("connect() can't be called from a receive thread callback");
