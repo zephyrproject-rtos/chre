@@ -150,7 +150,7 @@ bool WifiRequestManager::scanMonitorIsEnabled() const {
 bool WifiRequestManager::nanoappHasScanMonitorRequest(
     uint32_t instanceId, size_t *nanoappIndex) const {
   size_t index = mScanMonitorNanoapps.find(instanceId);
-  bool hasScanMonitorRequest = (index == mScanMonitorNanoapps.size());
+  bool hasScanMonitorRequest = (index != mScanMonitorNanoapps.size());
   if (hasScanMonitorRequest && nanoappIndex != nullptr) {
     *nanoappIndex = index;
   }
