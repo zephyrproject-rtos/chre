@@ -73,7 +73,7 @@ class SocketServer {
 
   static constexpr int kMaxPendingConnectionRequests = 4;
   static constexpr size_t kMaxActiveClients = 4;
-  static constexpr size_t kMaxPacketSize = 4096;
+  static constexpr size_t kMaxPacketSize = 1024 * 1024;
 
   int mSockFd = INVALID_SOCKET;
   uint16_t mNextClientId = 1;
