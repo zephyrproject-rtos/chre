@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/nanoapp/wifi.h"
 
 #define LOG_TAG "[WifiWorld]"
 
@@ -60,7 +61,17 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
  * @param event a pointer to the details of the wifi scan event.
  */
 void handleWifiScanEvent(const chreWifiScanEvent *event) {
-  // TODO: Log the scan result.
+  for (uint8_t i = 0; i < event->resultCount; i++) {
+    const chreWifiScanResult& result = event->results[i];
+
+    const char *ssidStr = "<non-printable>";
+    if (!validateSsidIsAsciiNullTerminatedStr(result.ssid, result.ssidLen)) {
+      ssidStr = reinterpret_cast<const char *>(result.ssid);
+    }
+
+    // TODO: Log more details here.
+    LOGI("Found network with SSID: %s", ssidStr);
+  }
 }
 
 }  // namespace

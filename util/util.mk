@@ -10,6 +10,7 @@ COMMON_CFLAGS += -Iutil/include
 # Common Source Files ##########################################################
 
 COMMON_SRCS += util/nanoapp/sensor.cc
+COMMON_SRCS += util/nanoapp/wifi.cc
 
 # GoogleTest Source Files ######################################################
 
