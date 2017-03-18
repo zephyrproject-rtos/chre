@@ -29,7 +29,8 @@ namespace chre {
  * sensor. The PlatformSensorBase is subclassed here to allow platforms to
  * inject their own storage for their implementation.
  */
-class PlatformSensor : public PlatformSensorBase {
+class PlatformSensor : public PlatformSensorBase,
+                       public NonCopyable {
  public:
   /**
    * Default constructs a PlatformSensor.
@@ -37,11 +38,11 @@ class PlatformSensor : public PlatformSensorBase {
   PlatformSensor();
 
   /**
-   * Constructs a platform sensor with its minimum interval specified.
+   * Constructs a PlatformSensor by moving another.
    *
-   * @param minInterval The minimum interval in nanoseconds of this sensor.
+   * @param other The PlatformSensor to move.
    */
-  PlatformSensor(uint64_t minInterval);
+  PlatformSensor(PlatformSensor&& other);
 
   /**
    * Initializes the platform sensors subsystem. This must be called as part of
@@ -101,8 +102,13 @@ class PlatformSensor : public PlatformSensorBase {
    */
   const char *getSensorName() const;
 
- private:
-  uint64_t mMinInterval;
+  /**
+   * Performs a move-assignment of a PlatformSensor.
+   *
+   * @param other The other PlatformSensor to move.
+   * @return a reference to this object.
+   */
+  PlatformSensor& operator=(PlatformSensor&& other);
 };
 
 }  // namespace chre

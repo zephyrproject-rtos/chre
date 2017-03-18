@@ -18,18 +18,10 @@
 
 namespace chre {
 
-PlatformSensor::PlatformSensor()
-    : mMinInterval(CHRE_SENSOR_INTERVAL_DEFAULT) {}
+PlatformSensor::PlatformSensor() {}
 
-PlatformSensor::PlatformSensor(uint64_t minInterval)
-    : mMinInterval(minInterval) {}
-
-uint64_t PlatformSensor::getMinInterval() const {
-  return mMinInterval;
-}
-
-const char *PlatformSensor::getSensorName() const {
-  return sensorName;
+PlatformSensor::PlatformSensor(PlatformSensor&& other) {
+  *this = std::move(other);
 }
 
 }  // namespace chre

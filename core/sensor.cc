@@ -25,8 +25,8 @@ static const char *kInvalidSensorName = "Invalid Sensor";
 
 Sensor::Sensor() {}
 
-Sensor::Sensor(const PlatformSensor& platformSensor)
-    : mPlatformSensor(platformSensor) {}
+Sensor::Sensor(PlatformSensor&& platformSensor)
+    : mPlatformSensor(std::move(platformSensor)) {}
 
 SensorType Sensor::getSensorType() const {
   return isValid() ? mPlatformSensor->getSensorType() : SensorType::Unknown;
@@ -49,7 +49,7 @@ bool Sensor::setRequest(const SensorRequest& request) {
 
 Sensor& Sensor::operator=(Sensor&& other) {
   mSensorRequest = other.mSensorRequest;
-  mPlatformSensor = other.mPlatformSensor;
+  mPlatformSensor = std::move(other.mPlatformSensor);
   return *this;
 }
 

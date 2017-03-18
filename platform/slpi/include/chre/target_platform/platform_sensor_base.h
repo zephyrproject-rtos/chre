@@ -40,10 +40,13 @@ class PlatformSensorBase {
 
   //! The calibration type of this sensor. SMGR overloads sensorId and dataType
   //! and allows them to represent both uncalibrated and calibrated sensors.
-  uint8_t calType = 0;
+  uint8_t calType;
 
   //! The name (type and model) of this sensor.
   char sensorName[SNS_SMGR_MAX_SENSOR_NAME_SIZE_V01];
+
+  //! The minimum interval of this sensor.
+  uint64_t minInterval;
 };
 
 }  // namespace chre
