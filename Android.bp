@@ -47,3 +47,23 @@ cc_binary {
     static_libs: ["chre_client"],
     tags: ["optional"],
 }
+
+cc_library_shared {
+    name: "android.hardware.contexthub@1.0-impl.generic",
+    proprietary: true,
+    relative_install_path: "hw",
+    srcs: [
+        "host/hal_generic/generic_context_hub.cc",
+    ],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libhidlbase",
+        "libhidltransport",
+        "libutils",
+        "android.hardware.contexthub@1.0",
+        "android.hidl.base@1.0",
+    ],
+    static_libs: ["chre_client"],
+    tags: ["optional"],
+}
