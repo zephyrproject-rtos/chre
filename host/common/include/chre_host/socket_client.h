@@ -36,8 +36,8 @@ class SocketClient {
 
   /**
    * Represents the callback interface used for handling events that occur on
-   * the receive thread. Note that it is *not* safe to call connect() or
-   * disconnect() from the context of these callbacks.
+   * the receive thread. Note that it is *not* safe to call connect(),
+   * connectInBackground(), or disconnect() from the context of these callbacks.
    */
   class ICallbacks : public VirtualLightRefBase {
    public:
@@ -51,40 +51,53 @@ class SocketClient {
     virtual void onMessageReceived(const void *data, size_t length) = 0;
 
     /**
-     * Invoked when the remote side disconnects the socket. It is not safe to
-     * call connect() or disconnect() from the context of this callback.
+     * Called when the socket is successfully (re-)connected.
      */
-    virtual void onSocketDisconnectedByRemote() {};
+    virtual void onConnected() {};
 
     /**
-     * Invoked if reconnectAutomatically was true in connect() and we've
-     * successfully reconnected the socket.
+     * Called when we have failed to (re-)connect the socket after many attempts
+     * and are giving up.
      */
-    virtual void onSocketReconnected() {};
+    virtual void onConnectionAborted() {};
 
     /**
-     * Invoked if reconnectAutomatically was true in connect(), and we've tried
-     * to reconnect the socket too many times and are giving up. After this, the
+     * Invoked when the socket is disconnected, and this connection loss was not
+     * the result of an explicit call to disconnect(), i.e. the connection was
+     * terminated on the remote end.
      */
-    virtual void onReconnectAborted() {};
+    virtual void onDisconnected() {};
   };
 
   /**
-   * Connects to the Android reserved namespace socket with the given name,
-   * and starts a receive thread to handle messages received on the socket.
-   * Returns
+   * Synchronously attempts to connect to the Android reserved namespace socket
+   * with the given name. If this connection attempt is successful, starts a
+   * receive thread to handle messages received on the socket, and uses this
+   * thread to automatically reconnect if disconnected by the remote end.
    *
    * @param socketName Name of the Android domain socket to connect to
-   * @param reconnectAutomatically If true, automatically attempt to re-connect
-   *        to the socket if disconnected by the remote end. This does not
-   *        influence the initial connection attempt, which happens
-   *        synchronously within this function call.
    * @param callbacks
    *
    * @return true if the connection was successful
    */
-  bool connect(const char *socketName, bool reconnectAutomatically,
+  bool connect(const char *socketName,
                const ::android::sp<ICallbacks>& callbacks);
+
+  /**
+   * Starts up the receive thread and attempts to connect to the socket in the
+   * background. The onConnected() callback will be invoked when the socket is
+   * connected successfully, or onConnectionAborted() will be invoked if the
+   * connection could not be made after many retries and the client is giving
+   * up.
+   *
+   * @param socketName Name of the Android domain socket to connect to
+   * @param callbacks
+   *
+   * @return true if the receive thread was started and will attempt to connect
+   *         the socket asynchronously
+   */
+  bool connectInBackground(const char *socketName,
+                           const ::android::sp<ICallbacks>& callbacks);
 
   /**
    * Performs graceful teardown of the socket. After this function returns, this
@@ -92,6 +105,11 @@ class SocketClient {
    * callbacks object provided to connect().
    */
   void disconnect();
+
+  /**
+   * @return true if the socket is currently connected
+   */
+  bool isConnected() const;
 
   /**
    * Send a message on the connected socket. Safe to call from any thread.
@@ -106,7 +124,6 @@ class SocketClient {
  private:
   static constexpr size_t kMaxSocketNameLen = 64;
   char mSocketName[kMaxSocketNameLen];
-  bool mReconnectAutomatically;
   sp<ICallbacks> mCallbacks;
 
   std::atomic<int> mSockFd;
@@ -121,10 +138,14 @@ class SocketClient {
   std::condition_variable mShutdownCond;
   std::mutex mShutdownMutex;
 
+  bool doConnect(const char *socketName,
+                 const ::android::sp<ICallbacks>& callbacks,
+                 bool connectInBackground);
   bool inReceiveThread() const;
   void receiveThread();
   bool receiveThreadRunning() const;
   bool reconnect();
+  void startReceiveThread();
   bool tryConnect();
 };
 

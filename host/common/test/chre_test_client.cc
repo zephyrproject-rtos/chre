@@ -53,7 +53,15 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     }
   }
 
-  void onSocketDisconnectedByRemote() override {
+  void onConnected() override {
+    LOGI("Socket (re)connected");
+  }
+
+  void onConnectionAborted() override {
+    LOGI("Socket (re)connection aborted");
+  }
+
+  void onDisconnected() override {
     LOGI("Socket disconnected");
   }
 
@@ -72,11 +80,12 @@ class SocketCallbacks : public SocketClient::ICallbacks,
       float sleepPower, float peakPower, uint32_t maxMessageLen,
       uint64_t platformId, uint32_t version) override {
     LOGI("Got hub info response:");
-    LOGI("  Name: '%s', Vendor: '%s'", name, vendor);
+    LOGI("  Name: '%s'", name);
+    LOGI("  Vendor: '%s'", vendor);
     LOGI("  Toolchain: '%s'", toolchain);
     LOGI("  Legacy versions: platform 0x%08" PRIx32 " toolchain 0x%08" PRIx32,
          legacyPlatformVersion, legacyToolchainVersion);
-    LOGI("  MIPS %f Power (mW): stopped %f sleep %f peak %f",
+    LOGI("  MIPS %.2f Power (mW): stopped %.2f sleep %.2f peak %.2f",
          peakMips, stoppedPower, sleepPower, peakPower);
     LOGI("  Max message len: %" PRIu32, maxMessageLen);
     LOGI("  Platform ID: 0x%016" PRIx64 " Version: 0x%08x" PRIx32,
@@ -91,7 +100,7 @@ int main() {
   SocketClient client;
   sp<SocketCallbacks> callbacks = new SocketCallbacks();
 
-  if (!client.connect("chre", true /*reconnectAutomatically*/, callbacks)) {
+  if (!client.connect("chre", callbacks)) {
     LOGE("Couldn't connect to socket");
   } else {
     {

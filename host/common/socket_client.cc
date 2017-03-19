@@ -39,36 +39,14 @@ SocketClient::~SocketClient() {
   disconnect();
 }
 
-bool SocketClient::connect(const char *socketName, bool reconnectAutomatically,
+bool SocketClient::connect(const char *socketName,
                            const sp<ICallbacks>& callbacks) {
-  bool success = false;
-  if (inReceiveThread()) {
-    LOGE("connect() can't be called from a receive thread callback");
-  } else {
-    if (receiveThreadRunning()) {
-      LOGW("Re-connecting socket with implicit disconnect");
-      disconnect();
-    }
+  return doConnect(socketName, callbacks, false /* connectInBackground */);
+}
 
-    size_t socketNameLen = strlcpy(mSocketName, socketName,
-                                   sizeof(mSocketName));
-    if (socketNameLen >= sizeof(mSocketName)) {
-      LOGE("Socket name length parameter is too long (%zu, max %zu)",
-           socketNameLen, sizeof(mSocketName));
-    } else if (callbacks == nullptr) {
-      LOGE("Callbacks parameter must be provided");
-    } else if (tryConnect()) {
-      mGracefulShutdown = false;
-      mReconnectAutomatically = reconnectAutomatically;
-      mCallbacks = callbacks;
-      mRxThread = std::thread([this]() {
-        receiveThread();
-      });
-      success = true;
-    }
-  }
-
-  return success;
+bool SocketClient::connectInBackground(const char *socketName,
+                                       const sp<ICallbacks>& callbacks) {
+  return doConnect(socketName, callbacks, true /* connectInBackground */);
 }
 
 void SocketClient::disconnect() {
@@ -96,6 +74,10 @@ void SocketClient::disconnect() {
   }
 }
 
+bool SocketClient::isConnected() const {
+  return (mSockFd != INVALID_SOCKET);
+}
+
 bool SocketClient::sendMessage(const void *data, size_t length) {
   bool success = false;
 
@@ -118,6 +100,38 @@ bool SocketClient::sendMessage(const void *data, size_t length) {
   return success;
 }
 
+bool SocketClient::doConnect(const char *socketName,
+                             const sp<ICallbacks>& callbacks,
+                             bool connectInBackground) {
+  bool success = false;
+  if (inReceiveThread()) {
+    LOGE("Can't attempt to connect from a receive thread callback");
+  } else {
+    if (receiveThreadRunning()) {
+      LOGW("Re-connecting socket with implicit disconnect");
+      disconnect();
+    }
+
+    size_t socketNameLen = strlcpy(mSocketName, socketName,
+                                   sizeof(mSocketName));
+    if (socketNameLen >= sizeof(mSocketName)) {
+      LOGE("Socket name length parameter is too long (%zu, max %zu)",
+           socketNameLen, sizeof(mSocketName));
+    } else if (callbacks == nullptr) {
+      LOGE("Callbacks parameter must be provided");
+    } else if (connectInBackground || tryConnect()) {
+      mGracefulShutdown = false;
+      mCallbacks = callbacks;
+      mRxThread = std::thread([this]() {
+        receiveThread();
+      });
+      success = true;
+    }
+  }
+
+  return success;
+}
+
 bool SocketClient::inReceiveThread() const {
   return (std::this_thread::get_id() == mRxThread.get_id());
 }
@@ -127,7 +141,7 @@ void SocketClient::receiveThread() {
   uint8_t buffer[kReceiveBufferSize];
 
   LOGV("Receive thread started");
-  do {
+  while (!mGracefulShutdown && (mSockFd != INVALID_SOCKET || reconnect())) {
     while (!mGracefulShutdown) {
       ssize_t bytesReceived = recv(mSockFd, buffer, sizeof(buffer), 0);
       if (bytesReceived < 0) {
@@ -136,7 +150,7 @@ void SocketClient::receiveThread() {
       } else if (bytesReceived == 0) {
         if (!mGracefulShutdown) {
           LOGI("Socket disconnected on remote end");
-          mCallbacks->onSocketDisconnectedByRemote();
+          mCallbacks->onDisconnected();
         }
         break;
       }
@@ -148,10 +162,10 @@ void SocketClient::receiveThread() {
       LOG_ERROR("Couldn't close socket", errno);
     }
     mSockFd = INVALID_SOCKET;
-  } while (!mGracefulShutdown && mReconnectAutomatically && reconnect());
+  }
 
-  if (!mGracefulShutdown && mReconnectAutomatically) {
-    mCallbacks->onReconnectAborted();
+  if (!mGracefulShutdown) {
+    mCallbacks->onConnectionAborted();
   }
 
   mCallbacks.clear();
@@ -178,14 +192,14 @@ bool SocketClient::reconnect() {
     }
 
     if (!tryConnect()) {
-      LOGW("Failed to reconnect, next try in %" PRId32 " ms", delay.count());
+      LOGW("Failed to (re)connect, next try in %" PRId32 " ms", delay.count());
       delay *= 2;
       if (delay > kMaxDelay) {
         delay = kMaxDelay;
       }
     } else {
-      LOGD("Successfully reconnected");
-      mCallbacks->onSocketReconnected();
+      LOGD("Successfully (re)connected");
+      mCallbacks->onConnected();
       return true;
     }
   }
