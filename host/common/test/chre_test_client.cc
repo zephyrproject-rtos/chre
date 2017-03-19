@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/shared/host_protocol.h"
+#include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
 #include "chre_host/socket_client.h"
 
@@ -34,8 +34,9 @@
  */
 
 using android::sp;
+using android::chre::IChreMessageHandlers;
 using android::chre::SocketClient;
-using chre::HostProtocol;
+using android::chre::HostProtocolHost;
 using flatbuffers::FlatBufferBuilder;
 
 namespace {
@@ -44,10 +45,10 @@ namespace {
 constexpr uint16_t kHostEndpoint = 0xfffe;
 
 class SocketCallbacks : public SocketClient::ICallbacks,
-                        public HostProtocol::IMessageHandlers {
+                        public IChreMessageHandlers {
  public:
   void onMessageReceived(const void *data, size_t length) override {
-    if (!HostProtocol::decodeMessage(data, length, *this)) {
+    if (!HostProtocolHost::decodeMessageFromChre(data, length, *this)) {
       LOGE("Failed to decode message");
     }
   }
@@ -63,6 +64,24 @@ class SocketCallbacks : public SocketClient::ICallbacks,
          " with type 0x%" PRIx32 " and length %zu", appId, hostEndpoint,
          messageType, messageLen);
   }
+
+  void handleHubInfoResponse(
+      const char *name, const char *vendor,
+      const char *toolchain, uint32_t legacyPlatformVersion,
+      uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
+      float sleepPower, float peakPower, uint32_t maxMessageLen,
+      uint64_t platformId, uint32_t version) override {
+    LOGI("Got hub info response:");
+    LOGI("  Name: '%s', Vendor: '%s'", name, vendor);
+    LOGI("  Toolchain: '%s'", toolchain);
+    LOGI("  Legacy versions: platform 0x%08" PRIx32 " toolchain 0x%08" PRIx32,
+         legacyPlatformVersion, legacyToolchainVersion);
+    LOGI("  MIPS %f Power (mW): stopped %f sleep %f peak %f",
+         peakMips, stoppedPower, sleepPower, peakPower);
+    LOGI("  Max message len: %" PRIu32, maxMessageLen);
+    LOGI("  Platform ID: 0x%016" PRIx64 " Version: 0x%08x" PRIx32,
+         platformId, version);
+  }
 };
 
 }
@@ -75,14 +94,26 @@ int main() {
   if (!client.connect("chre", true /*reconnectAutomatically*/, callbacks)) {
     LOGE("Couldn't connect to socket");
   } else {
-    FlatBufferBuilder builder(2048);
-    uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    HostProtocol::encodeNanoappMessage(
-        builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
+    {
+      FlatBufferBuilder builder(64);
+      HostProtocolHost::encodeHubInfoRequest(builder);
 
-    LOGI("Sending message (%u bytes)", builder.GetSize());
-    if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
-      LOGE("Failed to send message");
+      LOGI("Sending message (%u bytes)", builder.GetSize());
+      if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+        LOGE("Failed to send message");
+      }
+    }
+
+    {
+      FlatBufferBuilder builder(64);
+      uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+      HostProtocolHost::encodeNanoappMessage(
+          builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
+
+      LOGI("Sending message (%u bytes)", builder.GetSize());
+      if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+        LOGE("Failed to send message");
+      }
     }
 
     LOGI("Sleeping, waiting on responses");

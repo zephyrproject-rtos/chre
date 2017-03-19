@@ -16,8 +16,8 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/util/array.h"
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/macros.h"
 
 using chre::DynamicVector;
 

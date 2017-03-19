@@ -28,10 +28,47 @@ table NanoappMessage {
   message:[ubyte] (required);
 }
 
+table HubInfoRequest {}
+table HubInfoResponse {
+  /// The name of the hub. Nominally a UTF-8 string, but note that we're not
+  /// using the built-in "string" data type from FlatBuffers here, because the
+  /// generated C++ uses std::string which is not well-supported in CHRE. This
+  /// applies for vendor and toolchain as well.
+  name:[byte];
+  vendor:[byte];
+  toolchain:[byte];
+
+  /// Legacy platform version reported in the HAL; semantics not strictly
+  /// defined
+  platform_version:uint;
+
+  /// Toolchain version reported in the HAL; semantics not strictly defined
+  toolchain_version:uint;
+
+  peak_mips:float;
+  stopped_power:float;
+  sleep_power:float;
+  peak_power:float;
+
+  /// Maximum size message that can be sent to a nanoapp
+  max_msg_len:uint;
+
+  /// @see chreGetPlatformId()
+  platform_id:ulong;
+
+  /// @see chreGetVersion()
+  chre_platform_version:uint;
+
+  // TODO: list of connected sensors
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
   NanoappMessage,
+
+  HubInfoRequest,
+  HubInfoResponse,
 
   // TODO: extend with system-specific messages, e.g. load app command, etc.
 }

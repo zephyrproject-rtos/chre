@@ -18,7 +18,7 @@
 
 #include "chre/apps/apps.h"
 #include "chre/platform/static_nanoapps.h"
-#include "chre/util/array.h"
+#include "chre/util/macros.h"
 
 namespace chre {
 

@@ -22,34 +22,115 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/log.h"
-#include "chre/platform/shared/host_messages_generated.h"
-#include "chre/platform/shared/host_protocol.h"
+#include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/util/fixed_size_blocking_queue.h"
+#include "chre/util/macros.h"
+#include "chre_api/chre/version.h"
+
+using flatbuffers::FlatBufferBuilder;
 
 namespace chre {
 
 namespace {
 
 constexpr size_t kOutboundQueueSize = 32;
-FixedSizeBlockingQueue<const MessageToHost *, kOutboundQueueSize>
+
+enum class PendingMessageType {
+  Shutdown,
+  NanoappMessageToHost,
+  HubInfoResponse,
+};
+
+struct PendingMessage {
+  PendingMessage(PendingMessageType msgType, const void *msgData = nullptr) {
+    type = msgType;
+    data.data = msgData;
+  }
+
+  PendingMessageType type;
+  union {
+    const MessageToHost *msgToHost;
+    const void *data;
+  } data;
+};
+
+FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize>
     gOutboundQueue;
 
-class MessageHandlers : public HostProtocol::IMessageHandlers {
- public:
-  void handleNanoappMessage(
-      uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-      const void *messageData, size_t messageDataLen) override {
-    LOGD("Parsed nanoapp message from host: app ID 0x%016" PRIx64 ", endpoint "
-         "0x%" PRIx16 ", msgType %" PRIu32 ", payload size %zu",
-         appId, hostEndpoint, messageType, messageDataLen);
+int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
+                     size_t bufferSize, unsigned int *messageLen) {
+  uint8_t *data = builder.GetBufferPointer();
+  size_t size = builder.GetSize();
+  int result;
 
-    HostCommsManager& manager =
-        EventLoopManagerSingleton::get()->getHostCommsManager();
-    manager.sendMessageToNanoappFromHost(
-        appId, messageType, hostEndpoint, messageData, messageDataLen);
+  if (size > bufferSize) {
+    LOGE("Encoded structure size %zu too big for host buffer %zu; dropping",
+         size, bufferSize);
+    result = CHRE_FASTRPC_ERROR;
+  } else {
+    LOGD("Copy %zu bytes to buffer @ %p", size, buffer);
+    memcpy(buffer, data, size);
+    *messageLen = size;
+    result = CHRE_FASTRPC_SUCCESS;
   }
-};
+
+  return result;
+}
+
+int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
+                          size_t bufferSize, unsigned int *messageLen) {
+  // TODO: ideally we'd construct our flatbuffer directly in the
+  // host-supplied buffer
+  constexpr size_t kFixedSizePortion = 48; // TODO: check size
+  FlatBufferBuilder builder(msgToHost->message.size() + kFixedSizePortion);
+  HostProtocolChre::encodeNanoappMessage(
+    builder, msgToHost->appId, msgToHost->toHostData.messageType,
+    msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
+    msgToHost->message.size());
+
+  int result = copyToHostBuffer(builder, buffer, bufferSize, messageLen);
+
+  auto& hostCommsManager =
+      EventLoopManagerSingleton::get()->getHostCommsManager();
+  hostCommsManager.onMessageToHostComplete(msgToHost);
+
+  return result;
+}
+
+int generateHubInfoResponse(unsigned char *buffer, size_t bufferSize,
+                            unsigned int *messageLen) {
+  // Performs macro expansion then converts the value into a string literal
+  #define STRINGIFY(x) STRINGIFY2(x)
+  #define STRINGIFY2(x) #x
+
+  constexpr size_t kInitialBufferSize = 192;
+
+  constexpr char kHubName[] = "CHRE on SLPI";
+  constexpr char kVendor[] = "Google";
+  constexpr char kToolchain[] = "Hexagon Tools 8.0 (clang "
+    STRINGIFY(__clang_major__) "."
+    STRINGIFY(__clang_minor__) "."
+    STRINGIFY(__clang_patchlevel__) ")";
+  constexpr uint32_t kLegacyPlatformVersion = 0;
+  constexpr uint32_t kLegacyToolchainVersion =
+    ((__clang_major__ & 0xFF) << 24) |
+    ((__clang_minor__ & 0xFF) << 16) |
+    (__clang_patchlevel__ & 0xFFFF);
+  constexpr float kPeakMips = 350;
+  constexpr float kStoppedPower = 0;
+  constexpr float kSleepPower = 1;
+  constexpr float kPeakPower = 15;
+
+  FlatBufferBuilder builder(kInitialBufferSize);
+  HostProtocolChre::encodeHubInfoResponse(
+      builder, kHubName, kVendor, kToolchain, kLegacyPlatformVersion,
+      kLegacyToolchainVersion, kPeakMips, kStoppedPower, kSleepPower,
+      kPeakPower, CHRE_MESSAGE_TO_HOST_MAX_SIZE, chreGetPlatformId(),
+      chreGetVersion());
+
+  return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
+}
 
 /**
  * FastRPC method invoked by the host to block on messages
@@ -66,48 +147,34 @@ extern "C" int chre_slpi_get_message_to_host(
   CHRE_ASSERT(buffer != nullptr);
   CHRE_ASSERT(bufferLen > 0);
   CHRE_ASSERT(messageLen != nullptr);
+  int result = CHRE_FASTRPC_ERROR;
 
-  const MessageToHost *msgToHost = gOutboundQueue.pop();
-  int result;
-  if (msgToHost == nullptr) {
-    // A null message is used during shutdown so the calling thread can exit
-    result = CHRE_FASTRPC_ERROR_SHUTTING_DOWN;
+  if (bufferLen <= 0 || buffer == nullptr || messageLen == nullptr) {
+    // Note that we can't use regular logs here as they can result in sending
+    // a message, leading to an infinite loop if the error is persistent
+    FARF(FATAL, "Invalid buffer size %d or bad pointers (buf %d len %d)",
+         bufferLen, (buffer == nullptr), (messageLen == nullptr));
   } else {
-    if (bufferLen <= 0
-        || msgToHost->message.size() > INT_MAX
-        || msgToHost->message.size() > static_cast<size_t>(bufferLen)) {
-      // Note that we can't use regular logs here as they can result in sending
-      // a message, leading to an infinite loop if the error is persistent
-      FARF(FATAL, "Invalid buffer size %d or message size %zu", bufferLen,
-           msgToHost->message.size());
-      result = CHRE_FASTRPC_ERROR;
-    } else {
-      // TODO: ideally we'd construct our flatbuffer directly in the
-      // host-supplied buffer
-      constexpr size_t kInitialFlatBufferSize = 256;
-      flatbuffers::FlatBufferBuilder builder(kInitialFlatBufferSize);
-      HostProtocol::encodeNanoappMessage(
-        builder, msgToHost->appId, msgToHost->toHostData.messageType,
-        msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
-        msgToHost->message.size());
+    size_t bufferSize = static_cast<size_t>(bufferLen);
+    PendingMessage pendingMsg = gOutboundQueue.pop();
 
-      uint8_t *data = builder.GetBufferPointer();
-      size_t size = builder.GetSize();
-      if (size > bufferLen) {
-        LOGE("Encoded structure size %zu too big for host buffer %d; dropping",
-             size, bufferLen);
-        CHRE_ASSERT(false);
-        result = CHRE_FASTRPC_ERROR;
-      } else {
-        memcpy(buffer, data, size);
-        *messageLen = size;
-        result = CHRE_FASTRPC_SUCCESS;
-      }
+    switch (pendingMsg.type) {
+      case PendingMessageType::Shutdown:
+        result = CHRE_FASTRPC_ERROR_SHUTTING_DOWN;
+        break;
+
+      case PendingMessageType::NanoappMessageToHost:
+        result = generateMessageToHost(pendingMsg.data.msgToHost, buffer,
+                                       bufferSize, messageLen);
+        break;
+
+      case PendingMessageType::HubInfoResponse:
+        result = generateHubInfoResponse(buffer, bufferSize, messageLen);
+        break;
+
+      default:
+        CHRE_ASSERT_LOG(false, "Unexpected pending message type");
     }
-
-    auto& hostCommsManager =
-        EventLoopManagerSingleton::get()->getHostCommsManager();
-    hostCommsManager.onMessageToHostComplete(msgToHost);
   }
 
   return result;
@@ -123,17 +190,14 @@ extern "C" int chre_slpi_get_message_to_host(
  */
 extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
                                                    int messageLen) {
-  static MessageHandlers handlers;
-
   CHRE_ASSERT(message != nullptr);
   CHRE_ASSERT(messageLen > 0);
   int result = CHRE_FASTRPC_ERROR;
 
   if (message == nullptr || messageLen <= 0) {
     LOGE("Got null or invalid size (%d) message from host", messageLen);
-  } else if (!HostProtocol::decodeMessage(message,
-                                          static_cast<size_t>(messageLen),
-                                          handlers)) {
+  } else if (!HostProtocolChre::decodeMessageFromHost(
+      message, static_cast<size_t>(messageLen))) {
     LOGE("Failed to decode/handle message");
   } else {
     result = CHRE_FASTRPC_SUCCESS;
@@ -145,7 +209,8 @@ extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
 }  // anonymous namespace
 
 bool HostLink::sendMessage(const MessageToHost *message) {
-  return gOutboundQueue.push(message);
+  return gOutboundQueue.push(
+      PendingMessage(PendingMessageType::NanoappMessageToHost, message));
 }
 
 void HostLinkBase::shutdown() {
@@ -158,7 +223,8 @@ void HostLinkBase::shutdown() {
   // a state where it's not blocked in chre_slpi_get_message_to_host().
   int retryCount = 5;
   FARF(MEDIUM, "Shutting down host link");
-  while (!gOutboundQueue.push(nullptr) && --retryCount > 0) {
+  while (!gOutboundQueue.push(PendingMessage(PendingMessageType::Shutdown))
+         && --retryCount > 0) {
     qurt_timer_sleep(kPollingIntervalUsec);
   }
 
@@ -182,6 +248,24 @@ void HostLinkBase::shutdown() {
       FARF(MEDIUM, "Finished draining queue");
     }
   }
+}
+
+void HostMessageHandlers::handleNanoappMessage(
+    uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
+    const void *messageData, size_t messageDataLen) {
+  LOGD("Parsed nanoapp message from host: app ID 0x%016" PRIx64 ", endpoint "
+       "0x%" PRIx16 ", msgType %" PRIu32 ", payload size %zu",
+       appId, hostEndpoint, messageType, messageDataLen);
+
+  HostCommsManager& manager =
+      EventLoopManagerSingleton::get()->getHostCommsManager();
+  manager.sendMessageToNanoappFromHost(
+      appId, messageType, hostEndpoint, messageData, messageDataLen);
+}
+
+void HostMessageHandlers::handleHubInfoRequest() {
+  // We generate the response in the context of chre_slpi_get_message_to_host
+  gOutboundQueue.push(PendingMessage(PendingMessageType::HubInfoResponse));
 }
 
 }  // namespace chre

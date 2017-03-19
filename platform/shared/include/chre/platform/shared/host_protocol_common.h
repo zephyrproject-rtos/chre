@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SHARED_HOST_PROTOCOL_H_
-#define CHRE_PLATFORM_SHARED_HOST_PROTOCOL_H_
-
-/**
- * @file
- * A set of helper methods that simplify the encode/decode of FlatBuffers
- * messages used in communication with CHRE. This file can be used both within
- * CHRE and on the host-side.
- */
+#ifndef CHRE_PLATFORM_SHARED_HOST_PROTOCOL_COMMON_H_
+#define CHRE_PLATFORM_SHARED_HOST_PROTOCOL_COMMON_H_
 
 #include <stdint.h>
 
@@ -30,17 +23,14 @@
 
 namespace chre {
 
-class HostProtocol {
+/**
+ * Functions that are shared between the CHRE and host to assist with
+ * communications between the two. Note that normally these functions are
+ * accessed through a derived class like chre::HostProtocolChre (CHRE-side) or
+ * android::chre:HostProtocolHost (host-side).
+ */
+class HostProtocolCommon {
  public:
-  class IMessageHandlers {
-   public:
-    virtual ~IMessageHandlers() = default;
-
-    virtual void handleNanoappMessage(
-        uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-        const void *messageData, size_t messageDataLen) = 0;
-  };
-
   /**
    * Encodes a message to/from a nanoapp using the given FlatBufferBuilder and
    * supplied parameters.
@@ -54,21 +44,13 @@ class HostProtocol {
       uint32_t messageType, uint16_t hostEndpoint, const void *messageData,
       size_t messageDataLen);
 
-  /**
-   * Verifies and decodes a FlatBuffers-encoded CHRE message.
-   *
-   * @param message Buffer containing message
-   * @param messageLen Size of the message, in bytes
-   * @param handlers Contains callbacks to process a decoded message
-   *
-   * @return true if the message was successfully decoded, false if it was
-   *         corrupted/invalid/unrecognized
-   */
-  static bool decodeMessage(const void *message, size_t messageLen,
-                            IMessageHandlers& handlers);
-
+ protected:
+   static flatbuffers::Offset<flatbuffers::Vector<int8_t>>
+       addStringAsByteVector(flatbuffers::FlatBufferBuilder& builder,
+                             const char *str);
+   static bool verifyMessage(const void *message, size_t messageLen);
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SHARED_HOST_PROTOCOL_H_
+#endif  // CHRE_PLATFORM_SHARED_HOST_PROTOCOL_COMMON_H_

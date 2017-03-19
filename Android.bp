@@ -14,24 +14,36 @@
  * limitations under the License.
  */
 
-cc_binary {
-    name: "chre_test_client",
-    cflags: ["-DCHRE_HOST_BUILD"],
-    include_dirs: [
-        "system/chre/external/flatbuffers/include",
-        "system/chre/host/common/include",
-        "system/chre/platform/shared/include",
+cc_library_static {
+    name: "chre_client",
+    export_include_dirs: [
+        "external/flatbuffers/include",
+        "host/common/include",
+        "platform/shared/include",
     ],
-    proprietary: true,
     srcs: [
         "host/common/socket_client.cc",
-        "host/common/test/chre_test_client.cc",
-        "platform/shared/host_protocol.cc",
+        "host/common/host_protocol_host.cc",
+        "platform/shared/host_protocol_common.cc",
     ],
     shared_libs: [
         "libcutils",
         "liblog",
         "libutils",
     ],
+}
+
+cc_binary {
+    name: "chre_test_client",
+    proprietary: true,
+    srcs: [
+        "host/common/test/chre_test_client.cc",
+    ],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libutils",
+    ],
+    static_libs: ["chre_client"],
     tags: ["optional"],
 }

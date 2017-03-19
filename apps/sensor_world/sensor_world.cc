@@ -17,7 +17,7 @@
 #include <chre.h>
 #include <cinttypes>
 
-#include "chre/util/array.h"
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/nanoapp/sensor.h"
 #include "chre/util/time.h"

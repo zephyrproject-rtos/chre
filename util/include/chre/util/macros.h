@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_UTIL_ARRAY_H_
-#define CHRE_UTIL_ARRAY_H_
+#ifndef CHRE_UTIL_MACROS_H_
+#define CHRE_UTIL_MACROS_H_
 
 /**
  * Obtains the number of elements in a C-style array.
  */
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
-#endif  // CHRE_UTIL_ARRAY_H_
+/**
+ * Performs macro expansion then converts the value into a string literal
+ */
+#define STRINGIFY(x) STRINGIFY2(x)
+#define STRINGIFY2(x) #x
+
+#endif  // CHRE_UTIL_MACROS_H_
