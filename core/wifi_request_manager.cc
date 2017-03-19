@@ -94,14 +94,14 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
     uint8_t errorCode;
   };
 
-  auto *state = memoryAlloc<CallbackState>();
-  if (state == nullptr) {
+  auto *cbState = memoryAlloc<CallbackState>();
+  if (cbState == nullptr) {
     LOGE("Failed to allocate callback state for scan monitor state change");
   } else {
-    state->enabled = enabled;
-    state->errorCode = errorCode;
+    cbState->enabled = enabled;
+    cbState->errorCode = errorCode;
 
-    auto callback = [](uint16_t eventType, void *eventData) {
+    auto callback = [](uint16_t /*eventType*/, void *eventData) {
       auto *state = static_cast<CallbackState *>(eventData);
       EventLoopManagerSingleton::get()->getWifiRequestManager()
           .handleScanMonitorStateChangeSync(state->enabled, state->errorCode);
@@ -109,7 +109,7 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
     };
 
     EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::WifiScanMonitorStateChange, state, callback);
+        SystemCallbackType::WifiScanMonitorStateChange, cbState, callback);
   }
 }
 
@@ -120,14 +120,14 @@ void WifiRequestManager::handleScanResponse(bool pending,
     uint8_t errorCode;
   };
 
-  auto *state = memoryAlloc<CallbackState>();
-  if (state == nullptr) {
+  auto *cbState = memoryAlloc<CallbackState>();
+  if (cbState == nullptr) {
     LOGE("Failed to allocate callback state for wifi scan response");
   } else {
-    state->pending = pending;
-    state->errorCode = errorCode;
+    cbState->pending = pending;
+    cbState->errorCode = errorCode;
 
-    auto callback = [](uint16_t eventType, void *eventData) {
+    auto callback = [](uint16_t /*eventType*/, void *eventData) {
       auto *state = static_cast<CallbackState *>(eventData);
       EventLoopManagerSingleton::get()->getWifiRequestManager()
           .handleScanResponseSync(state->pending, state->errorCode);
@@ -135,7 +135,7 @@ void WifiRequestManager::handleScanResponse(bool pending,
     };
 
     EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::WifiRequestScanResponse, state, callback);
+        SystemCallbackType::WifiRequestScanResponse, cbState, callback);
   }
 }
 

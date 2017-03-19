@@ -10,6 +10,9 @@ COMMON_C_CFLAGS += -std=c99
 
 # Configure warnings.
 COMMON_CFLAGS += -Wall
+COMMON_CFLAGS += -Wextra
+COMMON_CFLAGS += -Wno-unused-parameter
+COMMON_CFLAGS += -Wshadow
 COMMON_CFLAGS += -Werror
 
 # Disable exceptions and RTTI.

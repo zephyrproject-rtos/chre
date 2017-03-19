@@ -35,16 +35,16 @@ constexpr uint32_t kInvalidInstanceId = kBroadcastInstanceId;
 
 class Event : public NonCopyable {
  public:
-  Event(uint16_t eventType,
-        void *eventData,
-        chreEventCompleteFunction *freeCallback,
-        uint32_t senderInstanceId = kSystemInstanceId,
-        uint32_t targetInstanceId = kBroadcastInstanceId)
-      : eventType(eventType),
-        eventData(eventData),
-        freeCallback(freeCallback),
-        senderInstanceId(senderInstanceId),
-        targetInstanceId(targetInstanceId) {}
+  Event(uint16_t eventType_,
+        void *eventData_,
+        chreEventCompleteFunction *freeCallback_,
+        uint32_t senderInstanceId_ = kSystemInstanceId,
+        uint32_t targetInstanceId_ = kBroadcastInstanceId)
+      : eventType(eventType_),
+        eventData(eventData_),
+        freeCallback(freeCallback_),
+        senderInstanceId(senderInstanceId_),
+        targetInstanceId(targetInstanceId_) {}
 
   void incrementRefCount() {
     mRefCount++;
