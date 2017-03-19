@@ -129,7 +129,7 @@ static void *chre_message_to_host_thread(void *arg) {
     if (result == CHRE_FASTRPC_ERROR_SHUTTING_DOWN) {
       LOGD("CHRE shutting down, exiting CHRE->Host message thread");
       break;
-    } else {
+    } else if (result == CHRE_FASTRPC_SUCCESS && messageLen > 0) {
       log_buffer(messageBuffer, messageLen);
       server->sendToAllClients(messageBuffer, static_cast<size_t>(messageLen));
     }
@@ -240,6 +240,8 @@ void onMessageReceivedFromClient(uint16_t /*clientId*/, const void *data,
     LOGE("Message too large to pass to SLPI (got %zu, max %zu bytes)", length,
          kMaxPayloadSize);
   } else {
+    LOGD("Delivering message from host (size %zu)", length);
+    log_buffer(static_cast<const uint8_t *>(data), length);
     int ret = chre_slpi_deliver_message_from_host(
         static_cast<const unsigned char *>(data), static_cast<int>(length));
     if (ret != 0) {
