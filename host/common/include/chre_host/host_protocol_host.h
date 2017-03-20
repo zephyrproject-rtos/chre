@@ -20,8 +20,8 @@
 
 #include <stdint.h>
 
-#include "chre/platform/shared/host_messages_generated.h"
 #include "chre/platform/shared/host_protocol_common.h"
+#include "chre_host/host_messages_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace android {
@@ -47,8 +47,7 @@ class IChreMessageHandlers {
       uint64_t platformId, uint32_t version) = 0;
 
   virtual void handleNanoappListResponse(
-      const flatbuffers::Vector<flatbuffers::Offset<
-            ::chre::fbs::NanoappListEntry>>& nanoapps) = 0;
+      const ::chre::fbs::NanoappListResponseT& response) = 0;
 };
 
 /**

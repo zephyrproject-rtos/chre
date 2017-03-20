@@ -78,8 +78,7 @@ class GenericContextHub : public IContexthub {
         uint64_t platformId, uint32_t version) override;
 
     void handleNanoappListResponse(
-        const flatbuffers::Vector<flatbuffers::Offset<
-            ::chre::fbs::NanoappListEntry>>& nanoapps) override;
+        const ::chre::fbs::NanoappListResponseT& response) override;
 
    private:
     GenericContextHub& mParent;

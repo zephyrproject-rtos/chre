@@ -19,7 +19,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "chre/platform/shared/host_messages_generated.h"
 #include "chre_host/log.h"
 
 using flatbuffers::FlatBufferBuilder;
@@ -95,7 +94,9 @@ bool HostProtocolHost::decodeMessageFromChre(
       case fbs::ChreMessage::NanoappListResponse: {
         const auto *resp = static_cast<const fbs::NanoappListResponse *>(
             container->message());
-        handlers.handleNanoappListResponse(*resp->nanoapps());
+        fbs::NanoappListResponseT response;
+        resp->UnPackTo(&response);
+        handlers.handleNanoappListResponse(response);
         break;
       }
 

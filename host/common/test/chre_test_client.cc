@@ -39,6 +39,10 @@ using android::chre::SocketClient;
 using android::chre::HostProtocolHost;
 using flatbuffers::FlatBufferBuilder;
 
+// Aliased for consistency with the way these symbols are referenced in
+// CHRE-side code
+namespace fbs = ::chre::fbs;
+
 namespace {
 
 //! The host endpoint we use when sending; set to CHRE_HOST_ENDPOINT_UNSPECIFIED
@@ -93,13 +97,13 @@ class SocketCallbacks : public SocketClient::ICallbacks,
   }
 
   void handleNanoappListResponse(
-      const flatbuffers::Vector<flatbuffers::Offset<
-            ::chre::fbs::NanoappListEntry>>& nanoapps) {
-    LOGI("Got nanoapp list response with %" PRIu32 " apps:", nanoapps.size());
-    for (const auto *nanoapp : nanoapps){
+      const fbs::NanoappListResponseT& response) {
+    LOGI("Got nanoapp list response with %zu apps:", response.nanoapps.size());
+    for (const std::unique_ptr<fbs::NanoappListEntryT>& nanoapp
+           : response.nanoapps) {
       LOGI("  App ID 0x%016" PRIx64 " version 0x%" PRIx32 " enabled %d system "
-           "%d", nanoapp->app_id(), nanoapp->version(), nanoapp->enabled(),
-           nanoapp->is_system());
+           "%d", nanoapp->app_id, nanoapp->version, nanoapp->enabled,
+           nanoapp->is_system);
     }
   }
 };
