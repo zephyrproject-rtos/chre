@@ -49,4 +49,19 @@ SensorType PlatformSensor::getSensorType() const {
   return SensorType::Unknown;
 }
 
+uint64_t PlatformSensor::getMinInterval() const {
+  // TODO: Implement this.
+  return 0;
+}
+
+const char *PlatformSensor::getSensorName() const {
+  // TODO: Implement this.
+  return "";
+}
+
+PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+  // TODO: Implement this.
+  return *this;
+}
+
 }  // namespace chre

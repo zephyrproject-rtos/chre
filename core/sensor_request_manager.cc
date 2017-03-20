@@ -71,12 +71,12 @@ SensorRequestManager::SensorRequestManager() {
   }
 
   for (size_t i = 0; i < platformSensors.size(); i++) {
-    PlatformSensor& platformSensor = platformSensors[i];
-    SensorType sensorType = platformSensor.getSensorType();
+    SensorType sensorType = platformSensors[i].getSensorType();
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     LOGD("Found sensor: %s", getSensorTypeName(sensorType));
 
-    mSensorRequests[sensorIndex].sensor = Sensor(platformSensor);
+    mSensorRequests[sensorIndex].sensor =
+        Sensor(std::move(platformSensors[i]));
   }
 }
 

@@ -205,11 +205,12 @@ bool isValidIndicesLength() {
 void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
                        uint8_t calType,
                        DynamicVector<PlatformSensor> *sensors) {
-  PlatformSensor platformSensor(static_cast<uint64_t>(
-      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate));
+  PlatformSensor platformSensor;
   platformSensor.sensorId = sensorInfo.SensorID;
   platformSensor.dataType = sensorInfo.DataType;
   platformSensor.calType = calType;
+  platformSensor.minInterval = static_cast<uint64_t>(
+      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
   size_t bytesToCopy = std::min(sizeof(platformSensor.sensorName) - 1,
                                 static_cast<size_t>(sensorInfo.SensorName_len));
   memcpy(platformSensor.sensorName, sensorInfo.SensorName, bytesToCopy);
@@ -852,6 +853,23 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
 SensorType PlatformSensor::getSensorType() const {
   return getSensorTypeFromSensorId(this->sensorId, this->dataType,
                                    this->calType);
+}
+
+uint64_t PlatformSensor::getMinInterval() const {
+  return minInterval;
+}
+
+const char *PlatformSensor::getSensorName() const {
+  return sensorName;
+}
+
+PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+  sensorId = other.sensorId;
+  dataType = other.dataType;
+  calType = other.calType;
+  memcpy(sensorName, other.sensorName, SNS_SMGR_MAX_SENSOR_NAME_SIZE_V01);
+  minInterval = other.minInterval;
+  return *this;
 }
 
 }  // namespace chre

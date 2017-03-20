@@ -31,11 +31,11 @@ class Sensor : public NonCopyable {
   Sensor();
 
   /**
-   * Constructs a sensor with a platform sensor.
+   * Constructs a Sensor by moving a PlatformSensor.
    *
-   * @param platformSensor The platform implementation of this sensor.
+   * @param platformSensor The platform implementation of this Sensor.
    */
-  Sensor(const PlatformSensor& platformSensor);
+  Sensor(PlatformSensor&& platformSensor);
 
   /**
    * @return The type of this sensor.
