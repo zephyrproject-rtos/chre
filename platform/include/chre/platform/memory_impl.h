@@ -17,11 +17,19 @@
 #ifndef CHRE_PLATFORM_MEMORY_IMPL_H_
 #define CHRE_PLATFORM_MEMORY_IMPL_H_
 
+#include <new>
+#include <utility>
+
 namespace chre {
 
-template<typename T>
-T *memoryAlloc() {
-  return static_cast<T *>(memoryAlloc(sizeof(T)));
+template<typename T, typename... Args>
+T *memoryAlloc(Args&&... args) {
+  auto *storage = static_cast<T *>(memoryAlloc(sizeof(T)));
+  if (storage != nullptr) {
+    new(storage) T(std::forward<Args>(args)...);
+  }
+
+  return storage;
 }
 
 }  // namespace chre

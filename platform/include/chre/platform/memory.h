@@ -33,10 +33,11 @@ void *memoryAlloc(size_t size);
 void memoryFree(void *pointer);
 
 /**
- * Allocates memory for an object of size T.
+ * Allocates memory for an object of size T and constructs the object in the
+ * newly allocated object by forwarding the provided parameters.
  */
-template<typename T>
-T *memoryAlloc();
+template<typename T, typename... Args>
+T *memoryAlloc(Args&&... args);
 
 }  // namespace chre
 
