@@ -120,7 +120,7 @@ void HostCommsManager::sendMessageToNanoappFromHost(
   } else if (!eventLoopMgr->findNanoappInstanceIdByAppId(appId,
                                                          &targetInstanceId,
                                                          &targetEventLoop)) {
-    LOGE("Dropping message; destination app ID 0x%16" PRIx64 " not found",
+    LOGE("Dropping message; destination app ID 0x%016" PRIx64 " not found",
          appId);
   } else {
     deliverNanoappMessageFromHost(appId, hostEndpoint, messageType, messageData,

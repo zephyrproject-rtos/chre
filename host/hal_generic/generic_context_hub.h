@@ -77,6 +77,10 @@ class GenericContextHub : public IContexthub {
         float sleepPower, float peakPower, uint32_t maxMessageLen,
         uint64_t platformId, uint32_t version) override;
 
+    void handleNanoappListResponse(
+        const flatbuffers::Vector<flatbuffers::Offset<
+            ::chre::fbs::NanoappListEntry>>& nanoapps) override;
+
    private:
     GenericContextHub& mParent;
   };

@@ -19,6 +19,8 @@
 #include "generic_context_hub.h"
 
 #include <chrono>
+#include <cinttypes>
+#include <vector>
 
 #include <utils/Log.h>
 
@@ -255,6 +257,31 @@ void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
     mParent.mHubInfoValid = true;
     mParent.mHubInfoCond.notify_all();
   }
+}
+
+void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
+    const flatbuffers::Vector<flatbuffers::Offset<
+        ::chre::fbs::NanoappListEntry>>& nanoapps) {
+  std::vector<HubAppInfo> appInfoList;
+
+  ALOGD("Got nanoapp list response with %" PRIu32 " apps", nanoapps.size());
+  for (const auto *nanoapp : nanoapps) {
+    ALOGV("App 0x%016" PRIx64 " ver 0x%" PRIx32 " enabled %d system %d",
+          nanoapp->app_id(), nanoapp->version(), nanoapp->enabled(),
+          nanoapp->is_system());
+    if (!nanoapp->is_system()) {
+      HubAppInfo appInfo;
+
+      appInfo.appId = nanoapp->app_id();
+      appInfo.version = nanoapp->version();
+      appInfo.enabled = nanoapp->enabled();
+
+      appInfoList.push_back(appInfo);
+    }
+  }
+
+  // TODO: make this thread-safe w/setCallback
+  mParent.mCallbacks->handleAppsInfo(appInfoList);
 }
 
 IContexthub* HIDL_FETCH_IContexthub(const char* /* name */) {

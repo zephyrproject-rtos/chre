@@ -20,6 +20,7 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
+#include "chre_api/chre/version.h"
 
 namespace chre {
 
@@ -51,6 +52,21 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
   }
 
   return found;
+}
+
+void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
+  bool needLock = (getCurrentEventLoop() != this);
+  if (needLock) {
+    mNanoappsLock.lock();
+  }
+
+  for (const auto& nanoapp : mNanoapps) {
+    callback(nanoapp.get(), data);
+  }
+
+  if (needLock) {
+    mNanoappsLock.unlock();
+  }
 }
 
 void EventLoop::run() {
@@ -121,7 +137,9 @@ bool EventLoop::startNanoapp(PlatformNanoapp *platformNanoapp) {
   if (!mNanoapps.prepareForPush()) {
     LOGE("Failed to allocate space for new nanoapp");
   } else {
-    UniquePtr<Nanoapp> nanoapp(getNextInstanceId(), platformNanoapp);
+    // TODO: get these parameters from somewhere
+    UniquePtr<Nanoapp> nanoapp(0, 1, CHRE_API_VERSION_1_1, getNextInstanceId(),
+                               true, platformNanoapp);
     if (nanoapp.isNull()) {
       LOGE("Failed to allocate new nanoapp");
     } else {
@@ -184,6 +202,11 @@ void EventLoop::stop() {
 Nanoapp *EventLoop::getCurrentNanoapp() const {
   CHRE_ASSERT(getCurrentEventLoop() == this);
   return mCurrentApp;
+}
+
+size_t EventLoop::getNanoappCount() const {
+  CHRE_ASSERT(getCurrentEventLoop() == this);
+  return mNanoapps.size();
 }
 
 uint32_t EventLoop::getNextInstanceId() {

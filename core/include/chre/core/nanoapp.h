@@ -35,18 +35,32 @@ class Nanoapp : public NonCopyable {
  public:
   /**
    * Constructs a Nanoapp that manages the lifecycle of events and calls into
-   * the entrypoints of the app.
+   * the entry points of the app.
    *
-   * @param A unique instance ID for this nanoapp.
-   * @param A pointer to the platform-specific nanoapp functionality which
-   *        allows calling the entry points and managing the lifecycle of the
-   *        app (such as unloading the app).
+   * @param appId Identifies the nanoapp vendor and the app itself
+   * @param appVersion An application-defined version number
+   * @param targetApiVersion The CHRE API version that this app was compiled
+   *        against
+   * @param instanceId A unique identifier for this application instance that
+   *        can be used to target unicast events, etc.
+   * @param isSystemNanoapp true if this is a nanoapp that should not appear in
+   *        the list of nanoapps exposed through the context hub HAL. System
+   *        nanoapps can be used to leverage CHRE to implement device
+   *        functionality below the HAL, where the nanoapp does not communicate
+   *        with host-side entities through the context hub HAL.
+   * @param platformNanoapp A pointer to the platform-specific nanoapp
+   *        functionality which allows calling the entry points and managing the
+   *        lifecycle of the app (such as unloading the app).
    */
-  Nanoapp(uint32_t instanceId, PlatformNanoapp *platformNanoapp);
+  Nanoapp(uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
+          uint32_t instanceId, bool isSystemNanoapp,
+          PlatformNanoapp *platformNanoapp);
 
   uint64_t getAppId() const;
+  uint32_t getAppVersion() const;
   uint32_t getInstanceId() const;
   uint32_t getTargetApiVersion() const;
+  bool isSystemNanoapp() const;
 
   bool isRegisteredForBroadcastEvent(uint16_t eventType) const;
 
@@ -66,6 +80,11 @@ class Nanoapp : public NonCopyable {
    */
   bool unregisterForBroadcastEvent(uint16_t eventId);
 
+  /**
+   * Adds an event to this nanoapp's queue of pending events.
+   *
+   * @param event
+   */
   void postEvent(Event *event);
 
   /**
@@ -97,8 +116,11 @@ class Nanoapp : public NonCopyable {
   Event *processNextEvent();
 
  private:
-  const uint64_t mAppId = 0;
+  const uint64_t mAppId;
+  const uint32_t mAppVersion;
+  const uint32_t mTargetApiVersion;
   const uint32_t mInstanceId;
+  const bool mIsSystemNanoapp;
   PlatformNanoapp * const mPlatformNanoapp;
 
   //! The set of broadcast events that this app is registered for.

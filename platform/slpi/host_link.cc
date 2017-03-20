@@ -21,6 +21,8 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/platform/context.h"
+#include "chre/platform/memory.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/slpi/fastrpc.h"
@@ -40,6 +42,7 @@ enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
   HubInfoResponse,
+  NanoappListResponse,
 };
 
 struct PendingMessage {
@@ -48,10 +51,16 @@ struct PendingMessage {
     data.data = msgData;
   }
 
+  PendingMessage(PendingMessageType msgType, FlatBufferBuilder *builder) {
+    type = msgType;
+    data.builder = builder;
+  }
+
   PendingMessageType type;
   union {
     const MessageToHost *msgToHost;
     const void *data;
+    FlatBufferBuilder *builder;
   } data;
 };
 
@@ -78,11 +87,63 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
   return result;
 }
 
+
+void constructNanoappListCallback(uint16_t /*eventType*/, void * /*data*/) {
+  constexpr size_t kFixedOverhead = 56;
+  constexpr size_t kPerNanoappSize = 16;
+
+  // TODO: need to add support for getting apps from multiple event loops
+  bool pushed = false;
+  EventLoop *eventLoop = getCurrentEventLoop();
+  size_t expectedNanoappCount = eventLoop->getNanoappCount();
+  DynamicVector<NanoappListEntryOffset> nanoappEntries;
+
+  auto *builder = memoryAlloc<FlatBufferBuilder>(
+      kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
+  if (builder == nullptr) {
+    LOGE("Couldn't allocate builder for nanoapp list response");
+  } else if (!nanoappEntries.reserve(expectedNanoappCount)) {
+    LOGE("Couldn't reserve space for list of nanoapp offsets");
+  } else {
+    struct CallbackData {
+      CallbackData(FlatBufferBuilder& builder_,
+                   DynamicVector<NanoappListEntryOffset>& nanoappEntries_)
+          : builder(builder_), nanoappEntries(nanoappEntries_) {}
+
+      FlatBufferBuilder& builder;
+      DynamicVector<NanoappListEntryOffset>& nanoappEntries;
+    };
+
+    auto callback = [](const Nanoapp *nanoapp, void *untypedData) {
+      auto *data = static_cast<CallbackData *>(untypedData);
+      HostProtocolChre::addNanoappListEntry(
+          data->builder, data->nanoappEntries, nanoapp->getAppId(),
+          nanoapp->getAppVersion(), true /*enabled*/,
+          nanoapp->isSystemNanoapp());
+    };
+
+    // Add a NanoappListEntry to the FlatBuffer for each nanoapp
+    CallbackData cbData(*builder, nanoappEntries);
+    eventLoop->forEachNanoapp(callback, &cbData);
+    HostProtocolChre::finishNanoappListResponse(*builder, nanoappEntries);
+
+    pushed = gOutboundQueue.push(
+        PendingMessage(PendingMessageType::NanoappListResponse, builder));
+    if (!pushed) {
+      LOGE("Couldn't push list response");
+    }
+  }
+
+  if (!pushed && builder != nullptr) {
+    memoryFree(builder);
+  }
+}
+
 int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
                           size_t bufferSize, unsigned int *messageLen) {
   // TODO: ideally we'd construct our flatbuffer directly in the
   // host-supplied buffer
-  constexpr size_t kFixedSizePortion = 48; // TODO: check size
+  constexpr size_t kFixedSizePortion = 56;
   FlatBufferBuilder builder(msgToHost->message.size() + kFixedSizePortion);
   HostProtocolChre::encodeNanoappMessage(
     builder, msgToHost->appId, msgToHost->toHostData.messageType,
@@ -100,10 +161,6 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
 
 int generateHubInfoResponse(unsigned char *buffer, size_t bufferSize,
                             unsigned int *messageLen) {
-  // Performs macro expansion then converts the value into a string literal
-  #define STRINGIFY(x) STRINGIFY2(x)
-  #define STRINGIFY2(x) #x
-
   constexpr size_t kInitialBufferSize = 192;
 
   constexpr char kHubName[] = "CHRE on SLPI";
@@ -130,6 +187,15 @@ int generateHubInfoResponse(unsigned char *buffer, size_t bufferSize,
       chreGetVersion());
 
   return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
+}
+
+int generateNanoappListResponse(
+    FlatBufferBuilder *builder, unsigned char *buffer, size_t bufferSize,
+    unsigned int *messageLen) {
+  CHRE_ASSERT(builder != nullptr);
+  int result = copyToHostBuffer(*builder, buffer, bufferSize, messageLen);
+  memoryFree(builder);
+  return result;
 }
 
 /**
@@ -170,6 +236,11 @@ extern "C" int chre_slpi_get_message_to_host(
 
       case PendingMessageType::HubInfoResponse:
         result = generateHubInfoResponse(buffer, bufferSize, messageLen);
+        break;
+
+      case PendingMessageType::NanoappListResponse:
+        result = generateNanoappListResponse(pendingMsg.data.builder,
+                                             buffer, bufferSize, messageLen);
         break;
 
       default:
@@ -266,6 +337,12 @@ void HostMessageHandlers::handleNanoappMessage(
 void HostMessageHandlers::handleHubInfoRequest() {
   // We generate the response in the context of chre_slpi_get_message_to_host
   gOutboundQueue.push(PendingMessage(PendingMessageType::HubInfoResponse));
+}
+
+void HostMessageHandlers::handleNanoappListRequest() {
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::NanoappListResponse, nullptr,
+      constructNanoappListCallback);
 }
 
 }  // namespace chre
