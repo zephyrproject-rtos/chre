@@ -16,25 +16,62 @@
 
 #include "chre/util/nanoapp/wifi.h"
 
-#include <ctype.h>
+#include <cctype>
+#include <cinttypes>
+#include <cstdio>
+#include <cstring>
 
 namespace chre {
 
-bool validateSsidIsAsciiNullTerminatedStr(const uint8_t *ssid,
-                                          uint8_t ssidLen) {
-  bool isAscii = false;
-  for (uint8_t i = 0; i < ssidLen; i++) {
-    if (ssid[i] == '\0') {
-      // If this character is a null-terminator and and all characters before it
-      // were ascii printable, this is a valid string.
-      isAscii = true;
-      break;
-    } else if (!isascii(ssid[i])) {
-      break;
+bool parseSsidToStr(char *buffer, size_t bufferLen,
+                    const uint8_t *ssid, uint8_t ssidLen) {
+  // Ensure that there is enough space in the buffer to copy the SSID and
+  // null-terminate it.
+  bool success = (bufferLen >= (ssidLen + 1));
+
+  if (success) {
+    // Verify that the ssid is entirely printable characters and ASCII spaces.
+    for (uint8_t i = 0; i < ssidLen; i++) {
+      if (!isgraph(ssid[i]) && ssid[i] != ' ') {
+        success = false;
+        break;
+      }
     }
   }
 
-  return isAscii;
+  if (success) {
+    // Copy the SSID to the buffer and null-terminate.
+    memcpy(buffer, ssid, ssidLen + 1);
+    buffer[ssidLen] = '\0';
+  }
+
+  return success;
+}
+
+bool parseBssidToStr(const uint8_t bssid[CHRE_WIFI_BSSID_LEN],
+                     char *buffer, size_t bufferLen) {
+  const char *kFormat = "%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
+                        ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8;
+
+  bool success = false;
+  if (bufferLen >= kBssidStrLen) {
+    success = true;
+    snprintf(buffer, bufferLen, kFormat, bssid[0], bssid[1], bssid[2],
+             bssid[3], bssid[4], bssid[5]);
+  }
+
+  return success;
+}
+
+const char *parseChreWifiBand(uint8_t band) {
+  switch (band) {
+    case CHRE_WIFI_BAND_2_4_GHZ:
+      return "2.4GHz";
+    case CHRE_WIFI_BAND_MASK_5_GHZ:
+      return "5GHz";
+    default:
+      return nullptr;
+  }
 }
 
 }  // namespace chre

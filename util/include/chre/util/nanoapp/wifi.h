@@ -17,17 +17,47 @@
 #ifndef CHRE_UTIL_NANOAPP_WIFI_H_
 #define CHRE_UTIL_NANOAPP_WIFI_H_
 
+#include <cstddef>
 #include <cstdint>
+
+#include "chre_api/chre/wifi.h"
 
 namespace chre {
 
+//! The length of a string SSID with null-terminator.
+constexpr size_t kMaxSsidStrLen = CHRE_WIFI_SSID_MAX_LEN + 1;
+
+//! The length of a formatted BSSID string in XX:XX:XX:XX:XX:XX\0 format.
+constexpr size_t kBssidStrLen = 18;
+
 /**
+ * @param buffer a pointer to a buffer to format into.
+ * @param bufferLen a buffer to format into.
  * @param a pointer to SSID data.
  * @param ssidLen the length of the SSID data.
- * @return true if the SSID contains entirely printable characters.
+ * @return true if the SSID is printable and was copied into the output buffer.
  */
-bool validateSsidIsAsciiNullTerminatedStr(const uint8_t *ssid,
-                                          uint8_t ssidLen);
+bool parseSsidToStr(char *buffer, size_t bufferLen,
+                    const uint8_t *ssid, uint8_t ssidLen);
+
+/**
+ * Parses a BSSID into a XX:XX:XX:XX:XX:XX formatted string.
+ *
+ * @param bssid the BSSID to format into a string.
+ * @param buffer the buffer to format the string into.
+ * @param bufferLen the length of the buffer to format into.
+ * @return true if the buffer is large enough and the string is formatted.
+ */
+bool parseBssidToStr(const uint8_t bssid[CHRE_WIFI_BSSID_LEN],
+                     char *buffer, size_t bufferLen);
+
+/**
+ * Parses a WiFi band into a string.
+ *
+ * @param band the CHRE WiFi band to parse into a string.
+ * @return a pointer to the string or nullptr if unknown.
+ */
+const char *parseChreWifiBand(uint8_t band);
 
 }  // namespace chre
 

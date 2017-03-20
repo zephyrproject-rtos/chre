@@ -65,12 +65,37 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
     const chreWifiScanResult& result = event->results[i];
 
     const char *ssidStr = "<non-printable>";
-    if (!validateSsidIsAsciiNullTerminatedStr(result.ssid, result.ssidLen)) {
-      ssidStr = reinterpret_cast<const char *>(result.ssid);
+    char ssidBuffer[kMaxSsidStrLen];
+    if (result.ssidLen == 0) {
+      ssidStr = "<empty>";
+    } else if (parseSsidToStr(ssidBuffer, kMaxSsidStrLen,
+                              result.ssid, result.ssidLen)) {
+      ssidStr = ssidBuffer;
     }
 
-    // TODO: Log more details here.
+    const char *bssidStr = "<non-printable>";
+    char bssidBuffer[kBssidStrLen];
+    if (parseBssidToStr(result.bssid, bssidBuffer, kBssidStrLen)) {
+      bssidStr = bssidBuffer;
+    }
+
+    const char *bandStr = parseChreWifiBand(result.band);
+    if (bandStr == nullptr) {
+      bandStr = "<invalid>";
+    }
+
     LOGI("Found network with SSID: %s", ssidStr);
+    LOGI("  age (ms): %" PRIu32, result.ageMs);
+    LOGI("  capability info: %" PRIx16, result.capabilityInfo);
+    LOGI("  bssid: %s", bssidStr);
+    LOGI("  flags: %" PRIx8, result.flags);
+    LOGI("  rssi: %" PRId8 "dBm", result.rssi);
+    LOGI("  band: %s", bandStr);
+    LOGI("  primary channel: %" PRIu32, result.primaryChannel);
+    LOGI("  center frequency primary: %" PRIu32, result.centerFreqPrimary);
+    LOGI("  center frequency secondary: %" PRIu32, result.centerFreqSecondary);
+    LOGI("  channel width: %" PRIu8, result.channelWidth);
+    LOGI("  security mode: %" PRIx8, result.securityMode);
   }
 }
 
