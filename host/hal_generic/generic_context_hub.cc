@@ -35,6 +35,10 @@ using ::android::hardware::contexthub::V1_0::Result;
 using ::android::chre::HostProtocolHost;
 using ::flatbuffers::FlatBufferBuilder;
 
+// Aliased for consistency with the way these symbols are referenced in
+// CHRE-side code
+namespace fbs = ::chre::fbs;
+
 namespace {
 
 constexpr uint32_t kDefaultHubId = 0;
@@ -260,21 +264,27 @@ void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
 }
 
 void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
-    const flatbuffers::Vector<flatbuffers::Offset<
-        ::chre::fbs::NanoappListEntry>>& nanoapps) {
+    const fbs::NanoappListResponseT& response) {
   std::vector<HubAppInfo> appInfoList;
 
-  ALOGD("Got nanoapp list response with %" PRIu32 " apps", nanoapps.size());
-  for (const auto *nanoapp : nanoapps) {
+  ALOGV("Got nanoapp list response with %zu apps", response.nanoapps.size());
+  for (const std::unique_ptr<fbs::NanoappListEntryT>& nanoapp
+         : response.nanoapps) {
+    // TODO: determine if this is really required, and if so, have
+    // HostProtocolHost strip out null entries as part of decode
+    if (nanoapp == nullptr) {
+      continue;
+    }
+
     ALOGV("App 0x%016" PRIx64 " ver 0x%" PRIx32 " enabled %d system %d",
-          nanoapp->app_id(), nanoapp->version(), nanoapp->enabled(),
-          nanoapp->is_system());
-    if (!nanoapp->is_system()) {
+          nanoapp->app_id, nanoapp->version, nanoapp->enabled,
+          nanoapp->is_system);
+    if (!nanoapp->is_system) {
       HubAppInfo appInfo;
 
-      appInfo.appId = nanoapp->app_id();
-      appInfo.version = nanoapp->version();
-      appInfo.enabled = nanoapp->enabled();
+      appInfo.appId = nanoapp->app_id;
+      appInfo.version = nanoapp->version;
+      appInfo.enabled = nanoapp->enabled;
 
       appInfoList.push_back(appInfo);
     }
