@@ -43,6 +43,11 @@ class EventLoop : public NonCopyable {
   EventLoop();
 
   /**
+   * Synchronous callback used with forEachNanoapp
+   */
+  typedef void (NanoappCallbackFunction)(const Nanoapp *nanoapp, void *data);
+
+  /**
    * Searches the set of nanoapps managed by this EventLoop for one with the
    * given app ID. If found, provides its instance ID, which can be used to send
    * events to the app.
@@ -56,6 +61,16 @@ class EventLoop : public NonCopyable {
    * @return true if the given app ID was found and instanceId was populated
    */
   bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId);
+
+  /**
+   * Iterates over the list of Nanoapps managed by this EventLoop, and invokes
+   * the supplied callback for each one. This holds a lock if necessary, so it
+   * is safe to call from any thread.
+   *
+   * @param callback Function to invoke on each Nanoapp (synchronously)
+   * @param data Arbitrary data to pass to the callback
+   */
+  void forEachNanoapp(NanoappCallbackFunction *callback, void *data);
 
   /**
    * Starts a nanoapp by constructing a Nanoapp instance, invoking the start
@@ -116,6 +131,14 @@ class EventLoop : public NonCopyable {
    * @return the currently executing nanoapp, or nullptr
    */
   Nanoapp *getCurrentNanoapp() const;
+
+  /**
+   * Gets the number of nanoapps currently associated with this event loop. Must
+   * only be called within the context of this EventLoop.
+   *
+   * @return The number of nanoapps managed by this event loop
+   */
+  size_t getNanoappCount() const;
 
   /**
    * Returns a guaranteed unique instance ID that can be used to construct a

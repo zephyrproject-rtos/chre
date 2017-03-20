@@ -91,7 +91,51 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     LOGI("  Platform ID: 0x%016" PRIx64 " Version: 0x%08x" PRIx32,
          platformId, version);
   }
+
+  void handleNanoappListResponse(
+      const flatbuffers::Vector<flatbuffers::Offset<
+            ::chre::fbs::NanoappListEntry>>& nanoapps) {
+    LOGI("Got nanoapp list response with %" PRIu32 " apps:", nanoapps.size());
+    for (const auto *nanoapp : nanoapps){
+      LOGI("  App ID 0x%016" PRIx64 " version 0x%" PRIx32 " enabled %d system "
+           "%d", nanoapp->app_id(), nanoapp->version(), nanoapp->enabled(),
+           nanoapp->is_system());
+    }
+  }
 };
+
+void requestHubInfo(SocketClient& client) {
+  FlatBufferBuilder builder(64);
+  HostProtocolHost::encodeHubInfoRequest(builder);
+
+  LOGI("Sending hub info request (%u bytes)", builder.GetSize());
+  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    LOGE("Failed to send message");
+  }
+}
+
+void requestNanoappList(SocketClient& client) {
+  FlatBufferBuilder builder(64);
+  HostProtocolHost::encodeNanoappListRequest(builder);
+
+  LOGI("Sending app list request (%u bytes)", builder.GetSize());
+  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    LOGE("Failed to send message");
+  }
+}
+
+void sendMessageToNanoapp(SocketClient& client) {
+  FlatBufferBuilder builder(64);
+  uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  HostProtocolHost::encodeNanoappMessage(
+      builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
+
+  LOGI("Sending message to nanoapp (%u bytes w/%zu bytes of payload)",
+       builder.GetSize(), sizeof(messageData));
+  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    LOGE("Failed to send message");
+  }
+}
 
 }
 
@@ -103,27 +147,9 @@ int main() {
   if (!client.connect("chre", callbacks)) {
     LOGE("Couldn't connect to socket");
   } else {
-    {
-      FlatBufferBuilder builder(64);
-      HostProtocolHost::encodeHubInfoRequest(builder);
-
-      LOGI("Sending message (%u bytes)", builder.GetSize());
-      if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
-        LOGE("Failed to send message");
-      }
-    }
-
-    {
-      FlatBufferBuilder builder(64);
-      uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-      HostProtocolHost::encodeNanoappMessage(
-          builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
-
-      LOGI("Sending message (%u bytes)", builder.GetSize());
-      if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
-        LOGE("Failed to send message");
-      }
-    }
+    requestHubInfo(client);
+    requestNanoappList(client);
+    sendMessageToNanoapp(client);
 
     LOGI("Sleeping, waiting on responses");
     std::this_thread::sleep_for(std::chrono::seconds(5));

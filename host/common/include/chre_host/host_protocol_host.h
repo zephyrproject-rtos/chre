@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 
+#include "chre/platform/shared/host_messages_generated.h"
 #include "chre/platform/shared/host_protocol_common.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -35,15 +36,19 @@ class IChreMessageHandlers {
   virtual ~IChreMessageHandlers() = default;
 
   virtual void handleNanoappMessage(
-    uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-    const void *messageData, size_t messageDataLen) = 0;
+      uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
+      const void *messageData, size_t messageDataLen) = 0;
 
   virtual void handleHubInfoResponse(
-    const char *name, const char *vendor,
-    const char *toolchain, uint32_t legacyPlatformVersion,
-    uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
-    float sleepPower, float peakPower, uint32_t maxMessageLen,
-    uint64_t platformId, uint32_t version) = 0;
+      const char *name, const char *vendor,
+      const char *toolchain, uint32_t legacyPlatformVersion,
+      uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
+      float sleepPower, float peakPower, uint32_t maxMessageLen,
+      uint64_t platformId, uint32_t version) = 0;
+
+  virtual void handleNanoappListResponse(
+      const flatbuffers::Vector<flatbuffers::Offset<
+            ::chre::fbs::NanoappListEntry>>& nanoapps) = 0;
 };
 
 /**
@@ -75,6 +80,14 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *        construct the message
    */
   static void encodeHubInfoRequest(flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Encodes a message requesting the list of loaded nanoapps from CHRE
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeNanoappListRequest(flatbuffers::FlatBufferBuilder& builder);
 };
 
 }  // namespace chre

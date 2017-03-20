@@ -19,10 +19,13 @@
 
 #include <stdint.h>
 
+#include "chre/platform/shared/host_messages_generated.h"
 #include "chre/platform/shared/host_protocol_common.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace chre {
+
+typedef flatbuffers::Offset<fbs::NanoappListEntry> NanoappListEntryOffset;
 
 /**
  * These methods are called from decodeMessageFromHost() and must be implemented
@@ -35,6 +38,7 @@ class HostMessageHandlers {
     const void *messageData, size_t messageDataLen);
 
   static void handleHubInfoRequest();
+  static void handleNanoappListRequest();
 };
 
 /**
@@ -67,6 +71,42 @@ class HostProtocolChre : public HostProtocolCommon {
       uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
       float sleepPower, float peakPower, uint32_t maxMessageLen,
       uint64_t platformId, uint32_t version);
+
+  /**
+   * Supports construction of a NanoappListResponse by adding a single
+   * NanoappListEntry to the response. The offset for the newly added entry is
+   * maintained in the given vector until finishNanoappListResponse() is called.
+   * Example usage:
+   *
+   *   FlatBufferBuilder builder;
+   *   DynamicVector<NanoappListEntryOffset> vector;
+   *   for (auto app : appList) {
+   *     HostProtocolChre::addNanoppListEntry(builder, vector, ...);
+   *   }
+   *   HostProtocolChre::finishNanoappListResponse(builder, vector);
+   *
+   * @param builder A FlatBufferBuilder to use for encoding the message
+   * @param offsetVector A vector to track the offset to the newly added
+   *        NanoappListEntry, which be passed to finishNanoappListResponse()
+   *        once all entries are added
+   */
+  static void addNanoappListEntry(
+      flatbuffers::FlatBufferBuilder& builder,
+      DynamicVector<NanoappListEntryOffset>& offsetVector,
+      uint64_t appId, uint32_t appVersion, bool enabled, bool isSystemNanoapp);
+
+  /**
+   * Finishes encoding a NanoappListResponse message after all NanoappListEntry
+   * elements have already been added to the builder.
+   *
+   * @param builder The FlatBufferBuilder used with addNanoappListEntry()
+   * @param offsetVector The vector used with addNanoappListEntry()
+   *
+   * @see addNanoappListEntry()
+   */
+  static void finishNanoappListResponse(
+      flatbuffers::FlatBufferBuilder& builder,
+      DynamicVector<NanoappListEntryOffset>& offsetVector);
 };
 
 }  // namespace chre

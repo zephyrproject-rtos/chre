@@ -121,7 +121,7 @@ void SocketServer::sendToAllClients(const void *data, size_t length) {
       LOGW("Client %" PRIu16 " disconnected before message could be delivered",
            clientId);
     } else {
-      LOGV("Delievered message of size %zu bytes to client %" PRIu16, length,
+      LOGV("Delivered message of size %zu bytes to client %" PRIu16, length,
            clientId);
       deliveredCount++;
     }

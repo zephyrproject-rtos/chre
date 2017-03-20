@@ -62,6 +62,26 @@ table HubInfoResponse {
   // TODO: list of connected sensors
 }
 
+table NanoappListRequest {}
+
+table NanoappListEntry {
+  app_id:ulong;
+  version:uint;
+  enabled:bool = true;
+
+  /// Whether the nanoapp is a pre-loaded "system" nanoapp, i.e. one that should
+  /// not show up in the list of nanoapps in the context hub HAL. System
+  /// nanoapps are typically used to leverage CHRE for some device functionality
+  /// and do not interact via the context hub HAL.
+  is_system:bool = false;
+
+  // TODO: memory usage
+}
+
+table NanoappListResponse {
+  nanoapps:[NanoappListEntry] (required);
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -69,6 +89,9 @@ union ChreMessage {
 
   HubInfoRequest,
   HubInfoResponse,
+
+  NanoappListRequest,
+  NanoappListResponse,
 
   // TODO: extend with system-specific messages, e.g. load app command, etc.
 }

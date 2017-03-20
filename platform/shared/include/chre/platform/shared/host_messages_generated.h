@@ -15,6 +15,12 @@ struct HubInfoRequest;
 
 struct HubInfoResponse;
 
+struct NanoappListRequest;
+
+struct NanoappListEntry;
+
+struct NanoappListResponse;
+
 struct MessageContainer;
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
@@ -24,8 +30,10 @@ enum class ChreMessage : uint8_t {
   NanoappMessage = 1,
   HubInfoRequest = 2,
   HubInfoResponse = 3,
+  NanoappListRequest = 4,
+  NanoappListResponse = 5,
   MIN = NONE,
-  MAX = HubInfoResponse
+  MAX = NanoappListResponse
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -34,6 +42,8 @@ inline const char **EnumNamesChreMessage() {
     "NanoappMessage",
     "HubInfoRequest",
     "HubInfoResponse",
+    "NanoappListRequest",
+    "NanoappListResponse",
     nullptr
   };
   return names;
@@ -58,6 +68,14 @@ template<> struct ChreMessageTraits<HubInfoRequest> {
 
 template<> struct ChreMessageTraits<HubInfoResponse> {
   static const ChreMessage enum_value = ChreMessage::HubInfoResponse;
+};
+
+template<> struct ChreMessageTraits<NanoappListRequest> {
+  static const ChreMessage enum_value = ChreMessage::NanoappListRequest;
+};
+
+template<> struct ChreMessageTraits<NanoappListResponse> {
+  static const ChreMessage enum_value = ChreMessage::NanoappListResponse;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -375,6 +393,159 @@ inline flatbuffers::Offset<HubInfoResponse> CreateHubInfoResponseDirect(
       chre_platform_version);
 }
 
+struct NanoappListRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+};
+
+struct NanoappListRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  NanoappListRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  NanoappListRequestBuilder &operator=(const NanoappListRequestBuilder &);
+  flatbuffers::Offset<NanoappListRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<NanoappListRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<NanoappListRequest> CreateNanoappListRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  NanoappListRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_APP_ID = 4,
+    VT_VERSION = 6,
+    VT_ENABLED = 8,
+    VT_IS_SYSTEM = 10
+  };
+  uint64_t app_id() const {
+    return GetField<uint64_t>(VT_APP_ID, 0);
+  }
+  uint32_t version() const {
+    return GetField<uint32_t>(VT_VERSION, 0);
+  }
+  bool enabled() const {
+    return GetField<uint8_t>(VT_ENABLED, 1) != 0;
+  }
+  /// Whether the nanoapp is a pre-loaded "system" nanoapp, i.e. one that should
+  /// not show up in the list of nanoapps in the context hub HAL. System
+  /// nanoapps are typically used to leverage CHRE for some device functionality
+  /// and do not interact via the context hub HAL.
+  bool is_system() const {
+    return GetField<uint8_t>(VT_IS_SYSTEM, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_APP_ID) &&
+           VerifyField<uint32_t>(verifier, VT_VERSION) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLED) &&
+           VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
+           verifier.EndTable();
+  }
+};
+
+struct NanoappListEntryBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_app_id(uint64_t app_id) {
+    fbb_.AddElement<uint64_t>(NanoappListEntry::VT_APP_ID, app_id, 0);
+  }
+  void add_version(uint32_t version) {
+    fbb_.AddElement<uint32_t>(NanoappListEntry::VT_VERSION, version, 0);
+  }
+  void add_enabled(bool enabled) {
+    fbb_.AddElement<uint8_t>(NanoappListEntry::VT_ENABLED, static_cast<uint8_t>(enabled), 1);
+  }
+  void add_is_system(bool is_system) {
+    fbb_.AddElement<uint8_t>(NanoappListEntry::VT_IS_SYSTEM, static_cast<uint8_t>(is_system), 0);
+  }
+  NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  NanoappListEntryBuilder &operator=(const NanoappListEntryBuilder &);
+  flatbuffers::Offset<NanoappListEntry> Finish() {
+    const auto end = fbb_.EndTable(start_, 4);
+    auto o = flatbuffers::Offset<NanoappListEntry>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t app_id = 0,
+    uint32_t version = 0,
+    bool enabled = true,
+    bool is_system = false) {
+  NanoappListEntryBuilder builder_(_fbb);
+  builder_.add_app_id(app_id);
+  builder_.add_version(version);
+  builder_.add_is_system(is_system);
+  builder_.add_enabled(enabled);
+  return builder_.Finish();
+}
+
+struct NanoappListResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_NANOAPPS = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>> *nanoapps() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>> *>(VT_NANOAPPS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyFieldRequired<flatbuffers::uoffset_t>(verifier, VT_NANOAPPS) &&
+           verifier.Verify(nanoapps()) &&
+           verifier.VerifyVectorOfTables(nanoapps()) &&
+           verifier.EndTable();
+  }
+};
+
+struct NanoappListResponseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_nanoapps(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>>> nanoapps) {
+    fbb_.AddOffset(NanoappListResponse::VT_NANOAPPS, nanoapps);
+  }
+  NanoappListResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  NanoappListResponseBuilder &operator=(const NanoappListResponseBuilder &);
+  flatbuffers::Offset<NanoappListResponse> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<NanoappListResponse>(end);
+    fbb_.Required(o, NanoappListResponse::VT_NANOAPPS);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>>> nanoapps = 0) {
+  NanoappListResponseBuilder builder_(_fbb);
+  builder_.add_nanoapps(nanoapps);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponseDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<NanoappListEntry>> *nanoapps = nullptr) {
+  return chre::fbs::CreateNanoappListResponse(
+      _fbb,
+      nanoapps ? _fbb.CreateVector<flatbuffers::Offset<NanoappListEntry>>(*nanoapps) : 0);
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level structure
 /// (root type), so we must wrap it in a table.
@@ -445,6 +616,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::HubInfoResponse: {
       auto ptr = reinterpret_cast<const HubInfoResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::NanoappListRequest: {
+      auto ptr = reinterpret_cast<const NanoappListRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::NanoappListResponse: {
+      auto ptr = reinterpret_cast<const NanoappListResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
