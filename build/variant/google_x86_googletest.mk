@@ -12,6 +12,10 @@ TARGET_VARIANT_SRCS += $(GOOGLETEST_SRCS)
 # Add a symbol to determine when building for a test.
 TARGET_CFLAGS += -DGTEST
 
+# Ignore sign comparison warnings triggered by EXPECT/ASSERT macros in tests
+# (typically, unsigned value vs. implicitly signed literal)
+TARGET_CFLAGS += -Wno-sign-compare
+
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 
 ifeq ($(ANDROID_BUILD_TOP),)
