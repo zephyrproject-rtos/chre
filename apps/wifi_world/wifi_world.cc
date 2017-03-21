@@ -18,9 +18,12 @@
 #include <cinttypes>
 
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/time.h"
 #include "chre/util/nanoapp/wifi.h"
 
 #define LOG_TAG "[WifiWorld]"
+
+//#define WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
 
 #ifdef CHRE_NANOAPP_INTERNAL
 #include "chre/platform/platform_static_nanoapp_init.h"
@@ -31,6 +34,15 @@ namespace {
 
 //! A dummy cookie to pass into the configure scan monitoring async request.
 const uint32_t kScanMonitoringCookie = 0x1337;
+
+//! A dummy cookie to pass into request scan async.
+const uint32_t kOnDemandScanCookie = 0xcafe;
+
+//! The interval for on-demand wifi scans.
+const Nanoseconds kWifiScanInterval = Nanoseconds(Seconds(10));
+
+//! A handle for the cyclic timer to request periodic on-demand wifi-scans.
+uint32_t gWifiScanTimerHandle;
 
 namespace {
 
@@ -56,6 +68,7 @@ void logChreWifiResult(const chreWifiScanResult& result) {
   }
 
   LOGI("Found network with SSID: %s", ssidStr);
+#ifdef WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
   LOGI("  age (ms): %" PRIu32, result.ageMs);
   LOGI("  capability info: %" PRIx16, result.capabilityInfo);
   LOGI("  bssid: %s", bssidStr);
@@ -67,6 +80,7 @@ void logChreWifiResult(const chreWifiScanResult& result) {
   LOGI("  center frequency secondary: %" PRIu32, result.centerFreqSecondary);
   LOGI("  channel width: %" PRIu8, result.channelWidth);
   LOGI("  security mode: %" PRIx8, result.securityMode);
+#endif  // WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
 }
 
 /**
@@ -87,6 +101,17 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
     if (result->cookie != &kScanMonitoringCookie) {
       LOGE("Scan monitoring request cookie mismatch");
     }
+  } else if (result->requestType == CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN) {
+    if (result->success) {
+      LOGI("Successfully requested an on-demand wifi scan");
+    } else {
+      LOGE("Error requesting an on-demand wifi scan with %" PRIu8,
+           result->errorCode);
+    }
+
+    if (result->cookie != &kOnDemandScanCookie) {
+      LOGE("On-demand scan cookie mismatch");
+    }
   }
 }
 
@@ -99,6 +124,24 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
   for (uint8_t i = 0; i < event->resultCount; i++) {
     const chreWifiScanResult& result = event->results[i];
     logChreWifiResult(result);
+  }
+}
+
+/**
+ * Handles a timer event.
+ *
+ * @param eventData The cookie passed to the timer request.
+ */
+void handleTimerEvent(const void *eventData) {
+  const uint32_t *timerHandle = static_cast<const uint32_t *>(eventData);
+  if (*timerHandle == gWifiScanTimerHandle) {
+    if (chreWifiRequestScanAsyncDefault(&kOnDemandScanCookie)) {
+      LOGI("Requested a wifi scan successfully");
+    } else {
+      LOGE("Failed to request a wifi scan");
+    }
+  } else {
+    LOGE("Received invalid timer handle");
   }
 }
 
@@ -138,6 +181,18 @@ bool nanoappStart() {
     }
   }
 
+  if (wifiCapabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
+    // Schedule a timer to send an active wifi scan.
+    gWifiScanTimerHandle = chreTimerSet(kWifiScanInterval.toRawNanoseconds(),
+                                        &gWifiScanTimerHandle /* data */,
+                                        false /* oneShot */);
+    if (gWifiScanTimerHandle == CHRE_TIMER_INVALID) {
+      LOGE("Failed to set periodic scan timer");
+    } else {
+      LOGI("Set a timer to request periodic WiFi scans");
+    }
+  }
+
   return true;
 }
 
@@ -150,6 +205,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       break;
     case CHRE_EVENT_WIFI_SCAN_RESULT:
       handleWifiScanEvent(static_cast<const chreWifiScanEvent *>(eventData));
+      break;
+    case CHRE_EVENT_TIMER:
+      handleTimerEvent(eventData);
       break;
     default:
       LOGW("Unhandled event type %" PRIu16, eventType);
