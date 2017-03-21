@@ -36,6 +36,7 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
          messageLen);
   } else {
     const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
+    uint16_t hostClientId = container->host_addr()->client_id();
 
     switch (container->message_type()) {
       case fbs::ChreMessage::NanoappMessage: {
@@ -51,11 +52,11 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
       }
 
       case fbs::ChreMessage::HubInfoRequest:
-        HostMessageHandlers::handleHubInfoRequest();
+        HostMessageHandlers::handleHubInfoRequest(hostClientId);
         break;
 
       case fbs::ChreMessage::NanoappListRequest:
-        HostMessageHandlers::handleNanoappListRequest();
+        HostMessageHandlers::handleNanoappListRequest(hostClientId);
         break;
 
       default:
@@ -73,7 +74,7 @@ void HostProtocolChre::encodeHubInfoResponse(
     const char *toolchain, uint32_t legacyPlatformVersion,
     uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
     float sleepPower, float peakPower, uint32_t maxMessageLen,
-    uint64_t platformId, uint32_t version) {
+    uint64_t platformId, uint32_t version, uint16_t hostClientId) {
   auto nameOffset = addStringAsByteVector(builder, name);
   auto vendorOffset = addStringAsByteVector(builder, vendor);
   auto toolchainOffset = addStringAsByteVector(builder, toolchain);
@@ -82,9 +83,8 @@ void HostProtocolChre::encodeHubInfoResponse(
       builder, nameOffset, vendorOffset, toolchainOffset, legacyPlatformVersion,
       legacyToolchainVersion, peakMips, stoppedPower, sleepPower, peakPower,
       maxMessageLen, platformId, version);
-  auto container = fbs::CreateMessageContainer(
-      builder, fbs::ChreMessage::HubInfoResponse, response.Union());
-  builder.Finish(container);
+  finalize(builder, fbs::ChreMessage::HubInfoResponse, response.Union(),
+           hostClientId);
 }
 
 void HostProtocolChre::addNanoappListEntry(
@@ -100,13 +100,13 @@ void HostProtocolChre::addNanoappListEntry(
 
 void HostProtocolChre::finishNanoappListResponse(
     FlatBufferBuilder& builder,
-    DynamicVector<Offset<fbs::NanoappListEntry>>& offsetVector) {
+    DynamicVector<Offset<fbs::NanoappListEntry>>& offsetVector,
+    uint16_t hostClientId) {
   auto vectorOffset = builder.CreateVector<Offset<fbs::NanoappListEntry>>(
       offsetVector);
   auto response = fbs::CreateNanoappListResponse(builder, vectorOffset);
-  auto container = fbs::CreateMessageContainer(
-      builder, fbs::ChreMessage::NanoappListResponse, response.Union());
-  builder.Finish(container);
+  finalize(builder, fbs::ChreMessage::NanoappListResponse, response.Union(),
+           hostClientId);
 }
 
 }  // namespace chre

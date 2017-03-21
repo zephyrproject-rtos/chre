@@ -87,6 +87,33 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *        construct the message
    */
   static void encodeNanoappListRequest(flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Decodes the host client ID included in the message container
+   *
+   * @param message Buffer containing a complete FlatBuffers CHRE message
+   * @param messageLen Size of the message, in bytes
+   * @param hostClientId Output parameter that will be populated with the client
+   *        ID included in the message on success
+   *
+   * @return true if the host client ID was successfully decoded from the
+   *         message
+   */
+  static bool extractHostClientId(const void *message, size_t messageLen,
+                                  uint16_t *hostClientId);
+
+  /**
+   * Update the host client ID field in the MessageContainer.
+   *
+   * @param message Buffer containing a complete FlatBuffers CHRE message
+   * @param messageLen Size of the message, in bytes
+   * @param hostClientId The value to set the host client ID to
+   *
+   * @return true if the message was verified successfully, and we were able to
+   *         modify the host client ID field
+   */
+  static bool mutateHostClientId(void *message, size_t messageLen,
+                                 uint16_t hostClientId);
 };
 
 }  // namespace chre

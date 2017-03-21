@@ -112,16 +112,43 @@ bool HostProtocolHost::decodeMessageFromChre(
 
 void HostProtocolHost::encodeHubInfoRequest(FlatBufferBuilder& builder) {
   auto request = fbs::CreateHubInfoRequest(builder);
-  auto container = fbs::CreateMessageContainer(
-      builder, fbs::ChreMessage::HubInfoRequest, request.Union());
-  builder.Finish(container);
+  finalize(builder, fbs::ChreMessage::HubInfoRequest, request.Union());
 }
 
 void HostProtocolHost::encodeNanoappListRequest(FlatBufferBuilder& builder) {
   auto request = fbs::CreateNanoappListRequest(builder);
-  auto container = fbs::CreateMessageContainer(
-      builder, fbs::ChreMessage::NanoappListRequest, request.Union());
-  builder.Finish(container);
+  finalize(builder, fbs::ChreMessage::NanoappListRequest, request.Union());
+}
+
+bool HostProtocolHost::extractHostClientId(const void *message,
+                                           size_t messageLen,
+                                           uint16_t *hostClientId) {
+  bool success = verifyMessage(message, messageLen);
+
+  if (success && hostClientId != nullptr) {
+    const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
+    // host_addr guaranteed to be non-null via verifyMessage (it's a required
+    // field)
+    *hostClientId = container->host_addr()->client_id();
+    success = true;
+  }
+
+  return success;
+}
+
+bool HostProtocolHost::mutateHostClientId(void *message, size_t messageLen,
+                                          uint16_t hostClientId) {
+  bool success = verifyMessage(message, messageLen);
+
+  if (success) {
+    fbs::MessageContainer *container = fbs::GetMutableMessageContainer(message);
+    // host_addr guaranteed to be non-null via verifyMessage (it's a required
+    // field)
+    container->mutable_host_addr()->mutate_client_id(hostClientId);
+    success = true;
+  }
+
+  return success;
 }
 
 }  // namespace chre

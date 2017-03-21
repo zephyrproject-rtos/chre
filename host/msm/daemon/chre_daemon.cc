@@ -50,8 +50,11 @@
 
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre_host/log.h"
+#include "chre_host/host_protocol_host.h"
 #include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
+
+using android::chre::HostProtocolHost;
 
 typedef void *(thread_entry_point_f)(void *);
 
@@ -131,7 +134,21 @@ static void *chre_message_to_host_thread(void *arg) {
       break;
     } else if (result == CHRE_FASTRPC_SUCCESS && messageLen > 0) {
       log_buffer(messageBuffer, messageLen);
-      server->sendToAllClients(messageBuffer, static_cast<size_t>(messageLen));
+      uint16_t hostClientId;
+      if (!HostProtocolHost::extractHostClientId(messageBuffer, messageLen,
+                                                 &hostClientId)) {
+        LOGW("Failed to extract host client ID from message - sending "
+             "broadcast");
+        hostClientId = chre::kHostClientIdUnspecified;
+      }
+
+      if (hostClientId == chre::kHostClientIdUnspecified) {
+        server->sendToAllClients(messageBuffer,
+                                 static_cast<size_t>(messageLen));
+      } else {
+        server->sendToClientById(messageBuffer,
+                                 static_cast<size_t>(messageLen), hostClientId);
+      }
     }
   }
 
@@ -227,8 +244,7 @@ static bool start_thread(pthread_t *thread_handle,
 
 namespace {
 
-void onMessageReceivedFromClient(uint16_t /*clientId*/, const void *data,
-                                 size_t length) {
+void onMessageReceivedFromClient(uint16_t clientId, void *data, size_t length) {
   constexpr size_t kMaxPayloadSize = 1024 * 1024;  // 1 MiB
 
   // This limitation is due to FastRPC, but there's no case where we should come
@@ -239,6 +255,8 @@ void onMessageReceivedFromClient(uint16_t /*clientId*/, const void *data,
   if (length > kMaxPayloadSize) {
     LOGE("Message too large to pass to SLPI (got %zu, max %zu bytes)", length,
          kMaxPayloadSize);
+  } else if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
+    LOGE("Couldn't set host client ID in message container!");
   } else {
     LOGD("Delivering message from host (size %zu)", length);
     log_buffer(static_cast<const uint8_t *>(data), length);
