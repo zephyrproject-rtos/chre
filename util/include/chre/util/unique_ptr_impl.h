@@ -52,6 +52,13 @@ ObjectType *UniquePtr<ObjectType>::get() const {
 }
 
 template<typename ObjectType>
+ObjectType *UniquePtr<ObjectType>::release() {
+  ObjectType *obj = mObject;
+  mObject = nullptr;
+  return obj;
+}
+
+template<typename ObjectType>
 ObjectType *UniquePtr<ObjectType>::operator->() const {
   return get();
 }

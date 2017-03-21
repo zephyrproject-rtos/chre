@@ -46,15 +46,25 @@ class UniquePtr : public NonCopyable {
   /**
    * Determines if the object was constructed correctly.
    *
-   * @return Returns true if the object is null and not constructed.
+   * @return true if the object is null and not constructed.
    */
   bool isNull() const;
 
   /**
-   * @return A pointer to the underlying object or nullptr if this object
-   * is not currently valid.
+   * @return A pointer to the underlying object, or nullptr if this object is
+   *         not currently valid.
    */
   ObjectType *get() const;
+
+  /**
+   * Releases ownership of the underlying object, so it will not be freed when
+   * this object is destructed. After this function returns, get() will return
+   * null.
+   *
+   * @return A pointer to the underlying object (i.e. what get() would return
+   *         prior to this function call)
+   */
+  ObjectType *release();
 
   /**
    * @return A pointer to the underlying object.

@@ -34,7 +34,7 @@ TEST(UniquePtr, Construct) {
 }
 
 TEST(UniquePtr, Move) {
-  EXPECT_EQ(Value::constructionCounter, 0);
+  Value::constructionCounter = 0;
 
   {
     UniquePtr<Value> myInt(0xcafe);
@@ -51,4 +51,26 @@ TEST(UniquePtr, Move) {
   }
 
   EXPECT_EQ(Value::constructionCounter, 0);
+}
+
+TEST(UniquePtr, Release) {
+  Value::constructionCounter = 0;
+
+  Value *value1, *value2;
+  {
+    UniquePtr<Value> myInt(0xcafe);
+    ASSERT_FALSE(myInt.isNull());
+    EXPECT_EQ(Value::constructionCounter, 1);
+    value1 = myInt.get();
+    EXPECT_NE(value1, nullptr);
+    value2 = myInt.release();
+    EXPECT_EQ(value1, value2);
+    EXPECT_EQ(myInt.get(), nullptr);
+    EXPECT_TRUE(myInt.isNull());
+  }
+
+  EXPECT_EQ(Value::constructionCounter, 1);
+  EXPECT_EQ(value2->value, 0xcafe);
+  value2->~Value();
+  chre::memoryFree(value2);
 }
