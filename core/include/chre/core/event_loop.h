@@ -73,15 +73,18 @@ class EventLoop : public NonCopyable {
   void forEachNanoapp(NanoappCallbackFunction *callback, void *data);
 
   /**
-   * Starts a nanoapp by constructing a Nanoapp instance, invoking the start
-   * entry point and adding it to the list of nanoapps owned by this event
-   * loop.
+   * Invokes the Nanoapp's start callback, and if successful, adds it to the
+   * set of Nanoapps managed by this EventLoop. This function must only be
+   * called from the context of the thread that runs this event loop (i.e. from
+   * the same thread that will call run() or from a callback invoked within
+   * run()).
    *
-   * @param platformNanoapp A pointer to the platform nanoapp to start. This
-   *        pointer must remain valid after this function returns.
-   * @return True if the app was started successfully.
+   * @param nanoapp The nanoapp that will be started. Upon success, this
+   *        UniquePtr will become invalid, as the underlying Nanoapp instance
+   *        will have been transferred to be managed by this EventLoop.
+   * @return true if the app was started successfully
    */
-  bool startNanoapp(PlatformNanoapp *platformNanoapp);
+  bool startNanoapp(UniquePtr<Nanoapp>& nanoapp);
 
   /**
    * Stops a nanoapp by invoking the stop entry point. The nanoapp passed in

@@ -22,7 +22,7 @@
 namespace chre {
 
 //! The list of static nanoapps to load.
-extern PlatformNanoapp *const kStaticNanoappList[];
+extern UniquePtr<Nanoapp> *const kStaticNanoappList[];
 
 //! The number of static nanoapps to load.
 extern const size_t kStaticNanoappCount;

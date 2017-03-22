@@ -25,8 +25,6 @@
 #define LOG_TAG "[ImuCal]"
 
 #ifdef CHRE_NANOAPP_INTERNAL
-#include "chre/platform/platform_static_nanoapp_init.h"
-
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
@@ -168,9 +166,11 @@ void nanoappStop() {
 }
 
 #ifdef CHRE_NANOAPP_INTERNAL
-}  // namespace
-
-PLATFORM_STATIC_NANOAPP_INIT(ImuCal);
-
+}  // anonymous namespace
 }  // namespace chre
+
+#include "chre/util/nanoapp/app_id.h"
+#include "chre/platform/static_nanoapp_init.h"
+
+CHRE_STATIC_NANOAPP_INIT(ImuCal, chre::kImuCalAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

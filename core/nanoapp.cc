@@ -16,18 +16,20 @@
 
 #include "chre/core/nanoapp.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
 namespace chre {
 
-Nanoapp::Nanoapp(
-    uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
-    uint32_t instanceId, bool isSystemNanoapp, PlatformNanoapp *platformNanoapp)
-    : mAppId(appId), mAppVersion(appVersion),
-      mTargetApiVersion(targetApiVersion), mInstanceId(instanceId),
-      mIsSystemNanoapp(isSystemNanoapp), mPlatformNanoapp(platformNanoapp) {}
+uint32_t Nanoapp::getInstanceId() const {
+  return mInstanceId;
+}
+
+void Nanoapp::setInstanceId(uint32_t instanceId) {
+  mInstanceId = instanceId;
+}
 
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
   return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
@@ -55,36 +57,8 @@ bool Nanoapp::unregisterForBroadcastEvent(uint16_t eventId) {
   return true;
 }
 
-uint64_t Nanoapp::getAppId() const {
-  return mAppId;
-}
-
-uint32_t Nanoapp::getAppVersion() const {
-  return mAppVersion;
-}
-
-uint32_t Nanoapp::getInstanceId() const {
-  return mInstanceId;
-}
-
-uint32_t Nanoapp::getTargetApiVersion() const {
-  return mTargetApiVersion;
-}
-
-bool Nanoapp::isSystemNanoapp() const {
-  return mIsSystemNanoapp;
-}
-
 void Nanoapp::postEvent(Event *event) {
   mEventQueue.push(event);
-}
-
-bool Nanoapp::start() {
-  return mPlatformNanoapp->start();
-}
-
-void Nanoapp::stop() {
-  mPlatformNanoapp->stop();
 }
 
 bool Nanoapp::hasPendingEvent() {
@@ -96,8 +70,7 @@ Event *Nanoapp::processNextEvent() {
 
   CHRE_ASSERT_LOG(event != nullptr, "Tried delivering event, but queue empty");
   if (event != nullptr) {
-    mPlatformNanoapp->handleEvent(event->senderInstanceId, event->eventType,
-                                  event->eventData);
+    handleEvent(event->senderInstanceId, event->eventType, event->eventData);
   }
 
   return event;

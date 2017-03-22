@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#include "chre_api/chre/version.h"
 #include "chre/platform/platform_nanoapp.h"
 
 namespace chre {
+
+PlatformNanoapp::~PlatformNanoapp() {}
 
 bool PlatformNanoapp::start() {
   return mStart();
@@ -30,6 +33,22 @@ void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
 
 void PlatformNanoapp::stop() {
   mStop();
+}
+
+uint64_t PlatformNanoapp::getAppId() const {
+  return mAppId;
+}
+
+uint32_t PlatformNanoapp::getAppVersion() const {
+  return mAppVersion;
+}
+
+uint32_t PlatformNanoapp::getTargetApiVersion() const {
+  return CHRE_API_VERSION;
+}
+
+bool PlatformNanoapp::isSystemNanoapp() const {
+  return true;
 }
 
 }  // namespace chre

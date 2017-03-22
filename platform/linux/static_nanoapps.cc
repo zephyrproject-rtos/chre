@@ -24,15 +24,15 @@ namespace chre {
 
 //! The list of static nanoapps to load for the Linux platform.
 __attribute__((weak))
-PlatformNanoapp *const kStaticNanoappList[] = {
-  &gNanoappGnssWorld,
-  &gNanoappHelloWorld,
-  &gNanoappImuCal,
-  &gNanoappMessageWorld,
-  &gNanoappSensorWorld,
-  &gNanoappTimerWorld,
-  &gNanoappWifiWorld,
-  &gNanoappWwanWorld,
+UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
+  gNanoappGnssWorld,
+  gNanoappHelloWorld,
+  gNanoappImuCal,
+  gNanoappMessageWorld,
+  gNanoappSensorWorld,
+  gNanoappTimerWorld,
+  gNanoappWifiWorld,
+  gNanoappWwanWorld,
 };
 
 //! The size of the static nanoapp list.

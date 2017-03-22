@@ -26,8 +26,6 @@
 //#define WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
 
 #ifdef CHRE_NANOAPP_INTERNAL
-#include "chre/platform/platform_static_nanoapp_init.h"
-
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
@@ -219,9 +217,11 @@ void nanoappStop() {
 }
 
 #ifdef CHRE_NANOAPP_INTERNAL
-}  // namespace
-
-PLATFORM_STATIC_NANOAPP_INIT(WifiWorld);
-
+}  // anonymous namespace
 }  // namespace chre
+
+#include "chre/util/nanoapp/app_id.h"
+#include "chre/platform/static_nanoapp_init.h"
+
+CHRE_STATIC_NANOAPP_INIT(WifiWorld, chre::kWifiWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

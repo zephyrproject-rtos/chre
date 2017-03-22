@@ -19,6 +19,7 @@
 
 #include <cstdint>
 
+#include "chre/platform/shared/nanoapp_support_lib_dso.h"
 #include "chre/util/entry_points.h"
 
 namespace chre {
@@ -26,15 +27,17 @@ namespace chre {
 /**
  * SLPI-specific nanoapp functionality.
  */
-struct PlatformNanoappBase {
-  //! The function pointer of the nanoapp start entry point.
-  NanoappStartFunction *mStart;
+class PlatformNanoappBase {
+ public:
+  /**
+   * Associate this PlatformNanoapp with a nanoapp that is statically built into
+   * the CHRE binary with the given app info structure.
+   */
+  void loadStatic(const struct chreNslNanoappInfo *appInfo);
 
-  //! The function pointer of the nanoapp handle event entry point.
-  NanoappHandleEventFunction *mHandleEvent;
-
-  //! The function pointer of the nanoapp stop entry point.
-  NanoappStopFunction *mStop;
+ protected:
+  //! Pointer to the app info structure within this nanoapp
+  const struct chreNslNanoappInfo *mAppInfo = nullptr;
 };
 
 }  // namespace chre

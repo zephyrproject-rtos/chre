@@ -17,18 +17,19 @@
 #ifndef CHRE_APPS_APPS_H_
 #define CHRE_APPS_APPS_H_
 
-#include "chre/platform/platform_nanoapp.h"
+#include "chre/core/nanoapp.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 
-extern PlatformNanoapp gNanoappGnssWorld;
-extern PlatformNanoapp gNanoappHelloWorld;
-extern PlatformNanoapp gNanoappImuCal;
-extern PlatformNanoapp gNanoappMessageWorld;
-extern PlatformNanoapp gNanoappSensorWorld;
-extern PlatformNanoapp gNanoappTimerWorld;
-extern PlatformNanoapp gNanoappWifiWorld;
-extern PlatformNanoapp gNanoappWwanWorld;
+extern UniquePtr<Nanoapp> *gNanoappGnssWorld;
+extern UniquePtr<Nanoapp> *gNanoappHelloWorld;
+extern UniquePtr<Nanoapp> *gNanoappImuCal;
+extern UniquePtr<Nanoapp> *gNanoappMessageWorld;
+extern UniquePtr<Nanoapp> *gNanoappSensorWorld;
+extern UniquePtr<Nanoapp> *gNanoappTimerWorld;
+extern UniquePtr<Nanoapp> *gNanoappWifiWorld;
+extern UniquePtr<Nanoapp> *gNanoappWwanWorld;
 
 } // namespace chre
 

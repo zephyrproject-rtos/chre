@@ -131,30 +131,23 @@ void EventLoop::run() {
   // TODO: need to purge/cleanup events, etc.
 }
 
-bool EventLoop::startNanoapp(PlatformNanoapp *platformNanoapp) {
-  CHRE_ASSERT(platformNanoapp != nullptr);
+bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
+  CHRE_ASSERT(!nanoapp.isNull());
 
   bool success = false;
-  if (!mNanoapps.prepareForPush()) {
+  if (nanoapp.isNull() || !mNanoapps.prepareForPush()) {
     LOGE("Failed to allocate space for new nanoapp");
   } else {
-    // TODO: get these parameters from somewhere
-    UniquePtr<Nanoapp> nanoapp(
-        0, 1, CHRE_API_VERSION_1_1,
-        EventLoopManagerSingleton::get()->getNextInstanceId(), true,
-        platformNanoapp);
-    if (nanoapp.isNull()) {
-      LOGE("Failed to allocate new nanoapp");
+    nanoapp->setInstanceId(
+        EventLoopManagerSingleton::get()->getNextInstanceId());
+    mCurrentApp = nanoapp.get();
+    success = nanoapp->start();
+    mCurrentApp = nullptr;
+    if (!success) {
+      LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
     } else {
-      mCurrentApp = nanoapp.get();
-      success = nanoapp->start();
-      mCurrentApp = nullptr;
-      if (!success) {
-        LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
-      } else {
-        LockGuard<Mutex> lock(mNanoappsLock);
-        mNanoapps.push_back(std::move(nanoapp));
-      }
+      LockGuard<Mutex> lock(mNanoappsLock);
+      mNanoapps.push_back(std::move(nanoapp));
     }
   }
 

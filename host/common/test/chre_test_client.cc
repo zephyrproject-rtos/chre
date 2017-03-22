@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "chre/util/nanoapp/app_id.h"
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
 #include "chre_host/socket_client.h"
@@ -132,7 +133,8 @@ void sendMessageToNanoapp(SocketClient& client) {
   FlatBufferBuilder builder(64);
   uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   HostProtocolHost::encodeNanoappMessage(
-      builder, 0, kHostEndpoint, 1234, messageData, sizeof(messageData));
+      builder, chre::kMessageWorldAppId, kHostEndpoint, 1234, messageData,
+      sizeof(messageData));
 
   LOGI("Sending message to nanoapp (%u bytes w/%zu bytes of payload)",
        builder.GetSize(), sizeof(messageData));

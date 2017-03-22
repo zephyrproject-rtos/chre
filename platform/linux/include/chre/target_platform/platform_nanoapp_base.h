@@ -28,13 +28,16 @@ namespace chre {
  */
 struct PlatformNanoappBase {
   //! The function pointer of the nanoapp start entry point.
-  NanoappStartFunction *mStart;
+  chreNanoappStartFunction *mStart;
 
   //! The function pointer of the nanoapp handle event entry point.
-  NanoappHandleEventFunction *mHandleEvent;
+  chreNanoappHandleEventFunction *mHandleEvent;
 
   //! The function pointer of the nanoapp stop entry point.
-  NanoappStopFunction *mStop;
+  chreNanoappStopFunction *mStop;
+
+  uint64_t mAppId;
+  uint32_t mAppVersion;
 };
 
 }  // namespace chre

@@ -22,8 +22,6 @@
 #define LOG_TAG "[MsgWorld]"
 
 #ifdef CHRE_NANOAPP_INTERNAL
-#include "chre/platform/platform_static_nanoapp_init.h"
-
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
@@ -80,9 +78,11 @@ void nanoappStop() {
 }
 
 #ifdef CHRE_NANOAPP_INTERNAL
-}  // namespace
-
-PLATFORM_STATIC_NANOAPP_INIT(MessageWorld);
-
+}  // anonymous namespace
 }  // namespace chre
+
+#include "chre/util/nanoapp/app_id.h"
+#include "chre/platform/static_nanoapp_init.h"
+
+CHRE_STATIC_NANOAPP_INIT(MessageWorld, chre::kMessageWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL
