@@ -55,7 +55,7 @@ bool parseBssidToStr(const uint8_t bssid[CHRE_WIFI_BSSID_LEN],
  * Parses a WiFi band into a string.
  *
  * @param band the CHRE WiFi band to parse into a string.
- * @return a pointer to the string or nullptr if unknown.
+ * @return a pointer to the string or some indication of invalid.
  */
 const char *parseChreWifiBand(uint8_t band);
 

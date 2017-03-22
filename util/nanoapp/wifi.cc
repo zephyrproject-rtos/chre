@@ -70,7 +70,7 @@ const char *parseChreWifiBand(uint8_t band) {
     case CHRE_WIFI_BAND_MASK_5_GHZ:
       return "5GHz";
     default:
-      return nullptr;
+      return "<invalid>";
   }
 }
 
