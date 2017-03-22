@@ -14,45 +14,43 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_EVENT_QUEUE_H
-#define CHRE_EVENT_QUEUE_H
+#ifndef CHRE_EVENT_REF_QUEUE_H
+#define CHRE_EVENT_REF_QUEUE_H
 
 #include "chre/core/event.h"
-#include "chre/platform/assert.h"
 #include "chre/util/array_queue.h"
 
 namespace chre {
 
 /**
- * TODO
- * NOT thread-safe, non-blocking.
+ * A non-thread-safe, non-blocking wrapper around ArrayQueue that stores Event*
+ * and manages the Event reference counter.
+ * TODO: make this a template specialization? Or rework the ref count design?
  */
 class EventRefQueue {
  public:
-  bool empty() {
-    return mQueue.empty();
-  }
+  /**
+   * @return true if there are no events in the queue
+   */
+  bool empty() const;
 
-  bool push(Event *event) {
-    CHRE_ASSERT(event != nullptr);
+  /**
+   * Adds an event to the queue, and increments its reference counter
+   *
+   * @param event The event to add
+   * @return true on success
+   */
+  bool push(Event *event);
 
-    bool pushed = mQueue.push(event);
-    if (pushed) {
-      event->incrementRefCount();
-    }
-
-    return pushed;
-  }
-
-  Event *pop() {
-    CHRE_ASSERT(!mQueue.empty());
-
-    Event *event = mQueue.front();
-    mQueue.pop();
-    event->decrementRefCount();
-
-    return event;
-  }
+  /**
+   * Removes the oldest event from the queue, and decrements its reference
+   * counter. Does not trigger freeing of the event if the reference count
+   * reaches 0 as a result of this function call. The queue must be non-empty as
+   * a precondition to calling this function, or undefined behavior will result.
+   *
+   * @return Pointer to the next event in the queue
+   */
+  Event *pop();
 
  private:
   //! The maximum number of events that can be outstanding for an app.
@@ -64,4 +62,4 @@ class EventRefQueue {
 
 }  // namespace chre
 
-#endif //CHRE_EVENT_QUEUE_H
+#endif  // CHRE_EVENT_REF_QUEUE_H

@@ -18,47 +18,33 @@
 #define CHRE_CORE_EVENT_H_
 
 #include "chre_api/chre/event.h"
-#include "chre/platform/assert.h"
-#include "chre/platform/log.h"
 #include "chre/util/non_copyable.h"
 
 #include <cstdint>
 
 namespace chre {
 
-// TODO: put these in a more common place
+//! Instance ID used for events sent by the system
 constexpr uint32_t kSystemInstanceId = 0;
+
+//! Target instance ID used to deliver a message to all nanoapps registered for
+//! the event
 constexpr uint32_t kBroadcastInstanceId = UINT32_MAX;
 
-// Can be used in the context of a specific Nanoapp's instance ID
+//! This value can be used in a nanoapp's own instance ID to indicate that the
+//! ID is invalid/not assigned yet
 constexpr uint32_t kInvalidInstanceId = kBroadcastInstanceId;
 
 class Event : public NonCopyable {
  public:
-  Event(uint16_t eventType_,
-        void *eventData_,
-        chreEventCompleteFunction *freeCallback_,
-        uint32_t senderInstanceId_ = kSystemInstanceId,
-        uint32_t targetInstanceId_ = kBroadcastInstanceId)
-      : eventType(eventType_),
-        eventData(eventData_),
-        freeCallback(freeCallback_),
-        senderInstanceId(senderInstanceId_),
-        targetInstanceId(targetInstanceId_) {}
+  Event(uint16_t eventType, void *eventData,
+        chreEventCompleteFunction *freeCallback,
+        uint32_t senderInstanceId = kSystemInstanceId,
+        uint32_t targetInstanceId = kBroadcastInstanceId);
 
-  void incrementRefCount() {
-    mRefCount++;
-    CHRE_ASSERT(mRefCount != 0);
-  }
-
-  void decrementRefCount() {
-    CHRE_ASSERT(mRefCount > 0);
-    mRefCount--;
-  }
-
-  bool isUnreferenced() {
-    return (mRefCount == 0);
-  }
+  void incrementRefCount();
+  void decrementRefCount();
+  bool isUnreferenced() const;
 
   const uint16_t eventType;
   void * const eventData;
