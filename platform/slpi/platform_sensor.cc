@@ -34,6 +34,7 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/slpi/platform_sensor_util.h"
+#include "chre/platform/slpi/smgr_client.h"
 
 namespace chre {
 namespace {
@@ -1002,6 +1003,10 @@ ChreSensorData *PlatformSensor::getLastEvent() const {
 
 void PlatformSensor::setLastEvent(const ChreSensorData *event) {
   memcpy(lastEvent, event, lastEventSize);
+}
+
+qmi_client_type getSensorServiceQmiClientHandle() {
+  return gPlatformSensorServiceQmiClientHandle;
 }
 
 }  // namespace chre
