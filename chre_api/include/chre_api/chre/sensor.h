@@ -112,7 +112,8 @@ extern "C" {
  * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA and
  *     CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO
  *
- * Note that the GEOMAGNETIC_FIELD_DATA is always the fully calibrated data.
+ * Note that the GEOMAGNETIC_FIELD_DATA is always the fully calibrated data,
+ * including factory calibration and runtime calibration if available.
  */
 #define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD  UINT8_C(8)
 
@@ -121,8 +122,8 @@ extern "C" {
  *
  * Generates: CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA
  *
- * Note that the UNCALIBRATED_GEOMAGNETIC_FIELD_DATA must not be runtime
- * calibrated.
+ * Note that the UNCALIBRATED_GEOMAGNETIC_FIELD_DATA must be factory calibrated
+ * data, but not runtime calibrated.
  */
 #define CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD  UINT8_C(9)
 
