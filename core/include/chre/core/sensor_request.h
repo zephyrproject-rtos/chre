@@ -30,6 +30,14 @@ namespace chre {
 // code withput pulling in the entire SensorRequest class which is only intended
 // to be used by the CHRE implementation.
 
+//! The union of possible CHRE sensor data event type with one sample.
+union ChreSensorData {
+  struct chreSensorThreeAxisData threeAxisData;
+  struct chreSensorOccurrenceData occurrenceData;
+  struct chreSensorFloatData floatData;
+  struct chreSensorByteData byteData;
+};
+
 /**
  * This SensorType is designed to wrap constants provided by the CHRE API
  * to improve type-safety. In addition, an unknown sensor type is provided

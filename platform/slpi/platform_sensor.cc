@@ -196,6 +196,49 @@ bool isValidIndicesLength() {
 }
 
 /**
+ * Allocates memory and specifies the memory size for an on-change sensor to
+ * store its last data event.
+ *
+ * @param sensorType The sensorType of this sensor.
+ * @param eventSize A non-null pointer to indicate the memory size allocated.
+ * @return Pointer to the memory allocated.
+ */
+ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
+  CHRE_ASSERT(eventSize);
+
+  *eventSize = 0;
+  ChreSensorData *event = nullptr;
+  if (sensorTypeIsOnChange(sensorType)) {
+    SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
+    switch (sampleType) {
+      case SensorSampleType::ThreeAxis:
+        *eventSize = sizeof(chreSensorThreeAxisData);
+        break;
+      case SensorSampleType::Float:
+        *eventSize = sizeof(chreSensorFloatData);
+        break;
+      case SensorSampleType::Byte:
+        *eventSize = sizeof(chreSensorByteData);
+        break;
+      case SensorSampleType::Occurrence:
+        *eventSize = sizeof(chreSensorOccurrenceData);
+        break;
+      default:
+        CHRE_ASSERT_LOG(false, "Unhandled sample type");
+        break;
+    }
+
+    event = static_cast<ChreSensorData *>(memoryAlloc(*eventSize));
+    if (event == nullptr) {
+      *eventSize = 0;
+      FATAL_ERROR("Failed to allocate last event memory for SensorType %d",
+                  static_cast<int>(sensorType));
+    }
+  }
+  return event;
+}
+
+/**
  * Adds a Platform sensor to the sensor list.
  *
  * @param sensorInfo The sensorInfo as provided by the SMGR.
@@ -209,12 +252,19 @@ void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
   platformSensor.sensorId = sensorInfo.SensorID;
   platformSensor.dataType = sensorInfo.DataType;
   platformSensor.calType = calType;
-  platformSensor.minInterval = static_cast<uint64_t>(
-      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
   size_t bytesToCopy = std::min(sizeof(platformSensor.sensorName) - 1,
                                 static_cast<size_t>(sensorInfo.SensorName_len));
   memcpy(platformSensor.sensorName, sensorInfo.SensorName, bytesToCopy);
   platformSensor.sensorName[bytesToCopy] = '\0';
+  platformSensor.minInterval = static_cast<uint64_t>(
+      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
+
+  // Allocates memory for on-change sensor's last event.
+  SensorType sensorType = getSensorTypeFromSensorId(
+      sensorInfo.SensorID, sensorInfo.DataType, calType);
+  platformSensor.lastEvent = allocateLastEvent(sensorType,
+                                               &platformSensor.lastEventSize);
+
   if (!sensors->push_back(std::move(platformSensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
@@ -229,21 +279,6 @@ void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
 uint64_t getNanosecondsFromSmgrTicks(uint32_t ticks) {
   return (ticks * Seconds(1).toRawNanoseconds())
       / TIMETICK_NOMINAL_FREQ_HZ;
-}
-
-void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
-  // Events are allocated using the simple memoryAlloc/memoryFree platform
-  // functions.
-  // TODO: Consider using a MemoryPool.
-  memoryFree(eventData);
-
-  // Remove all requests if it's a one-shot sensor and only after data has been
-  // delivered to all clients.
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .removeAllRequests(sensorType);
-  }
 }
 
 /**
@@ -409,6 +444,71 @@ void *allocateAndPopulateEvent(
   }
 }
 
+void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
+  // Events are allocated using the simple memoryAlloc/memoryFree platform
+  // functions.
+  // TODO: Consider using a MemoryPool.
+  memoryFree(eventData);
+
+  // Remove all requests if it's a one-shot sensor and only after data has been
+  // delivered to all clients.
+  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
+  if (sensorTypeIsOneShot(sensorType)) {
+    EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .removeAllRequests(sensorType);
+  }
+}
+
+/**
+ * A helper function that updates the last event of a in the main thread.
+ * Platform should call this function only for an on-change sensor.
+ *
+ * @param sensorType The SensorType of the sensor.
+ * @param eventData A non-null pointer to the sensor's CHRE event data.
+ */
+void updateLastEvent(SensorType sensorType, const void *eventData) {
+  CHRE_ASSERT(eventData);
+
+  auto *header = static_cast<const chreSensorDataHeader *>(eventData);
+  if (header->readingCount != 1) {
+    // TODO: better error handling when SMGR behavior changes.
+    // SMGR delivers one sample per report for on-change sensors.
+    LOGE("%" PRIu16 " samples in an event for on-change sensor %d",
+         header->readingCount, static_cast<int>(sensorType));
+  } else {
+    struct CallbackData {
+      SensorType sensorType;
+      const ChreSensorData *event;
+    };
+    auto *callbackData = memoryAlloc<CallbackData>();
+    if (callbackData == nullptr) {
+      LOGE("Failed to allocate deferred callback memory");
+    } else {
+      callbackData->sensorType = sensorType;
+      callbackData->event = static_cast<const ChreSensorData *>(eventData);
+
+      auto callback = [](uint16_t /* type */, void *data) {
+        auto *cbData = static_cast<CallbackData *>(data);
+
+        Sensor *sensor = EventLoopManagerSingleton::get()
+            ->getSensorRequestManager().getSensor(cbData->sensorType);
+        if (sensor != nullptr) {
+          sensor->setLastEvent(cbData->event);
+        }
+        memoryFree(cbData);
+      };
+
+      // Schedule a deferred callback.
+      if (!EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorLastEventUpdate, callbackData, callback)) {
+        LOGE("Failed to schedule a deferred callback for sensorType %d",
+             static_cast<int>(sensorType));
+        memoryFree(callbackData);
+      }
+    }  // if (callbackData == nullptr)
+  }
+}
+
 /**
  * Handles sensor data provided by the SMGR framework.
  *
@@ -451,11 +551,20 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
       if (sensorType == SensorType::Unknown) {
         LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
              sensorIndex.SensorId, sensorIndex.DataType);
+      } else if (sensorIndex.SampleCount == 0) {
+        LOGW("Received sensorType %d event with 0 sample",
+             static_cast<int>(sensorType));
       } else {
         void *eventData = allocateAndPopulateEvent(sensorType, sensorIndex);
         if (eventData == nullptr) {
           LOGW("Dropping event due to allocation failure");
         } else {
+          // Schedule a deferred callback to update on-change sensor's last
+          // event in the main thread.
+          if (sensorTypeIsOnChange(sensorType)) {
+            updateLastEvent(sensorType, eventData);
+          }
+
           EventLoopManagerSingleton::get()->postEvent(
               getSampleEventTypeForSensorType(sensorType), eventData,
               smgrSensorDataEventFree);
@@ -736,6 +845,15 @@ void populateSensorRequest(
 
 }  // anonymous namespace
 
+PlatformSensor::~PlatformSensor() {
+  if (lastEvent != nullptr) {
+    LOGD("Releasing lastEvent: 0x%p, id %" PRIu8 ", type %" PRIu8 ", cal %"
+         PRIu8 ", size %zu",
+         lastEvent, sensorId, dataType, calType, lastEventSize);
+    memoryFree(lastEvent);
+  }
+}
+
 void PlatformSensor::init() {
   // sns_smgr_api_v01
   qmi_idl_service_object_type sensorServiceObject =
@@ -869,7 +987,21 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
   calType = other.calType;
   memcpy(sensorName, other.sensorName, SNS_SMGR_MAX_SENSOR_NAME_SIZE_V01);
   minInterval = other.minInterval;
+
+  lastEvent = other.lastEvent;
+  other.lastEvent = nullptr;
+
+  lastEventSize = other.lastEventSize;
+  other.lastEventSize = 0;
   return *this;
+}
+
+ChreSensorData *PlatformSensor::getLastEvent() const {
+  return lastEvent;
+}
+
+void PlatformSensor::setLastEvent(const ChreSensorData *event) {
+  memcpy(lastEvent, event, lastEventSize);
 }
 
 }  // namespace chre

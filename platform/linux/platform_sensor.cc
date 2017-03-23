@@ -18,6 +18,8 @@
 
 namespace chre {
 
+PlatformSensor::~PlatformSensor() {}
+
 void PlatformSensor::init() {
   // TODO: Implement this. Probably we would open some files provided to mock
   // sensor data. Perhaps from command-line arguemnts.
@@ -62,6 +64,15 @@ const char *PlatformSensor::getSensorName() const {
 PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
   // TODO: Implement this.
   return *this;
+}
+
+ChreSensorData *PlatformSensor::getLastEvent() const {
+  // TODO: Implement this.
+  return nullptr;
+}
+
+void PlatformSensor::setLastEvent(const ChreSensorData *event) {
+  // TODO: Implement this.
 }
 
 }  // namespace chre

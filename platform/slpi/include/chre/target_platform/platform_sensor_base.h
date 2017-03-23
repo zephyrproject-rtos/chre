@@ -23,6 +23,8 @@ extern "C" {
 
 }  // extern "C"
 
+#include "chre/core/sensor_request.h"
+
 namespace chre {
 
 /**
@@ -47,6 +49,12 @@ class PlatformSensorBase {
 
   //! The minimum interval of this sensor.
   uint64_t minInterval;
+
+  //! The pointer to the sensor's last event.
+  ChreSensorData *lastEvent = nullptr;
+
+  //! The size of the sensor's last event storage.
+  size_t lastEventSize = 0;
 };
 
 }  // namespace chre

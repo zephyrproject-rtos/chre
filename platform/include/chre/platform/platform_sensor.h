@@ -45,6 +45,11 @@ class PlatformSensor : public PlatformSensorBase,
   PlatformSensor(PlatformSensor&& other);
 
   /**
+   * Destructs the PlatformSensor object.
+   */
+  ~PlatformSensor();
+
+  /**
    * Initializes the platform sensors subsystem. This must be called as part of
    * the initialization of the runtime.
    */
@@ -101,6 +106,19 @@ class PlatformSensor : public PlatformSensorBase,
    * @return A pointer to a static string.
    */
   const char *getSensorName() const;
+
+  /**
+   * @return Pointer to this sensor's last data event. It returns a nullptr if
+   *         the the platform doesn't provide it.
+   */
+  ChreSensorData *getLastEvent() const;
+
+  /**
+   * Copies the supplied event to the sensor's last event.
+   *
+   * @param event The pointer to the event to copy from.
+   */
+  void setLastEvent(const ChreSensorData *event);
 
   /**
    * Performs a move-assignment of a PlatformSensor.
