@@ -90,7 +90,7 @@ struct chreNslNanoappInfo {
   struct {
     chreNanoappStartFunction *start;
     chreNanoappHandleEventFunction *handleEvent;
-    chreNanoappStopFunction *stop;
+    chreNanoappEndFunction *end;
   } entryPoints;
 };
 

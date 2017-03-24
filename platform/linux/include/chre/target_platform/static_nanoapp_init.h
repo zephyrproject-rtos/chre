@@ -41,7 +41,7 @@ static void initializeStaticNanoapp##appName() {             \
   } else {                                                   \
     nanoapp->mStart = nanoappStart;                          \
     nanoapp->mHandleEvent = nanoappHandleEvent;              \
-    nanoapp->mStop = nanoappStop;                            \
+    nanoapp->mEnd = nanoappEnd;                              \
     nanoapp->mAppId = appId;                                 \
     nanoapp->mAppVersion = appVersion;                       \
     gNanoapp##appName = &nanoapp;                            \

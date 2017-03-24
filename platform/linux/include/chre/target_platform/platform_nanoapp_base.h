@@ -33,8 +33,8 @@ struct PlatformNanoappBase {
   //! The function pointer of the nanoapp handle event entry point.
   chreNanoappHandleEventFunction *mHandleEvent;
 
-  //! The function pointer of the nanoapp stop entry point.
-  chreNanoappStopFunction *mStop;
+  //! The function pointer of the nanoapp end entry point.
+  chreNanoappEndFunction *mEnd;
 
   uint64_t mAppId;
   uint32_t mAppVersion;

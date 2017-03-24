@@ -30,8 +30,8 @@ void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
 }
 
-void PlatformNanoapp::stop() {
-  mAppInfo->entryPoints.stop();
+void PlatformNanoapp::end() {
+  mAppInfo->entryPoints.end();
 }
 
 void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {

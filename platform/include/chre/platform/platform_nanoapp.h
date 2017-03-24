@@ -54,9 +54,9 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
                    const void *eventData);
 
   /**
-   * Calls the stop function of the nanoapp.
+   * Calls the nanoapp's end callback.
    */
-  void stop();
+  void end();
 
   uint64_t getAppId() const;
   uint32_t getAppVersion() const;

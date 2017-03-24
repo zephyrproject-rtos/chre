@@ -53,7 +53,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   // TODO: Implement this.
 }
 
-void nanoappStop() {
+void nanoappEnd() {
   LOGI("Stopped");
 }
 

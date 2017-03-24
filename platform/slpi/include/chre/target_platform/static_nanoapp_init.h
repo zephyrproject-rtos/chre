@@ -50,7 +50,7 @@ static void initializeStaticNanoapp##appName() {               \
   appInfo.appVersion = appVersion_;                            \
   appInfo.entryPoints.start = nanoappStart;                    \
   appInfo.entryPoints.handleEvent = nanoappHandleEvent;        \
-  appInfo.entryPoints.stop = nanoappStop;                      \
+  appInfo.entryPoints.end = nanoappEnd;                        \
   if (nanoapp.isNull()) {                                      \
     FATAL_ERROR("Failed to allocate nanoapp " #appName);       \
   } else {                                                     \

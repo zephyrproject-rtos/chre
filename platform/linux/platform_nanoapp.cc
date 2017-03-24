@@ -31,8 +31,8 @@ void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
   mHandleEvent(senderInstanceId, eventType, eventData);
 }
 
-void PlatformNanoapp::stop() {
-  mStop();
+void PlatformNanoapp::end() {
+  mEnd();
 }
 
 uint64_t PlatformNanoapp::getAppId() const {

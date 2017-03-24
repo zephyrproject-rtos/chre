@@ -160,7 +160,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void nanoappStop() {
+void nanoappEnd() {
   // TODO: Unscribe to sensors
   LOGI("Stopped");
 }

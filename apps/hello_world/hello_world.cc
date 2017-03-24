@@ -39,7 +39,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
        eventType, currentTime);
 }
 
-void nanoappStop() {
+void nanoappEnd() {
   LOGI("Stopped");
 }
 

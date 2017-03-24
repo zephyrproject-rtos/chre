@@ -17,15 +17,18 @@
 #ifndef CHRE_UTIL_ENTRY_POINTS_H_
 #define CHRE_UTIL_ENTRY_POINTS_H_
 
-//! The type for the Nanoapp start function pointer.
+#include <stdbool.h>
+#include <stdint.h>
+
+//! @see nanoappStart()
 typedef bool (chreNanoappStartFunction)();
 
-//! The type of the Nanoapp handle event function pointer.
+//! @see nanoappHandleEvent()
 typedef void (chreNanoappHandleEventFunction)(uint32_t senderInstanceId,
                                               uint16_t eventType,
                                               const void *eventData);
 
-//! The type of the Nanoapp stop function pointer.
-typedef void (chreNanoappStopFunction)();
+//! @see nanoappEnd()
+typedef void (chreNanoappEndFunction)();
 
 #endif  // CHRE_UTIL_ENTRY_POINTS_H_

@@ -212,7 +212,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   }
 }
 
-void nanoappStop() {
+void nanoappEnd() {
   LOGI("Wifi world app stopped");
 }
 

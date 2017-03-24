@@ -165,7 +165,7 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
       }
 
       mCurrentApp = nanoapp;
-      nanoapp->stop();
+      nanoapp->end();
       mCurrentApp = nullptr;
       return;
     }
