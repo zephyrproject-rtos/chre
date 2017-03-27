@@ -40,7 +40,7 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
   }
 
   bool found = false;
-  for (auto& app : mNanoapps) {
+  for (const UniquePtr<Nanoapp>& app : mNanoapps) {
     if (app->getAppId() == appId) {
       *instanceId = app->getInstanceId();
       found = true;
@@ -61,7 +61,7 @@ void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
     mNanoappsLock.lock();
   }
 
-  for (const auto& nanoapp : mNanoapps) {
+  for (const UniquePtr<Nanoapp>& nanoapp : mNanoapps) {
     callback(nanoapp.get(), data);
   }
 
@@ -84,7 +84,7 @@ void EventLoop::run() {
       // there is no safety mechanism that ensures an event is not freed twice,
       // or that its free callback is invoked in the proper EventLoop, etc.
       Event *event = mEvents.pop();
-      for (auto& app : mNanoapps) {
+      for (const UniquePtr<Nanoapp>& app : mNanoapps) {
         if ((event->targetInstanceId == chre::kBroadcastInstanceId
                 && app->isRegisteredForBroadcastEvent(event->eventType))
             || event->targetInstanceId == app->getInstanceId()) {
@@ -106,40 +106,43 @@ void EventLoop::run() {
     // TODO: most basic round-robin implementation - we might want to have some
     // kind of priority in the future, but this should be good enough for now
     havePendingEvents = false;
-    for (auto& app : mNanoapps) {
+    for (const UniquePtr<Nanoapp>& app : mNanoapps) {
       if (app->hasPendingEvent()) {
-        // TODO: cleaner way to set/clear this? RAII-style?
-        mCurrentApp = app.get();
-        Event *event = app->processNextEvent();
-        mCurrentApp = nullptr;
-
-        if (event->isUnreferenced()) {
-          freeEvent(event);
-        }
-
-        havePendingEvents |= app->hasPendingEvent();
+        havePendingEvents |= deliverNextEvent(app);
       }
     }
   }
 
+  // Drop any events pending distribution
+  while (!mEvents.empty()) {
+    freeEvent(mEvents.pop());
+  }
+
+  // Stop all running nanoapps
   while (!mNanoapps.empty()) {
-    stopNanoapp(mNanoapps.front().get());
+    stopNanoapp(mNanoapps.size() - 1);
   }
 
   LOGI("Exiting EventLoop");
-
-  // TODO: need to purge/cleanup events, etc.
 }
 
 bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
   CHRE_ASSERT(!nanoapp.isNull());
-
   bool success = false;
-  if (nanoapp.isNull() || !mNanoapps.prepareForPush()) {
+  auto *eventLoopManager = EventLoopManagerSingleton::get();
+  uint32_t existingInstanceId;
+
+  if (nanoapp.isNull()) {
+    // no-op, invalid argument
+  } else if (eventLoopManager->findNanoappInstanceIdByAppId(nanoapp->getAppId(),
+                                                            &existingInstanceId,
+                                                            nullptr)) {
+    LOGE("App with ID 0x%016" PRIx64 " already exists as instance ID 0x%"
+         PRIx32, nanoapp->getAppId(), existingInstanceId);
+  } else if (!mNanoapps.prepareForPush()) {
     LOGE("Failed to allocate space for new nanoapp");
   } else {
-    nanoapp->setInstanceId(
-        EventLoopManagerSingleton::get()->getNextInstanceId());
+    nanoapp->setInstanceId(eventLoopManager->getNextInstanceId());
     mCurrentApp = nanoapp.get();
     success = nanoapp->start();
     mCurrentApp = nullptr;
@@ -155,18 +158,9 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
 }
 
 void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
-  CHRE_ASSERT(nanoapp != nullptr);
-
   for (size_t i = 0; i < mNanoapps.size(); i++) {
     if (nanoapp == mNanoapps[i].get()) {
-      {
-        LockGuard<Mutex> lock(mNanoappsLock);
-        mNanoapps.erase(i);
-      }
-
-      mCurrentApp = nanoapp;
-      nanoapp->end();
-      mCurrentApp = nullptr;
+      stopNanoapp(i);
       return;
     }
   }
@@ -178,20 +172,24 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
 bool EventLoop::postEvent(uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
     uint32_t targetInstanceId) {
-  // TODO: Consider adding a CHRE_ASSERT(mRunning) here.
   bool success = false;
-  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
-      senderInstanceId, targetInstanceId);
-  if (event != nullptr) {
-    success = mEvents.push(event);
-  } else {
-    LOGE("Failed to allocate event");
+
+  if (mRunning) {
+    Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
+        senderInstanceId, targetInstanceId);
+    if (event != nullptr) {
+      success = mEvents.push(event);
+    } else {
+      LOGE("Failed to allocate event");
+    }
   }
+
   return success;
 }
 
 void EventLoop::stop() {
   postEvent(0, nullptr, nullptr, kSystemInstanceId, kSystemInstanceId);
+  // Stop accepting new events and tell the main loop to finish
   mRunning = false;
 }
 
@@ -224,11 +222,35 @@ Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) {
   return nanoapp;
 }
 
+void EventLoop::freeEvent(Event *event) {
+  if (event->freeCallback != nullptr) {
+    // TODO: find a better way to set the context to the creator of the event
+    mCurrentApp = lookupAppByInstanceId(event->senderInstanceId);
+    event->freeCallback(event->eventType, event->eventData);
+    mCurrentApp = nullptr;
+
+    mEventPool.deallocate(event);
+  }
+}
+
+bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp>& app) {
+  // TODO: cleaner way to set/clear this? RAII-style?
+  mCurrentApp = app.get();
+  Event *event = app->processNextEvent();
+  mCurrentApp = nullptr;
+
+  if (event->isUnreferenced()) {
+    freeEvent(event);
+  }
+
+  return app->hasPendingEvent();
+}
+
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case
   if (instanceId != kSystemInstanceId) {
-    for (auto& app : mNanoapps) {
+    for (const UniquePtr<Nanoapp>& app : mNanoapps) {
       if (app->getInstanceId() == instanceId) {
         return app.get();
       }
@@ -238,14 +260,32 @@ Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
   return nullptr;
 }
 
-void EventLoop::freeEvent(Event *event) {
-  if (event->freeCallback != nullptr) {
-    // TODO: find a better way to set the context to the creator of the event
-    mCurrentApp = lookupAppByInstanceId(event->senderInstanceId);
-    event->freeCallback(event->eventType, event->eventData);
-    mCurrentApp = nullptr;
+void EventLoop::stopNanoapp(size_t index) {
+  const UniquePtr<Nanoapp>& nanoapp = mNanoapps[index];
 
-    mEventPool.deallocate(event);
+  // Process any events pending in this app's queue. Note that since we're
+  // running in the context of this EventLoop, no new events will be added to
+  // this nanoapp's event queue while we're doing this, so once it's empty, we
+  // can be assured it will stay that way.
+  while (nanoapp->hasPendingEvent()) {
+    deliverNextEvent(nanoapp);
+  }
+
+  // TODO: to safely stop a nanoapp while the EventLoop is still running, we
+  // need to deliver/purge any events that the nanoapp sent itself prior to
+  // calling end(), so that we won't try to invoke a free callback after
+  // unloading the nanoapp where that callback resides. Likewise, we need to
+  // make sure any messages to the host from this nanoapp are flushed as well.
+
+  // Let the app know it's going away
+  mCurrentApp = nanoapp.get();
+  nanoapp->end();
+  mCurrentApp = nullptr;
+
+  // Destroy the Nanoapp instance
+  {
+    LockGuard<Mutex> lock(mNanoappsLock);
+    mNanoapps.erase(index);
   }
 }
 
