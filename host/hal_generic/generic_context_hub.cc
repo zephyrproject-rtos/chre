@@ -31,6 +31,7 @@ namespace V1_0 {
 namespace implementation {
 
 using ::android::hardware::Return;
+using ::android::hardware::contexthub::V1_0::AsyncEventType;
 using ::android::hardware::contexthub::V1_0::Result;
 using ::android::chre::HostProtocolHost;
 using ::flatbuffers::FlatBufferBuilder;
@@ -202,6 +203,20 @@ void GenericContextHub::SocketCallbacks::onMessageReceived(const void *data,
   if (!HostProtocolHost::decodeMessageFromChre(data, length, *this)) {
     ALOGE("Failed to decode message");
   }
+}
+
+void GenericContextHub::SocketCallbacks::onConnected() {
+  if (mHaveConnected) {
+    ALOGI("Reconnected to CHRE daemon");
+    if (mParent.mCallbacks != nullptr) {
+      mParent.mCallbacks->handleHubEvent(AsyncEventType::RESTARTED);
+    }
+  }
+  mHaveConnected = true;
+}
+
+void GenericContextHub::SocketCallbacks::onDisconnected() {
+  ALOGW("Lost connection to CHRE daemon");
 }
 
 void GenericContextHub::SocketCallbacks::handleNanoappMessage(

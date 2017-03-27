@@ -66,6 +66,8 @@ class GenericContextHub : public IContexthub {
    public:
     SocketCallbacks(GenericContextHub& parent);
     void onMessageReceived(const void *data, size_t length) override;
+    void onConnected() override;
+    void onDisconnected() override;
 
     void handleNanoappMessage(
         uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
@@ -82,6 +84,7 @@ class GenericContextHub : public IContexthub {
 
    private:
     GenericContextHub& mParent;
+    bool mHaveConnected = false;
   };
 
   sp<SocketCallbacks> mSocketCallbacks;
