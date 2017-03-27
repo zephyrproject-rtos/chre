@@ -15,11 +15,15 @@
  */
 
 #include <chre.h>
-#include <cinttypes>
+#include <inttypes.h>
 
-#include "chre/util/nanoapp/log.h"
-
-#define LOG_TAG "[HelloWorld]"
+/**
+ * @file
+ * A very basic example nanoapp that just logs activity in its entry points.
+ * Note that code wrapped in #ifdef CHRE_NANOAPP_INTERNAL is only relevant when
+ * a nanoapp is to be statically built into the CHRE system binary, which would
+ * make it a "system nanoapp" rather than a true dynamically loadable nanoapp.
+ */
 
 #ifdef CHRE_NANOAPP_INTERNAL
 namespace chre {
@@ -27,20 +31,19 @@ namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
 bool nanoappStart() {
-  LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
+  chreLog(CHRE_LOG_INFO, "Hello, world!");
   return true;
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
-                        const void *eventData) {
-  uint64_t currentTime = chreGetTime();
-  LOGI("Received event 0x%" PRIx16 " at time %" PRIu64,
-       eventType, currentTime);
+                        const void * /*eventData*/) {
+  chreLog(CHRE_LOG_INFO, "Received event 0x%" PRIx16 " from 0x%" PRIx32 " at "
+          "time %" PRIu64, eventType, senderInstanceId, chreGetTime());
 }
 
 void nanoappEnd() {
-  LOGI("Stopped");
+  chreLog(CHRE_LOG_INFO, "Goodbye, world!");
 }
 
 #ifdef CHRE_NANOAPP_INTERNAL
