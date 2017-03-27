@@ -111,7 +111,7 @@ template<typename ElementType, size_t kCapacity>
 void FixedSizeVector<ElementType, kCapacity>::swap(size_t index0,
                                                    size_t index1) {
   CHRE_ASSERT(index0 < mSize && index1 < mSize);
-  if (index0 < mSize && index1 < mSize) {
+  if (index0 < mSize && index1 < mSize && index0 != index1) {
     typename std::aligned_storage<sizeof(ElementType),
         alignof(ElementType)>::type tempStorage;
     ElementType& temp = *reinterpret_cast<ElementType *>(&tempStorage);
