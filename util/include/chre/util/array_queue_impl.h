@@ -17,6 +17,7 @@
 #ifndef CHRE_UTIL_ARRAY_QUEUE_IMPL_H_
 #define CHRE_UTIL_ARRAY_QUEUE_IMPL_H_
 
+#include <new>
 #include <utility>
 
 #include "chre/platform/assert.h"
@@ -75,7 +76,16 @@ template<typename ElementType, size_t kCapacity>
 bool ArrayQueue<ElementType, kCapacity>::push(const ElementType& element) {
   bool success = pushTail();
   if (success) {
-    data()[mTail] = element;
+    new (&data()[mTail]) ElementType(element);
+  }
+  return success;
+}
+
+template<typename ElementType, size_t kCapacity>
+bool ArrayQueue<ElementType, kCapacity>::push(ElementType&& element) {
+  bool success = pushTail();
+  if (success) {
+    new (&data()[mTail]) ElementType(std::move(element));
   }
   return success;
 }

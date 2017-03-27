@@ -97,14 +97,15 @@ class ArrayQueue : public NonCopyable {
   const ElementType& operator[](size_t index) const;
 
   /**
-   * Pushes an element onto the back of the array queue. It returns false if
-   * the array queue is full already and there is no room for the elements. All
-   * iterators and references are unaffected.
+   * Pushes an element onto the back of the array queue via copy or move
+   * construction. It returns false if the array queue is full already and there
+   * is no room for the elements. All iterators and references are unaffected.
    *
    * @param element The element to push onto the array queue.
    * @return true if the element is pushed successfully.
    */
   bool push(const ElementType& element);
+  bool push(ElementType&& element);
 
   /**
    * Removes the front element from the array queue if the array queue is not
