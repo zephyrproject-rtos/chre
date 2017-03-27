@@ -37,7 +37,7 @@ UniquePtr<Nanoapp> *gNanoapp##appName;                         \
                                                                \
 __attribute__((constructor))                                   \
 static void initializeStaticNanoapp##appName() {               \
-  static UniquePtr<Nanoapp> nanoapp;                           \
+  static UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();   \
   static struct chreNslNanoappInfo appInfo;                    \
   appInfo.magic = CHRE_NSL_NANOAPP_INFO_MAGIC;                 \
   appInfo.structMinorVersion =                                 \

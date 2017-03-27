@@ -24,12 +24,15 @@
 namespace chre {
 
 template<typename ObjectType>
-template<typename... Args>
-UniquePtr<ObjectType>::UniquePtr(Args&&... args) {
-  mObject = static_cast<ObjectType *>(memoryAlloc(sizeof(ObjectType)));
-  if (mObject != nullptr) {
-    new (mObject) ObjectType(std::forward<Args>(args)...);
-  }
+UniquePtr<ObjectType>::UniquePtr() : mObject(nullptr) {}
+
+template<typename ObjectType>
+UniquePtr<ObjectType>::UniquePtr(ObjectType *object) : mObject(object) {}
+
+template<typename ObjectType>
+UniquePtr<ObjectType>::UniquePtr(UniquePtr<ObjectType>&& other) {
+  mObject = other.mObject;
+  other.mObject = nullptr;
 }
 
 template<typename ObjectType>
@@ -80,6 +83,12 @@ UniquePtr<ObjectType>& UniquePtr<ObjectType>::operator=(
   mObject = other.mObject;
   other.mObject = nullptr;
   return *this;
+}
+
+template<typename ObjectType, typename... Args>
+inline UniquePtr<ObjectType> MakeUnique(Args&&... args) {
+  return UniquePtr<ObjectType>(memoryAlloc<ObjectType>(
+      std::forward<Args>(args)...));
 }
 
 }  // namespace chre

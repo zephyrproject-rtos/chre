@@ -37,7 +37,7 @@ EventLoop *EventLoopManager::createEventLoop() {
   // support multiple EventLoop instances, for example the Event freeing
   // mechanism is not thread-safe.
   CHRE_ASSERT(mEventLoops.empty());
-  if (!mEventLoops.emplace_back()) {
+  if (!mEventLoops.emplace_back(MakeUnique<EventLoop>())) {
     return nullptr;
   }
 

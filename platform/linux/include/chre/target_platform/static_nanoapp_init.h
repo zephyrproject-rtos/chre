@@ -35,7 +35,7 @@ UniquePtr<Nanoapp> *gNanoapp##appName;                       \
                                                              \
 __attribute__((constructor))                                 \
 static void initializeStaticNanoapp##appName() {             \
-  static UniquePtr<Nanoapp> nanoapp;                         \
+  static UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>(); \
   if (nanoapp.isNull()) {                                    \
     FATAL_ERROR("Failed to allocate nanoapp " #appName);     \
   } else {                                                   \
