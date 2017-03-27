@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_SLPI_PLATFORM_NANOAPP_BASE_H_
 #define CHRE_PLATFORM_SLPI_PLATFORM_NANOAPP_BASE_H_
 
+#include <cstddef>
 #include <cstdint>
 
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
@@ -30,14 +31,73 @@ namespace chre {
 class PlatformNanoappBase {
  public:
   /**
+   * Copies the supplied application binary data into a new buffer. The
+   * application may be invalid - full checking and initialization happens just
+   * before invoking start() nanoapp entry point.
+   *
+   * @param appId The unique app identifier associated with this binary
+   * @param appVersion An application-defined version number
+   * @param appBinary Buffer containing the complete ELF binary for this
+   *        nanoapp, without any CHRE-specific header
+   * @param appBinaryLen Size of appBinary, in bytes
+   *
+   * @return true if the allocation was successful
+   */
+  bool loadFromBuffer(uint64_t appId, uint32_t appVersion,
+                      const void *appBinary, size_t appBinaryLen);
+
+  /**
    * Associate this PlatformNanoapp with a nanoapp that is statically built into
    * the CHRE binary with the given app info structure.
    */
   void loadStatic(const struct chreNslNanoappInfo *appInfo);
 
+  /**
+   * @return true if the app's binary data is resident in memory, i.e. a
+   *         previous call to loadFromBuffer() or loadStatic() was successful
+   */
+  bool isLoaded() const;
+
  protected:
+  //! The app ID we received in the metadata alongside the nanoapp binary. This
+  //! is also included in (and checked against) mAppInfo.
+  uint64_t mExpectedAppId;
+
+  //! The application-defined version number we received in the metadata
+  //! alongside the nanoapp binary. This is also included in (and checked
+  //! against) mAppInfo.
+  uint32_t mExpectedAppVersion;
+
+  //! Buffer containing the complete DSO binary
+  void *mAppBinary = nullptr;
+  size_t mAppBinaryLen = 0;
+
+  //! The dynamic shared object (DSO) handle returned by dlopen[buf]()
+  void *mDsoHandle = nullptr;
+
   //! Pointer to the app info structure within this nanoapp
   const struct chreNslNanoappInfo *mAppInfo = nullptr;
+
+  //! Set to true if this app is built into the CHRE binary, and was loaded via
+  //! loadStatic(). In this case, the member variables above are not valid or
+  //! applicable.
+  bool mIsStatic = false;
+
+  /**
+   * Calls dlopenbuf on the app binary, and fetches and validates the app info
+   * pointer. This will result in execution of any on-load handlers (e.g. static
+   * global constructors) in the nanoapp.
+   *
+   * @return true if the app was opened successfully and the app info structure
+   *         passed validation
+   */
+  bool openNanoapp();
+
+  /**
+   * Releases the DSO handle if it was active, by calling dlclose(). This will
+   * result in execution of any unload handlers in the nanoapp.
+   */
+  void closeNanoapp();
 };
 
 }  // namespace chre

@@ -21,6 +21,10 @@ struct NanoappListEntry;
 
 struct NanoappListResponse;
 
+struct LoadNanoappRequest;
+
+struct LoadNanoappResponse;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -34,8 +38,10 @@ enum class ChreMessage : uint8_t {
   HubInfoResponse = 3,
   NanoappListRequest = 4,
   NanoappListResponse = 5,
+  LoadNanoappRequest = 6,
+  LoadNanoappResponse = 7,
   MIN = NONE,
-  MAX = NanoappListResponse
+  MAX = LoadNanoappResponse
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -46,6 +52,8 @@ inline const char **EnumNamesChreMessage() {
     "HubInfoResponse",
     "NanoappListRequest",
     "NanoappListResponse",
+    "LoadNanoappRequest",
+    "LoadNanoappResponse",
     nullptr
   };
   return names;
@@ -78,6 +86,14 @@ template<> struct ChreMessageTraits<NanoappListRequest> {
 
 template<> struct ChreMessageTraits<NanoappListResponse> {
   static const ChreMessage enum_value = ChreMessage::NanoappListResponse;
+};
+
+template<> struct ChreMessageTraits<LoadNanoappRequest> {
+  static const ChreMessage enum_value = ChreMessage::LoadNanoappRequest;
+};
+
+template<> struct ChreMessageTraits<LoadNanoappResponse> {
+  static const ChreMessage enum_value = ChreMessage::LoadNanoappResponse;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -568,6 +584,154 @@ inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponseDirect(
       nanoapps ? _fbb.CreateVector<flatbuffers::Offset<NanoappListEntry>>(*nanoapps) : 0);
 }
 
+struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_TRANSACTION_ID = 4,
+    VT_APP_ID = 6,
+    VT_APP_VERSION = 8,
+    VT_TARGET_API_VERSION = 10,
+    VT_APP_BINARY = 12
+  };
+  uint32_t transaction_id() const {
+    return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
+  }
+  uint64_t app_id() const {
+    return GetField<uint64_t>(VT_APP_ID, 0);
+  }
+  uint32_t app_version() const {
+    return GetField<uint32_t>(VT_APP_VERSION, 0);
+  }
+  uint32_t target_api_version() const {
+    return GetField<uint32_t>(VT_TARGET_API_VERSION, 0);
+  }
+  const flatbuffers::Vector<uint8_t> *app_binary() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_APP_BINARY);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
+           VerifyField<uint64_t>(verifier, VT_APP_ID) &&
+           VerifyField<uint32_t>(verifier, VT_APP_VERSION) &&
+           VerifyField<uint32_t>(verifier, VT_TARGET_API_VERSION) &&
+           VerifyFieldRequired<flatbuffers::uoffset_t>(verifier, VT_APP_BINARY) &&
+           verifier.Verify(app_binary()) &&
+           verifier.EndTable();
+  }
+};
+
+struct LoadNanoappRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_transaction_id(uint32_t transaction_id) {
+    fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_TRANSACTION_ID, transaction_id, 0);
+  }
+  void add_app_id(uint64_t app_id) {
+    fbb_.AddElement<uint64_t>(LoadNanoappRequest::VT_APP_ID, app_id, 0);
+  }
+  void add_app_version(uint32_t app_version) {
+    fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_APP_VERSION, app_version, 0);
+  }
+  void add_target_api_version(uint32_t target_api_version) {
+    fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_TARGET_API_VERSION, target_api_version, 0);
+  }
+  void add_app_binary(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> app_binary) {
+    fbb_.AddOffset(LoadNanoappRequest::VT_APP_BINARY, app_binary);
+  }
+  LoadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LoadNanoappRequestBuilder &operator=(const LoadNanoappRequestBuilder &);
+  flatbuffers::Offset<LoadNanoappRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 5);
+    auto o = flatbuffers::Offset<LoadNanoappRequest>(end);
+    fbb_.Required(o, LoadNanoappRequest::VT_APP_BINARY);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t transaction_id = 0,
+    uint64_t app_id = 0,
+    uint32_t app_version = 0,
+    uint32_t target_api_version = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> app_binary = 0) {
+  LoadNanoappRequestBuilder builder_(_fbb);
+  builder_.add_app_id(app_id);
+  builder_.add_app_binary(app_binary);
+  builder_.add_target_api_version(target_api_version);
+  builder_.add_app_version(app_version);
+  builder_.add_transaction_id(transaction_id);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequestDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t transaction_id = 0,
+    uint64_t app_id = 0,
+    uint32_t app_version = 0,
+    uint32_t target_api_version = 0,
+    const std::vector<uint8_t> *app_binary = nullptr) {
+  return chre::fbs::CreateLoadNanoappRequest(
+      _fbb,
+      transaction_id,
+      app_id,
+      app_version,
+      target_api_version,
+      app_binary ? _fbb.CreateVector<uint8_t>(*app_binary) : 0);
+}
+
+struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_TRANSACTION_ID = 4,
+    VT_SUCCESS = 6
+  };
+  uint32_t transaction_id() const {
+    return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
+  }
+  bool success() const {
+    return GetField<uint8_t>(VT_SUCCESS, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
+           VerifyField<uint8_t>(verifier, VT_SUCCESS) &&
+           verifier.EndTable();
+  }
+};
+
+struct LoadNanoappResponseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_transaction_id(uint32_t transaction_id) {
+    fbb_.AddElement<uint32_t>(LoadNanoappResponse::VT_TRANSACTION_ID, transaction_id, 0);
+  }
+  void add_success(bool success) {
+    fbb_.AddElement<uint8_t>(LoadNanoappResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
+  }
+  LoadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LoadNanoappResponseBuilder &operator=(const LoadNanoappResponseBuilder &);
+  flatbuffers::Offset<LoadNanoappResponse> Finish() {
+    const auto end = fbb_.EndTable(start_, 2);
+    auto o = flatbuffers::Offset<LoadNanoappResponse>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t transaction_id = 0,
+    bool success = false) {
+  LoadNanoappResponseBuilder builder_(_fbb);
+  builder_.add_transaction_id(transaction_id);
+  builder_.add_success(success);
+  return builder_.Finish();
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level structure
 /// (root type), so we must wrap it in a table.
@@ -663,6 +827,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::NanoappListResponse: {
       auto ptr = reinterpret_cast<const NanoappListResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LoadNanoappRequest: {
+      auto ptr = reinterpret_cast<const LoadNanoappRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LoadNanoappResponse: {
+      auto ptr = reinterpret_cast<const LoadNanoappResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <fstream>
 #include <thread>
 
 #include <cutils/sockets.h>
@@ -98,7 +99,7 @@ class SocketCallbacks : public SocketClient::ICallbacks,
   }
 
   void handleNanoappListResponse(
-      const fbs::NanoappListResponseT& response) {
+      const fbs::NanoappListResponseT& response) override {
     LOGI("Got nanoapp list response with %zu apps:", response.nanoapps.size());
     for (const std::unique_ptr<fbs::NanoappListEntryT>& nanoapp
            : response.nanoapps) {
@@ -106,6 +107,12 @@ class SocketCallbacks : public SocketClient::ICallbacks,
            "%d", nanoapp->app_id, nanoapp->version, nanoapp->enabled,
            nanoapp->is_system);
     }
+  }
+
+  void handleLoadNanoappResponse(
+      const ::chre::fbs::LoadNanoappResponseT& response) override {
+    LOGI("Got load nanoapp response, transaction ID 0x%" PRIx32 " result %d",
+         response.transaction_id, response.success);
   }
 };
 
@@ -143,7 +150,33 @@ void sendMessageToNanoapp(SocketClient& client) {
   }
 }
 
+void sendLoadNanoappRequest(SocketClient& client, const char *filename) {
+  std::ifstream file(filename, std::ios::binary | std::ios::ate);
+  if (!file) {
+    LOGE("Couldn't open file '%s': %s", filename, strerror(errno));
+    return;
+  }
+  ssize_t size = file.tellg();
+  file.seekg(0, std::ios::beg);
+
+  std::vector<uint8_t> buffer(size);
+  if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
+    LOGE("Couldn't read from file: %s", strerror(errno));
+    return;
+  }
+
+  FlatBufferBuilder builder(size + 128);
+  HostProtocolHost::encodeLoadNanoappRequest(
+      builder, 1, 0x476f6f676c00100b, 0, 0x01000000, buffer);
+
+  LOGI("Sending load nanoapp request (%u bytes total w/%zu bytes of payload)",
+       builder.GetSize(), buffer.size());
+  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    LOGE("Failed to send message");
+  }
 }
+
+}  // anonymous namespace
 
 int main() {
   int ret = -1;
@@ -156,6 +189,7 @@ int main() {
     requestHubInfo(client);
     requestNanoappList(client);
     sendMessageToNanoapp(client);
+    sendLoadNanoappRequest(client, "/data/activity.so");
 
     LOGI("Sleeping, waiting on responses");
     std::this_thread::sleep_for(std::chrono::seconds(5));

@@ -100,6 +100,15 @@ bool HostProtocolHost::decodeMessageFromChre(
         break;
       }
 
+      case fbs::ChreMessage::LoadNanoappResponse: {
+        const auto *resp = static_cast<const fbs::LoadNanoappResponse *>(
+            container->message());
+        fbs::LoadNanoappResponseT response;
+        resp->UnPackTo(&response);
+        handlers.handleLoadNanoappResponse(response);
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -113,6 +122,16 @@ bool HostProtocolHost::decodeMessageFromChre(
 void HostProtocolHost::encodeHubInfoRequest(FlatBufferBuilder& builder) {
   auto request = fbs::CreateHubInfoRequest(builder);
   finalize(builder, fbs::ChreMessage::HubInfoRequest, request.Union());
+}
+
+void HostProtocolHost::encodeLoadNanoappRequest(
+    FlatBufferBuilder& builder, uint32_t transactionId, uint64_t appId,
+    uint32_t appVersion, uint32_t targetApiVersion,
+    const std::vector<uint8_t>& nanoappBinary) {
+  auto appBinary = builder.CreateVector(nanoappBinary);
+  auto request = fbs::CreateLoadNanoappRequest(
+      builder, transactionId, appId, appVersion, targetApiVersion, appBinary);
+  finalize(builder, fbs::ChreMessage::LoadNanoappRequest, request.Union());
 }
 
 void HostProtocolHost::encodeNanoappListRequest(FlatBufferBuilder& builder) {
@@ -140,7 +159,9 @@ bool HostProtocolHost::mutateHostClientId(void *message, size_t messageLen,
                                           uint16_t hostClientId) {
   bool success = verifyMessage(message, messageLen);
 
-  if (success) {
+  if (!success) {
+    LOGE("Message verification failed - can't mutate host ID");
+  } else {
     fbs::MessageContainer *container = fbs::GetMutableMessageContainer(message);
     // host_addr guaranteed to be non-null via verifyMessage (it's a required
     // field)

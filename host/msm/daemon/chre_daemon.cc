@@ -40,6 +40,8 @@
  * should be fully converted to C++.
  */
 
+#define LOG_NDEBUG 0  // TODO: for initial testing only
+
 #include <ctype.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -82,7 +84,13 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
   char line_chars[32];
   int offset_chars = 0;
 
-  LOGD("Dumping buffer of size %zu bytes", size);
+  size_t orig_size = size;
+  if (size > 128) {
+    size = 128;
+    LOGV("Dumping first 128 bytes of buffer of size %zu", orig_size);
+  } else {
+    LOGV("Dumping buffer of size %zu bytes", size);
+  }
   for (size_t i = 1; i <= size; ++i) {
     offset += snprintf(&line[offset], sizeof(line) - offset, "%02x ",
                        buffer[i - 1]);
@@ -90,7 +98,7 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
         &line_chars[offset_chars], sizeof(line_chars) - offset_chars,
         "%c", (isprint(buffer[i - 1])) ? buffer[i - 1] : '.');
     if ((i % 8) == 0) {
-      LOGD("  %s\t%s", line, line_chars);
+      LOGV("  %s\t%s", line, line_chars);
       offset = 0;
       offset_chars = 0;
     } else if ((i % 4) == 0) {
@@ -106,7 +114,7 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
       offset += 8;
     }
     *pos = '\0';
-    LOGD("  %s%s%s", line, tabs, line_chars);
+    LOGV("  %s%s%s", line, tabs, line_chars);
   }
 }
 

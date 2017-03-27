@@ -80,6 +80,9 @@ class GenericContextHub : public IContexthub {
     void handleNanoappListResponse(
         const ::chre::fbs::NanoappListResponseT& response) override;
 
+    void handleLoadNanoappResponse(
+      const ::chre::fbs::LoadNanoappResponseT& response) override;
+
    private:
     GenericContextHub& mParent;
   };

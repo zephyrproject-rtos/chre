@@ -28,6 +28,7 @@
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
+#include "chre/util/unique_ptr.h"
 #include "chre_api/chre/version.h"
 
 using flatbuffers::FlatBufferBuilder;
@@ -46,11 +47,19 @@ union HostClientIdCallbackData {
 static_assert(sizeof(uint16_t) <= sizeof(void*),
               "Pointer must at least fit a u16 for passing the host client ID");
 
+struct LoadNanoappCallbackData {
+  uint64_t appId;
+  uint32_t transactionId;
+  uint16_t hostClientId;
+  UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();
+};
+
 enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
   HubInfoResponse,
   NanoappListResponse,
+  LoadNanoappResponse,
 };
 
 struct PendingMessage {
@@ -155,6 +164,33 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
   }
 }
 
+void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
+  UniquePtr<LoadNanoappCallbackData> cbData(
+      static_cast<LoadNanoappCallbackData *>(data));
+
+  EventLoop *eventLoop = getCurrentEventLoop();
+  bool startedSuccessfully = (cbData->nanoapp->isLoaded()) ?
+      eventLoop->startNanoapp(cbData->nanoapp) : false;
+
+  constexpr size_t kInitialBufferSize = 48;
+  auto *builder = memoryAlloc<FlatBufferBuilder>(kInitialBufferSize);
+  if (builder == nullptr) {
+    LOGE("Couldn't allocate memory for load nanoapp response");
+  } else {
+    HostProtocolChre::encodeLoadNanoappResponse(
+        *builder, cbData->hostClientId, cbData->transactionId,
+        startedSuccessfully);
+
+    // TODO: if this fails, ideally we should block for some timeout until
+    // there's space in the queue (like up to 1 second)
+    if (!gOutboundQueue.push(PendingMessage(
+            PendingMessageType::LoadNanoappResponse, builder))) {
+      LOGE("Couldn't push load nanoapp response to outbound queue");
+      memoryFree(builder);
+    }
+  }
+}
+
 int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
                           size_t bufferSize, unsigned int *messageLen) {
   // TODO: ideally we'd construct our flatbuffer directly in the
@@ -205,7 +241,7 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
   return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 }
 
-int generateNanoappListResponse(
+int generateMessageFromBuilder(
     FlatBufferBuilder *builder, unsigned char *buffer, size_t bufferSize,
     unsigned int *messageLen) {
   CHRE_ASSERT(builder != nullptr);
@@ -256,8 +292,9 @@ extern "C" int chre_slpi_get_message_to_host(
         break;
 
       case PendingMessageType::NanoappListResponse:
-        result = generateNanoappListResponse(pendingMsg.data.builder,
-                                             buffer, bufferSize, messageLen);
+      case PendingMessageType::LoadNanoappResponse:
+        result = generateMessageFromBuilder(pendingMsg.data.builder,
+                                            buffer, bufferSize, messageLen);
         break;
 
       default:
@@ -366,6 +403,35 @@ void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::NanoappListResponse, cbData.ptr,
       constructNanoappListCallback);
+}
+
+void HostMessageHandlers::handleLoadNanoappRequest(
+    uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
+    uint32_t appVersion, uint32_t targetApiVersion, const void *appBinary,
+    size_t appBinaryLen) {
+  auto cbData = MakeUnique<LoadNanoappCallbackData>();
+
+  LOGD("Got load nanoapp request (txnId %" PRIu32 ") for appId 0x%016" PRIx64
+       " version 0x%" PRIx32 " target API version 0x%08" PRIx32 " size %zu",
+       transactionId, appId, appVersion, targetApiVersion, appBinaryLen);
+  if (cbData.isNull() || cbData->nanoapp.isNull()) {
+    LOGE("Couldn't allocate load nanoapp callback data");
+  } else {
+    cbData->transactionId = transactionId;
+    cbData->hostClientId  = hostClientId;
+    cbData->appId = appId;
+
+    // Note that if this fails, we'll generate the error response in
+    // the normal deferred callback
+    cbData->nanoapp->loadFromBuffer(appId, appVersion, appBinary, appBinaryLen);
+    if (!EventLoopManagerSingleton::get()->deferCallback(
+            SystemCallbackType::FinishLoadingNanoapp, cbData.get(),
+            finishLoadingNanoappCallback)) {
+      LOGE("Couldn't post callback to finish loading nanoapp");
+    } else {
+      cbData.release();
+    }
+  }
 }
 
 }  // namespace chre
