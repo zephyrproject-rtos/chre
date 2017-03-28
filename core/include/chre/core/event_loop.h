@@ -88,9 +88,10 @@ class EventLoop : public NonCopyable {
 
   /**
    * Stops a nanoapp by invoking the stop entry point. The nanoapp passed in
-   * must have been previously started by the startNanoapp method.
+   * must have been previously started by the startNanoapp method. After this
+   * function returns, all references to the Nanoapp are invalid.
    *
-   * @param A pointer to the nanoapp to stop.
+   * @param nanoapp A pointer to the nanoapp to stop.
    */
   void stopNanoapp(Nanoapp *nanoapp);
 
@@ -113,13 +114,16 @@ class EventLoop : public NonCopyable {
    *
    * This function is safe to call from any thread.
    *
-   * @param The type of data being posted.
-   * @param The data being posted.
-   * @param The callback to invoke when the event is no longer needed.
-   * @param The instance ID of the sender of this event.
-   * @param The instance ID of the destination of this event.
+   * @param eventType The type of data being posted.
+   * @param eventData The data being posted.
+   * @param freeCallback The callback to invoke when the event is no longer
+   *        needed.
+   * @param senderInstanceId The instance ID of the sender of this event.
+   * @param targetInstanceId The instance ID of the destination of this event.
    *
    * @return true if the event was successfully added to the queue
+   *
+   * @see chreSendEvent
    */
   bool postEvent(uint16_t eventType, void *eventData,
                  chreEventCompleteFunction *freeCallback,
@@ -196,6 +200,15 @@ class EventLoop : public NonCopyable {
   Nanoapp *mCurrentApp = nullptr;
 
   /**
+   * Delivers the next event pending in the Nanoapp's queue, and takes care of
+   * freeing events once they have been delivered to all nanoapps. Must only be
+   * called after confirming that the app has at least 1 pending event.
+   *
+   * @return true if the nanoapp has another event pending in its queue
+   */
+  bool deliverNextEvent(const UniquePtr<Nanoapp>& app);
+
+  /**
    * Call after when an Event has been delivered to all intended recipients.
    * Invokes the event's free callback (if given) and releases resources.
    *
@@ -212,6 +225,11 @@ class EventLoop : public NonCopyable {
    * @return Nanoapp with the given instanceId, or nullptr if not found
    */
   Nanoapp *lookupAppByInstanceId(uint32_t instanceId);
+
+  /**
+   * Stops the Nanoapp at the given index in mNanoapps
+   */
+  void stopNanoapp(size_t index);
 };
 
 }  // namespace chre

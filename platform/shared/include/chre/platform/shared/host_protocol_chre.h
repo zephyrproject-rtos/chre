@@ -38,7 +38,13 @@ class HostMessageHandlers {
     const void *messageData, size_t messageDataLen);
 
   static void handleHubInfoRequest(uint16_t hostClientId);
+
   static void handleNanoappListRequest(uint16_t hostClientId);
+
+  static void handleLoadNanoappRequest(
+      uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
+      uint32_t appVersion, uint32_t targetApiVersion, const void *appBinary,
+      size_t appBinaryLen);
 };
 
 /**
@@ -109,6 +115,14 @@ class HostProtocolChre : public HostProtocolCommon {
       flatbuffers::FlatBufferBuilder& builder,
       DynamicVector<NanoappListEntryOffset>& offsetVector,
       uint16_t hostClientId);
+
+  /**
+   * Encodes a response to the host communicating the result of dynamically
+   * loading a nanoapp.
+   */
+  static void encodeLoadNanoappResponse(
+      flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+      uint32_t transactionId, bool success);
 };
 
 }  // namespace chre

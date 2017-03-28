@@ -59,6 +59,17 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         HostMessageHandlers::handleNanoappListRequest(hostClientId);
         break;
 
+      case fbs::ChreMessage::LoadNanoappRequest: {
+        const auto *request = static_cast<const fbs::LoadNanoappRequest *>(
+            container->message());
+        const flatbuffers::Vector<uint8_t> *appBinary = request->app_binary();
+        HostMessageHandlers::handleLoadNanoappRequest(
+            hostClientId, request->transaction_id(), request->app_id(),
+            request->app_version(), request->target_api_version(),
+            appBinary->data(), appBinary->size());
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -106,6 +117,15 @@ void HostProtocolChre::finishNanoappListResponse(
       offsetVector);
   auto response = fbs::CreateNanoappListResponse(builder, vectorOffset);
   finalize(builder, fbs::ChreMessage::NanoappListResponse, response.Union(),
+           hostClientId);
+}
+
+void HostProtocolChre::encodeLoadNanoappResponse(
+    flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+    uint32_t transactionId, bool success) {
+  auto response = fbs::CreateLoadNanoappResponse(builder, transactionId,
+                                                 success);
+  finalize(builder, fbs::ChreMessage::LoadNanoappResponse, response.Union(),
            hostClientId);
 }
 

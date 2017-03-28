@@ -25,43 +25,79 @@
 namespace chre {
 
 /**
- * An interface for calling into nanoapp entry points and managing the
- * lifecycle of a nanoapp.
- *
- * TODO: Look at unloading the app and freeing events that originate from this
- * nanoapp.
+ * The common interface to Nanoapp functionality that has platform-specific
+ * implementation but must be supported for every platform.
  */
 class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
  public:
+  /**
+   * Unloads the nanoapp from memory.
+   */
   ~PlatformNanoapp();
 
   /**
-   * Calls the start function of the nanoapp.
+   * Calls the start function of the nanoapp. For dynamically loaded nanoapps,
+   * this must also result in calling through to any of the nanoapp's static
+   * global constructors/init functions, etc., prior to invoking the
+   * nanoappStart.
    *
    * @return true if the app was able to start successfully
+   *
+   * @see nanoappStart
    */
   bool start();
 
   /**
-   * Calls the handleEvent function of the nanoapp.
+   * Passes an event to the nanoapp.
    *
-   * @param the instance ID of the sender
-   * @param the type of the event being sent
-   * @param the data passed in
+   * @see nanoappHandleEvent
    */
-  void handleEvent(uint32_t senderInstanceId,
-                   uint16_t eventType,
+  void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                    const void *eventData);
 
   /**
-   * Calls the nanoapp's end callback.
+   * Calls the nanoapp's end callback. For dynamically loaded nanoapps, this
+   * must also result in calling through to any of the nanoapp's static global
+   * destructors, atexit functions, etc., after nanoappEnd returns.
+   *
+   * This function must leave the nanoapp in a state where it can be started
+   * again via start().
+   *
+   * After this function returns, the only
+   *
+   * @see nanoappEnd
    */
   void end();
 
+  /**
+   * Retrieves the nanoapp's 64-bit identifier. This function must always return
+   * a valid identifier - either the one supplied by the host via the HAL (from
+   * the header), or the authoritative value inside the nanoapp binary if one
+   * exists. In the event that both are available and they do not match, the
+   * platform implementation must return false from start().
+   */
   uint64_t getAppId() const;
+
+  /**
+   * Retrieves the nanoapp's own version number. The same restrictions apply
+   * here as for getAppId().
+   *
+   * @see #getAppId
+   */
   uint32_t getAppVersion() const;
-  uint32_t getInstanceId() const;
+
+  /**
+   * Retrieves the API version that this nanoapp was compiled against. This
+   * function must only be called while the nanoapp is running (i.e. between
+   * calls to start() and end()).
+   */
   uint32_t getTargetApiVersion() const;
+
+  /**
+   * Returns true if the nanoapp should not appear in the context hub HAL list
+   * of nanoapps, e.g. because it implements some device functionality purely
+   * beneath the HAL.
+   */
   bool isSystemNanoapp() const;
 };
 

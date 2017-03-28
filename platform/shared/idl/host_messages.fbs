@@ -82,6 +82,23 @@ table NanoappListResponse {
   nanoapps:[NanoappListEntry] (required);
 }
 
+table LoadNanoappRequest {
+  transaction_id:uint;
+
+  app_id:ulong;
+  app_version:uint;
+  target_api_version:uint;
+
+  app_binary:[ubyte] (required);
+}
+
+table LoadNanoappResponse {
+  transaction_id:uint;
+  success:bool;
+
+  // TODO: detailed error code?
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -92,6 +109,9 @@ union ChreMessage {
 
   NanoappListRequest,
   NanoappListResponse,
+
+  LoadNanoappRequest,
+  LoadNanoappResponse,
 
   // TODO: extend with system-specific messages, e.g. load app command, etc.
 }

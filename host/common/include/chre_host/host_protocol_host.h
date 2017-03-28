@@ -48,6 +48,9 @@ class IChreMessageHandlers {
 
   virtual void handleNanoappListResponse(
       const ::chre::fbs::NanoappListResponseT& response) = 0;
+
+  virtual void handleLoadNanoappResponse(
+      const ::chre::fbs::LoadNanoappResponseT& response) = 0;
 };
 
 /**
@@ -79,6 +82,18 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *        construct the message
    */
   static void encodeHubInfoRequest(flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Encodes a message requesting to load a nanoapp specified by the included
+   * binary payload and metadata.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeLoadNanoappRequest(
+      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
+      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
+      const std::vector<uint8_t>& nanoappBinary);
 
   /**
    * Encodes a message requesting the list of loaded nanoapps from CHRE

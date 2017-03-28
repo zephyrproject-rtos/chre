@@ -15,6 +15,7 @@
  */
 
 #define LOG_TAG "ContextHubHal"
+#define LOG_NDEBUG 0
 
 #include "generic_context_hub.h"
 
@@ -33,6 +34,7 @@ namespace implementation {
 using ::android::hardware::Return;
 using ::android::hardware::contexthub::V1_0::AsyncEventType;
 using ::android::hardware::contexthub::V1_0::Result;
+using ::android::hardware::contexthub::V1_0::TransactionResult;
 using ::android::chre::HostProtocolHost;
 using ::flatbuffers::FlatBufferBuilder;
 
@@ -150,12 +152,30 @@ Return<Result> GenericContextHub::sendMessageToHub(uint32_t hubId,
 
 Return<Result> GenericContextHub::loadNanoApp(
     uint32_t hubId, const NanoAppBinary& appBinary, uint32_t transactionId) {
-  // TODO
-  UNUSED(hubId);
-  UNUSED(appBinary);
-  UNUSED(transactionId);
+  Result result;
   ALOGV("%s", __func__);
-  return Result::UNKNOWN_FAILURE;
+
+  if (hubId != kDefaultHubId) {
+    result = Result::BAD_PARAMS;
+  } else {
+    FlatBufferBuilder builder(128 + appBinary.customBinary.size());
+    uint32_t targetApiVersion = (appBinary.targetChreApiMajorVersion << 24) |
+                                (appBinary.targetChreApiMinorVersion << 16);
+    HostProtocolHost::encodeLoadNanoappRequest(
+        builder, transactionId, appBinary.appId, appBinary.appVersion,
+        targetApiVersion, appBinary.customBinary);
+    if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+      result = Result::UNKNOWN_FAILURE;
+    } else {
+      result = Result::OK;
+    }
+  }
+
+  ALOGD("Attempted to send load nanoapp request for app of size %zu with ID "
+        "0x%016" PRIx64 " as transaction ID %" PRIu32 ": result %" PRIu32,
+        appBinary.customBinary.size(), appBinary.appId, transactionId, result);
+
+  return result;
 }
 
 Return<Result> GenericContextHub::unloadNanoApp(
@@ -189,9 +209,21 @@ Return<Result> GenericContextHub::disableNanoApp(
 }
 
 Return<Result> GenericContextHub::queryApps(uint32_t hubId) {
-  // TODO
-  UNUSED(hubId);
+  Result result;
   ALOGV("%s", __func__);
+
+  if (hubId != kDefaultHubId) {
+    result = Result::BAD_PARAMS;
+  } else {
+    FlatBufferBuilder builder(64);
+    HostProtocolHost::encodeNanoappListRequest(builder);
+    if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+      result = Result::UNKNOWN_FAILURE;
+    } else {
+      result = Result::OK;
+    }
+  }
+
   return Result::UNKNOWN_FAILURE;
 }
 
@@ -307,6 +339,16 @@ void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
 
   // TODO: make this thread-safe w/setCallback
   mParent.mCallbacks->handleAppsInfo(appInfoList);
+}
+
+void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
+    const ::chre::fbs::LoadNanoappResponseT& response) {
+  ALOGV("Got load nanoapp response for transaction %" PRIu32 " with result %d",
+        response.transaction_id, response.success);
+
+  TransactionResult result = (response.success) ?
+      TransactionResult::SUCCESS : TransactionResult::FAILURE;
+  mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
 }
 
 IContexthub* HIDL_FETCH_IContexthub(const char* /* name */) {

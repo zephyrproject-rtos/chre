@@ -29,6 +29,8 @@ namespace chre {
  */
 class EventRefQueue {
  public:
+  ~EventRefQueue();
+
   /**
    * @return true if there are no events in the queue
    */
