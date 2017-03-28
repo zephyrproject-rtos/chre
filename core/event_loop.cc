@@ -143,6 +143,8 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
     LOGE("Failed to allocate space for new nanoapp");
   } else {
     nanoapp->setInstanceId(eventLoopManager->getNextInstanceId());
+    LOGD("Instance ID %" PRIu32 " assigned to app ID 0x%016" PRIx64,
+         nanoapp->getInstanceId(), nanoapp->getAppId());
     mCurrentApp = nanoapp.get();
     success = nanoapp->start();
     mCurrentApp = nullptr;

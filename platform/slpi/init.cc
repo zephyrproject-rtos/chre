@@ -25,12 +25,12 @@ extern "C" {
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
-#include "chre/core/nanoapp.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
-#include "chre/platform/platform_nanoapp.h"
 #include "chre/platform/slpi/fastrpc.h"
+#include "chre/platform/slpi/preloaded_nanoapps.h"
 #include "chre/platform/static_nanoapps.h"
 #include "chre/util/lock_guard.h"
 
@@ -39,6 +39,12 @@ using chre::LockGuard;
 using chre::Mutex;
 
 extern "C" int chre_slpi_stop_thread(void);
+
+// Qualcomm-defined function needed to indicate that the CHRE thread may call
+// dlopen() (without it, the thread will deadlock when calling dlopen()). Not in
+// any header file in the SLPI tree or Hexagon SDK (3.0), so declaring here.
+// Returns 0 to indicate success.
+extern "C" int HAP_thread_migrate(qurt_thread_t thread);
 
 namespace {
 
@@ -49,6 +55,11 @@ constexpr size_t kStackSize = (8 * 1024);
 //! which controls micro-image support (0 = big image, 1 = micro image).
 //! @see qurt_thread_attr_set_tcb_partition
 constexpr unsigned char kTcbPartition = 0;
+
+//! The priority to set for the CHRE thread (value between 1-255, with 1 being
+//! the highest).
+//! @see qurt_thread_attr_set_priority
+constexpr unsigned short kThreadPriority = 192;
 
 //! How long we wait (in microseconds) between checks on whether the CHRE thread
 //! has exited after we invoked stop().
@@ -104,6 +115,7 @@ void chreThreadEntry(void * /*data*/) {
     LOGE("Failed to create event loop!");
   } else {
     loadStaticNanoapps(gEventLoop);
+    loadPreloadedNanoapps(gEventLoop);
     gEventLoop->run();
   }
 
@@ -147,15 +159,18 @@ extern "C" int chre_slpi_start_thread(void) {
     qurt_thread_attr_t attributes;
 
     qurt_thread_attr_init(&attributes);
+    qurt_thread_attr_set_name(&attributes, threadName);
+    qurt_thread_attr_set_priority(&attributes, kThreadPriority);
     qurt_thread_attr_set_stack_addr(&attributes, &gStack);
     qurt_thread_attr_set_stack_size(&attributes, kStackSize);
-    qurt_thread_attr_set_name(&attributes, threadName);
     qurt_thread_attr_set_tcb_partition(&attributes, kTcbPartition);
 
     int result = qurt_thread_create(&gThreadHandle, &attributes,
                                     chreThreadEntry, nullptr);
     if (result != QURT_EOK) {
       LOGE("Couldn't create CHRE thread: %d", result);
+    } else if (HAP_thread_migrate(gThreadHandle) != 0) {
+      FATAL_ERROR("Couldn't migrate thread");
     } else {
       LOGD("Started CHRE thread");
       gThreadRunning = true;
