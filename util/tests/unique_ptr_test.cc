@@ -3,6 +3,7 @@
 #include "chre/util/unique_ptr.h"
 
 using chre::UniquePtr;
+using chre::MakeUnique;
 
 struct Value {
   Value(int value) : value(value) {
@@ -25,7 +26,7 @@ struct Value {
 int Value::constructionCounter = 0;
 
 TEST(UniquePtr, Construct) {
-  UniquePtr<Value> myInt(0xcafe);
+  UniquePtr<Value> myInt = MakeUnique<Value>(0xcafe);
   ASSERT_FALSE(myInt.isNull());
   EXPECT_EQ(myInt.get()->value, 0xcafe);
   EXPECT_EQ(myInt->value, 0xcafe);
@@ -33,15 +34,25 @@ TEST(UniquePtr, Construct) {
   EXPECT_EQ(myInt[0].value, 0xcafe);
 }
 
+TEST(UniquePtr, MoveConstruct) {
+  UniquePtr<Value> myInt = MakeUnique<Value>(0xcafe);
+  ASSERT_FALSE(myInt.isNull());
+  Value *value = myInt.get();
+
+  UniquePtr<Value> moved(std::move(myInt));
+  EXPECT_EQ(moved.get(), value);
+  EXPECT_EQ(myInt.get(), nullptr);
+}
+
 TEST(UniquePtr, Move) {
   Value::constructionCounter = 0;
 
   {
-    UniquePtr<Value> myInt(0xcafe);
+    UniquePtr<Value> myInt = MakeUnique<Value>(0xcafe);
     ASSERT_FALSE(myInt.isNull());
     EXPECT_EQ(Value::constructionCounter, 1);
 
-    UniquePtr<Value> myMovedInt(0);
+    UniquePtr<Value> myMovedInt = MakeUnique<Value>(0);
     ASSERT_FALSE(myMovedInt.isNull());
     EXPECT_EQ(Value::constructionCounter, 2);
     myMovedInt = std::move(myInt);
@@ -58,7 +69,7 @@ TEST(UniquePtr, Release) {
 
   Value *value1, *value2;
   {
-    UniquePtr<Value> myInt(0xcafe);
+    UniquePtr<Value> myInt = MakeUnique<Value>(0xcafe);
     ASSERT_FALSE(myInt.isNull());
     EXPECT_EQ(Value::constructionCounter, 1);
     value1 = myInt.get();

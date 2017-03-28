@@ -23,20 +23,33 @@ namespace chre {
 
 /**
  * Wraps a pointer to a dynamically allocated object and manages the underlying
- * memory. The goal is to be similar to std::unique_ptr.
+ * memory. The goal is to be similar to std::unique_ptr, but we do not support
+ * custom deleters - deletion is always done via memoryFree().
  */
 template<typename ObjectType>
 class UniquePtr : public NonCopyable {
  public:
   /**
-   * Allocates and constructs a new object of type ObjectType on the heap. If
-   * memory allocation fails the constructor is not invoked. This constructor is
-   * similar to std::make_unique.
-   *
-   * @param args The arguments to pass to the object's constructor.
+   * Construct a UniquePtr instance that does not own any object.
    */
-  template<typename... Args>
-  UniquePtr(Args&&... args);
+  UniquePtr();
+
+  /**
+   * Constructs a UniquePtr instance that owns the given object, and will free
+   * its memory when the UniquePtr is destructed.
+   *
+   * @param object Pointer to an object allocated via memoryAlloc. It is not
+   *        valid for this object's memory to come from any other source,
+   *        including the stack, or static allocation on the heap.
+   */
+  UniquePtr(ObjectType *object);
+
+  /**
+   * Constructs a new UniquePtr via moving the Object from another UniquePtr.
+   *
+   * @param other UniquePtr instance to move into this object
+   */
+  UniquePtr(UniquePtr<ObjectType>&& other);
 
   /**
    * Deconstructs the object (if necessary) and releases associated memory.
@@ -44,9 +57,9 @@ class UniquePtr : public NonCopyable {
   ~UniquePtr();
 
   /**
-   * Determines if the object was constructed correctly.
+   * Determines if this UniquePtr owns an object, or references null.
    *
-   * @return true if the object is null and not constructed.
+   * @return true if get() returns nullptr
    */
   bool isNull() const;
 
@@ -59,7 +72,7 @@ class UniquePtr : public NonCopyable {
   /**
    * Releases ownership of the underlying object, so it will not be freed when
    * this object is destructed. After this function returns, get() will return
-   * null.
+   * nullptr.
    *
    * @return A pointer to the underlying object (i.e. what get() would return
    *         prior to this function call)
@@ -95,6 +108,16 @@ class UniquePtr : public NonCopyable {
   //! A pointer to the underlying storage for this object.
   ObjectType *mObject;
 };
+
+/**
+ * Allocates and constructs a new object of type ObjectType on the heap, and
+ * returns a UniquePtr that owns the object. This function is similar to
+ * std::make_unique.
+ *
+ * @param args The arguments to pass to the object's constructor.
+ */
+template<typename ObjectType, typename... Args>
+UniquePtr<ObjectType> MakeUnique(Args&&... args);
 
 }  // namespace chre
 

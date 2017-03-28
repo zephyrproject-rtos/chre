@@ -38,6 +38,14 @@ namespace {
 
 constexpr size_t kOutboundQueueSize = 32;
 
+//! Used to pass the client ID through the user data pointer in deferCallback
+union HostClientIdCallbackData {
+  uint16_t hostClientId;
+  void *ptr;
+};
+static_assert(sizeof(uint16_t) <= sizeof(void*),
+              "Pointer must at least fit a u16 for passing the host client ID");
+
 enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
@@ -46,9 +54,15 @@ enum class PendingMessageType {
 };
 
 struct PendingMessage {
-  PendingMessage(PendingMessageType msgType, const void *msgData = nullptr) {
+  PendingMessage(PendingMessageType msgType, uint16_t hostClientId) {
     type = msgType;
-    data.data = msgData;
+    data.hostClientId = hostClientId;
+  }
+
+  PendingMessage(PendingMessageType msgType,
+                 const MessageToHost *msgToHost = nullptr) {
+    type = msgType;
+    data.msgToHost = msgToHost;
   }
 
   PendingMessage(PendingMessageType msgType, FlatBufferBuilder *builder) {
@@ -59,7 +73,7 @@ struct PendingMessage {
   PendingMessageType type;
   union {
     const MessageToHost *msgToHost;
-    const void *data;
+    uint16_t hostClientId;
     FlatBufferBuilder *builder;
   } data;
 };
@@ -78,7 +92,6 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
          size, bufferSize);
     result = CHRE_FASTRPC_ERROR;
   } else {
-    LOGD("Copy %zu bytes to buffer @ %p", size, buffer);
     memcpy(buffer, data, size);
     *messageLen = size;
     result = CHRE_FASTRPC_SUCCESS;
@@ -87,10 +100,12 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
   return result;
 }
 
-
-void constructNanoappListCallback(uint16_t /*eventType*/, void * /*data*/) {
+void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
   constexpr size_t kFixedOverhead = 56;
   constexpr size_t kPerNanoappSize = 16;
+
+  HostClientIdCallbackData clientIdCbData;
+  clientIdCbData.ptr = deferCbData;
 
   // TODO: need to add support for getting apps from multiple event loops
   bool pushed = false;
@@ -125,7 +140,8 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void * /*data*/) {
     // Add a NanoappListEntry to the FlatBuffer for each nanoapp
     CallbackData cbData(*builder, nanoappEntries);
     eventLoop->forEachNanoapp(callback, &cbData);
-    HostProtocolChre::finishNanoappListResponse(*builder, nanoappEntries);
+    HostProtocolChre::finishNanoappListResponse(*builder, nanoappEntries,
+                                                clientIdCbData.hostClientId);
 
     pushed = gOutboundQueue.push(
         PendingMessage(PendingMessageType::NanoappListResponse, builder));
@@ -159,8 +175,8 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
   return result;
 }
 
-int generateHubInfoResponse(unsigned char *buffer, size_t bufferSize,
-                            unsigned int *messageLen) {
+int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
+                            size_t bufferSize, unsigned int *messageLen) {
   constexpr size_t kInitialBufferSize = 192;
 
   constexpr char kHubName[] = "CHRE on SLPI";
@@ -184,7 +200,7 @@ int generateHubInfoResponse(unsigned char *buffer, size_t bufferSize,
       builder, kHubName, kVendor, kToolchain, kLegacyPlatformVersion,
       kLegacyToolchainVersion, kPeakMips, kStoppedPower, kSleepPower,
       kPeakPower, CHRE_MESSAGE_TO_HOST_MAX_SIZE, chreGetPlatformId(),
-      chreGetVersion());
+      chreGetVersion(), hostClientId);
 
   return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 }
@@ -235,7 +251,8 @@ extern "C" int chre_slpi_get_message_to_host(
         break;
 
       case PendingMessageType::HubInfoResponse:
-        result = generateHubInfoResponse(buffer, bufferSize, messageLen);
+        result = generateHubInfoResponse(pendingMsg.data.hostClientId, buffer,
+                                         bufferSize, messageLen);
         break;
 
       case PendingMessageType::NanoappListResponse:
@@ -248,6 +265,7 @@ extern "C" int chre_slpi_get_message_to_host(
     }
   }
 
+  LOGD("Returning message to host (result %d length %u)", result, *messageLen);
   return result;
 }
 
@@ -334,14 +352,19 @@ void HostMessageHandlers::handleNanoappMessage(
       appId, messageType, hostEndpoint, messageData, messageDataLen);
 }
 
-void HostMessageHandlers::handleHubInfoRequest() {
+void HostMessageHandlers::handleHubInfoRequest(uint16_t hostClientId) {
   // We generate the response in the context of chre_slpi_get_message_to_host
-  gOutboundQueue.push(PendingMessage(PendingMessageType::HubInfoResponse));
+  LOGD("Got hub info request from client ID %" PRIu16, hostClientId);
+  gOutboundQueue.push(PendingMessage(
+      PendingMessageType::HubInfoResponse, hostClientId));
 }
 
-void HostMessageHandlers::handleNanoappListRequest() {
+void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
+  LOGD("Got nanoapp list request from client ID %" PRIu16, hostClientId);
+  HostClientIdCallbackData cbData = {};
+  cbData.hostClientId = hostClientId;
   EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::NanoappListResponse, nullptr,
+      SystemCallbackType::NanoappListResponse, cbData.ptr,
       constructNanoappListCallback);
 }
 

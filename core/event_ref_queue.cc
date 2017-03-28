@@ -14,23 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_APPS_APPS_H_
-#define CHRE_APPS_APPS_H_
+#include "chre/core/event_ref_queue.h"
 
-#include "chre/core/nanoapp.h"
-#include "chre/util/unique_ptr.h"
+#include "chre/platform/assert.h"
 
 namespace chre {
 
-extern UniquePtr<Nanoapp> *gNanoappGnssWorld;
-extern UniquePtr<Nanoapp> *gNanoappHelloWorld;
-extern UniquePtr<Nanoapp> *gNanoappImuCal;
-extern UniquePtr<Nanoapp> *gNanoappMessageWorld;
-extern UniquePtr<Nanoapp> *gNanoappSensorWorld;
-extern UniquePtr<Nanoapp> *gNanoappTimerWorld;
-extern UniquePtr<Nanoapp> *gNanoappWifiWorld;
-extern UniquePtr<Nanoapp> *gNanoappWwanWorld;
+bool EventRefQueue::empty() const {
+  return mQueue.empty();
+}
 
-} // namespace chre
+bool EventRefQueue::push(Event *event) {
+  CHRE_ASSERT(event != nullptr);
 
-#endif  // CHRE_APPS_APPS_H_
+  bool pushed = mQueue.push(event);
+  if (pushed) {
+    event->incrementRefCount();
+  }
+
+  return pushed;
+}
+
+Event *EventRefQueue::pop() {
+  CHRE_ASSERT(!mQueue.empty());
+
+  Event *event = mQueue.front();
+  mQueue.pop();
+  event->decrementRefCount();
+
+  return event;
+}
+
+}  // namespace chre

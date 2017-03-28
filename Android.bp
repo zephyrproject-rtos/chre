@@ -36,6 +36,10 @@ cc_library_static {
 cc_binary {
     name: "chre_test_client",
     proprietary: true,
+    local_include_dirs: [
+        "chre_api/include/chre_api",
+        "util/include",
+    ],
     srcs: [
         "host/common/test/chre_test_client.cc",
     ],

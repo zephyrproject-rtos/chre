@@ -17,12 +17,13 @@
 #ifndef CHRE_UTIL_DYNAMIC_VECTOR_IMPL_H_
 #define CHRE_UTIL_DYNAMIC_VECTOR_IMPL_H_
 
-#include <algorithm>
+#include <memory>
+#include <new>
 #include <utility>
 
 #include "chre/platform/assert.h"
 #include "chre/platform/memory.h"
-#include "chre/util/dynamic_vector.h"
+#include "chre/util/memory.h"
 
 namespace chre {
 
@@ -51,9 +52,7 @@ DynamicVector<ElementType>::~DynamicVector() {
 
 template <typename ElementType>
 void DynamicVector<ElementType>::clear() {
-  for (size_t i = 0; i < mSize; i++) {
-    mData[i].~ElementType();
-  }
+  destroy(mData, mSize);
   mSize = 0;
 }
 
@@ -86,7 +85,7 @@ template<typename ElementType>
 bool DynamicVector<ElementType>::push_back(const ElementType& element) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
-    mData[mSize++] = element;
+    new (&mData[mSize++]) ElementType(element);
   }
 
   return spaceAvailable;
@@ -96,7 +95,7 @@ template<typename ElementType>
 bool DynamicVector<ElementType>::push_back(ElementType&& element) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
-    mData[mSize++] = std::move(element);
+    new (&mData[mSize++]) ElementType(std::move(element));
   }
 
   return spaceAvailable;
@@ -133,34 +132,6 @@ const ElementType& DynamicVector<ElementType>::operator[](size_t index) const {
   return data()[index];
 }
 
-/**
- *  Moves a range of data items. This is part of the template specialization for
- *  when the underlying type is move-assignable.
- *
- *  @param data The beginning of the data to move.
- *  @param count The number of data items to move.
- *  @param newData The location to move these items to.
- */
-template<typename ElementType>
-void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
-                std::true_type) {
-  std::move(data, data + count, newData);
-}
-
-/**
- * Copies a range of data items. This is part of the template specialization
- * for when the underlying type is not move-assignable.
- *
- * @param data The beginning of the data to copy.
- * @param count The number of data items to copy.
- * @param newData The location to copy these items to.
- */
-template<typename ElementType>
-void moveOrCopy(ElementType *data, size_t count, ElementType *newData,
-                std::false_type) {
-  std::copy(data, data + count, newData);
-}
-
 template<typename ElementType>
 bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
   bool success = false;
@@ -172,9 +143,8 @@ bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
     ElementType *newData = static_cast<ElementType *>(
         memoryAlloc(newCapacity * sizeof(ElementType)));
     if (newData != nullptr) {
-      moveOrCopy(mData, mSize, newData,
-                 typename std::is_move_assignable<ElementType>::type());
-
+      uninitializedMoveOrCopy(mData, mSize, newData);
+      destroy(mData, mSize);
       memoryFree(mData);
       mData = newData;
       mCapacity = newCapacity;
@@ -188,24 +158,48 @@ bool DynamicVector<ElementType>::reserve(size_t newCapacity) {
 template<typename ElementType>
 bool DynamicVector<ElementType>::insert(size_t index,
                                         const ElementType& element) {
+  bool inserted = prepareInsert(index);
+  if (inserted) {
+    new (&mData[index]) ElementType(element);
+  }
+  return inserted;
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::insert(size_t index, ElementType&& element) {
+  bool inserted = prepareInsert(index);
+  if (inserted) {
+    new (&mData[index]) ElementType(std::move(element));
+  }
+  return inserted;
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::prepareInsert(size_t index) {
   // Insertions are not allowed to create a sparse array.
   CHRE_ASSERT(index <= mSize);
 
-  bool inserted = false;
-  if (index <= mSize && prepareForPush()) {
-    // Shift all elements starting at the given index backward one position.
-    for (size_t i = mSize; i > index; i--) {
-      mData[i] = std::move(mData[i - 1]);
+  // TODO: this can be optimized in the case where we need to grow the vector to
+  // do the shift when transferring the values from the old array to the new.
+  bool readyForInsert = (index <= mSize && prepareForPush());
+  if (readyForInsert) {
+    // If we aren't simply appending the new object, create an opening where
+    // we'll insert it
+    if (index < mSize) {
+      // Make a duplicate of the last item in the slot where we're growing
+      uninitializedMoveOrCopy(&mData[mSize - 1], 1, &mData[mSize]);
+      // Shift all elements starting at index towards the end
+      for (size_t i = mSize - 1; i > index; i--) {
+        moveOrCopyAssign(mData[i], mData[i - 1]);
+      }
+
+      mData[index].~ElementType();
     }
 
-    mData[index].~ElementType();
-    mData[index] = element;
     mSize++;
-
-    inserted = true;
   }
 
-  return inserted;
+  return readyForInsert;
 }
 
 template<typename ElementType>
@@ -230,7 +224,7 @@ void DynamicVector<ElementType>::erase(size_t index) {
   if (index < mSize) {
     mSize--;
     for (size_t i = index; i < mSize; i++) {
-      mData[i] = std::move(mData[i + 1]);
+      moveOrCopyAssign(mData[i], mData[i + 1]);
     }
 
     mData[mSize].~ElementType();
@@ -253,10 +247,13 @@ size_t DynamicVector<ElementType>::find(const ElementType& element) const {
 template<typename ElementType>
 void DynamicVector<ElementType>::swap(size_t index0, size_t index1) {
   CHRE_ASSERT(index0 < mSize && index1 < mSize);
-  if (index0 < mSize && index1 < mSize) {
-    ElementType temp = std::move(mData[index0]);
-    mData[index0] = std::move(mData[index1]);
-    mData[index1] = std::move(temp);
+  if (index0 < mSize && index1 < mSize && index0 != index1) {
+    typename std::aligned_storage<sizeof(ElementType),
+        alignof(ElementType)>::type tempStorage;
+    ElementType& temp = *reinterpret_cast<ElementType *>(&tempStorage);
+    uninitializedMoveOrCopy(&mData[index0], 1, &temp);
+    moveOrCopyAssign(mData[index0], mData[index1]);
+    moveOrCopyAssign(mData[index1], temp);
   }
 }
 

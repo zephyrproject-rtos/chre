@@ -22,7 +22,7 @@
  * Definitions and methods for the versioning of the Context Hub Runtime
  * Environment.
  *
- * The CHRE API versioning pertains to all the chre_*.h files and chre.h.
+ * The CHRE API versioning pertains to all header files in the CHRE API.
  */
 
 #include <stdint.h>
@@ -81,6 +81,41 @@ extern "C" {
  * expected results, so 1.0.0 < 1.0.4 < 1.1.0 < 2.0.300 < 3.5.0.
  */
 #define CHRE_API_VERSION CHRE_API_VERSION_1_1
+
+/**
+ * Utility macro to extract only the API major version of a composite CHRE
+ * version.
+ *
+ * @param version A uint32_t version, e.g. the value returned by
+ *     chreGetApiVersion()
+ *
+ * @returns The API major version in the least significant byte, e.g. 0x01
+ */
+#define CHRE_EXTRACT_MAJOR_VERSION(version) \
+    (((version) & UINT32_C(0xFF000000)) >> 24)
+
+/**
+ * Utility macro to extract only the API minor version of a composite CHRE
+ * version.
+ *
+ * @param version A uint32_t version, e.g. the CHRE_API_VERSION constant
+ *
+ * @returns The API minor version in the least significant byte, e.g. 0x01
+ */
+#define CHRE_EXTRACT_MINOR_VERSION(version) \
+    (((version) & UINT32_C(0x00FF0000)) >> 16)
+
+/**
+ * Utility macro to extract only the API minor version of a composite CHRE
+ * version.
+ *
+ * @param version A complete uint32_t version, e.g. the value returned by
+ *     chreGetVersion()
+ *
+ * @returns The implementation patch version in the least significant two bytes,
+ *     e.g. 0x0123, with all other bytes set to 0
+ */
+#define CHRE_EXTRACT_PATCH_VERSION(version)  ((version) & UINT32_C(0xFFFF))
 
 
 /**

@@ -26,15 +26,15 @@ namespace chre {
 //! disabled by default, uncomment them as needed for local testing. This is
 //! supplied as a weak symbol so that device builds can override this list.
 __attribute__((weak))
-PlatformNanoapp *const kStaticNanoappList[] = {
-//  &gNanoappGnssWorld,
-//  &gNanoappHelloWorld,
-//  &gNanoappImuCal,
-//  &gNanoappMessageWorld,
-//  &gNanoappSensorWorld,
-//  &gNanoappTimerWorld,
-//  &gNanoappWifiWorld,
-//  &gNanoappWwanWorld,
+UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
+//  gNanoappGnssWorld,
+//  gNanoappHelloWorld,
+//  gNanoappImuCal,
+//  gNanoappMessageWorld,
+//  gNanoappSensorWorld,
+//  gNanoappTimerWorld,
+//  gNanoappWifiWorld,
+//  gNanoappWwanWorld,
 };
 
 //! The size of the static nanoapp list.

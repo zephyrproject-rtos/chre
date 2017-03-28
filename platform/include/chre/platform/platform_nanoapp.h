@@ -19,6 +19,7 @@
 
 #include <cstdint>
 
+#include "chre/util/non_copyable.h"
 #include "chre/target_platform/platform_nanoapp_base.h"
 
 namespace chre {
@@ -30,12 +31,14 @@ namespace chre {
  * TODO: Look at unloading the app and freeing events that originate from this
  * nanoapp.
  */
-class PlatformNanoapp : public PlatformNanoappBase {
+class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
  public:
+  ~PlatformNanoapp();
+
   /**
    * Calls the start function of the nanoapp.
    *
-   * @return Returns true if the app was able to start successfully.
+   * @return true if the app was able to start successfully
    */
   bool start();
 
@@ -51,9 +54,15 @@ class PlatformNanoapp : public PlatformNanoappBase {
                    const void *eventData);
 
   /**
-   * Calls the stop function of the nanoapp.
+   * Calls the nanoapp's end callback.
    */
-  void stop();
+  void end();
+
+  uint64_t getAppId() const;
+  uint32_t getAppVersion() const;
+  uint32_t getInstanceId() const;
+  uint32_t getTargetApiVersion() const;
+  bool isSystemNanoapp() const;
 };
 
 }  // namespace chre

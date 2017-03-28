@@ -17,6 +17,7 @@
 #include "chre/core/event_loop_manager.h"
 
 #include "chre/platform/context.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
@@ -36,7 +37,7 @@ EventLoop *EventLoopManager::createEventLoop() {
   // support multiple EventLoop instances, for example the Event freeing
   // mechanism is not thread-safe.
   CHRE_ASSERT(mEventLoops.empty());
-  if (!mEventLoops.emplace_back()) {
+  if (!mEventLoops.emplace_back(MakeUnique<EventLoop>())) {
     return nullptr;
   }
 
@@ -83,6 +84,23 @@ Nanoapp *EventLoopManager::findNanoappByInstanceId(uint32_t instanceId,
   }
 
   return nanoapp;
+}
+
+uint32_t EventLoopManager::getNextInstanceId() {
+  // TODO: this needs to be an atomic integer when we have > 1 event loop, or
+  // use a mutex
+  ++mLastInstanceId;
+
+  // ~4 billion instance IDs should be enough for anyone... if we need to
+  // support wraparound for stress testing load/unload, then we can set a flag
+  // when wraparound occurs and use EventLoop::findNanoappByInstanceId to ensure
+  // we avoid conflicts
+  if (mLastInstanceId == kBroadcastInstanceId
+      || mLastInstanceId == kSystemInstanceId) {
+    FATAL_ERROR("Exhausted instance IDs!");
+  }
+
+  return mLastInstanceId;
 }
 
 bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,

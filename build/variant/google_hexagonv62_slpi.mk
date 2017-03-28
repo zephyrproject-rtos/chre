@@ -11,10 +11,11 @@ TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV62_SLPI_SRCS)
 HEXAGON_ARCH = v62
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
-include $(CHRE_PREFIX)/build/arch/hexagon.mk
-include $(CHRE_PREFIX)/build/build_template.mk
-
 ifneq ($(IS_NANOAPP_BUILD),)
+TARGET_SO_LATE_LIBS += $(CHRE_PREFIX)/build/app_support/google_slpi/libchre_slpi_skel.so
 include $(CHRE_PREFIX)/build/nanoapp/google_slpi.mk
 endif
+
+include $(CHRE_PREFIX)/build/arch/hexagon.mk
+include $(CHRE_PREFIX)/build/build_template.mk
 endif

@@ -19,6 +19,8 @@
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 
+#include <stdint.h>
+
 using chre::DynamicVector;
 
 namespace {
@@ -52,28 +54,47 @@ void resetDestructorCounts() {
 
 TEST(DynamicVector, EmptyByDefault) {
   DynamicVector<int> vector;
-  ASSERT_EQ(vector.data(), nullptr);
-  ASSERT_EQ(vector.size(), 0);
-  ASSERT_EQ(vector.capacity(), 0);
+  EXPECT_EQ(vector.data(), nullptr);
+  EXPECT_TRUE(vector.empty());
+  EXPECT_EQ(vector.size(), 0);
+  EXPECT_EQ(vector.capacity(), 0);
+  vector.clear();
 }
 
 TEST(DynamicVector, PushBackAndRead) {
   DynamicVector<int> vector;
   ASSERT_TRUE(vector.push_back(0x1337));
-  ASSERT_EQ(vector[0], 0x1337);
-  ASSERT_EQ(vector.data()[0], 0x1337);
+  EXPECT_EQ(vector.size(), 1);
+  EXPECT_EQ(vector.capacity(), 1);
+  EXPECT_EQ(vector.data(), &vector[0]);
+  EXPECT_FALSE(vector.empty());
+  EXPECT_EQ(vector[0], 0x1337);
 }
 
-TEST(DynamicVector, PushBackReserveAndRead) {
+TEST(DynamicVector, PushBackReserveAndReadTrivialType) {
   DynamicVector<int> vector;
-  ASSERT_TRUE(vector.push_back(0x1337));
+  ASSERT_TRUE(vector.emplace_back(0x1337));
   ASSERT_TRUE(vector.push_back(0xface));
-  ASSERT_TRUE(vector.reserve(4));
-  ASSERT_EQ(vector[0], 0x1337);
-  ASSERT_EQ(vector.data()[0], 0x1337);
-  ASSERT_EQ(vector[1], 0xface);
-  ASSERT_EQ(vector.data()[1], 0xface);
+  int x = 0xcafe;
+  ASSERT_TRUE(vector.push_back(std::move(x)));
+  ASSERT_TRUE(vector.insert(vector.size(), 0xd00d));
+  EXPECT_EQ(vector.size(), 4);
+  EXPECT_EQ(vector.capacity(), 4);
+  EXPECT_EQ(vector[0], 0x1337);
+  EXPECT_EQ(vector[1], 0xface);
+  EXPECT_EQ(vector[2], 0xcafe);
+  EXPECT_EQ(vector[3], 0xd00d);
+
+  ASSERT_TRUE(vector.reserve(8));
+  EXPECT_EQ(vector.size(), 4);
+  EXPECT_EQ(vector.capacity(), 8);
+  EXPECT_EQ(vector[0], 0x1337);
+  EXPECT_EQ(vector[1], 0xface);
+  EXPECT_EQ(vector[2], 0xcafe);
+  EXPECT_EQ(vector[3], 0xd00d);
 }
+
+constexpr int kConstructedMagic = 0xdeadbeef;
 
 class MovableButNonCopyable : public chre::NonCopyable {
  public:
@@ -81,10 +102,13 @@ class MovableButNonCopyable : public chre::NonCopyable {
 
   MovableButNonCopyable(MovableButNonCopyable&& other) {
     mValue = other.mValue;
+    other.mValue = -1;
   }
 
   MovableButNonCopyable& operator=(MovableButNonCopyable&& other) {
+    assert(mMagic == kConstructedMagic);
     mValue = other.mValue;
+    other.mValue = -1;
     return *this;
   }
 
@@ -93,6 +117,7 @@ class MovableButNonCopyable : public chre::NonCopyable {
   }
 
  private:
+  int mMagic = kConstructedMagic;
   int mValue;
 };
 
@@ -100,11 +125,20 @@ TEST(DynamicVector, PushBackReserveAndReadMovableButNonCopyable) {
   DynamicVector<MovableButNonCopyable> vector;
   ASSERT_TRUE(vector.emplace_back(0x1337));
   ASSERT_TRUE(vector.emplace_back(0xface));
-  ASSERT_TRUE(vector.reserve(4));
+  MovableButNonCopyable mbnc(0xcafe);
+  ASSERT_TRUE(vector.push_back(std::move(mbnc)));
+  EXPECT_EQ(mbnc.getValue(), -1);
+  MovableButNonCopyable mbnc2(0xd00d);
+  ASSERT_TRUE(vector.insert(vector.size(), std::move(mbnc2)));
+  EXPECT_EQ(mbnc2.getValue(), -1);
+
+  ASSERT_TRUE(vector.reserve(8));
   EXPECT_EQ(vector[0].getValue(), 0x1337);
-  EXPECT_EQ(vector.data()[0].getValue(), 0x1337);
   EXPECT_EQ(vector[1].getValue(), 0xface);
-  EXPECT_EQ(vector.data()[1].getValue(), 0xface);
+  EXPECT_EQ(vector[2].getValue(), 0xcafe);
+  EXPECT_EQ(vector[3].getValue(), 0xd00d);
+  EXPECT_EQ(vector.size(), 4);
+  EXPECT_EQ(vector.capacity(), 8);
 }
 
 class CopyableButNonMovable {
@@ -115,13 +149,13 @@ class CopyableButNonMovable {
     mValue = other.mValue;
   }
 
-  CopyableButNonMovable(CopyableButNonMovable&& other) = delete;
-
   CopyableButNonMovable& operator=(const CopyableButNonMovable& other) {
+    assert(mMagic == kConstructedMagic);
     mValue = other.mValue;
     return *this;
   }
 
+  CopyableButNonMovable(CopyableButNonMovable&& other) = delete;
   CopyableButNonMovable& operator=(CopyableButNonMovable&& other) = delete;
 
   int getValue() const {
@@ -129,18 +163,26 @@ class CopyableButNonMovable {
   }
 
  private:
+  int mMagic = kConstructedMagic;
   int mValue;
 };
 
 TEST(DynamicVector, PushBackReserveAndReadCopyableButNonMovable) {
   DynamicVector<CopyableButNonMovable> vector;
-  ASSERT_TRUE(vector.emplace_back(0xcafe));
+  ASSERT_TRUE(vector.emplace_back(0x1337));
   ASSERT_TRUE(vector.emplace_back(0xface));
-  ASSERT_TRUE(vector.reserve(4));
-  EXPECT_EQ(vector[0].getValue(), 0xcafe);
-  EXPECT_EQ(vector.data()[0].getValue(), 0xcafe);
+  CopyableButNonMovable cbnm(0xcafe);
+  ASSERT_TRUE(vector.push_back(cbnm));
+  CopyableButNonMovable cbnm2(0xd00d);
+  ASSERT_TRUE(vector.insert(vector.size(), cbnm2));
+
+  ASSERT_TRUE(vector.reserve(8));
+  EXPECT_EQ(vector[0].getValue(), 0x1337);
   EXPECT_EQ(vector[1].getValue(), 0xface);
-  EXPECT_EQ(vector.data()[1].getValue(), 0xface);
+  EXPECT_EQ(vector[2].getValue(), 0xcafe);
+  EXPECT_EQ(vector[3].getValue(), 0xd00d);
+  EXPECT_EQ(vector.size(), 4);
+  EXPECT_EQ(vector.capacity(), 8);
 }
 
 class MovableAndCopyable {
@@ -152,18 +194,21 @@ class MovableAndCopyable {
   }
 
   MovableAndCopyable(MovableAndCopyable&& other) {
-    mValue = other.mValue;
+    // The move constructor multiplies the value by 2 so that we can see that it
+    // was used
+    mValue = other.mValue * 2;
   }
 
   MovableAndCopyable& operator=(const MovableAndCopyable& other) {
+    assert(mMagic == kConstructedMagic);
     mValue = other.mValue;
     return *this;
   }
 
   MovableAndCopyable& operator=(MovableAndCopyable&& other) {
-    // The move operation multiplies the value by 2 so that we can see that the
-    // move assignment operator was used.
+    assert(mMagic == kConstructedMagic);
     mValue = other.mValue * 2;
+    other.mValue = -1;
     return *this;
   }
 
@@ -172,11 +217,12 @@ class MovableAndCopyable {
   }
 
  private:
+  int mMagic = kConstructedMagic;
   int mValue;
 };
 
-TEST(DynamicVector, PushBackReserveAndReadMovableAndCopyable) {
-  // Ensure that preference is given to std::move.
+TEST(DynamicVector, ReservePrefersMove) {
+  // Ensure that preference is given to std::move in reserve()
   DynamicVector<MovableAndCopyable> vector;
 
   // Reserve enough space for the first two elements.
@@ -190,9 +236,7 @@ TEST(DynamicVector, PushBackReserveAndReadMovableAndCopyable) {
   // Move on this type results in a multiplication by 2. Verify that all
   // elements have been multiplied by 2.
   EXPECT_EQ(vector[0].getValue(), 2000);
-  EXPECT_EQ(vector.data()[0].getValue(), 2000);
   EXPECT_EQ(vector[1].getValue(), 4000);
-  EXPECT_EQ(vector.data()[1].getValue(), 4000);
 }
 
 /**
@@ -208,6 +252,13 @@ class Foo {
     sConstructedCounter++;
   }
 
+  Foo(const Foo& other) {
+    value = other.value;
+    sConstructedCounter++;
+  }
+
+  Foo(Foo&& other) = delete;
+
   /**
    * Tear down the object, decrementing the number of objects that have been
    * constructed of this type.
@@ -217,7 +268,7 @@ class Foo {
   }
 
   //! The number of objects of this type that have been constructed.
-  static size_t sConstructedCounter;
+  static ssize_t sConstructedCounter;
 
   //! The value stored in the object to verify the contents of this object after
   //! construction.
@@ -225,9 +276,10 @@ class Foo {
 };
 
 //! Storage for the Foo reference counter.
-size_t Foo::sConstructedCounter = 0;
+ssize_t Foo::sConstructedCounter = 0;
 
 TEST(DynamicVector, EmplaceBackAndDestruct) {
+  Foo::sConstructedCounter = 0;
   {
     DynamicVector<Foo> vector;
     ASSERT_TRUE(vector.emplace_back(1000));
@@ -236,26 +288,75 @@ TEST(DynamicVector, EmplaceBackAndDestruct) {
     ASSERT_TRUE(vector.emplace_back(4000));
 
     ASSERT_EQ(vector[0].value, 1000);
-    ASSERT_EQ(vector.data()[0].value, 1000);
     ASSERT_EQ(vector[1].value, 2000);
-    ASSERT_EQ(vector.data()[1].value, 2000);
     ASSERT_EQ(vector[2].value, 3000);
-    ASSERT_EQ(vector.data()[2].value, 3000);
     ASSERT_EQ(vector[3].value, 4000);
-    ASSERT_EQ(vector.data()[3].value, 4000);
 
-    ASSERT_EQ(Foo::sConstructedCounter, 4);
+    EXPECT_EQ(Foo::sConstructedCounter, 4);
   }
 
-  ASSERT_EQ(Foo::sConstructedCounter, 0);
+  EXPECT_EQ(Foo::sConstructedCounter, 0);
 }
 
 TEST(DynamicVector, InsertEmpty) {
   DynamicVector<int> vector;
   EXPECT_CHRE_ASSERT(EXPECT_FALSE(vector.insert(1, 0x1337)));
+
+  // Insert to empty vector
   ASSERT_TRUE(vector.insert(0, 0x1337));
   EXPECT_EQ(vector[0], 0x1337);
-  EXPECT_EQ(vector.data()[0], 0x1337);
+
+  // Insert at end triggering grow
+  ASSERT_EQ(vector.capacity(), 1);
+  EXPECT_TRUE(vector.insert(1, 0xface));
+  EXPECT_EQ(vector[0], 0x1337);
+  EXPECT_EQ(vector[1], 0xface);
+
+  // Insert at beginning triggering grow
+  ASSERT_EQ(vector.capacity(), 2);
+  EXPECT_TRUE(vector.insert(0, 0xcafe));
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector[1], 0x1337);
+  EXPECT_EQ(vector[2], 0xface);
+
+  // Insert at middle with spare capacity
+  ASSERT_EQ(vector.capacity(), 4);
+  EXPECT_TRUE(vector.insert(1, 0xdead));
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector[1], 0xdead);
+  EXPECT_EQ(vector[2], 0x1337);
+  EXPECT_EQ(vector[3], 0xface);
+
+  // Insert at middle triggering grow
+  ASSERT_EQ(vector.capacity(), 4);
+  EXPECT_TRUE(vector.insert(2, 0xbeef));
+  EXPECT_EQ(vector[0], 0xcafe);
+  EXPECT_EQ(vector[1], 0xdead);
+  EXPECT_EQ(vector[2], 0xbeef);
+  EXPECT_EQ(vector[3], 0x1337);
+  EXPECT_EQ(vector[4], 0xface);
+
+  // Insert at beginning with spare capacity
+  ASSERT_EQ(vector.capacity(), 8);
+  ASSERT_EQ(vector.size(), 5);
+  EXPECT_TRUE(vector.insert(0, 0xabad));
+  EXPECT_EQ(vector[0], 0xabad);
+  EXPECT_EQ(vector[1], 0xcafe);
+  EXPECT_EQ(vector[2], 0xdead);
+  EXPECT_EQ(vector[3], 0xbeef);
+  EXPECT_EQ(vector[4], 0x1337);
+  EXPECT_EQ(vector[5], 0xface);
+
+  // Insert at end with spare capacity
+  ASSERT_EQ(vector.size(), 6);
+  EXPECT_TRUE(vector.insert(vector.size(), 0xc0de));
+  EXPECT_EQ(vector[0], 0xabad);
+  EXPECT_EQ(vector[1], 0xcafe);
+  EXPECT_EQ(vector[2], 0xdead);
+  EXPECT_EQ(vector[3], 0xbeef);
+  EXPECT_EQ(vector[4], 0x1337);
+  EXPECT_EQ(vector[5], 0xface);
+  EXPECT_EQ(vector[6], 0xc0de);
 }
 
 TEST(DynamicVector, PushBackInsertInMiddleAndRead) {
@@ -266,13 +367,9 @@ TEST(DynamicVector, PushBackInsertInMiddleAndRead) {
   ASSERT_TRUE(vector.insert(1, 0xbeef));
 
   ASSERT_EQ(vector[0], 0x1337);
-  ASSERT_EQ(vector.data()[0], 0x1337);
   ASSERT_EQ(vector[1], 0xbeef);
-  ASSERT_EQ(vector.data()[1], 0xbeef);
   ASSERT_EQ(vector[2], 0xface);
-  ASSERT_EQ(vector.data()[2], 0xface);
   ASSERT_EQ(vector[3], 0xcafe);
-  ASSERT_EQ(vector.data()[3], 0xcafe);
 }
 
 TEST(DynamicVector, PushBackAndErase) {
@@ -285,11 +382,8 @@ TEST(DynamicVector, PushBackAndErase) {
   vector.erase(1);
 
   ASSERT_EQ(vector[0], 0x1337);
-  ASSERT_EQ(vector.data()[0], 0x1337);
   ASSERT_EQ(vector[1], 0xbeef);
-  ASSERT_EQ(vector.data()[1], 0xbeef);
   ASSERT_EQ(vector[2], 0xface);
-  ASSERT_EQ(vector.data()[2], 0xface);
   ASSERT_EQ(vector.size(), 3);
 }
 
@@ -314,8 +408,9 @@ TEST(DynamicVector, EraseDestructorCalled) {
   resetDestructorCounts();
 
   DynamicVector<Dummy> vector;
+  vector.reserve(4);
   for (size_t i = 0; i < 4; ++i) {
-    vector.push_back(Dummy());
+    vector.emplace_back();
     vector[i].setValue(i);
   }
 
@@ -345,8 +440,9 @@ TEST(DynamicVector, Clear) {
   resetDestructorCounts();
 
   DynamicVector<Dummy> vector;
+  vector.reserve(4);
   for (size_t i = 0; i < 4; ++i) {
-    vector.push_back(Dummy());
+    vector.emplace_back();
     vector[i].setValue(i);
   }
 
@@ -773,4 +869,9 @@ TEST(DynamicVector, PrepareForPush) {
   EXPECT_EQ(vector[0], 0xcafe);
   EXPECT_EQ(vector.size(), 1);
   EXPECT_EQ(vector.capacity(), 2);
+}
+
+TEST(DynamicVector, RidiculouslyHugeReserveFails) {
+  DynamicVector<int> vector;
+  ASSERT_FALSE(vector.reserve(SIZE_MAX));
 }

@@ -17,10 +17,10 @@
 #ifndef CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_
 #define CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_
 
-#include <utility>
+#include <new>
 
 #include "chre/platform/assert.h"
-#include "chre/util/fixed_size_vector.h"
+#include "chre/util/memory.h"
 
 namespace chre {
 
@@ -59,7 +59,7 @@ void FixedSizeVector<ElementType, kCapacity>::push_back(
     const ElementType& element) {
   CHRE_ASSERT(!full());
   if (!full()) {
-    data()[mSize++] = element;
+    new (&data()[mSize++]) ElementType(element);
   }
 }
 
@@ -100,7 +100,7 @@ void FixedSizeVector<ElementType, kCapacity>::erase(size_t index) {
   if (index < mSize) {
     mSize--;
     for (size_t i = index; i < mSize; i++) {
-      data()[i] = std::move(data()[i + 1]);
+      moveOrCopyAssign(data()[i], data()[i + 1]);
     }
 
     data()[mSize].~ElementType();
@@ -111,10 +111,13 @@ template<typename ElementType, size_t kCapacity>
 void FixedSizeVector<ElementType, kCapacity>::swap(size_t index0,
                                                    size_t index1) {
   CHRE_ASSERT(index0 < mSize && index1 < mSize);
-  if (index0 < mSize && index1 < mSize) {
-    ElementType temp = std::move(data()[index0]);
-    data()[index0] = std::move(data()[index1]);
-    data()[index1] = std::move(temp);
+  if (index0 < mSize && index1 < mSize && index0 != index1) {
+    typename std::aligned_storage<sizeof(ElementType),
+        alignof(ElementType)>::type tempStorage;
+    ElementType& temp = *reinterpret_cast<ElementType *>(&tempStorage);
+    uninitializedMoveOrCopy(&data()[index0], 1, &temp);
+    moveOrCopyAssign(data()[index0], data()[index1]);
+    moveOrCopyAssign(data()[index1], temp);
   }
 }
 

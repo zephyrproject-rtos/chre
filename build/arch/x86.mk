@@ -22,6 +22,9 @@ TARGET_LD  = $(X86_TOOLS_PREFIX)clang++
 # Add x86 compiler flags.
 TARGET_CFLAGS += $(X86_CFLAGS)
 
+# x86 is purely used for testing, so always include debugging symbols
+TARGET_CFLAGS += -g
+
 # Enable position independence.
 TARGET_CFLAGS += -fpic
 

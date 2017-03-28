@@ -43,7 +43,7 @@ class SocketServer {
    * @param data Pointer to buffer containing the raw message data
    * @param len Number of bytes of data received
    */
-  typedef std::function<void(uint16_t clientId, const void *data, size_t len)>
+  typedef std::function<void(uint16_t clientId, void *data, size_t len)>
       ClientMessageCallback;
 
   /**
@@ -67,6 +67,18 @@ class SocketServer {
    * @param length Number of bytes of data to send
    */
   void sendToAllClients(const void *data, size_t length);
+
+  /**
+   * Sends a message to one client, specified via its unique client ID. This
+   * method is thread-safe.
+   *
+   * @param data
+   * @param length
+   * @param clientId
+   *
+   * @return true if the message was successfully sent to the specified client
+   */
+  bool sendToClientById(const void *data, size_t length, uint16_t clientId);
 
  private:
   DISALLOW_COPY_AND_ASSIGN(SocketServer);
@@ -96,6 +108,8 @@ class SocketServer {
   void acceptClientConnection();
   void disconnectClient(int clientSocket);
   void handleClientData(int clientSocket);
+  bool sendToClientSocket(const void *data, size_t length, int clientSocket,
+                          uint16_t clientId);
   void serviceSocket();
 
   static std::atomic<bool> sSignalReceived;

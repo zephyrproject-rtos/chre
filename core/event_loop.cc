@@ -17,6 +17,7 @@
 #include "chre/core/event_loop.h"
 
 #include "chre/core/event.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
@@ -130,28 +131,23 @@ void EventLoop::run() {
   // TODO: need to purge/cleanup events, etc.
 }
 
-bool EventLoop::startNanoapp(PlatformNanoapp *platformNanoapp) {
-  CHRE_ASSERT(platformNanoapp != nullptr);
+bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
+  CHRE_ASSERT(!nanoapp.isNull());
 
   bool success = false;
-  if (!mNanoapps.prepareForPush()) {
+  if (nanoapp.isNull() || !mNanoapps.prepareForPush()) {
     LOGE("Failed to allocate space for new nanoapp");
   } else {
-    // TODO: get these parameters from somewhere
-    UniquePtr<Nanoapp> nanoapp(0, 1, CHRE_API_VERSION_1_1, getNextInstanceId(),
-                               true, platformNanoapp);
-    if (nanoapp.isNull()) {
-      LOGE("Failed to allocate new nanoapp");
+    nanoapp->setInstanceId(
+        EventLoopManagerSingleton::get()->getNextInstanceId());
+    mCurrentApp = nanoapp.get();
+    success = nanoapp->start();
+    mCurrentApp = nullptr;
+    if (!success) {
+      LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
     } else {
-      mCurrentApp = nanoapp.get();
-      success = nanoapp->start();
-      mCurrentApp = nullptr;
-      if (!success) {
-        LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
-      } else {
-        LockGuard<Mutex> lock(mNanoappsLock);
-        mNanoapps.push_back(std::move(nanoapp));
-      }
+      LockGuard<Mutex> lock(mNanoappsLock);
+      mNanoapps.push_back(std::move(nanoapp));
     }
   }
 
@@ -169,7 +165,7 @@ void EventLoop::stopNanoapp(Nanoapp *nanoapp) {
       }
 
       mCurrentApp = nanoapp;
-      nanoapp->stop();
+      nanoapp->end();
       mCurrentApp = nullptr;
       return;
     }
@@ -207,25 +203,6 @@ Nanoapp *EventLoop::getCurrentNanoapp() const {
 size_t EventLoop::getNanoappCount() const {
   CHRE_ASSERT(getCurrentEventLoop() == this);
   return mNanoapps.size();
-}
-
-uint32_t EventLoop::getNextInstanceId() {
-  // This is a simple unique ID generator that checks a newly generated ID
-  // against all existing IDs using a search (currently linear search).
-  // Instance ID generation will slow with more apps. We generally expect there
-  // to be few apps and IDs are generated infrequently.
-  //
-  // The benefit of generating IDs this way is that there is no memory overhead
-  // to track issued IDs.
-  uint32_t nextInstanceId = mLastInstanceId + 1;
-  while (nextInstanceId == kSystemInstanceId
-      || nextInstanceId == kBroadcastInstanceId
-      || lookupAppByInstanceId(nextInstanceId) != nullptr) {
-    nextInstanceId++;
-  }
-
-  mLastInstanceId = nextInstanceId;
-  return nextInstanceId;
 }
 
 TimerPool& EventLoop::getTimerPool() {

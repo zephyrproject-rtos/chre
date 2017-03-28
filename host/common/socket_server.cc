@@ -109,27 +109,35 @@ void SocketServer::sendToAllClients(const void *data, size_t length) {
   for (const auto& pair : mClients) {
     int clientSocket = pair.first;
     uint16_t clientId = pair.second.clientId;
-
-    ssize_t bytesSent = send(clientSocket, data, length, 0);
-    if (bytesSent < 0) {
-      LOGE("Error sending packet of size %zu to client %" PRIu16 ": %s",
-           length, clientId, strerror(errno));
-      if (errno == EINTR) {
-        break;
-      }
-    } else if (bytesSent == 0) {
-      LOGW("Client %" PRIu16 " disconnected before message could be delivered",
-           clientId);
-    } else {
-      LOGV("Delivered message of size %zu bytes to client %" PRIu16, length,
-           clientId);
+    if (sendToClientSocket(data, length, clientSocket, clientId)) {
       deliveredCount++;
+    } else if (errno == EINTR) {
+      // Exit early if we were interrupted - we should only get this for
+      // SIGINT/SIGTERM, so we should exit quickly
+      break;
     }
   }
 
   if (deliveredCount == 0) {
     LOGW("Got message but didn't deliver to any clients");
   }
+}
+
+bool SocketServer::sendToClientById(const void *data, size_t length,
+                                    uint16_t clientId) {
+  std::lock_guard<std::mutex> lock(mClientsMutex);
+
+  bool sent = false;
+  for (const auto& pair : mClients) {
+    uint16_t thisClientId = pair.second.clientId;
+    if (thisClientId == clientId) {
+      int clientSocket = pair.first;
+      sent = sendToClientSocket(data, length, clientSocket, thisClientId);
+      break;
+    }
+  }
+
+  return sent;
 }
 
 void SocketServer::acceptClientConnection() {
@@ -214,6 +222,24 @@ void SocketServer::disconnectClient(int clientSocket) {
     LOGE("Out of sync");
     assert(removed);
   }
+}
+
+bool SocketServer::sendToClientSocket(const void *data, size_t length,
+                                      int clientSocket, uint16_t clientId) {
+  errno = 0;
+  ssize_t bytesSent = send(clientSocket, data, length, 0);
+  if (bytesSent < 0) {
+    LOGE("Error sending packet of size %zu to client %" PRIu16 ": %s",
+         length, clientId, strerror(errno));
+  } else if (bytesSent == 0) {
+    LOGW("Client %" PRIu16 " disconnected before message could be delivered",
+         clientId);
+  } else {
+    LOGV("Delivered message of size %zu bytes to client %" PRIu16, length,
+         clientId);
+  }
+
+  return (bytesSent > 0);
 }
 
 void SocketServer::serviceSocket() {

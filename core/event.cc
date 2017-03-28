@@ -14,29 +14,31 @@
  * limitations under the License.
  */
 
-#include <cstddef>
+#include "chre/core/event.h"
 
-#include "chre/apps/apps.h"
-#include "chre/platform/static_nanoapps.h"
-#include "chre/util/macros.h"
+#include "chre/platform/assert.h"
 
 namespace chre {
 
-//! The list of static nanoapps to load for the Linux platform.
-__attribute__((weak))
-UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
-  gNanoappGnssWorld,
-  gNanoappHelloWorld,
-  gNanoappImuCal,
-  gNanoappMessageWorld,
-  gNanoappSensorWorld,
-  gNanoappTimerWorld,
-  gNanoappWifiWorld,
-  gNanoappWwanWorld,
-};
+Event::Event(uint16_t eventType_, void *eventData_,
+             chreEventCompleteFunction *freeCallback_,
+             uint32_t senderInstanceId_, uint32_t targetInstanceId_)
+    : eventType(eventType_), eventData(eventData_), freeCallback(freeCallback_),
+      senderInstanceId(senderInstanceId_),
+      targetInstanceId(targetInstanceId_) {}
 
-//! The size of the static nanoapp list.
-__attribute__((weak))
-const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
+void Event::incrementRefCount() {
+  mRefCount++;
+  CHRE_ASSERT(mRefCount != 0);
+}
+
+void Event::decrementRefCount() {
+  CHRE_ASSERT(mRefCount > 0);
+  mRefCount--;
+}
+
+bool Event::isUnreferenced() const {
+  return (mRefCount == 0);
+}
 
 }  // namespace chre

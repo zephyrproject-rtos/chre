@@ -22,8 +22,6 @@
 #define LOG_TAG "[GnssWorld]"
 
 #ifdef CHRE_NANOAPP_INTERNAL
-#include "chre/platform/platform_static_nanoapp_init.h"
-
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
@@ -62,14 +60,16 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   // TODO: Implement this.
 }
 
-void nanoappStop() {
+void nanoappEnd() {
   LOGI("Stopped");
 }
 
 #ifdef CHRE_NANOAPP_INTERNAL
-}  // namespace
-
-PLATFORM_STATIC_NANOAPP_INIT(GnssWorld);
-
+}  // anonymous namespace
 }  // namespace chre
+
+#include "chre/util/nanoapp/app_id.h"
+#include "chre/platform/static_nanoapp_init.h"
+
+CHRE_STATIC_NANOAPP_INIT(GnssWorld, chre::kGnssWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

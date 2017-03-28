@@ -23,6 +23,20 @@
 
 namespace chre {
 
+namespace fbs {
+
+// Forward declaration of the ChreMessage enum defined in the generated
+// FlatBuffers header file
+enum class ChreMessage : uint8_t;
+
+}  // namespace fbs
+
+//! On a message sent from CHRE, specifies that the host daemon should determine
+//! which client to send the message to. Usually, this is all clients, but for a
+//! message from a nanoapp, the host daemon can use the endpoint ID to determine
+//! the destination client ID.
+constexpr uint16_t kHostClientIdUnspecified = 0;
+
 /**
  * Functions that are shared between the CHRE and host to assist with
  * communications between the two. Note that normally these functions are
@@ -48,6 +62,25 @@ class HostProtocolCommon {
    static flatbuffers::Offset<flatbuffers::Vector<int8_t>>
        addStringAsByteVector(flatbuffers::FlatBufferBuilder& builder,
                              const char *str);
+
+   /**
+    * Constructs the message container and finalizes the FlatBufferBuilder
+    *
+    * @param builder The FlatBufferBuilder that was used to construct the
+    *        message prior to adding the container
+    * @param messageType Type of message that was constructed
+    * @param message Offset of the message to include (normally the return value
+    *        of flatbuffers::Offset::Union() on the message offset)
+    * @param hostClientId The source/client ID of the host-side entity that
+    *        sent/should receive this message. Leave unspecified (default 0)
+    *        when constructing a message on the host, as this field will be
+    *        set before the message is sent to CHRE.
+    */
+   static void finalize(
+       flatbuffers::FlatBufferBuilder& builder, fbs::ChreMessage messageType,
+       flatbuffers::Offset<void> message,
+       uint16_t hostClientId = kHostClientIdUnspecified);
+
    static bool verifyMessage(const void *message, size_t messageLen);
 };
 

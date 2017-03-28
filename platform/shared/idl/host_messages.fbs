@@ -96,11 +96,23 @@ union ChreMessage {
   // TODO: extend with system-specific messages, e.g. load app command, etc.
 }
 
+struct HostAddress {
+  client_id:ushort;
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level structure
 /// (root type), so we must wrap it in a table.
 table MessageContainer {
   message:ChreMessage (required);
+
+  /// The originating or destination client ID on the host side, used to direct
+  /// responses only to the client that sent the request. Although initially
+  /// populated by the requesting client, this is enforced to be the correct
+  /// value by the entity guarding access to CHRE.
+  /// This is wrapped in a struct to ensure that it is always included when
+  /// encoding the message, so it can be mutated by the host daemon.
+  host_addr:HostAddress (required);
 }
 
 root_type MessageContainer;

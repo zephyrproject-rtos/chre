@@ -20,7 +20,7 @@ namespace chre {
 
 void loadStaticNanoapps(EventLoop *eventLoop) {
   for (size_t i = 0; i < kStaticNanoappCount; i++) {
-    eventLoop->startNanoapp(kStaticNanoappList[i]);
+    eventLoop->startNanoapp(*(kStaticNanoappList[i]));
   }
 }
 

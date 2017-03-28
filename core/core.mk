@@ -9,8 +9,10 @@ COMMON_CFLAGS += -Icore/include
 
 # Common Source Files ##########################################################
 
+COMMON_SRCS += core/event.cc
 COMMON_SRCS += core/event_loop.cc
 COMMON_SRCS += core/event_loop_manager.cc
+COMMON_SRCS += core/event_ref_queue.cc
 COMMON_SRCS += core/gnss_request_manager.cc
 COMMON_SRCS += core/host_comms_manager.cc
 COMMON_SRCS += core/init.cc

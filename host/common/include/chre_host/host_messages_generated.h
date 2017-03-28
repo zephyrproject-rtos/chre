@@ -27,6 +27,8 @@ struct NanoappListEntryT;
 struct NanoappListResponse;
 struct NanoappListResponseT;
 
+struct HostAddress;
+
 struct MessageContainer;
 struct MessageContainerT;
 
@@ -134,6 +136,29 @@ struct ChreMessageUnion {
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
 bool VerifyChreMessageVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
+
+MANUALLY_ALIGNED_STRUCT(2) HostAddress FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint16_t client_id_;
+
+ public:
+  HostAddress() {
+    memset(this, 0, sizeof(HostAddress));
+  }
+  HostAddress(const HostAddress &_o) {
+    memcpy(this, &_o, sizeof(HostAddress));
+  }
+  HostAddress(uint16_t _client_id)
+      : client_id_(flatbuffers::EndianScalar(_client_id)) {
+  }
+  uint16_t client_id() const {
+    return flatbuffers::EndianScalar(client_id_);
+  }
+  void mutate_client_id(uint16_t _client_id) {
+    flatbuffers::WriteScalar(&client_id_, _client_id);
+  }
+};
+STRUCT_END(HostAddress, 2);
 
 struct NanoappMessageT : public flatbuffers::NativeTable {
   typedef NanoappMessage TableType;
@@ -775,6 +800,7 @@ flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(flatbuffers::
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
+  std::unique_ptr<HostAddress> host_addr;
   MessageContainerT() {
   }
 };
@@ -786,7 +812,8 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MessageContainerT NativeTableType;
   enum {
     VT_MESSAGE_TYPE = 4,
-    VT_MESSAGE = 6
+    VT_MESSAGE = 6,
+    VT_HOST_ADDR = 8
   };
   ChreMessage message_type() const {
     return static_cast<ChreMessage>(GetField<uint8_t>(VT_MESSAGE_TYPE, 0));
@@ -800,11 +827,24 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   void *mutable_message() {
     return GetPointer<void *>(VT_MESSAGE);
   }
+  /// The originating or destination client ID on the host side, used to direct
+  /// responses only to the client that sent the request. Although initially
+  /// populated by the requesting client, this is enforced to be the correct
+  /// value by the entity guarding access to CHRE.
+  /// This is wrapped in a struct to ensure that it is always included when
+  /// encoding the message, so it can be mutated by the host daemon.
+  const HostAddress *host_addr() const {
+    return GetStruct<const HostAddress *>(VT_HOST_ADDR);
+  }
+  HostAddress *mutable_host_addr() {
+    return GetStruct<HostAddress *>(VT_HOST_ADDR);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MESSAGE_TYPE) &&
            VerifyFieldRequired<flatbuffers::uoffset_t>(verifier, VT_MESSAGE) &&
            VerifyChreMessage(verifier, message(), message_type()) &&
+           VerifyFieldRequired<HostAddress>(verifier, VT_HOST_ADDR) &&
            verifier.EndTable();
   }
   MessageContainerT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -821,15 +861,19 @@ struct MessageContainerBuilder {
   void add_message(flatbuffers::Offset<void> message) {
     fbb_.AddOffset(MessageContainer::VT_MESSAGE, message);
   }
+  void add_host_addr(const HostAddress *host_addr) {
+    fbb_.AddStruct(MessageContainer::VT_HOST_ADDR, host_addr);
+  }
   MessageContainerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
   MessageContainerBuilder &operator=(const MessageContainerBuilder &);
   flatbuffers::Offset<MessageContainer> Finish() {
-    const auto end = fbb_.EndTable(start_, 2);
+    const auto end = fbb_.EndTable(start_, 3);
     auto o = flatbuffers::Offset<MessageContainer>(end);
     fbb_.Required(o, MessageContainer::VT_MESSAGE);
+    fbb_.Required(o, MessageContainer::VT_HOST_ADDR);
     return o;
   }
 };
@@ -837,8 +881,10 @@ struct MessageContainerBuilder {
 inline flatbuffers::Offset<MessageContainer> CreateMessageContainer(
     flatbuffers::FlatBufferBuilder &_fbb,
     ChreMessage message_type = ChreMessage::NONE,
-    flatbuffers::Offset<void> message = 0) {
+    flatbuffers::Offset<void> message = 0,
+    const HostAddress *host_addr = 0) {
   MessageContainerBuilder builder_(_fbb);
+  builder_.add_host_addr(host_addr);
   builder_.add_message(message);
   builder_.add_message_type(message_type);
   return builder_.Finish();
@@ -1052,6 +1098,7 @@ inline void MessageContainer::UnPackTo(MessageContainerT *_o, const flatbuffers:
   (void)_resolver;
   { auto _e = message_type(); _o->message.type = _e; };
   { auto _e = message(); if (_e) _o->message.table = ChreMessageUnion::UnPack(_e, message_type(),_resolver); };
+  { auto _e = host_addr(); if (_e) _o->host_addr = std::unique_ptr<HostAddress>(new HostAddress(*_e)); };
 }
 
 inline flatbuffers::Offset<MessageContainer> MessageContainer::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageContainerT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1063,10 +1110,12 @@ inline flatbuffers::Offset<MessageContainer> CreateMessageContainer(flatbuffers:
   (void)_o;
   auto _message_type = _o->message.type;
   auto _message = _o->message.Pack(_fbb);
+  auto _host_addr = _o->host_addr ? _o->host_addr.get() : 0;
   return chre::fbs::CreateMessageContainer(
       _fbb,
       _message_type,
-      _message);
+      _message,
+      _host_addr);
 }
 
 inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type) {

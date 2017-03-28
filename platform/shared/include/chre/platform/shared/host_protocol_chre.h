@@ -37,8 +37,8 @@ class HostMessageHandlers {
     uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
     const void *messageData, size_t messageDataLen);
 
-  static void handleHubInfoRequest();
-  static void handleNanoappListRequest();
+  static void handleHubInfoRequest(uint16_t hostClientId);
+  static void handleNanoappListRequest(uint16_t hostClientId);
 };
 
 /**
@@ -70,7 +70,7 @@ class HostProtocolChre : public HostProtocolCommon {
       const char *vendor, const char *toolchain, uint32_t legacyPlatformVersion,
       uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
       float sleepPower, float peakPower, uint32_t maxMessageLen,
-      uint64_t platformId, uint32_t version);
+      uint64_t platformId, uint32_t version, uint16_t hostClientId);
 
   /**
    * Supports construction of a NanoappListResponse by adding a single
@@ -101,12 +101,14 @@ class HostProtocolChre : public HostProtocolCommon {
    *
    * @param builder The FlatBufferBuilder used with addNanoappListEntry()
    * @param offsetVector The vector used with addNanoappListEntry()
+   * @param hostClientId
    *
    * @see addNanoappListEntry()
    */
   static void finishNanoappListResponse(
       flatbuffers::FlatBufferBuilder& builder,
-      DynamicVector<NanoappListEntryOffset>& offsetVector);
+      DynamicVector<NanoappListEntryOffset>& offsetVector,
+      uint16_t hostClientId);
 };
 
 }  // namespace chre

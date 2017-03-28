@@ -95,25 +95,15 @@ class DynamicVector : public NonCopyable {
   bool empty() const;
 
   /**
-   * Pushes an element onto the back of the vector. If the vector requires a
-   * resize and that allocation fails this function will return false. All
-   * iterators and references are invalidated if the container has been
-   * resized. Otherwise, only the past-the-end iterator is invalidated.
+   * Copy- or move-constructs an element onto the back of the vector. If the
+   * vector requires a resize and that allocation fails this function will
+   * return false. All iterators and references are invalidated if the container
+   * has been resized. Otherwise, only the past-the-end iterator is invalidated.
    *
    * @param The element to push onto the vector.
    * @return true if the element was pushed successfully.
    */
   bool push_back(const ElementType& element);
-
-  /**
-   * Moves an element onto the back of the vector. If the vector requires a
-   * resize and that allocation fails this function will return false. All
-   * iterators and references are invalidated if the container has been
-   * resized. Otherwise, only the past-the-end iterator is invalidated.
-   *
-   * @param The element to move onto the vector.
-   * @return true if the element was moved successfully.
-   */
   bool push_back(ElementType&& element);
 
   /**
@@ -178,6 +168,7 @@ class DynamicVector : public NonCopyable {
    * @return Whether or not the insert operation was successful.
    */
   bool insert(size_t index, const ElementType& element);
+  bool insert(size_t index, ElementType&& element);
 
   /**
    * Similar to wrap(), except makes a copy of the supplied C-style array,
@@ -348,6 +339,15 @@ class DynamicVector : public NonCopyable {
 
   //! Set to true when the buffer (mData) was supplied via wrap()
   bool mDataIsWrapped = false;
+
+  /**
+   * Prepares the vector for insertion - upon successful return, the memory at
+   * the given index will be allocated but uninitialized
+   *
+   * @param index
+   * @return true
+   */
+  bool prepareInsert(size_t index);
 };
 
 }  // namespace chre

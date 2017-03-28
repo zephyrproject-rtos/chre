@@ -26,10 +26,30 @@ using flatbuffers::Vector;
 
 namespace chre {
 
+void HostProtocolCommon::encodeNanoappMessage(
+    FlatBufferBuilder& builder, uint64_t appId, uint32_t messageType,
+    uint16_t hostEndpoint, const void *messageData, size_t messageDataLen) {
+  auto messageDataOffset = builder.CreateVector(
+      static_cast<const uint8_t *>(messageData), messageDataLen);
+
+  auto nanoappMessage = fbs::CreateNanoappMessage(
+      builder, appId, messageType, hostEndpoint, messageDataOffset);
+  finalize(builder, fbs::ChreMessage::NanoappMessage, nanoappMessage.Union());
+}
+
 Offset<Vector<int8_t>> HostProtocolCommon::addStringAsByteVector(
     FlatBufferBuilder& builder, const char *str) {
   return builder.CreateVector(reinterpret_cast<const int8_t *>(str),
                               strlen(str) + 1);
+}
+
+void HostProtocolCommon::finalize(
+    FlatBufferBuilder& builder, fbs::ChreMessage messageType,
+    flatbuffers::Offset<void> message, uint16_t hostClientId) {
+  fbs::HostAddress hostAddr(hostClientId);
+  auto container = fbs::CreateMessageContainer(
+      builder, messageType, message, &hostAddr);
+  builder.Finish(container);
 }
 
 bool HostProtocolCommon::verifyMessage(const void *message, size_t messageLen) {
@@ -45,17 +65,5 @@ bool HostProtocolCommon::verifyMessage(const void *message, size_t messageLen) {
   return valid;
 }
 
-void HostProtocolCommon::encodeNanoappMessage(
-    FlatBufferBuilder& builder, uint64_t appId, uint32_t messageType,
-    uint16_t hostEndpoint, const void *messageData, size_t messageDataLen) {
-  auto messageDataOffset = builder.CreateVector(
-      static_cast<const uint8_t *>(messageData), messageDataLen);
-
-  auto nanoappMessage = fbs::CreateNanoappMessage(
-      builder, appId, messageType, hostEndpoint, messageDataOffset);
-  auto container = fbs::CreateMessageContainer(
-      builder, fbs::ChreMessage::NanoappMessage, nanoappMessage.Union());
-  builder.Finish(container);
-}
 
 }  // namespace chre
