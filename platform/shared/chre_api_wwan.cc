@@ -25,3 +25,9 @@ uint32_t chreWwanGetCapabilities() {
   return chre::EventLoopManagerSingleton::get()->getWwanRequestManager()
       .getCapabilities();
 }
+
+bool chreWwanGetCellInfoAsync(const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::EventLoopManagerSingleton::get()->getWwanRequestManager()
+      .requestCellInfo(nanoapp, cookie);
+}

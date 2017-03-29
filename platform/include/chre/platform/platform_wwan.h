@@ -40,6 +40,16 @@ class PlatformWwan : public PlatformWwanBase {
    * @return the WWAN capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
+
+  /**
+   * Requests information about the current cell tower and neighbors. Refer to
+   * the {@link chrePalWwanApi} struct of the CHRE API which includes further
+   * documentation. The semantics of this implementation must be the same as
+   * those provided by the CHRE PAL.
+   *
+   * @return true if the request was accepted.
+   */
+  bool requestCellInfo();
 };
 
 }  // namespace chre
