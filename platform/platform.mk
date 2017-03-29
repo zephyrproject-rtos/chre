@@ -44,6 +44,7 @@ HEXAGON_SRCS += platform/slpi/init.cc
 HEXAGON_SRCS += platform/slpi/platform_nanoapp.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc
+HEXAGON_SRCS += platform/slpi/preloaded_nanoapps.cc
 HEXAGON_SRCS += platform/slpi/static_nanoapps.cc
 HEXAGON_SRCS += platform/slpi/system_time.cc
 HEXAGON_SRCS += platform/slpi/system_timer.cc

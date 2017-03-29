@@ -35,14 +35,16 @@ namespace {
  * Performs sanity checks on the app info structure included in a dynamically
  * loaded nanoapp.
  *
- * @param expectedAppId
- * @param expectedAppVersion
- * @param appInfo
+ * @param expectedAppId The app ID passed alongside the binary
+ * @param expectedAppVersion The app version number passed alongside the binary
+ * @param appInfo App info structure included in the nanoapp binary
+ * @param skipVersionValidation if true, ignore the expectedAppVersion parameter
  *
  * @return true if validation was successful
  */
 bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
-                     const struct chreNslNanoappInfo *appInfo) {
+                     const struct chreNslNanoappInfo *appInfo,
+                     bool skipVersionValidation = false) {
   uint32_t ourApiMajorVersion = CHRE_EXTRACT_MAJOR_VERSION(chreGetApiVersion());
   uint32_t targetApiMajorVersion = CHRE_EXTRACT_MAJOR_VERSION(
       appInfo->targetApiVersion);
@@ -56,7 +58,8 @@ bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
   } else if (expectedAppId != appInfo->appId) {
     LOGE("Expected app ID (0x%016" PRIx64 ") doesn't match internal one (0x%016"
          PRIx64 ")", expectedAppId, appInfo->appId);
-  } else if (expectedAppVersion != appInfo->appVersion) {
+  } else if (!skipVersionValidation
+      && expectedAppVersion != appInfo->appVersion) {
     LOGE("Expected app version (0x%" PRIx32 ") doesn't match internal one (0x%"
          PRIx32 ")", expectedAppVersion, appInfo->appVersion);
   } else if (targetApiMajorVersion != ourApiMajorVersion) {
@@ -84,7 +87,7 @@ PlatformNanoapp::~PlatformNanoapp() {
 
 bool PlatformNanoapp::start() {
   // Invoke the start entry point after successfully opening the app
-  return (mIsStatic || openNanoapp()) ? mAppInfo->entryPoints.start() : false;
+  return openNanoapp() ? mAppInfo->entryPoints.start() : false;
 }
 
 void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
@@ -124,6 +127,12 @@ bool PlatformNanoappBase::loadFromBuffer(uint64_t appId, uint32_t appVersion,
   return success;
 }
 
+void PlatformNanoappBase::loadFromFile(uint64_t appId, const char *filename) {
+  CHRE_ASSERT(!isLoaded());
+  mExpectedAppId = appId;
+  mFilename = filename;
+}
+
 void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {
   CHRE_ASSERT(!isLoaded());
   mIsStatic = true;
@@ -136,6 +145,7 @@ bool PlatformNanoappBase::isLoaded() const {
 
 void PlatformNanoappBase::closeNanoapp() {
   if (mDsoHandle != nullptr) {
+    mAppInfo = nullptr;
     if (dlclose(mDsoHandle) != 0) {
       const char *name = (mAppInfo != nullptr) ? mAppInfo->name : "unknown";
       LOGE("dlclose of %s failed: %s", name, dlerror());
@@ -147,13 +157,29 @@ void PlatformNanoappBase::closeNanoapp() {
 bool PlatformNanoappBase::openNanoapp() {
   bool success = false;
 
+  if (mIsStatic) {
+    success = true;
+  } else if (mFilename != nullptr) {
+    success = openNanoappFromFile();
+  } else if (mAppBinary != nullptr) {
+    success = openNanoappFromBuffer();
+  } else {
+    CHRE_ASSERT(false);
+  }
+
+  return success;
+}
+
+bool PlatformNanoappBase::openNanoappFromBuffer() {
+  CHRE_ASSERT(mAppBinary != nullptr);
+  CHRE_ASSERT_LOG(mDsoHandle == nullptr, "Re-opening nanoapp");
+  bool success = false;
+
   // Populate a filename string (just a requirement of the dlopenbuf API)
   constexpr size_t kMaxFilenameLen = 17;
   char filename[kMaxFilenameLen];
   snprintf(filename, sizeof(filename), "%016" PRIx64, mExpectedAppId);
 
-  CHRE_ASSERT(mAppBinary != nullptr);
-  CHRE_ASSERT_LOG(mDsoHandle == nullptr, "Re-opening nanoapp");
   mDsoHandle = dlopenbuf(
       filename, static_cast<const char *>(mAppBinary),
       static_cast<int>(mAppBinaryLen), RTLD_NOW);
@@ -171,6 +197,40 @@ bool PlatformNanoappBase::openNanoapp() {
       } else {
         LOGI("Successfully loaded nanoapp: %s (0x%016" PRIx64 ") version 0x%"
              PRIx32, mAppInfo->name, mAppInfo->appId, mAppInfo->appVersion);
+      }
+    }
+  }
+
+  return success;
+}
+
+bool PlatformNanoappBase::openNanoappFromFile() {
+  CHRE_ASSERT(mFilename != nullptr);
+  CHRE_ASSERT_LOG(mDsoHandle == nullptr, "Re-opening nanoapp");
+  bool success = false;
+
+  mDsoHandle = dlopen(mFilename, RTLD_NOW);
+  if (mDsoHandle == nullptr) {
+    LOGE("Failed to load nanoapp from file %s: %s", mFilename, dlerror());
+  } else {
+    mAppInfo = static_cast<const struct chreNslNanoappInfo *>(
+        dlsym(mDsoHandle, CHRE_NSL_DSO_NANOAPP_INFO_SYMBOL_NAME));
+    if (mAppInfo == nullptr) {
+      LOGE("Failed to find app info symbol in %s: %s", mFilename, dlerror());
+    } else {
+      success = validateAppInfo(mExpectedAppId, 0, mAppInfo,
+                                true /* ignoreAppVersion */);
+      if (!success) {
+        mAppInfo = nullptr;
+      } else {
+        LOGI("Successfully loaded nanoapp %s (0x%016" PRIx64 ") version 0x%"
+             PRIx32 " from file %s", mAppInfo->name, mAppInfo->appId,
+             mAppInfo->appVersion, mFilename);
+        // Save the app version field in case this app gets disabled and we
+        // still get a query request for the version later on. We are OK not
+        // knowing the version prior to the first load because we assume that
+        // nanoapps loaded via file are done at CHRE initialization time.
+        mExpectedAppVersion = mAppInfo->appVersion;
       }
     }
   }
