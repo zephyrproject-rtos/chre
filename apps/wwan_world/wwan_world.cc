@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/time.h"
 
 #define LOG_TAG "[WwanWorld]"
 
@@ -25,6 +26,38 @@
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
+
+//! A dummy cookie to pass into the cell info request.
+const uint32_t kCellInfoCookie = 0x1337;
+
+//! The interval for cell info requests.
+const Nanoseconds kCellInfoInterval = Nanoseconds(Seconds(10));
+
+//! A handle for  the cyclic timer to request periodic cell info.
+uint32_t gCellInfoTimerHandle;
+
+namespace {
+
+/**
+ * Handles a timer event.
+ *
+ * @param eventData The cookie passed to the timer request.
+ */
+void handleTimerEvent(const void *eventData) {
+  const uint32_t *timerHandle = static_cast<const uint32_t *>(eventData);
+  if (*timerHandle == gCellInfoTimerHandle) {
+    if (chreWwanGetCellInfoAsync(&kCellInfoCookie)) {
+      LOGI("Requested cell info successfully");
+    } else {
+      LOGE("Failed to request cell info");
+    }
+  } else {
+    LOGE("Received invalid timer handle");
+  }
+}
+
+}  // namespace
+
 
 bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
@@ -44,13 +77,31 @@ bool nanoappStart() {
 
   LOGI("Detected WWAN support as: %s (%" PRIu32 ")",
        wwanCapabilitiesStr, wwanCapabilities);
+
+  if (wwanCapabilities & CHRE_WWAN_GET_CELL_INFO) {
+    gCellInfoTimerHandle = chreTimerSet(kCellInfoInterval.toRawNanoseconds(),
+                                        &gCellInfoTimerHandle /* data */,
+                                        false /* oneShot */);
+    if (gCellInfoTimerHandle == CHRE_TIMER_INVALID) {
+      LOGE("Failed to set a periodic cell info timer");
+    } else {
+      LOGI("Set a timer to request periodic cell info");
+    }
+  }
+
   return true;
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  // TODO: Implement this.
+  switch (eventType) {
+    case CHRE_EVENT_TIMER:
+      handleTimerEvent(eventData);
+      break;
+    default:
+      LOGW("Unhandled event type %" PRIu16, eventType);
+  }
 }
 
 void nanoappEnd() {
