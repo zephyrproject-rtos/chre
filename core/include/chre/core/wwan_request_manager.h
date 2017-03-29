@@ -50,6 +50,13 @@ class WwanRequestManager : public NonCopyable {
    */
   bool requestCellInfo(Nanoapp *nanoapp, const void *cookie);
 
+  /**
+   * Handles the result of a cell info request.
+   *
+   * @param result the results of a cell info request.
+   */
+  void handleCellInfoResult(chreWwanCellInfoResult *result);
+
  private:
   //! The instance of the platform WWAN interface.
   PlatformWwan mPlatformWwan;
@@ -64,6 +71,31 @@ class WwanRequestManager : public NonCopyable {
   //! that this will only be valid if the mCellInfoRequestingNanoappInstanceId
   //! is set.
   const void *mCellInfoRequestingNanoappCookie;
+
+  /**
+   * Handles the result of a request for cell info. See handleCellInfoResult
+   * which may be called from any thread. This thread is intended to be invoked
+   * on the CHRE event loop thread.
+   *
+   * @param result the result of the request for cell info.
+   */
+  void handleCellInfoResultSync(chreWwanCellInfoResult *result);
+
+  /**
+   * Handles the releasing of a WWAN cell info result and unsubscribes the
+   * nanoapp who made the request for cell info from cell info events.
+   *
+   * @param result The cell info result to release.
+   */
+  void handleFreeCellInfoResult(chreWwanCellInfoResult *result);
+
+  /**
+   * Releases a cell info result after nanoapps have consumed it.
+   *
+   * @param eventType the type of event being freed.
+   * @param eventData a pointer to the scan event to release.
+   */
+  static void freeCellInfoResultCallback(uint16_t eventType, void *eventData);
 };
 
 }  // namespace chre

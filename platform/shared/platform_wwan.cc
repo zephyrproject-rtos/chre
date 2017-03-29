@@ -61,9 +61,16 @@ bool PlatformWwan::requestCellInfo() {
   }
 }
 
+void PlatformWwan::releaseCellInfoResult(chreWwanCellInfoResult *result) {
+  if (mWwanApi != nullptr) {
+    mWwanApi->releaseCellInfoResult(result);
+  }
+}
+
 void PlatformWwanBase::cellInfoResultCallback(
     struct chreWwanCellInfoResult *result) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getWwanRequestManager()
+      .handleCellInfoResult(result);
 }
 
 }  // namespace chre

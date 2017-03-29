@@ -50,6 +50,14 @@ class PlatformWwan : public PlatformWwanBase {
    * @return true if the request was accepted.
    */
   bool requestCellInfo();
+
+  /**
+   * Releases a previously published cell info result. Refer to the
+   * {@link chrePalWwanApi} struct of the CHRE API for further documentation.
+   *
+   * @param result a pointer to a result to be released.
+   */
+  void releaseCellInfoResult(chreWwanCellInfoResult *result);
 };
 
 }  // namespace chre
