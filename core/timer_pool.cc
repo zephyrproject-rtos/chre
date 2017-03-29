@@ -35,7 +35,7 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
   LockGuard<Mutex> lock(mMutex);
 
   TimerRequest timerRequest;
-  timerRequest.requestingNanoapp = nanoapp;
+  timerRequest.nanoappInstanceId = nanoapp->getInstanceId();
   timerRequest.timerHandle = generateTimerHandle();
   timerRequest.expirationTime = SystemTime::getMonotonicTime() + duration;
   timerRequest.duration = duration;
@@ -74,7 +74,7 @@ bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
 
   if (timerRequest == nullptr) {
     LOGW("Failed to cancel timer ID %" PRIu32 ": not found", timerHandle);
-  } else if (timerRequest->requestingNanoapp != nanoapp) {
+  } else if (timerRequest->nanoappInstanceId != nanoapp->getInstanceId()) {
     LOGW("Failed to cancel timer ID %" PRIu32 ": permission denied",
          timerHandle);
   } else {
@@ -162,23 +162,26 @@ void TimerPool::onSystemTimerCallback() {
 }
 
 bool TimerPool::handleExpiredTimersAndScheduleNext() {
-  bool eventWasPosted = false;
+  bool success = false;
   while (!mTimerRequests.empty()) {
     Nanoseconds currentTime = SystemTime::getMonotonicTime();
     TimerRequest& currentTimerRequest = mTimerRequests.top();
     if (currentTime >= currentTimerRequest.expirationTime) {
       // Post an event for an expired timer.
-      mEventLoop.postEvent(CHRE_EVENT_TIMER,
+      success = mEventLoop.postEvent(CHRE_EVENT_TIMER,
           const_cast<void *>(currentTimerRequest.cookie), nullptr,
           kSystemInstanceId,
-          currentTimerRequest.requestingNanoapp->getInstanceId());
-      eventWasPosted = true;
+          currentTimerRequest.nanoappInstanceId);
+      if (!success) {
+        FATAL_ERROR("Failed to post timer event");
+      }
 
       // Reschedule the timer if needed.
       if (!currentTimerRequest.isOneShot) {
-        currentTimerRequest.expirationTime = currentTime
+        TimerRequest cyclicTimerRequest = currentTimerRequest;
+        cyclicTimerRequest.expirationTime = currentTime
             + currentTimerRequest.duration;
-        insertTimerRequest(currentTimerRequest);
+        insertTimerRequest(cyclicTimerRequest);
       }
 
       // Release the current request.
@@ -190,7 +193,7 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
     }
   }
 
-  return eventWasPosted;
+  return success;
 }
 
 void TimerPool::handleSystemTimerCallback(void *timerPoolPtr) {
