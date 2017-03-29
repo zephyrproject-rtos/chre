@@ -16,10 +16,30 @@
 
 #include "chre/core/wwan_request_manager.h"
 
+#include "chre/platform/log.h"
+
 namespace chre {
 
 uint32_t WwanRequestManager::getCapabilities() {
   return mPlatformWwan.getCapabilities();
+}
+
+bool WwanRequestManager::requestCellInfo(Nanoapp *nanoapp,
+                                         const void *cookie) {
+  CHRE_ASSERT(nanoapp);
+
+  bool success = false;
+  if (!mCellInfoRequestingNanoappInstanceId.has_value()) {
+    success = mPlatformWwan.requestCellInfo();
+    if (success) {
+      mCellInfoRequestingNanoappInstanceId = nanoapp->getInstanceId();
+      mCellInfoRequestingNanoappCookie = cookie;
+    }
+  } else {
+    LOGE("Cell info request made while a request is in flight");
+  }
+
+  return success;
 }
 
 }  // namespace chre

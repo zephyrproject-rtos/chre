@@ -53,6 +53,14 @@ uint32_t PlatformWwan::getCapabilities() {
   }
 }
 
+bool PlatformWwan::requestCellInfo() {
+  if (mWwanApi != nullptr) {
+    return mWwanApi->requestCellInfo();
+  } else {
+    return false;
+  }
+}
+
 void PlatformWwanBase::cellInfoResultCallback(
     struct chreWwanCellInfoResult *result) {
   // TODO: Implement this.

@@ -19,8 +19,10 @@
 
 #include <cstdint>
 
+#include "chre/core/nanoapp.h"
 #include "chre/platform/platform_wwan.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/optional.h"
 
 namespace chre {
 
@@ -38,9 +40,30 @@ class WwanRequestManager : public NonCopyable {
    */
   uint32_t getCapabilities();
 
+  /**
+   * Performs a request for cell neighbor info for the given nanoapp.
+   *
+   * @param nanoapp The nanoapp requesting the cell info.
+   * @param cookie A cookie provided by the nanoapp to supply context in the
+   *        asynchronous result event.
+   * @return true if the request was accepted.
+   */
+  bool requestCellInfo(Nanoapp *nanoapp, const void *cookie);
+
  private:
   //! The instance of the platform WWAN interface.
   PlatformWwan mPlatformWwan;
+
+  // TODO: Support multiple requests for cell info by enqueuing them and
+  // requesting one after another.
+  //! The nanoapp that is currently requesting cell info. At this time only one
+  //! nanoapp can have a pending request for cell info.
+  Optional<uint32_t> mCellInfoRequestingNanoappInstanceId;
+
+  //! The cookie passed in by a nanoapp making a request for cell info. Note
+  //! that this will only be valid if the mCellInfoRequestingNanoappInstanceId
+  //! is set.
+  const void *mCellInfoRequestingNanoappCookie;
 };
 
 }  // namespace chre
