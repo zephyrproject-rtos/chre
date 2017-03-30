@@ -82,8 +82,8 @@ class TimerPool : public NonCopyable {
    * Tracks metadata associated with a request for a timed event.
    */
   struct TimerRequest {
-    //! The nanoapp from which this request was made.
-    const Nanoapp *requestingNanoapp;
+    //! The nanoapp instance ID from which this request was made.
+    uint32_t nanoappInstanceId;
 
     //! The TimerHandle assigned to this request.
     TimerHandle timerHandle;
