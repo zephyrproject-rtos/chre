@@ -17,6 +17,8 @@
 #ifndef UTIL_CHRE_OPTIONAL_IMPL_H_
 #define UTIL_CHRE_OPTIONAL_IMPL_H_
 
+#include <utility>
+
 #include "chre/util/optional.h"
 
 namespace chre {

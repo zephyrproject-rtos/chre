@@ -76,6 +76,13 @@ class Milliseconds {
    */
   constexpr uint64_t getMilliseconds() const;
 
+  /**
+   * Performs an equality comparison to another Milliseconds value.
+   *
+   * @return Returns true if this milliseconds object is equal to another.
+   */
+  constexpr bool operator==(const Milliseconds& millis) const;
+
  private:
   //! Store the time duration.
   uint64_t mMilliseconds;

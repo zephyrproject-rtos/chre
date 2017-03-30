@@ -41,6 +41,10 @@ constexpr uint64_t Milliseconds::getMilliseconds() const {
   return mMilliseconds;
 }
 
+constexpr bool Milliseconds::operator==(const Milliseconds& millis) const {
+  return (mMilliseconds == millis.mMilliseconds);
+}
+
 constexpr Microseconds::Microseconds(uint64_t microseconds)
     : mMicroseconds(microseconds) {}
 
