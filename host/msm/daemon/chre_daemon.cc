@@ -40,7 +40,9 @@
  * should be fully converted to C++.
  */
 
-#define LOG_NDEBUG 0  // TODO: for initial testing only
+// Disable verbose logging
+// TODO: use property_get_bool to make verbose logging runtime configurable
+// #define LOG_NDEBUG 0
 
 #include <ctype.h>
 #include <pthread.h>
@@ -77,7 +79,9 @@ static bool start_thread(pthread_t *thread_handle,
 //! Set to true when we request a graceful shutdown of CHRE
 static volatile bool chre_shutdown_requested = false;
 
-// TODO: debug-only code
+#if !defined(LOG_NDEBUG) || LOG_NDEBUG != 0
+static void log_buffer(const uint8_t * /*buffer*/, size_t /*size*/) {}
+#else
 static void log_buffer(const uint8_t *buffer, size_t size) {
   char line[32];
   int offset = 0;
@@ -117,6 +121,7 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
     LOGV("  %s%s%s", line, tabs, line_chars);
   }
 }
+#endif
 
 /**
  * Entry point for the thread that receives messages sent by CHRE.
@@ -132,7 +137,7 @@ static void *chre_message_to_host_thread(void *arg) {
 
   while (!chre_shutdown_requested) {
     messageLen = 0;
-    LOGD("Calling into chre_slpi_get_message_to_host");
+    LOGV("Calling into chre_slpi_get_message_to_host");
     result = chre_slpi_get_message_to_host(
         messageBuffer, sizeof(messageBuffer), &messageLen);
     LOGV("Got message from CHRE with size %u (result %d)", messageLen, result);

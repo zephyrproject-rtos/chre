@@ -20,6 +20,7 @@ cc_library_static {
         "external/flatbuffers/include",
         "host/common/include",
         "platform/shared/include",
+        "util/include",
     ],
     srcs: [
         "host/common/socket_client.cc",

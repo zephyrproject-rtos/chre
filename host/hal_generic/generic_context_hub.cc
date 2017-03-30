@@ -118,7 +118,8 @@ Return<Result> GenericContextHub::registerCallback(
 
   // TODO: currently we only support 1 hub behind this HAL implementation
   if (hubId == kDefaultHubId) {
-    mCallbacks = cb; // TODO: special handling for null?
+    std::lock_guard<std::mutex> lock(mCallbacksLock);
+    mCallbacks = cb;
     result = Result::OK;
   } else {
     result = Result::BAD_PARAMS;
@@ -185,7 +186,7 @@ Return<Result> GenericContextHub::unloadNanoApp(
   UNUSED(appId);
   UNUSED(transactionId);
   ALOGV("%s", __func__);
-  return Result::UNKNOWN_FAILURE;
+  return Result::TRANSACTION_FAILED;
 }
 
 Return<Result> GenericContextHub::enableNanoApp(
@@ -195,7 +196,7 @@ Return<Result> GenericContextHub::enableNanoApp(
   UNUSED(appId);
   UNUSED(transactionId);
   ALOGV("%s", __func__);
-  return Result::UNKNOWN_FAILURE;
+  return Result::TRANSACTION_FAILED;
 }
 
 Return<Result> GenericContextHub::disableNanoApp(
@@ -205,7 +206,7 @@ Return<Result> GenericContextHub::disableNanoApp(
   UNUSED(appId);
   UNUSED(transactionId);
   ALOGV("%s", __func__);
-  return Result::UNKNOWN_FAILURE;
+  return Result::TRANSACTION_FAILED;
 }
 
 Return<Result> GenericContextHub::queryApps(uint32_t hubId) {
@@ -224,7 +225,7 @@ Return<Result> GenericContextHub::queryApps(uint32_t hubId) {
     }
   }
 
-  return Result::UNKNOWN_FAILURE;
+  return result;
 }
 
 GenericContextHub::SocketCallbacks::SocketCallbacks(GenericContextHub& parent)
@@ -240,9 +241,9 @@ void GenericContextHub::SocketCallbacks::onMessageReceived(const void *data,
 void GenericContextHub::SocketCallbacks::onConnected() {
   if (mHaveConnected) {
     ALOGI("Reconnected to CHRE daemon");
-    if (mParent.mCallbacks != nullptr) {
+    invokeClientCallback([&]() {
       mParent.mCallbacks->handleHubEvent(AsyncEventType::RESTARTED);
-    }
+    });
   }
   mHaveConnected = true;
 }
@@ -254,24 +255,20 @@ void GenericContextHub::SocketCallbacks::onDisconnected() {
 void GenericContextHub::SocketCallbacks::handleNanoappMessage(
     uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
     const void *messageData, size_t messageDataLen) {
-  // TODO: this is not thread-safe w/registerCallback... we need something else
-  // to confirm that it's safe for us to invoke the callback, and likely a lock
-  // on stuff
-  if (mParent.mCallbacks != nullptr) {
-    ContextHubMsg msg;
-    msg.appName = appId;
-    msg.hostEndPoint = hostEndpoint;
-    msg.msgType = messageType;
+  ContextHubMsg msg;
+  msg.appName = appId;
+  msg.hostEndPoint = hostEndpoint;
+  msg.msgType = messageType;
 
-    // Dropping const from messageData when we wrap it in hidl_vec here. This is
-    // safe because we won't modify it here, and the ContextHubMsg we pass to
-    // the callback is const.
-    msg.msg.setToExternal(
-        const_cast<uint8_t *>(static_cast<const uint8_t *>(messageData)),
-        messageDataLen, false /* shouldOwn */);
-
+  // Dropping const from messageData when we wrap it in hidl_vec here. This is
+  // safe because we won't modify it here, and the ContextHubMsg we pass to
+  // the callback is const.
+  msg.msg.setToExternal(
+      const_cast<uint8_t *>(static_cast<const uint8_t *>(messageData)),
+      messageDataLen, false /* shouldOwn */);
+  invokeClientCallback([&]() {
     mParent.mCallbacks->handleClientMsg(msg);
-  }
+  });
 }
 
 void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
@@ -337,8 +334,9 @@ void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
     }
   }
 
-  // TODO: make this thread-safe w/setCallback
-  mParent.mCallbacks->handleAppsInfo(appInfoList);
+  invokeClientCallback([&]() {
+    mParent.mCallbacks->handleAppsInfo(appInfoList);
+  });
 }
 
 void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
@@ -346,10 +344,21 @@ void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
   ALOGV("Got load nanoapp response for transaction %" PRIu32 " with result %d",
         response.transaction_id, response.success);
 
-  TransactionResult result = (response.success) ?
-      TransactionResult::SUCCESS : TransactionResult::FAILURE;
-  mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
+  invokeClientCallback([&]() {
+    TransactionResult result = (response.success) ?
+        TransactionResult::SUCCESS : TransactionResult::FAILURE;
+    mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
+  });
 }
+
+void GenericContextHub::SocketCallbacks::invokeClientCallback(
+    std::function<void()> callback) {
+  std::lock_guard<std::mutex> lock(mParent.mCallbacksLock);
+  if (mParent.mCallbacks != nullptr) {
+    callback();
+  }
+}
+
 
 IContexthub* HIDL_FETCH_IContexthub(const char* /* name */) {
   return new GenericContextHub();

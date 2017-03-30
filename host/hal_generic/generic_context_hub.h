@@ -17,7 +17,9 @@
 #ifndef ANDROID_HARDWARE_CONTEXTHUB_V1_0_CONTEXTHUB_H
 #define ANDROID_HARDWARE_CONTEXTHUB_V1_0_CONTEXTHUB_H
 
-#include <future>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
 
 #include <android/hardware/contexthub/1.0/IContexthub.h>
 #include <hidl/MQDescriptor.h>
@@ -60,6 +62,7 @@ class GenericContextHub : public IContexthub {
  private:
   ::android::chre::SocketClient mClient;
   sp<IContexthubCallback> mCallbacks;
+  std::mutex mCallbacksLock;
 
   class SocketCallbacks : public ::android::chre::SocketClient::ICallbacks,
                           public ::android::chre::IChreMessageHandlers {
@@ -88,6 +91,12 @@ class GenericContextHub : public IContexthub {
    private:
     GenericContextHub& mParent;
     bool mHaveConnected = false;
+
+    /**
+     * Acquires mParent.mCallbacksLock and invokes the synchronous callback
+     * argument if mParent.mCallbacks is not null.
+     */
+    void invokeClientCallback(std::function<void()> callback);
   };
 
   sp<SocketCallbacks> mSocketCallbacks;
