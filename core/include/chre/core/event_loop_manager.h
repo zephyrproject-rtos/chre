@@ -47,6 +47,7 @@ enum class SystemCallbackType : uint16_t {
   WwanHandleCellInfoResult,
   HandleUnloadNanoapp,
   GnssLocationSessionStatusChange,
+  SensorStatusUpdate,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free

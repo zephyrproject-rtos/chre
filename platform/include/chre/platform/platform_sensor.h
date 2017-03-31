@@ -88,7 +88,7 @@ class PlatformSensor : public PlatformSensorBase,
   ChreSensorData *getLastEvent() const;
 
  protected:
-   /**
+  /**
    * Default constructor that puts this instance in an unspecified state.
    * Additional platform-specific initialization will likely be necessary to put
    * this object in a usable state. Do not construct PlatformSensor directly;

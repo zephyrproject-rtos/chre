@@ -187,9 +187,15 @@ enum class SensorMode {
 
 /**
  * @return true if the sensor mode is considered to be active and would cause a
- * sensor to be powered on in order to get sensor data.
+ *         sensor to be powered on in order to get sensor data.
  */
 constexpr bool sensorModeIsActive(SensorMode sensorMode);
+
+/**
+ * @return true if the sensor mode is considered to be passive and would not
+ *         cause a sensor to be powered on in order to get sensor data.
+ */
+constexpr bool sensorModeIsPassive(SensorMode sensorMode);
 
 /**
  * @return true if the sensor mode is considered to be contunuous.

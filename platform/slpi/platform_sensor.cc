@@ -37,6 +37,9 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/platform_sensor_util.h"
 #include "chre/platform/slpi/smgr_client.h"
+#include "chre/util/macros.h"
+
+// TODO: [Passive] explain passive sensor design
 
 namespace chre {
 namespace {
@@ -44,7 +47,11 @@ namespace {
 //! The timeout for QMI messages in milliseconds.
 constexpr uint32_t kQmiTimeoutMs = 1000;
 
+//! The constant used to convert from SMGR to Android unit for magnetometer.
 constexpr float kMicroTeslaPerGauss = 100.0f;
+
+//! The maximum number of CHRE sensors that share the same SMGR sensor ID.
+constexpr size_t kMaxNumSensorsPerSensorId = 3;
 
 //! The QMI sensor service client handle.
 qmi_client_type gPlatformSensorServiceQmiClientHandle = nullptr;
@@ -58,14 +65,34 @@ qmi_client_type gPlatformSensorInternalServiceQmiClientHandle = nullptr;
 //! relies on the assumption that the QMI callback is not reentrant.
 sns_smgr_buffering_ind_msg_v01 gSmgrBufferingIndMsg;
 
-//! A struct to store the sensor monitor status indication results.
-struct SensorStatus {
+//! A struct to store the number of SMGR clients of a sensor ID.
+struct SensorMonitor {
   uint8_t sensorId;
   uint8_t numClients;
 };
 
-//! A vector that tracks the number clients of each supported sensorId.
-DynamicVector<SensorStatus> gSensorStatusMonitor;
+//! A vector that tracks the SensorMonitor of each supported sensor ID.
+DynamicVector<SensorMonitor> gSensorMonitors;
+
+//! Forward declarations
+void makeAllPendingRequests(uint8_t sensorId);
+void removeAllPassiveRequests(uint8_t sensorId);
+
+/**
+ * Obtains the element index of gSensorMonitors that corresponds to the
+ * specified sensor ID. If it's not present, gSensorMonitors.size() is returned.
+ *
+ * @return The index of the element that belongs to sensorId.
+ */
+size_t getSensorMonitorIndex(uint8_t sensorId) {
+  size_t i;
+  for (i = 0; i < gSensorMonitors.size(); i++) {
+    if (gSensorMonitors[i].sensorId == sensorId) {
+      break;
+    }
+  }
+  return i;
+}
 
 /**
  * Converts a sensorId, dataType and calType as provided by SMGR to a
@@ -590,19 +617,150 @@ void platformSensorServiceQmiIndicationCallback(void *userHandle,
   };
 }
 
-uint8_t getNumClients(uint8_t sensorId) {
-  for (size_t i = 0; i < gSensorStatusMonitor.size(); i++) {
-    if (gSensorStatusMonitor[i].sensorId == sensorId) {
-      return gSensorStatusMonitor[i].numClients;
+/**
+ * Populates the supplied SensorTypes array with SensorTypes of the specified
+ * sensor ID.
+ *
+ * @param sensorId The sensor ID as provided by the SMGR.
+ * @param sensorTypes A non-null pointer to a SensorType array of size at least
+ *        kMaxNumSensorsPerSensorId.
+ */
+size_t populateSensorTypeArrayFromSensorId(uint8_t sensorId,
+                                           SensorType *sensorTypes) {
+  static_assert(kMaxNumSensorsPerSensorId >= 3,
+                "This function assumes kMaxNumSensorsPerSensorId >= 3");
+  CHRE_ASSERT(sensorTypes);
+
+  size_t numSensorTypes = 0;
+  if (sensorTypes != nullptr) {
+    if (sensorId >= SNS_SMGR_ID_ACCEL_V01
+          && sensorId < SNS_SMGR_ID_GYRO_V01) {
+      sensorTypes[0] = SensorType::Accelerometer;
+      sensorTypes[1] = SensorType::UncalibratedAccelerometer;
+      sensorTypes[2] = SensorType::AccelerometerTemperature;
+      numSensorTypes = 3;
+    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
+          && sensorId < SNS_SMGR_ID_MAG_V01) {
+      sensorTypes[0] = SensorType::Gyroscope;
+      sensorTypes[1] = SensorType::UncalibratedGyroscope;
+      sensorTypes[2] = SensorType::GyroscopeTemperature;
+      numSensorTypes = 3;
+    } else if (sensorId >= SNS_SMGR_ID_MAG_V01
+          && sensorId < SNS_SMGR_ID_PRESSURE_V01) {
+      sensorTypes[0] = SensorType::GeomagneticField;
+      sensorTypes[1] = SensorType::UncalibratedGeomagneticField;
+      numSensorTypes = 2;
+    } else {
+      SensorType sensorType = getSensorTypeFromSensorId(sensorId,
+          SNS_SMGR_DATA_TYPE_PRIMARY_V01, SNS_SMGR_CAL_SEL_FULL_CAL_V01);
+      if (sensorType != SensorType::Unknown) {
+        sensorTypes[0] = sensorType;
+        numSensorTypes = 1;
+      }
     }
   }
-  return 0;
+  return numSensorTypes;
 }
 
-void setNumClients(uint8_t sensorId, uint8_t numClients) {
-  for (size_t i = 0; i < gSensorStatusMonitor.size(); i++) {
-    if (gSensorStatusMonitor[i].sensorId == sensorId) {
-      gSensorStatusMonitor[i].numClients = numClients;
+/**
+ * Obtains the number of SMGR clients of a sensor ID that were originated by
+ * CHRE.
+ *
+ * @param sensorId The sensor ID as provided by the SMGR.
+ * @return The number of CHRE clients.
+ */
+size_t getNumChreClients(uint8_t sensorId) {
+  size_t numChreClients = 0;
+
+  // Identify sensor types of the specified sensor ID
+  SensorType sensorTypes[kMaxNumSensorsPerSensorId];
+  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
+      sensorId, sensorTypes);
+  for (size_t i = 0; i < numSensorTypes; i++) {
+    const Sensor *sensor = EventLoopManagerSingleton::get()
+        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    if (sensor != nullptr && !sensor->isSensorOff) {
+      numChreClients++;
+    }
+  }
+  return numChreClients;
+}
+
+/**
+ * Obtains the merged SensorMode of the specified sensor ID, with sensorType's
+ * sensor request replaced by the supplied request.
+ *
+ * @param sensorId The sensor ID as provided by the SMGR.
+ * @param sensorType The SensorType whose sensor request is to be replaced by
+ *        the supplied request.
+ * @param request The sensor request to replace the existing one.
+ * @return The merged SensorMode.
+ */
+SensorMode getMergedMode(uint8_t sensorId, SensorType sensorType,
+                         const SensorRequest& request) {
+  // Identify sensor requests to merge
+  SensorType sensorTypes[kMaxNumSensorsPerSensorId];
+  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
+      sensorId, sensorTypes);
+
+  // merge requests
+  SensorRequest mergedRequest;
+  for (size_t i = 0; i < numSensorTypes; i++) {
+    const Sensor *sensor = EventLoopManagerSingleton::get()
+      ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    if (sensor != nullptr) {
+      mergedRequest.mergeWith(
+          (sensorTypes[i] == sensorType) ? request : sensor->getRequest());
+    }
+  }
+  return mergedRequest.getMode();
+}
+
+/**
+ * Makes or removes passive sensor requests when the number of SMGR clients
+ * changes.
+ *
+ * @param sensorID The sensor ID being monitored.
+ * @param prevNumClients The previous number of SMGR clients.
+ * @param currNumclients The current number of SMGR clients.
+ */
+void onNumSmgrClientsChange(uint8_t sensorId, uint8_t prevNumClients,
+                            uint8_t currNumClients) {
+  bool makeAllRequests = (prevNumClients == 0 && currNumClients > 0);
+  SensorRequest dummyRequest;
+  SensorMode mode = getMergedMode(sensorId, SensorType::Unknown, dummyRequest);
+  bool removeAllRequests = (sensorModeIsPassive(mode)
+                            && currNumClients < prevNumClients
+                            && currNumClients == getNumChreClients(sensorId)
+                            && currNumClients > 0);
+  LOGD("makeAll %d, removeAll %d: mergedMode %d, numChreClients %d",
+       makeAllRequests, removeAllRequests, static_cast<size_t>(mode),
+       getNumChreClients(sensorId));
+  if (makeAllRequests) {
+    makeAllPendingRequests(sensorId);
+  } else if (removeAllRequests) {
+    removeAllPassiveRequests(sensorId);
+  }
+}
+
+/**
+ * Processes sensor status monitor indication message.
+ *
+ * @param status The new sensor status indication from SMGR
+ */
+void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
+  size_t index = getSensorMonitorIndex(status.sensor_id);
+  if (index == gSensorMonitors.size()) {
+    LOGE("Sensor status monitor update of invalid sensor ID %" PRIu64,
+         status.sensor_id);
+  } else {
+    uint8_t numClients = gSensorMonitors[index].numClients;
+    if (numClients != status.num_clients) {
+      LOGD("Status: id %" PRIu64 ", num clients: prev %" PRIu8 " curr %" PRIu8,
+           status.sensor_id, numClients, status.num_clients);
+
+      onNumSmgrClientsChange(status.sensor_id, numClients, status.num_clients);
+      gSensorMonitors[index].numClients = status.num_clients;
     }
   }
 }
@@ -624,15 +782,26 @@ void handleSensorStatusMonitorIndication(void *userHandle, void *buffer,
   if (status != QMI_NO_ERR) {
     LOGE("Error parsing sensor status monitor indication %d", status);
   } else {
-    uint8_t numClients = getNumClients(smgrMonitorIndMsg.sensor_id);
-    if (numClients != smgrMonitorIndMsg.num_clients) {
-      LOGD("Status: id %" PRIu64 ", num clients: curr %" PRIu8 " new %" PRIu8,
-           smgrMonitorIndMsg.sensor_id, numClients,
-           smgrMonitorIndMsg.num_clients);
-      setNumClients(smgrMonitorIndMsg.sensor_id,
-                    smgrMonitorIndMsg.num_clients);
+    auto *callbackData = memoryAlloc<
+      sns_smgr_sensor_status_monitor_ind_msg_v02>();
+    if (callbackData == nullptr) {
+      LOGE("Failed to allocate status update deferred callback memory");
+    } else {
+      *callbackData = smgrMonitorIndMsg;
+      auto callback = [](uint16_t /* type */, void *data) {
+        auto *cbData =
+            static_cast<sns_smgr_sensor_status_monitor_ind_msg_v02 *>(data);
+        onStatusChange(*cbData);
+        memoryFree(cbData);
+      };
 
-      //TODO: add onNumClientsChange()
+      // Schedule a deferred callback to handle sensor status change in the main
+      // thread.
+      if (!EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorStatusUpdate, callbackData, callback)) {
+        LOGE("Failed to schedule a deferred callback for status update");
+        memoryFree(callbackData);
+      }
     }
   }
 }
@@ -663,7 +832,13 @@ void platformSensorInternalServiceQmiIndicationCallback(void *userHandle,
   };
 }
 
-void setSensorStatusMonitor(uint8_t sensorId, bool enable) {
+/**
+ * Adds or removes an SMGR sensor monitor for the specified sensor ID.
+ *
+ * @param sensorId The sensor ID to add/remove sensor status monitor for.
+ * @param enable true to add and false to remove the status monitor.
+ */
+void setSensorMonitorRequest(uint8_t sensorId, bool enable) {
   sns_smgr_sensor_status_monitor_req_msg_v02 monitorRequest;
   sns_smgr_sensor_status_monitor_resp_msg_v02 monitorResponse;
   monitorRequest.sensor_id = sensorId;
@@ -681,6 +856,28 @@ void setSensorStatusMonitor(uint8_t sensorId, bool enable) {
     LOGE("Sensor status monitor request failed with error: %" PRIu8
          " sensor ID %" PRIu8 " enable %d",
          monitorResponse.resp.sns_err_t, sensorId, enable);
+  }
+}
+
+/**
+ * Adds and initializes a sensor monitor for the specified sensor ID if it
+ * doesn't exist yet.
+ *
+ * @param sensorId The sensor ID to request monitor for.
+ */
+void addSensorMonitor(uint8_t sensorId) {
+  size_t index = getSensorMonitorIndex(sensorId);
+  if (index == gSensorMonitors.size()) {
+    LOGD("Adding sensor status monitor for sensor ID %" PRIu8, sensorId);
+
+    // Initialize sensor monitor status before making a QMI request.
+    SensorMonitor monitor;
+    monitor.sensorId = sensorId;
+    monitor.numClients = 0;
+    gSensorMonitors.push_back(monitor);
+
+    // Make a QMI request to add the status monitor
+    setSensorMonitorRequest(sensorId, true);
   }
 }
 
@@ -712,7 +909,6 @@ bool getSensorsForSensorId(uint8_t sensorId,
     LOGE("Single sensor info request failed with error: %d",
          sensorInfoResponse.Resp.sns_err_t);
   } else {
-    bool isSensorIdSupported = false;
     const sns_smgr_sensor_info_s_v01& sensorInfoList =
         sensorInfoResponse.SensorInfo;
     for (uint32_t i = 0; i < sensorInfoList.data_type_info_len; i++) {
@@ -727,7 +923,6 @@ bool getSensorsForSensorId(uint8_t sensorId,
           sensorInfo.SensorID, sensorInfo.DataType,
           SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
-        isSensorIdSupported = true;
         addSensor(sensorInfo, SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
 
         // Add an uncalibrated version if defined.
@@ -739,20 +934,8 @@ bool getSensorsForSensorId(uint8_t sensorId,
         }
       }
     }
-
-    // If CHRE supports sensors with this sensor ID, enable its status monitor.
-    if (isSensorIdSupported) {
-      // Initialize monitor status before making a QMI request.
-      SensorStatus sensorStatus;
-      sensorStatus.sensorId = sensorId;
-      sensorStatus.numClients = 0;
-      gSensorStatusMonitor.push_back(sensorStatus);
-
-      setSensorStatusMonitor(sensorId, true);
-    }
     success = true;
   }
-
   return success;
 }
 
@@ -765,7 +948,7 @@ bool getSensorsForSensorId(uint8_t sensorId,
  * @return Returns the SMGR request action given the sensor mode.
  */
 uint8_t getSmgrRequestActionForMode(SensorMode mode) {
-  if (sensorModeIsActive(mode)) {
+  if (mode != SensorMode::Off) {
     return SNS_SMGR_BUFFERING_ACTION_ADD_V01;
   } else {
     return SNS_SMGR_BUFFERING_ACTION_DELETE_V01;
@@ -831,6 +1014,194 @@ void populateSensorRequest(
   }
 }
 
+/**
+ * Obtains the number of SMGR clients that were not originated by CHRE.
+ *
+ * @param sensorId The sensorID as provided by the SMGR.
+ * @return The number of non-CHRE clients.
+ */
+size_t getNumNonChreClients(uint8_t sensorId) {
+  size_t numChreClients = getNumChreClients(sensorId);
+  size_t numSmgrClients = 0;
+  size_t index = getSensorMonitorIndex(sensorId);
+  if (index == gSensorMonitors.size()) {
+    LOGE("Accessing sensor monitor with invalid sensorId %" PRIu8, sensorId);
+  } else {
+    numSmgrClients = gSensorMonitors[index].numClients;
+  }
+
+  size_t numNonChreClients = 0;
+  if (numChreClients > numSmgrClients) {
+    // SMGR status monitor indication may lag behind if back-to-back requests
+    // are made.
+    LOGW("numChreClients %zu > numSmgrClients %zu",
+         numChreClients, numSmgrClients);
+  } else {
+    numNonChreClients = numSmgrClients - numChreClients;
+  }
+  return numNonChreClients;
+}
+
+/**
+ * Determines whether a requet is allowed. A passive request is not always
+ * allowed.
+ *
+ * @param sensorType The SensorType of this request
+ * @param request The intended sensor request
+ * @return true if the request is allowed.
+ */
+bool isRequestAllowed(SensorType sensorType, const SensorRequest& request) {
+  bool allowed = false;
+
+  const Sensor *sensor = EventLoopManagerSingleton::get()
+      ->getSensorRequestManager().getSensor(sensorType);
+  if (sensor != nullptr) {
+    // If it's an ACTIVE or an OFF request, it's always allowed.
+    allowed = true;
+    if (sensorModeIsPassive(request.getMode())) {
+      size_t numNonChreClients = getNumNonChreClients(sensor->sensorId);
+      SensorMode mode = getMergedMode(sensor->sensorId, sensorType, request);
+      allowed = (numNonChreClients > 0 || sensorModeIsActive(mode));
+      LOGD("sensorType %d allowed %d: mergedMode %d, numNonChreClients %zu",
+           static_cast<size_t>(sensorType), allowed, static_cast<int>(mode),
+           numNonChreClients);
+    }
+  }
+  return allowed;
+}
+
+/**
+ * Makes a QMI SNS_SMGR_BUFFERING_REQ request based on the arguments provided.
+ *
+ * @param sensorId The sensorID as provided by the SMGR.
+ * @param dataType The dataType for the sesnor as provided by the MSGR.
+ * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
+ * @param minInterval The minimum interval of this sensor.
+ * @param request The sensor request
+ * @return true if the request has been made successfully.
+ */
+bool makeQmiRequest(uint8_t sensorId, uint8_t dataType, uint8_t calType,
+                    uint64_t minInterval, const SensorRequest& request) {
+  bool success = false;
+
+  // Allocate request and response for the sensor request.
+  auto *sensorRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
+  auto *sensorResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
+
+  if (sensorRequest == nullptr || sensorResponse == nullptr) {
+    LOGE("Failed to allocate sensor request/response: out of memory");
+  } else {
+    populateSensorRequest(request, sensorId, dataType, calType,
+                          minInterval, sensorRequest);
+
+    qmi_client_error_type status = qmi_client_send_msg_sync(
+        gPlatformSensorServiceQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
+        sensorRequest, sizeof(*sensorRequest),
+        sensorResponse, sizeof(*sensorResponse),
+        kQmiTimeoutMs);
+
+    if (status != QMI_NO_ERR) {
+      LOGE("Error requesting sensor data: %d", status);
+    } else if (sensorResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01
+        || (sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
+            && sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_MODIFIED_V01)) {
+      LOGE("Sensor data request failed with error: %d, AckNak: %d",
+           sensorResponse->Resp.sns_err_t, sensorResponse->AckNak);
+    } else {
+      success = true;
+    }
+  }
+  memoryFree(sensorRequest);
+  memoryFree(sensorResponse);
+  return success;
+}
+
+/**
+ * Makes a QMI SNS_SMGR_BUFFERING_REQ request if necessary.
+ *
+ * @param sensorType The sensor type of the request.
+ * @param request The sensor request to be made.
+ * @return true if the request has been accepted.
+ */
+bool makeRequest(SensorType sensorType, const SensorRequest& request) {
+  bool success = false;
+
+  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .getSensor(sensorType);
+  if (sensor == nullptr) {
+    LOGE("Invalid sensorType %d", static_cast<size_t>(sensorType));
+  } else {
+    // Do not make a QMI off request if the sensor is off. Otherwise, SMGR
+    // returns an error.
+    if (request.getMode() == SensorMode::Off) {
+      success = sensor->isSensorOff;
+    }
+
+    // Make a QMI buffering request if necessary.
+    if (!success) {
+      success = makeQmiRequest(sensor->sensorId, sensor->dataType,
+                               sensor->calType, sensor->minInterval, request);
+    }
+  }
+
+  // TODO: handle makeQmiRequest failures
+  if (success) {
+    // Update internal states if request was accepted by SMGR.
+    sensor->isSensorOff = (request.getMode() == SensorMode::Off);
+
+    if (request.getMode() == SensorMode::Off) {
+      sensor->lastEventValid = false;
+    }
+  }
+  return success;
+}
+
+/**
+ * Makes all pending requests of the specified sensor ID to SMGR.
+ *
+ * @param sensorId The sensor ID whose pending requests are to be made.
+ */
+void makeAllPendingRequests(uint8_t sensorId) {
+  // Identify sensor types to check for pending requests
+  SensorType sensorTypes[kMaxNumSensorsPerSensorId];
+  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
+      sensorId, sensorTypes);
+  for (size_t i = 0; i < numSensorTypes; i++) {
+    const Sensor *sensor = EventLoopManagerSingleton::get()
+        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+
+    // If sensor is off and the request is not off, it's a pending request.
+    if (sensor != nullptr && sensor->isSensorOff
+        && sensor->getRequest().getMode() != SensorMode::Off) {
+      makeRequest(sensorTypes[i], sensor->getRequest());
+    }
+  }
+}
+
+/**
+ * Identifies and removes passive requests that have been made to the SMGR, and
+ * adds them to the sensor monitor.
+ *
+ * @param sensorId The sensor ID whose passive QMI requests are to be removed.
+ */
+void removeAllPassiveRequests(uint8_t sensorId) {
+  // Specify sensor types to check for passive requests
+  SensorType sensorTypes[kMaxNumSensorsPerSensorId];
+  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
+      sensorId, sensorTypes);
+  for (size_t i = 0; i < numSensorTypes; i++) {
+    const Sensor *sensor = EventLoopManagerSingleton::get()
+        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+
+    // Turn off sensors that have a passive request
+    if (sensor != nullptr
+        && sensorModeIsPassive(sensor->getRequest().getMode())) {
+      SensorRequest offRequest;
+      makeRequest(sensorTypes[i], offRequest);
+    }
+  }
+}
+
 }  // anonymous namespace
 
 PlatformSensor::~PlatformSensor() {
@@ -881,19 +1252,19 @@ void PlatformSensor::deinit() {
   qmi_client_error_type err = qmi_client_release(
       gPlatformSensorServiceQmiClientHandle);
   if (err != QMI_NO_ERR) {
-    LOGE("Failed to release QMI client: %d", err);
+    LOGE("Failed to release SensorService QMI client: %d", err);
   }
   gPlatformSensorServiceQmiClientHandle = nullptr;
 
   err = qmi_client_release(gPlatformSensorInternalServiceQmiClientHandle);
   if (err != QMI_NO_ERR) {
-    LOGE("Failed to release QMI client: %d", err);
+    LOGE("Failed to release SensorInternalService QMI client: %d", err);
   }
   gPlatformSensorInternalServiceQmiClientHandle = nullptr;
 
-  // Removing all sensor status monitor requests. Releaseing a QMI client also
-  // releases all of its subscriptions.
-  gSensorStatusMonitor.clear();
+  // Clearing all sensor status monitors. Releaseing a QMI client also
+  // releases all sensor status monitor requests.
+  gSensorMonitors.clear();
 }
 
 bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
@@ -929,40 +1300,16 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
 }
 
 bool PlatformSensor::applyRequest(const SensorRequest& request) {
-  // Allocate request and response for the sensor request.
-  auto *sensorRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
-  auto *sensorResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
+  // Adds a sensor monitor the first time this sensor is requested.
+  addSensorMonitor(this->sensorId);
 
-  bool success = false;
-  if (sensorRequest == nullptr || sensorResponse == nullptr) {
-    LOGE("Failed to allocated sensor request/response: out of memory");
-  } else {
-    populateSensorRequest(request, this->sensorId, this->dataType,
-        this->calType, this->getMinInterval(), sensorRequest);
+  // Determines whether a (passive) request is allowed at this point.
+  bool requestAllowed = isRequestAllowed(getSensorType(), request);
 
-    qmi_client_error_type status = qmi_client_send_msg_sync(
-        gPlatformSensorServiceQmiClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
-        sensorRequest, sizeof(*sensorRequest),
-        sensorResponse, sizeof(*sensorResponse),
-        kQmiTimeoutMs);
-
-    if (status != QMI_NO_ERR) {
-      LOGE("Error requesting sensor data: %d", status);
-    } else if (sensorResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01
-        || (sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
-            && sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_MODIFIED_V01)) {
-      LOGE("Sensor data request failed with error: %d, AckNak: %d",
-           sensorResponse->Resp.sns_err_t, sensorResponse->AckNak);
-    } else {
-      if (request.getMode() == SensorMode::Off) {
-        this->lastEventValid = false;
-      }
-      success = true;
-    }
-  }
-
-  memoryFree(sensorRequest);
-  memoryFree(sensorResponse);
+  // If request is not allowed, turn off the sensor. Otherwise, make request.
+  SensorRequest offRequest;
+  bool success = makeRequest(getSensorType(),
+                             requestAllowed ? request : offRequest);
   return success;
 }
 
@@ -999,6 +1346,10 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
 
   lastEventSize = other.lastEventSize;
   other.lastEventSize = 0;
+
+  lastEventValid = other.lastEventValid;
+  isSensorOff = other.isSensorOff;
+
   return *this;
 }
 
