@@ -16,10 +16,35 @@
 
 #include "chre/core/gnss_request_manager.h"
 
+#include "chre/platform/assert.h"
+
 namespace chre {
 
 uint32_t GnssRequestManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
+}
+
+bool GnssRequestManager::startLocationSession(Nanoapp *nanoapp,
+                                              Milliseconds minInterval,
+                                              Milliseconds minTimeToNextFix,
+                                              const void *cookie) {
+  CHRE_ASSERT(nanoapp);
+  return configureLocationSession(nanoapp, true /* enable */, minInterval,
+                                  minTimeToNextFix, cookie);
+}
+
+bool GnssRequestManager::stopLocationSession(Nanoapp *nanoapp,
+                                             const void *cookie) {
+  CHRE_ASSERT(nanoapp);
+  return configureLocationSession(nanoapp, false /* enable */, Milliseconds(),
+                                  Milliseconds(), cookie);
+}
+
+bool GnssRequestManager::configureLocationSession(
+    Nanoapp *nanoapp, bool enable, Milliseconds minInterval,
+    Milliseconds minTimeToFirstFix, const void *cookie) {
+  // TODO: Implement this.
+  return false;
 }
 
 }  // namespace chre

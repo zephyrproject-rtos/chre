@@ -52,6 +52,11 @@ class Seconds {
 class Milliseconds {
  public:
   /**
+   * Default constructs a milliseconds time duration to zero.
+   */
+  constexpr Milliseconds();
+
+  /**
    * Construct a Milliseconds time duration given a value.
    */
   constexpr explicit Milliseconds(uint64_t milliseconds);
@@ -75,6 +80,13 @@ class Milliseconds {
    * @return the value of milliseconds.
    */
   constexpr uint64_t getMilliseconds() const;
+
+  /**
+   * Performs an equality comparison to another Milliseconds value.
+   *
+   * @return Returns true if this milliseconds object is equal to another.
+   */
+  constexpr bool operator==(const Milliseconds& millis) const;
 
  private:
   //! Store the time duration.
