@@ -87,6 +87,7 @@ struct PendingMessage {
   } data;
 };
 
+// TODO: this should be part of HostLinkBase
 FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize>
     gOutboundQueue;
 
@@ -339,9 +340,19 @@ bool HostLink::sendMessage(const MessageToHost *message) {
       PendingMessage(PendingMessageType::NanoappMessageToHost, message));
 }
 
-void HostLinkBase::shutdown() {
-  constexpr qurt_timer_duration_t kPollingIntervalUsec = 5000;
+bool HostLinkBase::flushOutboundQueue() {
+  // This function is used in preFatalError() so it must never call FATAL_ERROR
+  int waitCount = 5;
 
+  FARF(LOW, "Draining message queue");
+  while (!gOutboundQueue.empty() && waitCount-- > 0) {
+    qurt_timer_sleep(kPollingIntervalUsec);
+  }
+
+  return (waitCount >= 0);
+}
+
+void HostLinkBase::shutdown() {
   // Push a null message so the blocking call in chre_slpi_get_message_to_host()
   // returns and the host can exit cleanly. If the queue is full, try again to
   // avoid getting stuck (no other new messages should be entering the queue at
@@ -359,19 +370,12 @@ void HostLinkBase::shutdown() {
     FARF(ERROR, "No room in outbound queue for shutdown message and host not "
          "draining queue!");
   } else {
-    FARF(MEDIUM, "Draining message queue");
-
     // We were able to push the shutdown message. Wait for the queue to
     // completely flush before returning.
-    int waitCount = 5;
-    while (!gOutboundQueue.empty() && --waitCount > 0) {
-      qurt_timer_sleep(kPollingIntervalUsec);
-    }
-
-    if (waitCount <= 0) {
+    if (!flushOutboundQueue()) {
       FARF(ERROR, "Host took too long to drain outbound queue; exiting anyway");
     } else {
-      FARF(MEDIUM, "Finished draining queue");
+      FARF(LOW, "Finished draining queue");
     }
   }
 }

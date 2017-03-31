@@ -35,6 +35,7 @@ HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs
 HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs/stddef
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/ms
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/cust
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/debugtools
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
