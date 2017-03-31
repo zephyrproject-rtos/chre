@@ -177,11 +177,17 @@ bool SocketClient::receiveThreadRunning() const {
 }
 
 bool SocketClient::reconnect() {
-  auto delay = std::chrono::duration<int32_t, std::milli>(500);
+  constexpr auto kMinDelay = std::chrono::duration<int32_t, std::milli>(250);
   constexpr auto kMaxDelay = std::chrono::minutes(5);
-  int retryLimit = 40;  // ~2.5 hours total
+  // Try reconnecting at initial delay this many times before backing off
+  constexpr unsigned int kExponentialBackoffDelay =
+    std::chrono::seconds(10) / kMinDelay;
+  // Give up after this many tries (~2.5 hours)
+  constexpr unsigned int kRetryLimit = kExponentialBackoffDelay + 40;
+  auto delay = kMinDelay;
+  unsigned int retryCount = 0;
 
-  while (--retryLimit > 0) {
+  while (retryCount++ < kRetryLimit) {
     {
       std::unique_lock<std::mutex> lock(mShutdownMutex);
       mShutdownCond.wait_for(lock, delay,
@@ -193,7 +199,9 @@ bool SocketClient::reconnect() {
 
     if (!tryConnect()) {
       LOGW("Failed to (re)connect, next try in %" PRId32 " ms", delay.count());
-      delay *= 2;
+      if (retryCount > kExponentialBackoffDelay) {
+        delay *= 2;
+      }
       if (delay > kMaxDelay) {
         delay = kMaxDelay;
       }
