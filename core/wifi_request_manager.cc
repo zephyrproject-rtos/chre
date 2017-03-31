@@ -101,7 +101,7 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
     cbState->enabled = enabled;
     cbState->errorCode = errorCode;
 
-    auto callback = [](uint16_t /*eventType*/, void *eventData) {
+    auto callback = [](uint16_t /* eventType */, void *eventData) {
       auto *state = static_cast<CallbackState *>(eventData);
       EventLoopManagerSingleton::get()->getWifiRequestManager()
           .handleScanMonitorStateChangeSync(state->enabled, state->errorCode);
@@ -127,7 +127,7 @@ void WifiRequestManager::handleScanResponse(bool pending,
     cbState->pending = pending;
     cbState->errorCode = errorCode;
 
-    auto callback = [](uint16_t /*eventType*/, void *eventData) {
+    auto callback = [](uint16_t /* eventType */, void *eventData) {
       auto *state = static_cast<CallbackState *>(eventData);
       EventLoopManagerSingleton::get()->getWifiRequestManager()
           .handleScanResponseSync(state->pending, state->errorCode);

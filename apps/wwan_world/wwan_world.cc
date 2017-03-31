@@ -56,6 +56,59 @@ void handleTimerEvent(const void *eventData) {
   }
 }
 
+/**
+ * Logs a CHRE WWAN cell info result.
+ *
+ * @param cell the cell info to log.
+ */
+void logChreWwanInfo(const chreWwanCellInfo *cell) {
+  LOGI("Found cell at time %" PRIu8, cell->timeStamp);
+  LOGI("  timestamp type %" PRIu8, cell->timeStampType);
+  LOGI("  registered %" PRIu8, cell->registered);
+
+  switch (cell->cellInfoType) {
+    case CHRE_WWAN_CELL_INFO_TYPE_LTE:
+      LOGI("  LTE cell detected");
+      LOGI("    mcc %" PRId32, cell->CellInfo.lte.cellIdentityLte.mcc);
+      LOGI("    mnc %" PRId32, cell->CellInfo.lte.cellIdentityLte.mnc);
+      LOGI("    ci %" PRId32, cell->CellInfo.lte.cellIdentityLte.ci);
+      LOGI("    pci %" PRId32, cell->CellInfo.lte.cellIdentityLte.pci);
+      LOGI("    tac %" PRId32, cell->CellInfo.lte.cellIdentityLte.tac);
+      LOGI("    earfcn %" PRId32, cell->CellInfo.lte.cellIdentityLte.earfcn);
+      break;
+    case CHRE_WWAN_CELL_INFO_TYPE_GSM:
+      LOGI("  GSM cell detected");
+      LOGI("    mcc %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.mcc);
+      LOGI("    mnc %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.mnc);
+      LOGI("    lac %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.lac);
+      LOGI("    cid %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.cid);
+      LOGI("    arfcn %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.arfcn);
+      LOGI("    bsic %" PRIu8, cell->CellInfo.gsm.cellIdentityGsm.bsic);
+      break;
+    default:
+      // TODO: Support logging all cell types.
+      LOGI("  unsupported cell info %" PRIu8, cell->cellInfoType);
+      break;
+  };
+}
+
+/**
+ * Handles a WWAN cell info result.
+ *
+ * @param result a WWAN cell info result.
+ */
+void handleCellInfoResult(const chreWwanCellInfoResult *result) {
+  if (result->errorCode != CHRE_ERROR_NONE) {
+    LOGE("Failed to request WWAN cell info with %" PRIu8, result->errorCode);
+  } else {
+    LOGD("Received cell info result with version %" PRIu8, result->version);
+
+    for (uint8_t i = 0; i < result->cellInfoCount; i++) {
+      logChreWwanInfo(&result->cells[i]);
+    }
+  }
+}
+
 }  // namespace
 
 
@@ -98,6 +151,10 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   switch (eventType) {
     case CHRE_EVENT_TIMER:
       handleTimerEvent(eventData);
+      break;
+    case CHRE_EVENT_WWAN_CELL_INFO_RESULT:
+      handleCellInfoResult(
+          static_cast<const chreWwanCellInfoResult *>(eventData));
       break;
     default:
       LOGW("Unhandled event type %" PRIu16, eventType);

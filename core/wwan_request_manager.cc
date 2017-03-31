@@ -16,6 +16,8 @@
 
 #include "chre/core/wwan_request_manager.h"
 
+#include "chre/core/event_loop_manager.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
 namespace chre {
@@ -32,6 +34,7 @@ bool WwanRequestManager::requestCellInfo(Nanoapp *nanoapp,
   if (!mCellInfoRequestingNanoappInstanceId.has_value()) {
     success = mPlatformWwan.requestCellInfo();
     if (success) {
+      nanoapp->registerForBroadcastEvent(CHRE_EVENT_WWAN_CELL_INFO_RESULT);
       mCellInfoRequestingNanoappInstanceId = nanoapp->getInstanceId();
       mCellInfoRequestingNanoappCookie = cookie;
     }
@@ -40,6 +43,57 @@ bool WwanRequestManager::requestCellInfo(Nanoapp *nanoapp,
   }
 
   return success;
+}
+
+void WwanRequestManager::handleCellInfoResult(chreWwanCellInfoResult *result) {
+  auto callback = [](uint16_t /* eventType */, void *eventData) {
+    auto *cellInfoResult = static_cast<chreWwanCellInfoResult *>(eventData);
+    EventLoopManagerSingleton::get()->getWwanRequestManager()
+        .handleCellInfoResultSync(cellInfoResult);
+  };
+
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::WwanHandleCellInfoResult, result, callback);
+}
+
+void WwanRequestManager::handleCellInfoResultSync(
+    chreWwanCellInfoResult *result) {
+  if (mCellInfoRequestingNanoappInstanceId.has_value()) {
+    bool eventPosted = EventLoopManagerSingleton::get()->postEvent(
+        CHRE_EVENT_WWAN_CELL_INFO_RESULT, result, freeCellInfoResultCallback,
+        kSystemInstanceId, kBroadcastInstanceId);
+    if (!eventPosted) {
+      FATAL_ERROR("Failed to send WiFi scan event");
+    }
+  } else {
+    LOGE("Cell info results received unexpectedly");
+  }
+}
+
+void WwanRequestManager::handleFreeCellInfoResult(
+    chreWwanCellInfoResult *result) {
+  if (mCellInfoRequestingNanoappInstanceId.has_value()) {
+    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
+        findNanoappByInstanceId(*mCellInfoRequestingNanoappInstanceId);
+    if (nanoapp != nullptr) {
+      nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WWAN_CELL_INFO_RESULT);
+    } else {
+      LOGE("Freeing cell info for non-existent nanoapp");
+    }
+
+    mCellInfoRequestingNanoappInstanceId.reset();
+  } else {
+    LOGE("Cell info released with no pending request");
+  }
+
+  mPlatformWwan.releaseCellInfoResult(result);
+}
+
+void WwanRequestManager::freeCellInfoResultCallback(uint16_t eventType,
+                                                    void *eventData) {
+  auto *result = static_cast<chreWwanCellInfoResult *>(eventData);
+  EventLoopManagerSingleton::get()->getWwanRequestManager()
+      .handleFreeCellInfoResult(result);
 }
 
 }  // namespace chre

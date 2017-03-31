@@ -319,7 +319,11 @@ class WifiRequestManager : public NonCopyable {
   void handleScanEventSync(chreWifiScanEvent *event);
 
   /**
-   * TODO: this.
+   * Handles the releasing of a WiFi scan event and unsubscribes a nanoapp who
+   * has made an active request for a wifi scan from WiFi scan events in the
+   * future (if it has not subscribed to passive events).
+   *
+   * @param scanEvent The scan event to release.
    */
   void handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent);
 
