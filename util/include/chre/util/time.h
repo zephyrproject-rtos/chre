@@ -52,6 +52,11 @@ class Seconds {
 class Milliseconds {
  public:
   /**
+   * Default constructs a milliseconds time duration to zero.
+   */
+  constexpr Milliseconds();
+
+  /**
    * Construct a Milliseconds time duration given a value.
    */
   constexpr explicit Milliseconds(uint64_t milliseconds);

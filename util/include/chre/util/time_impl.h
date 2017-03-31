@@ -22,6 +22,9 @@ constexpr uint64_t Seconds::toRawNanoseconds() const {
       : mSeconds * kOneSecondInNanoseconds;
 }
 
+constexpr Milliseconds::Milliseconds()
+    : mMilliseconds(0) {}
+
 constexpr Milliseconds::Milliseconds(uint64_t milliseconds)
     : mMilliseconds(milliseconds) {}
 
