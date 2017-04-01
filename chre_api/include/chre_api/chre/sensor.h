@@ -55,8 +55,7 @@ extern "C" {
 /**
  * Accelerometer.
  *
- * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA and
- *     CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO
+ * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA
  *
  * Note that the ACCELEROMETER_DATA is always the fully calibrated data,
  * including factory calibration and runtime calibration if available.
@@ -89,7 +88,7 @@ extern "C" {
  * Gyroscope.
  *
  * Generates: CHRE_EVENT_SENSOR_GYROSCOPE_DATA and
- *     CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO
+ *     optionally CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO
  *
  * Note that the GYROSCOPE_DATA is always the fully calibrated data, including
  * factory calibration and runtime calibration if available.
@@ -110,7 +109,7 @@ extern "C" {
  * Magnetometer.
  *
  * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA and
- *     CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO
+ *     optionally CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO
  *
  * Note that the GEOMAGNETIC_FIELD_DATA is always the fully calibrated data,
  * including factory calibration and runtime calibration if available.
@@ -371,24 +370,11 @@ extern "C" {
  * field within 'readings', or by the 3D array 'bias' (bias[0] == x_bias;
  * bias[1] == y_bias; bias[2] == z_bias).
  *
- * All values are in SI units (m/s^2) and measure the acceleration applied to
- * the device.
- */
-#define CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO \
-    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 1)
-
-/**
- * nanoappHandleEvent argument: struct chreSensorThreeAxisData
- *
- * The data can be interpreted using the 'x_bias', 'y_bias', and 'z_bias'
- * field within 'readings', or by the 3D array 'bias' (bias[0] == x_bias;
- * bias[1] == y_bias; bias[2] == z_bias).
- *
  * All values are in radians/second and measure the rate of rotation
  * around the X, Y and Z axis.
  */
 #define CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO \
-    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 2)
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 1)
 
 /**
  * nanoappHandleEvent argument: struct chreSensorThreeAxisData
@@ -401,7 +387,7 @@ extern "C" {
  * field in the X, Y and Z axis.
  */
 #define CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO \
-    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 3)
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 2)
 
 
 #if CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO > CHRE_EVENT_SENSOR_LAST_EVENT
@@ -657,7 +643,6 @@ struct chreSensorDataHeader {
  * Data for a sensor which reports on three axes.
  *
  * This is used by CHRE_EVENT_SENSOR_ACCELEROMETER_DATA,
- * CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO,
  * CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA,
  * CHRE_EVENT_SENSOR_GYROSCOPE_DATA,
  * CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO,
