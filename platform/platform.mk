@@ -39,6 +39,7 @@ HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/platform_wwan.cc
 HEXAGON_SRCS += platform/shared/static_nanoapps.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
+HEXAGON_SRCS += platform/slpi/fatal_error.cc
 HEXAGON_SRCS += platform/slpi/host_link.cc
 HEXAGON_SRCS += platform/slpi/init.cc
 HEXAGON_SRCS += platform/slpi/platform_nanoapp.cc

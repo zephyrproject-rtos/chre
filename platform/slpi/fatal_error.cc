@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
-#define CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
+#include "chre/target_platform/fatal_error.h"
 
-#include "err.h"
+#include "qurt_timer.h"
 
-#define FATAL_ERROR_QUIT() \
-  ::chre::preFatalError(); \
-  ERR_FATAL("Fatal error in CHRE", 0, 0, 0)
+#include "chre/target_platform/host_link_base.h"
 
 namespace chre {
 
-/**
- * Do preparation for an impending fatal error, including flushing pending
- * messages to the host, etc.
- *
- * It must not be possible for FATAL_ERROR() to be called by this function or
- * any of its callees.
- */
-void preFatalError();
+void preFatalError() {
+  HostLinkBase::flushOutboundQueue();
+
+  // The flush above only covers the message leaving our queue, so give a grace
+  // period for the last message to actually reach the host.
+  constexpr qurt_timer_duration_t kPostFlushDelayUsec = 500000;  // 500 ms
+  qurt_timer_sleep(kPostFlushDelayUsec);
+}
 
 }  // namespace chre
-
-#endif  // CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
