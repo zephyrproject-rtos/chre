@@ -92,7 +92,7 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
     if (result->success) {
       LOGI("Successfully requested wifi scan monitoring");
     } else {
-      LOGI("Error requesting wifi scan monitoring with %" PRIu8,
+      LOGE("Error requesting wifi scan monitoring with %" PRIu8,
            result->errorCode);
     }
 
@@ -110,6 +110,8 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
     if (result->cookie != &kOnDemandScanCookie) {
       LOGE("On-demand scan cookie mismatch");
     }
+  } else {
+    LOGE("Received invalid async result");
   }
 }
 
