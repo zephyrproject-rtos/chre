@@ -18,6 +18,7 @@
 #define CHRE_PLATFORM_PLATFORM_GNSS_H_
 
 #include "chre/target_platform/platform_gnss_base.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -40,6 +41,19 @@ class PlatformGnss : public PlatformGnssBase {
    * @return the GNSS capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
+
+  /**
+   * Starts/stops/modifies the GNSS location session. This is an asynchronous
+   * request and the result is delivered through an async call into the
+   * GnssRequestManager.
+   *
+   * @param enable Whether to enable/disable the location session.
+   * @param minInterval The minimum reporting interval.
+   * @param minTimeToNextFix The minimum time to the next fix.
+   * @return true if the request was accepted.
+   */
+  bool controlLocationSession(bool enable, Milliseconds minInterval,
+                              Milliseconds minTimeToNextFix);
 };
 
 }  // namespace chre
