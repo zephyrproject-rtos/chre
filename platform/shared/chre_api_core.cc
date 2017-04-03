@@ -22,9 +22,23 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/context.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
 using chre::EventLoopManager;
+
+void chreAbort(uint32_t abortCode) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+
+  // TODO: we should cleanly unload the nanoapp, release all of its resources,
+  // and send an abort notification to the host so as to localize the impact to
+  // the calling nanoapp
+  if (nanoapp == nullptr) {
+    FATAL_ERROR("chreAbort called in unknown context");
+  } else {
+    FATAL_ERROR("chreAbort called by app ID 0x%016" PRIx64, nanoapp->getAppId());
+  }
+}
 
 bool chreSendEvent(uint16_t eventType, void *eventData,
                    chreEventCompleteFunction *freeCallback,
