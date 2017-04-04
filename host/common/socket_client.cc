@@ -197,8 +197,12 @@ bool SocketClient::reconnect() {
       }
     }
 
-    if (!tryConnect()) {
-      LOGW("Failed to (re)connect, next try in %" PRId32 " ms", delay.count());
+    bool suppressErrorLogs = (delay == kMinDelay);
+    if (!tryConnect(suppressErrorLogs)) {
+      if (!suppressErrorLogs) {
+        LOGW("Failed to (re)connect, next try in %" PRId32 " ms",
+             delay.count());
+      }
       if (retryCount > kExponentialBackoffDelay) {
         delay *= 2;
       }
@@ -215,12 +219,12 @@ bool SocketClient::reconnect() {
   return false;
 }
 
-bool SocketClient::tryConnect() {
+bool SocketClient::tryConnect(bool suppressErrorLogs) {
   errno = 0;
   mSockFd = socket_local_client(mSocketName,
                                 ANDROID_SOCKET_NAMESPACE_RESERVED,
                                 SOCK_SEQPACKET);
-  if (mSockFd == INVALID_SOCKET) {
+  if (mSockFd == INVALID_SOCKET && !suppressErrorLogs) {
     LOGE("Couldn't create/connect client socket to '%s': %s",
          mSocketName, strerror(errno));
   }
