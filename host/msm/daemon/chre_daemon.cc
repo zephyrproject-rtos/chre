@@ -290,10 +290,6 @@ int main() {
   struct reverse_monitor_thread_data reverse_monitor;
   ::android::chre::SocketServer server;
 
-  // TODO(b/36792843): this sleep works around an SLPI crash that happens if
-  // we try to make FastRPC calls too early
-  LOGD("Delaying CHRE init by 4 seconds...");
-  sleep(4);
   if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
   } else if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
