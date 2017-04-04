@@ -33,15 +33,8 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
 }
 
 EventLoop *EventLoopManager::createEventLoop() {
-  // TODO: The current EventLoop implementation requires refactoring to properly
-  // support multiple EventLoop instances, for example the Event freeing
-  // mechanism is not thread-safe.
-  CHRE_ASSERT(mEventLoops.empty());
-  if (!mEventLoops.emplace_back(MakeUnique<EventLoop>())) {
-    return nullptr;
-  }
-
-  return mEventLoops.back().get();
+  mEventLoops.emplace_back();
+  return &mEventLoops.back();
 }
 
 bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
@@ -49,8 +42,8 @@ bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
   // TODO: when multiple EventLoops are supported, consider allowing the
   // platform to define which EventLoop is used to process system callbacks.
   CHRE_ASSERT(!mEventLoops.empty());
-  return mEventLoops[0]->postEvent(static_cast<uint16_t>(type), data, callback,
-                                   kSystemInstanceId, kSystemInstanceId);
+  return mEventLoops[0].postEvent(static_cast<uint16_t>(type), data, callback,
+                                  kSystemInstanceId, kSystemInstanceId);
 }
 
 bool EventLoopManager::findNanoappInstanceIdByAppId(
@@ -58,10 +51,10 @@ bool EventLoopManager::findNanoappInstanceIdByAppId(
   bool found = false;
 
   for (size_t i = 0; i < mEventLoops.size(); i++) {
-    if (mEventLoops[i]->findNanoappInstanceIdByAppId(appId, instanceId)) {
+    if (mEventLoops[i].findNanoappInstanceIdByAppId(appId, instanceId)) {
       found = true;
       if (eventLoop != nullptr) {
-        *eventLoop = mEventLoops[i].get();
+        *eventLoop = &mEventLoops[i];
       }
       break;
     }
@@ -74,10 +67,10 @@ Nanoapp *EventLoopManager::findNanoappByInstanceId(uint32_t instanceId,
                                                    EventLoop **eventLoop) {
   Nanoapp *nanoapp = nullptr;
   for (size_t i = 0; i < mEventLoops.size(); i++) {
-    nanoapp = mEventLoops[i]->findNanoappByInstanceId(instanceId);
+    nanoapp = mEventLoops[i].findNanoappByInstanceId(instanceId);
     if (nanoapp != nullptr) {
       if (eventLoop != nullptr) {
-        *eventLoop = mEventLoops[i].get();
+        *eventLoop = &mEventLoops[i];
       }
       break;
     }
@@ -113,8 +106,8 @@ bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
   // that has the target
   bool success = true;
   for (size_t i = 0; i < mEventLoops.size(); i++) {
-    success &= mEventLoops[i]->postEvent(eventType, eventData, freeCallback,
-                                         senderInstanceId, targetInstanceId);
+    success &= mEventLoops[i].postEvent(eventType, eventData, freeCallback,
+                                        senderInstanceId, targetInstanceId);
   }
 
   return success;
