@@ -109,15 +109,9 @@ void onUnload(void) {
  * @param data Argument passed to qurt_thread_create()
  */
 void chreThreadEntry(void * /*data*/) {
-  chre::init();
-  gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
-  if (gEventLoop == nullptr) {
-    LOGE("Failed to create event loop!");
-  } else {
-    loadStaticNanoapps(gEventLoop);
-    loadPreloadedNanoapps(gEventLoop);
-    gEventLoop->run();
-  }
+  loadStaticNanoapps(gEventLoop);
+  loadPreloadedNanoapps(gEventLoop);
+  gEventLoop->run();
 
   chre::deinit();
   gEventLoop = nullptr;
@@ -153,28 +147,37 @@ extern "C" int chre_slpi_start_thread(void) {
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
   } else {
-    // Human-readable name for the CHRE thread (not const in QuRT API, but they
-    // make a copy)
-    char threadName[] = "CHRE";
-    qurt_thread_attr_t attributes;
-
-    qurt_thread_attr_init(&attributes);
-    qurt_thread_attr_set_name(&attributes, threadName);
-    qurt_thread_attr_set_priority(&attributes, kThreadPriority);
-    qurt_thread_attr_set_stack_addr(&attributes, &gStack);
-    qurt_thread_attr_set_stack_size(&attributes, kStackSize);
-    qurt_thread_attr_set_tcb_partition(&attributes, kTcbPartition);
-
-    int result = qurt_thread_create(&gThreadHandle, &attributes,
-                                    chreThreadEntry, nullptr);
-    if (result != QURT_EOK) {
-      LOGE("Couldn't create CHRE thread: %d", result);
-    } else if (HAP_thread_migrate(gThreadHandle) != 0) {
-      FATAL_ERROR("Couldn't migrate thread");
+    chre::init();
+    gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
+    if (gEventLoop == nullptr) {
+      LOGE("Failed to create event loop!");
+      chre::deinit();
     } else {
-      LOGD("Started CHRE thread");
+      // Human-readable name for the CHRE thread (not const in QuRT API, but they
+      // make a copy)
+      char threadName[] = "CHRE";
+      qurt_thread_attr_t attributes;
+
+      qurt_thread_attr_init(&attributes);
+      qurt_thread_attr_set_name(&attributes, threadName);
+      qurt_thread_attr_set_priority(&attributes, kThreadPriority);
+      qurt_thread_attr_set_stack_addr(&attributes, &gStack);
+      qurt_thread_attr_set_stack_size(&attributes, kStackSize);
+      qurt_thread_attr_set_tcb_partition(&attributes, kTcbPartition);
+
       gThreadRunning = true;
-      fastRpcResult = CHRE_FASTRPC_SUCCESS;
+      LOGI("Starting CHRE thread");
+      int result = qurt_thread_create(&gThreadHandle, &attributes,
+                                      chreThreadEntry, nullptr);
+      if (result != QURT_EOK) {
+        LOGE("Couldn't create CHRE thread: %d", result);
+        gThreadRunning = false;
+      } else if (HAP_thread_migrate(gThreadHandle) != 0) {
+        FATAL_ERROR("Couldn't migrate thread");
+      } else {
+        LOGD("Started CHRE thread");
+        fastRpcResult = CHRE_FASTRPC_SUCCESS;
+      }
     }
   }
 

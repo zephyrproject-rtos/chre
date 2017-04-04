@@ -121,7 +121,9 @@ class EventLoop : public NonCopyable {
    * @param senderInstanceId The instance ID of the sender of this event.
    * @param targetInstanceId The instance ID of the destination of this event.
    *
-   * @return true if the event was successfully added to the queue
+   * @return true if the event was successfully added to the queue. Note that
+   *         unlike chreSendEvent, this does *not* invoke the free callback if
+   *         it failed to post the event.
    *
    * @see chreSendEvent
    */

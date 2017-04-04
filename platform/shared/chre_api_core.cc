@@ -44,9 +44,13 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
                    chreEventCompleteFunction *freeCallback,
                    uint32_t targetInstanceId) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return chre::EventLoopManagerSingleton::get()->postEvent(
+  bool success = chre::EventLoopManagerSingleton::get()->postEvent(
       eventType, eventData, freeCallback, nanoapp->getInstanceId(),
       targetInstanceId);
+  if (!success && freeCallback != nullptr) {
+    freeCallback(eventType, eventData);
+  }
+  return success;
 }
 
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
