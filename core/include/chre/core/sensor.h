@@ -91,8 +91,16 @@ class Sensor : public NonCopyable {
    */
   void setLastEvent(const ChreSensorData *event);
 
+  /**
+   * Obtains the platform's sampling status of this sensor.
+   *
+   * @param status A non-null pointer to chreSensorSamplingStatus
+   * @return true if the sampling status has been successfully obtained.
+   */
+  bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
+
  private:
-  //! The most recent sensor request sent to this sensor.
+  //! The most recent sensor request executed by the platform.
   SensorRequest mSensorRequest;
 
   //! The validity of this sensor's last event.

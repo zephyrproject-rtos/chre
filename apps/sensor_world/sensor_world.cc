@@ -113,14 +113,16 @@ enum class MotionMode {
 
 // Storage to help access InstantMotion and StationaryDetect sensor handle and
 // info
-static size_t motionSensorIndices[2];
-static MotionMode motionMode = MotionMode::Instant;
+size_t motionSensorIndices[2];
+MotionMode motionMode = MotionMode::Instant;
 
 size_t getMotionSensorIndex() {
   motionMode = (motionMode == MotionMode::Instant) ?
       MotionMode::Stationary : MotionMode::Instant;
   return motionSensorIndices[static_cast<size_t>(motionMode)];
 }
+
+size_t statusIndex = 0;
 
 } // namespace
 
@@ -234,6 +236,18 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
         LOGI("Requested %s: %s", sensors[motionSensorIndex].info.sensorName,
               status ? "success" : "failure");
       }
+
+      // Exercise chreGetSensorSamplingStatus on one sensor each time the app
+      // receives a PROX event.
+      if (sensors[statusIndex].isInitialized) {
+        struct chreSensorSamplingStatus status;
+        bool success = chreGetSensorSamplingStatus(sensors[statusIndex].handle,
+                                                   &status);
+        LOGI("%s success %d: enabled %d interval %" PRIu64 " latency %" PRIu64,
+             sensors[statusIndex].info.sensorName, success, status.enabled,
+             status.interval, status.latency);
+      }
+      statusIndex = (statusIndex + 1) % ARRAY_SIZE(sensors);
       break;
     }
 
