@@ -82,6 +82,14 @@ bool DynamicVector<ElementType>::empty() const {
 }
 
 template<typename ElementType>
+void DynamicVector<ElementType>::pop_back() {
+  CHRE_ASSERT(!empty());
+  if (!empty()) {
+    erase(mSize - 1);
+  }
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::push_back(const ElementType& element) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {

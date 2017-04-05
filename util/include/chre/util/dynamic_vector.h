@@ -95,6 +95,13 @@ class DynamicVector : public NonCopyable {
   bool empty() const;
 
   /**
+   * Erases the last element in the vector. Invalid to call on an empty vector.
+   *
+   * Invalidates any references to back() and end()/cend().
+   */
+  void pop_back();
+
+  /**
    * Copy- or move-constructs an element onto the back of the vector. If the
    * vector requires a resize and that allocation fails this function will
    * return false. All iterators and references are invalidated if the container

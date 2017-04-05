@@ -875,3 +875,17 @@ TEST(DynamicVector, RidiculouslyHugeReserveFails) {
   DynamicVector<int> vector;
   ASSERT_FALSE(vector.reserve(SIZE_MAX));
 }
+
+TEST(DynamicVector, PopBack) {
+  DynamicVector<int> vector;
+  constexpr size_t kSize = 4;
+  for (int i = 0; i < kSize; i++) {
+    vector.push_back(i);
+  }
+
+  for (int i = kSize - 1; i >= 0; i--) {
+    EXPECT_EQ(vector.back(), i);
+    vector.pop_back();
+  }
+  EXPECT_TRUE(vector.empty());
+}
