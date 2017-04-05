@@ -72,7 +72,6 @@ void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
 
 void EventLoop::run() {
   LOGI("EventLoop start");
-  mRunning = true;
 
   bool havePendingEvents = false;
   while (mRunning) {

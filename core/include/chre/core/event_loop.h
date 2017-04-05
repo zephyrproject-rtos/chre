@@ -197,7 +197,7 @@ class EventLoop : public NonCopyable {
   FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
 
   // TODO: should probably be atomic to be fully correct
-  volatile bool mRunning = false;
+  volatile bool mRunning = true;
 
   Nanoapp *mCurrentApp = nullptr;
 
