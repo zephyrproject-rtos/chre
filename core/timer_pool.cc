@@ -133,7 +133,7 @@ TimerHandle TimerPool::generateTimerHandle() {
 }
 
 TimerHandle TimerPool::generateUniqueTimerHandle() {
-  size_t timerHandle = mLastTimerHandle;
+  TimerHandle timerHandle = mLastTimerHandle;
   while (1) {
     timerHandle++;
     if (timerHandle != CHRE_TIMER_INVALID) {

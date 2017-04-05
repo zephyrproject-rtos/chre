@@ -65,7 +65,8 @@ bool PlatformGnss::controlLocationSession(bool enable, Milliseconds minInterval,
                                           Milliseconds minTimeToNextFix) {
   if (mGnssApi != nullptr) {
     return mGnssApi->controlLocationSession(enable,
-        minInterval.getMilliseconds(), minTimeToNextFix.getMilliseconds());
+        static_cast<uint32_t>(minInterval.getMilliseconds()),
+        static_cast<uint32_t>(minTimeToNextFix.getMilliseconds()));
   } else {
     return false;
   }

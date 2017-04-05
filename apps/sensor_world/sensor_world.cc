@@ -154,8 +154,8 @@ bool nanoappStart() {
 
       // Subscribe to sensors
       if (sensor.enable) {
-        float odrHz = 1e9 / sensor.interval;
-        float latencySec = sensor.latency / 1e9;
+        float odrHz = 1e9f / sensor.interval;
+        float latencySec = sensor.latency / 1e9f;
         bool status = chreSensorConfigure(sensor.handle,
             CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
             sensor.latency);
