@@ -42,14 +42,16 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
 
   bool success = false;
   uint32_t instanceId = nanoapp->getInstanceId();
+  bool hasScanMonitorRequest = nanoappHasScanMonitorRequest(instanceId);
   if (!mScanMonitorStateTransitions.empty()) {
     success = addScanMonitorRequestToQueue(nanoapp, enable, cookie);
-  } else if (scanMonitorIsInRequestedState(enable, instanceId)) {
+  } else if (scanMonitorIsInRequestedState(enable, hasScanMonitorRequest)) {
     // The scan monitor is already in the requested state. A success event can
     // be posted immediately.
     success = postScanMonitorAsyncResultEvent(instanceId, true /* success */,
                                               enable, CHRE_ERROR_NONE, cookie);
-  } else if (scanMonitorStateTransitionIsRequired(enable, instanceId)) {
+  } else if (scanMonitorStateTransitionIsRequired(enable,
+                                                  hasScanMonitorRequest)) {
     success = addScanMonitorRequestToQueue(nanoapp, enable, cookie);
     if (success) {
       success = mPlatformWifi.configureScanMonitor(enable);
