@@ -178,6 +178,9 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
 
       // Reschedule the timer if needed.
       if (!currentTimerRequest.isOneShot) {
+        // Important: we need to make a copy of currentTimerRequest here,
+        // because it's a reference to memory that may get moved during the
+        // insert operation (thereby invalidating it).
         TimerRequest cyclicTimerRequest = currentTimerRequest;
         cyclicTimerRequest.expirationTime = currentTime
             + currentTimerRequest.duration;
