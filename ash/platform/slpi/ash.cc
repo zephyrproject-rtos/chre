@@ -19,10 +19,12 @@
 extern "C" {
 
 #include "fixed_point.h"
+#include "sns_reg_api_v02.h"
 #include "sns_smgr_api_v01.h"
 
 }  // extern "C"
 
+#include "ash/ash.h"
 #include "ash_api/ash.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
@@ -42,6 +44,9 @@ constexpr uint32_t kQmiTimeoutMs = 1000;
 //! The constant to convert magnetometer readings from uT in Android to Gauss
 //! in SMGR.
 constexpr float kGaussPerMicroTesla = 0.01f;
+
+//! The QMI registry service client handle.
+qmi_client_type gRegistryServiceQmiClientHandle = nullptr;
 
 /**
  * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
@@ -128,6 +133,29 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
 }
 
 }  // namespace
+
+void ashInit() {
+  qmi_idl_service_object_type regServiceObject =
+      SNS_REG2_SVC_get_service_object_v02();
+  if (regServiceObject == nullptr) {
+    FATAL_ERROR("Failed to obtain the SNS REG2 service instance");
+  }
+
+  qmi_client_os_params sensorContextOsParams;
+  qmi_client_error_type status = qmi_client_init_instance(regServiceObject,
+      QMI_CLIENT_INSTANCE_ANY, nullptr /* callback*/,
+      nullptr, &sensorContextOsParams, kQmiTimeoutMs,
+      &gRegistryServiceQmiClientHandle);
+  if (status != QMI_NO_ERR) {
+    FATAL_ERROR("Failed to initialize the registry service QMI client: %d",
+                status);
+  }
+}
+
+void ashDeinit() {
+  qmi_client_release(&gRegistryServiceQmiClientHandle);
+  gRegistryServiceQmiClientHandle = nullptr;
+}
 
 bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
   bool success = false;

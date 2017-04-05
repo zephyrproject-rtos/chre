@@ -14,18 +14,36 @@
  * limitations under the License.
  */
 
-#include "ash/ash.h"
-#include "ash_api/ash.h"
+#ifndef ASH_ASH_H_
+#define ASH_ASH_H_
 
-void ashInit() {
-  // TODO: Implement this.
-}
+/**
+ * @file
+ * Defines the interface for the Android Sensor Hub support.
+ */
 
-void ashDeinit() {
-  //TODO: Implement this.
-}
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
-  // TODO: Implement this.
-  return false;
+/**
+ * Initialzes the ASH API.
+ *
+ * This API should be called in the CHRE initialization process before event
+ * loops start.
+ */
+void ashInit();
+
+/**
+ * Deinitiazes the ASH API.
+ *
+ * This API should be called in the CHRE deinitialization process after event
+ * loops stopped.
+ */
+void ashDeinit();
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif  // ASH_ASH_H_
