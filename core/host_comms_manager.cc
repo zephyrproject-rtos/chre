@@ -158,8 +158,16 @@ void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
 
 void HostCommsManager::freeMessageToHost(MessageToHost *msgToHost) {
   if (msgToHost->toHostData.nanoappFreeFunction != nullptr) {
-    msgToHost->toHostData.nanoappFreeFunction(msgToHost->message.data(),
-                                              msgToHost->message.size());
+    // TODO: assuming we're already in the context of the EventLoop that owns
+    // this nanoapp - not guaranteed if we have >1 EventLoop
+    EventLoop *eventLoop = getCurrentEventLoop();
+    if (eventLoop == nullptr) {
+      LOGE("Can't invoke message free callback - invalid context");
+    } else {
+      eventLoop->invokeMessageFreeFunction(
+          msgToHost->appId, msgToHost->toHostData.nanoappFreeFunction,
+          msgToHost->message.data(), msgToHost->message.size());
+    }
   }
   mMessagePool.deallocate(msgToHost);
 }

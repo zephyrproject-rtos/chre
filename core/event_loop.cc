@@ -70,6 +70,20 @@ void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
   }
 }
 
+void EventLoop::invokeMessageFreeFunction(
+    uint64_t appId, chreMessageFreeFunction *freeFunction, void *message,
+    size_t messageSize) {
+  Nanoapp *nanoapp = lookupAppByAppId(appId);
+  if (nanoapp == nullptr) {
+    LOGE("Couldn't find app 0x%016" PRIx64 " for message free callback", appId);
+  } else {
+    auto prevCurrentApp = mCurrentApp;
+    mCurrentApp = nanoapp;
+    freeFunction(message, messageSize);
+    mCurrentApp = prevCurrentApp;
+  }
+}
+
 void EventLoop::run() {
   LOGI("EventLoop start");
 
@@ -245,6 +259,16 @@ bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp>& app) {
   }
 
   return app->hasPendingEvent();
+}
+
+Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) {
+  for (const UniquePtr<Nanoapp>& app : mNanoapps) {
+    if (app->getAppId() == appId) {
+      return app.get();
+    }
+  }
+
+  return nullptr;
 }
 
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
