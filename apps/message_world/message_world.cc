@@ -33,9 +33,13 @@ uint8_t gMessageData[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 void messageFreeCallback(void *message, size_t messageSize) {
   LOGI("Got message free callback for message @"
-       " %p (expected %d) size %zu (expected %d)",
+       " %p (match? %d) size %zu (match? %d)",
        message, (message == gMessageData),
        messageSize, (messageSize == sizeof(gMessageData)));
+  if (!chreSendEvent(CHRE_EVENT_FIRST_USER_VALUE, nullptr, nullptr,
+                     chreGetInstanceId())) {
+    LOGE("Failed to send event");
+  }
 }
 
 }  // anonymous namespace
