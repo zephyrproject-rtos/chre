@@ -31,6 +31,14 @@ template<typename ElementType>
 class DynamicVector : public NonCopyable {
  public:
   /**
+   * Random-access iterator that points to some element in the container.
+   */
+  typedef ElementType* iterator;
+  typedef const ElementType* const_iterator;
+
+  typedef size_t size_type;
+
+  /**
    * Default-constructs a dynamic vector.
    */
   DynamicVector();
@@ -77,7 +85,7 @@ class DynamicVector : public NonCopyable {
    *
    * @return The number of elements in the vector.
    */
-  size_t size() const;
+  size_type size() const;
 
   /**
    * Returns the maximum number of elements that can be stored in this vector
@@ -85,7 +93,7 @@ class DynamicVector : public NonCopyable {
    *
    * @return The capacity of the vector.
    */
-  size_t capacity() const;
+  size_type capacity() const;
 
   /**
    * Determines whether the vector is empty or not.
@@ -133,7 +141,7 @@ class DynamicVector : public NonCopyable {
    * @param The index of the element.
    * @return The element.
    */
-  ElementType& operator[](size_t index);
+  ElementType& operator[](size_type index);
 
   /**
    * Obtains a const element of the vector given an index. It is illegal to
@@ -144,7 +152,7 @@ class DynamicVector : public NonCopyable {
    * @param The index of the element.
    * @return The element.
    */
-  const ElementType& operator[](size_t index) const;
+  const ElementType& operator[](size_type index) const;
 
   /**
    * Resizes the vector to a new capacity returning true if allocation was
@@ -158,7 +166,7 @@ class DynamicVector : public NonCopyable {
    * @param The new capacity of the vector.
    * @return true if the resize operation was successful.
    */
-  bool reserve(size_t newCapacity);
+  bool reserve(size_type newCapacity);
 
   /**
    * Inserts an element into the vector at a given index. If a resize of the
@@ -174,8 +182,8 @@ class DynamicVector : public NonCopyable {
    * @param element The element to insert.
    * @return Whether or not the insert operation was successful.
    */
-  bool insert(size_t index, const ElementType& element);
-  bool insert(size_t index, ElementType&& element);
+  bool insert(size_type index, const ElementType& element);
+  bool insert(size_type index, ElementType&& element);
 
   /**
    * Similar to wrap(), except makes a copy of the supplied C-style array,
@@ -201,7 +209,7 @@ class DynamicVector : public NonCopyable {
    *         vector already had sufficient capacity), and the supplied array was
    *         copied into the vector. If false, the vector is not modified.
    */
-  bool copy_array(const ElementType *array, size_t elementCount);
+  bool copy_array(const ElementType *array, size_type elementCount);
 
   /**
    * Removes an element from the vector given an index. All elements after the
@@ -213,7 +221,7 @@ class DynamicVector : public NonCopyable {
    *
    * @param index The index to remove an element at.
    */
-  void erase(size_t index);
+  void erase(size_type index);
 
   /**
    * Searches the vector for an element.
@@ -222,7 +230,7 @@ class DynamicVector : public NonCopyable {
    * @return The index of the element found. If the return is equal to size()
    *         then the element was not found.
    */
-  size_t find(const ElementType& element) const;
+  size_type find(const ElementType& element) const;
 
   /**
    * Swaps the location of two elements stored in the vector. The indices
@@ -233,7 +241,7 @@ class DynamicVector : public NonCopyable {
    * @param index0 The index of the first element
    * @param index1 The index of the second element
    */
-  void swap(size_t index0, size_t index1);
+  void swap(size_type index0, size_type index1);
 
   /**
    * Wraps an existing C-style array so it can be used as a DynamicVector. A
@@ -258,7 +266,7 @@ class DynamicVector : public NonCopyable {
    * @param elementCount Number of elements in the array (NOT the array's size
    *        in bytes); will become the vector's size() and capacity()
    */
-  void wrap(ElementType *array, size_t elementCount);
+  void wrap(ElementType *array, size_type elementCount);
 
 
   /**
@@ -312,12 +320,6 @@ class DynamicVector : public NonCopyable {
    * @return Whether or not the resize was successful.
    */
   bool prepareForPush();
-
-  /**
-   * Random-access iterator that points to some element in the container.
-   */
-  typedef ElementType* iterator;
-  typedef const ElementType* const_iterator;
 
   /**
    * @return A random-access iterator to the beginning.
