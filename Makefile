@@ -62,6 +62,10 @@ HEXAGON_CFLAGS += -DCUST_H
 
 # Makefile Includes ############################################################
 
+# Variant-specific includes.
+include $(CHRE_VARIANT_MK_INCLUDES)
+
+# CHRE Implementation includes.
 include apps/apps.mk
 include apps/gnss_world/gnss_world.mk
 include apps/hello_world/hello_world.mk
@@ -79,7 +83,7 @@ include pal/pal.mk
 include platform/platform.mk
 include util/util.mk
 
-# Common Includes
+# Common includes.
 include build/common.mk
 
 # Supported Variants Includes. Not all CHRE variants are supported by this
