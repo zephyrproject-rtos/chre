@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-#include <chre.h>
 #include <cinttypes>
 
+#include <chre.h>
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/nanoapp/sensor.h"
 #include "chre/util/time.h"
+#include "nano_calibration.h"
 
 #define LOG_TAG "[ImuCal]"
 
@@ -37,127 +38,116 @@ struct SensorState {
   bool isInitialized;
   bool enable;
   uint64_t interval;  // nsec
-  uint64_t latency;  // nsec
+  uint64_t latency;   // nsec
   chreSensorInfo info;
 };
 
 SensorState sensors[] = {
-  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
-    .enable = true,
-    .interval = Seconds(2).toRawNanoseconds(),
-    .latency = 0,
-  },
-  { .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
-    .enable = true,
-    .interval = Seconds(2).toRawNanoseconds(),
-    .latency = 0,
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
-    .enable = true,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
-    .enable = true,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
-    .enable = true,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-  },
+    {
+        .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
+        .enable = true,
+        .interval = Seconds(2).toRawNanoseconds(),
+        .latency = 0,
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
+        .enable = true,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(1).toRawNanoseconds(),
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
+        .enable = true,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(1).toRawNanoseconds(),
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
+        .enable = true,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(1).toRawNanoseconds(),
+    },
 };
 
-} // namespace
+// Container for all runtime calibration algorithms.
+nano_calibration::NanoSensorCal nanoCal;
+
+}  // namespace
 
 bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
+  bool accelIsInitialized = false;
+  bool magIsInitialized = false;
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     SensorState& sensor = sensors[i];
     sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
-    LOGI("sensor %d initialized: %s with handle %" PRIu32,
-         i, sensor.isInitialized ? "true" : "false", sensor.handle);
+
+    // TODO: Handle error condition.
+    LOGI("sensor %d initialized: %s with handle %" PRIu32, i,
+         sensor.isInitialized ? "true" : "false", sensor.handle);
 
     if (sensor.isInitialized) {
-      // Get sensor info
-      chreSensorInfo& info = sensor.info;
-      bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
-      if (infoStatus) {
-        LOGI("SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
-             " OneShot=%d minInterval=%" PRIu64 "nsec",
-             info.sensorName, info.sensorType, info.isOnChange,
-             info.isOneShot, info.minInterval);
-      } else {
-        LOGE("chreGetSensorInfo failed");
-      }
+      // Checks to see if the accelerometer was initialized.
+      accelIsInitialized |=
+          (sensor.type == CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER);
 
-
-      // Subscribe to sensors
-      if (sensor.enable) {
-        float odrHz = 1e9f / sensor.interval;
-        float latencySec = sensor.latency / 1e9f;
-        bool status = chreSensorConfigure(sensor.handle,
-            CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
-            sensor.latency);
-        LOGI("Requested data: odr %f Hz, latency %f sec, %s",
-             odrHz, latencySec, status ? "success" : "failure");
-      }
+      // Checks to see if the magnetometer was initialized.
+      magIsInitialized |=
+          (sensor.type == CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD);
+    } else {
+      LOGE("chreSensorFindDefault failed");
     }
+
+    // TODO: Use passive sensor data.
+    // Subscribe to sensors.
+    if (sensor.enable) {
+      float odrHz = 1e9f / sensor.interval;
+      float latencySec = sensor.latency / 1e9f;
+      bool status = chreSensorConfigure(sensor.handle,
+                                        CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
+                                        sensor.interval, sensor.latency);
+
+      // TODO: Handle error condition.
+      LOGI("Requested data: odr %f Hz, latency %f sec, %s", odrHz, latencySec,
+           status ? "success" : "failure");
+    }
+  }
+
+  // Checks for the minimimal conditions for a nanoCal to have an active
+  // calibration algorithm running.
+  //  Sensor Requirements:
+  //  - GyroCal:  accelerometer, gyroscope, magnetometer [optional]
+  //  - OTC-Gyro: GyroCal required sensors + temperature
+  //  - AccelCal: accelerometer
+  //  - MagCal:   magnetometer
+  if (accelIsInitialized || magIsInitialized) {
+    nanoCal.Initialize();
+  } else {
+    LOGE(
+        "None of the required sensors to enable a runtime calibration were "
+        "successfully initialized.");
   }
 
   return true;
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA: {
-      const auto *ev = static_cast<const chreSensorThreeAxisData *>(eventData);
-      const auto header = ev->header;
-      const auto *data = ev->readings;
-
-      // TODO: replace by cal algo
-      float x = 0, y = 0, z = 0;
-      for (size_t i = 0; i < header.readingCount; i++) {
-        x += data[i].v[0];
-        y += data[i].v[1];
-        z += data[i].v[2];
-      }
-      x /= header.readingCount;
-      y /= header.readingCount;
-      z /= header.readingCount;
-
-      LOGI("%s, %d samples: %f %f %f",
-           getSensorNameForEventType(eventType), header.readingCount, x, y, z);
+      nanoCal.HandleSensorSamples(
+          eventType, static_cast<const chreSensorThreeAxisData *>(eventData));
       break;
     }
 
-    case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
-    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA: {
-      const auto *ev = static_cast<const chreSensorFloatData *>(eventData);
-      const auto header = ev->header;
-
-      // TODO: replace by cal algo
-      float v = 0;
-      for (size_t i = 0; i < header.readingCount; i++) {
-        v += ev->readings[i].value;
-      }
-      v /= header.readingCount;
-
-      LOGI("%s, %d samples: %f",
-           getSensorNameForEventType(eventType), header.readingCount, v);
+    case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA: {
+      nanoCal.HandleTemperatureSamples(
+          eventType, static_cast<const chreSensorFloatData *>(eventData));
       break;
     }
-
-    case CHRE_EVENT_NANOAPP_STARTED:
-    case CHRE_EVENT_NANOAPP_STOPPED:
-      // We don't use these events in this app
-      break;
 
     default:
       LOGW("Unhandled event %d", eventType);
@@ -166,7 +156,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
 }
 
 void nanoappEnd() {
-  // TODO: Unscribe to sensors
+  // TODO: Unsubscribe to sensors
   LOGI("Stopped");
 }
 
@@ -174,8 +164,8 @@ void nanoappEnd() {
 }  // anonymous namespace
 }  // namespace chre
 
-#include "chre/util/nanoapp/app_id.h"
 #include "chre/platform/static_nanoapp_init.h"
+#include "chre/util/nanoapp/app_id.h"
 
 CHRE_STATIC_NANOAPP_INIT(ImuCal, chre::kImuCalAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL
