@@ -109,6 +109,15 @@ bool HostProtocolHost::decodeMessageFromChre(
         break;
       }
 
+      case fbs::ChreMessage::UnloadNanoappResponse: {
+        const auto *resp = static_cast<const fbs::UnloadNanoappResponse *>(
+            container->message());
+        fbs::UnloadNanoappResponseT response;
+        resp->UnPackTo(&response);
+        handlers.handleUnloadNanoappResponse(response);
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -137,6 +146,14 @@ void HostProtocolHost::encodeLoadNanoappRequest(
 void HostProtocolHost::encodeNanoappListRequest(FlatBufferBuilder& builder) {
   auto request = fbs::CreateNanoappListRequest(builder);
   finalize(builder, fbs::ChreMessage::NanoappListRequest, request.Union());
+}
+
+void HostProtocolHost::encodeUnloadNanoappRequest(
+    FlatBufferBuilder& builder, uint32_t transactionId, uint64_t appId,
+    bool allowSystemNanoappUnload) {
+  auto request = fbs::CreateUnloadNanoappRequest(
+      builder, transactionId, appId, allowSystemNanoappUnload);
+  finalize(builder, fbs::ChreMessage::UnloadNanoappRequest, request.Union());
 }
 
 bool HostProtocolHost::extractHostClientId(const void *message,

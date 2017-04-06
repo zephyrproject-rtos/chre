@@ -75,6 +75,7 @@ class GenericContextHub : public IContexthub {
     void handleNanoappMessage(
         uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
         const void *messageData, size_t messageDataLen) override;
+
     void handleHubInfoResponse(
         const char *name, const char *vendor,
         const char *toolchain, uint32_t legacyPlatformVersion,
@@ -87,6 +88,9 @@ class GenericContextHub : public IContexthub {
 
     void handleLoadNanoappResponse(
       const ::chre::fbs::LoadNanoappResponseT& response) override;
+
+    void handleUnloadNanoappResponse(
+      const ::chre::fbs::UnloadNanoappResponseT& response) override;
 
    private:
     GenericContextHub& mParent;

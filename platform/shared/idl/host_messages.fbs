@@ -99,6 +99,21 @@ table LoadNanoappResponse {
   // TODO: detailed error code?
 }
 
+table UnloadNanoappRequest {
+  transaction_id:uint;
+
+  app_id:ulong;
+
+  /// Set to true to allow this request to unload nanoapps identified as "system
+  /// nanoapps", i.e. ones with is_system set to true in NanoappListResponse.
+  allow_system_nanoapp_unload:bool;
+}
+
+table UnloadNanoappResponse {
+  transaction_id:uint;
+  success:bool;
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -113,7 +128,8 @@ union ChreMessage {
   LoadNanoappRequest,
   LoadNanoappResponse,
 
-  // TODO: extend with system-specific messages, e.g. load app command, etc.
+  UnloadNanoappRequest,
+  UnloadNanoappResponse,
 }
 
 struct HostAddress {

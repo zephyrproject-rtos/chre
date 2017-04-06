@@ -60,6 +60,7 @@ enum class PendingMessageType {
   HubInfoResponse,
   NanoappListResponse,
   LoadNanoappResponse,
+  UnloadNanoappResponse,
 };
 
 struct PendingMessage {
@@ -87,7 +88,13 @@ struct PendingMessage {
   } data;
 };
 
-// TODO: this should be part of HostLinkBase
+struct UnloadNanoappCallbackData {
+  uint64_t appId;
+  uint32_t transactionId;
+  uint16_t hostClientId;
+  bool allowSystemNanoappUnload;
+};
+
 FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize>
     gOutboundQueue;
 
@@ -192,6 +199,39 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
   }
 }
 
+void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
+  auto *cbData = static_cast<UnloadNanoappCallbackData *>(data);
+
+  bool success = false;
+  uint32_t instanceId;
+  EventLoop *eventLoop;
+  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
+  if (!eventLoopManager->findNanoappInstanceIdByAppId(
+          cbData->appId, &instanceId, &eventLoop)) {
+    LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);
+  } else {
+    success = eventLoop->unloadNanoapp(instanceId,
+                                       cbData->allowSystemNanoappUnload);
+  }
+
+  constexpr size_t kInitialBufferSize = 52;
+  auto *builder = memoryAlloc<FlatBufferBuilder>(kInitialBufferSize);
+  if (builder == nullptr) {
+    LOGE("Couldn't allocate memory for unload nanoapp response");
+  } else {
+    HostProtocolChre::encodeUnloadNanoappResponse(
+        *builder, cbData->hostClientId, cbData->transactionId, success);
+
+    if (!gOutboundQueue.push(PendingMessage(
+            PendingMessageType::UnloadNanoappResponse, builder))) {
+      LOGE("Couldn't push unload nanoapp response to outbound queue");
+      memoryFree(builder);
+    }
+  }
+
+  memoryFree(cbData);
+}
+
 int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
                           size_t bufferSize, unsigned int *messageLen) {
   // TODO: ideally we'd construct our flatbuffer directly in the
@@ -294,6 +334,7 @@ extern "C" int chre_slpi_get_message_to_host(
 
       case PendingMessageType::NanoappListResponse:
       case PendingMessageType::LoadNanoappResponse:
+      case PendingMessageType::UnloadNanoappResponse:
         result = generateMessageFromBuilder(pendingMsg.data.builder,
                                             buffer, bufferSize, messageLen);
         break;
@@ -334,6 +375,24 @@ extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
 }
 
 }  // anonymous namespace
+
+void HostLink::flushMessagesSentByNanoapp(uint64_t /*appId*/) {
+  // TODO: this is not completely safe since it's timer-based, but should work
+  // well enough for the initial implementation. To be fully safe, we'd need
+  // some synchronization with the thread that runs
+  // chre_slpi_get_message_to_host(), e.g. a mutex that is held by that thread
+  // prior to calling pop() and only released after onMessageToHostComplete
+  // would've been called. If we acquire that mutex here, and hold it while
+  // purging any messages sent by the nanoapp in the queue, we can be certain
+  // that onMessageToHostComplete will not be called after this function returns
+  // for messages sent by that nanoapp
+  flushOutboundQueue();
+
+  // One extra sleep to try to ensure that any messages popped just before
+  // checking empty() are fully processed before we return
+  constexpr qurt_timer_duration_t kFinalDelayUsec = 10000;
+  qurt_timer_sleep(kFinalDelayUsec);
+}
 
 bool HostLink::sendMessage(const MessageToHost *message) {
   return gOutboundQueue.push(
@@ -434,6 +493,29 @@ void HostMessageHandlers::handleLoadNanoappRequest(
       LOGE("Couldn't post callback to finish loading nanoapp");
     } else {
       cbData.release();
+    }
+  }
+}
+
+void HostMessageHandlers::handleUnloadNanoappRequest(
+    uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
+    bool allowSystemNanoappUnload) {
+  LOGD("Got unload nanoapp request (txnID %" PRIu32 ") for appId 0x%016" PRIx64
+       " system %d", transactionId, appId, allowSystemNanoappUnload);
+  auto *cbData = memoryAlloc<UnloadNanoappCallbackData>();
+  if (cbData == nullptr) {
+    LOGE("Couldn't allocate unload nanoapp callback data");
+  } else {
+    cbData->appId = appId;
+    cbData->transactionId = transactionId;
+    cbData->hostClientId = hostClientId;
+    cbData->allowSystemNanoappUnload = allowSystemNanoappUnload;
+
+    if (!EventLoopManagerSingleton::get()->deferCallback(
+            SystemCallbackType::HandleUnloadNanoapp, cbData,
+            handleUnloadNanoappCallback)) {
+      LOGE("Couldn't post callback to unload nanoapp");
+      memoryFree(cbData);
     }
   }
 }
