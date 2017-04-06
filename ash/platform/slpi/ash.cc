@@ -48,6 +48,99 @@ constexpr float kGaussPerMicroTesla = 0.01f;
 //! The QMI registry service client handle.
 qmi_client_type gRegistryServiceQmiClientHandle = nullptr;
 
+//! The registry IDs that have been designated to store cal params.
+const uint16_t gRegArray[3][22] = {
+  {  // accel
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP1_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP1_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP1_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP1_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP1_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP1_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP2_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP2_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP2_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP2_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP2_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP2_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP2_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP2_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP3_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP3_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP3_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP3_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP3_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP3_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP3_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP3_V02,
+  },
+  {  // gyro
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP4_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP4_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP4_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP4_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP4_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP4_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP5_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP5_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP5_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP5_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP5_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP5_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP5_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP5_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP6_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP6_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP6_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP6_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP6_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP6_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP6_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP6_V02,
+  },
+  {  // mag
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP7_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP7_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP7_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP7_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP7_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP7_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP8_V02,
+    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP8_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP8_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP8_V02,
+    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP8_V02,
+    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP8_V02,
+    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP8_V02,
+    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP8_V02,
+    SNS_REG_ITEM_MAG_DYN_CAL_BIAS_VALID_V02,
+    SNS_REG_ITEM_MAG_X_DYN_BIAS_V02,
+    SNS_REG_ITEM_MAG_Y_DYN_BIAS_V02,
+    SNS_REG_ITEM_MAG_Z_DYN_BIAS_V02,
+    SNS_REG_ITEM_MAG_DYN_CAL_CALIBRATION_MATRIX_VALID_V02,
+    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_0_V02,
+    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_1_V02,
+    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_2_V02,
+  },
+};
+
+/**
+ * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
+ * @return The row index of RegArray that corresponds to the sensorType.
+ */
+size_t getRegArrayRowIndex(uint8_t sensorType) {
+  switch (sensorType) {
+    case CHRE_SENSOR_TYPE_ACCELEROMETER:
+      return 0;
+    case CHRE_SENSOR_TYPE_GYROSCOPE:
+      return 1;
+    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
+      return 2;
+    default:
+      return 0;
+  }
+}
+
 /**
  * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
  * @return true if runtime sensor calibration is supported on this platform.
@@ -132,6 +225,81 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
   calRequest->CalibrationAccuracy = calInfo->accuracy;
 }
 
+/**
+ * A helper function that reads from the sensor registry.
+ *
+ * @param regId The registry ID to read from.
+ * @param data A non-null pointer that registry content will be written to.
+ * @param dataSize The number of bytes to read from this registry ID.
+ * @return true if the registry content has been successfully written to data.
+ */
+bool regRead(uint16_t regId, void *data, size_t dataSize) {
+  CHRE_ASSERT(data);
+
+  bool success = false;
+  if (data != nullptr) {
+    sns_reg_single_read_req_msg_v02 request;
+    sns_reg_single_read_resp_msg_v02 response;
+
+    request.item_id = regId;
+
+    qmi_client_error_type status = qmi_client_send_msg_sync(
+        gRegistryServiceQmiClientHandle, SNS_REG_SINGLE_READ_REQ_V02,
+        &request, sizeof(request), &response, sizeof(response),
+        kQmiTimeoutMs);
+
+    if (status != QMI_NO_ERR) {
+      LOGE("Error reading sensor registry: status %d", status);
+    } else if (response.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+      LOGE("Reading sensor registry failed with error: %" PRIu8,
+           response.resp.sns_err_t);
+    } else if (response.data_len < dataSize) {
+      LOGE("Registry data len is less than requested.");
+    } else {
+      success = true;
+      memcpy(data, &response.data, dataSize);
+    }
+  }
+  return success;
+}
+
+/**
+ * A helper function that writes to the sensor registry.
+ *
+ * @param regId The registry ID to write to.
+ * @param data A non-null pointer to data that will be written to the registry.
+ * @param dataSize The number of bytes to write to this registry ID.
+ * @return true if data has been successfully written to the registry.
+ */
+bool regWrite(uint16_t regId, const void *data, size_t dataSize) {
+  CHRE_ASSERT(data);
+
+  bool success = false;
+  if (data != nullptr) {
+    sns_reg_single_write_req_msg_v02 request;
+    sns_reg_single_write_resp_msg_v02 response;
+
+    request.item_id = regId;
+    request.data_len = dataSize;
+    memcpy(&request.data, data, dataSize);
+
+    qmi_client_error_type status = qmi_client_send_msg_sync(
+        gRegistryServiceQmiClientHandle, SNS_REG_SINGLE_WRITE_REQ_V02,
+        &request, sizeof(request), &response, sizeof(response),
+        kQmiTimeoutMs);
+
+    if (status != QMI_NO_ERR) {
+      LOGE("Error writing sensor registry: status %d", status);
+    } else if (response.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+      LOGE("Writing sensor registry failed with error: %" PRIu8,
+           response.resp.sns_err_t);
+    } else {
+      success = true;
+    }
+  }
+  return success;
+}
+
 }  // namespace
 
 void ashInit() {
@@ -143,7 +311,7 @@ void ashInit() {
 
   qmi_client_os_params sensorContextOsParams;
   qmi_client_error_type status = qmi_client_init_instance(regServiceObject,
-      QMI_CLIENT_INSTANCE_ANY, nullptr /* callback*/,
+      QMI_CLIENT_INSTANCE_ANY, nullptr /* callback */,
       nullptr, &sensorContextOsParams, kQmiTimeoutMs,
       &gRegistryServiceQmiClientHandle);
   if (status != QMI_NO_ERR) {
@@ -188,6 +356,114 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
 
     memoryFree(calRequest);
     memoryFree(calResponse);
+  }
+  return success;
+}
+
+bool ashSaveCalibrationParams(uint8_t sensorType,
+                              const struct ashCalParams *calParams) {
+  CHRE_ASSERT(calParams);
+
+  bool success = false;
+  if (!isCalibrationSupported(sensorType)) {
+    LOGE("Attempting to save cal params of sensor %" PRIu8, sensorType);
+  } else if (calParams != nullptr) {
+    success = true;
+    size_t idx = getRegArrayRowIndex(sensorType);
+    // TODO: use group write to improve efficiency.
+    // offset
+    success &= regWrite(gRegArray[idx][0], &calParams->offsetSource, 1);
+    success &= regWrite(gRegArray[idx][1], &calParams->offset[0], 4);
+    success &= regWrite(gRegArray[idx][2], &calParams->offset[1], 4);
+    success &= regWrite(gRegArray[idx][3], &calParams->offset[2], 4);
+
+    // offsetTempCelsius
+    success &= regWrite(gRegArray[idx][4],
+                        &calParams->offsetTempCelsiusSource, 1);
+    // Factory saves this as Q16, and we maintain the format.
+    int32_t temp = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
+    success &= regWrite(gRegArray[idx][5], &temp, 4);
+
+    // TODO: verify axis/format as this hasn't been finilized with factory.
+    // tempSensitivity
+    success &= regWrite(gRegArray[idx][6],
+                        &calParams->tempSensitivitySource, 1);
+    success &= regWrite(gRegArray[idx][7], &calParams->tempSensitivity[0], 4);
+    success &= regWrite(gRegArray[idx][8], &calParams->tempSensitivity[1], 4);
+    success &= regWrite(gRegArray[idx][9], &calParams->tempSensitivity[2], 4);
+
+    // TODO: verify axis/format as this hasn't been finilized with factory.
+    // tempIntercept
+    success &= regWrite(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
+    success &= regWrite(gRegArray[idx][11], &calParams->tempIntercept[0], 4);
+    success &= regWrite(gRegArray[idx][12], &calParams->tempIntercept[1], 4);
+    success &= regWrite(gRegArray[idx][13], &calParams->tempIntercept[2], 4);
+
+    // scaleFactor
+    success &= regWrite(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
+    success &= regWrite(gRegArray[idx][15], &calParams->scaleFactor[0], 4);
+    success &= regWrite(gRegArray[idx][16], &calParams->scaleFactor[1], 4);
+    success &= regWrite(gRegArray[idx][17], &calParams->scaleFactor[2], 4);
+
+    // crossAxis
+    success &= regWrite(gRegArray[idx][18], &calParams->crossAxisSource, 1);
+    success &= regWrite(gRegArray[idx][19], &calParams->crossAxis[0], 4);
+    success &= regWrite(gRegArray[idx][20], &calParams->crossAxis[1], 4);
+    success &= regWrite(gRegArray[idx][21], &calParams->crossAxis[2], 4);
+  }
+  return success;
+}
+
+bool ashLoadCalibrationParams(uint8_t sensorType,
+                              struct ashCalParams *calParams) {
+  CHRE_ASSERT(calParams);
+
+  bool success = false;
+  if (!isCalibrationSupported(sensorType)) {
+    LOGE("Attempting to write cal params of sensor %" PRIu8, sensorType);
+  } else if (calParams != nullptr) {
+    success = true;
+    size_t idx = getRegArrayRowIndex(sensorType);
+    // TODO: use group read to improve efficiency.
+    // offset
+    success &= regRead(gRegArray[idx][0], &calParams->offsetSource, 1);
+    success &= regRead(gRegArray[idx][1], &calParams->offset[0], 4);
+    success &= regRead(gRegArray[idx][2], &calParams->offset[1], 4);
+    success &= regRead(gRegArray[idx][3], &calParams->offset[2], 4);
+
+    // offsetTempCelsius
+    success &= regRead(gRegArray[idx][4],
+                       &calParams->offsetTempCelsiusSource, 1);
+    // Factory saves this as Q16, and we maintain this format.
+    int32_t temp;
+    success &= regRead(gRegArray[idx][5], &temp, 4);
+    calParams->offsetTempCelsius = FX_FIXTOFLT_Q16(temp);
+
+    // TODO: verify axis/format as this hasn't been finilized with factory.
+    // tempSensitivity
+    success &= regRead(gRegArray[idx][6], &calParams->tempSensitivitySource, 1);
+    success &= regRead(gRegArray[idx][7], &calParams->tempSensitivity[0], 4);
+    success &= regRead(gRegArray[idx][8], &calParams->tempSensitivity[1], 4);
+    success &= regRead(gRegArray[idx][9], &calParams->tempSensitivity[2], 4);
+
+    // TODO: verify axis/format as this hasn't been finilized with factory.
+    // tempIntercept
+    success &= regRead(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
+    success &= regRead(gRegArray[idx][11], &calParams->tempIntercept[0], 4);
+    success &= regRead(gRegArray[idx][12], &calParams->tempIntercept[1], 4);
+    success &= regRead(gRegArray[idx][13], &calParams->tempIntercept[2], 4);
+
+    // scaleFactor
+    success &= regRead(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
+    success &= regRead(gRegArray[idx][15], &calParams->scaleFactor[0], 4);
+    success &= regRead(gRegArray[idx][16], &calParams->scaleFactor[1], 4);
+    success &= regRead(gRegArray[idx][17], &calParams->scaleFactor[2], 4);
+
+    // crossAxis
+    success &= regRead(gRegArray[idx][18], &calParams->crossAxisSource, 1);
+    success &= regRead(gRegArray[idx][19], &calParams->crossAxis[0], 4);
+    success &= regRead(gRegArray[idx][20], &calParams->crossAxis[1], 4);
+    success &= regRead(gRegArray[idx][21], &calParams->crossAxis[2], 4);
   }
   return success;
 }
