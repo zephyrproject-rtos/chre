@@ -16,6 +16,7 @@
 
 #include "chre/core/init.h"
 
+#include "ash/ash.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/system_time.h"
@@ -26,11 +27,13 @@ namespace chre {
 void init() {
   SystemTime::init();
   PlatformSensor::init();
+  ashInit();
   EventLoopManagerSingleton::init();
 }
 
 void deinit() {
   EventLoopManagerSingleton::deinit();
+  ashDeinit();
   PlatformSensor::deinit();
 }
 
