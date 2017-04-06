@@ -262,6 +262,9 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
       eventPosted = EventLoopManagerSingleton::get()->postEvent(
           CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeWifiAsyncResultCallback,
           kSystemInstanceId, nanoappInstanceId);
+      if (!eventPosted) {
+        memoryFree(event);
+      }
     }
   }
 

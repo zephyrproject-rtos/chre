@@ -9,6 +9,12 @@ TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
 TARGET_CFLAGS += $(GOOGLE_X86_LINUX_CFLAGS)
 TARGET_VARIANT_SRCS = $(GOOGLE_X86_LINUX_SRCS)
 
+# Enable conversion warnings for the simulator. Since this is a platform 100%
+# within our control we expect that there will be no conversion issues. It would
+# be nice to enable this globally in the tools_config.mk but some vendor header
+# files do not compile cleanly with it.
+TARGET_CFLAGS += -Wconversion
+
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 ifneq ($(IS_NANOAPP_BUILD),)
 include $(CHRE_PREFIX)/build/nanoapp/google_linux.mk

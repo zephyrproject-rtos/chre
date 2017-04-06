@@ -8,12 +8,16 @@
 COMMON_CXX_CFLAGS += -std=c++11
 COMMON_C_CFLAGS += -std=c99
 
-# Configure warnings.
+# Configure 'all' and 'extra' warnings and promote warnings to errors.
 COMMON_CFLAGS += -Wall
 COMMON_CFLAGS += -Wextra
-COMMON_CFLAGS += -Wno-unused-parameter
-COMMON_CFLAGS += -Wshadow
 COMMON_CFLAGS += -Werror
+
+# Disabled warnings. You better have a good reason to add more here.
+COMMON_CFLAGS += -Wno-unused-parameter
+
+# Additional warnings. Even more! :]
+COMMON_CFLAGS += -Wshadow
 
 # Disable exceptions and RTTI.
 COMMON_CFLAGS += -fno-exceptions

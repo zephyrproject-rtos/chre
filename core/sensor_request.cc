@@ -72,7 +72,7 @@ uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
 
 SensorType getSensorTypeForSampleEventType(uint16_t eventType) {
   return getSensorTypeFromUnsignedInt(
-      eventType - CHRE_EVENT_SENSOR_DATA_EVENT_BASE);
+      static_cast<uint8_t>(eventType - CHRE_EVENT_SENSOR_DATA_EVENT_BASE));
 }
 
 SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
