@@ -58,12 +58,11 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
   /**
    * Calls the nanoapp's end callback. For dynamically loaded nanoapps, this
    * must also result in calling through to any of the nanoapp's static global
-   * destructors, atexit functions, etc., after nanoappEnd returns.
+   * destructors, atexit functions, etc., after nanoappEnd returns. This is only
+   * valid to call after start() has returned true.
    *
    * This function must leave the nanoapp in a state where it can be started
    * again via start().
-   *
-   * After this function returns, the only
    *
    * @see nanoappEnd
    */

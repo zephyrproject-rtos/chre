@@ -70,9 +70,22 @@ void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
   }
 }
 
+void EventLoop::invokeMessageFreeFunction(
+    uint64_t appId, chreMessageFreeFunction *freeFunction, void *message,
+    size_t messageSize) {
+  Nanoapp *nanoapp = lookupAppByAppId(appId);
+  if (nanoapp == nullptr) {
+    LOGE("Couldn't find app 0x%016" PRIx64 " for message free callback", appId);
+  } else {
+    auto prevCurrentApp = mCurrentApp;
+    mCurrentApp = nanoapp;
+    freeFunction(message, messageSize);
+    mCurrentApp = prevCurrentApp;
+  }
+}
+
 void EventLoop::run() {
   LOGI("EventLoop start");
-  mRunning = true;
 
   bool havePendingEvents = false;
   while (mRunning) {
@@ -145,14 +158,29 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
     nanoapp->setInstanceId(eventLoopManager->getNextInstanceId());
     LOGD("Instance ID %" PRIu32 " assigned to app ID 0x%016" PRIx64,
          nanoapp->getInstanceId(), nanoapp->getAppId());
-    mCurrentApp = nanoapp.get();
-    success = nanoapp->start();
-    mCurrentApp = nullptr;
-    if (!success) {
-      LOGE("Nanoapp %" PRIu32 " failed to start", nanoapp->getInstanceId());
-    } else {
+
+    Nanoapp *newNanoapp = nanoapp.get();
+    {
       LockGuard<Mutex> lock(mNanoappsLock);
       mNanoapps.push_back(std::move(nanoapp));
+      // After this point, nanoapp is null as we've transferred ownership into
+      // mNanoapps.back() - use newNanoapp to reference it
+    }
+
+    mCurrentApp = newNanoapp;
+    success = newNanoapp->start();
+    mCurrentApp = nullptr;
+    if (!success) {
+      // TODO: to be fully safe, need to purge/flush any events and messages
+      // sent by the nanoapp here (but don't call nanoappEnd). For now, we just
+      // destroy the Nanoapp instance.
+      LOGE("Nanoapp %" PRIu32 " failed to start", newNanoapp->getInstanceId());
+
+      // Note that this lock protects against concurrent read and modification
+      // of mNanoapps, but we are assured that no new nanoapps were added since
+      // we pushed the new nanoapp
+      LockGuard<Mutex> lock(mNanoappsLock);
+      mNanoapps.pop_back();
     }
   }
 
@@ -246,6 +274,16 @@ bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp>& app) {
   }
 
   return app->hasPendingEvent();
+}
+
+Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) {
+  for (const UniquePtr<Nanoapp>& app : mNanoapps) {
+    if (app->getAppId() == appId) {
+      return app.get();
+    }
+  }
+
+  return nullptr;
 }
 
 Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {

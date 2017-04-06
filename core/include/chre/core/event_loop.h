@@ -73,6 +73,21 @@ class EventLoop : public NonCopyable {
   void forEachNanoapp(NanoappCallbackFunction *callback, void *data);
 
   /**
+   * Invokes a message to host free callback supplied by the given nanoapp
+   * (identified by app ID). Ensures that the calling context is updated
+   * appropriately.
+   *
+   * @param appId Identifies the nanoapp that sent this message and supplied the
+   *        free callback
+   * @param freeFunction The non-null message free callback given by the nanoapp
+   * @param message Pointer to the message data
+   * @param messageSize Size of the message
+   */
+  void invokeMessageFreeFunction(
+      uint64_t appId, chreMessageFreeFunction *freeFunction, void *message,
+      size_t messageSize);
+
+  /**
    * Invokes the Nanoapp's start callback, and if successful, adds it to the
    * set of Nanoapps managed by this EventLoop. This function must only be
    * called from the context of the thread that runs this event loop (i.e. from
@@ -197,7 +212,7 @@ class EventLoop : public NonCopyable {
   FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
 
   // TODO: should probably be atomic to be fully correct
-  volatile bool mRunning = false;
+  volatile bool mRunning = true;
 
   Nanoapp *mCurrentApp = nullptr;
 
@@ -217,6 +232,17 @@ class EventLoop : public NonCopyable {
    * @param event The event to be freed
    */
   void freeEvent(Event *event);
+
+  /**
+   * Finds a Nanoapp with the given 64-bit appId.
+   *
+   * Only safe to call within this EventLoop's thread.
+   *
+   * @param appId Nanoapp ID
+   * @return Pointer to Nanoapp instance in this EventLoop with the given app
+   *         ID, or nullptr if not found
+   */
+  Nanoapp *lookupAppByAppId(uint64_t appId);
 
   /**
    * Finds a Nanoapp with the given instanceId.
