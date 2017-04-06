@@ -61,6 +61,16 @@ uint32_t PlatformGnss::getCapabilities() {
   }
 }
 
+bool PlatformGnss::controlLocationSession(bool enable, Milliseconds minInterval,
+                                          Milliseconds minTimeToNextFix) {
+  if (mGnssApi != nullptr) {
+    return mGnssApi->controlLocationSession(enable,
+        minInterval.getMilliseconds(), minTimeToNextFix.getMilliseconds());
+  } else {
+    return false;
+  }
+}
+
 void PlatformGnssBase::requestStateResyncCallback() {
   // TODO: Implement this.
 }
