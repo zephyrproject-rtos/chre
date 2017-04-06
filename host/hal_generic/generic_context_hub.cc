@@ -46,9 +46,6 @@ namespace {
 
 constexpr uint32_t kDefaultHubId = 0;
 
-// TODO: remove this macro once all methods are implemented
-#define UNUSED(param) (void) (param)
-
 constexpr uint8_t extractChreApiMajorVersion(uint32_t chreVersion) {
   return static_cast<uint8_t>(chreVersion >> 24);
 }
@@ -181,31 +178,42 @@ Return<Result> GenericContextHub::loadNanoApp(
 
 Return<Result> GenericContextHub::unloadNanoApp(
     uint32_t hubId, uint64_t appId, uint32_t transactionId) {
-  // TODO
-  UNUSED(hubId);
-  UNUSED(appId);
-  UNUSED(transactionId);
+  Result result;
   ALOGV("%s", __func__);
-  return Result::TRANSACTION_FAILED;
+
+  if (hubId != kDefaultHubId) {
+    result = Result::BAD_PARAMS;
+  } else {
+    FlatBufferBuilder builder(64);
+    HostProtocolHost::encodeUnloadNanoappRequest(
+        builder, transactionId, appId, false /* allowSystemNanoappUnload */);
+    if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+      result = Result::UNKNOWN_FAILURE;
+    } else {
+      result = Result::OK;
+    }
+  }
+
+  ALOGD("Attempted to send unload nanoapp request for app ID 0x%016" PRIx64
+        " as transaction ID %" PRIu32 ": result %" PRIu32, appId, transactionId,
+        result);
+
+  return result;
 }
 
 Return<Result> GenericContextHub::enableNanoApp(
-    uint32_t hubId, uint64_t appId, uint32_t transactionId) {
+    uint32_t /* hubId */, uint64_t appId, uint32_t /* transactionId */) {
   // TODO
-  UNUSED(hubId);
-  UNUSED(appId);
-  UNUSED(transactionId);
-  ALOGV("%s", __func__);
+  ALOGW("Attempted to enable app ID 0x%016" PRIx64 ", but not supported",
+        appId);
   return Result::TRANSACTION_FAILED;
 }
 
 Return<Result> GenericContextHub::disableNanoApp(
-    uint32_t hubId, uint64_t appId, uint32_t transactionId) {
+    uint32_t /* hubId */, uint64_t appId, uint32_t /* transactionId */) {
   // TODO
-  UNUSED(hubId);
-  UNUSED(appId);
-  UNUSED(transactionId);
-  ALOGV("%s", __func__);
+  ALOGW("Attempted to disable app ID 0x%016" PRIx64 ", but not supported",
+        appId);
   return Result::TRANSACTION_FAILED;
 }
 
@@ -343,6 +351,18 @@ void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
     const ::chre::fbs::LoadNanoappResponseT& response) {
   ALOGV("Got load nanoapp response for transaction %" PRIu32 " with result %d",
         response.transaction_id, response.success);
+
+  invokeClientCallback([&]() {
+    TransactionResult result = (response.success) ?
+        TransactionResult::SUCCESS : TransactionResult::FAILURE;
+    mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
+  });
+}
+
+void GenericContextHub::SocketCallbacks::handleUnloadNanoappResponse(
+    const ::chre::fbs::UnloadNanoappResponseT& response) {
+  ALOGV("Got unload nanoapp response for transaction %" PRIu32 " with result "
+        "%d", response.transaction_id, response.success);
 
   invokeClientCallback([&]() {
     TransactionResult result = (response.success) ?

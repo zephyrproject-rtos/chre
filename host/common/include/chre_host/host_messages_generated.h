@@ -33,6 +33,12 @@ struct LoadNanoappRequestT;
 struct LoadNanoappResponse;
 struct LoadNanoappResponseT;
 
+struct UnloadNanoappRequest;
+struct UnloadNanoappRequestT;
+
+struct UnloadNanoappResponse;
+struct UnloadNanoappResponseT;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -49,8 +55,10 @@ enum class ChreMessage : uint8_t {
   NanoappListResponse = 5,
   LoadNanoappRequest = 6,
   LoadNanoappResponse = 7,
+  UnloadNanoappRequest = 8,
+  UnloadNanoappResponse = 9,
   MIN = NONE,
-  MAX = LoadNanoappResponse
+  MAX = UnloadNanoappResponse
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -63,6 +71,8 @@ inline const char **EnumNamesChreMessage() {
     "NanoappListResponse",
     "LoadNanoappRequest",
     "LoadNanoappResponse",
+    "UnloadNanoappRequest",
+    "UnloadNanoappResponse",
     nullptr
   };
   return names;
@@ -103,6 +113,14 @@ template<> struct ChreMessageTraits<LoadNanoappRequest> {
 
 template<> struct ChreMessageTraits<LoadNanoappResponse> {
   static const ChreMessage enum_value = ChreMessage::LoadNanoappResponse;
+};
+
+template<> struct ChreMessageTraits<UnloadNanoappRequest> {
+  static const ChreMessage enum_value = ChreMessage::UnloadNanoappRequest;
+};
+
+template<> struct ChreMessageTraits<UnloadNanoappResponse> {
+  static const ChreMessage enum_value = ChreMessage::UnloadNanoappResponse;
 };
 
 struct ChreMessageUnion {
@@ -157,6 +175,14 @@ struct ChreMessageUnion {
   LoadNanoappResponseT *AsLoadNanoappResponse() {
     return type == ChreMessage::LoadNanoappResponse ?
       reinterpret_cast<LoadNanoappResponseT *>(table) : nullptr;
+  }
+  UnloadNanoappRequestT *AsUnloadNanoappRequest() {
+    return type == ChreMessage::UnloadNanoappRequest ?
+      reinterpret_cast<UnloadNanoappRequestT *>(table) : nullptr;
+  }
+  UnloadNanoappResponseT *AsUnloadNanoappResponse() {
+    return type == ChreMessage::UnloadNanoappResponse ?
+      reinterpret_cast<UnloadNanoappResponseT *>(table) : nullptr;
   }
 };
 
@@ -1029,6 +1055,167 @@ inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(
 
 flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(flatbuffers::FlatBufferBuilder &_fbb, const LoadNanoappResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct UnloadNanoappRequestT : public flatbuffers::NativeTable {
+  typedef UnloadNanoappRequest TableType;
+  uint32_t transaction_id;
+  uint64_t app_id;
+  bool allow_system_nanoapp_unload;
+  UnloadNanoappRequestT()
+      : transaction_id(0),
+        app_id(0),
+        allow_system_nanoapp_unload(false) {
+  }
+};
+
+struct UnloadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef UnloadNanoappRequestT NativeTableType;
+  enum {
+    VT_TRANSACTION_ID = 4,
+    VT_APP_ID = 6,
+    VT_ALLOW_SYSTEM_NANOAPP_UNLOAD = 8
+  };
+  uint32_t transaction_id() const {
+    return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
+  }
+  bool mutate_transaction_id(uint32_t _transaction_id) {
+    return SetField(VT_TRANSACTION_ID, _transaction_id);
+  }
+  uint64_t app_id() const {
+    return GetField<uint64_t>(VT_APP_ID, 0);
+  }
+  bool mutate_app_id(uint64_t _app_id) {
+    return SetField(VT_APP_ID, _app_id);
+  }
+  /// Set to true to allow this request to unload nanoapps identified as "system
+  /// nanoapps", i.e. ones with is_system set to true in NanoappListResponse.
+  bool allow_system_nanoapp_unload() const {
+    return GetField<uint8_t>(VT_ALLOW_SYSTEM_NANOAPP_UNLOAD, 0) != 0;
+  }
+  bool mutate_allow_system_nanoapp_unload(bool _allow_system_nanoapp_unload) {
+    return SetField(VT_ALLOW_SYSTEM_NANOAPP_UNLOAD, static_cast<uint8_t>(_allow_system_nanoapp_unload));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
+           VerifyField<uint64_t>(verifier, VT_APP_ID) &&
+           VerifyField<uint8_t>(verifier, VT_ALLOW_SYSTEM_NANOAPP_UNLOAD) &&
+           verifier.EndTable();
+  }
+  UnloadNanoappRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(UnloadNanoappRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<UnloadNanoappRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct UnloadNanoappRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_transaction_id(uint32_t transaction_id) {
+    fbb_.AddElement<uint32_t>(UnloadNanoappRequest::VT_TRANSACTION_ID, transaction_id, 0);
+  }
+  void add_app_id(uint64_t app_id) {
+    fbb_.AddElement<uint64_t>(UnloadNanoappRequest::VT_APP_ID, app_id, 0);
+  }
+  void add_allow_system_nanoapp_unload(bool allow_system_nanoapp_unload) {
+    fbb_.AddElement<uint8_t>(UnloadNanoappRequest::VT_ALLOW_SYSTEM_NANOAPP_UNLOAD, static_cast<uint8_t>(allow_system_nanoapp_unload), 0);
+  }
+  UnloadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  UnloadNanoappRequestBuilder &operator=(const UnloadNanoappRequestBuilder &);
+  flatbuffers::Offset<UnloadNanoappRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 3);
+    auto o = flatbuffers::Offset<UnloadNanoappRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t transaction_id = 0,
+    uint64_t app_id = 0,
+    bool allow_system_nanoapp_unload = false) {
+  UnloadNanoappRequestBuilder builder_(_fbb);
+  builder_.add_app_id(app_id);
+  builder_.add_transaction_id(transaction_id);
+  builder_.add_allow_system_nanoapp_unload(allow_system_nanoapp_unload);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct UnloadNanoappResponseT : public flatbuffers::NativeTable {
+  typedef UnloadNanoappResponse TableType;
+  uint32_t transaction_id;
+  bool success;
+  UnloadNanoappResponseT()
+      : transaction_id(0),
+        success(false) {
+  }
+};
+
+struct UnloadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef UnloadNanoappResponseT NativeTableType;
+  enum {
+    VT_TRANSACTION_ID = 4,
+    VT_SUCCESS = 6
+  };
+  uint32_t transaction_id() const {
+    return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
+  }
+  bool mutate_transaction_id(uint32_t _transaction_id) {
+    return SetField(VT_TRANSACTION_ID, _transaction_id);
+  }
+  bool success() const {
+    return GetField<uint8_t>(VT_SUCCESS, 0) != 0;
+  }
+  bool mutate_success(bool _success) {
+    return SetField(VT_SUCCESS, static_cast<uint8_t>(_success));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
+           VerifyField<uint8_t>(verifier, VT_SUCCESS) &&
+           verifier.EndTable();
+  }
+  UnloadNanoappResponseT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(UnloadNanoappResponseT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<UnloadNanoappResponse> Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappResponseT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct UnloadNanoappResponseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_transaction_id(uint32_t transaction_id) {
+    fbb_.AddElement<uint32_t>(UnloadNanoappResponse::VT_TRANSACTION_ID, transaction_id, 0);
+  }
+  void add_success(bool success) {
+    fbb_.AddElement<uint8_t>(UnloadNanoappResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
+  }
+  UnloadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  UnloadNanoappResponseBuilder &operator=(const UnloadNanoappResponseBuilder &);
+  flatbuffers::Offset<UnloadNanoappResponse> Finish() {
+    const auto end = fbb_.EndTable(start_, 2);
+    auto o = flatbuffers::Offset<UnloadNanoappResponse>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t transaction_id = 0,
+    bool success = false) {
+  UnloadNanoappResponseBuilder builder_(_fbb);
+  builder_.add_transaction_id(transaction_id);
+  builder_.add_success(success);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
@@ -1384,6 +1571,65 @@ inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(flatbu
       _success);
 }
 
+inline UnloadNanoappRequestT *UnloadNanoappRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new UnloadNanoappRequestT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void UnloadNanoappRequest::UnPackTo(UnloadNanoappRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = transaction_id(); _o->transaction_id = _e; };
+  { auto _e = app_id(); _o->app_id = _e; };
+  { auto _e = allow_system_nanoapp_unload(); _o->allow_system_nanoapp_unload = _e; };
+}
+
+inline flatbuffers::Offset<UnloadNanoappRequest> UnloadNanoappRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateUnloadNanoappRequest(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _transaction_id = _o->transaction_id;
+  auto _app_id = _o->app_id;
+  auto _allow_system_nanoapp_unload = _o->allow_system_nanoapp_unload;
+  return chre::fbs::CreateUnloadNanoappRequest(
+      _fbb,
+      _transaction_id,
+      _app_id,
+      _allow_system_nanoapp_unload);
+}
+
+inline UnloadNanoappResponseT *UnloadNanoappResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new UnloadNanoappResponseT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void UnloadNanoappResponse::UnPackTo(UnloadNanoappResponseT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = transaction_id(); _o->transaction_id = _e; };
+  { auto _e = success(); _o->success = _e; };
+}
+
+inline flatbuffers::Offset<UnloadNanoappResponse> UnloadNanoappResponse::Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappResponseT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateUnloadNanoappResponse(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _transaction_id = _o->transaction_id;
+  auto _success = _o->success;
+  return chre::fbs::CreateUnloadNanoappResponse(
+      _fbb,
+      _transaction_id,
+      _success);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -1448,6 +1694,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const LoadNanoappResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::UnloadNanoappRequest: {
+      auto ptr = reinterpret_cast<const UnloadNanoappRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::UnloadNanoappResponse: {
+      auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -1493,6 +1747,14 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const LoadNanoappResponse *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::UnloadNanoappRequest: {
+      auto ptr = reinterpret_cast<const UnloadNanoappRequest *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::UnloadNanoappResponse: {
+      auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -1526,6 +1788,14 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::LoadNanoappResponse: {
       auto ptr = reinterpret_cast<const LoadNanoappResponseT *>(table);
       return CreateLoadNanoappResponse(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::UnloadNanoappRequest: {
+      auto ptr = reinterpret_cast<const UnloadNanoappRequestT *>(table);
+      return CreateUnloadNanoappRequest(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::UnloadNanoappResponse: {
+      auto ptr = reinterpret_cast<const UnloadNanoappResponseT *>(table);
+      return CreateUnloadNanoappResponse(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -1565,6 +1835,16 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::LoadNanoappResponse: {
       auto ptr = reinterpret_cast<LoadNanoappResponseT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::UnloadNanoappRequest: {
+      auto ptr = reinterpret_cast<UnloadNanoappRequestT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::UnloadNanoappResponse: {
+      auto ptr = reinterpret_cast<UnloadNanoappResponseT *>(table);
       delete ptr;
       break;
     }

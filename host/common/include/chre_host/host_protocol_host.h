@@ -51,6 +51,9 @@ class IChreMessageHandlers {
 
   virtual void handleLoadNanoappResponse(
       const ::chre::fbs::LoadNanoappResponseT& response) = 0;
+
+  virtual void handleUnloadNanoappResponse(
+      const ::chre::fbs::UnloadNanoappResponseT& response) = 0;
 };
 
 /**
@@ -102,6 +105,23 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *        construct the message
    */
   static void encodeNanoappListRequest(flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Encodes a message requesting to unload a nanoapp specified by app ID.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param transactionId A transaction identifier to tie the subsequent
+   *        response to this request
+   * @param appId Identifier for the app to unload
+   * @param allowSystemNanoappUnload Whether this request should be allowed to
+   *        result in unloading a system nanoapp (e.g. requests from the context
+   *        hub HAL should have set this to false, as system nanoapps are not
+   *        expected to be managed through that HAL)
+   */
+  static void encodeUnloadNanoappRequest(
+      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
+      uint64_t appId, bool allowSystemNanoappUnload);
 
   /**
    * Decodes the host client ID included in the message container

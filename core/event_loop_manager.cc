@@ -22,9 +22,13 @@
 
 namespace chre {
 
-Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
+Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName,
+                                               EventLoop **outputEventLoop) {
   chre::EventLoop *eventLoop = getCurrentEventLoop();
   CHRE_ASSERT(eventLoop);
+  if (outputEventLoop != nullptr) {
+    *outputEventLoop = eventLoop;
+  }
 
   chre::Nanoapp *currentNanoapp = eventLoop->getCurrentNanoapp();
   CHRE_ASSERT_LOG(currentNanoapp, "%s called with no CHRE app context", __func__);

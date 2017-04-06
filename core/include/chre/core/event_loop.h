@@ -102,13 +102,18 @@ class EventLoop : public NonCopyable {
   bool startNanoapp(UniquePtr<Nanoapp>& nanoapp);
 
   /**
-   * Stops a nanoapp by invoking the stop entry point. The nanoapp passed in
-   * must have been previously started by the startNanoapp method. After this
-   * function returns, all references to the Nanoapp are invalid.
+   * Stops and unloads a nanoapp identified by its instance ID. The end entry
+   * point will be invoked, and the chre::Nanoapp instance will be destroyed.
+   * After this function returns, all references to the Nanoapp instance are
+   * invalidated.
    *
-   * @param nanoapp A pointer to the nanoapp to stop.
+   * @param instanceId The nanoapp's unique instance identifier
+   * @param allowSystemNanoappUnload If false, this function will reject
+   *        attempts to unload a system nanoapp
+   *
+   * @return true if the nanoapp with the given instance ID was found & unloaded
    */
-  void stopNanoapp(Nanoapp *nanoapp);
+  bool unloadNanoapp(uint32_t instanceId, bool allowSystemNanoappUnload);
 
   /**
    * Executes the loop that blocks on the event queue and delivers received
@@ -182,6 +187,12 @@ class EventLoop : public NonCopyable {
    */
   Nanoapp *findNanoappByInstanceId(uint32_t instanceId);
 
+  /**
+   * @return true if the current Nanoapp (or entire CHRE) is being unloaded, and
+   *         therefore it should not be allowed to send events or messages, etc.
+   */
+  bool currentNanoappIsStopping();
+
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = 1024;
@@ -208,13 +219,26 @@ class EventLoop : public NonCopyable {
   Mutex mNanoappsLock;
 
   //! The blocking queue of incoming events from the system that have not been
-  //!  distributed out to apps yet.
+  //! distributed out to apps yet.
   FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
 
   // TODO: should probably be atomic to be fully correct
   volatile bool mRunning = true;
 
+  //! The nanoapp that is currently executing - must be set any time we call
+  //! into the nanoapp's entry points or callbacks
   Nanoapp *mCurrentApp = nullptr;
+
+  //! Set to the nanoapp we are in the process of unloading in unloadNanoapp()
+  Nanoapp *mStoppingNanoapp = nullptr;
+
+  /**
+   * Do one round of Nanoapp event delivery, only considering events in
+   * Nanoapps' own queues (not mEvents).
+   *
+   * @return true if there are more events pending in Nanoapps' own queues
+   */
+  bool deliverEvents();
 
   /**
    * Delivers the next event pending in the Nanoapp's queue, and takes care of
@@ -224,6 +248,29 @@ class EventLoop : public NonCopyable {
    * @return true if the nanoapp has another event pending in its queue
    */
   bool deliverNextEvent(const UniquePtr<Nanoapp>& app);
+
+  /**
+   * Given an event pulled from the main incoming event queue (mEvents), deliver
+   * it to all Nanoapps that should receive the event, or free the event if
+   * there are no valid recipients.
+   *
+   * @param event The Event to distribute to Nanoapps
+   */
+  void distributeEvent(Event *event);
+
+  /**
+   * Distribute all events pending in the inbound event queue. Note that this
+   * function only guarantees that any events in the inbound queue at the time
+   * it is called will be distributed to Nanoapp event queues - new events may
+   * still be posted during or after this function call from other threads as
+   * long as postEvent() will accept them.
+   */
+  void flushInboundEventQueue();
+
+  /**
+   * Delivers events pending in Nanoapps' own queues until they are all empty.
+   */
+  void flushNanoappEventQueues();
 
   /**
    * Call after when an Event has been delivered to all intended recipients.
@@ -255,9 +302,15 @@ class EventLoop : public NonCopyable {
   Nanoapp *lookupAppByInstanceId(uint32_t instanceId);
 
   /**
-   * Stops the Nanoapp at the given index in mNanoapps
+   * Stops and unloads the Nanoapp at the given index in mNanoapps.
+   *
+   * IMPORTANT: prior to calling this function, the event queues must be in a
+   * safe condition for removal of this nanoapp. This means that there must not
+   * be any pending events in this nanoapp's queue, and there must not be any
+   * outstanding events sent by this nanoapp, as they may reference the
+   * nanoapp's own memory (even if there is no free callback).
    */
-  void stopNanoapp(size_t index);
+  void unloadNanoappAtIndex(size_t index);
 };
 
 }  // namespace chre

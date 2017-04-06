@@ -45,6 +45,10 @@ class HostMessageHandlers {
       uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
       uint32_t appVersion, uint32_t targetApiVersion, const void *appBinary,
       size_t appBinaryLen);
+
+  static void handleUnloadNanoappRequest(
+      uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
+      bool allowSystemNanoappUnload);
 };
 
 /**
@@ -121,6 +125,14 @@ class HostProtocolChre : public HostProtocolCommon {
    * loading a nanoapp.
    */
   static void encodeLoadNanoappResponse(
+      flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+      uint32_t transactionId, bool success);
+
+  /**
+   * Encodes a response to the host communicating the result of dynamically
+   * unloading a nanoapp.
+   */
+  static void encodeUnloadNanoappResponse(
       flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
       uint32_t transactionId, bool success);
 };

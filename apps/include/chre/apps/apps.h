@@ -29,6 +29,7 @@ extern UniquePtr<Nanoapp> *gNanoappMessageWorld;
 extern UniquePtr<Nanoapp> *gNanoappSensorWorld;
 extern UniquePtr<Nanoapp> *gNanoappSpammer;
 extern UniquePtr<Nanoapp> *gNanoappTimerWorld;
+extern UniquePtr<Nanoapp> *gNanoappUnloadTester;
 extern UniquePtr<Nanoapp> *gNanoappWifiWorld;
 extern UniquePtr<Nanoapp> *gNanoappWwanWorld;
 

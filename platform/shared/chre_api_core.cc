@@ -25,10 +25,13 @@
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
+using chre::EventLoop;
 using chre::EventLoopManager;
+using chre::EventLoopManagerSingleton;
+using chre::Nanoapp;
 
 void chreAbort(uint32_t abortCode) {
-  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   // TODO: we should cleanly unload the nanoapp, release all of its resources,
   // and send an abort notification to the host so as to localize the impact to
@@ -36,17 +39,29 @@ void chreAbort(uint32_t abortCode) {
   if (nanoapp == nullptr) {
     FATAL_ERROR("chreAbort called in unknown context");
   } else {
-    FATAL_ERROR("chreAbort called by app ID 0x%016" PRIx64, nanoapp->getAppId());
+    FATAL_ERROR("chreAbort called by app 0x%016" PRIx64, nanoapp->getAppId());
   }
 }
 
 bool chreSendEvent(uint16_t eventType, void *eventData,
                    chreEventCompleteFunction *freeCallback,
                    uint32_t targetInstanceId) {
-  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  bool success = chre::EventLoopManagerSingleton::get()->postEvent(
-      eventType, eventData, freeCallback, nanoapp->getInstanceId(),
-      targetInstanceId);
+  EventLoop *eventLoop;
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
+                                                           &eventLoop);
+
+  // Prevent an app that is in the process of being unloaded from generating new
+  // events
+  bool success = false;
+  if (eventLoop->currentNanoappIsStopping()) {
+    LOGW("Rejecting event from app instance %" PRIu32 " because it's stopping",
+         nanoapp->getInstanceId());
+  } else {
+    success = EventLoopManagerSingleton::get()->postEvent(
+        eventType, eventData, freeCallback, nanoapp->getInstanceId(),
+        targetInstanceId);
+  }
+
   if (!success && freeCallback != nullptr) {
     freeCallback(eventType, eventData);
   }
@@ -64,10 +79,25 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
 bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
                                    uint32_t messageType, uint16_t hostEndpoint,
                                    chreMessageFreeFunction *freeCallback) {
-  auto& hostCommsManager =
-      chre::EventLoopManagerSingleton::get()->getHostCommsManager();
-  return hostCommsManager.sendMessageToHostFromCurrentNanoapp(
-      message, messageSize, messageType, hostEndpoint, freeCallback);
+  EventLoop *eventLoop;
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
+                                                           &eventLoop);
+
+  bool success = false;
+  if (eventLoop->currentNanoappIsStopping()) {
+    LOGW("Rejecting message to host from app instance %" PRIu32 " because it's "
+         "stopping", nanoapp->getInstanceId());
+    if (freeCallback != nullptr) {
+      freeCallback(message, messageSize);
+    }
+  } else {
+    auto& hostCommsManager =
+        EventLoopManagerSingleton::get()->getHostCommsManager();
+    success = hostCommsManager.sendMessageToHostFromNanoapp(
+        nanoapp, message, messageSize, messageType, hostEndpoint, freeCallback);
+  }
+
+  return success;
 }
 
 void chreLog(enum chreLogLevel level, const char *formatStr, ...) {

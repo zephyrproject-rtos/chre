@@ -45,6 +45,7 @@ enum class SystemCallbackType : uint16_t {
   SensorLastEventUpdate,
   FinishLoadingNanoapp,
   WwanHandleCellInfoResult,
+  HandleUnloadNanoapp,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free
@@ -66,10 +67,14 @@ class EventLoopManager : public NonCopyable {
     * null, this is an assertion error.
     *
     * @param functionName The name of the CHRE API. This should be __func__.
+    * @param eventLoop Optional output parameter, which will be populated with
+    *        the EventLoop that is currently executing if this function is
+    *        successful
     * @return A pointer to the currently executing nanoapp or null if outside
     *         the context of a nanoapp.
     */
-  static Nanoapp *validateChreApiCall(const char *functionName);
+  static Nanoapp *validateChreApiCall(const char *functionName,
+                                      EventLoop **eventLoop = nullptr);
 
   /**
    * Constructs an event loop and returns a pointer to it. The event loop is not

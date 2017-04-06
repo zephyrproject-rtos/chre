@@ -27,15 +27,14 @@ namespace chre {
 
 constexpr uint32_t kMessageToHostReservedFieldValue = UINT32_MAX;
 
-bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
-    void *messageData, size_t messageSize, uint32_t messageType,
-    uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback) {
-  EventLoop *eventLoop = chre::getCurrentEventLoop();
-  CHRE_ASSERT(eventLoop);
+void HostCommsManager::flushMessagesSentByNanoapp(uint64_t appId) {
+  mHostLink.flushMessagesSentByNanoapp(appId);
+}
 
-  Nanoapp *currentApp = eventLoop->getCurrentNanoapp();
-  CHRE_ASSERT(currentApp);
-
+bool HostCommsManager::sendMessageToHostFromNanoapp(
+    Nanoapp *nanoapp, void *messageData, size_t messageSize,
+    uint32_t messageType, uint16_t hostEndpoint,
+    chreMessageFreeFunction *freeCallback) {
   bool success = false;
   if (messageSize > 0 && messageData == nullptr) {
     LOGW("Rejecting malformed message (null data but non-zero size)");
@@ -50,7 +49,7 @@ bool HostCommsManager::sendMessageToHostFromCurrentNanoapp(
     if (msgToHost == nullptr) {
       LOGE("Couldn't allocate message to host");
     } else {
-      msgToHost->appId = currentApp->getAppId();
+      msgToHost->appId = nanoapp->getAppId();
       msgToHost->message.wrap(static_cast<uint8_t *>(messageData), messageSize);
       msgToHost->toHostData.hostEndpoint = hostEndpoint;
       msgToHost->toHostData.messageType = messageType;

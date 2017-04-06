@@ -82,9 +82,15 @@ typedef HostMessage MessageToHost;
 class HostCommsManager : public NonCopyable {
  public:
   /**
+   * @see HostLink::flushMessagesSentByNanoapp
+   */
+  void flushMessagesSentByNanoapp(uint64_t appId);
+
+  /**
    * Formulates a MessageToHost using the supplied message contents and passes
    * it to HostLink for transmission to the host.
    *
+   * @param nanoapp The sender of this message
    * @param messageData Pointer to message payload. Can be null if messageSize
    *        is 0. This buffer must remain valid until freeCallback is invoked.
    * @param messageSize Size of the message to send, in bytes
@@ -94,13 +100,16 @@ class HostCommsManager : public NonCopyable {
    * @param freeCallback Optional callback to invoke when the messageData is no
    *        longer needed (the message has been sent or an error occurred)
    *
-   * @return true if the message was accepted into the outbound message queue
+   * @return true if the message was accepted into the outbound message queue.
+   *         If this function returns false and freeCallback is non-null, it
+   *         will be invoked synchronously.
    *
    * @see chreSendMessageToHost
    */
-  bool sendMessageToHostFromCurrentNanoapp(
-      void *messageData, size_t messageSize, uint32_t messageType,
-      uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback);
+  bool sendMessageToHostFromNanoapp(
+      Nanoapp *nanoapp, void *messageData, size_t messageSize,
+      uint32_t messageType, uint16_t hostEndpoint,
+      chreMessageFreeFunction *freeCallback);
 
   /**
    * Makes a copy of the supplied message data and posts it to the queue for
