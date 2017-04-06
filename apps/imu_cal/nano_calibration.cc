@@ -24,11 +24,18 @@
 #endif  // DIVERSITY_CHECK_ENABLED
 
 #include "calibration/util/cal_log.h"
+#include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
 
 namespace nano_calibration {
 
 namespace {
+#ifdef NANO_SENSOR_CAL_DBG_ENABLED
+#define NANO_CAL_LOG(tag, format, ...) CAL_DEBUG_LOG(tag, format, ##__VA_ARGS__)
+#else
+#define NANO_CAL_LOG(tag, format, ...) chreLogNull(format, ##__VA_ARGS__)
+#endif
+
 // Maximum interval at which to check for OTC gyroscope offset updates.
 constexpr uint64_t kOtcGyroOffsetMaxUpdateIntervalNanos = 500000000;
 
@@ -48,6 +55,137 @@ void ResetCalParams(struct ashCalParams *cal_params) {
   cal_params->scaleFactor[0] = 1.0f;
   cal_params->scaleFactor[1] = 1.0f;
   cal_params->scaleFactor[2] = 1.0f;
+}
+
+// Helper function that resets calibration info to a known initial state.
+void ResetCalInfo(struct ashCalInfo *cal_info) {
+  // Puts 'cal_info' into a known "default" pass-through state (i.e.,
+  // calibration info will not influence sensor streams).
+  memset(cal_info, 0, sizeof(struct ashCalInfo));
+
+  // Sets 'compMatrix' to the Identity matrix.
+  cal_info->compMatrix[0] = 1.0f;
+  cal_info->compMatrix[4] = 1.0f;
+  cal_info->compMatrix[8] = 1.0f;
+
+  cal_info->accuracy = ASH_CAL_ACCURACY_MEDIUM;
+}
+
+// Detects and converts Factory Calibration data into a format consumable by the
+// runtime accelerometer calibration algorithm.
+void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
+#ifdef ACCEL_CAL_ENABLED
+  // Checks for factory calibration data and performs any processing on the
+  // input to make it compatible with this runtime algorithm. NOTE: Factory
+  // calibrations are distinguished by 'offsetSource'=ASH_CAL_PARAMS_SOURCE_NONE
+  // and 'offsetTempCelsiusSource'=ASH_CAL_PARAMS_SOURCE_FACTORY.
+  bool factory_cal_detected =
+      cal_params->offsetSource == ASH_CAL_PARAMS_SOURCE_NONE &&
+      cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
+
+  if (factory_cal_detected) {
+    // Sets the parameter source to runtime calibration.
+    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    // Ensures that the offset vector is zero in case it has been overwritten by
+    // mistake.
+    memset(cal_params->offset, 0, sizeof(cal_params->offset));
+
+    //TODO: Incorporate over-temperature offset compensation.
+
+    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
+                 "Accelerometer factory calibration data received.");
+  }
+#endif  // ACCEL_CAL_ENABLED
+}
+
+// Detects and converts Factory Calibration data into a format consumable by the
+// runtime gyroscope calibration algorithm.
+void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
+#ifdef GYRO_CAL_ENABLED
+#ifdef OVERTEMPCAL_ENABLED
+  // Checks for factory calibration data and performs any processing on the
+  // input to make it compatible with this runtime algorithm. NOTE: Factory
+  // calibrations are distinguished by 'offsetSource'=ASH_CAL_PARAMS_SOURCE_NONE
+  // and 'offsetTempCelsiusSource'=ASH_CAL_PARAMS_SOURCE_FACTORY
+  bool factory_cal_detected =
+      cal_params->offsetSource == ASH_CAL_PARAMS_SOURCE_NONE &&
+      cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY &&
+      cal_params->tempSensitivitySource == ASH_CAL_PARAMS_SOURCE_FACTORY &&
+      cal_params->tempInterceptSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
+
+  if (factory_cal_detected) {
+    // Sets the parameter source to runtime calibration.
+    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->tempSensitivitySource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->tempInterceptSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    // Since the Factory-Cal OTC model is computed from raw measured data and
+    // the 'offset' at 'offsetTempCelsius' is removed from the input sensor
+    // stream, the intercept must be adjusted so that the runtime OTC produces a
+    // zero offset vector at 'offsetTempCelsius'.
+    for (size_t i = 0; i < 3; i++) {
+      // Shifts the OTC linear model intercept by 'offset_at_offsetTempCelsius'.
+      float offset_at_offsetTempCelsius =
+          cal_params->offsetTempCelsius + cal_params->tempIntercept[i];
+      cal_params->tempIntercept[i] -= offset_at_offsetTempCelsius;
+    }
+
+    // Ensures that the offset vector is zero in case it has been overwritten by
+    // mistake.
+    memset(cal_params->offset, 0, sizeof(cal_params->offset));
+
+    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
+                  "OTC-Gyroscope factory calibration data received.");
+  }
+#else
+  // Checks for factory calibration data and performs any processing on the
+  // input to make it compatible with this runtime algorithm.
+  bool factory_cal_detected =
+      cal_params->offsetSource == ASH_CAL_PARAMS_SOURCE_NONE &&
+      cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
+
+  if (factory_cal_detected) {
+    // Sets the parameter source to runtime calibration.
+    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    // Ensures that the offset vector is zero in case it has been overwritten by
+    // mistake.
+    memset(cal_params->offset, 0, sizeof(cal_params->offset));
+
+    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
+                 "Gyroscope factory calibration data received.");
+  }
+#endif  // OVERTEMPCAL_ENABLED
+#endif  // GYRO_CAL_ENABLED
+}
+
+// Detects and converts Factory Calibration data into a format consumable by the
+// runtime magnetometer calibration algorithm.
+void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
+#ifdef MAG_CAL_ENABLED
+  // Checks for factory calibration data and performs any processing on the
+  // input to make it compatible with this runtime algorithm.
+  bool factory_cal_detected =
+      cal_params->offsetSource == ASH_CAL_PARAMS_SOURCE_NONE &&
+      cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
+
+  if (factory_cal_detected) {
+    // Sets the parameter source to runtime calibration.
+    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    // Ensures that the offset vector is zero in case it has been overwritten by
+    // mistake.
+    memset(cal_params->offset, 0, sizeof(cal_params->offset));
+
+    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
+                 "Magnetometer factory calibration data received.");
+  }
+#endif  // MAG_CAL_ENABLED
 }
 }  // anonymous namespace
 
@@ -447,28 +585,251 @@ void NanoSensorCal::UpdateMagCalParams() {
 #endif  // MAG_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::LoadAshAccelCal() {
+#ifdef ACCEL_CAL_ENABLED
+  bool load_successful = false;
+  struct ashCalParams cal_params;
+  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER, &cal_params)) {
+    // Checks for and performs required processing on input factory cal data.
+    HandleAccelFactoryCalibration(&cal_params);
+
+    // Checks for valid calibration data.
+    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+      // On a successful load, copies the new set of calibration parameters.
+      memcpy(&accel_cal_params_, &cal_params, sizeof(struct ashCalParams));
+
+      // Sets the accelerometer algorithm's calibration data.
+      accelCalBiasSet(&accel_cal_, accel_cal_params_.offset[0],
+                      accel_cal_params_.offset[1], accel_cal_params_.offset[2]);
+      load_successful = true;
+    }
+  }
+
+  if (load_successful) {
+    // Prints recalled calibration data.
+    NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
+                 "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 accel_cal_params_.offset[0], accel_cal_params_.offset[1],
+                 accel_cal_params_.offset[2],
+                 accel_cal_params_.offsetTempCelsius);
+  } else {
+    NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
+                 "Failed to recall accelerometer calibration data from "
+                 "persisent memory.");
+  }
+#endif  // ACCEL_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::LoadAshGyroCal() {
+#ifdef GYRO_CAL_ENABLED
+  bool load_successful = false;
+  struct ashCalParams cal_params;
+  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, &cal_params)) {
+    // Checks for and performs required processing on input factory cal data.
+    HandleGyroFactoryCalibration(&cal_params);
+
+#ifdef OVERTEMPCAL_ENABLED
+    // Gyroscope offset calibration with over-temperature compensation (OTC)
+    // parameters were recalled.
+    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.tempSensitivitySource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.tempInterceptSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+      // On a successful load, copies the new set of calibration parameters.
+      memcpy(&gyro_cal_params_, &cal_params, sizeof(struct ashCalParams));
+
+      // Sets the gyroscope algorithm's calibration data.
+      gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
+                     gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
+                     /*calibration_time_nanos=*/0);
+      overTempCalSetModel(&over_temp_gyro_cal_,
+                          gyro_cal_params_.offset,
+                          gyro_cal_params_.offsetTempCelsius,
+                          /*timestamp_nanos=*/0,
+                          gyro_cal_params_.tempSensitivity,
+                          gyro_cal_params_.tempIntercept,
+                          /*jump_start_model=*/true);
+      load_successful = true;
+
+      // Prints recalled calibration data.
+      NANO_CAL_LOG("[NanoSensorCal:RECALL OTC-GYRO]",
+                   "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                   gyro_cal_params_.offset[2],
+                   gyro_cal_params_.offsetTempCelsius);
+      NANO_CAL_LOG("[NanoSensorCal:RECALL OTC-GYRO]",
+                   "Sensitivity [rad/sec/C] | Intercept [rad/sec]: %.6f, %.6f, "
+                   "%.6f | %.6f, %.6f, %.6f",
+                   gyro_cal_params_.tempSensitivity[0],
+                   gyro_cal_params_.tempSensitivity[1],
+                   gyro_cal_params_.tempSensitivity[2],
+                   gyro_cal_params_.tempIntercept[0],
+                   gyro_cal_params_.tempIntercept[1],
+                   gyro_cal_params_.tempIntercept[2]);
+    }
+#else
+    // Gyroscope offset calibration parameters were recalled.
+    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+      // On a successful load, copies the new set of calibration parameters.
+      memcpy(&gyro_cal_params_, &cal_params, sizeof(struct ashCalParams));
+
+      // Sets the gyroscope algorithm's calibration data.
+      gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
+                     gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
+                     /*calibration_time_nanos=*/0);
+      load_successful = true;
+
+      // Prints recalled calibration data.
+      NANO_CAL_LOG("[NanoSensorCal:RECALL GYRO]",
+                   "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                   gyro_cal_params_.offset[2],
+                   gyro_cal_params_.offsetTempCelsius);
+    }
+#endif  // OVERTEMPCAL_ENABLED
+  }
+
+  if (!load_successful) {
+    NANO_CAL_LOG(
+        "[NanoSensorCal:RECALL GYRO]",
+        "Failed to recall gyroscope calibration data from persisent memory.");
+  }
+#endif  // GYRO_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::LoadAshMagCal() {
+#ifdef MAG_CAL_ENABLED
+  bool load_successful = false;
+  struct ashCalParams cal_params;
+  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+                               &cal_params)) {
+    // Checks for and performs required processing on input factory cal data.
+    HandleMagFactoryCalibration(&cal_params);
+
+    // Checks for valid calibration data.
+    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+      // On a successful load, copies the new set of calibration parameters.
+      memcpy(&mag_cal_params_, &cal_params, sizeof(struct ashCalParams));
+
+      // Sets the magnetometer algorithm's calibration data.
+      magCalReset(&mag_cal_);  // Resets the magnetometer's offset vector.
+      magCalAddBias(&mag_cal_, mag_cal_params_.offset[0],
+                    mag_cal_params_.offset[1], mag_cal_params_.offset[2]);
+      load_successful = true;
+    }
+  }
+
+  if (load_successful) {
+    // Prints recalled calibration data.
+    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
+                 "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 mag_cal_params_.offset[0], mag_cal_params_.offset[1],
+                 mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
+  } else {
+    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
+                 "Failed to recall Magnetometer calibration data from "
+                 "persisent memory.");
+  }
+#endif  // MAG_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::NotifyAshAccelCal() {
+#ifdef ACCEL_CAL_ENABLED
+  // Update ASH with the latest calibration data.
+  UpdateAccelCalParams();
+  struct ashCalInfo cal_info;
+  ResetCalInfo(&cal_info);
+  memcpy(cal_info.bias, accel_cal_params_.offset, sizeof(cal_info.bias));
+  cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
+  ashSetCalibration(CHRE_SENSOR_TYPE_ACCELEROMETER, &cal_info);
+
+  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
+  // saving calibration parameter updates to the sensor registry, after Factory
+  // Calibration testing has been fully qualified on hardware.
+#define FACTORYCAL_IS_VERIFIED 0  // Set to 0, blocks overwriting factory data.
+#if FACTORYCAL_IS_VERIFIED
+  // Store the calibration parameters using the ASH API.
+  if (ashSaveCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
+                               &accel_cal_params_)) {
+    NANO_CAL_LOG("[NanoSensorCal:STORED ACCEL]",
+                 "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 accel_cal_params_.offset[0], accel_cal_params_.offset[1],
+                 accel_cal_params_.offset[2],
+                 accel_cal_params_.offsetTempCelsius);
+  }
+#endif  // FACTORYCAL_IS_VERIFIED
+#endif  // ACCEL_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::NotifyAshGyroCal() {
+#ifdef GYRO_CAL_ENABLED
+  // Update ASH with the latest calibration data.
+  UpdateGyroCalParams();
+  struct ashCalInfo cal_info;
+  ResetCalInfo(&cal_info);
+  memcpy(cal_info.bias, gyro_cal_params_.offset, sizeof(cal_info.bias));
+  cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
+  ashSetCalibration(CHRE_SENSOR_TYPE_GYROSCOPE, &cal_info);
+
+  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
+  // saving calibration parameter updates to the sensor registry, after Factory
+  // Calibration testing has been fully qualified on hardware.
+#if FACTORYCAL_IS_VERIFIED
+  // Store the calibration parameters using the ASH API.
+  if (ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, &gyro_cal_params_)) {
+#ifdef OVERTEMPCAL_ENABLED
+    NANO_CAL_LOG("[NanoSensorCal:STORED OTC-GYRO]",
+                 "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                 gyro_cal_params_.offset[2],
+                 gyro_cal_params_.offsetTempCelsius);
+    NANO_CAL_LOG(
+        "[NanoSensorCal:STORED OTC-GYRO]",
+        "Sensitivity [rad/sec/C] | Intercept [rad/sec]: %.6f, %.6f, "
+        "%.6f | %.6f, %.6f, %.6f",
+        gyro_cal_params_.tempSensitivity[0],
+        gyro_cal_params_.tempSensitivity[1],
+        gyro_cal_params_.tempSensitivity[2], gyro_cal_params_.tempIntercept[0],
+        gyro_cal_params_.tempIntercept[1], gyro_cal_params_.tempIntercept[2]);
+#else
+    NANO_CAL_LOG("[NanoSensorCal:STORED GYRO]",
+                 "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                 gyro_cal_params_.offset[2],
+                 gyro_cal_params_.offsetTempCelsius);
+#endif  // OVERTEMPCAL_ENABLED
+  }
+#endif  // FACTORYCAL_IS_VERIFIED
+#endif  // GYRO_CAL_ENABLED
 }
 
-// TODO: Add ASH-API Call.
 void NanoSensorCal::NotifyAshMagCal() {
+#ifdef MAG_CAL_ENABLED
+  // Update ASH with the latest calibration data.
+  UpdateMagCalParams();
+  struct ashCalInfo cal_info;
+  ResetCalInfo(&cal_info);
+  memcpy(cal_info.bias, mag_cal_params_.offset, sizeof(cal_info.bias));
+  cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
+  ashSetCalibration(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD, &cal_info);
+
+  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
+  // saving calibration parameter updates to the sensor registry, after Factory
+  // Calibration testing has been fully qualified on hardware.
+#if FACTORYCAL_IS_VERIFIED
+  // Store the calibration parameters using the ASH API.
+  if (ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+                               &mag_cal_params_)) {
+    NANO_CAL_LOG("[NanoSensorCal:STORED MAG]",
+                 "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 mag_cal_params_.offset[0], mag_cal_params_.offset[1],
+                 mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
+  }
+#endif  // FACTORYCAL_IS_VERIFIED
+#endif  // MAG_CAL_ENABLED
 }
 
 }  // namespace nano_calibration
