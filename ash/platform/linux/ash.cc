@@ -29,3 +29,15 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
   // TODO: Implement this.
   return false;
 }
+
+bool ashSaveCalibrationParams(uint8_t sensorType,
+                              const struct ashCalParams *calParams) {
+  // TODO: Implement this.
+  return false;
+}
+
+bool ashLoadCalibrationParams(uint8_t sensorType,
+                              struct ashCalParams *calParams) {
+  // TODO: Implement this.
+  return false;
+}
