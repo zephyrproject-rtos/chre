@@ -258,9 +258,9 @@ void EventLoop::freeEvent(Event *event) {
     mCurrentApp = lookupAppByInstanceId(event->senderInstanceId);
     event->freeCallback(event->eventType, event->eventData);
     mCurrentApp = nullptr;
-
-    mEventPool.deallocate(event);
   }
+
+  mEventPool.deallocate(event);
 }
 
 bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp>& app) {
