@@ -32,6 +32,7 @@ UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
 //  gNanoappImuCal,
 //  gNanoappMessageWorld,
 //  gNanoappSensorWorld,
+//  gNanoappSpammer,
 //  gNanoappTimerWorld,
 //  gNanoappWifiWorld,
 //  gNanoappWwanWorld,
