@@ -14,9 +14,35 @@
  * limitations under the License.
  */
 
+#include "chre/apps/apps.h"
 #include "chre/platform/static_nanoapps.h"
+#include "chre/util/macros.h"
 
 namespace chre {
+
+// The CHRE build variant can supply this macro to override the default list of
+// static nanoapps. Most production variants will supply this macro as these
+// nanoapps are mostly intended for testing and evaluation purposes.
+#ifndef CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
+
+//! The default list of static nanoapps to load.
+UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
+  gNanoappGnssWorld,
+  gNanoappHelloWorld,
+  gNanoappImuCal,
+  gNanoappMessageWorld,
+  gNanoappSensorWorld,
+  gNanoappSpammer,
+  gNanoappTimerWorld,
+  gNanoappUnloadTester,
+  gNanoappWifiWorld,
+  gNanoappWwanWorld,
+};
+
+//! The size of the default static nanoapp list.
+const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
+
+#endif  // CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
 void loadStaticNanoapps(EventLoop *eventLoop) {
   for (size_t i = 0; i < kStaticNanoappCount; i++) {
