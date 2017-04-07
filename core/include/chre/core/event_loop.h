@@ -27,6 +27,7 @@
 #include "chre/util/non_copyable.h"
 #include "chre/util/synchronized_memory_pool.h"
 #include "chre/util/unique_ptr.h"
+#include "chre_api/chre/event.h"
 
 namespace chre {
 
@@ -186,6 +187,24 @@ class EventLoop : public NonCopyable {
    * @return a pointer to the found nanoapp or nullptr if no match was found.
    */
   Nanoapp *findNanoappByInstanceId(uint32_t instanceId) const;
+
+  /**
+   * Looks for an app with the given ID and if found, populates info with its
+   * metadata. Safe to call from any thread.
+   *
+   * @see chreGetNanoappInfoByAppId
+   */
+  bool populateNanoappInfoForAppId(uint64_t appId,
+                                   struct chreNanoappInfo *info) const;
+
+  /**
+   * Looks for an app with the given instance ID and if found, populates info
+   * with its metadata. Safe to call from any thread.
+   *
+   * @see chreGetNanoappInfoByInstanceId
+   */
+  bool populateNanoappInfoForInstanceId(uint32_t instanceId,
+                                        struct chreNanoappInfo *info) const;
 
   /**
    * @return true if the current Nanoapp (or entire CHRE) is being unloaded, and

@@ -146,6 +146,24 @@ class EventLoopManager : public NonCopyable {
   uint32_t getNextInstanceId();
 
   /**
+   * Iterates over all EventLoops, calling populateNanoappInfoForAppId() until
+   * one returns true or they've all returned false. Thread-safe.
+   *
+   * @see EventLoop::populateNanoappInfoForAppId
+   */
+  bool populateNanoappInfoForAppId(uint64_t appId,
+                                   struct chreNanoappInfo *info) const;
+
+  /**
+   * Iterates over all EventLoops, calling populateNanoappInfoForInstanceId()
+   * until one returns true or they've all returned false. Thread-safe.
+   *
+   * @see EventLoop::populateNanoappInfoForInstanceId
+   */
+  bool populateNanoappInfoForInstanceId(uint32_t instanceId,
+                                        struct chreNanoappInfo *info) const;
+
+  /**
    * Posts an event to all event loops owned by this event loop manager. This
    * method is thread-safe and is used to post events that all event loops would
    * be interested in, such as sensor event data.

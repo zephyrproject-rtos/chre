@@ -27,6 +27,33 @@
 
 namespace chre {
 
+namespace {
+
+/**
+ * Populates a chreNanoappInfo structure using info from the given Nanoapp
+ * instance.
+ *
+ * @param app A potentially null pointer to the Nanoapp to read from
+ * @param info The structure to populate - should not be null, but this function
+ *        will handle that input
+ *
+ * @return true if neither app nor info were null, and info was populated
+ */
+bool populateNanoappInfo(const Nanoapp *app, struct chreNanoappInfo *info) {
+  bool success = false;
+
+  if (app != nullptr && info != nullptr) {
+    info->appId      = app->getAppId();
+    info->version    = app->getAppVersion();
+    info->instanceId = app->getInstanceId();
+    success = true;
+  }
+
+  return success;
+}
+
+}  // anonymous namespace
+
 EventLoop::EventLoop()
     : mTimerPool(*this) {}
 
@@ -249,6 +276,24 @@ Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
                                    (getCurrentEventLoop() != this));
 
   return lookupAppByInstanceId(instanceId);
+}
+
+bool EventLoop::populateNanoappInfoForAppId(
+    uint64_t appId, struct chreNanoappInfo *info) const {
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
+                                   (getCurrentEventLoop() != this));
+
+  Nanoapp *app = lookupAppByAppId(appId);
+  return populateNanoappInfo(app, info);
+}
+
+bool EventLoop::populateNanoappInfoForInstanceId(
+    uint32_t instanceId, struct chreNanoappInfo *info) const {
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
+                                   (getCurrentEventLoop() != this));
+
+  Nanoapp *app = lookupAppByInstanceId(instanceId);
+  return populateNanoappInfo(app, info);
 }
 
 bool EventLoop::currentNanoappIsStopping() const {

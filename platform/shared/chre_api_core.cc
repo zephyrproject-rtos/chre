@@ -100,6 +100,17 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
   return success;
 }
 
+bool chreGetNanoappInfoByAppId(uint64_t appId, struct chreNanoappInfo *info) {
+  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
+  return eventLoopManager->populateNanoappInfoForAppId(appId, info);
+}
+
+bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
+                                    struct chreNanoappInfo *info) {
+  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
+  return eventLoopManager->populateNanoappInfoForInstanceId(instanceId, info);
+}
+
 void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
   char logBuf[512];
   va_list args;

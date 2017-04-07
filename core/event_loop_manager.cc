@@ -101,6 +101,32 @@ uint32_t EventLoopManager::getNextInstanceId() {
   return mLastInstanceId;
 }
 
+bool EventLoopManager::populateNanoappInfoForAppId(
+    uint64_t appId, struct chreNanoappInfo *info) const {
+  bool success = false;
+  for (const EventLoop& eventLoop : mEventLoops) {
+    success = eventLoop.populateNanoappInfoForAppId(appId, info);
+    if (success) {
+      break;
+    }
+  }
+
+  return success;
+}
+
+bool EventLoopManager::populateNanoappInfoForInstanceId(
+    uint32_t instanceId, struct chreNanoappInfo *info) const {
+  bool success = false;
+  for (const EventLoop& eventLoop : mEventLoops) {
+    success = eventLoop.populateNanoappInfoForInstanceId(instanceId, info);
+    if (success) {
+      break;
+    }
+  }
+
+  return success;
+}
+
 bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
                                  chreEventCompleteFunction *freeCallback,
                                  uint32_t senderInstanceId,

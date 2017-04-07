@@ -35,6 +35,8 @@
 namespace chre {
 namespace {
 
+constexpr uint32_t kAppVersion = 99;
+
 void handleUnload(uint16_t /* eventType */, void * /* data */) {
   auto *eventLoopManager = EventLoopManagerSingleton::get();
   EventLoop *eventLoop;
@@ -57,13 +59,31 @@ bool nanoappStart() {
       nullptr, true /* oneShot */);
   CHRE_ASSERT_LOG(timerHandle != CHRE_TIMER_INVALID, "Couldn't start timer!");
 
+  bool eventSent = chreSendEvent(CHRE_EVENT_FIRST_USER_VALUE, nullptr, nullptr,
+                                 chreGetInstanceId());
+  CHRE_ASSERT_LOG(eventSent, "Couldn't send event to self!");
+
+  struct chreNanoappInfo info;
+  bool gotInfo = chreGetNanoappInfoByInstanceId(chreGetInstanceId(), &info);
+  CHRE_ASSERT(gotInfo);
+  CHRE_ASSERT(info.appId == chreGetAppId());
+  CHRE_ASSERT(info.appId == chre::kUnloadTesterAppId);
+  CHRE_ASSERT(info.version == kAppVersion);
+  CHRE_ASSERT(info.instanceId == chreGetInstanceId());
+
   return true;
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  if (eventType == CHRE_EVENT_TIMER) {
+  if (eventType == CHRE_EVENT_FIRST_USER_VALUE
+      && senderInstanceId == chreGetInstanceId()) {
+    struct chreNanoappInfo info;
+    if (!chreGetNanoappInfoByAppId(kSpammerAppId, &info)) {
+      LOGW("Couldn't get spammer's app info - not running?");
+    }
+  } else if (eventType == CHRE_EVENT_TIMER) {
     // We can't do the unload from the context of another nanoapp's handle
     // event callback, so get into the system context
     if (!EventLoopManagerSingleton::get()->deferCallback(
@@ -78,4 +98,4 @@ void nanoappEnd() {}
 }  // anonymous namespace
 }  // namespace chre
 
-CHRE_STATIC_NANOAPP_INIT(UnloadTester, chre::kUnloadTesterAppId, 0);
+CHRE_STATIC_NANOAPP_INIT(UnloadTester, chre::kUnloadTesterAppId, kAppVersion);
