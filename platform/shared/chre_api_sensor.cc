@@ -50,6 +50,18 @@ bool chreGetSensorInfo(uint32_t sensorHandle, struct chreSensorInfo *info) {
   return success;
 }
 
+bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
+                                 struct chreSensorSamplingStatus *status) {
+  CHRE_ASSERT(status);
+
+  bool success = false;
+  if (status != nullptr) {
+    success = EventLoopManagerSingleton::get()->getSensorRequestManager().
+        getSensorSamplingStatus(sensorHandle, status);
+  }
+  return success;
+}
+
 bool chreSensorConfigure(uint32_t sensorHandle,
                          enum chreSensorConfigureMode mode,
                          uint64_t interval, uint64_t latency) {

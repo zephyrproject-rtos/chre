@@ -249,6 +249,23 @@ Sensor *SensorRequestManager::getSensor(SensorType sensorType) {
   return sensorPtr;
 }
 
+bool SensorRequestManager::getSensorSamplingStatus(
+    uint32_t sensorHandle, struct chreSensorSamplingStatus *status) const {
+  CHRE_ASSERT(status);
+
+  bool success = false;
+  SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
+  if (sensorType == SensorType::Unknown) {
+    LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
+         sensorHandle);
+  } else {
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    const Sensor& sensor = mSensorRequests[sensorIndex].sensor;
+    success = sensor.getSamplingStatus(status);
+  }
+  return success;
+}
+
 const SensorRequest *SensorRequestManager::SensorRequests::find(
     const Nanoapp *nanoapp, size_t *index) const {
   CHRE_ASSERT(index);

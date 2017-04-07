@@ -96,6 +96,16 @@ class SensorRequestManager : public NonCopyable {
    */
   Sensor *getSensor(SensorType sensorType);
 
+  /**
+   * Populates the supplied sampling status struct if the sensor handle exists.
+   *
+   * @param sensorHandle The handle of the sensor.
+   * @param status A non-null pointer to a chreSensorSamplingStatus struct.
+   * @return true if the supplied sensor handle exists.
+   */
+  bool getSensorSamplingStatus(uint32_t sensorHandle,
+                               struct chreSensorSamplingStatus *status) const;
+
  private:
   /**
    * This allows tracking the state of a sensor with the various requests for it

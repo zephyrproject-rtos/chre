@@ -40,6 +40,7 @@ bool Sensor::setRequest(const SensorRequest& request) {
   bool requestWasSet = false;
   if (isValid() && !request.isEquivalentTo(mSensorRequest)
       && mPlatformSensor->setRequest(request)) {
+    // Update mSensorRequest only if platform has accepted the request.
     mSensorRequest = request;
     requestWasSet = true;
 
@@ -82,6 +83,21 @@ void Sensor::setLastEvent(const ChreSensorData *event) {
       mLastEventValid = true;
     }
   }
+}
+
+bool Sensor::getSamplingStatus(struct chreSensorSamplingStatus *status) const {
+  CHRE_ASSERT(status);
+
+  bool success = false;
+  if (status != nullptr) {
+    success = true;
+
+    // TODO: return actual platform sampling status.
+    status->interval = mSensorRequest.getInterval().toRawNanoseconds();
+    status->latency = mSensorRequest.getLatency().toRawNanoseconds();
+    status->enabled = sensorModeIsActive(mSensorRequest.getMode());
+  }
+  return success;
 }
 
 }  // namespace chre
