@@ -26,6 +26,7 @@
 #include "chre/util/time.h"
 
 #include <csignal>
+#include <thread>
 
 using chre::Milliseconds;
 
@@ -47,8 +48,11 @@ int main() {
   std::signal(SIGINT, signalHandler);
 
   // Load any static nanoapps and start the event loop.
-  chre::loadStaticNanoapps(&eventLoop);
-  eventLoop.run();
+  std::thread chreThread([&]() {
+    chre::loadStaticNanoapps(&eventLoop);
+    eventLoop.run();
+  });
+  chreThread.join();
 
   chre::deinit();
   return 0;
