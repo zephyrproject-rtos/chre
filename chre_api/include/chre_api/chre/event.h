@@ -188,11 +188,26 @@ struct chreMessageFromHostData {
     /**
      * Message type supplied by the host.
      *
-     * NOTE: In CHRE API v1.0, support for forwarding this field from the host
+     * @note In CHRE API v1.0, support for forwarding this field from the host
      * was not strictly required, and some implementations did not support it.
      * However, its support is mandatory as of v1.1.
      */
-    uint32_t messageType;
+    union {
+        /**
+         * The preferred name to use when referencing this field.
+         *
+         * @since v1.1
+         */
+        uint32_t messageType;
+
+        /**
+         * @deprecated This is the name for the messageType field used in v1.0.
+         * Left to allow code to compile against both v1.0 and v1.1 of the API
+         * definition without needing to use #ifdefs. This will be removed in a
+         * future API update - use messageType instead.
+         */
+        uint32_t reservedMessageType;
+    };
 
     /**
      * The size, in bytes of the following 'message'.
