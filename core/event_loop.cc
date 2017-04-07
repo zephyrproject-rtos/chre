@@ -21,6 +21,8 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
+#include "chre/util/conditional_lock_guard.h"
+#include "chre/util/lock_guard.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -31,13 +33,8 @@ EventLoop::EventLoop()
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
                                              uint32_t *instanceId) {
   CHRE_ASSERT(instanceId != nullptr);
-
-  // TODO: would be nice to have a ConditionalLockGuard where we just pass this
-  // bool to the constructor and it automatically handles the unlock for us
-  bool needLock = (getCurrentEventLoop() != this);
-  if (needLock) {
-    mNanoappsLock.lock();
-  }
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
+                                   (getCurrentEventLoop() != this));
 
   bool found = false;
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
@@ -48,25 +45,15 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
     }
   }
 
-  if (needLock) {
-    mNanoappsLock.unlock();
-  }
-
   return found;
 }
 
 void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
-  bool needLock = (getCurrentEventLoop() != this);
-  if (needLock) {
-    mNanoappsLock.lock();
-  }
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
+                                   (getCurrentEventLoop() != this));
 
   for (const UniquePtr<Nanoapp>& nanoapp : mNanoapps) {
     callback(nanoapp.get(), data);
-  }
-
-  if (needLock) {
-    mNanoappsLock.unlock();
   }
 }
 
@@ -258,18 +245,10 @@ TimerPool& EventLoop::getTimerPool() {
 }
 
 Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) {
-  bool needLock = (getCurrentEventLoop() != this);
-  if (needLock) {
-    mNanoappsLock.lock();
-  }
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
+                                   (getCurrentEventLoop() != this));
 
-  Nanoapp *nanoapp = lookupAppByInstanceId(instanceId);
-
-  if (needLock) {
-    mNanoappsLock.unlock();
-  }
-
-  return nanoapp;
+  return lookupAppByInstanceId(instanceId);
 }
 
 bool EventLoop::currentNanoappIsStopping() {
