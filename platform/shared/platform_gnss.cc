@@ -25,6 +25,7 @@
 namespace chre {
 
 PlatformGnss::PlatformGnss() {
+#if 0
   mGnssApi = chrePalGnssGetApi(CHRE_PAL_GNSS_API_CURRENT_VERSION);
   if (mGnssApi != nullptr) {
     mGnssCallbacks.requestStateResync =
@@ -45,6 +46,7 @@ PlatformGnss::PlatformGnss() {
     LOGW("Requested GNSS PAL (version %08" PRIx32 ") not found",
          CHRE_PAL_GNSS_API_CURRENT_VERSION);
   }
+#endif
 }
 
 PlatformGnss::~PlatformGnss() {
