@@ -76,6 +76,12 @@ bool PlatformGnss::controlLocationSession(bool enable, Milliseconds minInterval,
   }
 }
 
+void PlatformGnss::releaseLocationEvent(chreGnssLocationEvent *event) {
+  if (mGnssApi != nullptr) {
+    mGnssApi->releaseLocationEvent(event);
+  }
+}
+
 void PlatformGnssBase::requestStateResyncCallback() {
   // TODO: Implement this.
 }
@@ -88,7 +94,8 @@ void PlatformGnssBase::locationStatusChangeCallback(bool enabled,
 
 void PlatformGnssBase::locationEventCallback(
     struct chreGnssLocationEvent *event) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getGnssRequestManager()
+      .handleLocationEvent(event);
 }
 
 void PlatformGnssBase::measurementStatusChangeCallback(bool enabled,

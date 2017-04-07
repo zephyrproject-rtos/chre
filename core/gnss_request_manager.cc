@@ -80,6 +80,15 @@ void GnssRequestManager::handleLocationSessionStatusChange(bool enabled,
   }
 }
 
+void GnssRequestManager::handleLocationEvent(chreGnssLocationEvent *event) {
+  bool eventPosted = EventLoopManagerSingleton::get()->postEvent(
+      CHRE_EVENT_GNSS_LOCATION, event, freeLocationEventCallback,
+      kSystemInstanceId, kBroadcastInstanceId);
+  if (!eventPosted) {
+    FATAL_ERROR("Failed to send GNSS location event");
+  }
+}
+
 bool GnssRequestManager::configureLocationSession(
     Nanoapp *nanoapp, bool enable, Milliseconds minInterval,
     Milliseconds minTimeToFirstFix, const void *cookie) {
@@ -317,6 +326,17 @@ void GnssRequestManager::handleLocationSessionStatusChangeSync(
                                              errorCode, stateTransition.cookie);
     mLocationSessionStateTransitions.pop();
   }
+}
+
+void GnssRequestManager::handleFreeLocationEvent(chreGnssLocationEvent *event) {
+  mPlatformGnss.releaseLocationEvent(event);
+}
+
+void GnssRequestManager::freeLocationEventCallback(uint16_t eventType,
+                                                   void *eventData) {
+  auto *locationEvent = static_cast<chreGnssLocationEvent *>(eventData);
+  EventLoopManagerSingleton::get()->getGnssRequestManager()
+      .handleFreeLocationEvent(locationEvent);
 }
 
 void GnssRequestManager::freeGnssAsyncResultCallback(uint16_t eventType,
