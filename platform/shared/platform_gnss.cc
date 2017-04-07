@@ -78,7 +78,8 @@ void PlatformGnssBase::requestStateResyncCallback() {
 
 void PlatformGnssBase::locationStatusChangeCallback(bool enabled,
                                                     uint8_t errorCode) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getGnssRequestManager()
+      .handleLocationSessionStatusChange(enabled, errorCode);
 }
 
 void PlatformGnssBase::locationEventCallback(

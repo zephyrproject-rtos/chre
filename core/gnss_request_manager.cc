@@ -50,6 +50,36 @@ bool GnssRequestManager::stopLocationSession(Nanoapp *nanoapp,
                                   Milliseconds(UINT64_MAX), cookie);
 }
 
+void GnssRequestManager::handleLocationSessionStatusChange(bool enabled,
+                                                           uint8_t errorCode) {
+  struct CallbackState {
+    bool enabled;
+    uint8_t errorCode;
+  };
+
+  auto *cbState = memoryAlloc<CallbackState>();
+  if (cbState == nullptr) {
+    LOGE("Failed to allocate callback state for location session state change");
+  } else {
+    cbState->enabled = enabled;
+    cbState->errorCode = errorCode;
+
+    auto callback = [](uint16_t /* eventType */, void *eventData) {
+      auto *state = static_cast<CallbackState *>(eventData);
+      EventLoopManagerSingleton::get()->getGnssRequestManager()
+          .handleLocationSessionStatusChangeSync(state->enabled,
+                                                 state->errorCode);
+      memoryFree(state);
+    };
+
+    bool callbackDeferred = EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::GnssLocationSessionStatusChange, cbState, callback);
+    if (!callbackDeferred) {
+      memoryFree(cbState);
+    }
+  }
+}
+
 bool GnssRequestManager::configureLocationSession(
     Nanoapp *nanoapp, bool enable, Milliseconds minInterval,
     Milliseconds minTimeToFirstFix, const void *cookie) {
@@ -260,6 +290,33 @@ bool GnssRequestManager::postLocationSessionAsyncResultEvent(
   }
 
   return eventPosted;
+}
+
+void GnssRequestManager::postLocationSessionAsyncResultEventFatal(
+    uint32_t instanceId, bool success, bool enable, Milliseconds minInterval,
+    uint8_t errorCode, const void *cookie) {
+  if (!postLocationSessionAsyncResultEvent(instanceId, success, enable,
+                                           minInterval, errorCode, cookie)) {
+    FATAL_ERROR("Failed to send GNSS location request async result event");
+  }
+}
+
+void GnssRequestManager::handleLocationSessionStatusChangeSync(
+    bool enabled, uint8_t errorCode) {
+  bool success = (errorCode == CHRE_ERROR_NONE);
+
+  CHRE_ASSERT_LOG(!mLocationSessionStateTransitions.empty(),
+                  "handleLocationSessionStatusChangeSync called with no "
+                  "transitions");
+  if (!mLocationSessionStateTransitions.empty()) {
+    const auto& stateTransition = mLocationSessionStateTransitions.front();
+    success &= (stateTransition.enable == enabled);
+    postLocationSessionAsyncResultEventFatal(stateTransition.nanoappInstanceId,
+                                             success, stateTransition.enable,
+                                             stateTransition.minInterval,
+                                             errorCode, stateTransition.cookie);
+    mLocationSessionStateTransitions.pop();
+  }
 }
 
 void GnssRequestManager::freeGnssAsyncResultCallback(uint16_t eventType,

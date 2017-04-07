@@ -71,6 +71,17 @@ class GnssRequestManager : public NonCopyable {
    */
   bool stopLocationSession(Nanoapp *nanoapp, const void *cookie);
 
+  /**
+   * Handles the result of a request to the PlatformGnss to request a change to
+   * the location session.
+   *
+   * @param enabled true if the location session is currently active
+   * @param errorCode an error code that is used to indicate success or what
+   *        type of error has occured. See chreError enum in the CHRE API for
+   *        additional details.
+   */
+  void handleLocationSessionStatusChange(bool enabled, uint8_t errorCode);
+
  private:
   /**
    * Tracks a nanoapp that has subscribed to a location session and the
@@ -223,9 +234,31 @@ class GnssRequestManager : public NonCopyable {
    * @param cookie the cookie that the nanoapp is provided for context.
    * @return true if the event was successfully posted.
    */
-  bool postLocationSessionAsyncResultEvent(uint32_t instanceId, bool success,
-                                           bool enable, Milliseconds minInterval,
-                                           uint8_t errorCode, const void *cookie);
+  bool postLocationSessionAsyncResultEvent(
+      uint32_t instanceId, bool success, bool enable, Milliseconds minInterval,
+      uint8_t errorCode, const void *cookie);
+
+  /**
+   * Calls through to postLocationSessionAsyncResultEvent but invokes
+   * FATAL_ERROR if the event is not posted successfully. This is used in
+   * asynchronous contexts where a nanoapp could be stuck waiting for a response
+   * but CHRE failed to enqueue one. For parameter details,
+   * @see postLocationSessionAsyncResultEvent
+   */
+  void postLocationSessionAsyncResultEventFatal(
+      uint32_t instanceId, bool success, bool enable, Milliseconds minInterval,
+      uint8_t errorCode, const void *cookie);
+
+  /**
+   * Handles the result of a request to PlatformGnss to change the state of the
+   * scan monitor. See the handleLocationSessionStatusChange method which may be
+   * called from any thread. This method is intended to be invoked on the CHRE
+   * event loop thread.
+   *
+   * @param enabled true if the location session was enabled
+   * @param errorCode an error code that is provided to indicate success.
+   */
+  void handleLocationSessionStatusChangeSync(bool enabled, uint8_t errorCode);
 
   /**
    * Releases the memory associated with an async GNSS result event.
