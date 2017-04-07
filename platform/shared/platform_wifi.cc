@@ -45,7 +45,9 @@ PlatformWifi::PlatformWifi() {
 
 PlatformWifi::~PlatformWifi() {
   if (mWifiApi != nullptr) {
+    LOGD("Platform WiFi closing");
     mWifiApi->close();
+    LOGD("Platform WiFi closed");
   }
 }
 
