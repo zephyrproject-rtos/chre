@@ -51,14 +51,14 @@ bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
 }
 
 bool EventLoopManager::findNanoappInstanceIdByAppId(
-    uint64_t appId, uint32_t *instanceId, EventLoop **eventLoop) {
+    uint64_t appId, uint32_t *instanceId, EventLoop **eventLoopOut) {
   bool found = false;
 
-  for (size_t i = 0; i < mEventLoops.size(); i++) {
-    if (mEventLoops[i].findNanoappInstanceIdByAppId(appId, instanceId)) {
+  for (EventLoop& eventLoop : mEventLoops) {
+    if (eventLoop.findNanoappInstanceIdByAppId(appId, instanceId)) {
       found = true;
-      if (eventLoop != nullptr) {
-        *eventLoop = &mEventLoops[i];
+      if (eventLoopOut != nullptr) {
+        *eventLoopOut = &eventLoop;
       }
       break;
     }
@@ -67,14 +67,14 @@ bool EventLoopManager::findNanoappInstanceIdByAppId(
   return found;
 }
 
-Nanoapp *EventLoopManager::findNanoappByInstanceId(uint32_t instanceId,
-                                                   EventLoop **eventLoop) {
+Nanoapp *EventLoopManager::findNanoappByInstanceId(
+    uint32_t instanceId, EventLoop **eventLoopOut) {
   Nanoapp *nanoapp = nullptr;
-  for (size_t i = 0; i < mEventLoops.size(); i++) {
-    nanoapp = mEventLoops[i].findNanoappByInstanceId(instanceId);
+  for (EventLoop& eventLoop : mEventLoops) {
+    nanoapp = eventLoop.findNanoappByInstanceId(instanceId);
     if (nanoapp != nullptr) {
-      if (eventLoop != nullptr) {
-        *eventLoop = &mEventLoops[i];
+      if (eventLoopOut != nullptr) {
+        *eventLoopOut = &eventLoop;
       }
       break;
     }
@@ -86,6 +86,7 @@ Nanoapp *EventLoopManager::findNanoappByInstanceId(uint32_t instanceId,
 uint32_t EventLoopManager::getNextInstanceId() {
   // TODO: this needs to be an atomic integer when we have > 1 event loop, or
   // use a mutex
+  static_assert(kNumEventLoops == 1, "Need to make this atomic");
   ++mLastInstanceId;
 
   // ~4 billion instance IDs should be enough for anyone... if we need to
@@ -109,9 +110,9 @@ bool EventLoopManager::postEvent(uint16_t eventType, void *eventData,
   // TODO: for unicast events, ideally we'd just post the event to the EventLoop
   // that has the target
   bool success = true;
-  for (size_t i = 0; i < mEventLoops.size(); i++) {
-    success &= mEventLoops[i].postEvent(eventType, eventData, freeCallback,
-                                        senderInstanceId, targetInstanceId);
+  for (EventLoop& eventLoop : mEventLoops) {
+    success &= eventLoop.postEvent(eventType, eventData, freeCallback,
+                                   senderInstanceId, targetInstanceId);
   }
 
   return success;

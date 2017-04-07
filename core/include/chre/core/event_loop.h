@@ -60,7 +60,7 @@ class EventLoop : public NonCopyable {
    *        Must not be null.
    * @return true if the given app ID was found and instanceId was populated
    */
-  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId);
+  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId) const;
 
   /**
    * Iterates over the list of Nanoapps managed by this EventLoop, and invokes
@@ -185,13 +185,13 @@ class EventLoop : public NonCopyable {
    * @param instanceId The nanoapp instance ID to search for.
    * @return a pointer to the found nanoapp or nullptr if no match was found.
    */
-  Nanoapp *findNanoappByInstanceId(uint32_t instanceId);
+  Nanoapp *findNanoappByInstanceId(uint32_t instanceId) const;
 
   /**
    * @return true if the current Nanoapp (or entire CHRE) is being unloaded, and
    *         therefore it should not be allowed to send events or messages, etc.
    */
-  bool currentNanoappIsStopping();
+  bool currentNanoappIsStopping() const;
 
  private:
   //! The maximum number of events that can be active in the system.
@@ -216,7 +216,7 @@ class EventLoop : public NonCopyable {
   //!       associated with this EventLoop
   //! It is not necessary to acquire the lock when reading mNanoapps from within
   //! the thread context of this EventLoop.
-  Mutex mNanoappsLock;
+  mutable Mutex mNanoappsLock;
 
   //! The blocking queue of incoming events from the system that have not been
   //! distributed out to apps yet.
@@ -283,23 +283,25 @@ class EventLoop : public NonCopyable {
   /**
    * Finds a Nanoapp with the given 64-bit appId.
    *
-   * Only safe to call within this EventLoop's thread.
+   * Only safe to call within this EventLoop's thread, or if mNanoappsLock is
+   * held.
    *
    * @param appId Nanoapp ID
    * @return Pointer to Nanoapp instance in this EventLoop with the given app
    *         ID, or nullptr if not found
    */
-  Nanoapp *lookupAppByAppId(uint64_t appId);
+  Nanoapp *lookupAppByAppId(uint64_t appId) const;
 
   /**
    * Finds a Nanoapp with the given instanceId.
    *
-   * Only safe to call within this EventLoop's thread.
+   * Only safe to call within this EventLoop's thread, or if mNanoappsLock is
+   * held.
    *
    * @param instanceId Nanoapp instance identifier
    * @return Nanoapp with the given instanceId, or nullptr if not found
    */
-  Nanoapp *lookupAppByInstanceId(uint32_t instanceId);
+  Nanoapp *lookupAppByInstanceId(uint32_t instanceId) const;
 
   /**
    * Stops and unloads the Nanoapp at the given index in mNanoapps.

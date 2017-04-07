@@ -31,7 +31,7 @@ EventLoop::EventLoop()
     : mTimerPool(*this) {}
 
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
-                                             uint32_t *instanceId) {
+                                             uint32_t *instanceId) const {
   CHRE_ASSERT(instanceId != nullptr);
   ConditionalLockGuard<Mutex> lock(mNanoappsLock,
                                    (getCurrentEventLoop() != this));
@@ -244,14 +244,14 @@ TimerPool& EventLoop::getTimerPool() {
   return mTimerPool;
 }
 
-Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) {
+Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock,
                                    (getCurrentEventLoop() != this));
 
   return lookupAppByInstanceId(instanceId);
 }
 
-bool EventLoop::currentNanoappIsStopping() {
+bool EventLoop::currentNanoappIsStopping() const {
   return (mCurrentApp == mStoppingNanoapp || !mRunning);
 }
 
@@ -326,7 +326,7 @@ void EventLoop::freeEvent(Event *event) {
   mEventPool.deallocate(event);
 }
 
-Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) {
+Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) const {
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
     if (app->getAppId() == appId) {
       return app.get();
@@ -336,7 +336,7 @@ Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) {
   return nullptr;
 }
 
-Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) {
+Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) const {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case
   if (instanceId != kSystemInstanceId) {

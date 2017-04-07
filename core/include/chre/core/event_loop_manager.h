@@ -126,7 +126,10 @@ class EventLoopManager : public NonCopyable {
   /**
    * Search all event loops to find a nanoapp with a given instance ID.
    *
-   * This function is safe to call from any thread.
+   * @deprecated This function is safe to call from any thread, but if called
+   * from another thread, the Nanoapp pointer is not guaranteed to remain valid
+   * if the Nanoapp is getting unloaded. For full safety, the equivalent method
+   * in EventLoop should be called from within that EventLoop's context.
    *
    * @param instanceId The nanoapp instance ID to search for.
    * @return a pointer to the found nanoapp or nullptr.
