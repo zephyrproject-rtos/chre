@@ -110,8 +110,11 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
       memoryFree(state);
     };
 
-    EventLoopManagerSingleton::get()->deferCallback(
+    bool callbackDeferred = EventLoopManagerSingleton::get()->deferCallback(
         SystemCallbackType::WifiScanMonitorStateChange, cbState, callback);
+    if (!callbackDeferred) {
+      memoryFree(cbState);
+    }
   }
 }
 
