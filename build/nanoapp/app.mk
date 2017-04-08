@@ -38,6 +38,15 @@ $(info NANOAPP_IS_SYSTEM_NANOAPP not supplied, defaulting to 0.)
 NANOAPP_IS_SYSTEM_NANOAPP = 0
 endif
 
+ifeq ($(CHRE_PREFIX),)
+ifeq ($(ANDROID_BUILD_TOP),)
+$(error You must run lunch, or specify an explicit CHRE_PREFIX environment \
+        variable)
+else
+CHRE_PREFIX = $(ANDROID_BUILD_TOP)/system/chre
+endif
+endif
+
 # Nanoapp Build ################################################################
 
 # This variable indicates to the variants that some post-processing may be
