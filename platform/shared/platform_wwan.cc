@@ -41,7 +41,9 @@ PlatformWwan::PlatformWwan() {
 
 PlatformWwan::~PlatformWwan() {
   if (mWwanApi != nullptr) {
+    LOGD("Platform WWAN closing");
     mWwanApi->close();
+    LOGD("Platform WWAN closed");
   }
 }
 

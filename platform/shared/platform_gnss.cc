@@ -51,7 +51,9 @@ PlatformGnss::PlatformGnss() {
 
 PlatformGnss::~PlatformGnss() {
   if (mGnssApi != nullptr) {
+    LOGD("Platform GNSS closing");
     mGnssApi->close();
+    LOGD("Platform GNSS closed");
   }
 }
 
