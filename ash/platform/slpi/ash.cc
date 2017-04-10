@@ -380,24 +380,30 @@ bool ashSaveCalibrationParams(uint8_t sensorType,
     // offsetTempCelsius
     success &= regWrite(gRegArray[idx][4],
                         &calParams->offsetTempCelsiusSource, 1);
-    // Factory saves this as Q16, and we maintain the format.
-    int32_t temp = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
-    success &= regWrite(gRegArray[idx][5], &temp, 4);
+    // retain factory cal format.
+    int32_t value32 = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
+    success &= regWrite(gRegArray[idx][5], &value32, 4);
 
-    // TODO: verify axis/format as this hasn't been finilized with factory.
     // tempSensitivity
     success &= regWrite(gRegArray[idx][6],
                         &calParams->tempSensitivitySource, 1);
-    success &= regWrite(gRegArray[idx][7], &calParams->tempSensitivity[0], 4);
-    success &= regWrite(gRegArray[idx][8], &calParams->tempSensitivity[1], 4);
-    success &= regWrite(gRegArray[idx][9], &calParams->tempSensitivity[2], 4);
+    // retain factory cal format
+    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[1]);
+    success &= regWrite(gRegArray[idx][7], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[0]);
+    success &= regWrite(gRegArray[idx][8], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(-calParams->tempSensitivity[2]);
+    success &= regWrite(gRegArray[idx][9], &value32, 4);
 
-    // TODO: verify axis/format as this hasn't been finilized with factory.
     // tempIntercept
     success &= regWrite(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    success &= regWrite(gRegArray[idx][11], &calParams->tempIntercept[0], 4);
-    success &= regWrite(gRegArray[idx][12], &calParams->tempIntercept[1], 4);
-    success &= regWrite(gRegArray[idx][13], &calParams->tempIntercept[2], 4);
+    // retain factory cal format
+    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[1]);
+    success &= regWrite(gRegArray[idx][11], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[0]);
+    success &= regWrite(gRegArray[idx][12], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(-calParams->tempIntercept[2]);
+    success &= regWrite(gRegArray[idx][13], &value32, 4);
 
     // scaleFactor
     success &= regWrite(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
@@ -434,24 +440,30 @@ bool ashLoadCalibrationParams(uint8_t sensorType,
     // offsetTempCelsius
     success &= regRead(gRegArray[idx][4],
                        &calParams->offsetTempCelsiusSource, 1);
-    // Factory saves this as Q16, and we maintain this format.
-    int32_t temp;
-    success &= regRead(gRegArray[idx][5], &temp, 4);
-    calParams->offsetTempCelsius = FX_FIXTOFLT_Q16(temp);
+    // factory cal format.
+    int32_t value32;
+    success &= regRead(gRegArray[idx][5], &value32, 4);
+    calParams->offsetTempCelsius = FX_FIXTOFLT_Q16(value32);
 
-    // TODO: verify axis/format as this hasn't been finilized with factory.
     // tempSensitivity
     success &= regRead(gRegArray[idx][6], &calParams->tempSensitivitySource, 1);
-    success &= regRead(gRegArray[idx][7], &calParams->tempSensitivity[0], 4);
-    success &= regRead(gRegArray[idx][8], &calParams->tempSensitivity[1], 4);
-    success &= regRead(gRegArray[idx][9], &calParams->tempSensitivity[2], 4);
+    // factory cal format.
+    success &= regRead(gRegArray[idx][7], &value32, 4);
+    calParams->tempSensitivity[1] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][8], &value32, 4);
+    calParams->tempSensitivity[0] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][9], &value32, 4);
+    calParams->tempSensitivity[2] = -FX_FIXTOFLT_Q16(value32);
 
-    // TODO: verify axis/format as this hasn't been finilized with factory.
     // tempIntercept
     success &= regRead(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    success &= regRead(gRegArray[idx][11], &calParams->tempIntercept[0], 4);
-    success &= regRead(gRegArray[idx][12], &calParams->tempIntercept[1], 4);
-    success &= regRead(gRegArray[idx][13], &calParams->tempIntercept[2], 4);
+    // factory cal format.
+    success &= regRead(gRegArray[idx][11], &value32, 4);
+    calParams->tempIntercept[1] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][12], &value32, 4);
+    calParams->tempIntercept[0] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][13], &value32, 4);
+    calParams->tempIntercept[2] = -FX_FIXTOFLT_Q16(value32);
 
     // scaleFactor
     success &= regRead(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
