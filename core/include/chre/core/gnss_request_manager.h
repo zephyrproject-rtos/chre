@@ -277,14 +277,6 @@ class GnssRequestManager : public NonCopyable {
   void handleFreeLocationEvent(chreGnssLocationEvent *event);
 
   /**
-   * Releases the memory associated with an async GNSS result event.
-   *
-   * @param eventType The type of event to release.
-   * @param eventData The event pointer to free.
-   */
-  static void freeGnssAsyncResultCallback(uint16_t eventType, void *eventData);
-
-  /**
    * Releases a GNSS location event after nanoapps have consumed it.
    *
    * @param eventType the type of event being freed.

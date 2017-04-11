@@ -328,14 +328,6 @@ class WifiRequestManager : public NonCopyable {
   void handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent);
 
   /**
-   * Releases the memory associated with an asynchronous wifi event.
-   *
-   * @param eventType The type of event being freed.
-   * @param eventData A pointer to the data to release.
-   */
-  static void freeWifiAsyncResultCallback(uint16_t eventType, void *eventData);
-
-  /**
    * Releases a wifi scan event after nanoapps have consumed it.
    *
    * @param eventType the type of event being freed.

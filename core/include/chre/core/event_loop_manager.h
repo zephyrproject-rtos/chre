@@ -54,6 +54,13 @@ enum class SystemCallbackType : uint16_t {
 typedef chreEventCompleteFunction SystemCallbackFunction;
 
 /**
+ * Generic event free callback that can be used by any event where the event
+ * data is allocated via memoryAlloc, and no special processing is needed in the
+ * event complete callback other than freeing the event data.
+ */
+void freeEventDataCallback(uint16_t eventType, void *eventData);
+
+/**
  * A class that keeps track of all event loops in the system. This class
  * represents the top-level object in CHRE. It will own all resources that are
  * shared by all event loops.

@@ -289,7 +289,7 @@ bool GnssRequestManager::postLocationSessionAsyncResultEvent(
       event->cookie = cookie;
 
       eventPosted = EventLoopManagerSingleton::get()->postEvent(
-          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeGnssAsyncResultCallback,
+          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
           kSystemInstanceId, instanceId);
 
       if (!eventPosted) {
@@ -337,11 +337,6 @@ void GnssRequestManager::freeLocationEventCallback(uint16_t eventType,
   auto *locationEvent = static_cast<chreGnssLocationEvent *>(eventData);
   EventLoopManagerSingleton::get()->getGnssRequestManager()
       .handleFreeLocationEvent(locationEvent);
-}
-
-void GnssRequestManager::freeGnssAsyncResultCallback(uint16_t eventType,
-                                                     void *eventData) {
-  memoryFree(eventData);
 }
 
 }  // namespace chre

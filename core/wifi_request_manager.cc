@@ -263,7 +263,7 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
 
       // Post the event.
       eventPosted = EventLoopManagerSingleton::get()->postEvent(
-          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeWifiAsyncResultCallback,
+          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
           kSystemInstanceId, nanoappInstanceId);
       if (!eventPosted) {
         memoryFree(event);
@@ -299,7 +299,7 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
 
     // Post the event.
     eventPosted = EventLoopManagerSingleton::get()->postEvent(
-        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeWifiAsyncResultCallback,
+        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
         kSystemInstanceId, nanoappInstanceId);
   }
 
@@ -432,11 +432,6 @@ void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
 
     mScanRequestingNanoappInstanceId.reset();
   }
-}
-
-void WifiRequestManager::freeWifiAsyncResultCallback(uint16_t eventType,
-                                                     void *eventData) {
-  memoryFree(eventData);
 }
 
 void WifiRequestManager::freeWifiScanEventCallback(uint16_t eventType,

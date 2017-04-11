@@ -18,9 +18,14 @@
 
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
+#include "chre/platform/memory.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
+
+void freeEventDataCallback(uint16_t /*eventType*/, void *eventData) {
+  memoryFree(eventData);
+}
 
 Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName,
                                                EventLoop **outputEventLoop) {
