@@ -42,6 +42,7 @@ HEXAGON_SRCS += platform/shared/system_time.cc
 HEXAGON_SRCS += platform/slpi/fatal_error.cc
 HEXAGON_SRCS += platform/slpi/host_link.cc
 HEXAGON_SRCS += platform/slpi/init.cc
+HEXAGON_SRCS += platform/slpi/platform_log.cc
 HEXAGON_SRCS += platform/slpi/platform_nanoapp.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor.cc
 HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc
@@ -58,6 +59,7 @@ X86_CFLAGS += -Iplatform/linux/include
 
 X86_SRCS += platform/linux/event_loop.cc
 X86_SRCS += platform/linux/host_link.cc
+X86_SRCS += platform/linux/platform_log.cc
 X86_SRCS += platform/linux/system_time.cc
 X86_SRCS += platform/linux/system_timer.cc
 X86_SRCS += platform/linux/platform_nanoapp.cc

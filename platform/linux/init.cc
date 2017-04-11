@@ -21,6 +21,7 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
+#include "chre/platform/shared/platform_log.h"
 #include "chre/platform/static_nanoapps.h"
 #include "chre/platform/system_timer.h"
 #include "chre/util/time.h"
@@ -41,6 +42,7 @@ extern "C" void signalHandler(int sig) {
 }
 
 int main() {
+  chre::PlatformLogSingleton::init();
   chre::init();
 
   // Construct the event loop and register the signal handler.
@@ -55,5 +57,6 @@ int main() {
   chreThread.join();
 
   chre::deinit();
+  chre::PlatformLogSingleton::deinit();
   return 0;
 }
