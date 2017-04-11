@@ -67,7 +67,7 @@ bool nanoappStart() {
   bool gotInfo = chreGetNanoappInfoByInstanceId(chreGetInstanceId(), &info);
   CHRE_ASSERT(gotInfo);
   CHRE_ASSERT(info.appId == chreGetAppId());
-  CHRE_ASSERT(info.appId == chre::kUnloadTesterAppId);
+  CHRE_ASSERT(info.appId == kUnloadTesterAppId);
   CHRE_ASSERT(info.version == kAppVersion);
   CHRE_ASSERT(info.instanceId == chreGetInstanceId());
 
@@ -89,6 +89,14 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
     if (!EventLoopManagerSingleton::get()->deferCallback(
             SystemCallbackType::HandleUnloadNanoapp, nullptr, handleUnload)) {
       LOGE("Couldn't defer callback");
+    }
+  } else if (eventType == CHRE_EVENT_NANOAPP_STARTED
+      || eventType == CHRE_EVENT_NANOAPP_STOPPED) {
+    const auto *info = static_cast<const chreNanoappInfo *>(eventData);
+    if (info->appId == kSpammerAppId) {
+      LOGD("Received %s event for spammer instance %" PRIu32,
+           (eventType == CHRE_EVENT_NANOAPP_STARTED) ? "start" : "stop",
+           info->instanceId);
     }
   }
 }

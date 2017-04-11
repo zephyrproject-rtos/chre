@@ -57,9 +57,6 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  LOGI("Got event 0x%" PRIx16 " from instance %" PRIu32,
-       eventType, senderInstanceId);
-
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
     LOGI("Got message from host with type %" PRIu32 " size %" PRIu32
