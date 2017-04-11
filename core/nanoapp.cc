@@ -32,7 +32,10 @@ void Nanoapp::setInstanceId(uint32_t instanceId) {
 }
 
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
-  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
+  // All nanoapps receive start and stop events by default
+  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size()
+    || eventType == CHRE_EVENT_NANOAPP_STARTED
+    || eventType == CHRE_EVENT_NANOAPP_STOPPED);
 }
 
 bool Nanoapp::registerForBroadcastEvent(uint16_t eventId) {

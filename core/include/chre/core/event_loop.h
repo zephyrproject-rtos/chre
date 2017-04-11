@@ -323,6 +323,15 @@ class EventLoop : public NonCopyable {
   Nanoapp *lookupAppByInstanceId(uint32_t instanceId) const;
 
   /**
+   * Sends an event with payload struct chreNanoappInfo populated from the given
+   * Nanoapp instance to inform other nanoapps about it starting/stopping.
+   *
+   * @param eventType Should be one of CHRE_EVENT_NANOAPP_{STARTED, STOPPED}
+   * @param nanoapp The nanoapp instance whose status has changed
+   */
+  void notifyAppStatusChange(uint16_t eventType, const Nanoapp& nanoapp);
+
+  /**
    * Stops and unloads the Nanoapp at the given index in mNanoapps.
    *
    * IMPORTANT: prior to calling this function, the event queues must be in a
