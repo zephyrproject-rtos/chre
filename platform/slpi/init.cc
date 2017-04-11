@@ -89,7 +89,7 @@ bool gThreadRunning;
 int gTlsKey;
 bool gTlsKeyValid;
 
-// TODO: We would prefer to just use staitc global C++ constructor/destructor
+// TODO: We would prefer to just use static global C++ constructor/destructor
 // support, but currently, destructors do not seem to get called. These work as
 // a temporary workaround, though.
 __attribute__((constructor))

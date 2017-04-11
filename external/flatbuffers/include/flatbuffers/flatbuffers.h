@@ -53,13 +53,14 @@
   #include "chre/util/dynamic_vector.h"
   #include "chre/util/unique_ptr.h"
 
-  #ifdef assert
-    #define FLATBUFFERS_PRIOR_ASSERT assert
-    #undef assert
-  #endif
-  #define assert CHRE_ASSERT
+  #ifndef CHRE_ASSERT_USES_STDLIB_ASSERT
+    #ifdef assert
+      #define FLATBUFFERS_PRIOR_ASSERT assert
+      #undef assert
+    #endif
+    #define assert CHRE_ASSERT
+  #endif  // CHRE_ASSERT_USES_STDLIB_ASSERT
 #endif  // FLATBUFFERS_CHRE
-
 #ifdef _STLPORT_VERSION
   #define FLATBUFFERS_CPP98_STL
 #endif
@@ -1943,11 +1944,12 @@ volatile __attribute__((weak)) const char *flatbuffer_version_string =
 }  // namespace flatbuffers
 
 #ifdef FLATBUFFERS_CHRE
-  #undef assert
-
-  #ifdef FLATBUFFERS_PRIOR_ASSERT
-    #define assert FLATBUFFERS_PRIOR_ASSERT
-  #endif
+  #ifndef CHRE_ASSERT_USES_STDLIB_ASSERT
+    #undef assert
+    #ifdef FLATBUFFERS_PRIOR_ASSERT
+      #define assert FLATBUFFERS_PRIOR_ASSERT
+    #endif
+  #endif  // define CHRE_ASSERT_USES_STDLIB_ASSERT
 #endif
 
 #endif  // FLATBUFFERS_H_
