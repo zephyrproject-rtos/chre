@@ -53,6 +53,17 @@ void handleGnssAsyncResult(const chreAsyncResult *result) {
   }
 }
 
+void handleGnssLocationEvent(const chreGnssLocationEvent *event) {
+  LOGI("Received location: %" PRId32 ", %" PRId32, event->latitude_deg_e7,
+       event->longitude_deg_e7);
+  LOGI("  timestamp (ms): %" PRIu64, event->timestamp);
+  LOGI("  altitude (m): %f", event->altitude);
+  LOGI("  speed (m/s): %f", event->speed);
+  LOGI("  bearing (deg): %f", event->bearing);
+  LOGI("  accuracy: %f", event->accuracy);
+  LOGI("  flags: %" PRIx16, event->flags);
+}
+
 bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
@@ -99,6 +110,10 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
   switch (eventType) {
     case CHRE_EVENT_GNSS_ASYNC_RESULT:
       handleGnssAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+      break;
+    case CHRE_EVENT_GNSS_LOCATION:
+      handleGnssLocationEvent(
+          static_cast<const chreGnssLocationEvent *>(eventData));
       break;
     default:
       LOGW("Unhandled event type %" PRIu16, eventType);

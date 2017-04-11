@@ -82,6 +82,15 @@ class GnssRequestManager : public NonCopyable {
    */
   void handleLocationSessionStatusChange(bool enabled, uint8_t errorCode);
 
+  /**
+   * Handles a CHRE GNSS location event.
+   *
+   * @param event The GNSS location event provided to the GNSS request manager.
+   *        This memory is guaranteed not to be modified until it has been
+   *        explicitly released through the PlatformGnss instance.
+   */
+  void handleLocationEvent(chreGnssLocationEvent *event);
+
  private:
   /**
    * Tracks a nanoapp that has subscribed to a location session and the
@@ -261,12 +270,27 @@ class GnssRequestManager : public NonCopyable {
   void handleLocationSessionStatusChangeSync(bool enabled, uint8_t errorCode);
 
   /**
+   * Handles the releasing of a GNSS location event.
+   *
+   * @param event The event to free.
+   */
+  void handleFreeLocationEvent(chreGnssLocationEvent *event);
+
+  /**
    * Releases the memory associated with an async GNSS result event.
    *
    * @param eventType The type of event to release.
    * @param eventData The event pointer to free.
    */
   static void freeGnssAsyncResultCallback(uint16_t eventType, void *eventData);
+
+  /**
+   * Releases a GNSS location event after nanoapps have consumed it.
+   *
+   * @param eventType the type of event being freed.
+   * @param eventData a pointer to the scan event to release.
+   */
+  static void freeLocationEventCallback(uint16_t eventType, void *eventData);
 };
 
 }  // namespace chre

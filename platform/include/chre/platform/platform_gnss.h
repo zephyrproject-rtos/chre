@@ -54,6 +54,14 @@ class PlatformGnss : public PlatformGnssBase {
    */
   bool controlLocationSession(bool enable, Milliseconds minInterval,
                               Milliseconds minTimeToNextFix);
+
+  /**
+   * Releases a location event that was previously provided to the GNSS request
+   * manager.
+   *
+   * @param event the event to release.
+   */
+  void releaseLocationEvent(chreGnssLocationEvent *event);
 };
 
 }  // namespace chre
