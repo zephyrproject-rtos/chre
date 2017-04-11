@@ -87,14 +87,15 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
   if (eventLoop->currentNanoappIsStopping()) {
     LOGW("Rejecting message to host from app instance %" PRIu32 " because it's "
          "stopping", nanoapp->getInstanceId());
-    if (freeCallback != nullptr) {
-      freeCallback(message, messageSize);
-    }
   } else {
     auto& hostCommsManager =
         EventLoopManagerSingleton::get()->getHostCommsManager();
     success = hostCommsManager.sendMessageToHostFromNanoapp(
         nanoapp, message, messageSize, messageType, hostEndpoint, freeCallback);
+  }
+
+  if (!success && freeCallback != nullptr) {
+    freeCallback(message, messageSize);
   }
 
   return success;

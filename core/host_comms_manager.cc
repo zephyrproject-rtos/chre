@@ -61,7 +61,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
 
       success = mHostLink.sendMessage(msgToHost);
       if (!success) {
-        freeMessageToHost(msgToHost);
+        mMessagePool.deallocate(msgToHost);
       }
     }
   }

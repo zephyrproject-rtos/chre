@@ -101,8 +101,9 @@ class HostCommsManager : public NonCopyable {
    *        longer needed (the message has been sent or an error occurred)
    *
    * @return true if the message was accepted into the outbound message queue.
-   *         If this function returns false and freeCallback is non-null, it
-   *         will be invoked synchronously.
+   *         If this function returns false, it does *not* invoke freeCallback.
+   *         If it returns true, freeCallback will be invoked (if non-null) on
+   *         either success or failure.
    *
    * @see chreSendMessageToHost
    */
