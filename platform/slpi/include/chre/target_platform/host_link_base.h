@@ -43,6 +43,11 @@ class HostLinkBase {
   static constexpr qurt_timer_duration_t kPollingIntervalUsec = 5000;
 };
 
+/**
+ * Requests that the HostLink send the log buffer to the host.
+ */
+void requestHostLinkLogBufferFlush();
+
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_HOST_LINK_BASE_H_

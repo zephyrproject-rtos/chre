@@ -147,4 +147,13 @@ void HostProtocolChre::encodeUnloadNanoappResponse(
            hostClientId);
 }
 
+void HostProtocolChre::encodeLogMessages(
+    flatbuffers::FlatBufferBuilder& builder, const char *logBuffer,
+    size_t bufferSize) {
+  auto logBufferOffset = builder.CreateVector(
+      reinterpret_cast<const int8_t *>(logBuffer), bufferSize);
+  auto message = fbs::CreateLogMessage(builder, logBufferOffset);
+  finalize(builder, fbs::ChreMessage::LogMessage, message.Union());
+}
+
 }  // namespace chre

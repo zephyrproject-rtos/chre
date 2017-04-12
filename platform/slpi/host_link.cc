@@ -25,6 +25,7 @@
 #include "chre/platform/memory.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/host_protocol_chre.h"
+#include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
@@ -57,6 +58,7 @@ struct LoadNanoappCallbackData {
 enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
+  LogMessage,
   HubInfoResponse,
   NanoappListResponse,
   LoadNanoappResponse,
@@ -252,6 +254,19 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
   return result;
 }
 
+int generateLogMessage(unsigned char *buffer, size_t bufferSize,
+                       unsigned int *messageLen) {
+  FlatBufferBuilder builder;
+  PlatformLogSingleton::get()->flushLogBuffer([](const char *logBuffer,
+                                                 size_t size,
+                                                 void *context) {
+    auto *contextBuilder = static_cast<FlatBufferBuilder *>(context);
+    HostProtocolChre::encodeLogMessages(*contextBuilder, logBuffer, size);
+  }, &builder);
+
+  return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
+}
+
 int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
                             size_t bufferSize, unsigned int *messageLen) {
   constexpr size_t kInitialBufferSize = 192;
@@ -325,6 +340,10 @@ extern "C" int chre_slpi_get_message_to_host(
       case PendingMessageType::NanoappMessageToHost:
         result = generateMessageToHost(pendingMsg.data.msgToHost, buffer,
                                        bufferSize, messageLen);
+        break;
+
+      case PendingMessageType::LogMessage:
+        result = generateLogMessage(buffer, bufferSize, messageLen);
         break;
 
       case PendingMessageType::HubInfoResponse:
@@ -436,6 +455,14 @@ void HostLinkBase::shutdown() {
     } else {
       FARF(LOW, "Finished draining queue");
     }
+  }
+}
+
+void requestHostLinkLogBufferFlush() {
+  if (!gOutboundQueue.push(PendingMessage(PendingMessageType::LogMessage))) {
+    // Use FARF as there is a problem sending logs to the host.
+    FARF(ERROR, "Failed to enqueue log flush");
+    CHRE_ASSERT(false);
   }
 }
 

@@ -17,19 +17,27 @@
 #ifndef CHRE_PLATFORM_SLPI_LOG_H_
 #define CHRE_PLATFORM_SLPI_LOG_H_
 
-// By default, FARF logs with MEDIUM level are compiled out of the binary so we
-// enable them with this define.
+#include "chre/platform/shared/platform_log.h"
+
+#ifndef FARF_MEDIUM
 #define FARF_MEDIUM 1
+#endif
 #include "HAP_farf.h"
 
-// TODO: Implement some more intelligent logging infrastructure. We will most
-// likely use some kind of FastRPC to the host and potentially buffer logs here
-// for a while to avoid chatter (and allow logging without waking the AP if it
-// goes asleep). This just gets the initial logging macros to be supported.
+#define LOGE(fmt, ...) \
+  FARF(ERROR, fmt, ##__VA_ARGS__); \
+  chre::PlatformLogSingleton::get()->log("E " fmt, ##__VA_ARGS__)
 
-#define LOGE(fmt, ...) FARF(ERROR, fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) FARF(HIGH, fmt, ##__VA_ARGS__)
-#define LOGI(fmt, ...) FARF(MEDIUM, fmt, ##__VA_ARGS__)
-#define LOGD(fmt, ...) FARF(MEDIUM, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) \
+  FARF(HIGH, fmt, ##__VA_ARGS__); \
+  chre::PlatformLogSingleton::get()->log("W " fmt, ##__VA_ARGS__)
+
+#define LOGI(fmt, ...) \
+  FARF(MEDIUM, fmt, ##__VA_ARGS__); \
+  chre::PlatformLogSingleton::get()->log("I " fmt, ##__VA_ARGS__)
+
+#define LOGD(fmt, ...) \
+  FARF(MEDIUM, fmt, ##__VA_ARGS__); \
+  chre::PlatformLogSingleton::get()->log("D " fmt, ##__VA_ARGS__)
 
 #endif  // CHRE_PLATFORM_SLPI_LOG_H_

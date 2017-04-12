@@ -29,6 +29,7 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/preloaded_nanoapps.h"
 #include "chre/platform/static_nanoapps.h"
@@ -94,6 +95,9 @@ bool gTlsKeyValid;
 // a temporary workaround, though.
 __attribute__((constructor))
 void onLoad(void) {
+  // Initialize the platform logging as early as possible.
+  chre::PlatformLogSingleton::init();
+
   gThreadMutex = new(&gThreadMutexStorage) Mutex();
 }
 
@@ -101,6 +105,9 @@ __attribute__((destructor))
 void onUnload(void) {
   gThreadMutex->~Mutex();
   gThreadMutex = nullptr;
+
+  // Defer platform logging deinitialization to as late as possible.
+  chre::PlatformLogSingleton::deinit();
 }
 
 /**

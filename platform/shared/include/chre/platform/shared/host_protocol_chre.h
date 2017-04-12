@@ -135,6 +135,13 @@ class HostProtocolChre : public HostProtocolCommon {
   static void encodeUnloadNanoappResponse(
       flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
       uint32_t transactionId, bool success);
+
+  /**
+   * Encodes a buffer of log messages to the host.
+   */
+  static void encodeLogMessages(
+      flatbuffers::FlatBufferBuilder& builder, const char *logBuffer,
+      size_t bufferSize);
 };
 
 }  // namespace chre
