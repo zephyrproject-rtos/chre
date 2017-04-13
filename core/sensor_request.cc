@@ -220,39 +220,40 @@ bool SensorRequest::isEquivalentTo(const SensorRequest& request) const {
 
 bool SensorRequest::mergeWith(const SensorRequest& request) {
   bool attributesChanged = false;
+  if (request.mMode != SensorMode::Off) {
+    if (request.mInterval < mInterval) {
+      mInterval = request.mInterval;
+      attributesChanged = true;
+    }
 
-  if (request.mInterval < mInterval) {
-    mInterval = request.mInterval;
-    attributesChanged = true;
-  }
+    if (request.mLatency < mLatency) {
+      mLatency = request.mLatency;
+      attributesChanged = true;
+    }
 
-  if (request.mLatency < mLatency) {
-    mLatency = request.mLatency;
-    attributesChanged = true;
-  }
+    // Compute the highest priority mode. Active continuous is the highest
+    // priority and passive one-shot is the lowest.
+    SensorMode maximalSensorMode = SensorMode::Off;
+    if (mMode == SensorMode::ActiveContinuous
+        || request.mMode == SensorMode::ActiveContinuous) {
+      maximalSensorMode = SensorMode::ActiveContinuous;
+    } else if (mMode == SensorMode::ActiveOneShot
+        || request.mMode == SensorMode::ActiveOneShot) {
+      maximalSensorMode = SensorMode::ActiveOneShot;
+    } else if (mMode == SensorMode::PassiveContinuous
+        || request.mMode == SensorMode::PassiveContinuous) {
+      maximalSensorMode = SensorMode::PassiveContinuous;
+    } else if (mMode == SensorMode::PassiveOneShot
+        || request.mMode == SensorMode::PassiveOneShot) {
+      maximalSensorMode = SensorMode::PassiveOneShot;
+    } else {
+      CHRE_ASSERT(false);
+    }
 
-  // Compute the highest priority mode. Active continuous is the highest
-  // priority and passive one-shot is the lowest.
-  SensorMode maximalSensorMode = SensorMode::Off;
-  if (mMode == SensorMode::ActiveContinuous
-      || request.mMode == SensorMode::ActiveContinuous) {
-    maximalSensorMode = SensorMode::ActiveContinuous;
-  } else if (mMode == SensorMode::ActiveOneShot
-      || request.mMode == SensorMode::ActiveOneShot) {
-    maximalSensorMode = SensorMode::ActiveOneShot;
-  } else if (mMode == SensorMode::PassiveContinuous
-      || request.mMode == SensorMode::PassiveContinuous) {
-    maximalSensorMode = SensorMode::PassiveContinuous;
-  } else if (mMode == SensorMode::PassiveOneShot
-      || request.mMode == SensorMode::PassiveOneShot) {
-    maximalSensorMode = SensorMode::PassiveOneShot;
-  } else {
-    CHRE_ASSERT(false);
-  }
-
-  if (mMode != maximalSensorMode) {
-    mMode = maximalSensorMode;
-    attributesChanged = true;
+    if (mMode != maximalSensorMode) {
+      mMode = maximalSensorMode;
+      attributesChanged = true;
+    }
   }
 
   return attributesChanged;

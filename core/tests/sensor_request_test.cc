@@ -208,3 +208,16 @@ TEST(SensorRequest, NonDefaultAndDefaultLatency) {
   EXPECT_EQ(mergedRequest.getLatency(), Nanoseconds(2000));
   EXPECT_EQ(mergedRequest.getMode(), SensorMode::ActiveContinuous);
 }
+
+TEST(SensorRequest, MergeWithOff) {
+  SensorRequest request(SensorMode::ActiveContinuous,
+                        Nanoseconds(10),
+                        Nanoseconds(100));
+  SensorRequest otherRequest(SensorMode::Off,
+                             Nanoseconds(1),
+                             Nanoseconds(1));
+  EXPECT_FALSE(request.mergeWith(otherRequest));
+  EXPECT_EQ(request.getMode(), SensorMode::ActiveContinuous);
+  EXPECT_EQ(request.getInterval(), Nanoseconds(10));
+  EXPECT_EQ(request.getLatency(), Nanoseconds(100));
+}
