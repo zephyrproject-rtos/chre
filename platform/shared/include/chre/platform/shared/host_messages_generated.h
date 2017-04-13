@@ -11,6 +11,8 @@ namespace fbs {
 
 struct NanoappMessage;
 
+struct LogMessage;
+
 struct HubInfoRequest;
 
 struct HubInfoResponse;
@@ -46,8 +48,9 @@ enum class ChreMessage : uint8_t {
   LoadNanoappResponse = 7,
   UnloadNanoappRequest = 8,
   UnloadNanoappResponse = 9,
+  LogMessage = 10,
   MIN = NONE,
-  MAX = UnloadNanoappResponse
+  MAX = LogMessage
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -62,6 +65,7 @@ inline const char **EnumNamesChreMessage() {
     "LoadNanoappResponse",
     "UnloadNanoappRequest",
     "UnloadNanoappResponse",
+    "LogMessage",
     nullptr
   };
   return names;
@@ -110,6 +114,10 @@ template<> struct ChreMessageTraits<UnloadNanoappRequest> {
 
 template<> struct ChreMessageTraits<UnloadNanoappResponse> {
   static const ChreMessage enum_value = ChreMessage::UnloadNanoappResponse;
+};
+
+template<> struct ChreMessageTraits<LogMessage> {
+  static const ChreMessage enum_value = ChreMessage::LogMessage;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -224,6 +232,69 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessageDirect(
       message_type,
       host_endpoint,
       message ? _fbb.CreateVector<uint8_t>(*message) : 0);
+}
+
+/// Represents log messages from CHRE.
+struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_BUFFER = 4
+  };
+  /// A buffer containing formatted log data. A flat array is used here to avoid
+  /// overhead in serializing and deserializing. The format is as follows:
+  ///
+  /// uint8_t                 - log level (1 = error, 2 = warning,
+  ///                                      3 = info, 4 = debug)
+  /// uint64_t, little-endian - timestamp in nanoseconds
+  /// char[]                  - message to log
+  /// char, \0                - null-terminator
+  ///
+  /// This pattern repeats until the end of the buffer for multiple log
+  /// messages. The last byte will always be a null-terminator. There are no
+  /// padding bytes between these fields. Treat this like a packed struct and be
+  /// cautious with unaligned access when reading/writing this buffer.
+  const flatbuffers::Vector<int8_t> *buffer() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_BUFFER) &&
+           verifier.Verify(buffer()) &&
+           verifier.EndTable();
+  }
+};
+
+struct LogMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
+    fbb_.AddOffset(LogMessage::VT_BUFFER, buffer);
+  }
+  LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LogMessageBuilder &operator=(const LogMessageBuilder &);
+  flatbuffers::Offset<LogMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<LogMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer = 0) {
+  LogMessageBuilder builder_(_fbb);
+  builder_.add_buffer(buffer);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int8_t> *buffer = nullptr) {
+  return chre::fbs::CreateLogMessage(
+      _fbb,
+      buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
 }
 
 struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -971,6 +1042,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::UnloadNanoappResponse: {
       auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LogMessage: {
+      auto ptr = reinterpret_cast<const LogMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

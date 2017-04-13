@@ -12,6 +12,9 @@ namespace fbs {
 struct NanoappMessage;
 struct NanoappMessageT;
 
+struct LogMessage;
+struct LogMessageT;
+
 struct HubInfoRequest;
 struct HubInfoRequestT;
 
@@ -57,8 +60,9 @@ enum class ChreMessage : uint8_t {
   LoadNanoappResponse = 7,
   UnloadNanoappRequest = 8,
   UnloadNanoappResponse = 9,
+  LogMessage = 10,
   MIN = NONE,
-  MAX = UnloadNanoappResponse
+  MAX = LogMessage
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -73,6 +77,7 @@ inline const char **EnumNamesChreMessage() {
     "LoadNanoappResponse",
     "UnloadNanoappRequest",
     "UnloadNanoappResponse",
+    "LogMessage",
     nullptr
   };
   return names;
@@ -121,6 +126,10 @@ template<> struct ChreMessageTraits<UnloadNanoappRequest> {
 
 template<> struct ChreMessageTraits<UnloadNanoappResponse> {
   static const ChreMessage enum_value = ChreMessage::UnloadNanoappResponse;
+};
+
+template<> struct ChreMessageTraits<LogMessage> {
+  static const ChreMessage enum_value = ChreMessage::LogMessage;
 };
 
 struct ChreMessageUnion {
@@ -183,6 +192,10 @@ struct ChreMessageUnion {
   UnloadNanoappResponseT *AsUnloadNanoappResponse() {
     return type == ChreMessage::UnloadNanoappResponse ?
       reinterpret_cast<UnloadNanoappResponseT *>(table) : nullptr;
+  }
+  LogMessageT *AsLogMessage() {
+    return type == ChreMessage::LogMessage ?
+      reinterpret_cast<LogMessageT *>(table) : nullptr;
   }
 };
 
@@ -333,6 +346,85 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessageDirect(
 }
 
 flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::FlatBufferBuilder &_fbb, const NanoappMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct LogMessageT : public flatbuffers::NativeTable {
+  typedef LogMessage TableType;
+  std::vector<int8_t> buffer;
+  LogMessageT() {
+  }
+};
+
+/// Represents log messages from CHRE.
+struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LogMessageT NativeTableType;
+  enum {
+    VT_BUFFER = 4
+  };
+  /// A buffer containing formatted log data. A flat array is used here to avoid
+  /// overhead in serializing and deserializing. The format is as follows:
+  ///
+  /// uint8_t                 - log level (1 = error, 2 = warning,
+  ///                                      3 = info, 4 = debug)
+  /// uint64_t, little-endian - timestamp in nanoseconds
+  /// char[]                  - message to log
+  /// char, \0                - null-terminator
+  ///
+  /// This pattern repeats until the end of the buffer for multiple log
+  /// messages. The last byte will always be a null-terminator. There are no
+  /// padding bytes between these fields. Treat this like a packed struct and be
+  /// cautious with unaligned access when reading/writing this buffer.
+  const flatbuffers::Vector<int8_t> *buffer() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  flatbuffers::Vector<int8_t> *mutable_buffer() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_BUFFER) &&
+           verifier.Verify(buffer()) &&
+           verifier.EndTable();
+  }
+  LogMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LogMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LogMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
+    fbb_.AddOffset(LogMessage::VT_BUFFER, buffer);
+  }
+  LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LogMessageBuilder &operator=(const LogMessageBuilder &);
+  flatbuffers::Offset<LogMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<LogMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer = 0) {
+  LogMessageBuilder builder_(_fbb);
+  builder_.add_buffer(buffer);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int8_t> *buffer = nullptr) {
+  return chre::fbs::CreateLogMessage(
+      _fbb,
+      buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
+}
+
+flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct HubInfoRequestT : public flatbuffers::NativeTable {
   typedef HubInfoRequest TableType;
@@ -1345,6 +1437,31 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::Fla
       _message);
 }
 
+inline LogMessageT *LogMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new LogMessageT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void LogMessage::UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = buffer(); if (_e) for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer.push_back(_e->Get(_i)); } };
+}
+
+inline flatbuffers::Offset<LogMessage> LogMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLogMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _buffer = _o->buffer.size() ? _fbb.CreateVector(_o->buffer) : 0;
+  return chre::fbs::CreateLogMessage(
+      _fbb,
+      _buffer);
+}
+
 inline HubInfoRequestT *HubInfoRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new HubInfoRequestT();
   UnPackTo(_o, _resolver);
@@ -1702,6 +1819,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::LogMessage: {
+      auto ptr = reinterpret_cast<const LogMessage *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -1755,6 +1876,10 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::LogMessage: {
+      auto ptr = reinterpret_cast<const LogMessage *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -1796,6 +1921,10 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::UnloadNanoappResponse: {
       auto ptr = reinterpret_cast<const UnloadNanoappResponseT *>(table);
       return CreateUnloadNanoappResponse(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::LogMessage: {
+      auto ptr = reinterpret_cast<const LogMessageT *>(table);
+      return CreateLogMessage(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -1845,6 +1974,11 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::UnloadNanoappResponse: {
       auto ptr = reinterpret_cast<UnloadNanoappResponseT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::LogMessage: {
+      auto ptr = reinterpret_cast<LogMessageT *>(table);
       delete ptr;
       break;
     }
