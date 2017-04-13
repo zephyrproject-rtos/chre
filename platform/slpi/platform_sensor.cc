@@ -891,15 +891,22 @@ void PlatformSensor::init() {
 }
 
 void PlatformSensor::deinit() {
-  qmi_client_release(&gPlatformSensorServiceQmiClientHandle);
+  qmi_client_error_type err = qmi_client_release(
+      gPlatformSensorServiceQmiClientHandle);
+  if (err != QMI_NO_ERR) {
+    LOGE("Failed to release QMI client: %d", err);
+  }
   gPlatformSensorServiceQmiClientHandle = nullptr;
+
+  err = qmi_client_release(gPlatformSensorInternalServiceQmiClientHandle);
+  if (err != QMI_NO_ERR) {
+    LOGE("Failed to release QMI client: %d", err);
+  }
+  gPlatformSensorInternalServiceQmiClientHandle = nullptr;
 
   // Removing all sensor status monitor requests. Releaseing a QMI client also
   // releases all of its subscriptions.
   gSensorStatusMonitor.clear();
-
-  qmi_client_release(&gPlatformSensorInternalServiceQmiClientHandle);
-  gPlatformSensorInternalServiceQmiClientHandle = nullptr;
 }
 
 bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
