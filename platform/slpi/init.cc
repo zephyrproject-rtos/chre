@@ -220,6 +220,14 @@ extern "C" int chre_slpi_stop_thread(void) {
     LOGD("Tried to stop CHRE thread, but not running");
   } else {
     gEventLoop->stop();
+    if (gTlsKeyValid) {
+      int ret = qurt_tls_delete_key(gTlsKey);
+      if (ret != QURT_EOK) {
+        // Note: LOGE is not necessarily safe to use after stopping CHRE
+        FARF(ERROR, "Deleting TLS key failed: %d", ret);
+      }
+      gTlsKeyValid = false;
+    }
 
     // Poll until the thread has stopped; note that we can't use
     // qurt_thread_join() here because chreMonitorThread() will already be
@@ -231,19 +239,12 @@ extern "C" int chre_slpi_stop_thread(void) {
     }
     gThreadHandle = 0;
 
-    // TODO: need to figure out the right place to put this, to make sure we're
-    // not trying to post events to an EventLoop that is already stopped, etc.
-    // Becomes even trickier when log messages get routed through the HostLink.
+    // Perform this as late as possible - if we are shutting down because we
+    // detected exit of the host process, FastRPC will unload us once all our
+    // FastRPC calls have returned. Doing this late helps ensure that the call
+    // to chre_slpi_get_message_to_host() stays open until we're done with
+    // cleanup.
     chre::HostLinkBase::shutdown();
-
-    if (gTlsKeyValid) {
-      int ret = qurt_tls_delete_key(gTlsKey);
-      if (ret != QURT_EOK) {
-        // Note: LOGE is not necessarily safe to use after stopping CHRE
-        FARF(ERROR, "Deleting TLS key failed: %d", ret);
-      }
-      gTlsKeyValid = false;
-    }
   }
 
   return CHRE_FASTRPC_SUCCESS;
