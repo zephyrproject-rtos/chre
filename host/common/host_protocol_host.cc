@@ -156,17 +156,20 @@ void HostProtocolHost::encodeUnloadNanoappRequest(
   finalize(builder, fbs::ChreMessage::UnloadNanoappRequest, request.Union());
 }
 
-bool HostProtocolHost::extractHostClientId(const void *message,
-                                           size_t messageLen,
-                                           uint16_t *hostClientId) {
-  bool success = verifyMessage(message, messageLen);
+bool HostProtocolHost::extractHostClientIdAndType(
+    const void *message, size_t messageLen, uint16_t *hostClientId,
+    ::chre::fbs::ChreMessage *messageType) {
+  bool success = false;
+  if (hostClientId != nullptr && messageType != nullptr) {
+    success = verifyMessage(message, messageLen);
 
-  if (success && hostClientId != nullptr) {
-    const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
-    // host_addr guaranteed to be non-null via verifyMessage (it's a required
-    // field)
-    *hostClientId = container->host_addr()->client_id();
-    success = true;
+    if (success) {
+      const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
+      // host_addr guaranteed to be non-null via verifyMessage (it's a required
+      // field)
+      *hostClientId = container->host_addr()->client_id();
+      *messageType = container->message_type();
+    }
   }
 
   return success;
