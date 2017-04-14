@@ -16,6 +16,7 @@
 
 cc_library_static {
     name: "chre_client",
+    vendor: true,
     export_include_dirs: [
         "external/flatbuffers/include",
         "host/common/include",
@@ -34,9 +35,9 @@ cc_library_static {
     ],
 }
 
-cc_binary {
+cc_test {
     name: "chre_test_client",
-    proprietary: true,
+    vendor: true,
     local_include_dirs: [
         "chre_api/include/chre_api",
         "util/include",
@@ -51,11 +52,12 @@ cc_binary {
     ],
     static_libs: ["chre_client"],
     tags: ["optional"],
+    gtest: false,
 }
 
 cc_library_shared {
     name: "android.hardware.contexthub@1.0-impl.generic",
-    proprietary: true,
+    vendor: true,
     relative_install_path: "hw",
     srcs: [
         "host/hal_generic/generic_context_hub.cc",
