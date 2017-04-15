@@ -791,14 +791,11 @@ void populateSensorRequest(
   // specified to be set to false or zero so this is safe.
   memset(sensorRequest, 0, sizeof(*sensorRequest));
 
-  // Reconstruts a request as CHRE API requires one-shot sensors to be
-  // requested with pre-defined interval and latency that may not be accepted
-  // by SMGR.
+  // Reconstructs a request to deliver one-shot sensors' data ASAP.
   bool isOneShot = sensorTypeIsOneShot(getSensorTypeFromSensorId(
       sensorId, dataType, calType));
   SensorRequest request(
-      chreRequest.getMode(),
-      isOneShot ? Nanoseconds(minInterval) : chreRequest.getInterval(),
+      chreRequest.getMode(), chreRequest.getInterval(),
       isOneShot ? Nanoseconds(0) : chreRequest.getLatency());
 
   // Build the request for one sensor at the requested rate. An add action for a
