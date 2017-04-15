@@ -844,9 +844,6 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *
  * If this sensor's chreSensorInfo has isOneShot set to 1,
  * then the mode must be one of the ONE_SHOT modes, or this method will fail.
- * The supplied interval and latency must be set to
- * CHRE_SENSOR_INTERVAL_DEFAULT and CHRE_SENSOR_LATENCY_DEFAULT, respectively,
- * if the sensor is one-shot, or this method will fail.
  *
  * The CHRE wants to power as few sensors as possible, in keeping with its
  * low power design.  As such, it only turns on sensors when there are clients
