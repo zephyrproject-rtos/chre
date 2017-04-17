@@ -304,6 +304,9 @@ class SensorRequest {
  private:
   //! The nanoapp that made this request. This will be nullptr when returned by
   //! the generateIntersectionOf method.
+  // TODO: need to (1) change this to instanceId to avoid potentially
+  // referencing a Nanoapp after it is unloaded, and (2) add a method to remove
+  // all open sensor requests associated with a nanoapp after it is unloaded
   Nanoapp *mNanoapp = nullptr;
 
   //! The interval between samples for this request.

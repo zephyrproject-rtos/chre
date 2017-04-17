@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <cinttypes>
 
+#include "chre/platform/platform_sensor.h"
+
 extern "C" {
 
 #include "fixed_point.h"
@@ -29,10 +31,10 @@ extern "C" {
 
 #include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
+#include "chre/core/sensor.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
-#include "chre/platform/platform_sensor.h"
 #include "chre/platform/slpi/platform_sensor_util.h"
 #include "chre/platform/slpi/smgr_client.h"
 
@@ -240,33 +242,31 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
 }
 
 /**
- * Adds a Platform sensor to the sensor list.
+ * Constructs and initializes a sensor, and adds it to the sensor list.
  *
  * @param sensorInfo The sensorInfo as provided by the SMGR.
  * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
  * @param sensor The sensor list.
  */
-void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
-                       uint8_t calType,
-                       DynamicVector<PlatformSensor> *sensors) {
-  PlatformSensor platformSensor;
-  platformSensor.sensorId = sensorInfo.SensorID;
-  platformSensor.dataType = sensorInfo.DataType;
-  platformSensor.calType = calType;
-  size_t bytesToCopy = std::min(sizeof(platformSensor.sensorName) - 1,
+void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
+               uint8_t calType, DynamicVector<Sensor> *sensors) {
+  Sensor sensor;
+  sensor.sensorId = sensorInfo.SensorID;
+  sensor.dataType = sensorInfo.DataType;
+  sensor.calType = calType;
+  size_t bytesToCopy = std::min(sizeof(sensor.sensorName) - 1,
                                 static_cast<size_t>(sensorInfo.SensorName_len));
-  memcpy(platformSensor.sensorName, sensorInfo.SensorName, bytesToCopy);
-  platformSensor.sensorName[bytesToCopy] = '\0';
-  platformSensor.minInterval = static_cast<uint64_t>(
+  memcpy(sensor.sensorName, sensorInfo.SensorName, bytesToCopy);
+  sensor.sensorName[bytesToCopy] = '\0';
+  sensor.minInterval = static_cast<uint64_t>(
       Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
 
   // Allocates memory for on-change sensor's last event.
   SensorType sensorType = getSensorTypeFromSensorId(
       sensorInfo.SensorID, sensorInfo.DataType, calType);
-  platformSensor.lastEvent = allocateLastEvent(sensorType,
-                                               &platformSensor.lastEventSize);
+  sensor.lastEvent = allocateLastEvent(sensorType, &sensor.lastEventSize);
 
-  if (!sensors->push_back(std::move(platformSensor))) {
+  if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
 }
@@ -278,13 +278,9 @@ void addPlatformSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
  * @return The number of nanoseconds represented by the ticks value.
  */
 uint64_t getNanosecondsFromSmgrTicks(uint32_t ticks) {
-  return (ticks * Seconds(1).toRawNanoseconds())
-      / TIMETICK_NOMINAL_FREQ_HZ;
+  return (ticks * Seconds(1).toRawNanoseconds()) / TIMETICK_NOMINAL_FREQ_HZ;
 }
 
-/**
- * Populate the header
- */
 void populateSensorDataHeader(
     SensorType sensorType, chreSensorDataHeader *header,
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
@@ -296,9 +292,6 @@ void populateSensorDataHeader(
   header->readingCount = sensorIndex.SampleCount;
 }
 
-/**
- * Populate three-axis event data.
- */
 void populateThreeAxisEvent(
     SensorType sensorType, chreSensorThreeAxisData *data,
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
@@ -327,9 +320,6 @@ void populateThreeAxisEvent(
   }
 }
 
-/**
- * Populate float event data.
- */
 void populateFloatEvent(
     SensorType sensorType, chreSensorFloatData *data,
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
@@ -346,9 +336,6 @@ void populateFloatEvent(
   }
 }
 
-/**
- * Populate byte event data.
- */
 void populateByteEvent(
     SensorType sensorType, chreSensorByteData *data,
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
@@ -368,9 +355,6 @@ void populateByteEvent(
   }
 }
 
-/**
- * Populate occurrence event data.
- */
 void populateOccurrenceEvent(
     SensorType sensorType, chreSensorOccurrenceData *data,
     const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
@@ -461,7 +445,7 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
 }
 
 /**
- * A helper function that updates the last event of a in the main thread.
+ * A helper function that updates the last event of a sensor in the main thread.
  * Platform should call this function only for an on-change sensor.
  *
  * @param sensorType The SensorType of the sensor.
@@ -493,7 +477,11 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
 
         Sensor *sensor = EventLoopManagerSingleton::get()
             ->getSensorRequestManager().getSensor(cbData->sensorType);
-        if (sensor != nullptr) {
+
+        // Mark last event as valid only if the sensor is enabled. Event data
+        // may arrive after sensor is disabled.
+        if (sensor != nullptr
+            && sensor->getRequest().getMode() != SensorMode::Off) {
           sensor->setLastEvent(cbData->event);
         }
         memoryFree(cbData);
@@ -705,7 +693,7 @@ void setSensorStatusMonitor(uint8_t sensorId, bool enable) {
  * @return Returns false if an error occurs.
  */
 bool getSensorsForSensorId(uint8_t sensorId,
-                           DynamicVector<PlatformSensor> *sensors) {
+                           DynamicVector<Sensor> *sensors) {
   sns_smgr_single_sensor_info_req_msg_v01 sensorInfoRequest;
   sns_smgr_single_sensor_info_resp_msg_v01 sensorInfoResponse;
 
@@ -740,15 +728,14 @@ bool getSensorsForSensorId(uint8_t sensorId,
           SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
         isSensorIdSupported = true;
-        addPlatformSensor(sensorInfo, SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
+        addSensor(sensorInfo, SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
 
         // Add an uncalibrated version if defined.
         SensorType uncalibratedType = getSensorTypeFromSensorId(
             sensorInfo.SensorID, sensorInfo.DataType,
             SNS_SMGR_CAL_SEL_FACTORY_CAL_V01);
         if (sensorType != uncalibratedType) {
-          addPlatformSensor(sensorInfo, SNS_SMGR_CAL_SEL_FACTORY_CAL_V01,
-                            sensors);
+          addSensor(sensorInfo, SNS_SMGR_CAL_SEL_FACTORY_CAL_V01, sensors);
         }
       }
     }
@@ -909,7 +896,7 @@ void PlatformSensor::deinit() {
   gSensorStatusMonitor.clear();
 }
 
-bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
+bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
   sns_smgr_all_sensor_info_req_msg_v01 sensorListRequest;
@@ -941,7 +928,7 @@ bool PlatformSensor::getSensors(DynamicVector<PlatformSensor> *sensors) {
   return success;
 }
 
-bool PlatformSensor::setRequest(const SensorRequest& request) {
+bool PlatformSensor::applyRequest(const SensorRequest& request) {
   // Allocate request and response for the sensor request.
   auto *sensorRequest = memoryAlloc<sns_smgr_buffering_req_msg_v01>();
   auto *sensorResponse = memoryAlloc<sns_smgr_buffering_resp_msg_v01>();
@@ -967,6 +954,9 @@ bool PlatformSensor::setRequest(const SensorRequest& request) {
       LOGE("Sensor data request failed with error: %d, AckNak: %d",
            sensorResponse->Resp.sns_err_t, sensorResponse->AckNak);
     } else {
+      if (request.getMode() == SensorMode::Off) {
+        this->lastEventValid = false;
+      }
       success = true;
     }
   }
@@ -989,7 +979,15 @@ const char *PlatformSensor::getSensorName() const {
   return sensorName;
 }
 
+PlatformSensor::PlatformSensor(PlatformSensor&& other) {
+  // Our move assignment operator doesn't assume that "this" is initialized, so
+  // we can just use that here
+  *this = std::move(other);
+}
+
 PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+  // Note: if this implementation is ever changed to depend on "this" containing
+  // initialized values, the move constructor implemenation must be updated
   sensorId = other.sensorId;
   dataType = other.dataType;
   calType = other.calType;
@@ -1005,11 +1003,12 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
 }
 
 ChreSensorData *PlatformSensor::getLastEvent() const {
-  return lastEvent;
+  return (this->lastEventValid) ? this->lastEvent : nullptr;
 }
 
-void PlatformSensor::setLastEvent(const ChreSensorData *event) {
-  memcpy(lastEvent, event, lastEventSize);
+void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
+  memcpy(this->lastEvent, event, this->lastEventSize);
+  this->lastEventValid = true;
 }
 
 qmi_client_type getSensorServiceQmiClientHandle() {

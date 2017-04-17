@@ -31,11 +31,6 @@ namespace chre {
 class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
  public:
   /**
-   * Unloads the nanoapp from memory.
-   */
-  ~PlatformNanoapp();
-
-  /**
    * Calls the start function of the nanoapp. For dynamically loaded nanoapps,
    * this must also result in calling through to any of the nanoapp's static
    * global constructors/init functions, etc., prior to invoking the
@@ -98,6 +93,18 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
    * beneath the HAL.
    */
   bool isSystemNanoapp() const;
+
+ protected:
+  /**
+   * PlatformNanoapp's constructor is protected, as it must only exist within
+   * the context of the derived class chre::Nanoapp.
+   */
+  PlatformNanoapp() = default;
+
+  /**
+   * Unloads the nanoapp from memory.
+   */
+  ~PlatformNanoapp();
 };
 
 }  // namespace chre

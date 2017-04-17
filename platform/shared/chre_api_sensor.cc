@@ -45,7 +45,7 @@ bool chreGetSensorInfo(uint32_t sensorHandle, struct chreSensorInfo *info) {
   bool success = false;
   if (info != nullptr) {
     success = EventLoopManagerSingleton::get()->getSensorRequestManager().
-        getSensorInfo(sensorHandle, nanoapp, info);
+        getSensorInfo(sensorHandle, *nanoapp, info);
   }
   return success;
 }
