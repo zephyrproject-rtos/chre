@@ -40,13 +40,13 @@ namespace chre {
 class Nanoapp : public PlatformNanoapp {
  public:
   /**
-   * @return uint32_t The globally unique identifier for this Nanoapp instance
+   * @return The unique identifier for this Nanoapp instance
    */
   uint32_t getInstanceId() const;
 
   /**
    * Assigns an instance ID to this Nanoapp. This must be called prior to
-   * starting this nanoapp.
+   * starting this Nanoapp.
    */
   void setInstanceId(uint32_t instanceId);
 
@@ -82,7 +82,7 @@ class Nanoapp : public PlatformNanoapp {
   /**
    * Indicates whether there are any pending events in this apps queue.
    *
-   * @return True indicating that there are events available to be processed.
+   * @return true if there are events waiting to be processed
    */
   bool hasPendingEvent();
 
@@ -90,7 +90,7 @@ class Nanoapp : public PlatformNanoapp {
    * Sends the next event in the queue to the nanoapp and returns the processed
    * event. The hasPendingEvent() method should be tested before invoking this.
    *
-   * @return a pointer to the processed event.
+   * @return A pointer to the processed event
    */
   Event *processNextEvent();
 
