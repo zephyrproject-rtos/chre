@@ -38,15 +38,19 @@ bool Sensor::isValid() const {
 
 bool Sensor::setRequest(const SensorRequest& request) {
   bool requestWasSet = false;
-  if (isValid() && !request.isEquivalentTo(mSensorRequest)
-      && mPlatformSensor->setRequest(request)) {
-    // Update mSensorRequest only if platform has accepted the request.
-    mSensorRequest = request;
-    requestWasSet = true;
 
-    // Mark last event as invalid when sensor is disabled.
-    if (request.getMode() == SensorMode::Off) {
-      mLastEventValid = false;
+  if (isValid()) {
+    if (request.isEquivalentTo(mSensorRequest)) {
+      requestWasSet = true;
+    } else if (mPlatformSensor->setRequest(request)) {
+      // Update mSensorRequest only if platform has accepted the request.
+      mSensorRequest = request;
+      requestWasSet = true;
+
+      // Mark last event as invalid when sensor is disabled.
+      if (request.getMode() == SensorMode::Off) {
+        mLastEventValid = false;
+      }
     }
   }
 
