@@ -71,11 +71,11 @@ class SensorRequestManager : public NonCopyable {
    * Populates the supplied info struct if the sensor handle exists.
    *
    * @param sensorHandle The handle of the sensor.
-   * @param nanoapp A non-null pointer to the nanoapp requesting this change.
+   * @param nanoapp The nanoapp requesting this change.
    * @param info A non-null pointer to a chreSensorInfo struct.
    * @return true if the supplied sensor handle exists.
    */
-  bool getSensorInfo(uint32_t sensorHandle, const Nanoapp *nanoapp,
+  bool getSensorInfo(uint32_t sensorHandle, const Nanoapp& nanoapp,
                      struct chreSensorInfo *info) const;
   /*
    * Removes all requests of a sensorType and unregisters all nanoapps for its
@@ -91,8 +91,9 @@ class SensorRequestManager : public NonCopyable {
    * Obtains a pointer to the Sensor of the specified sensorType.
    *
    * @param sensorType The SensorType of the sensor.
-   * @return A pointer to the Sensor of sensorType. It returns a nullptr if
-   *         sensorType is SensorType::Unknown.
+   * @return A pointer to the Sensor of sensorType, or nullptr if sensorType is
+   *         invalid or the requested SensorType is not supported on the current
+   *         platform.
    */
   Sensor *getSensor(SensorType sensorType);
 
@@ -112,8 +113,10 @@ class SensorRequestManager : public NonCopyable {
    * and can trigger a change in mode/rate/latency when required.
    */
   struct SensorRequests {
-    //! The sensor associated with this request multiplexer.
-    Sensor sensor;
+    //! The sensor associated with this request multiplexer. If this Optional
+    //! container does not have a value, then the platform does not support this
+    //! type of sensor.
+    Optional<Sensor> sensor;
 
     //! The request multiplexer for this sensor.
     RequestMultiplexer<SensorRequest> multiplexer;

@@ -32,6 +32,13 @@ namespace chre {
  */
 class PlatformSensorBase {
  public:
+  /**
+   * Copies the supplied event to the sensor's last event.
+   *
+   * @param event The pointer to the event to copy from.
+   */
+  void setLastEvent(const ChreSensorData *event);
+
   //! The handle to uniquely identify this sensor.
   uint8_t sensorId;
 
@@ -50,11 +57,17 @@ class PlatformSensorBase {
   //! The minimum interval of this sensor.
   uint64_t minInterval;
 
-  //! The pointer to the sensor's last event.
+  //! Pointer to dynamically allocated memory to store the last event. Only
+  //! non-null if this is an on-change sensor.
   ChreSensorData *lastEvent = nullptr;
 
-  //! The size of the sensor's last event storage.
+  //! The amount of memory we've allocated in lastEvent (this varies depending
+  //! on the sensor type)
   size_t lastEventSize = 0;
+
+  //! Set to true only when this is an on-change sensor that is currently active
+  //! and we have a copy of the most recent event in lastEvent.
+  bool lastEventValid = false;
 };
 
 }  // namespace chre

@@ -17,76 +17,23 @@
 #include "chre/core/sensor.h"
 
 namespace chre {
-namespace {
 
-static const char *kInvalidSensorName = "Invalid Sensor";
-
-}  // namespace
-
-Sensor::Sensor() {}
-
-Sensor::Sensor(PlatformSensor&& platformSensor)
-    : mPlatformSensor(std::move(platformSensor)) {}
-
-SensorType Sensor::getSensorType() const {
-  return isValid() ? mPlatformSensor->getSensorType() : SensorType::Unknown;
-}
-
-bool Sensor::isValid() const {
-  return mPlatformSensor.has_value();
+const SensorRequest& Sensor::getRequest() const {
+  return mSensorRequest;
 }
 
 bool Sensor::setRequest(const SensorRequest& request) {
-  bool requestWasSet = false;
+  bool success = false;
 
-  if (isValid()) {
-    if (request.isEquivalentTo(mSensorRequest)) {
-      requestWasSet = true;
-    } else if (mPlatformSensor->setRequest(request)) {
-      // Update mSensorRequest only if platform has accepted the request.
-      mSensorRequest = request;
-      requestWasSet = true;
-
-      // Mark last event as invalid when sensor is disabled.
-      if (request.getMode() == SensorMode::Off) {
-        mLastEventValid = false;
-      }
-    }
+  if (request.isEquivalentTo(mSensorRequest)) {
+    success = true;
+  } else if (applyRequest(request)) {
+    // Update mSensorRequest only if platform has accepted the request.
+    mSensorRequest = request;
+    success = true;
   }
 
-  return requestWasSet;
-}
-
-Sensor& Sensor::operator=(Sensor&& other) {
-  mSensorRequest = other.mSensorRequest;
-  mPlatformSensor = std::move(other.mPlatformSensor);
-  return *this;
-}
-
-uint64_t Sensor::getMinInterval() const {
-  return isValid() ? mPlatformSensor->getMinInterval() :
-      CHRE_SENSOR_INTERVAL_DEFAULT;
-}
-
-const char *Sensor::getSensorName() const {
-  return isValid() ? mPlatformSensor->getSensorName() : kInvalidSensorName;
-}
-
-ChreSensorData *Sensor::getLastEvent() const {
-  return (isValid() && mLastEventValid) ? mPlatformSensor->getLastEvent() :
-      nullptr;
-}
-
-void Sensor::setLastEvent(const ChreSensorData *event) {
-  if (isValid()) {
-    mPlatformSensor->setLastEvent(event);
-
-    // Mark last event as valid only if the sensor is enabled. Event data may
-    // arrive after sensor is disabled.
-    if (mSensorRequest.getMode() != SensorMode::Off) {
-      mLastEventValid = true;
-    }
-  }
+  return success;
 }
 
 bool Sensor::getSamplingStatus(struct chreSensorSamplingStatus *status) const {
