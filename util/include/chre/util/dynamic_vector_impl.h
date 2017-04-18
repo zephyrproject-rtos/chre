@@ -144,6 +144,22 @@ const ElementType& DynamicVector<ElementType>::operator[](size_type index)
 }
 
 template<typename ElementType>
+bool DynamicVector<ElementType>::operator==(const DynamicVector<ElementType>& other)
+    const {
+  bool vectorsAreEqual = (mSize == other.mSize);
+  if (vectorsAreEqual) {
+    for (size_type i = 0; i < mSize; i++) {
+      if (!(mData[i] == other.mData[i])) {
+        vectorsAreEqual = false;
+        break;
+      }
+    }
+  }
+
+  return vectorsAreEqual;
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::reserve(size_type newCapacity) {
   bool success = false;
 

@@ -127,7 +127,7 @@ class DynamicVector : public NonCopyable {
    * only the past-the-end iterator is invalidated.
    *
    * @param The arguments to the constructor
-   * @return true is the element is constructed successfully.
+   * @return true if the element is constructed successfully.
    */
   template<typename... Args>
   bool emplace_back(Args&&... args);
@@ -153,6 +153,17 @@ class DynamicVector : public NonCopyable {
    * @return The element.
    */
   const ElementType& operator[](size_type index) const;
+
+  /**
+   * Compares two vectors for equality. It will compare the vector sizes and
+   * return false if those are different; if not, it will compare the contents
+   * of the vectors element-by-element. The operator == should be defined and
+   * meaningful for the vector's element type.
+   *
+   * @param Right-hand side vector to compared with.
+   * @return true if two vectors are equal, false otherwise.
+   */
+  bool operator==(const DynamicVector<ElementType>& other) const;
 
   /**
    * Resizes the vector to a new capacity returning true if allocation was

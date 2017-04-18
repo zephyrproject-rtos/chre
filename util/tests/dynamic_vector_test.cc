@@ -94,6 +94,23 @@ TEST(DynamicVector, PushBackReserveAndReadTrivialType) {
   EXPECT_EQ(vector[3], 0xd00d);
 }
 
+TEST(DynamicVector, CompareEqual) {
+  DynamicVector<int> lhs;
+  ASSERT_TRUE(lhs.push_back(0x1337));
+  ASSERT_TRUE(lhs.push_back(0xface));
+  DynamicVector<int> rhs;
+  ASSERT_TRUE(rhs.push_back(0x1337));
+  ASSERT_TRUE(rhs.push_back(0xface));
+
+  ASSERT_EQ(lhs, rhs); // equal vectors
+
+  ASSERT_TRUE(lhs.push_back(0xb00c));
+  ASSERT_FALSE(lhs == rhs); // different size
+
+  ASSERT_TRUE(rhs.push_back(0xc00b));
+  ASSERT_FALSE(lhs == rhs); // equal size different elements
+}
+
 constexpr int kConstructedMagic = 0xdeadbeef;
 
 class MovableButNonCopyable : public chre::NonCopyable {
