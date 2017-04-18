@@ -21,6 +21,15 @@
 
 namespace chre {
 
+//! The number of nanoseconds in one second.
+constexpr uint64_t kOneSecondInNanoseconds(1000000000);
+
+//! The number of nanoseconds in one millisecond.
+constexpr uint64_t kOneMillisecondInNanoseconds(1000000);
+
+//! The number of nanoseconds in one millisecond.
+constexpr uint64_t kOneMicrosecondInNanoseconds(1000);
+
 // Forward declare classes for unit-conversion constructors.
 class Milliseconds;
 class Microseconds;
