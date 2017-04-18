@@ -41,6 +41,7 @@ void loadPreloadedNanoapps(EventLoop *eventLoop) {
   // TODO: allow these to be overridden by target-specific build configuration
   static PreloadedNanoappDescriptor preloadedNanoapps[] = {
     { 0x476f6f676c00100b, "activity.so", MakeUnique<Nanoapp>() },
+    { 0x476f6f676c001004, "geofence.so", MakeUnique<Nanoapp>() },
   };
 
   for (size_t i = 0; i < ARRAY_SIZE(preloadedNanoapps); i++) {
