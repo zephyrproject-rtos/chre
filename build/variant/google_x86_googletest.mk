@@ -16,6 +16,8 @@ TARGET_CFLAGS += -DGTEST
 # (typically, unsigned value vs. implicitly signed literal)
 TARGET_CFLAGS += -Wno-sign-compare
 
+TARGET_SO_LATE_LIBS = $(GOOGLE_X86_GOOGLETEST_LATE_LIBS)
+
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 
 ifeq ($(ANDROID_BUILD_TOP),)

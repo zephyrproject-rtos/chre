@@ -6,6 +6,7 @@
 
 # CHRE requires C++11 and C99 support.
 COMMON_CXX_CFLAGS += -std=c++11
+COMMON_C_CFLAGS += -x c
 COMMON_C_CFLAGS += -std=c99
 
 # Configure 'all' and 'extra' warnings and promote warnings to errors.

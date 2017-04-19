@@ -8,6 +8,7 @@ TARGET_NAME = google_x86_linux
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=2048
 TARGET_CFLAGS += $(GOOGLE_X86_LINUX_CFLAGS)
 TARGET_VARIANT_SRCS = $(GOOGLE_X86_LINUX_SRCS)
+TARGET_SO_LATE_LIBS = $(GOOGLE_X86_LINUX_LATE_LIBS)
 
 # Enable conversion warnings for the simulator. Since this is a platform 100%
 # within our control we expect that there will be no conversion issues. It would
