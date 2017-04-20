@@ -134,8 +134,9 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    * @return true if the host client ID was successfully decoded from the
    *         message
    */
-  static bool extractHostClientId(const void *message, size_t messageLen,
-                                  uint16_t *hostClientId);
+  static bool extractHostClientIdAndType(
+      const void *message, size_t messageLen, uint16_t *hostClientId,
+      ::chre::fbs::ChreMessage *messageType);
 
   /**
    * Update the host client ID field in the MessageContainer.

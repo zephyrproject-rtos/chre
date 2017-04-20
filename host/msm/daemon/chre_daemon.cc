@@ -45,6 +45,7 @@
 // #define LOG_NDEBUG 0
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -58,7 +59,14 @@
 #include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
 
+//! The format string to use for logs from the CHRE implementation.
+#define HUB_LOG_FORMAT_STR "Hub (t=%.6f): %s"
+
 using android::chre::HostProtocolHost;
+
+// Aliased for consistency with the way these symbols are referenced in
+// CHRE-side code
+namespace fbs = ::chre::fbs;
 
 typedef void *(thread_entry_point_f)(void *);
 
@@ -123,6 +131,51 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
 }
 #endif
 
+static void parseAndEmitLogMessages(unsigned char *message) {
+  const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
+  const auto *logMessage = static_cast<const fbs::LogMessage *>(
+      container->message());
+
+  constexpr size_t kLogMessageHeaderSize = 2 + sizeof(uint64_t);
+  const flatbuffers::Vector<int8_t>& logData = *logMessage->buffer();
+  for (size_t i = 0; i <= (logData.size() - kLogMessageHeaderSize);) {
+    // Parse out the log level.
+    const char *log = reinterpret_cast<const char *>(&logData.data()[i]);
+    char logLevel = *log;
+    log++;
+
+    // Parse out the timestampNanos.
+    uint64_t timestampNanos;
+    memcpy(&timestampNanos, log, sizeof(uint64_t));
+    timestampNanos = le64toh(timestampNanos);
+    log += sizeof(uint64_t);
+
+    float timestampSeconds = timestampNanos / 1e9;
+
+    // Log the message.
+    switch (logLevel) {
+      case 1:
+        LOGE(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+        break;
+      case 2:
+        LOGW(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+        break;
+      case 3:
+        LOGI(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+        break;
+      case 4:
+        LOGD(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+        break;
+      default:
+        LOGE("Invalid CHRE hub log level, omitting log");
+    }
+
+    // Advance the log pointer.
+    size_t strLen = strlen(log);
+    i += kLogMessageHeaderSize + strLen;
+  }
+}
+
 /**
  * Entry point for the thread that receives messages sent by CHRE.
  *
@@ -148,14 +201,17 @@ static void *chre_message_to_host_thread(void *arg) {
     } else if (result == CHRE_FASTRPC_SUCCESS && messageLen > 0) {
       log_buffer(messageBuffer, messageLen);
       uint16_t hostClientId;
-      if (!HostProtocolHost::extractHostClientId(messageBuffer, messageLen,
-                                                 &hostClientId)) {
+      fbs::ChreMessage messageType;
+      if (!HostProtocolHost::extractHostClientIdAndType(
+          messageBuffer, messageLen, &hostClientId, &messageType)) {
         LOGW("Failed to extract host client ID from message - sending "
              "broadcast");
         hostClientId = chre::kHostClientIdUnspecified;
       }
 
-      if (hostClientId == chre::kHostClientIdUnspecified) {
+      if (messageType == fbs::ChreMessage::LogMessage) {
+        parseAndEmitLogMessages(messageBuffer);
+      } else if (hostClientId == chre::kHostClientIdUnspecified) {
         server->sendToAllClients(messageBuffer,
                                  static_cast<size_t>(messageLen));
       } else {
