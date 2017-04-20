@@ -33,7 +33,8 @@ namespace chre {
 class PlatformSensorBase {
  public:
   /**
-   * Copies the supplied event to the sensor's last event.
+   * Copies the supplied event to the sensor's last event and marks last event
+   * valid.
    *
    * @param event The pointer to the event to copy from.
    */
@@ -68,6 +69,11 @@ class PlatformSensorBase {
   //! Set to true only when this is an on-change sensor that is currently active
   //! and we have a copy of the most recent event in lastEvent.
   bool lastEventValid = false;
+
+  //! Whether the sensor is turned off. This can be different from what's been
+  //! requested through Sensor::setRequest() as a passive request may not
+  //! always be honored by PlatformSensor and the sensor can stay off.
+  bool isSensorOff = true;
 };
 
 }  // namespace chre
