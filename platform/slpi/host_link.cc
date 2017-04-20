@@ -363,7 +363,8 @@ extern "C" int chre_slpi_get_message_to_host(
     }
   }
 
-  LOGD("Returning message to host (result %d length %u)", result, *messageLen);
+  FARF(MEDIUM, "Returning message to host (result %d length %u)",
+       result, *messageLen);
   return result;
 }
 
@@ -453,7 +454,7 @@ void HostLinkBase::shutdown() {
     if (!flushOutboundQueue()) {
       FARF(ERROR, "Host took too long to drain outbound queue; exiting anyway");
     } else {
-      FARF(LOW, "Finished draining queue");
+      FARF(MEDIUM, "Finished draining queue");
     }
   }
 }
