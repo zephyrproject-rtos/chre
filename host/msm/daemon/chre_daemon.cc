@@ -188,7 +188,7 @@ static void *chre_message_to_host_thread(void *arg) {
   int result = 0;
   auto *server = static_cast<::android::chre::SocketServer *>(arg);
 
-  while (!chre_shutdown_requested) {
+  while (true) {
     messageLen = 0;
     LOGV("Calling into chre_slpi_get_message_to_host");
     result = chre_slpi_get_message_to_host(
@@ -218,6 +218,13 @@ static void *chre_message_to_host_thread(void *arg) {
         server->sendToClientById(messageBuffer,
                                  static_cast<size_t>(messageLen), hostClientId);
       }
+    } else if (!chre_shutdown_requested) {
+      LOGE("Received an unknown result and no shutdown was requested. Quitting");
+      exit(-1);
+    } else {
+      // Received an unknown result but a shutdown was requested. Break from the
+      // loop to allow the daemon to cleanup.
+      break;
     }
   }
 
