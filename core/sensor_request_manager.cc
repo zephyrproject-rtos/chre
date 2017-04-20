@@ -29,28 +29,22 @@ bool isSensorRequestValid(const Sensor& sensor,
       sensorRequest.getMode());
   bool isRequestOneShot = sensorModeIsOneShot(sensorRequest.getMode());
   uint64_t requestedInterval = sensorRequest.getInterval().toRawNanoseconds();
-  uint64_t requestedLatency = sensorRequest.getLatency().toRawNanoseconds();
   SensorType sensorType = sensor.getSensorType();
 
   bool success = true;
-  if (isRequestContinuous) {
+  if (requestedInterval < sensor.getMinInterval()) {
+    success = false;
+    LOGE("Requested interval %" PRIu64 " < sensor's minInterval %" PRIu64,
+         requestedInterval, sensor.getMinInterval());
+  } else if (isRequestContinuous) {
     if (sensorTypeIsOneShot(sensorType)) {
       success = false;
       LOGE("Invalid continuous request for a one-shot sensor.");
-    } else if (requestedInterval < sensor.getMinInterval()) {
-      success = false;
-      LOGE("Invalid requested interval %" PRIu64 " for a continuous sensor"
-           " with minInterval %" PRIu64,
-           requestedInterval, sensor.getMinInterval());
     }
   } else if (isRequestOneShot) {
     if (!sensorTypeIsOneShot(sensorType)) {
       success = false;
       LOGE("Invalid one-shot request for a continuous sensor.");
-    } else if (requestedInterval != CHRE_SENSOR_INTERVAL_DEFAULT ||
-               requestedLatency != CHRE_SENSOR_LATENCY_DEFAULT) {
-      success = false;
-      LOGE("Invalid interval and/or latency for a one-shot request.");
     }
   }
   return success;
