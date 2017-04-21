@@ -99,14 +99,13 @@ bool nanoappStart() {
       LOGE("chreSensorFindDefault failed");
     }
 
-    // TODO: Use passive sensor data.
-    // Subscribe to sensors.
+    // Passively subscribe to sensors.
     if (sensor.enable) {
       float odrHz = 1e9f / sensor.interval;
       float latencySec = sensor.latency / 1e9f;
-      bool status = chreSensorConfigure(sensor.handle,
-                                        CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
-                                        sensor.interval, sensor.latency);
+      bool status = chreSensorConfigure(
+          sensor.handle, CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS,
+          sensor.interval, sensor.latency);
 
       // TODO: Handle error condition.
       LOGI("Requested data: odr %f Hz, latency %f sec, %s", odrHz, latencySec,
