@@ -45,6 +45,10 @@ constexpr uint32_t kQmiTimeoutMs = 1000;
 //! in SMGR.
 constexpr float kGaussPerMicroTesla = 0.01f;
 
+//! The constant to convert magnetometer readings from Gauss in SMGR to uT in
+//! Android.
+constexpr float kMicroTeslaPerGauss = 100.0f;
+
 //! The QMI registry service client handle.
 qmi_client_type gRegistryServiceQmiClientHandle = nullptr;
 
@@ -360,6 +364,7 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
   return success;
 }
 
+// TODO: use group write to improve efficiency.
 bool ashSaveCalibrationParams(uint8_t sensorType,
                               const struct ashCalParams *calParams) {
   CHRE_ASSERT(calParams);
@@ -370,56 +375,68 @@ bool ashSaveCalibrationParams(uint8_t sensorType,
   } else if (calParams != nullptr) {
     success = true;
     size_t idx = getRegArrayRowIndex(sensorType);
-    // TODO: use group write to improve efficiency.
+    int32_t value32;
+    float scaling = 1.0f;
+    if (sensorType == CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD) {
+      scaling = kGaussPerMicroTesla;
+    }
+
     // offset
     success &= regWrite(gRegArray[idx][0], &calParams->offsetSource, 1);
-    success &= regWrite(gRegArray[idx][1], &calParams->offset[0], 4);
-    success &= regWrite(gRegArray[idx][2], &calParams->offset[1], 4);
-    success &= regWrite(gRegArray[idx][3], &calParams->offset[2], 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->offset[1] * scaling);
+    success &= regWrite(gRegArray[idx][1], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(calParams->offset[0] * scaling);
+    success &= regWrite(gRegArray[idx][2], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(-calParams->offset[2] * scaling);
+    success &= regWrite(gRegArray[idx][3], &value32, sizeof(value32));
 
     // offsetTempCelsius
     success &= regWrite(gRegArray[idx][4],
                         &calParams->offsetTempCelsiusSource, 1);
-    // retain factory cal format.
-    int32_t value32 = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
-    success &= regWrite(gRegArray[idx][5], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
+    success &= regWrite(gRegArray[idx][5], &value32, sizeof(value32));
 
     // tempSensitivity
     success &= regWrite(gRegArray[idx][6],
                         &calParams->tempSensitivitySource, 1);
-    // retain factory cal format
-    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[1]);
-    success &= regWrite(gRegArray[idx][7], &value32, 4);
-    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[0]);
-    success &= regWrite(gRegArray[idx][8], &value32, 4);
-    value32 = FX_FLTTOFIX_Q16(-calParams->tempSensitivity[2]);
-    success &= regWrite(gRegArray[idx][9], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[1] * scaling);
+    success &= regWrite(gRegArray[idx][7], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[0] * scaling);
+    success &= regWrite(gRegArray[idx][8], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(-calParams->tempSensitivity[2] * scaling);
+    success &= regWrite(gRegArray[idx][9], &value32, sizeof(value32));
 
     // tempIntercept
     success &= regWrite(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    // retain factory cal format
-    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[1]);
-    success &= regWrite(gRegArray[idx][11], &value32, 4);
-    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[0]);
-    success &= regWrite(gRegArray[idx][12], &value32, 4);
-    value32 = FX_FLTTOFIX_Q16(-calParams->tempIntercept[2]);
-    success &= regWrite(gRegArray[idx][13], &value32, 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[1] * scaling);
+    success &= regWrite(gRegArray[idx][11], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[0] * scaling);
+    success &= regWrite(gRegArray[idx][12], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(-calParams->tempIntercept[2] * scaling);
+    success &= regWrite(gRegArray[idx][13], &value32, sizeof(value32));
 
     // scaleFactor
     success &= regWrite(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
-    success &= regWrite(gRegArray[idx][15], &calParams->scaleFactor[0], 4);
-    success &= regWrite(gRegArray[idx][16], &calParams->scaleFactor[1], 4);
-    success &= regWrite(gRegArray[idx][17], &calParams->scaleFactor[2], 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->scaleFactor[1]);
+    success &= regWrite(gRegArray[idx][15], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(calParams->scaleFactor[0]);
+    success &= regWrite(gRegArray[idx][16], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(-calParams->scaleFactor[2]);
+    success &= regWrite(gRegArray[idx][17], &value32, sizeof(value32));
 
     // crossAxis
     success &= regWrite(gRegArray[idx][18], &calParams->crossAxisSource, 1);
-    success &= regWrite(gRegArray[idx][19], &calParams->crossAxis[0], 4);
-    success &= regWrite(gRegArray[idx][20], &calParams->crossAxis[1], 4);
-    success &= regWrite(gRegArray[idx][21], &calParams->crossAxis[2], 4);
+    value32 = FX_FLTTOFIX_Q16(calParams->crossAxis[1]);
+    success &= regWrite(gRegArray[idx][19], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(calParams->crossAxis[0]);
+    success &= regWrite(gRegArray[idx][20], &value32, sizeof(value32));
+    value32 = FX_FLTTOFIX_Q16(-calParams->crossAxis[2]);
+    success &= regWrite(gRegArray[idx][21], &value32, sizeof(value32));
   }
   return success;
 }
 
+// TODO: use group read to improve efficiency.
 bool ashLoadCalibrationParams(uint8_t sensorType,
                               struct ashCalParams *calParams) {
   CHRE_ASSERT(calParams);
@@ -430,52 +447,62 @@ bool ashLoadCalibrationParams(uint8_t sensorType,
   } else if (calParams != nullptr) {
     success = true;
     size_t idx = getRegArrayRowIndex(sensorType);
-    // TODO: use group read to improve efficiency.
+    int32_t value32;
+    float scaling = 1.0f;
+    if (sensorType == CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD) {
+      scaling = kMicroTeslaPerGauss;
+    }
+
     // offset
     success &= regRead(gRegArray[idx][0], &calParams->offsetSource, 1);
-    success &= regRead(gRegArray[idx][1], &calParams->offset[0], 4);
-    success &= regRead(gRegArray[idx][2], &calParams->offset[1], 4);
-    success &= regRead(gRegArray[idx][3], &calParams->offset[2], 4);
+    success &= regRead(gRegArray[idx][1], &value32, sizeof(value32));
+    calParams->offset[1] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][2], &value32, sizeof(value32));
+    calParams->offset[0] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][3], &value32, sizeof(value32));
+    calParams->offset[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
 
     // offsetTempCelsius
     success &= regRead(gRegArray[idx][4],
                        &calParams->offsetTempCelsiusSource, 1);
-    // factory cal format.
-    int32_t value32;
-    success &= regRead(gRegArray[idx][5], &value32, 4);
+    success &= regRead(gRegArray[idx][5], &value32, sizeof(value32));
     calParams->offsetTempCelsius = FX_FIXTOFLT_Q16(value32);
 
     // tempSensitivity
     success &= regRead(gRegArray[idx][6], &calParams->tempSensitivitySource, 1);
-    // factory cal format.
-    success &= regRead(gRegArray[idx][7], &value32, 4);
-    calParams->tempSensitivity[1] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][8], &value32, 4);
-    calParams->tempSensitivity[0] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][9], &value32, 4);
-    calParams->tempSensitivity[2] = -FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][7], &value32, sizeof(value32));
+    calParams->tempSensitivity[1] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][8], &value32, sizeof(value32));
+    calParams->tempSensitivity[0] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][9], &value32, sizeof(value32));
+    calParams->tempSensitivity[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
 
     // tempIntercept
     success &= regRead(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    // factory cal format.
-    success &= regRead(gRegArray[idx][11], &value32, 4);
-    calParams->tempIntercept[1] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][12], &value32, 4);
-    calParams->tempIntercept[0] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][13], &value32, 4);
-    calParams->tempIntercept[2] = -FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][11], &value32, sizeof(value32));
+    calParams->tempIntercept[1] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][12], &value32, sizeof(value32));
+    calParams->tempIntercept[0] = FX_FIXTOFLT_Q16(value32) * scaling;
+    success &= regRead(gRegArray[idx][13], &value32, sizeof(value32));
+    calParams->tempIntercept[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
 
     // scaleFactor
     success &= regRead(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
-    success &= regRead(gRegArray[idx][15], &calParams->scaleFactor[0], 4);
-    success &= regRead(gRegArray[idx][16], &calParams->scaleFactor[1], 4);
-    success &= regRead(gRegArray[idx][17], &calParams->scaleFactor[2], 4);
+    success &= regRead(gRegArray[idx][15], &value32, sizeof(value32));
+    calParams->scaleFactor[1] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][16], &value32, sizeof(value32));
+    calParams->scaleFactor[0] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][17], &value32, sizeof(value32));
+    calParams->scaleFactor[2] = -FX_FIXTOFLT_Q16(value32);
 
     // crossAxis
     success &= regRead(gRegArray[idx][18], &calParams->crossAxisSource, 1);
-    success &= regRead(gRegArray[idx][19], &calParams->crossAxis[0], 4);
-    success &= regRead(gRegArray[idx][20], &calParams->crossAxis[1], 4);
-    success &= regRead(gRegArray[idx][21], &calParams->crossAxis[2], 4);
+    success &= regRead(gRegArray[idx][19], &value32, sizeof(value32));
+    calParams->crossAxis[1] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][20], &value32, sizeof(value32));
+    calParams->crossAxis[0] = FX_FIXTOFLT_Q16(value32);
+    success &= regRead(gRegArray[idx][21], &value32, sizeof(value32));
+    calParams->crossAxis[2] = -FX_FIXTOFLT_Q16(value32);
   }
   return success;
 }
