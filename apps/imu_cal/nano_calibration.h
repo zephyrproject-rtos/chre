@@ -55,7 +55,7 @@
 namespace nano_calibration {
 
 // Default sensor temperature used for initialization.
-constexpr float kDefaultTemperatureCelsius = 30.0f;
+constexpr float kDefaultTemperatureCelsius = 20.0f;
 
 /*
  * Class Definition:  NanoSensorCal.
