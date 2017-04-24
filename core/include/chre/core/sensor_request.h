@@ -25,6 +25,10 @@
 
 namespace chre {
 
+//! Maximum of non-default interval and latency values in nanoseconds to ensure
+//! no overflow in CHRE operations.
+constexpr uint64_t kMaxIntervalLatencyNs = (UINT64_MAX - 1) / 2;
+
 // TODO: Move SensorType and related functions to a new file called
 // sensor_type.h and include it here. This will allow using this logic in util
 // code withput pulling in the entire SensorRequest class which is only intended
@@ -246,7 +250,8 @@ class SensorRequest {
   SensorRequest();
 
   /**
-   * Constructs a sensor request given a mode, interval and latency.
+   * Constructs a sensor request given a mode, interval and latency. Non-default
+   * interval or latency higher than kMaxIntervalLatencyNs will be capped.
    *
    * @param mode The mode of the sensor request.
    * @param interval The interval between samples.
@@ -257,7 +262,8 @@ class SensorRequest {
 
   /**
    * Constructs a sensor request given an owning nanoapp, mode, interval and
-   * latency.
+   * latency. Non-default interval or latency higher than kMaxIntervalLatencyNs
+   * will be capped.
    *
    * @param nanoapp The nanoapp that made this request.
    * @param mode The mode of the sensor request.

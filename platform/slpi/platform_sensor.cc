@@ -53,6 +53,9 @@ constexpr float kMicroTeslaPerGauss = 100.0f;
 //! The maximum number of CHRE sensors that share the same SMGR sensor ID.
 constexpr size_t kMaxNumSensorsPerSensorId = 3;
 
+//! The value to override a default interval request.
+constexpr uint64_t kDefaultInterval = Seconds(1).toRawNanoseconds();
+
 //! The QMI sensor service client handle.
 qmi_client_type gPlatformSensorServiceQmiClientHandle = nullptr;
 
@@ -974,22 +977,29 @@ void populateSensorRequest(
   // specified to be set to false or zero so this is safe.
   memset(sensorRequest, 0, sizeof(*sensorRequest));
 
-  // Reconstructs a request to deliver one-shot sensors' data ASAP.
+  // Reconstructs a request to deliver one-shot sensors' data ASAP and set
+  // default interval to some meaningful number.
   bool isOneShot = sensorTypeIsOneShot(getSensorTypeFromSensorId(
       sensorId, dataType, calType));
-  SensorRequest request(
-      chreRequest.getMode(), chreRequest.getInterval(),
-      isOneShot ? Nanoseconds(0) : chreRequest.getLatency());
+  uint64_t cappedInterval = chreRequest.getInterval().toRawNanoseconds();
+  if (cappedInterval == CHRE_SENSOR_INTERVAL_DEFAULT) {
+    cappedInterval = std::max(minInterval, kDefaultInterval);
+  }
+  SensorRequest request(chreRequest.getMode(), Nanoseconds(cappedInterval),
+                        isOneShot ? Nanoseconds(0) : chreRequest.getLatency());
 
   // Build the request for one sensor at the requested rate. An add action for a
   // ReportID that is already in use causes a replacement of the last request.
   sensorRequest->ReportId = getReportId(sensorId, dataType, calType);
   sensorRequest->Action = getSmgrRequestActionForMode(request.getMode());
-  // If latency < interval, request to SMGR would fail.
-  Nanoseconds batchingInterval =
-      (request.getLatency() > request.getInterval()) ?
-      request.getLatency() : request.getInterval();
-  sensorRequest->ReportRate = intervalToSmgrQ16ReportRate(batchingInterval);
+
+  // SMGR report interval should be (interval + latency). However, to handle
+  // fractional-interval latency setting and to guarantee meeting chre request,
+  // report interval is set to latency only. Also, lower-bound batchInterval as
+  // request to SMGR would fail if batchInterval < interval.
+  Nanoseconds batchInterval =
+      std::max(request.getLatency(), request.getInterval());
+  sensorRequest->ReportRate = intervalToSmgrQ16ReportRate(batchInterval);
   sensorRequest->Item_len = 1; // One sensor per request if possible.
   sensorRequest->Item[0].SensorId = sensorId;
   sensorRequest->Item[0].DataType = dataType;
