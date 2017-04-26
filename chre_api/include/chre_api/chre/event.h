@@ -91,6 +91,7 @@ extern "C" {
  * were started prior to the current nanoapp - use chreGetNanoappInfo() to
  * determine if another nanoapp is already running.
  *
+ * @see chreConfigureNanoappInfoEvents
  * @since v1.1
  */
 #define CHRE_EVENT_NANOAPP_STARTED  UINT16_C(0x0003)
@@ -102,6 +103,7 @@ extern "C" {
  * receive events sent via chreSendEvent().  Any events sent prior to receiving
  * this event are not guaranteed to have been delivered.
  *
+ * @see chreConfigureNanoappInfoEvents
  * @since v1.1
  */
 #define CHRE_EVENT_NANOAPP_STOPPED  UINT16_C(0x0004)
@@ -447,6 +449,25 @@ bool chreGetNanoappInfoByAppId(uint64_t appId, struct chreNanoappInfo *info);
 bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
                                     struct chreNanoappInfo *info);
 
+/**
+ * Configures whether this nanoapp will be notified when other nanoapps in the
+ * system start and stop, via CHRE_EVENT_NANOAPP_STARTED and
+ * CHRE_EVENT_NANOAPP_STOPPED.  These events are disabled by default, and if a
+ * nanoapp is not interested in interacting with other nanoapps, then it does
+ * not need to register for them.  However, if inter-nanoapp communication is
+ * desired, nanoapps are recommended to call this function from nanoappStart().
+ *
+ * If running on a CHRE platform that only supports v1.0 of the CHRE API, this
+ * function has no effect.
+ *
+ * @param enable true to enable these events, false to disable
+ *
+ * @see CHRE_EVENT_NANOAPP_STARTED
+ * @see CHRE_EVENT_NANOAPP_STOPPED
+ *
+ * @since v1.1
+ */
+void chreConfigureNanoappInfoEvents(bool enable);
 
 #ifdef __cplusplus
 }
