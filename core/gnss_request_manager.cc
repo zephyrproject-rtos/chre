@@ -319,12 +319,50 @@ void GnssRequestManager::handleLocationSessionStatusChangeSync(
                   "transitions");
   if (!mLocationSessionStateTransitions.empty()) {
     const auto& stateTransition = mLocationSessionStateTransitions.front();
+
+    if (success) {
+      mCurrentLocationSessionInterval = stateTransition.minInterval;
+    }
+
     success &= (stateTransition.enable == enabled);
     postLocationSessionAsyncResultEventFatal(stateTransition.nanoappInstanceId,
                                              success, stateTransition.enable,
                                              stateTransition.minInterval,
                                              errorCode, stateTransition.cookie);
     mLocationSessionStateTransitions.pop();
+  }
+
+  while (!mLocationSessionStateTransitions.empty()) {
+    const auto& stateTransition = mLocationSessionStateTransitions.front();
+
+    size_t requestIndex;
+    bool nanoappHasRequest = nanoappHasLocationSessionRequest(
+        stateTransition.nanoappInstanceId, &requestIndex);
+
+    if (locationSessionStateTransitionIsRequired(stateTransition.enable,
+                                                 stateTransition.minInterval,
+                                                 nanoappHasRequest,
+                                                 requestIndex)) {
+      if (mPlatformGnss.controlLocationSession(stateTransition.enable,
+                                               stateTransition.minInterval,
+                                               Milliseconds(0))) {
+        break;
+      } else {
+        LOGE("Failed to enable a GNSS location session for nanoapp instance "
+             "%" PRIu32, stateTransition.nanoappInstanceId);
+        postLocationSessionAsyncResultEventFatal(
+            stateTransition.nanoappInstanceId, false /* success */,
+            stateTransition.enable, stateTransition.minInterval,
+            CHRE_ERROR, stateTransition.cookie);
+        mLocationSessionStateTransitions.pop();
+      }
+    } else {
+      postLocationSessionAsyncResultEventFatal(
+          stateTransition.nanoappInstanceId, true /* success */,
+          stateTransition.enable, stateTransition.minInterval,
+          errorCode, stateTransition.cookie);
+      mLocationSessionStateTransitions.pop();
+    }
   }
 }
 
