@@ -19,6 +19,10 @@
 
 #include "chre/platform/shared/platform_log.h"
 
+#ifndef __FILENAME__
+#define __FILENAME__ __FILE__
+#endif
+
 #ifndef FARF_MEDIUM
 #define FARF_MEDIUM 1
 #endif

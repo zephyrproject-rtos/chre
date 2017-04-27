@@ -10,14 +10,8 @@ CHRE_PREFIX = .
 
 # Environment Checks ###########################################################
 
-# Ensure that the user has specified a path to the Hexagon SDK and SLPI tree
-# which are required build the runtime.
-ifeq ($(HEXAGON_SDK_PREFIX),)
-$(error "You must supply a HEXAGON_SDK_PREFIX environment variable \
-         containing a path to the hexagon SDK. Example: \
-         export HEXAGON_SDK_PREFIX=$$HOME/Qualcomm/Hexagon_SDK/3.0")
-endif
-
+# Ensure that the user has specified a path to the SLPI tree which is required
+# build the runtime.
 ifeq ($(SLPI_PREFIX),)
 $(error "You must supply an SLPI_PREFIX environment variable \
          containing a path to the SLPI source tree. Example: \
@@ -31,8 +25,6 @@ OUTPUT_NAME = libchre
 # Include Paths ################################################################
 
 # Hexagon Include Paths
-HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs
-HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/incs/stddef
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/ms
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/cust
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/debugtools
@@ -42,6 +34,9 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/HAP
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
