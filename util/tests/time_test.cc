@@ -145,14 +145,29 @@ TEST(Time, AddSecToNanosec) {
   EXPECT_EQ(t.toRawNanoseconds(), 5 * kOneSecondInNanoseconds + 6);
 }
 
+TEST(Time, AddSecToNanosecOverflow) {
+  Nanoseconds t = Seconds(5) + Nanoseconds(UINT64_MAX);
+  EXPECT_EQ(t.toRawNanoseconds(), 5 * kOneSecondInNanoseconds - 1);
+}
+
 TEST(Time, AddNanosecToNanosec) {
   Nanoseconds t = Nanoseconds(6) + Nanoseconds(5);
   EXPECT_EQ(t.toRawNanoseconds(), 11);
 }
 
+TEST(Time, AddNanosecToNanosecOverflow) {
+  Nanoseconds t = Nanoseconds(6) + Nanoseconds(UINT64_MAX);
+  EXPECT_EQ(t.toRawNanoseconds(), 5);
+}
+
 TEST(Time, SubtractNanosecFromNanosec) {
   Nanoseconds t = Nanoseconds(11) - Nanoseconds(5);
   EXPECT_EQ(t.toRawNanoseconds(), 6);
+}
+
+TEST(Time, SubtractNanosecFromNanosecOverflow) {
+  Nanoseconds t = Nanoseconds(5) - Nanoseconds(11);
+  EXPECT_EQ(t.toRawNanoseconds(), UINT64_MAX - 5);
 }
 
 TEST(Time, NanosecGreaterThanEqual) {
