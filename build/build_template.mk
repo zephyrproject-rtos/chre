@@ -97,15 +97,11 @@ endif
 
 # Compile ######################################################################
 
-# Add common and target-specific compiler flags.
-$$$(1)_CFLAGS = $(COMMON_CFLAGS) \
-    $(2)
-
 $$($$(1)_CXX_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
-	$(3) $(COMMON_CXX_CFLAGS) $$($$$(1)_CFLAGS) -c $$< -o $$@
+	$(3) $(COMMON_CXX_CFLAGS) $(2) -c $$< -o $$@
 
 $$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
-	$(3) $(COMMON_C_CFLAGS) $$($$$(1)_CFLAGS) -c $$< -o $$@
+	$(3) $(COMMON_C_CFLAGS) $(2) -c $$< -o $$@
 
 # Archive ######################################################################
 
@@ -139,7 +135,23 @@ endif
 # Template Invocation ##########################################################
 
 $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME), \
-                              $(TARGET_CFLAGS), \
+                              $(COMMON_CFLAGS) $(TARGET_CFLAGS), \
+                              $(TARGET_CC), \
+                              $(TARGET_SO_LDFLAGS), \
+                              $(TARGET_LD), \
+                              $(TARGET_ARFLAGS), \
+                              $(TARGET_AR), \
+                              $(TARGET_VARIANT_SRCS), \
+                              $(TARGET_BUILD_BIN), \
+                              $(TARGET_BIN_LDFLAGS), \
+                              $(TARGET_SO_EARLY_LIBS), \
+                              $(TARGET_SO_LATE_LIBS)))
+
+# Debug Template Invocation ####################################################
+
+$(eval $(call BUILD_TEMPLATE, $(TARGET_NAME)_debug, \
+                              $(COMMON_CFLAGS) $(COMMON_DEBUG_CFLAGS) \
+                                  $(TARGET_CFLAGS) $(TARGET_DEBUG_CFLAGS), \
                               $(TARGET_CC), \
                               $(TARGET_SO_LDFLAGS), \
                               $(TARGET_LD), \
