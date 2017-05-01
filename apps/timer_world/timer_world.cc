@@ -63,10 +63,6 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
     case CHRE_EVENT_TIMER:
       handleTimerEvent(eventData);
       break;
-    case CHRE_EVENT_NANOAPP_STARTED:
-    case CHRE_EVENT_NANOAPP_STOPPED:
-      // We don't use these events in this app
-      break;
     default:
       LOGW("Unknown event received");
       break;
