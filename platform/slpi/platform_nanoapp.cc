@@ -67,7 +67,7 @@ bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
          "provide (%" PRIu32 ")", targetApiMajorVersion, ourApiMajorVersion);
   } else if (strlen(appInfo->name) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
     LOGE("App name is too long");
-  } else if (strlen(appInfo->name) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
+  } else if (strlen(appInfo->vendor) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
     LOGE("App vendor is too long");
   } else {
     success = true;
