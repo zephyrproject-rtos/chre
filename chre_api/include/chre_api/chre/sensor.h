@@ -421,6 +421,12 @@ extern "C" {
  */
 #define CHRE_SENSOR_LATENCY_DEFAULT  UINT64_C(-1)
 
+/**
+ * Special value indicating non-importance of the batch interval.
+ *
+ * @see chreSensorConfigureWithBatchInterval
+ */
+#define CHRE_SENSOR_BATCH_INTERVAL_DEFAULT  UINT64_C(-1)
 
 // This is used to define elements of enum chreSensorConfigureMode.
 #define CHRE_SENSOR_CONFIGURE_RAW_POWER_ON           (1 << 0)
@@ -757,6 +763,9 @@ struct chreSensorSamplingStatus {
      * If this is CHRE_SENSOR_LATENCY_DEFAULT, then a latency
      * isn't meaningful for this sensor.
      *
+     * The effective batch interval can be derived from this value by
+     * adding the current sampling interval.
+     *
      * Note that if 'enabled' is false, this value is not meaningful.
      */
     uint64_t latency;
@@ -879,7 +888,7 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  * DONE mode after that single event triggers.  Thus, the
  * following are legitimate usages:
  * <code>
- *   chreSensorConfigure(myHandle, MODE_ONE_SHOT, rate, latency);
+ *   chreSensorConfigure(myHandle, MODE_ONE_SHOT, interval, latency);
  *   [...]
  *   [myHandle triggers an event]
  *   [no need to configure to DONE].
@@ -887,7 +896,7 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *
  * And:
  * <code>
- *   chreSensorConfigure(myHandle, MODE_ONE_SHOT, rate, latency);
+ *   chreSensorConfigure(myHandle, MODE_ONE_SHOT, interval, latency);
  *   [...]
  *   chreSensorConfigureModeOnly(myHandle, MODE_DONE);
  *   [we cancelled myHandle before it ever triggered an event]
@@ -914,7 +923,7 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *     Latency is defined as the "timestamp when event is queued by the CHRE"
  *     minus "timestamp of oldest unsent data reading".
  *     There is a special value CHRE_SENSOR_LATENCY_DEFAULT, in which we don't
- *     express a preference for the latency, and allow the sensor to chose what
+ *     express a preference for the latency, and allow the sensor to choose what
  *     it wants.
  *     Note that there is no assurance of how long it will take an event to
  *     get through a CHRE's queueing system, and thus there is no ability to
@@ -945,6 +954,60 @@ static inline bool chreSensorConfigureModeOnly(
                                CHRE_SENSOR_LATENCY_DEFAULT);
 }
 
+/**
+ * Convenience function that wraps chreSensorConfigure but enables batching to
+ * be controlled by specifying the desired maximum batch interval rather
+ * than maximum sample latency.  Users may find the batch interval to be a more
+ * intuitive method of expressing the desired batching behavior.
+ *
+ * Batch interval is different from latency as the batch interval time is
+ * counted starting when the prior event containing a batch of sensor samples is
+ * delivered, while latency starts counting when the first sample is deferred to
+ * start collecting a batch.  In other words, latency ignores the time between
+ * the last sample in a batch to the first sample of the next batch, while it's
+ * included in the batch interval, as illustrated below.
+ *
+ *  Time      0   1   2   3   4   5   6   7   8
+ *  Batch             A           B           C
+ *  Sample   a1  a2  a3  b1  b2  b3  c1  c2  c3
+ *  Latency  [        ]  [        ]  [        ]
+ *  BatchInt          |           |           |
+ *
+ * In the diagram, the effective sample interval is 1 time unit, latency is 2
+ * time units, and batch interval is 3 time units.
+ *
+ * @param sensorHandle See chreSensorConfigure#sensorHandle
+ * @param mode See chreSensorConfigure#mode
+ * @param sampleInterval See chreSensorConfigure#interval, but note that
+ *     CHRE_SENSOR_INTERVAL_DEFAULT is not a supported input to this method.
+ * @param batchInterval The desired maximum interval, in nanoseconds, between
+ *     CHRE enqueuing each batch of sensor samples.
+ * @return Same as chreSensorConfigure
+ *
+ * @see chreSensorConfigure
+ *
+ * @since v1.1
+ */
+static inline bool chreSensorConfigureWithBatchInterval(
+        uint32_t sensorHandle, enum chreSensorConfigureMode mode,
+        uint64_t sampleInterval, uint64_t batchInterval) {
+    bool result = false;
+
+    if (sampleInterval != CHRE_SENSOR_INTERVAL_DEFAULT) {
+        uint64_t latency;
+        if (batchInterval == CHRE_SENSOR_BATCH_INTERVAL_DEFAULT) {
+            latency = CHRE_SENSOR_LATENCY_DEFAULT;
+        } else if (batchInterval > sampleInterval) {
+            latency = batchInterval - sampleInterval;
+        } else {
+            latency = CHRE_SENSOR_LATENCY_ASAP;
+        }
+        result = chreSensorConfigure(sensorHandle, mode, sampleInterval,
+                                     latency);
+    }
+
+    return result;
+}
 
 #ifdef __cplusplus
 }
