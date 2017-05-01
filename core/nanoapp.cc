@@ -32,10 +32,7 @@ void Nanoapp::setInstanceId(uint32_t instanceId) {
 }
 
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
-  // All nanoapps receive start and stop events by default
-  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size()
-    || eventType == CHRE_EVENT_NANOAPP_STARTED
-    || eventType == CHRE_EVENT_NANOAPP_STOPPED);
+  return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
 }
 
 bool Nanoapp::registerForBroadcastEvent(uint16_t eventId) {
@@ -66,6 +63,25 @@ void Nanoapp::postEvent(Event *event) {
 
 bool Nanoapp::hasPendingEvent() {
   return !mEventQueue.empty();
+}
+
+void Nanoapp::configureNanoappInfoEvents(bool enable) {
+  bool success;
+  if (enable) {
+    success = registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
+    success &= registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
+  } else {
+    success = unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
+    success &= unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
+  }
+
+  if (!success) {
+    // An app has failed to register for an event and may be stuck waiting for
+    // an event that it will never receive. This is considered a fatal situation
+    // as the nanoapp is stuck and there is no way to recover other than
+    // unloading the nanoapp. This can happen in an OOM situation.
+    FATAL_ERROR("Failed to configure nanoapp info events to %d", enable);
+  }
 }
 
 Event *Nanoapp::processNextEvent() {
