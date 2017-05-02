@@ -121,6 +121,8 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
  * @param event a pointer to the details of the wifi scan event.
  */
 void handleWifiScanEvent(const chreWifiScanEvent *event) {
+  LOGI("Received Wifi scan event with %" PRIu8 " results", event->resultCount);
+
   for (uint8_t i = 0; i < event->resultCount; i++) {
     const chreWifiScanResult& result = event->results[i];
     logChreWifiResult(result);
