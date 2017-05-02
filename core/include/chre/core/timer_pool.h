@@ -58,6 +58,8 @@ class TimerPool : public NonCopyable {
    * @param duration The duration of the timer.
    * @param cookie A cookie to pass to the app when the timer elapses.
    * @param oneShot false if the timer is expected to auto-reload.
+   * @return TimerHandle of the requested timer. Returns CHRE_TIMER_INVALID if
+   *         not successful.
    */
   TimerHandle setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
       const void *cookie, bool oneShot);
@@ -172,8 +174,9 @@ class TimerPool : public NonCopyable {
    * closest expiration time is at the front of the list.
    *
    * @param timerRequest The timer request being inserted into the list.
+   * @return true if insertion of timer succeeds.
    */
-   void insertTimerRequest(const TimerRequest& timerRequest);
+   bool insertTimerRequest(const TimerRequest& timerRequest);
 
    /**
     * Handles a completion callback for a timer by scheduling the next timer if
