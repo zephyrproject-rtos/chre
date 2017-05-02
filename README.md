@@ -10,6 +10,12 @@ The vendor is the provider of the CHRE implementation (ex: google, qcom). The
 arch is the CPU architecture (ie: hexagonv60, x86, cm4). The variant is the
 target platform (ie: slpi, nanohub, linux, googletest).
 
+A debug build can be obtained by appending ``_debug`` to the variant triple. As
+an example:
+
+``make google_hexagonv62_slpi``
+``make google_hexagonv62_slpi_debug``
+
 ### Linux
 
 CHRE is compatible with Linux as a simulator.
