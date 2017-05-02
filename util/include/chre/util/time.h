@@ -200,8 +200,7 @@ class Nanoseconds {
  * @param nanoseconds the nanoseconds duration
  * @return the added time quantity expressed in nanoseconds
  */
-constexpr Nanoseconds operator+(const Seconds& seconds,
-                                const Nanoseconds& nanoseconds);
+constexpr Nanoseconds operator+(const Seconds& secs, const Nanoseconds& nanos);
 
 /**
  * Add nanoseconds to nanoseconds.
