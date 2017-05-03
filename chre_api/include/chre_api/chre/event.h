@@ -146,6 +146,18 @@ extern "C" {
 #define CHRE_EVENT_WWAN_LAST_EVENT   UINT16_C(0x032F)
 
 /**
+ * First in the extended range of values dedicated for internal CHRE
+ * implementation usage.
+ *
+ * This range is semantically the same as the internal event range defined
+ * below, but has been extended to allow for more implementation-specific events
+ * to be used.
+ *
+ * @since v1.1
+ */
+#define CHRE_EVENT_INTERNAL_EXTENDED_FIRST_EVENT  UINT16_C(0x7000)
+
+/**
  * First in a range of values dedicated for internal CHRE implementation usage.
  *
  * If a CHRE wishes to use events internally, any values within this range
