@@ -57,6 +57,15 @@ namespace nano_calibration {
 // Default sensor temperature used for initialization.
 constexpr float kDefaultTemperatureCelsius = 20.0f;
 
+// Maximum interval at which to check for OTC gyroscope offset updates.
+constexpr uint64_t kOtcGyroOffsetMaxUpdateIntervalNanos = 500000000;
+
+// The mathematical constant, Pi.
+constexpr float kPi = 3.141592653589793238f;
+
+// Unit conversion from nanoseconds to microseconds.
+constexpr float kNanoToMicroseconds = 1e-3f;
+
 /*
  * Class Definition:  NanoSensorCal.
  */

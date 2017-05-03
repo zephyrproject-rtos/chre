@@ -36,15 +36,6 @@ namespace {
 #define NANO_CAL_LOG(tag, format, ...) chreLogNull(format, ##__VA_ARGS__)
 #endif
 
-// Maximum interval at which to check for OTC gyroscope offset updates.
-constexpr uint64_t kOtcGyroOffsetMaxUpdateIntervalNanos = 500000000;
-
-// The mathematical constant, Pi.
-constexpr float kPi = 3.141592653589793238f;
-
-// Unit conversion from nanoseconds to microseconds.
-constexpr float kNanoToMicroseconds = 1e-3f;
-
 // Helper function that resets calibration data to a known initial state.
 void ResetCalParams(struct ashCalParams *cal_params) {
   // Puts 'cal_params' into a known "default" pass-through state (i.e.,
@@ -73,8 +64,8 @@ void ResetCalInfo(struct ashCalInfo *cal_info) {
 
 // Detects and converts Factory Calibration data into a format consumable by the
 // runtime accelerometer calibration algorithm.
-void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
 #ifdef ACCEL_CAL_ENABLED
+void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
   // Checks for factory calibration data and performs any processing on the
   // input to make it compatible with this runtime algorithm. NOTE: Factory
   // calibrations are distinguished by 'offsetSource'=ASH_CAL_PARAMS_SOURCE_NONE
@@ -97,13 +88,13 @@ void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
     NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
                  "Accelerometer factory calibration data received.");
   }
-#endif  // ACCEL_CAL_ENABLED
 }
+#endif  // ACCEL_CAL_ENABLED
 
 // Detects and converts Factory Calibration data into a format consumable by the
 // runtime gyroscope calibration algorithm.
-void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
 #ifdef GYRO_CAL_ENABLED
+void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
 #ifdef OVERTEMPCAL_ENABLED
   // Checks for factory calibration data and performs any processing on the
   // input to make it compatible with this runtime algorithm. NOTE: Factory
@@ -160,13 +151,13 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
                  "Gyroscope factory calibration data received.");
   }
 #endif  // OVERTEMPCAL_ENABLED
-#endif  // GYRO_CAL_ENABLED
 }
+#endif  // GYRO_CAL_ENABLED
 
 // Detects and converts Factory Calibration data into a format consumable by the
 // runtime magnetometer calibration algorithm.
-void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
 #ifdef MAG_CAL_ENABLED
+void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
   // Checks for factory calibration data and performs any processing on the
   // input to make it compatible with this runtime algorithm.
   bool factory_cal_detected =
@@ -185,8 +176,9 @@ void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
     NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
                  "Magnetometer factory calibration data received.");
   }
-#endif  // MAG_CAL_ENABLED
 }
+#endif  // MAG_CAL_ENABLED
+
 }  // anonymous namespace
 
 NanoSensorCal::NanoSensorCal() {
@@ -231,7 +223,7 @@ void NanoSensorCal::Initialize() {
       5.0f,                     // magnetometer variance threshold [uT]^2
       0.25,                     // magnetometer confidence delta [uT]^2
       0.95f,                    // stillness threshold [0,1]
-      40.0e-3f * kPi / 180.0f,  // stillness mean variation limit [rad/sec]
+      60.0e-3f * kPi / 180.0f,  // stillness mean variation limit [rad/sec]
       1.5f,   // maximum temperature deviation during stillness [C]
       true);  // gyro calibration enable
 
