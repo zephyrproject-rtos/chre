@@ -112,6 +112,11 @@ bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
   return eventLoopManager->populateNanoappInfoForInstanceId(instanceId, info);
 }
 
+void chreConfigureNanoappInfoEvents(bool enable) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  nanoapp->configureNanoappInfoEvents(enable);
+}
+
 void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
   char logBuf[512];
   va_list args;

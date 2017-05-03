@@ -38,13 +38,8 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void * /*eventData*/) {
-  // All nanoapps by default get informed of other apps starting and stopping in
-  // the system. Ignore these, but log others.
-  if (eventType != CHRE_EVENT_NANOAPP_STARTED
-      && eventType != CHRE_EVENT_NANOAPP_STOPPED) {
-    chreLog(CHRE_LOG_INFO, "Received event 0x%" PRIx16 " from 0x%" PRIx32 " at "
+  chreLog(CHRE_LOG_INFO, "Received event 0x%" PRIx16 " from 0x%" PRIx32 " at "
           "time %" PRIu64, eventType, senderInstanceId, chreGetTime());
-  }
 }
 
 void nanoappEnd() {

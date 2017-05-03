@@ -156,10 +156,6 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       handleCellInfoResult(
           static_cast<const chreWwanCellInfoResult *>(eventData));
       break;
-    case CHRE_EVENT_NANOAPP_STARTED:
-    case CHRE_EVENT_NANOAPP_STOPPED:
-      // We don't use these events in this app
-      break;
     default:
       LOGW("Unhandled event type %" PRIu16, eventType);
   }

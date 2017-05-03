@@ -71,6 +71,7 @@ bool nanoappStart() {
   CHRE_ASSERT(info.version == kAppVersion);
   CHRE_ASSERT(info.instanceId == chreGetInstanceId());
 
+  chreConfigureNanoappInfoEvents(true);
   return true;
 }
 
