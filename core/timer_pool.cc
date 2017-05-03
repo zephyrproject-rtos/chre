@@ -44,23 +44,25 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
 
   bool newTimerExpiresEarliest =
       (!mTimerRequests.empty() && mTimerRequests.top() > timerRequest);
-  insertTimerRequest(timerRequest);
+  bool success = insertTimerRequest(timerRequest);
 
-  LOGD("App %" PRIx64 " requested timer with duration %" PRIu64 "ns",
-      nanoapp->getAppId(), duration.toRawNanoseconds());
+  if (success) {
+    LOGD("App %" PRIx64 " requested timer with duration %" PRIu64 "ns",
+         nanoapp->getAppId(), duration.toRawNanoseconds());
 
-  if (newTimerExpiresEarliest) {
-    if (mSystemTimer.isActive()) {
-      mSystemTimer.cancel();
+    if (newTimerExpiresEarliest) {
+      if (mSystemTimer.isActive()) {
+        mSystemTimer.cancel();
+      }
+
+      mSystemTimer.set(handleSystemTimerCallback, this, duration);
+    } else if (mTimerRequests.size() == 1) {
+      // If this timer request was the first, schedule it.
+      handleExpiredTimersAndScheduleNext();
     }
-
-    mSystemTimer.set(handleSystemTimerCallback, this, duration);
-  } else if (mTimerRequests.size() == 1) {
-    // If this timer request was the first, schedule it.
-    handleExpiredTimersAndScheduleNext();
   }
 
-  return timerRequest.timerHandle;
+  return success ? timerRequest.timerHandle : CHRE_TIMER_INVALID;
 }
 
 bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
@@ -145,11 +147,14 @@ TimerHandle TimerPool::generateUniqueTimerHandle() {
   }
 }
 
-void TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
+bool TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
   // If the timer request was not inserted, simply append it to the list.
-  if (!mTimerRequests.push(timerRequest)) {
-    FATAL_ERROR("Failed to insert a timer request: out of memory");
+  bool success = mTimerRequests.push(timerRequest);
+  if (!success) {
+    LOGE("Failed to insert a timer request: out of memory");
   }
+
+  return success;
 }
 
 void TimerPool::onSystemTimerCallback() {
@@ -176,7 +181,7 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
         FATAL_ERROR("Failed to post timer event");
       }
 
-      // Reschedule the timer if needed.
+      // Reschedule the timer if needed, and release the current request.
       if (!currentTimerRequest.isOneShot) {
         // Important: we need to make a copy of currentTimerRequest here,
         // because it's a reference to memory that may get moved during the
@@ -184,11 +189,11 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
         TimerRequest cyclicTimerRequest = currentTimerRequest;
         cyclicTimerRequest.expirationTime = currentTime
             + currentTimerRequest.duration;
-        insertTimerRequest(cyclicTimerRequest);
+        mTimerRequests.pop();
+        CHRE_ASSERT(insertTimerRequest(cyclicTimerRequest));
+      } else {
+        mTimerRequests.pop();
       }
-
-      // Release the current request.
-      mTimerRequests.pop();
     } else {
       Nanoseconds duration = currentTimerRequest.expirationTime - currentTime;
       mSystemTimer.set(handleSystemTimerCallback, this, duration);
