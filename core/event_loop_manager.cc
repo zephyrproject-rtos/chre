@@ -169,4 +169,8 @@ WwanRequestManager& EventLoopManager::getWwanRequestManager() {
   return mWwanRequestManager;
 }
 
+MemoryManager& EventLoopManager::getMemoryManager() {
+  return mMemoryManager;
+}
+
 }  // namespace chre

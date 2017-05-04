@@ -21,6 +21,7 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/gnss_request_manager.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/core/memory_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
 #include "chre/core/wwan_request_manager.h"
@@ -225,6 +226,12 @@ class EventLoopManager : public NonCopyable {
    */
   WwanRequestManager& getWwanRequestManager();
 
+  /**
+   * @return A reference to the memory manager. This allows central control of
+   *         the heap space allocated by nanoapps.
+   */
+  MemoryManager& getMemoryManager();
+
  private:
   //! The mutex used to ensure that postEvent() completes for all event loops
   //! before another thread can start posting an event. This ensures consistency
@@ -267,6 +274,10 @@ class EventLoopManager : public NonCopyable {
   //! The WwanRequestManager that handles requests for nanoapps. This manages
   //! the state of the WWAN subsystem that the runtime subscribes to.
   WwanRequestManager mWwanRequestManager;
+
+  //! The MemoryManager that handles malloc/free call from nanoapps and also
+  //! controls upper limits on the heap allocation amount.
+  MemoryManager mMemoryManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.

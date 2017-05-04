@@ -53,11 +53,11 @@ DLL_EXPORT bool chreTimerCancel(uint32_t timerId) {
 }
 
 DLL_EXPORT void *chreHeapAlloc(uint32_t bytes) {
-  // TODO: Build a MemoryManager to track allocations to an app. If an app is
-  // unloaded or aborts we need to release any unfreed memory.
-  return chre::memoryAlloc(bytes);
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::EventLoopManagerSingleton::get()->getMemoryManager().
+      nanoappAlloc(nanoapp, bytes);
 }
 
 DLL_EXPORT void chreHeapFree(void *ptr) {
-  chre::memoryFree(ptr);
+  chre::EventLoopManagerSingleton::get()->getMemoryManager().nanoappFree(ptr);
 }
