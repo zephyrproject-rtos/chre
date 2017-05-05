@@ -112,6 +112,9 @@ class PlatformSensor : public PlatformSensorBase,
    * setting this new request fails due to a transient failure (example:
    * inability to communicate with the sensor) false must also be returned.
    *
+   * If the request's latency is lower than its interval, the platform sensor
+   * must deliver the first sample to clients as soon as it becomes available.
+   *
    * @param request The new request to set this sensor to.
    * @return true if the platform sensor was successfully configured with the
    *         supplied request.
