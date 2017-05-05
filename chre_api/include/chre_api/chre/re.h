@@ -227,6 +227,24 @@ void chreLog(enum chreLogLevel level, const char *formatStr, ...);
 uint64_t chreGetTime(void);
 
 /**
+ * Retrieve CHRE's estimate of the time on the host, corresponding to the
+ * Android API SystemClock.elapsedRealtimeNanos().
+ *
+ * A call to this function must not require waking up the host and should return
+ * quickly.  The CHRE platform is expected to maintain the ability to estimate
+ * the host's clock using its own clock source, for example by applying an
+ * offset to the value it would return in chreGetTime().
+ *
+ * @return An estimate of the current time on the host, accurate to within
+ *     +/- 1.5 milliseconds.  This estimate is not guaranteed to be
+ *     monotonically increasing, and may move backwards as a result of receiving
+ *     new information from the host.
+ *
+ * @since v1.1
+ */
+uint64_t chreGetEstimatedHostTime(void);
+
+/**
  * Set a timer.
  *
  * When the timer fires, nanoappHandleEvent will be invoked with
