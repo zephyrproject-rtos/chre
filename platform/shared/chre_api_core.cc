@@ -15,6 +15,7 @@
  */
 
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 
 #include "chre_api/chre/event.h"
