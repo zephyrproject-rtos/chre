@@ -22,9 +22,19 @@
 #include "chre/platform/system_time.h"
 #include "chre/util/singleton.h"
 
+#ifndef CHRE_VERSION_STRING
+#define CHRE_VERSION_STRING "undefined"
+#endif  // CHRE_VERSION_STRING
+
+//! The CHRE version string. Placed in a variable in the global namespace for
+//! easy access with debugging tools.
+static const char kChreVersionString[] = CHRE_VERSION_STRING;
+
 namespace chre {
 
 void init() {
+  LOGI("CHRE init, version: %s", kChreVersionString);
+
   SystemTime::init();
   PlatformSensor::init();
   ashInit();
@@ -35,6 +45,8 @@ void deinit() {
   EventLoopManagerSingleton::deinit();
   ashDeinit();
   PlatformSensor::deinit();
+
+  LOGI("CHRE deinit");
 }
 
 }  // namespace chre
