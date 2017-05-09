@@ -134,6 +134,9 @@ class TimerPool : public NonCopyable {
   //! The next timer handle for generateTimerHandle() to return.
   TimerHandle mLastTimerHandle = CHRE_TIMER_INVALID;
 
+  //! Max number of timers that can be requested for all apps
+  static constexpr size_t kMaxTimerRequests = 64;
+
   //! Whether or not the timer handle generation logic needs to perform a
   //! search for a vacant timer handle.
   bool mGenerateTimerHandleMustCheckUniqueness = false;

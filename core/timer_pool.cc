@@ -149,7 +149,8 @@ TimerHandle TimerPool::generateUniqueTimerHandle() {
 
 bool TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
   // If the timer request was not inserted, simply append it to the list.
-  bool success = mTimerRequests.push(timerRequest);
+  bool success = (mTimerRequests.size() < kMaxTimerRequests) &&
+      mTimerRequests.push(timerRequest);
   if (!success) {
     LOGE("Failed to insert a timer request: out of memory");
   }
