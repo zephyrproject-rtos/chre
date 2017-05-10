@@ -29,6 +29,9 @@ TARGET_CFLAGS += -fpic
 # Disable splitting double registers.
 TARGET_CFLAGS += -mllvm -disable-hsdr
 
+# Enable default visibility for FastRPC entry points.
+TARGET_CFLAGS += -D'__QAIC_SKEL_EXPORT=__attribute__((visibility("default")))'
+
 # This code is loaded into a dynamic module. Define this symbol in the event
 # that any Qualcomm code needs it.
 TARGET_CFLAGS += -D__V_DYNAMIC__

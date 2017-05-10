@@ -21,41 +21,43 @@
 #include "chre/platform/context.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
+#include "chre/util/macros.h"
 
 using chre::EventLoopManager;
 
-uint64_t chreGetTime() {
+DLL_EXPORT uint64_t chreGetTime() {
   return chre::SystemTime::getMonotonicTime().toRawNanoseconds();
 }
 
-uint64_t chreGetAppId(void) {
+DLL_EXPORT uint64_t chreGetAppId(void) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return nanoapp->getAppId();
 }
 
-uint32_t chreGetInstanceId(void) {
+DLL_EXPORT uint32_t chreGetInstanceId(void) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return nanoapp->getInstanceId();
 }
 
-uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot) {
+DLL_EXPORT uint32_t chreTimerSet(uint64_t duration, const void *cookie,
+                                 bool oneShot) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return chre::getCurrentEventLoop()->getTimerPool().setTimer(nanoapp,
       chre::Nanoseconds(duration), cookie, oneShot);
 }
 
-bool chreTimerCancel(uint32_t timerId) {
+DLL_EXPORT bool chreTimerCancel(uint32_t timerId) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return chre::getCurrentEventLoop()->getTimerPool().cancelTimer(nanoapp,
                                                                  timerId);
 }
 
-void *chreHeapAlloc(uint32_t bytes) {
+DLL_EXPORT void *chreHeapAlloc(uint32_t bytes) {
   // TODO: Build a MemoryManager to track allocations to an app. If an app is
   // unloaded or aborts we need to release any unfreed memory.
   return chre::memoryAlloc(bytes);
 }
 
-void chreHeapFree(void *ptr) {
+DLL_EXPORT void chreHeapFree(void *ptr) {
   chre::memoryFree(ptr);
 }
