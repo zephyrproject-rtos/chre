@@ -75,4 +75,10 @@ ChreSensorData *PlatformSensor::getLastEvent() const {
   return nullptr;
 }
 
+bool PlatformSensor::getSamplingStatus(
+    struct chreSensorSamplingStatus *status) const {
+  // TODO: Implement this.
+  return false;
+}
+
 }  // namespace chre

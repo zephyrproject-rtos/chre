@@ -74,6 +74,9 @@ class PlatformSensorBase {
   //! requested through Sensor::setRequest() as a passive request may not
   //! always be honored by PlatformSensor and the sensor can stay off.
   bool isSensorOff = true;
+
+  //! Stores the sampling status for all CHRE clients of this sensor.
+  struct chreSensorSamplingStatus samplingStatus;
 };
 
 }  // namespace chre

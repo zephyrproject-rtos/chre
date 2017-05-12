@@ -36,19 +36,4 @@ bool Sensor::setRequest(const SensorRequest& request) {
   return success;
 }
 
-bool Sensor::getSamplingStatus(struct chreSensorSamplingStatus *status) const {
-  CHRE_ASSERT(status);
-
-  bool success = false;
-  if (status != nullptr) {
-    success = true;
-
-    // TODO: return actual platform sampling status.
-    status->interval = mSensorRequest.getInterval().toRawNanoseconds();
-    status->latency = mSensorRequest.getLatency().toRawNanoseconds();
-    status->enabled = sensorModeIsActive(mSensorRequest.getMode());
-  }
-  return success;
-}
-
 }  // namespace chre
