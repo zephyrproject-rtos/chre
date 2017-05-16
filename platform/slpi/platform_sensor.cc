@@ -1041,6 +1041,14 @@ void populateSensorRequest(
     sensorRequest->Item[1].Calibration = SNS_SMGR_CAL_SEL_FULL_CAL_V01;
     sensorRequest->Item[1].SamplingRate = sensorRequest->Item[0].SamplingRate;
   }
+
+  // Synchronize fifo flushes with other clients that have SSC proc_type.
+  // send_indications_during_suspend has no effect on data sent to SLPI.
+  // Default is to synchronize with AP clients, which may have undesirable
+  // effects on sensor hal batching.
+  sensorRequest->notify_suspend_valid = true;
+  sensorRequest->notify_suspend.proc_type = SNS_PROC_SSC_V01;
+  sensorRequest->notify_suspend.send_indications_during_suspend = true;
 }
 
 /**
