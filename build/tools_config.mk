@@ -34,3 +34,7 @@ COMMON_DEBUG_CFLAGS += -g
 # Common Archive Flags #########################################################
 
 COMMON_ARFLAGS += rsc
+
+# Common Shared-Object Linker Flags ############################################
+
+COMMON_SO_LDFLAGS += -gc-sections
