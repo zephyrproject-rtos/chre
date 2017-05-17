@@ -31,6 +31,7 @@ TARGET_CFLAGS += -fpic
 # x86 Shared Object Linker Flags ###############################################
 
 TARGET_SO_LDFLAGS += -shared
+TARGET_SO_LDFLAGS += -Wl,-gc-sections
 
 # Optimization Level ###########################################################
 

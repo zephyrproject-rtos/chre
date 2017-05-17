@@ -38,6 +38,7 @@ TARGET_CFLAGS += -D__V_DYNAMIC__
 
 # Hexagon Shared Object Linker Flags ###########################################
 
+TARGET_SO_LDFLAGS += --gc-sections
 TARGET_SO_LDFLAGS += -shared
 TARGET_SO_LDFLAGS += -call_shared
 TARGET_SO_LDFLAGS += -Bsymbolic

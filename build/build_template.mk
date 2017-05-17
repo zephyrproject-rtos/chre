@@ -137,7 +137,7 @@ endif
 $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME), \
                               $(COMMON_CFLAGS) $(TARGET_CFLAGS), \
                               $(TARGET_CC), \
-                              $(COMMON_SO_LDFLAGS) $(TARGET_SO_LDFLAGS), \
+                              $(TARGET_SO_LDFLAGS), \
                               $(TARGET_LD), \
                               $(TARGET_ARFLAGS), \
                               $(TARGET_AR), \
@@ -153,7 +153,7 @@ $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME)_debug, \
                               $(COMMON_CFLAGS) $(COMMON_DEBUG_CFLAGS) \
                                   $(TARGET_CFLAGS) $(TARGET_DEBUG_CFLAGS), \
                               $(TARGET_CC), \
-                              $(COMMON_SO_LDFLAGS) $(TARGET_SO_LDFLAGS), \
+                              $(TARGET_SO_LDFLAGS), \
                               $(TARGET_LD), \
                               $(TARGET_ARFLAGS), \
                               $(TARGET_AR), \
