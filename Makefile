@@ -52,6 +52,11 @@ COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 # Place nanoapps in a namespace.
 COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
 
+# Force all CHRE symbols to be hidden by default.
+COMMON_CFLAGS += -fvisibility=hidden
+
+# Hexagon Flags ################################################################
+
 # Define CUST_H to allow including the customer header file.
 HEXAGON_CFLAGS += -DCUST_H
 

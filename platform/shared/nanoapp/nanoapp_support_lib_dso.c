@@ -18,6 +18,8 @@
 
 #include <chre.h>
 
+#include "chre/util/macros.h"
+
 /**
  * @file
  * The Nanoapp Support Library (NSL) that gets built with nanoapps to act as an
@@ -26,8 +28,7 @@
  * implement cross-version compatibility features as needed.
  */
 
-__attribute__((used)) __attribute__((visibility("default")))
-const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
+DLL_EXPORT const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
   .magic = CHRE_NSL_NANOAPP_INFO_MAGIC,
   .structMinorVersion = CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION,
   .targetApiVersion = CHRE_API_VERSION,

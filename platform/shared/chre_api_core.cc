@@ -25,13 +25,14 @@
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/util/macros.h"
 
 using chre::EventLoop;
 using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
 using chre::Nanoapp;
 
-void chreAbort(uint32_t abortCode) {
+DLL_EXPORT void chreAbort(uint32_t abortCode) {
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   // TODO: we should cleanly unload the nanoapp, release all of its resources,
@@ -44,9 +45,9 @@ void chreAbort(uint32_t abortCode) {
   }
 }
 
-bool chreSendEvent(uint16_t eventType, void *eventData,
-                   chreEventCompleteFunction *freeCallback,
-                   uint32_t targetInstanceId) {
+DLL_EXPORT bool chreSendEvent(uint16_t eventType, void *eventData,
+                              chreEventCompleteFunction *freeCallback,
+                              uint32_t targetInstanceId) {
   EventLoop *eventLoop;
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
                                                            &eventLoop);
@@ -69,17 +70,17 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
-bool chreSendMessageToHost(void *message, uint32_t messageSize,
-                           uint32_t messageType,
-                           chreMessageFreeFunction *freeCallback) {
+DLL_EXPORT bool chreSendMessageToHost(void *message, uint32_t messageSize,
+                                      uint32_t messageType,
+                                      chreMessageFreeFunction *freeCallback) {
   return chreSendMessageToHostEndpoint(
       message, static_cast<size_t>(messageSize), messageType,
       CHRE_HOST_ENDPOINT_BROADCAST, freeCallback);
 }
 
-bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
-                                   uint32_t messageType, uint16_t hostEndpoint,
-                                   chreMessageFreeFunction *freeCallback) {
+DLL_EXPORT bool chreSendMessageToHostEndpoint(
+    void *message, size_t messageSize, uint32_t messageType,
+    uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback) {
   EventLoop *eventLoop;
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
                                                            &eventLoop);
@@ -102,23 +103,24 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
   return success;
 }
 
-bool chreGetNanoappInfoByAppId(uint64_t appId, struct chreNanoappInfo *info) {
+DLL_EXPORT bool chreGetNanoappInfoByAppId(uint64_t appId,
+                                          struct chreNanoappInfo *info) {
   EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
   return eventLoopManager->populateNanoappInfoForAppId(appId, info);
 }
 
-bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
-                                    struct chreNanoappInfo *info) {
+DLL_EXPORT bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
+                                               struct chreNanoappInfo *info) {
   EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
   return eventLoopManager->populateNanoappInfoForInstanceId(instanceId, info);
 }
 
-void chreConfigureNanoappInfoEvents(bool enable) {
+DLL_EXPORT void chreConfigureNanoappInfoEvents(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   nanoapp->configureNanoappInfoEvents(enable);
 }
 
-void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
+DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
   char logBuf[512];
   va_list args;
 
