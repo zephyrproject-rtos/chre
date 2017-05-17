@@ -290,6 +290,3 @@ extern "C" int chre_slpi_initialize_reverse_monitor(void) {
 
   return (gTlsKeyValid) ? CHRE_FASTRPC_SUCCESS : CHRE_FASTRPC_ERROR;
 }
-
-// TODO: Remove this stub once the symbol is provided.
-extern "C" void __cxa_finalize(void *) {}
