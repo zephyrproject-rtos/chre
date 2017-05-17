@@ -124,6 +124,16 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
       uint64_t appId, bool allowSystemNanoappUnload);
 
   /**
+   * Encodes a message to send the AP timestamp to CHRE
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param timestamp The AP timestamp in nanoseconds
+   */
+  static void encodeTimeSyncMessage(flatbuffers::FlatBufferBuilder& builder,
+                                    uint64_t timestamp);
+
+  /**
    * Decodes the host client ID included in the message container
    *
    * @param message Buffer containing a complete FlatBuffers CHRE message

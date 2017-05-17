@@ -548,4 +548,8 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
   }
 }
 
+void HostMessageHandlers::handleTimeSyncMessage(uint64_t timestamp) {
+  // TODO: Store time sync difference between AP and DSP timestamp
+}
+
 }  // namespace chre

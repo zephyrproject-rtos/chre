@@ -28,24 +28,6 @@ table NanoappMessage {
   message:[ubyte] (required);
 }
 
-/// Represents log messages from CHRE.
-table LogMessage {
-  /// A buffer containing formatted log data. A flat array is used here to avoid
-  /// overhead in serializing and deserializing. The format is as follows:
-  ///
-  /// uint8_t                 - log level (1 = error, 2 = warning,
-  ///                                      3 = info, 4 = debug)
-  /// uint64_t, little-endian - timestamp in nanoseconds
-  /// char[]                  - message to log
-  /// char, \0                - null-terminator
-  ///
-  /// This pattern repeats until the end of the buffer for multiple log
-  /// messages. The last byte will always be a null-terminator. There are no
-  /// padding bytes between these fields. Treat this like a packed struct and be
-  /// cautious with unaligned access when reading/writing this buffer.
-  buffer:[byte];
-}
-
 table HubInfoRequest {}
 table HubInfoResponse {
   /// The name of the hub. Nominally a UTF-8 string, but note that we're not
@@ -132,6 +114,30 @@ table UnloadNanoappResponse {
   success:bool;
 }
 
+/// Represents log messages from CHRE.
+table LogMessage {
+  /// A buffer containing formatted log data. A flat array is used here to avoid
+  /// overhead in serializing and deserializing. The format is as follows:
+  ///
+  /// uint8_t                 - log level (1 = error, 2 = warning,
+  ///                                      3 = info, 4 = debug)
+  /// uint64_t, little-endian - timestamp in nanoseconds
+  /// char[]                  - message to log
+  /// char, \0                - null-terminator
+  ///
+  /// This pattern repeats until the end of the buffer for multiple log
+  /// messages. The last byte will always be a null-terminator. There are no
+  /// padding bytes between these fields. Treat this like a packed struct and be
+  /// cautious with unaligned access when reading/writing this buffer.
+  buffer:[byte];
+}
+
+/// Represents a message sent to CHRE to indicate AP timestamp for time sync
+table TimeSyncMessage {
+  /// AP clock timestamp
+  host_timestamp:ulong;
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -150,6 +156,8 @@ union ChreMessage {
   UnloadNanoappResponse,
 
   LogMessage,
+
+  TimeSyncMessage,
 }
 
 struct HostAddress {
