@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_STATIC_NANOAPPS_H_
-#define CHRE_PLATFORM_STATIC_NANOAPPS_H_
+#ifndef CHRE_CORE_STATIC_NANOAPPS_H_
+#define CHRE_CORE_STATIC_NANOAPPS_H_
 
 #include "chre/core/event_loop.h"
+#include "chre/core/nanoapp.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 
+//! Returns a pointer to a static nanoapp.
+typedef UniquePtr<Nanoapp> (*StaticNanoappInitFunction)();
+
 //! The list of static nanoapps to load.
-extern UniquePtr<Nanoapp> *const kStaticNanoappList[];
+extern const StaticNanoappInitFunction kStaticNanoappList[];
 
 //! The number of static nanoapps to load.
 extern const size_t kStaticNanoappCount;
@@ -38,4 +43,4 @@ void loadStaticNanoapps(EventLoop *eventLoop);
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_STATIC_NANOAPPS_H_
+#endif  // CHRE_CORE_STATIC_NANOAPPS_H_

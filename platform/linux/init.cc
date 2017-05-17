@@ -19,10 +19,10 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/core/nanoapp.h"
+#include "chre/core/static_nanoapps.h"
 #include "chre/platform/context.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/platform_log.h"
-#include "chre/platform/static_nanoapps.h"
 #include "chre/platform/system_timer.h"
 #include "chre/util/time.h"
 

@@ -25,6 +25,7 @@ extern "C" {
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
+#include "chre/core/static_nanoapps.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
@@ -32,7 +33,6 @@ extern "C" {
 #include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/preloaded_nanoapps.h"
-#include "chre/platform/static_nanoapps.h"
 #include "chre/util/lock_guard.h"
 
 using chre::EventLoop;
