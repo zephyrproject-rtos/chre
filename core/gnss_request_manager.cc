@@ -94,7 +94,7 @@ bool GnssRequestManager::configureLocationSession(
     Milliseconds minTimeToFirstFix, const void *cookie) {
   bool success = false;
   uint32_t instanceId = nanoapp->getInstanceId();
-  size_t requestIndex;
+  size_t requestIndex = 0;
   bool nanoappHasRequest = nanoappHasLocationSessionRequest(instanceId,
                                                             &requestIndex);
   if (!mLocationSessionStateTransitions.empty()) {
