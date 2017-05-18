@@ -59,10 +59,13 @@
 #include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
 
+#include <utils/SystemClock.h>
+
 //! The format string to use for logs from the CHRE implementation.
 #define HUB_LOG_FORMAT_STR "Hub (t=%.6f): %s"
 
 using android::chre::HostProtocolHost;
+using android::elapsedRealtimeNano;
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
@@ -173,6 +176,52 @@ static void parseAndEmitLogMessages(unsigned char *message) {
     // Advance the log pointer.
     size_t strLen = strlen(log);
     i += kLogMessageHeaderSize + strLen;
+  }
+}
+
+static int64_t getTimeOffset() {
+  int64_t timeOffset = 0;
+
+#if defined(__aarch64__)
+  // Reads the system time counter (CNTPCT) and its frequency (CNTFRQ)
+  // CNTPCT is used in the SLPI uTimetick API to compute the CHRE time
+  // More information can be found in the ARM reference manual
+  // (http://infocenter.arm.com/help/index.jsp?topic=
+  // /com.arm.doc.100048_0002_05_en/jfa1406793266982.html)
+  // Use uint64_t to store since the MRS instruction uses 64 bit (X) registers
+  // (http://infocenter.arm.com/help/topic/
+  // com.arm.doc.den0024a/ch06s05s02.html)
+ uint64_t qTimerCount = 0, qTimerFreqKHz = 0;
+  uint64_t hostTimeNano = elapsedRealtimeNano();
+  asm volatile("mrs %0, cntpct_el0" : "=r"(qTimerCount));
+  asm volatile("mrs %0, cntfrq_el0" : "=r"(qTimerFreqKHz));
+  qTimerFreqKHz /= 1000;
+
+  if (qTimerFreqKHz != 0) {
+    uint64_t qTimerNanos = (qTimerCount < UINT64_MAX / 1000000) ?
+        (qTimerCount * 1000000) : UINT64_MAX;
+    qTimerNanos /= qTimerFreqKHz;
+
+    timeOffset = hostTimeNano - qTimerNanos;
+  }
+#else
+#error "Unsupported CPU architecture type"
+#endif
+
+  return timeOffset;
+}
+
+static void sendTimeSyncMessage() {
+  int64_t timeOffset = getTimeOffset();
+
+  flatbuffers::FlatBufferBuilder builder(64);
+  HostProtocolHost::encodeTimeSyncMessage(builder, timeOffset);
+  int success = chre_slpi_deliver_message_from_host(
+      static_cast<const unsigned char *>(builder.GetBufferPointer()),
+      static_cast<int>(builder.GetSize()));
+
+  if (success != 0) {
+    LOGE("Failed to deliver timestamp message from host to CHRE: %d", success);
   }
 }
 
@@ -355,46 +404,50 @@ int main() {
 
   if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
-  } else if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
-    LOGE("Failed to start CHRE on SLPI: %d", ret);
   } else {
-    if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
-      LOGE("Couldn't start monitor thread");
-    } else if (!start_thread(&msg_to_host_thread, chre_message_to_host_thread,
-                             &server)) {
-      LOGE("Couldn't start CHRE->Host message thread");
+    // Send time offset message before nanoapps start
+    sendTimeSyncMessage();
+    if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
+      LOGE("Failed to start CHRE on SLPI: %d", ret);
     } else {
-      LOGI("CHRE on SLPI started");
-      // TODO: take 2nd argument as command-line parameter
-      server.run("chre", true, onMessageReceivedFromClient);
-    }
-
-    chre_shutdown_requested = true;
-    ret = chre_slpi_stop_thread();
-    if (ret != CHRE_FASTRPC_SUCCESS) {
-      LOGE("Failed to stop CHRE on SLPI: %d", ret);
-    } else {
-      // TODO: don't call pthread_join if the thread failed to start
-      LOGV("Joining monitor thread");
-      ret = pthread_join(monitor_thread, NULL);
-      if (ret != 0) {
-        LOG_ERROR("Join on monitor thread failed", ret);
+      if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
+        LOGE("Couldn't start monitor thread");
+      } else if (!start_thread(&msg_to_host_thread, chre_message_to_host_thread,
+                               &server)) {
+        LOGE("Couldn't start CHRE->Host message thread");
+      } else {
+        LOGI("CHRE on SLPI started");
+        // TODO: take 2nd argument as command-line parameter
+        server.run("chre", true, onMessageReceivedFromClient);
       }
 
-      LOGV("Joining reverse monitor thread");
-      pthread_cond_signal(&reverse_monitor.cond);
-      ret = pthread_join(reverse_monitor.thread, NULL);
-      if (ret != 0) {
-        LOG_ERROR("Join on reverse monitor thread failed", ret);
-      }
+      chre_shutdown_requested = true;
+      ret = chre_slpi_stop_thread();
+      if (ret != CHRE_FASTRPC_SUCCESS) {
+        LOGE("Failed to stop CHRE on SLPI: %d", ret);
+      } else {
+        // TODO: don't call pthread_join if the thread failed to start
+        LOGV("Joining monitor thread");
+        ret = pthread_join(monitor_thread, NULL);
+        if (ret != 0) {
+          LOG_ERROR("Join on monitor thread failed", ret);
+        }
 
-      LOGV("Joining message to host thread");
-      ret = pthread_join(msg_to_host_thread, NULL);
-      if (ret != 0) {
-        LOG_ERROR("Join on monitor thread failed", ret);
-      }
+        LOGV("Joining reverse monitor thread");
+        pthread_cond_signal(&reverse_monitor.cond);
+        ret = pthread_join(reverse_monitor.thread, NULL);
+        if (ret != 0) {
+          LOG_ERROR("Join on reverse monitor thread failed", ret);
+        }
 
-      LOGI("Shutdown complete");
+        LOGV("Joining message to host thread");
+        ret = pthread_join(msg_to_host_thread, NULL);
+        if (ret != 0) {
+          LOG_ERROR("Join on monitor thread failed", ret);
+        }
+
+        LOGI("Shutdown complete");
+      }
     }
   }
 

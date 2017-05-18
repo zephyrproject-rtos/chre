@@ -40,4 +40,8 @@ Nanoseconds SystemTime::getMonotonicTime() {
       + Nanoseconds(static_cast<uint64_t>(timeNow.tv_nsec));
 }
 
+int64_t SystemTime::getEstimatedHostTimeOffset() {
+  return 0;
+}
+
 }  // namespace chre
