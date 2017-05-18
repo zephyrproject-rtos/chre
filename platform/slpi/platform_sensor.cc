@@ -78,8 +78,8 @@ struct SensorMonitor {
 DynamicVector<SensorMonitor> gSensorMonitors;
 
 //! Forward declarations
-void makeAllPendingRequests(uint8_t sensorId);
-void removeAllPassiveRequests(uint8_t sensorId);
+bool makeAllPendingRequests(uint8_t sensorId);
+bool removeAllPassiveRequests(uint8_t sensorId);
 
 /**
  * Obtains the element index of gSensorMonitors that corresponds to the
@@ -729,8 +729,6 @@ SensorMode getMergedMode(uint8_t sensorId, SensorType sensorType,
  */
 void onNumSmgrClientsChange(uint8_t sensorId, uint8_t prevNumClients,
                             uint8_t currNumClients) {
-  LOGD("id %" PRIu64 ", num clients: prev %" PRIu8 " curr %" PRIu8,
-       sensorId, prevNumClients, currNumClients);
   bool makeAllRequests = (prevNumClients == 0 && currNumClients > 0);
   SensorRequest dummyRequest;
   SensorMode mode = getMergedMode(sensorId, SensorType::Unknown, dummyRequest);
@@ -738,13 +736,17 @@ void onNumSmgrClientsChange(uint8_t sensorId, uint8_t prevNumClients,
                             && currNumClients < prevNumClients
                             && currNumClients == getNumChreClients(sensorId)
                             && currNumClients > 0);
-  LOGD("makeAll %d, removeAll %d: mergedMode %d, numChreClients %d",
-       makeAllRequests, removeAllRequests, static_cast<size_t>(mode),
-       getNumChreClients(sensorId));
+  bool qmiRequestMade = false;
   if (makeAllRequests) {
-    makeAllPendingRequests(sensorId);
+    qmiRequestMade = makeAllPendingRequests(sensorId);
   } else if (removeAllRequests) {
-    removeAllPassiveRequests(sensorId);
+    qmiRequestMade = removeAllPassiveRequests(sensorId);
+  }
+
+  if (qmiRequestMade) {
+    LOGD("%s: id %" PRIu8 ", prev %" PRIu8 " curr %" PRIu8 ", mode %d, chre %d",
+         makeAllRequests ? "+" : "-", sensorId, prevNumClients, currNumClients,
+         static_cast<size_t>(mode), getNumChreClients(sensorId));
   }
 }
 
@@ -759,10 +761,6 @@ void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
     LOGE("Sensor status monitor update of invalid sensor ID %" PRIu64,
          status.sensor_id);
   } else {
-    LOGD("Status: id %" PRIu64 " clients %" PRIu8 " sampling %dHz wakeup %dHz",
-         status.sensor_id, status.num_clients,
-         status.sampling_rate, status.wakeup_rate);
-
     uint8_t numClients = gSensorMonitors[index].numClients;
     if (numClients != status.num_clients) {
       onNumSmgrClientsChange(status.sensor_id, numClients, status.num_clients);
@@ -1197,12 +1195,14 @@ bool makeRequest(SensorType sensorType, const SensorRequest& request) {
  * Makes all pending requests of the specified sensor ID to SMGR.
  *
  * @param sensorId The sensor ID whose pending requests are to be made.
+ * @return true if an ADD request has been accepted.
  */
-void makeAllPendingRequests(uint8_t sensorId) {
+bool makeAllPendingRequests(uint8_t sensorId) {
   // Identify sensor types to check for pending requests
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
   size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
       sensorId, sensorTypes);
+  bool accepted = false;
   for (size_t i = 0; i < numSensorTypes; i++) {
     const Sensor *sensor = EventLoopManagerSingleton::get()
         ->getSensorRequestManager().getSensor(sensorTypes[i]);
@@ -1210,9 +1210,10 @@ void makeAllPendingRequests(uint8_t sensorId) {
     // If sensor is off and the request is not off, it's a pending request.
     if (sensor != nullptr && sensor->isSensorOff
         && sensor->getRequest().getMode() != SensorMode::Off) {
-      makeRequest(sensorTypes[i], sensor->getRequest());
+      accepted |= makeRequest(sensorTypes[i], sensor->getRequest());
     }
   }
+  return accepted;
 }
 
 /**
@@ -1220,12 +1221,14 @@ void makeAllPendingRequests(uint8_t sensorId) {
  * adds them to the sensor monitor.
  *
  * @param sensorId The sensor ID whose passive QMI requests are to be removed.
+ * @return true if a DELETE request has been accepted.
  */
-void removeAllPassiveRequests(uint8_t sensorId) {
+bool removeAllPassiveRequests(uint8_t sensorId) {
   // Specify sensor types to check for passive requests
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
   size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
       sensorId, sensorTypes);
+  bool accepted = false;
   for (size_t i = 0; i < numSensorTypes; i++) {
     const Sensor *sensor = EventLoopManagerSingleton::get()
         ->getSensorRequestManager().getSensor(sensorTypes[i]);
@@ -1234,9 +1237,10 @@ void removeAllPassiveRequests(uint8_t sensorId) {
     if (sensor != nullptr
         && sensorModeIsPassive(sensor->getRequest().getMode())) {
       SensorRequest offRequest;
-      makeRequest(sensorTypes[i], offRequest);
+      accepted |= makeRequest(sensorTypes[i], offRequest);
     }
   }
+  return accepted;
 }
 
 }  // anonymous namespace
