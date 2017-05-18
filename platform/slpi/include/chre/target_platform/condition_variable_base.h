@@ -23,10 +23,14 @@ extern "C" {
 
 }  // extern "C"
 
+namespace chre {
+
 class ConditionVariableBase {
  protected:
   //! The underlying QURT condition variable.
   qurt_cond_t mConditionVariable;
 };
+
+}  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_CONDITION_VARIABLE_BASE_H_
