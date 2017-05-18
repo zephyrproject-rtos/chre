@@ -42,9 +42,12 @@ void init() {
 }
 
 void deinit() {
-  EventLoopManagerSingleton::deinit();
   ashDeinit();
   PlatformSensor::deinit();
+
+  // EventLoopManager has to be the last one to deinit to handle callback
+  // functions in PlatformSensor potentially from a different thread.
+  EventLoopManagerSingleton::deinit();
 
   LOGI("CHRE deinit");
 }
