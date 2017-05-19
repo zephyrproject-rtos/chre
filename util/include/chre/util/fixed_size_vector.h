@@ -27,6 +27,11 @@ template<typename ElementType, size_t kCapacity>
 class FixedSizeVector : public NonCopyable {
  public:
   /**
+   * Destructs the objects
+   */
+  ~FixedSizeVector();
+
+  /**
    * @return A reference to the last element in the vector
    */
   ElementType& back();

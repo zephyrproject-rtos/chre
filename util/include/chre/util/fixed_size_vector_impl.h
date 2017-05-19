@@ -25,6 +25,11 @@
 namespace chre {
 
 template<typename ElementType, size_t kCapacity>
+FixedSizeVector<ElementType, kCapacity>::~FixedSizeVector() {
+  destroy(data(), size());
+}
+
+template<typename ElementType, size_t kCapacity>
 ElementType& FixedSizeVector<ElementType, kCapacity>::back() {
   CHRE_ASSERT(mSize > 0);
   return data()[mSize - 1];
