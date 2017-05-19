@@ -31,6 +31,8 @@ struct UnloadNanoappRequest;
 
 struct UnloadNanoappResponse;
 
+struct TimeSyncMessage;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -49,8 +51,9 @@ enum class ChreMessage : uint8_t {
   UnloadNanoappRequest = 8,
   UnloadNanoappResponse = 9,
   LogMessage = 10,
+  TimeSyncMessage = 11,
   MIN = NONE,
-  MAX = LogMessage
+  MAX = TimeSyncMessage
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -66,6 +69,7 @@ inline const char **EnumNamesChreMessage() {
     "UnloadNanoappRequest",
     "UnloadNanoappResponse",
     "LogMessage",
+    "TimeSyncMessage",
     nullptr
   };
   return names;
@@ -118,6 +122,10 @@ template<> struct ChreMessageTraits<UnloadNanoappResponse> {
 
 template<> struct ChreMessageTraits<LogMessage> {
   static const ChreMessage enum_value = ChreMessage::LogMessage;
+};
+
+template<> struct ChreMessageTraits<TimeSyncMessage> {
+  static const ChreMessage enum_value = ChreMessage::TimeSyncMessage;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -295,6 +303,54 @@ inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
   return chre::fbs::CreateLogMessage(
       _fbb,
       buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
+}
+
+// Represents AP timestamp messages sent to CHRE.
+struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_TIMESTAMP = 4
+  };
+  uint64_t timestamp() const {
+    return GetField<uint64_t>(VT_TIMESTAMP, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_TIMESTAMP) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimeSyncMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_timestamp(uint64_t timestamp) {
+    fbb_.AddElement<uint64_t>(TimeSyncMessage::VT_TIMESTAMP, timestamp, 0);
+  }
+  TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
+  flatbuffers::Offset<TimeSyncMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<TimeSyncMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t timestamp = 0) {
+  TimeSyncMessageBuilder builder_(_fbb);
+  builder_.add_timestamp(timestamp);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessageDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const uint64_t timestamp = 0) {
+  return chre::fbs::CreateTimeSyncMessage(
+      _fbb, timestamp);
 }
 
 struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1046,6 +1102,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::LogMessage: {
       auto ptr = reinterpret_cast<const LogMessage *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::TimeSyncMessage: {
+      auto ptr = reinterpret_cast<const TimeSyncMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

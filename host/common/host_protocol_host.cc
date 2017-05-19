@@ -156,6 +156,12 @@ void HostProtocolHost::encodeUnloadNanoappRequest(
   finalize(builder, fbs::ChreMessage::UnloadNanoappRequest, request.Union());
 }
 
+void HostProtocolHost::encodeTimeSyncMessage(FlatBufferBuilder& builder,
+                                             uint64_t timestamp) {
+  auto request = fbs::CreateTimeSyncMessage(builder, timestamp);
+  finalize(builder, fbs::ChreMessage::TimeSyncMessage, request.Union());
+}
+
 bool HostProtocolHost::extractHostClientIdAndType(
     const void *message, size_t messageLen, uint16_t *hostClientId,
     ::chre::fbs::ChreMessage *messageType) {
