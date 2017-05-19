@@ -55,6 +55,17 @@ COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
 # Force all CHRE symbols to be hidden by default.
 COMMON_CFLAGS += -fvisibility=hidden
 
+ifeq ($(CHRE_PATCH_VERSION),)
+# Compute the patch version as the number of hours since the start of some
+# arbitrary epoch. This will roll over 16 bits after ~7 years, but patch version
+# is scoped to the API version, so we can adjust the offset when a new API
+# version is released.
+EPOCH=$(shell date --date='2017-01-01' +%s)
+CHRE_PATCH_VERSION = $(shell echo $$(((`date +%s` - $(EPOCH)) / (60 * 60))))
+endif
+
+COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
+
 # Hexagon Flags ################################################################
 
 # Define CUST_H to allow including the customer header file.
