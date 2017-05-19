@@ -31,11 +31,9 @@
  */
 #define CHRE_STATIC_NANOAPP_INIT(appName, appId, appVersion) \
 namespace chre {                                             \
-UniquePtr<Nanoapp> *gNanoapp##appName;                       \
                                                              \
-__attribute__((constructor))                                 \
-static void initializeStaticNanoapp##appName() {             \
-  static UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>(); \
+UniquePtr<Nanoapp> initializeStaticNanoapp##appName() {      \
+  UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();        \
   if (nanoapp.isNull()) {                                    \
     FATAL_ERROR("Failed to allocate nanoapp " #appName);     \
   } else {                                                   \
@@ -44,8 +42,9 @@ static void initializeStaticNanoapp##appName() {             \
     nanoapp->mEnd = nanoappEnd;                              \
     nanoapp->mAppId = appId;                                 \
     nanoapp->mAppVersion = appVersion;                       \
-    gNanoapp##appName = &nanoapp;                            \
   }                                                          \
+                                                             \
+  return nanoapp;                                            \
 }                                                            \
 }  /* namespace chre */
 

@@ -22,16 +22,16 @@
 
 namespace chre {
 
-extern UniquePtr<Nanoapp> *gNanoappGnssWorld;
-extern UniquePtr<Nanoapp> *gNanoappHelloWorld;
-extern UniquePtr<Nanoapp> *gNanoappImuCal;
-extern UniquePtr<Nanoapp> *gNanoappMessageWorld;
-extern UniquePtr<Nanoapp> *gNanoappSensorWorld;
-extern UniquePtr<Nanoapp> *gNanoappSpammer;
-extern UniquePtr<Nanoapp> *gNanoappTimerWorld;
-extern UniquePtr<Nanoapp> *gNanoappUnloadTester;
-extern UniquePtr<Nanoapp> *gNanoappWifiWorld;
-extern UniquePtr<Nanoapp> *gNanoappWwanWorld;
+UniquePtr<Nanoapp> initializeStaticNanoappGnssWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappHelloWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappImuCal();
+UniquePtr<Nanoapp> initializeStaticNanoappMessageWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappSensorWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappSpammer();
+UniquePtr<Nanoapp> initializeStaticNanoappTimerWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappUnloadTester();
+UniquePtr<Nanoapp> initializeStaticNanoappWifiWorld();
+UniquePtr<Nanoapp> initializeStaticNanoappWwanWorld();
 
 } // namespace chre
 

@@ -15,7 +15,7 @@
  */
 
 #include "chre/apps/apps.h"
-#include "chre/platform/static_nanoapps.h"
+#include "chre/core/static_nanoapps.h"
 #include "chre/util/macros.h"
 
 namespace chre {
@@ -26,17 +26,17 @@ namespace chre {
 #ifndef CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
 //! The default list of static nanoapps to load.
-UniquePtr<Nanoapp> *const kStaticNanoappList[] = {
-  gNanoappGnssWorld,
-  gNanoappHelloWorld,
-  gNanoappImuCal,
-  gNanoappMessageWorld,
-  gNanoappSensorWorld,
-  gNanoappSpammer,
-  gNanoappTimerWorld,
-  gNanoappUnloadTester,
-  gNanoappWifiWorld,
-  gNanoappWwanWorld,
+const StaticNanoappInitFunction kStaticNanoappList[] = {
+  initializeStaticNanoappGnssWorld,
+  initializeStaticNanoappHelloWorld,
+  initializeStaticNanoappImuCal,
+  initializeStaticNanoappMessageWorld,
+  initializeStaticNanoappSensorWorld,
+  initializeStaticNanoappSpammer,
+  initializeStaticNanoappTimerWorld,
+  initializeStaticNanoappUnloadTester,
+  initializeStaticNanoappWifiWorld,
+  initializeStaticNanoappWwanWorld,
 };
 
 //! The size of the default static nanoapp list.
@@ -46,7 +46,8 @@ const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
 
 void loadStaticNanoapps(EventLoop *eventLoop) {
   for (size_t i = 0; i < kStaticNanoappCount; i++) {
-    eventLoop->startNanoapp(*(kStaticNanoappList[i]));
+    UniquePtr<Nanoapp> nanoapp = kStaticNanoappList[i]();
+    eventLoop->startNanoapp(nanoapp);
   }
 }
 

@@ -36,7 +36,6 @@ HEXAGON_SRCS += platform/shared/pal_system_api.cc
 HEXAGON_SRCS += platform/shared/platform_gnss.cc
 HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/platform_wwan.cc
-HEXAGON_SRCS += platform/shared/static_nanoapps.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
 HEXAGON_SRCS += platform/slpi/fatal_error.cc
 HEXAGON_SRCS += platform/slpi/host_link.cc
@@ -78,7 +77,6 @@ X86_SRCS += platform/shared/pal_system_api.cc
 X86_SRCS += platform/shared/platform_gnss.cc
 X86_SRCS += platform/shared/platform_wifi.cc
 X86_SRCS += platform/shared/platform_wwan.cc
-X86_SRCS += platform/shared/static_nanoapps.cc
 X86_SRCS += platform/shared/system_time.cc
 
 GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
