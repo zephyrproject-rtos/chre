@@ -115,6 +115,12 @@ the Linux port is provided under ``platform/linux``.
 There are notes regarding initialization under
 ``platform/include/chre/platform/init.h`` that will also be helpful.
 
+### Important Considerations
+
+Platforms are required to implement support for invoking the constructors and
+destructors of global, non-POD types at load and unload time, respectively. This
+is required for both the runtime and nanoapps.
+
 ## Coding conventions
 
 There are many well-established coding standards within Google. The official
