@@ -237,9 +237,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
               status ? "success" : "failure");
       }
 
-      // Exercise chreGetSensorSamplingStatus on one sensor each time the app
-      // receives a PROX event.
-      if (sensors[statusIndex].isInitialized) {
+      // Exercise chreGetSensorSamplingStatus on one sensor on near->far.
+      if (sensors[statusIndex].isInitialized && reading.isNear == 0) {
         struct chreSensorSamplingStatus status;
         bool success = chreGetSensorSamplingStatus(sensors[statusIndex].handle,
                                                    &status);
@@ -260,6 +259,18 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
            getSensorNameForEventType(eventType), header.readingCount);
       break;
     }
+
+    case CHRE_EVENT_SENSOR_SAMPLING_CHANGE: {
+      const auto *ev = static_cast<const chreSensorSamplingStatusEvent *>(
+          eventData);
+
+      LOGI("Sampling Change: handle %" PRIu32 ", status: interval %" PRIu64
+           " latency %" PRIu64 " enabled %d",
+           ev->sensorHandle, ev->status.interval, ev->status.latency,
+           ev->status.enabled);
+      break;
+    }
+
 
     default:
       LOGW("Unhandled event %d", eventType);

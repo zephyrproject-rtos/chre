@@ -66,14 +66,6 @@ class Sensor : public PlatformSensor {
    */
   bool setRequest(const SensorRequest& request);
 
-  /**
-   * Gets the current status of this sensor in the CHRE API format.
-   *
-   * @param status A non-null pointer to chreSensorSamplingStatus to populate
-   * @return true if the sampling status has been successfully obtained.
-   */
-  bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
-
  private:
   //! The most recent sensor request accepted by the platform.
   SensorRequest mSensorRequest;

@@ -87,6 +87,14 @@ class PlatformSensor : public PlatformSensorBase,
    */
   ChreSensorData *getLastEvent() const;
 
+  /**
+   * Gets the current status of this sensor in the CHRE API format.
+   *
+   * @param status A non-null pointer to chreSensorSamplingStatus to populate
+   * @return true if the sampling status has been successfully obtained.
+   */
+  bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
+
  protected:
   /**
    * Default constructor that puts this instance in an unspecified state.

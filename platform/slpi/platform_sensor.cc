@@ -296,6 +296,11 @@ void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
       sensorInfo.SensorID, sensorInfo.DataType, calType);
   sensor.lastEvent = allocateLastEvent(sensorType, &sensor.lastEventSize);
 
+  sensor.isSensorOff = true;
+  sensor.samplingStatus.enabled = false;
+  sensor.samplingStatus.interval = CHRE_SENSOR_INTERVAL_DEFAULT;
+  sensor.samplingStatus.latency = CHRE_SENSOR_LATENCY_DEFAULT;
+
   if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
@@ -769,6 +774,60 @@ void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
   }
 }
 
+void chreSamplingStatusEventFree(uint16_t eventType, void *eventData) {
+  // TODO: Consider using a MemoryPool.
+  memoryFree(eventData);
+}
+
+/**
+ * Updates the sampling status after the QMI sensor request is accepted by SMGR.
+ */
+void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
+  // With SMGR's implementation, sampling interval will be filtered to be the
+  // same as requeted. Latency can be shorter if there were other SMGR clients
+  // with proc_type also set to SNS_PROC_SSC_V01.
+  // If the request is passive, 'enabled' may change over time and needs to be
+  // updated.
+  if (sensor != nullptr) {
+    bool postUpdate = false;
+    struct chreSensorSamplingStatus& status = sensor->samplingStatus;
+    bool enabled = (request.getMode() != SensorMode::Off);
+    if (status.enabled != enabled) {
+      postUpdate = true;
+      status.enabled = enabled;
+    }
+    if (!sensorTypeIsOneShot(sensor->getSensorType())) {
+      if (status.interval != request.getInterval().toRawNanoseconds()) {
+        postUpdate = true;
+        status.interval = request.getInterval().toRawNanoseconds();
+      }
+      if (status.latency != request.getLatency().toRawNanoseconds()) {
+        postUpdate = true;
+        status.latency = request.getLatency().toRawNanoseconds();
+      }
+    }
+
+    if (postUpdate) {
+      auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
+      if (event == nullptr) {
+        LOGE("Failed to allocate memory for sampling status change event");
+      } else {
+        event->sensorHandle = getSensorHandleFromSensorType(
+            sensor->getSensorType());
+        memcpy(&event->status, &status, sizeof(event->status));
+
+        // TODO: post event to nanoapps with a open request and register
+        // nanoapps for it.
+        if (!EventLoopManagerSingleton::get()->postEvent(
+                CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event,
+                chreSamplingStatusEventFree)) {
+          LOGE("Failed to post sampling status change event");
+        }
+      }
+    }
+  }
+}
+
 /**
  * Handles sensor status provided by the SMGR framework.
  *
@@ -1042,8 +1101,8 @@ void populateSensorRequest(
 
   // Synchronize fifo flushes with other clients that have SSC proc_type.
   // send_indications_during_suspend has no effect on data sent to SLPI.
-  // Default is to synchronize with AP clients, which may have undesirable
-  // effects on sensor hal batching.
+  // Default is to synchronize with AP clients, which may shorten flush
+  // intervals for data sent to the AP.
   sensorRequest->notify_suspend_valid = true;
   sensorRequest->notify_suspend.proc_type = SNS_PROC_SSC_V01;
   sensorRequest->notify_suspend.send_indications_during_suspend = true;
@@ -1187,6 +1246,8 @@ bool makeRequest(SensorType sensorType, const SensorRequest& request) {
     if (request.getMode() == SensorMode::Off) {
       sensor->lastEventValid = false;
     }
+
+    updateSamplingStatus(sensor, request);
   }
   return success;
 }
@@ -1390,12 +1451,25 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
 
   lastEventValid = other.lastEventValid;
   isSensorOff = other.isSensorOff;
+  samplingStatus = other.samplingStatus;
 
   return *this;
 }
 
 ChreSensorData *PlatformSensor::getLastEvent() const {
   return (this->lastEventValid) ? this->lastEvent : nullptr;
+}
+
+bool PlatformSensor::getSamplingStatus(
+    struct chreSensorSamplingStatus *status) const {
+  CHRE_ASSERT(status);
+
+  bool success = false;
+  if (status != nullptr) {
+    success = true;
+    memcpy(status, &samplingStatus, sizeof(*status));
+  }
+  return success;
 }
 
 void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
