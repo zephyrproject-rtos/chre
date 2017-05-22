@@ -142,7 +142,7 @@ This project uses C++11, but with two main caveats:
     be avoided, due to the relative scarcity of memory and CPU resources, and
     power considerations. Examples include RTTI, exceptions, overuse of dynamic
     memory allocation, etc. Refer to existing literature on this topic
-    including this [Technical Report on C++ Performance][1] and so on.
+    including this [Technical Report on C++ Performance][2] and so on.
  2. Support of C++ standard libraries are not generally expected to be
     extensive or widespread in the embedded environments where this code will
     run. That means that things like <thread> and <mutex> should not be used,
@@ -150,4 +150,4 @@ This project uses C++11, but with two main caveats:
     with less effort (potentially using those libraries if they are known to be
     available).
 
-[1]: http://www.open-std.org/jtc1/sc22/wg21/docs/TR18015.pdf
+[2]: http://www.open-std.org/jtc1/sc22/wg21/docs/TR18015.pdf
