@@ -50,7 +50,7 @@ class HostMessageHandlers {
       uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
       bool allowSystemNanoappUnload);
 
-  static void handleTimeSyncMessage(uint64_t timestamp);
+  static void handleTimeSyncMessage(int64_t offset);
 };
 
 /**

@@ -548,7 +548,7 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
   }
 }
 
-void HostMessageHandlers::handleTimeSyncMessage(uint64_t timestamp) {
+void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
   // TODO: Store time sync difference between AP and DSP timestamp
 }
 

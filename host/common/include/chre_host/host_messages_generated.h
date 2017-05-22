@@ -441,26 +441,26 @@ flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder 
 
 struct TimeSyncMessageT : public flatbuffers::NativeTable {
   typedef TimeSyncMessage TableType;
-  uint64_t timestamp;
-  TimeSyncMessageT() : timestamp(0) {
+  int64_t offset;
+  TimeSyncMessageT() : offset(0) {
   }
 };
 
-/// Represents AP timestamp messages sent to CHRE
+/// Represents timestamp offset messages sent to CHRE
 struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TimeSyncMessageT NativeTableType;
   enum {
-    VT_TIMESTAMP = 4
+    VT_OFFSET = 4
   };
-  uint64_t timestamp() const {
-    return GetField<uint64_t>(VT_TIMESTAMP, 0);
+  int64_t offset() const {
+    return GetField<int64_t>(VT_OFFSET, 0);
   }
-  bool mutate_timestamp(uint64_t timestamp) {
-    return SetField(VT_TIMESTAMP, timestamp);
+  bool mutate_offset(int64_t offset) {
+    return SetField(VT_OFFSET, offset);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint64_t>(verifier, VT_TIMESTAMP) &&
+           VerifyField<int64_t>(verifier, VT_OFFSET) &&
            verifier.EndTable();
   }
   TimeSyncMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -471,8 +471,8 @@ struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TimeSyncMessageBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_timestamp(uint64_t timestamp) {
-    fbb_.AddElement<uint64_t>(TimeSyncMessage::VT_TIMESTAMP, timestamp, 0);
+  void add_offset(int64_t offset) {
+    fbb_.AddElement<int64_t>(TimeSyncMessage::VT_OFFSET, offset, 0);
   }
   TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -488,17 +488,17 @@ struct TimeSyncMessageBuilder {
 
 inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint64_t timestamp = 0) {
+    int64_t offset = 0) {
   TimeSyncMessageBuilder builder_(_fbb);
-  builder_.add_timestamp(timestamp);
+  builder_.add_offset(offset);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint64_t timestamp = 0) {
+    int64_t offset = 0) {
   return chre::fbs::CreateTimeSyncMessage(
-      _fbb, timestamp);
+      _fbb, offset);
 }
 
 flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1548,7 +1548,7 @@ inline TimeSyncMessageT *TimeSyncMessage::UnPack(const flatbuffers::resolver_fun
 inline void TimeSyncMessage::UnPackTo(TimeSyncMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = timestamp(); _o->timestamp = _e; };
+  { auto _e = offset(); _o->offset = _e; };
 }
 
 inline flatbuffers::Offset<TimeSyncMessage> TimeSyncMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1558,10 +1558,10 @@ inline flatbuffers::Offset<TimeSyncMessage> TimeSyncMessage::Pack(flatbuffers::F
 inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  auto _timestamp = _o->timestamp;
+  auto _offset = _o->offset;
   return chre::fbs::CreateTimeSyncMessage(
       _fbb,
-      _timestamp);
+      _offset);
 }
 
 inline HubInfoRequestT *HubInfoRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

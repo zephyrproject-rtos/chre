@@ -305,17 +305,17 @@ inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
       buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
 }
 
-// Represents AP timestamp messages sent to CHRE.
+// Represents timestamp offset messages sent to CHRE.
 struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_TIMESTAMP = 4
+    VT_OFFSET = 4
   };
-  uint64_t timestamp() const {
-    return GetField<uint64_t>(VT_TIMESTAMP, 0);
+  int64_t offset() const {
+    return GetField<int64_t>(VT_OFFSET, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint64_t>(verifier, VT_TIMESTAMP) &&
+           VerifyField<int64_t>(verifier, VT_OFFSET) &&
            verifier.EndTable();
   }
 };
@@ -323,8 +323,8 @@ struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TimeSyncMessageBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_timestamp(uint64_t timestamp) {
-    fbb_.AddElement<uint64_t>(TimeSyncMessage::VT_TIMESTAMP, timestamp, 0);
+  void add_offset(int64_t offset) {
+    fbb_.AddElement<int64_t>(TimeSyncMessage::VT_OFFSET, offset, 0);
   }
   TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -340,17 +340,17 @@ struct TimeSyncMessageBuilder {
 
 inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint64_t timestamp = 0) {
+    int64_t offset = 0) {
   TimeSyncMessageBuilder builder_(_fbb);
-  builder_.add_timestamp(timestamp);
+  builder_.add_offset(offset);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const uint64_t timestamp = 0) {
+    const int64_t offset = 0) {
   return chre::fbs::CreateTimeSyncMessage(
-      _fbb, timestamp);
+      _fbb, offset);
 }
 
 struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

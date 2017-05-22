@@ -134,8 +134,8 @@ table LogMessage {
 
 /// Represents a message sent to CHRE to indicate AP timestamp for time sync
 table TimeSyncMessage {
-  /// AP clock timestamp
-  host_timestamp:ulong;
+  /// Offset between AP and SLPI timestamp
+  offset:long;
 }
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,

@@ -82,7 +82,7 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
       case fbs::ChreMessage::TimeSyncMessage: {
         const auto *request = static_cast<const fbs::TimeSyncMessage *>(
             container->message());
-        HostMessageHandlers::handleTimeSyncMessage(request->timestamp());
+        HostMessageHandlers::handleTimeSyncMessage(request->offset());
         break;
       }
 

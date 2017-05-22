@@ -157,8 +157,8 @@ void HostProtocolHost::encodeUnloadNanoappRequest(
 }
 
 void HostProtocolHost::encodeTimeSyncMessage(FlatBufferBuilder& builder,
-                                             uint64_t timestamp) {
-  auto request = fbs::CreateTimeSyncMessage(builder, timestamp);
+                                             int64_t offset) {
+  auto request = fbs::CreateTimeSyncMessage(builder, offset);
   finalize(builder, fbs::ChreMessage::TimeSyncMessage, request.Union());
 }
 
