@@ -22,8 +22,6 @@ MemoryManager::MemoryManager()
     : mTotalAllocatedBytes(0), mAllocationCount(0) {}
 
 void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
-  // TODO: Make this thread-safe (only needed if nanoapps execute out of
-  // multiple threads)
   AllocHeader *header = nullptr;
   if (bytes > 0) {
     if (mAllocationCount >= kMaxAllocationCount) {
@@ -49,8 +47,6 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
 }
 
 void MemoryManager::nanoappFree(void *ptr) {
-  // TODO: Make this thread-safe (only needed if nanoapps execute out of
-  // multiple threads)
   if (ptr != nullptr) {
     AllocHeader *header = static_cast<AllocHeader*>(ptr);
     header--;

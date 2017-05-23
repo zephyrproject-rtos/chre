@@ -334,9 +334,6 @@ bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp>& app) {
 }
 
 void EventLoop::distributeEvent(Event *event) {
-  // TODO: this is *not* thread-safe; if we have multiple EventLoops, then there
-  // is no safety mechanism that ensures an event is not freed twice, or that
-  // its free callback is invoked in the proper EventLoop, etc.
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
     if ((event->targetInstanceId == chre::kBroadcastInstanceId
             && app->isRegisteredForBroadcastEvent(event->eventType))
