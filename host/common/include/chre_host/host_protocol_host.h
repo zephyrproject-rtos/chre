@@ -128,10 +128,10 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
    *        construct the message
-   * @param timestamp The AP timestamp in nanoseconds
+   * @param offset The AP to SLPI offset in nanoseconds
    */
   static void encodeTimeSyncMessage(flatbuffers::FlatBufferBuilder& builder,
-                                    uint64_t timestamp);
+                                    int64_t offset);
 
   /**
    * Decodes the host client ID included in the message container
