@@ -206,14 +206,12 @@ void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
 
   bool success = false;
   uint32_t instanceId;
-  EventLoop *eventLoop;
-  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
-  if (!eventLoopManager->findNanoappInstanceIdByAppId(
-          cbData->appId, &instanceId, &eventLoop)) {
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  if (!eventLoop.findNanoappInstanceIdByAppId(cbData->appId, &instanceId)) {
     LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);
   } else {
-    success = eventLoop->unloadNanoapp(instanceId,
-                                       cbData->allowSystemNanoappUnload);
+    success = eventLoop.unloadNanoapp(instanceId,
+                                      cbData->allowSystemNanoappUnload);
   }
 
   constexpr size_t kInitialBufferSize = 52;

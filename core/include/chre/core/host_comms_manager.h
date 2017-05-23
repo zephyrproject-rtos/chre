@@ -161,15 +161,13 @@ class HostCommsManager : public NonCopyable {
    *
    * All parameters must be sanitized before invoking this function.
    *
-   * @param targetEventLoop EventLoop containing the target app
    * @param targetInstanceId Instance ID of the destination nanoapp
    *
    * @see sendMessageToNanoappFromHost
    */
   void deliverNanoappMessageFromHost(
       uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
-      const void *messageData, uint32_t messageSize, EventLoop *targetEventLoop,
-      uint32_t targetInstanceId);
+      const void *messageData, uint32_t messageSize, uint32_t targetInstanceId);
 
   /**
    * Releases memory associated with a message to the host, including invoking

@@ -202,8 +202,8 @@ bool WifiRequestManager::addScanMonitorRequestToQueue(Nanoapp *nanoapp,
 bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
                                                          uint32_t instanceId) {
   bool success = true;
-  Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
-      findNanoappByInstanceId(instanceId);
+  Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+      .findNanoappByInstanceId(instanceId);
   if (nanoapp == nullptr) {
     CHRE_ASSERT_LOG(false, "Failed to update scan monitoring list for "
                     "non-existent nanoapp");
@@ -262,9 +262,9 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
       event->cookie = cookie;
 
       // Post the event.
-      eventPosted = EventLoopManagerSingleton::get()->postEvent(
-          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-          kSystemInstanceId, nanoappInstanceId);
+      eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+          .postEvent(CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+                     kSystemInstanceId, nanoappInstanceId);
       if (!eventPosted) {
         memoryFree(event);
       }
@@ -298,9 +298,9 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
     event->cookie = cookie;
 
     // Post the event.
-    eventPosted = EventLoopManagerSingleton::get()->postEvent(
-        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-        kSystemInstanceId, nanoappInstanceId);
+    eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+        .postEvent(CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+                   kSystemInstanceId, nanoappInstanceId);
   }
 
   return eventPosted;
@@ -316,9 +316,9 @@ void WifiRequestManager::postScanRequestAsyncResultEventFatal(
 }
 
 void WifiRequestManager::postScanEventFatal(chreWifiScanEvent *event) {
-  bool eventPosted = EventLoopManagerSingleton::get()->postEvent(
-      CHRE_EVENT_WIFI_SCAN_RESULT, event, freeWifiScanEventCallback,
-      kSystemInstanceId, kBroadcastInstanceId);
+  bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+      .postEvent(CHRE_EVENT_WIFI_SCAN_RESULT, event, freeWifiScanEventCallback,
+                 kSystemInstanceId, kBroadcastInstanceId);
   if (!eventPosted) {
     FATAL_ERROR("Failed to send WiFi scan event");
   }
@@ -385,8 +385,8 @@ void WifiRequestManager::handleScanResponseSync(bool pending,
     mScanRequestResultsArePending = pending;
 
     if (pending) {
-      Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
-          findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
+      Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+          .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
       if (nanoapp == nullptr) {
         CHRE_ASSERT_LOG(false, "Received WiFi scan response for unknown "
                         "nanoapp");
@@ -421,8 +421,8 @@ void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
 
   if (!mScanRequestResultsArePending
       && mScanRequestingNanoappInstanceId.has_value()) {
-    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
-        findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
+    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+        .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
     if (nanoapp == nullptr) {
       CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
                       "WiFi scan events");

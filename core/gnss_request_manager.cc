@@ -81,9 +81,9 @@ void GnssRequestManager::handleLocationSessionStatusChange(bool enabled,
 }
 
 void GnssRequestManager::handleLocationEvent(chreGnssLocationEvent *event) {
-  bool eventPosted = EventLoopManagerSingleton::get()->postEvent(
-      CHRE_EVENT_GNSS_LOCATION, event, freeLocationEventCallback,
-      kSystemInstanceId, kBroadcastInstanceId);
+  bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+      .postEvent(CHRE_EVENT_GNSS_LOCATION, event, freeLocationEventCallback,
+                 kSystemInstanceId, kBroadcastInstanceId);
   if (!eventPosted) {
     FATAL_ERROR("Failed to send GNSS location event");
   }
@@ -217,8 +217,8 @@ bool GnssRequestManager::locationSessionStateTransitionIsRequired(
 bool GnssRequestManager::updateLocationSessionRequests(
     bool enable, Milliseconds minInterval, uint32_t instanceId) {
   bool success = true;
-  Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
-      findNanoappByInstanceId(instanceId);
+  Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+      .findNanoappByInstanceId(instanceId);
   if (nanoapp == nullptr) {
     CHRE_ASSERT_LOG(false, "Failed to update location session request list for "
                     "non-existent nanoapp");
@@ -288,9 +288,9 @@ bool GnssRequestManager::postLocationSessionAsyncResultEvent(
       event->reserved = 0;
       event->cookie = cookie;
 
-      eventPosted = EventLoopManagerSingleton::get()->postEvent(
-          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
-          kSystemInstanceId, instanceId);
+      eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+          .postEvent(CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
+                     kSystemInstanceId, instanceId);
 
       if (!eventPosted) {
         memoryFree(event);

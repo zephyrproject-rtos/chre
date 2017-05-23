@@ -60,9 +60,10 @@ void WwanRequestManager::handleCellInfoResultSync(
     chreWwanCellInfoResult *result) {
   if (mCellInfoRequestingNanoappInstanceId.has_value()) {
     result->cookie = mCellInfoRequestingNanoappCookie;
-    bool eventPosted = EventLoopManagerSingleton::get()->postEvent(
-        CHRE_EVENT_WWAN_CELL_INFO_RESULT, result, freeCellInfoResultCallback,
-        kSystemInstanceId, mCellInfoRequestingNanoappInstanceId.value());
+    bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+        .postEvent(CHRE_EVENT_WWAN_CELL_INFO_RESULT, result,
+                   freeCellInfoResultCallback, kSystemInstanceId,
+                   mCellInfoRequestingNanoappInstanceId.value());
     if (!eventPosted) {
       FATAL_ERROR("Failed to send WWAN cell info event");
     }
@@ -74,8 +75,8 @@ void WwanRequestManager::handleCellInfoResultSync(
 void WwanRequestManager::handleFreeCellInfoResult(
     chreWwanCellInfoResult *result) {
   if (mCellInfoRequestingNanoappInstanceId.has_value()) {
-    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->
-        findNanoappByInstanceId(*mCellInfoRequestingNanoappInstanceId);
+    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+        .findNanoappByInstanceId(*mCellInfoRequestingNanoappInstanceId);
     if (nanoapp != nullptr) {
       nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WWAN_CELL_INFO_RESULT);
     } else {

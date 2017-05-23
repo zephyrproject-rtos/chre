@@ -48,20 +48,18 @@ DLL_EXPORT void chreAbort(uint32_t abortCode) {
 DLL_EXPORT bool chreSendEvent(uint16_t eventType, void *eventData,
                               chreEventCompleteFunction *freeCallback,
                               uint32_t targetInstanceId) {
-  EventLoop *eventLoop;
-  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
-                                                           &eventLoop);
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   // Prevent an app that is in the process of being unloaded from generating new
   // events
   bool success = false;
-  if (eventLoop->currentNanoappIsStopping()) {
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  if (eventLoop.currentNanoappIsStopping()) {
     LOGW("Rejecting event from app instance %" PRIu32 " because it's stopping",
          nanoapp->getInstanceId());
   } else {
-    success = EventLoopManagerSingleton::get()->postEvent(
-        eventType, eventData, freeCallback, nanoapp->getInstanceId(),
-        targetInstanceId);
+    success = eventLoop.postEvent(eventType, eventData, freeCallback,
+                                  nanoapp->getInstanceId(), targetInstanceId);
   }
 
   if (!success && freeCallback != nullptr) {
@@ -81,12 +79,12 @@ DLL_EXPORT bool chreSendMessageToHost(void *message, uint32_t messageSize,
 DLL_EXPORT bool chreSendMessageToHostEndpoint(
     void *message, size_t messageSize, uint32_t messageType,
     uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback) {
-  EventLoop *eventLoop;
-  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__,
-                                                           &eventLoop);
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   bool success = false;
-  if (eventLoop->currentNanoappIsStopping()) {
+  const EventLoop& eventLoop = EventLoopManagerSingleton::get()
+      ->getEventLoop();
+  if (eventLoop.currentNanoappIsStopping()) {
     LOGW("Rejecting message to host from app instance %" PRIu32 " because it's "
          "stopping", nanoapp->getInstanceId());
   } else {
@@ -105,14 +103,14 @@ DLL_EXPORT bool chreSendMessageToHostEndpoint(
 
 DLL_EXPORT bool chreGetNanoappInfoByAppId(uint64_t appId,
                                           struct chreNanoappInfo *info) {
-  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
-  return eventLoopManager->populateNanoappInfoForAppId(appId, info);
+  return EventLoopManagerSingleton::get()->getEventLoop()
+      .populateNanoappInfoForAppId(appId, info);
 }
 
 DLL_EXPORT bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
                                                struct chreNanoappInfo *info) {
-  EventLoopManager *eventLoopManager = EventLoopManagerSingleton::get();
-  return eventLoopManager->populateNanoappInfoForInstanceId(instanceId, info);
+  return EventLoopManagerSingleton::get()->getEventLoop()
+      .populateNanoappInfoForInstanceId(instanceId, info);
 }
 
 DLL_EXPORT void chreConfigureNanoappInfoEvents(bool enable) {

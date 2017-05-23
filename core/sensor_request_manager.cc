@@ -158,9 +158,10 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
       // Deliver last valid event to new clients of on-change sensors
       if (sensorTypeIsOnChange(sensor.getSensorType())
           && sensor.getLastEvent() != nullptr) {
-        EventLoopManagerSingleton::get()->postEvent(
-            getSampleEventTypeForSensorType(sensorType), sensor.getLastEvent(),
-            nullptr, kSystemInstanceId, nanoapp->getInstanceId());
+        EventLoopManagerSingleton::get()->getEventLoop()
+            .postEvent(getSampleEventTypeForSensorType(sensorType),
+                       sensor.getLastEvent(), nullptr, kSystemInstanceId,
+                       nanoapp->getInstanceId());
       }
     }
   } else {

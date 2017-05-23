@@ -38,15 +38,13 @@ namespace {
 constexpr uint32_t kAppVersion = 99;
 
 void handleUnload(uint16_t /* eventType */, void * /* data */) {
-  auto *eventLoopManager = EventLoopManagerSingleton::get();
-  EventLoop *eventLoop;
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   uint32_t instanceId;
 
   LOGD("About to unload spammer nanoapp");
-  if (!eventLoopManager->findNanoappInstanceIdByAppId(
-          kSpammerAppId, &instanceId, &eventLoop)) {
+  if (!eventLoop.findNanoappInstanceIdByAppId(kSpammerAppId, &instanceId)) {
     LOGE("Couldn't unload nanoapp: not found");
-  } else if (!eventLoop->unloadNanoapp(instanceId, true)) {
+  } else if (!eventLoop.unloadNanoapp(instanceId, true)) {
     LOGE("Failed to unload nanoapp");
   }
 }
