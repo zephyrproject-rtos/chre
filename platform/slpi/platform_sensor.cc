@@ -774,9 +774,29 @@ void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
   }
 }
 
-void chreSamplingStatusEventFree(uint16_t eventType, void *eventData) {
-  // TODO: Consider using a MemoryPool.
-  memoryFree(eventData);
+/**
+ * Posts a CHRE_EVENT_SENSOR_SAMPLING_CHANGE event to the specified Nanoapp.
+ *
+ * @param instaceId The instance ID of the nanoapp with an open request
+ * @param eventRef A reference of the sampling status event to be posted.
+ */
+void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
+                             const struct chreSensorSamplingStatus& status) {
+  // TODO: add a generic reference counted pointer class and use it for Event
+  // to share across interested nanoapps.
+  auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
+  if (event == nullptr) {
+    LOGE("Failed to allocate memory for sampling status change event");
+  } else {
+    event->sensorHandle = sensorHandle;
+    memcpy(&event->status, &status, sizeof(event->status));
+
+    if (!EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+            CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
+            kSystemInstanceId, instanceId)) {
+      LOGE("Failed to post sampling status change event");
+    }
+  }
 }
 
 /**
@@ -808,20 +828,16 @@ void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
     }
 
     if (postUpdate) {
-      auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
-      if (event == nullptr) {
-        LOGE("Failed to allocate memory for sampling status change event");
-      } else {
-        event->sensorHandle = getSensorHandleFromSensorType(
-            sensor->getSensorType());
-        memcpy(&event->status, &status, sizeof(event->status));
+      uint32_t sensorHandle = getSensorHandleFromSensorType(
+          sensor->getSensorType());
 
-        // TODO: post event to nanoapps with a open request and register
-        // nanoapps for it.
-        if (!EventLoopManagerSingleton::get()->getEventLoop()
-            .postEvent(CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event,
-                       chreSamplingStatusEventFree)) {
-          LOGE("Failed to post sampling status change event");
+      // Only post to Nanoapps with an open request.
+      auto& requests = EventLoopManagerSingleton::get()->
+          getSensorRequestManager().getRequests(sensor->getSensorType());
+      for (const auto& req : requests) {
+        if (req.getNanoapp() != nullptr) {
+          postSamplingStatusEvent(req.getNanoapp()->getInstanceId(),
+                                  sensorHandle, status);
         }
       }
     }

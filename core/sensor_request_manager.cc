@@ -270,6 +270,18 @@ bool SensorRequestManager::getSensorSamplingStatus(
   return success;
 }
 
+const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
+    SensorType sensorType) const {
+  size_t sensorIndex = 0;
+  if (sensorType == SensorType::Unknown
+      || sensorType >= SensorType::SENSOR_TYPE_COUNT) {
+    LOGW("Attempting to get requests of an invalid SensorType");
+  } else {
+    sensorIndex = getSensorTypeArrayIndex(sensorType);
+  }
+  return mSensorRequests[sensorIndex].multiplexer.getRequests();
+}
+
 const SensorRequest *SensorRequestManager::SensorRequests::find(
     const Nanoapp *nanoapp, size_t *index) const {
   CHRE_ASSERT(index);

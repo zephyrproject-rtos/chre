@@ -107,6 +107,14 @@ class SensorRequestManager : public NonCopyable {
   bool getSensorSamplingStatus(uint32_t sensorHandle,
                                struct chreSensorSamplingStatus *status) const;
 
+  /**
+   * Obtains the list of open requests of the specified SensorType.
+   *
+   * @param sensorType The SensorType of the sensor.
+   * @return The list of open requests of this sensor in a DynamicVector.
+   */
+  const DynamicVector<SensorRequest>& getRequests(SensorType sensorType) const;
+
  private:
   /**
    * This allows tracking the state of a sensor with the various requests for it
