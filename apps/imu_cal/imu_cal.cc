@@ -148,6 +148,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       break;
     }
 
+    case CHRE_EVENT_SENSOR_SAMPLING_CHANGE:
+      break;
+
     default:
       LOGW("Unhandled event %d", eventType);
       break;
