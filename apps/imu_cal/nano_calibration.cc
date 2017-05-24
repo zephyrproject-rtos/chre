@@ -62,6 +62,26 @@ void ResetCalInfo(struct ashCalInfo *cal_info) {
   cal_info->accuracy = ASH_CAL_ACCURACY_MEDIUM;
 }
 
+// Helper function to print out calibration data.
+void PrintAshCalParams(const struct ashCalParams &cal_params, const char *tag) {
+  NANO_CAL_LOG(tag, "Offset | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+               cal_params.offset[0], cal_params.offset[1], cal_params.offset[2],
+               cal_params.offsetTempCelsius);
+
+  NANO_CAL_LOG(
+      tag, "Temp Sensitivity | Intercept: %.6f, %.6f, %.6f | %.6f, %.6f, %.6f",
+      cal_params.tempSensitivity[0], cal_params.tempSensitivity[1],
+      cal_params.tempSensitivity[2], cal_params.tempIntercept[0],
+      cal_params.tempIntercept[1], cal_params.tempIntercept[2]);
+
+  NANO_CAL_LOG(tag, "Scale Factor: %.6f, %.6f, %.6f", cal_params.scaleFactor[0],
+               cal_params.scaleFactor[1], cal_params.scaleFactor[2]);
+
+  NANO_CAL_LOG(tag, "Cross-Axis in [yx, zx, zy] order: %.6f, %.6f, %.6f",
+               cal_params.crossAxis[0], cal_params.crossAxis[1],
+               cal_params.crossAxis[2]);
+}
+
 // Detects and converts Factory Calibration data into a format consumable by the
 // runtime accelerometer calibration algorithm.
 #ifdef ACCEL_CAL_ENABLED
@@ -75,6 +95,9 @@ void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
       cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
 
   if (factory_cal_detected) {
+    // Prints the received factory data.
+    PrintAshCalParams(*cal_params,"[NanoSensorCal:ACCEL_FACTORY_CAL]");
+
     // Sets the parameter source to runtime calibration.
     cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
     cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
@@ -84,9 +107,6 @@ void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
     memset(cal_params->offset, 0, sizeof(cal_params->offset));
 
     //TODO: Incorporate over-temperature offset compensation.
-
-    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
-                 "Accelerometer factory calibration data received.");
   }
 }
 #endif  // ACCEL_CAL_ENABLED
@@ -95,7 +115,7 @@ void HandleAccelFactoryCalibration(struct ashCalParams *cal_params) {
 // runtime gyroscope calibration algorithm.
 #ifdef GYRO_CAL_ENABLED
 void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
   // Checks for factory calibration data and performs any processing on the
   // input to make it compatible with this runtime algorithm. NOTE: Factory
   // calibrations are distinguished by 'offsetSource'=ASH_CAL_PARAMS_SOURCE_NONE
@@ -107,6 +127,9 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
       cal_params->tempInterceptSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
 
   if (factory_cal_detected) {
+    // Prints the received factory data.
+    PrintAshCalParams(*cal_params,"[NanoSensorCal:GYRO_FACTORY_CAL]");
+
     // Sets the parameter source to runtime calibration.
     cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
     cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
@@ -120,16 +143,14 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
     for (size_t i = 0; i < 3; i++) {
       // Shifts the OTC linear model intercept by 'offset_at_offsetTempCelsius'.
       float offset_at_offsetTempCelsius =
-          cal_params->offsetTempCelsius + cal_params->tempIntercept[i];
+          cal_params->tempSensitivity[i] * cal_params->offsetTempCelsius +
+          cal_params->tempIntercept[i];
       cal_params->tempIntercept[i] -= offset_at_offsetTempCelsius;
     }
 
     // Ensures that the offset vector is zero in case it has been overwritten by
     // mistake.
     memset(cal_params->offset, 0, sizeof(cal_params->offset));
-
-    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
-                  "OTC-Gyroscope factory calibration data received.");
   }
 #else
   // Checks for factory calibration data and performs any processing on the
@@ -139,6 +160,9 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
       cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
 
   if (factory_cal_detected) {
+    // Prints the received factory data.
+    PrintAshCalParams(*cal_params,"[NanoSensorCal:GYRO_FACTORY_CAL]");
+
     // Sets the parameter source to runtime calibration.
     cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
     cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
@@ -146,11 +170,8 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
     // Ensures that the offset vector is zero in case it has been overwritten by
     // mistake.
     memset(cal_params->offset, 0, sizeof(cal_params->offset));
-
-    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
-                 "Gyroscope factory calibration data received.");
   }
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 }
 #endif  // GYRO_CAL_ENABLED
 
@@ -165,6 +186,9 @@ void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
       cal_params->offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_FACTORY;
 
   if (factory_cal_detected) {
+    // Print the received factory data.
+    PrintAshCalParams(*cal_params,"[NanoSensorCal:MAG_FACTORY_CAL]");
+
     // Sets the parameter source to runtime calibration.
     cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
     cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
@@ -172,9 +196,6 @@ void HandleMagFactoryCalibration(struct ashCalParams *cal_params) {
     // Ensures that the offset vector is zero in case it has been overwritten by
     // mistake.
     memset(cal_params->offset, 0, sizeof(cal_params->offset));
-
-    NANO_CAL_LOG("[NanoSensorCal:FACTORY_CAL]",
-                 "Magnetometer factory calibration data received.");
   }
 }
 #endif  // MAG_CAL_ENABLED
@@ -189,6 +210,8 @@ NanoSensorCal::NanoSensorCal() {
 }
 
 void NanoSensorCal::Initialize() {
+  NANO_CAL_LOG("[NanoSensorCal]", "Initialized.");
+
 #ifdef ACCEL_CAL_ENABLED
   // Initializes the accelerometer offset calibration algorithm.
   accelCalInit(&accel_cal_,
@@ -215,19 +238,19 @@ void NanoSensorCal::Initialize() {
       6e9,                      // max stillness period = 6 seconds
       0, 0, 0,                  // initial bias offset calibration
       0,                        // time stamp of initial bias calibration
-      1.5e9f,                   // analysis window length = 1.5 seconds
-      7.5e-5f,                  // gyroscope variance threshold [rad/sec]^2
-      1e-5f,                    // gyroscope confidence delta [rad/sec]^2
-      8e-3f,                    // accelerometer variance threshold [m/sec^2]^2
-      1.6e-3f,                  // accelerometer confidence delta [m/sec^2]^2
-      5.0f,                     // magnetometer variance threshold [uT]^2
-      0.25,                     // magnetometer confidence delta [uT]^2
+      1.5e9,                    // analysis window length = 1.5 seconds
+      6.3e-6f,                  // gyroscope variance threshold [rad/sec]^2
+      1.3e-6f,                  // gyroscope confidence delta [rad/sec]^2
+      3.1e-4f,                  // accelerometer variance threshold [m/sec^2]^2
+      6.2e-5f,                  // accelerometer confidence delta [m/sec^2]^2
+      3.0f,                     // magnetometer variance threshold [uT]^2
+      0.6f,                     // magnetometer confidence delta [uT]^2
       0.95f,                    // stillness threshold [0,1]
       60.0e-3f * kPi / 180.0f,  // stillness mean variation limit [rad/sec]
       1.5f,   // maximum temperature deviation during stillness [C]
       true);  // gyro calibration enable
 
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
   // Initializes the over-temperature compensated gyroscope (OTC-Gyro) offset
   // calibration algorithm.
   overTempCalInit(
@@ -235,12 +258,14 @@ void NanoSensorCal::Initialize() {
       5,                        // Min num of points to enable model update
       5000000000,               // Min model update interval [nsec]
       0.75f,                    // Temperature span of bin method [C]
-      50.0e-3f * kPi / 180.0f,  // Model fit tolerance [rad/sec]
+      80.0e-3f * kPi / 180.0f,  // Model fit tolerance [rad/sec]
+      250.0e-3f * kPi / 180.0f, // Outlier rejection tolerance [rad/sec]
       172800000000000,          // Model data point age limit [nsec]
-      50.0e-3f * kPi / 180.0f,  // Limit for temp. sensitivity [rad/sec/C]
+      100.0e-3f * kPi / 180.0f, // Limit for temp. sensitivity [rad/sec/C]
       3.0f * kPi / 180.0f,      // Limit for model intercept parameter [rad/sec]
+      3.0e-3f * kPi / 180.0f,   // Significant offset change [rad/sec]
       true);                    // Over-temp compensation enable
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 
   // Retrieves stored calibration data using the ASH API.
   LoadAshGyroCal();
@@ -255,6 +280,7 @@ void NanoSensorCal::Initialize() {
              1.0f, 0.0f, 0.0f,  // c00, c01, c02
              0.0f, 1.0f, 0.0f,  // c10, c11, c12
              0.0f, 0.0f, 1.0f,  // c20, c21, c22
+             3000000,           // min_batch_window_in_micros
              8,                 // min_num_diverse_vectors
              1,                 // max_num_max_distance
              6.0f,              // var_threshold
@@ -318,11 +344,11 @@ void NanoSensorCal::HandleTemperatureSamples(
     temperature_celsius_ = mean_temperature_celsius;
 
 #ifdef GYRO_CAL_ENABLED
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
       // Updates the OTC gyro temperature.
       overTempCalSetTemperature(&over_temp_gyro_cal_, timestamp_nanos,
                                 temperature_celsius_);
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
   }
 }
@@ -391,7 +417,7 @@ void NanoSensorCal::HandleSensorSamplesGyroCal(
       }
 
       if (gyroCalNewBiasAvailable(&gyro_cal_)) {
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
         // Sends new GyroCal offset estimate to the OTC-Gyro.
         float offset[3] = {0.0f, 0.0f, 0.0f};
         float offset_temperature_celsius = 0.0f;
@@ -403,45 +429,41 @@ void NanoSensorCal::HandleSensorSamplesGyroCal(
         // Provides a new gyroscope calibration update.
         gyro_calibration_ready_ = true;
         NotifyAshGyroCal();
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
       }
 
-#ifdef OVERTEMPCAL_ENABLED
-      // Checks OTC for new calibration update (OTC model data).
-      bool new_otc_model_update =
-          overTempCalNewModelUpdateAvailable(&over_temp_gyro_cal_);
-      bool new_otc_offset = false;
-
+#ifdef OVERTEMPCAL_GYRO_ENABLED
       // Limits the frequency of the offset update checks.
       if ((timestamp_nanos - otc_offset_timer_nanos_) >=
           kOtcGyroOffsetMaxUpdateIntervalNanos) {
         otc_offset_timer_nanos_ = timestamp_nanos;
 
+        // Checks OTC for new calibration model update.
+        bool new_otc_model_update =
+            overTempCalNewModelUpdateAvailable(&over_temp_gyro_cal_);
+
         // Checks for a change in the OTC-Gyro temperature compensated offset
         // estimate.
-        float offset[3] = {0.0f, 0.0f, 0.0f};
-        float offset_temperature_celsius = 0.0f;
-        new_otc_offset =
-            overTempCalGetOffset(&over_temp_gyro_cal_, timestamp_nanos,
-                                 &offset_temperature_celsius, offset);
-      }
+        bool new_otc_offset =
+            overTempCalNewOffsetAvailable(&over_temp_gyro_cal_);
 
-      if (new_otc_model_update || new_otc_offset) {
-        // Provides a temperature compensated gyroscope calibration update.
-        gyro_calibration_ready_ = true;
-        NotifyAshGyroCal();
+        if (new_otc_model_update || new_otc_offset) {
+          // Provides a temperature compensated gyroscope calibration update.
+          gyro_calibration_ready_ = true;
+          NotifyAshGyroCal();
+        }
       }
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 
 #ifdef GYRO_CAL_DBG_ENABLED
       // Print debug data report.
       gyroCalDebugPrint(&gyro_cal_, timestamp_nanos);
 #endif  // GYRO_CAL_DBG_ENABLED
 
-#if defined(OVERTEMPCAL_ENABLED) && defined(OVERTEMPCAL_DBG_ENABLED)
+#if defined(OVERTEMPCAL_GYRO_ENABLED) && defined(OVERTEMPCAL_DBG_ENABLED)
       // Print debug data report.
       overTempCalDebugPrint(&over_temp_gyro_cal_, timestamp_nanos);
-#endif  // OVERTEMPCAL_DBG_ENABLED && OVERTEMPCAL_DBG_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED && OVERTEMPCAL_DBG_ENABLED
       break;
     }
 
@@ -537,7 +559,7 @@ void NanoSensorCal::UpdateAccelCalParams() {
 
 void NanoSensorCal::UpdateGyroCalParams() {
 #ifdef GYRO_CAL_ENABLED
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
   // Gets the gyroscope's offset vector and temperature; and OTC linear model
   // parameters.
   uint64_t timestamp_nanos = 0;
@@ -560,7 +582,7 @@ void NanoSensorCal::UpdateGyroCalParams() {
   // Sets the parameter source to runtime calibration.
   gyro_cal_params_.offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
   gyro_cal_params_.offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
 }
 
@@ -599,6 +621,9 @@ void NanoSensorCal::LoadAshAccelCal() {
   }
 
   if (load_successful) {
+    // Updates the calibration data with ASH.
+    NotifyAshAccelCal();
+
     // Prints recalled calibration data.
     NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
                  "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
@@ -608,7 +633,7 @@ void NanoSensorCal::LoadAshAccelCal() {
   } else {
     NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
                  "Failed to recall accelerometer calibration data from "
-                 "persisent memory.");
+                 "persistent memory.");
   }
 #endif  // ACCEL_CAL_ENABLED
 }
@@ -621,7 +646,7 @@ void NanoSensorCal::LoadAshGyroCal() {
     // Checks for and performs required processing on input factory cal data.
     HandleGyroFactoryCalibration(&cal_params);
 
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
     // Gyroscope offset calibration with over-temperature compensation (OTC)
     // parameters were recalled.
     if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
@@ -634,11 +659,11 @@ void NanoSensorCal::LoadAshGyroCal() {
       // Sets the gyroscope algorithm's calibration data.
       gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
                      gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
-                     /*calibration_time_nanos=*/0);
+                     /*calibration_time_nanos=*/0);  //TODO -- get accurate time.
       overTempCalSetModel(&over_temp_gyro_cal_,
                           gyro_cal_params_.offset,
                           gyro_cal_params_.offsetTempCelsius,
-                          /*timestamp_nanos=*/0,
+                          /*timestamp_nanos=*/0,  //TODO -- get accurate time.
                           gyro_cal_params_.tempSensitivity,
                           gyro_cal_params_.tempIntercept,
                           /*jump_start_model=*/true);
@@ -680,13 +705,16 @@ void NanoSensorCal::LoadAshGyroCal() {
                    gyro_cal_params_.offset[2],
                    gyro_cal_params_.offsetTempCelsius);
     }
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
   }
 
-  if (!load_successful) {
+  if (load_successful) {
+    // Updates the calibration data with ASH.
+    NotifyAshGyroCal();
+  } else {
     NANO_CAL_LOG(
         "[NanoSensorCal:RECALL GYRO]",
-        "Failed to recall gyroscope calibration data from persisent memory.");
+        "Failed to recall gyroscope calibration data from persistent memory.");
   }
 #endif  // GYRO_CAL_ENABLED
 }
@@ -715,6 +743,9 @@ void NanoSensorCal::LoadAshMagCal() {
   }
 
   if (load_successful) {
+    // Updates the calibration data with ASH.
+    NotifyAshMagCal();
+
     // Prints recalled calibration data.
     NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
                  "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
@@ -723,7 +754,7 @@ void NanoSensorCal::LoadAshMagCal() {
   } else {
     NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
                  "Failed to recall Magnetometer calibration data from "
-                 "persisent memory.");
+                 "persistent memory.");
   }
 #endif  // MAG_CAL_ENABLED
 }
@@ -772,7 +803,7 @@ void NanoSensorCal::NotifyAshGyroCal() {
 #if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, &gyro_cal_params_)) {
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
     NANO_CAL_LOG("[NanoSensorCal:STORED OTC-GYRO]",
                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
@@ -792,7 +823,7 @@ void NanoSensorCal::NotifyAshGyroCal() {
                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
                  gyro_cal_params_.offset[2],
                  gyro_cal_params_.offsetTempCelsius);
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
   }
 #endif  // FACTORYCAL_IS_VERIFIED
 #endif  // GYRO_CAL_ENABLED
