@@ -33,3 +33,7 @@ endif
 # Common Includes
 include $(CHRE_PREFIX)/build/clean.mk
 include $(CHRE_PREFIX)/build/tools_config.mk
+
+# NanoPB Source Generation
+# TODO: Enable NanoPb source generation
+#include $(CHRE_PREFIX)/build/nanoapp/nanopb.mk
