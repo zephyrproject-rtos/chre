@@ -85,6 +85,15 @@ void logChreWwanInfo(const chreWwanCellInfo *cell) {
       LOGI("    arfcn %" PRId32, cell->CellInfo.gsm.cellIdentityGsm.arfcn);
       LOGI("    bsic %" PRIu8, cell->CellInfo.gsm.cellIdentityGsm.bsic);
       break;
+    case CHRE_WWAN_CELL_INFO_TYPE_WCDMA:
+      LOGI("  WCDMA cell detected");
+      LOGI("    mcc %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.mcc);
+      LOGI("    mnc %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.mnc);
+      LOGI("    lac %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.lac);
+      LOGI("    cid %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.cid);
+      LOGI("    psc %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.psc);
+      LOGI("    uarfcn %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.uarfcn);
+      break;
     default:
       // TODO: Support logging all cell types.
       LOGI("  unsupported cell info %" PRIu8, cell->cellInfoType);
