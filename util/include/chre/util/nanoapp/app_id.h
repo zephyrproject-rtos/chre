@@ -75,6 +75,7 @@ constexpr uint64_t kWwanWorldAppId    = makeExampleNanoappId(7);
 constexpr uint64_t kImuCalAppId       = makeExampleNanoappId(8);
 constexpr uint64_t kSpammerAppId      = makeExampleNanoappId(9);
 constexpr uint64_t kUnloadTesterAppId = makeExampleNanoappId(10);
+constexpr uint64_t kAshWorldAppId     = makeExampleNanoappId(11);
 
 }  // namespace chre
 

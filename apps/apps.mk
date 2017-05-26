@@ -8,6 +8,7 @@ COMMON_CFLAGS += -Iapps/include
 
 # App makefiles ################################################################
 
+include apps/ash_world/ash_world.mk
 include apps/gnss_world/gnss_world.mk
 include apps/hello_world/hello_world.mk
 include apps/imu_cal/imu_cal.mk
