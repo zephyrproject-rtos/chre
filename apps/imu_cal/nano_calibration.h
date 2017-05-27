@@ -19,7 +19,7 @@
  * calibration algorithms that affect the following sensors:
  *       - Accelerometer (offset)
  *       - Gyroscope (offset, with optional over-temperature compensation)
- *       - Magnetometer (offset)
+ *       - Magnetometer (offset, with optional scale factor and cross-axis)
  *
  * Sensor Units:
  *       - Accelerometer [meters/sec^2]
@@ -41,9 +41,9 @@
 
 #ifdef GYRO_CAL_ENABLED
 #include "calibration/gyroscope/gyro_cal.h"
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
 #include "calibration/over_temp/over_temp_cal.h"
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
 
 #ifdef MAG_CAL_ENABLED
@@ -142,13 +142,13 @@ class NanoSensorCal {
 #ifdef GYRO_CAL_ENABLED
   // Gyroscope runtime calibration.
   struct GyroCal gyro_cal_;
-#ifdef OVERTEMPCAL_ENABLED
+#ifdef OVERTEMPCAL_GYRO_ENABLED
   // Gyroscope over-temperature runtime calibration.
   struct OverTempCal over_temp_gyro_cal_;
 
   // Helper timer used to throttle OTC offset calibration updates.
   uint64_t otc_offset_timer_nanos_ = 0;
-#endif  // OVERTEMPCAL_ENABLED
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
 
 #ifdef MAG_CAL_ENABLED
