@@ -98,6 +98,11 @@ struct UnloadNanoappCallbackData {
   bool allowSystemNanoappUnload;
 };
 
+/**
+ * @see buildAndEnqueueMessage()
+ */
+typedef void (MessageBuilderFunction)(FlatBufferBuilder& builder, void *cookie);
+
 FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize>
     gOutboundQueue;
 
@@ -120,117 +125,148 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
   return result;
 }
 
+/**
+ * Helper function that takes care of the boilerplate for allocating a
+ * FlatBufferBuilder on the heap and adding it to the outbound message queue.
+ *
+ * @param msgType Identifies the message while in the outboud queue
+ * @param initialBufferSize Number of bytes to reserve when first allocating the
+ *        FlatBufferBuilder
+ * @param buildMsgFunc Synchronous callback used to encode the FlatBuffer
+ *        message. Will not be invoked if allocation fails.
+ * @param cookie Opaque pointer that will be passed through to buildMsgFunc
+ *
+ * @return true if the message was successfully added to the queue
+ */
+bool buildAndEnqueueMessage(PendingMessageType msgType,
+                            size_t initialBufferSize,
+                            MessageBuilderFunction *msgBuilder,
+                            void *cookie) {
+  bool pushed = false;
+
+  auto builder = MakeUnique<FlatBufferBuilder>(initialBufferSize);
+  if (builder.isNull()) {
+    LOGE("Couldn't allocate memory for message type %d",
+         static_cast<int>(msgType));
+  } else {
+    msgBuilder(*builder, cookie);
+
+    // TODO: if this fails, ideally we should block for some timeout until
+    // there's space in the queue
+    if (!gOutboundQueue.push(PendingMessage(msgType, builder.get()))) {
+      LOGE("Couldn't push message type %d to outbound queue",
+           static_cast<int>(msgType));
+    } else {
+      builder.release();
+      pushed = true;
+    }
+  }
+
+  return pushed;
+}
+
+void buildNanoappListResponse(
+    FlatBufferBuilder& builder,
+    DynamicVector<NanoappListEntryOffset>& nanoappEntries,
+    uint16_t hostClientId) {
+  struct CallbackData {
+    CallbackData(FlatBufferBuilder& builder_,
+                 DynamicVector<NanoappListEntryOffset>& nanoappEntries_)
+        : builder(builder_), nanoappEntries(nanoappEntries_) {}
+
+    FlatBufferBuilder& builder;
+    DynamicVector<NanoappListEntryOffset>& nanoappEntries;
+  };
+
+  auto callback = [](const Nanoapp *nanoapp, void *data) {
+    auto *cbData = static_cast<CallbackData *>(data);
+    HostProtocolChre::addNanoappListEntry(
+        cbData->builder, cbData->nanoappEntries, nanoapp->getAppId(),
+        nanoapp->getAppVersion(), true /*enabled*/,
+        nanoapp->isSystemNanoapp());
+  };
+
+  // Add a NanoappListEntry to the FlatBuffer for each nanoapp
+  CallbackData cbData(builder, nanoappEntries);
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  eventLoop.forEachNanoapp(callback, &cbData);
+  HostProtocolChre::finishNanoappListResponse(builder, nanoappEntries,
+                                              hostClientId);
+}
+
 void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
-  constexpr size_t kFixedOverhead = 56;
-  constexpr size_t kPerNanoappSize = 16;
+  struct NanoappListData {
+    DynamicVector<NanoappListEntryOffset> nanoappEntries;
+    uint16_t hostClientId;
+  };
+
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    auto *cbData = static_cast<NanoappListData *>(cookie);
+    buildNanoappListResponse(builder, cbData->nanoappEntries,
+                             cbData->hostClientId);
+  };
 
   HostClientIdCallbackData clientIdCbData;
   clientIdCbData.ptr = deferCbData;
 
-  // TODO: need to add support for getting apps from multiple event loops
-  bool pushed = false;
-  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
-  size_t expectedNanoappCount = eventLoop->getNanoappCount();
-  DynamicVector<NanoappListEntryOffset> nanoappEntries;
+  NanoappListData cbData;
+  cbData.hostClientId = clientIdCbData.hostClientId;
 
-  auto *builder = memoryAlloc<FlatBufferBuilder>(
-      kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
-  if (builder == nullptr) {
-    LOGE("Couldn't allocate builder for nanoapp list response");
-  } else if (!nanoappEntries.reserve(expectedNanoappCount)) {
+  const EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  size_t expectedNanoappCount = eventLoop.getNanoappCount();
+  if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
     LOGE("Couldn't reserve space for list of nanoapp offsets");
   } else {
-    struct CallbackData {
-      CallbackData(FlatBufferBuilder& builder_,
-                   DynamicVector<NanoappListEntryOffset>& nanoappEntries_)
-          : builder(builder_), nanoappEntries(nanoappEntries_) {}
+    constexpr size_t kFixedOverhead = 56;
+    constexpr size_t kPerNanoappSize = 16;
+    size_t initialBufferSize =
+        (kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
 
-      FlatBufferBuilder& builder;
-      DynamicVector<NanoappListEntryOffset>& nanoappEntries;
-    };
-
-    auto callback = [](const Nanoapp *nanoapp, void *untypedData) {
-      auto *data = static_cast<CallbackData *>(untypedData);
-      HostProtocolChre::addNanoappListEntry(
-          data->builder, data->nanoappEntries, nanoapp->getAppId(),
-          nanoapp->getAppVersion(), true /*enabled*/,
-          nanoapp->isSystemNanoapp());
-    };
-
-    // Add a NanoappListEntry to the FlatBuffer for each nanoapp
-    CallbackData cbData(*builder, nanoappEntries);
-    eventLoop->forEachNanoapp(callback, &cbData);
-    HostProtocolChre::finishNanoappListResponse(*builder, nanoappEntries,
-                                                clientIdCbData.hostClientId);
-
-    pushed = gOutboundQueue.push(
-        PendingMessage(PendingMessageType::NanoappListResponse, builder));
-    if (!pushed) {
-      LOGE("Couldn't push list response");
-    }
-  }
-
-  if (!pushed && builder != nullptr) {
-    memoryFree(builder);
+    buildAndEnqueueMessage(PendingMessageType::NanoappListResponse,
+                           initialBufferSize, msgBuilder, &cbData);
   }
 }
 
 void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
-  UniquePtr<LoadNanoappCallbackData> cbData(
-      static_cast<LoadNanoappCallbackData *>(data));
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    auto *cbData = static_cast<LoadNanoappCallbackData *>(cookie);
+    EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+    bool startedSuccessfully = (cbData->nanoapp->isLoaded()) ?
+        eventLoop.startNanoapp(cbData->nanoapp) : false;
 
-  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
-  bool startedSuccessfully = (cbData->nanoapp->isLoaded()) ?
-      eventLoop->startNanoapp(cbData->nanoapp) : false;
+    HostProtocolChre::encodeLoadNanoappResponse(
+        builder, cbData->hostClientId, cbData->transactionId,
+        startedSuccessfully);
+  };
 
   constexpr size_t kInitialBufferSize = 48;
-  auto *builder = memoryAlloc<FlatBufferBuilder>(kInitialBufferSize);
-  if (builder == nullptr) {
-    LOGE("Couldn't allocate memory for load nanoapp response");
-  } else {
-    HostProtocolChre::encodeLoadNanoappResponse(
-        *builder, cbData->hostClientId, cbData->transactionId,
-        startedSuccessfully);
-
-    // TODO: if this fails, ideally we should block for some timeout until
-    // there's space in the queue (like up to 1 second)
-    if (!gOutboundQueue.push(PendingMessage(
-            PendingMessageType::LoadNanoappResponse, builder))) {
-      LOGE("Couldn't push load nanoapp response to outbound queue");
-      memoryFree(builder);
-    }
-  }
+  buildAndEnqueueMessage(PendingMessageType::LoadNanoappResponse,
+                         kInitialBufferSize, msgBuilder, data);
+  memoryFree(data);
 }
 
 void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
-  auto *cbData = static_cast<UnloadNanoappCallbackData *>(data);
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    auto *cbData = static_cast<UnloadNanoappCallbackData *>(cookie);
 
-  bool success = false;
-  uint32_t instanceId;
-  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  if (!eventLoop.findNanoappInstanceIdByAppId(cbData->appId, &instanceId)) {
-    LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);
-  } else {
-    success = eventLoop.unloadNanoapp(instanceId,
-                                      cbData->allowSystemNanoappUnload);
-  }
+    bool success = false;
+    uint32_t instanceId;
+    EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+    if (!eventLoop.findNanoappInstanceIdByAppId(cbData->appId, &instanceId)) {
+      LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);
+    } else {
+      success = eventLoop.unloadNanoapp(instanceId,
+                                        cbData->allowSystemNanoappUnload);
+    }
+
+    HostProtocolChre::encodeUnloadNanoappResponse(
+        builder, cbData->hostClientId, cbData->transactionId, success);
+  };
 
   constexpr size_t kInitialBufferSize = 52;
-  auto *builder = memoryAlloc<FlatBufferBuilder>(kInitialBufferSize);
-  if (builder == nullptr) {
-    LOGE("Couldn't allocate memory for unload nanoapp response");
-  } else {
-    HostProtocolChre::encodeUnloadNanoappResponse(
-        *builder, cbData->hostClientId, cbData->transactionId, success);
-
-    if (!gOutboundQueue.push(PendingMessage(
-            PendingMessageType::UnloadNanoappResponse, builder))) {
-      LOGE("Couldn't push unload nanoapp response to outbound queue");
-      memoryFree(builder);
-    }
-  }
-
-  memoryFree(cbData);
+  buildAndEnqueueMessage(PendingMessageType::UnloadNanoappResponse,
+                         kInitialBufferSize, msgBuilder, data);
+  memoryFree(data);
 }
 
 int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
@@ -301,6 +337,7 @@ int generateMessageFromBuilder(
     unsigned int *messageLen) {
   CHRE_ASSERT(builder != nullptr);
   int result = copyToHostBuffer(*builder, buffer, bufferSize, messageLen);
+  builder->~FlatBufferBuilder();
   memoryFree(builder);
   return result;
 }
