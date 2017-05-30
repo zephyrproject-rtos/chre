@@ -139,13 +139,13 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp>& nanoapp) {
   CHRE_ASSERT(!nanoapp.isNull());
   bool success = false;
   auto *eventLoopManager = EventLoopManagerSingleton::get();
+  EventLoop& eventLoop = eventLoopManager->getEventLoop();
   uint32_t existingInstanceId;
 
   if (nanoapp.isNull()) {
     // no-op, invalid argument
-  } else if (eventLoopManager->findNanoappInstanceIdByAppId(nanoapp->getAppId(),
-                                                            &existingInstanceId,
-                                                            nullptr)) {
+  } else if (eventLoop.findNanoappInstanceIdByAppId(nanoapp->getAppId(),
+                                                    &existingInstanceId)) {
     LOGE("App with ID 0x%016" PRIx64 " already exists as instance ID 0x%"
          PRIx32, nanoapp->getAppId(), existingInstanceId);
   } else if (!mNanoapps.prepareForPush()) {
@@ -411,8 +411,7 @@ void EventLoop::notifyAppStatusChange(uint16_t eventType,
     info->version    = nanoapp.getAppVersion();
     info->instanceId = nanoapp.getInstanceId();
 
-    if (!EventLoopManagerSingleton::get()->postEvent(
-            eventType, info, freeEventDataCallback)) {
+    if (!postEvent(eventType, info, freeEventDataCallback)) {
       LOGE("Couldn't post app status change event");
       memoryFree(info);
     }

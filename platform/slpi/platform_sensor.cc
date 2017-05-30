@@ -589,7 +589,7 @@ void handleSensorDataIndication(void *userHandle, void *buffer,
             updateLastEvent(sensorType, eventData);
           }
 
-          EventLoopManagerSingleton::get()->postEvent(
+          EventLoopManagerSingleton::get()->getEventLoop().postEvent(
               getSampleEventTypeForSensorType(sensorType), eventData,
               smgrSensorDataEventFree);
         }
@@ -818,9 +818,9 @@ void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
 
         // TODO: post event to nanoapps with a open request and register
         // nanoapps for it.
-        if (!EventLoopManagerSingleton::get()->postEvent(
-                CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event,
-                chreSamplingStatusEventFree)) {
+        if (!EventLoopManagerSingleton::get()->getEventLoop()
+            .postEvent(CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event,
+                       chreSamplingStatusEventFree)) {
           LOGE("Failed to post sampling status change event");
         }
       }

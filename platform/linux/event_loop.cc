@@ -27,7 +27,7 @@ namespace chre {
 
 EventLoop *getCurrentEventLoop() {
   if (gEventLoop == nullptr) {
-    gEventLoop = chre::EventLoopManagerSingleton::get()->createEventLoop();
+    gEventLoop = &chre::EventLoopManagerSingleton::get()->getEventLoop();
   }
 
   // note: on a multi-threaded implementation, we would likely use thread-local

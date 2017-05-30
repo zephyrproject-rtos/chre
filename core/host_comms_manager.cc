@@ -71,9 +71,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
 
 void HostCommsManager::deliverNanoappMessageFromHost(
     uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
-    const void *messageData, uint32_t messageSize, EventLoop *targetEventLoop,
-    uint32_t targetInstanceId) {
-  CHRE_ASSERT(targetEventLoop != nullptr);
+    const void *messageData, uint32_t messageSize, uint32_t targetInstanceId) {
   bool success = false;
 
   MessageFromHost *msgFromHost = mMessagePool.allocate();
@@ -92,7 +90,7 @@ void HostCommsManager::deliverNanoappMessageFromHost(
     msgFromHost->fromHostData.message = msgFromHost->message.data();
     msgFromHost->fromHostData.hostEndpoint = hostEndpoint;
 
-    success = targetEventLoop->postEvent(
+    success = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
         CHRE_EVENT_MESSAGE_FROM_HOST, &msgFromHost->fromHostData,
         freeMessageFromHostCallback, kSystemInstanceId, targetInstanceId);
   }
@@ -105,8 +103,8 @@ void HostCommsManager::deliverNanoappMessageFromHost(
 void HostCommsManager::sendMessageToNanoappFromHost(
     uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
     const void *messageData, size_t messageSize) {
-  EventLoopManager *eventLoopMgr = EventLoopManagerSingleton::get();
-  EventLoop *targetEventLoop;
+  const EventLoop& eventLoop = EventLoopManagerSingleton::get()
+      ->getEventLoop();
   uint32_t targetInstanceId;
 
   if (hostEndpoint == kHostEndpointBroadcast) {
@@ -116,15 +114,14 @@ void HostCommsManager::sendMessageToNanoappFromHost(
     // struct chreMessageFromHostData. We don't expect to ever need to exceed
     // this, but the check ensures we're on the up and up.
     LOGE("Rejecting message of size %zu (too big)", messageSize);
-  } else if (!eventLoopMgr->findNanoappInstanceIdByAppId(appId,
-                                                         &targetInstanceId,
-                                                         &targetEventLoop)) {
+  } else if (!eventLoop.findNanoappInstanceIdByAppId(appId,
+                                                     &targetInstanceId)) {
     LOGE("Dropping message; destination app ID 0x%016" PRIx64 " not found",
          appId);
   } else {
     deliverNanoappMessageFromHost(appId, hostEndpoint, messageType, messageData,
                                   static_cast<uint32_t>(messageSize),
-                                  targetEventLoop, targetInstanceId);
+                                  targetInstanceId);
   }
 }
 
