@@ -16,7 +16,6 @@
 
 #include "chre/core/event_loop_manager.h"
 
-#include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/memory.h"
 #include "chre/util/lock_guard.h"

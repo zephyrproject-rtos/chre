@@ -17,7 +17,6 @@
 #ifndef CHRE_CORE_STATIC_NANOAPPS_H_
 #define CHRE_CORE_STATIC_NANOAPPS_H_
 
-#include "chre/core/event_loop.h"
 #include "chre/core/nanoapp.h"
 #include "chre/util/unique_ptr.h"
 
@@ -39,7 +38,7 @@ extern const size_t kStaticNanoappCount;
  *
  * @param eventLoop the event loops to load nanoapps into.
  */
-void loadStaticNanoapps(EventLoop *eventLoop);
+void loadStaticNanoapps();
 
 }  // namespace chre
 

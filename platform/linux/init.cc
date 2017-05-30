@@ -29,6 +29,7 @@
 #include <csignal>
 #include <thread>
 
+using chre::EventLoopManagerSingleton;
 using chre::Milliseconds;
 
 namespace {
@@ -36,7 +37,7 @@ namespace {
 extern "C" void signalHandler(int sig) {
   (void) sig;
   LOGI("Stop request received");
-  chre::getCurrentEventLoop()->stop();
+  EventLoopManagerSingleton::get()->getEventLoop().stop();
 }
 
 }
@@ -45,14 +46,13 @@ int main() {
   chre::PlatformLogSingleton::init();
   chre::init();
 
-  // Construct the event loop and register the signal handler.
-  chre::EventLoop& eventLoop = *chre::getCurrentEventLoop();
+  // Register a signal handler.
   std::signal(SIGINT, signalHandler);
 
   // Load any static nanoapps and start the event loop.
   std::thread chreThread([&]() {
-    chre::loadStaticNanoapps(&eventLoop);
-    eventLoop.run();
+    chre::loadStaticNanoapps();
+    EventLoopManagerSingleton::get()->getEventLoop().run();
   });
   chreThread.join();
 
