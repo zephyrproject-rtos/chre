@@ -214,11 +214,11 @@ class EventLoop : public NonCopyable {
 
  private:
   //! The maximum number of events that can be active in the system.
-  static constexpr size_t kMaxEventCount = 1024;
+  static constexpr size_t kMaxEventCount = 256;
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.
-  static constexpr size_t kMaxUnscheduledEventCount = 1024;
+  static constexpr size_t kMaxUnscheduledEventCount = 256;
 
   //! The memory pool to allocate incoming events from.
   SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
