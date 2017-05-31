@@ -24,14 +24,28 @@ NANOPB_GEN_PATH = $(OUT)/nanopb_gen
 NANOPB_GEN_SRCS += $(patsubst %.proto, $(NANOPB_GEN_PATH)/%.pb.c, \
                               $(NANOPB_SRCS))
 
+ifneq ($(NANOPB_GEN_SRCS),)
+COMMON_CFLAGS += -I$(NANOPB_PREFIX)
+COMMON_CFLAGS += -I$(NANOPB_GEN_PATH)
+endif
+
+# NanoPB Generator Setup #######################################################
+
+NANOPB_GENERATOR_SRCS = $(NANOPB_PREFIX)/generator/proto/nanopb_pb2.py
+NANOPB_GENERATOR_SRCS += $(NANOPB_PREFIX)/generator/proto/plugin_pb2.py
+
+$(NANOPB_GENERATOR_SRCS):
+	cd $(NANOPB_PREFIX)/generator/proto && make
+
 # Generate NanoPB Sources ######################################################
 
 COMMON_SRCS += $(NANOPB_GEN_SRCS)
 
-NANOPB_PROJECT_PATH = $(ANDROID_BUILD_TOP)/external/nanopb-c
-NANOPB_PROTOC = $(NANOPB_PROJECT_PATH)/generator/protoc-gen-nanopb
+NANOPB_PROTOC = $(NANOPB_PREFIX)/generator/protoc-gen-nanopb
 
-$(NANOPB_GEN_SRCS): $(NANOPB_GEN_PATH)/%.pb.c: %.proto $(wildcard %.options)
+$(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
+                                                     $(wildcard %.options) \
+                                                     $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
 	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) \
 	  --nanopb_out=$(NANOPB_GEN_PATH) $<
