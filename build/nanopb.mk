@@ -7,6 +7,16 @@
 
 include $(CHRE_PREFIX)/build/defs.mk
 
+# Environment Checks ###########################################################
+
+ifneq ($(NANOPB_SRCS),)
+ifeq ($(NANOPB_PREFIX),)
+$(error "NANOPB_SRCS is non-empty. You must supply a NANOPB_PREFIX environment \
+         variable containing a path to the nanopb project. Example: \
+         export NANOPB_PREFIX=$$HOME/path/to/nanopb/nanopb-c")
+endif
+endif
+
 # Generated Source Files #######################################################
 
 NANOPB_GEN_PATH = $(OUT)/nanopb_gen
