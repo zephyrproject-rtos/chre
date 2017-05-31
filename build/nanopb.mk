@@ -29,6 +29,12 @@ COMMON_CFLAGS += -I$(NANOPB_PREFIX)
 COMMON_CFLAGS += -I$(NANOPB_GEN_PATH)
 endif
 
+# NanoPB Compiler Flags ########################################################
+
+ifneq ($(NANOPB_GEN_SRCS),)
+COMMON_CFLAGS += -DPB_NO_PACKED_STRUCTS=1
+endif
+
 # NanoPB Generator Setup #######################################################
 
 NANOPB_GENERATOR_SRCS = $(NANOPB_PREFIX)/generator/proto/nanopb_pb2.py
