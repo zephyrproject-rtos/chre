@@ -24,9 +24,11 @@
 #include "chre/platform/context.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
+#include "chre/platform/slpi/system_time.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
 #include "chre/util/unique_ptr.h"
@@ -547,7 +549,7 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
 }
 
 void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
-  // TODO: Store time sync difference between AP and DSP timestamp
+  setEstimatedHostTimeOffset(offset);
 }
 
 }  // namespace chre

@@ -29,6 +29,10 @@ DLL_EXPORT uint64_t chreGetTime() {
   return chre::SystemTime::getMonotonicTime().toRawNanoseconds();
 }
 
+DLL_EXPORT int64_t chreGetEstimatedHostTimeOffset() {
+  return chre::SystemTime::getEstimatedHostTimeOffset();
+}
+
 DLL_EXPORT uint64_t chreGetAppId(void) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return nanoapp->getAppId();
