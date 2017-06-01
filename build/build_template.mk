@@ -58,6 +58,12 @@ $$(1)_CXX_OBJS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
 $$(1)_C_OBJS = $$(patsubst %.c, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
                            $$($$(1)_C_SRCS))
 
+# Automatic dependency resolution Makefiles.
+$$(1)_CXX_DEPS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
+                             $$($$(1)_CXX_SRCS))
+$$(1)_C_DEPS = $$(patsubst %.c, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
+                           $$($$(1)_C_SRCS))
+
 # Add object file directories.
 $$$(1)_DIRS = $$(sort $$(dir $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)))
 
@@ -114,11 +120,12 @@ $$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 
 # Link #########################################################################
 
-$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
+$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
+              $$($$(1)_C_DEPS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 	$(5) $(4) -o $$@ $(11) $$(filter %.o, $$^) $(12)
 
-$$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) \
-               $$($$(1)_C_OBJS)
+$$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
+               $$($$(1)_C_DEPS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
 	$(3) -o $$@ $$(filter %.o, $$^) $(10)
 
 # Output Directories ###########################################################
@@ -128,6 +135,26 @@ $$($$$(1)_DIRS):
 
 $$(OUT)/$$$(1):
 	mkdir -p $$@
+
+# Automatic Dependency Resolution ##############################################
+
+$$($$(1)_CXX_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
+	mkdir -p $$(dir $$@)
+	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) $(2) -c $$< -o $$@
+	$(DEP_POST_COMPILE)
+
+$$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
+	mkdir -p $$(dir $$@)
+	$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) $(2) -c $$< -o $$@
+	$(DEP_POST_COMPILE)
+
+# Include generated dependency files if they are in the requested build target.
+# This avoids dependency generation from occuring for a debug target when a
+# non-debug target is requested.
+ifneq ($$(filter $$(1) all, $(MAKECMDGOALS)),)
+include $$(patsubst %.o, %.d, $$($$(1)_CXX_DEPS))
+include $$(patsubst %.o, %.d, $$($$(1)_C_DEPS))
+endif
 
 endef
 endif
