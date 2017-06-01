@@ -173,6 +173,8 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
+  uint64_t chreTime = chreGetTime();
+  uint64_t sampleTime;
   switch (eventType) {
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
@@ -183,12 +185,14 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       const auto *ev = static_cast<const chreSensorThreeAxisData *>(eventData);
       const auto header = ev->header;
       const auto *data = ev->readings;
+      sampleTime = header.baseTimestamp;
 
       float x = 0, y = 0, z = 0;
       for (size_t i = 0; i < header.readingCount; i++) {
         x += data[i].v[0];
         y += data[i].v[1];
         z += data[i].v[2];
+        sampleTime += data[i].timestampDelta;
       }
       x /= header.readingCount;
       y /= header.readingCount;
@@ -196,6 +200,12 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
 
       LOGI("%s, %d samples: %f %f %f",
            getSensorNameForEventType(eventType), header.readingCount, x, y, z);
+
+      if (eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA) {
+        LOGI("UncalGyro time: last sample %" PRIu64 " chre %" PRIu64
+             " delta %" PRId64 "ms", sampleTime, chreTime,
+             static_cast<int64_t>(sampleTime - chreTime) / 1000000);
+      }
       break;
     }
 
@@ -221,10 +231,15 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       const auto *ev = static_cast<const chreSensorByteData *>(eventData);
       const auto header = ev->header;
       const auto reading = ev->readings[0];
+      sampleTime = header.baseTimestamp;
 
       LOGI("%s, %d samples: isNear %d, invalid %d",
            getSensorNameForEventType(eventType), header.readingCount,
            reading.isNear, reading.invalid);
+
+      LOGI("Prox time: sample %" PRIu64 " chre %" PRIu64 " delta %" PRId64 "ms",
+           header.baseTimestamp, chreTime,
+           static_cast<int64_t>(sampleTime - chreTime) / 1000000);
 
       // Enable InstantMotion and StationaryDetect alternatively on near->far.
       if (reading.isNear == 0) {
