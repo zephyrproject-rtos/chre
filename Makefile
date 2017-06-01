@@ -41,6 +41,7 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
 
 # Compiler Flags ###############################################################
 

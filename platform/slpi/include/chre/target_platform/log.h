@@ -17,7 +17,7 @@
 #ifndef CHRE_PLATFORM_SLPI_LOG_H_
 #define CHRE_PLATFORM_SLPI_LOG_H_
 
-#include "chre/platform/shared/platform_log.h"
+#include "ash/debug.h"
 
 #ifndef __FILENAME__
 #define __FILENAME__ __FILE__
@@ -28,20 +28,18 @@
 #endif
 #include "HAP_farf.h"
 
+// TODO: Replace ashLog with FARF and chre::PlatformLogSingleton::get()->log
+//       once it can log without waking up the AP
 #define LOGE(fmt, ...) \
-  FARF(ERROR, fmt, ##__VA_ARGS__); \
-  chre::PlatformLogSingleton::get()->log("E " fmt, ##__VA_ARGS__)
+  ashLog(ASH_SOURCE_CHRE, ASH_LOG_ERROR, fmt, ##__VA_ARGS__)
 
 #define LOGW(fmt, ...) \
-  FARF(HIGH, fmt, ##__VA_ARGS__); \
-  chre::PlatformLogSingleton::get()->log("W " fmt, ##__VA_ARGS__)
+  ashLog(ASH_SOURCE_CHRE, ASH_LOG_WARN, fmt, ##__VA_ARGS__)
 
 #define LOGI(fmt, ...) \
-  FARF(MEDIUM, fmt, ##__VA_ARGS__); \
-  chre::PlatformLogSingleton::get()->log("I " fmt, ##__VA_ARGS__)
+  ashLog(ASH_SOURCE_CHRE, ASH_LOG_INFO, fmt, ##__VA_ARGS__)
 
 #define LOGD(fmt, ...) \
-  FARF(MEDIUM, fmt, ##__VA_ARGS__); \
-  chre::PlatformLogSingleton::get()->log("D " fmt, ##__VA_ARGS__)
+  ashLog(ASH_SOURCE_CHRE, ASH_LOG_DEBUG, fmt, ##__VA_ARGS__)
 
 #endif  // CHRE_PLATFORM_SLPI_LOG_H_
