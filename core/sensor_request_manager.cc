@@ -208,8 +208,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
       // minInterval was added in CHRE API v1.1 - do not attempt to populate for
       // nanoapps targeting v1.0 as their struct will not be large enough
       if (nanoapp.getTargetApiVersion() >= CHRE_API_VERSION_1_1) {
-        info->minInterval = (info->isOneShot) ?
-            CHRE_SENSOR_INTERVAL_DEFAULT : sensor.getMinInterval();
+        info->minInterval = sensor.getMinInterval();
       }
 
       success = true;
