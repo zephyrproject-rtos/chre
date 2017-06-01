@@ -52,7 +52,7 @@ bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
   bool success = false;
   if (appInfo->magic != CHRE_NSL_NANOAPP_INFO_MAGIC) {
     LOGE("Invalid app info magic: got 0x%08" PRIx32 " expected 0x%08" PRIx32,
-         appInfo->magic, CHRE_NSL_NANOAPP_INFO_MAGIC);
+         appInfo->magic, static_cast<uint32_t>(CHRE_NSL_NANOAPP_INFO_MAGIC));
   } else if (appInfo->appId == 0) {
     LOGE("Rejecting invalid app ID 0");
   } else if (expectedAppId != appInfo->appId) {
