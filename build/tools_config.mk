@@ -31,6 +31,10 @@ COMMON_CFLAGS += -ffunction-sections
 # Enable debugging symbols for debug builds.
 COMMON_DEBUG_CFLAGS += -g
 
+# Dependency Resolution
+DEP_CFLAGS = -MT $$@ -MMD -MP -MF $$(basename $$@).Td
+DEP_POST_COMPILE = @mv -f $$(basename $$@).Td $$(basename $$@).d && touch $$@
+
 # Common Archive Flags #########################################################
 
 COMMON_ARFLAGS += rsc
