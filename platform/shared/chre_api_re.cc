@@ -18,12 +18,12 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
-#include "chre/platform/context.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/macros.h"
 
 using chre::EventLoopManager;
+using chre::EventLoopManagerSingleton;
 
 DLL_EXPORT uint64_t chreGetTime() {
   return chre::SystemTime::getMonotonicTime().toRawNanoseconds();
@@ -46,14 +46,14 @@ DLL_EXPORT uint32_t chreGetInstanceId(void) {
 DLL_EXPORT uint32_t chreTimerSet(uint64_t duration, const void *cookie,
                                  bool oneShot) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return chre::getCurrentEventLoop()->getTimerPool().setTimer(nanoapp,
-      chre::Nanoseconds(duration), cookie, oneShot);
+  return EventLoopManagerSingleton::get()->getEventLoop().getTimerPool()
+      .setTimer(nanoapp, chre::Nanoseconds(duration), cookie, oneShot);
 }
 
 DLL_EXPORT bool chreTimerCancel(uint32_t timerId) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return chre::getCurrentEventLoop()->getTimerPool().cancelTimer(nanoapp,
-                                                                 timerId);
+  return EventLoopManagerSingleton::get()->getEventLoop().getTimerPool()
+      .cancelTimer(nanoapp, timerId);
 }
 
 DLL_EXPORT void *chreHeapAlloc(uint32_t bytes) {

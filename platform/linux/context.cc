@@ -15,24 +15,12 @@
  */
 
 #include "chre/platform/context.h"
-#include "chre/core/event_loop_manager.h"
-
-namespace {
-
-chre::EventLoop *gEventLoop = nullptr;
-
-}  // namespace
 
 namespace chre {
 
-EventLoop *getCurrentEventLoop() {
-  if (gEventLoop == nullptr) {
-    gEventLoop = &chre::EventLoopManagerSingleton::get()->getEventLoop();
-  }
-
-  // note: on a multi-threaded implementation, we would likely use thread-local
-  // storage here if available, or a map from thread ID --> eventLoop
-  return gEventLoop;
+bool inEventLoopThread() {
+  // TODO: Implement this.
+  return true;
 }
 
 }  // namespace chre

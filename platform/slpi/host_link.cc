@@ -21,7 +21,6 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
-#include "chre/platform/context.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
@@ -130,7 +129,7 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
 
   // TODO: need to add support for getting apps from multiple event loops
   bool pushed = false;
-  EventLoop *eventLoop = getCurrentEventLoop();
+  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   size_t expectedNanoappCount = eventLoop->getNanoappCount();
   DynamicVector<NanoappListEntryOffset> nanoappEntries;
 
@@ -180,7 +179,7 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
   UniquePtr<LoadNanoappCallbackData> cbData(
       static_cast<LoadNanoappCallbackData *>(data));
 
-  EventLoop *eventLoop = getCurrentEventLoop();
+  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   bool startedSuccessfully = (cbData->nanoapp->isLoaded()) ?
       eventLoop->startNanoapp(cbData->nanoapp) : false;
 

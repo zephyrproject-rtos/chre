@@ -60,8 +60,7 @@ EventLoop::EventLoop()
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
                                              uint32_t *instanceId) const {
   CHRE_ASSERT(instanceId != nullptr);
-  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
-                                   (getCurrentEventLoop() != this));
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
 
   bool found = false;
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
@@ -76,8 +75,7 @@ bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
 }
 
 void EventLoop::forEachNanoapp(NanoappCallbackFunction *callback, void *data) {
-  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
-                                   (getCurrentEventLoop() != this));
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
 
   for (const UniquePtr<Nanoapp>& nanoapp : mNanoapps) {
     callback(nanoapp.get(), data);
@@ -264,12 +262,10 @@ void EventLoop::stop() {
 }
 
 Nanoapp *EventLoop::getCurrentNanoapp() const {
-  CHRE_ASSERT(getCurrentEventLoop() == this);
   return mCurrentApp;
 }
 
 size_t EventLoop::getNanoappCount() const {
-  CHRE_ASSERT(getCurrentEventLoop() == this);
   return mNanoapps.size();
 }
 
@@ -278,26 +274,20 @@ TimerPool& EventLoop::getTimerPool() {
 }
 
 Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
-  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
-                                   (getCurrentEventLoop() != this));
-
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   return lookupAppByInstanceId(instanceId);
 }
 
 bool EventLoop::populateNanoappInfoForAppId(
     uint64_t appId, struct chreNanoappInfo *info) const {
-  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
-                                   (getCurrentEventLoop() != this));
-
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   Nanoapp *app = lookupAppByAppId(appId);
   return populateNanoappInfo(app, info);
 }
 
 bool EventLoop::populateNanoappInfoForInstanceId(
     uint32_t instanceId, struct chreNanoappInfo *info) const {
-  ConditionalLockGuard<Mutex> lock(mNanoappsLock,
-                                   (getCurrentEventLoop() != this));
-
+  ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   Nanoapp *app = lookupAppByInstanceId(instanceId);
   return populateNanoappInfo(app, info);
 }

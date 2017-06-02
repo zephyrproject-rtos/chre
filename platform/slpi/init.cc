@@ -36,6 +36,7 @@ extern "C" {
 #include "chre/util/lock_guard.h"
 
 using chre::EventLoop;
+using chre::EventLoopManagerSingleton;
 using chre::LockGuard;
 using chre::Mutex;
 
@@ -65,10 +66,6 @@ constexpr unsigned short kThreadPriority = 192;
 //! How long we wait (in microseconds) between checks on whether the CHRE thread
 //! has exited after we invoked stop().
 constexpr qurt_timer_duration_t kThreadStatusPollingIntervalUsec = 5000;  // 5ms
-
-//! Pointer to the main CHRE event loop. Modification must only be done while
-//! the CHRE thread is stopped, and while holding gThreadMutex.
-EventLoop *gEventLoop;
 
 //! Buffer to use for the CHRE thread's stack.
 typename std::aligned_storage<kStackSize>::type gStack;
@@ -116,12 +113,12 @@ void onUnload(void) {
  * @param data Argument passed to qurt_thread_create()
  */
 void chreThreadEntry(void * /*data*/) {
-  loadStaticNanoapps(gEventLoop);
-  loadPreloadedNanoapps(gEventLoop);
-  gEventLoop->run();
+  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
+  chre::loadStaticNanoapps();
+  loadPreloadedNanoapps(eventLoop);
+  eventLoop->run();
 
   chre::deinit();
-  gEventLoop = nullptr;
   gThreadRunning = false;
   LOGD("CHRE thread exiting");
 }
@@ -135,8 +132,8 @@ void onHostProcessTerminated(void * /*data*/) {
 
 namespace chre {
 
-EventLoop *getCurrentEventLoop() {
-  return (qurt_thread_get_id() == gThreadHandle) ? gEventLoop : nullptr;
+bool inEventLoopThread() {
+  return (qurt_thread_get_id() == gThreadHandle);
 }
 
 }  // namespace chre
@@ -155,7 +152,6 @@ extern "C" int chre_slpi_start_thread(void) {
     LOGE("CHRE thread already running");
   } else {
     chre::init();
-    gEventLoop = &chre::EventLoopManagerSingleton::get()->getEventLoop();
 
     // Human-readable name for the CHRE thread (not const in QuRT API, but they
     // make a copy)
@@ -219,10 +215,10 @@ extern "C" int chre_slpi_stop_thread(void) {
   // started again
   LockGuard<Mutex> lock(*gThreadMutex);
 
-  if (!gThreadRunning || gEventLoop == nullptr) {
+  if (!gThreadRunning) {
     LOGD("Tried to stop CHRE thread, but not running");
   } else {
-    gEventLoop->stop();
+    EventLoopManagerSingleton::get()->getEventLoop().stop();
     if (gTlsKeyValid) {
       int ret = qurt_tls_delete_key(gTlsKey);
       if (ret != QURT_EOK) {

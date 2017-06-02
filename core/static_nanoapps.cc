@@ -15,6 +15,7 @@
  */
 
 #include "chre/apps/apps.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/static_nanoapps.h"
 #include "chre/util/macros.h"
 
@@ -44,10 +45,10 @@ const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
 
 #endif  // CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
-void loadStaticNanoapps(EventLoop *eventLoop) {
+void loadStaticNanoapps() {
   for (size_t i = 0; i < kStaticNanoappCount; i++) {
     UniquePtr<Nanoapp> nanoapp = kStaticNanoappList[i]();
-    eventLoop->startNanoapp(nanoapp);
+    EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
   }
 }
 

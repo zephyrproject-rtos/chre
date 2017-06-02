@@ -16,7 +16,6 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor_request.h"
-#include "chre/platform/context.h"
 #include "chre/util/time.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/sensor.h"

@@ -20,7 +20,6 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
-#include "chre/platform/context.h"
 #include "chre/platform/log.h"
 #include "chre/platform/static_nanoapp_init.h"
 #include "chre/util/nanoapp/app_id.h"

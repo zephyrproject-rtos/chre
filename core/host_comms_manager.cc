@@ -20,7 +20,6 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/assert.h"
-#include "chre/platform/context.h"
 #include "chre/platform/host_link.h"
 
 namespace chre {
@@ -169,16 +168,9 @@ void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
 
 void HostCommsManager::freeMessageToHost(MessageToHost *msgToHost) {
   if (msgToHost->toHostData.nanoappFreeFunction != nullptr) {
-    // TODO: assuming we're already in the context of the EventLoop that owns
-    // this nanoapp - not guaranteed if we have >1 EventLoop
-    EventLoop *eventLoop = getCurrentEventLoop();
-    if (eventLoop == nullptr) {
-      LOGE("Can't invoke message free callback - invalid context");
-    } else {
-      eventLoop->invokeMessageFreeFunction(
-          msgToHost->appId, msgToHost->toHostData.nanoappFreeFunction,
-          msgToHost->message.data(), msgToHost->message.size());
-    }
+    EventLoopManagerSingleton::get()->getEventLoop().invokeMessageFreeFunction(
+        msgToHost->appId, msgToHost->toHostData.nanoappFreeFunction,
+        msgToHost->message.data(), msgToHost->message.size());
   }
   mMessagePool.deallocate(msgToHost);
 }
