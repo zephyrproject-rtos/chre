@@ -293,12 +293,15 @@ void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
                                 static_cast<size_t>(sensorInfo.SensorName_len));
   memcpy(sensor.sensorName, sensorInfo.SensorName, bytesToCopy);
   sensor.sensorName[bytesToCopy] = '\0';
-  sensor.minInterval = static_cast<uint64_t>(
-      Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
 
-  // Allocates memory for on-change sensor's last event.
+  // Override one-shot sensor's minInterval to default
   SensorType sensorType = getSensorTypeFromSensorId(
       sensorInfo.SensorID, sensorInfo.DataType, calType);
+  sensor.minInterval = sensorTypeIsOnChange(sensorType) ?
+      CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
+          Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
+
+  // Allocates memory for on-change sensor's last event.
   sensor.lastEvent = allocateLastEvent(sensorType, &sensor.lastEventSize);
 
   sensor.isSensorOff = true;
