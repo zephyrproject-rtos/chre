@@ -51,14 +51,24 @@ constexpr float kMicroTeslaPerGauss = 100.0f;
 
 //! Group size of sensor registry SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02,
 //! hard-coded in sns_reg_group_info[] of sns_reg_data.c
-constexpr uint16_t kGroupSizeRegAccelDynCalParams = 234;
+constexpr uint16_t kGroupSizeRegAccelDynCal = 234;
 
 //! The QMI registry service client handle.
 qmi_client_type gRegistryServiceQmiClientHandle = nullptr;
 
+//! A structure to store content of a sensor registry group
+struct RegCache {
+  uint8_t data[SNS_REG_MAX_GROUP_BYTE_COUNT_V02];
+  bool valid;
+} regCache;
+
+//! The number of rows and columns of gRegArray.
+constexpr size_t kNumRowsRegArray = 3;
+constexpr size_t kNumColsRegArray = 22;
+
 // TODO: create a script to auto-generat this array.
 //! The offset of registry IDs that have been designated to store cal params.
-const uint16_t gRegArray[3][22] = {
+const uint16_t gRegArray[kNumRowsRegArray][kNumColsRegArray] = {
   {  // accel
     26,   // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP1_V02,
     28,   // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP1_V02,
@@ -235,17 +245,18 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
 }
 
 /**
- * A helper function that reads the sensor registry group.
+ * A helper function that reads the sensor registry group and saves the content
+ * to the local cache.
  *
- * @param response A non-null pointer that registry group content will be
- *        written to.
- * @return true if the registry content has been successfully written to data.
+ * @return true if the registry content has been successfully written to cache.
  */
-bool regRead(sns_reg_group_read_resp_msg_v02 *response) {
-  CHRE_ASSERT(response);
+bool regRead() {
+  auto *response = memoryAlloc<sns_reg_group_read_resp_msg_v02>();
 
   bool success = false;
-  if (response != nullptr) {
+  if (response == nullptr) {
+    LOGE("Failed to allocate memory for sensor regisgty read");
+  } else {
     sns_reg_group_read_req_msg_v02 request;
     request.group_id = SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02;
 
@@ -264,57 +275,37 @@ bool regRead(sns_reg_group_read_resp_msg_v02 *response) {
       LOGE("Incorrect response group id %" PRIu16, response->group_id);
     } else {
       success = true;
+      static_assert(sizeof(regCache.data) >= kGroupSizeRegAccelDynCal, "");
+      memcpy(regCache.data, response->data, kGroupSizeRegAccelDynCal);
     }
   }
+
+  memoryFree(response);
   return success;
 }
 
 /**
- * A helper function that writes to the sensor registry group.
- *
- * @param request A non-null pointer to data that will be written to the
-          registry group.
- * @return true if data has been successfully written to the registry.
+ * A helper function that converts a floating-point value to Q16 format and
+ * writes it to the cache with offset specified by the (row, col) entry of
+ * gRegArray.
  */
-bool regWrite(sns_reg_group_write_req_msg_v02 *request) {
-  CHRE_ASSERT(request);
-
-  bool success = false;
-  if (request != nullptr) {
-    sns_reg_group_write_resp_msg_v02 response;
-    request->group_id = SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02;
-    // Must set to actual group size, or the qmi request would fail.
-    request->data_len = kGroupSizeRegAccelDynCalParams;
-
-    qmi_client_error_type status = qmi_client_send_msg_sync(
-        gRegistryServiceQmiClientHandle, SNS_REG_GROUP_WRITE_REQ_V02,
-        request, sizeof(*request), &response, sizeof(response),
-        kQmiTimeoutMs);
-
-    if (status != QMI_NO_ERR) {
-      LOGE("Error writing sensor registry: status %d", status);
-    } else if (response.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
-      LOGE("Writing sensor registry failed with error: %" PRIu8,
-           response.resp.sns_err_t);
-    } else {
-      success = true;
-    }
-  }
-  return success;
-}
-
-// A helper function that converts a floating-point value to Q16 format and
-// writes it to the specified index and offset of a two-dimensional reg array.
-void regOffsetWrite(float value, uint8_t *reg, size_t index, uint16_t offset) {
+void regOffsetWrite(float value, size_t row, size_t col) {
   int32_t value32 = FX_FLTTOFIX_Q16(value);
-  memcpy(reg + gRegArray[index][offset], &value32, sizeof(value32));
+  uint8_t *reg = regCache.data;
+
+  // Registry offset has been verified in ashInit() on assert-enabled builds
+  // to ensure no out-of-bounds memory access.
+  memcpy(reg + gRegArray[row][col], &value32, sizeof(value32));
 }
 
-// A helper function that reads the specified index and offset of a
-// two-dimensional reg array and converts it to a floating-point value.
-float regOffsetRead(uint8_t *reg, size_t index, uint16_t offset) {
+/**
+ * A helper function that reads the cache with offset specified by the
+ * (row, col) entry of gRegArray and converts it to a floating-point value.
+ */
+float regOffsetRead(size_t row, size_t col) {
   int32_t value32;
-  memcpy(&value32, reg + gRegArray[index][offset], sizeof(value32));
+  uint8_t *reg = regCache.data;
+  memcpy(&value32, reg + gRegArray[row][col], sizeof(value32));
   return FX_FIXTOFLT_Q16(value32);
 }
 
@@ -335,6 +326,22 @@ void ashInit() {
   if (status != QMI_NO_ERR) {
     FATAL_ERROR("Failed to initialize the registry service QMI client: %d",
                 status);
+  }
+
+  // Ensure there will be no out-of-bounds memory access in regOffsetWrite().
+  for (size_t i = 0; i < kNumRowsRegArray; i++) {
+    for (size_t j = 0; j < kNumColsRegArray; j++) {
+      size_t byteOffset = gRegArray[i][j];
+      CHRE_ASSERT(byteOffset + sizeof(int32_t) <= sizeof(regCache.data));
+    }
+  }
+
+  // Read sensor registry and copy content to local cache
+  if (!regRead()) {
+    FATAL_ERROR("Failed to read sensor registry");
+  } else {
+    regCache.valid = true;
+    LOGI("Sensor registry sucessfully read");
   }
 }
 
@@ -390,56 +397,46 @@ bool ashSaveCalibrationParams(uint8_t sensorType,
       scaling = kGaussPerMicroTesla;
     }
 
-    // Read the registry group, modify the items of interest and write it back
-    auto *dataRead = memoryAlloc<sns_reg_group_read_resp_msg_v02>();
-    auto *data = memoryAlloc<sns_reg_group_write_req_msg_v02>();
-    if (dataRead != nullptr && data != nullptr) {
-      success = regRead(dataRead);
-      if (success) {
-        uint8_t *reg = dataRead->data;
+    if (regCache.valid) {
+      success = true;
 
-        // TODO: refactory so we don't have to manually insert offset.
-        // offset
-        reg[gRegArray[idx][0]] = calParams->offsetSource;
-        regOffsetWrite(calParams->offset[1] * scaling, reg, idx, 1);
-        regOffsetWrite(calParams->offset[0] * scaling, reg, idx, 2);
-        regOffsetWrite(-calParams->offset[2] * scaling, reg, idx, 3);
+      // TODO: refactor so we don't have to manually insert column index.
+      // offset
+      regCache.data[gRegArray[idx][0]] = calParams->offsetSource;
+      regOffsetWrite(calParams->offset[1] * scaling, idx, 1);
+      regOffsetWrite(calParams->offset[0] * scaling, idx, 2);
+      regOffsetWrite(-calParams->offset[2] * scaling, idx, 3);
 
-        // offsetTempCelsius
-        reg[gRegArray[idx][4]] = calParams->offsetTempCelsiusSource;
-        regOffsetWrite(calParams->offsetTempCelsius, reg, idx, 5);
+      // offsetTempCelsius
+      regCache.data[gRegArray[idx][4]] = calParams->offsetTempCelsiusSource;
+      regOffsetWrite(calParams->offsetTempCelsius, idx, 5);
 
-        // tempSensitivity
-        reg[gRegArray[idx][6]] = calParams->tempSensitivitySource;
-        regOffsetWrite(calParams->tempSensitivity[1] * scaling, reg, idx, 7);
-        regOffsetWrite(calParams->tempSensitivity[0] * scaling, reg, idx, 8);
-        regOffsetWrite(-calParams->tempSensitivity[2] * scaling, reg, idx, 9);
+      // tempSensitivity
+      regCache.data[gRegArray[idx][6]] = calParams->tempSensitivitySource;
+      regOffsetWrite(calParams->tempSensitivity[1] * scaling, idx, 7);
+      regOffsetWrite(calParams->tempSensitivity[0] * scaling, idx, 8);
+      regOffsetWrite(-calParams->tempSensitivity[2] * scaling, idx, 9);
 
-        // tempIntercept
-        reg[gRegArray[idx][10]] = calParams->tempInterceptSource;
-        regOffsetWrite(calParams->tempIntercept[1] * scaling, reg, idx, 11);
-        regOffsetWrite(calParams->tempIntercept[0] * scaling, reg, idx, 12);
-        regOffsetWrite(-calParams->tempIntercept[2] * scaling, reg, idx, 13);
+      // tempIntercept
+      regCache.data[gRegArray[idx][10]] = calParams->tempInterceptSource;
+      regOffsetWrite(calParams->tempIntercept[1] * scaling, idx, 11);
+      regOffsetWrite(calParams->tempIntercept[0] * scaling, idx, 12);
+      regOffsetWrite(-calParams->tempIntercept[2] * scaling, idx, 13);
 
-        // scaleFactor
-        reg[gRegArray[idx][14]] = calParams->scaleFactorSource;
-        regOffsetWrite(calParams->scaleFactor[1], reg, idx, 15);
-        regOffsetWrite(calParams->scaleFactor[0], reg, idx, 16);
-        regOffsetWrite(-calParams->scaleFactor[2], reg, idx, 17);
+      // scaleFactor
+      regCache.data[gRegArray[idx][14]] = calParams->scaleFactorSource;
+      regOffsetWrite(calParams->scaleFactor[1], idx, 15);
+      regOffsetWrite(calParams->scaleFactor[0], idx, 16);
+      regOffsetWrite(-calParams->scaleFactor[2], idx, 17);
 
-        // crossAxis
-        reg[gRegArray[idx][18]] = calParams->crossAxisSource;
-        regOffsetWrite(calParams->crossAxis[1], reg, idx, 19);
-        regOffsetWrite(calParams->crossAxis[0], reg, idx, 20);
-        regOffsetWrite(-calParams->crossAxis[2], reg, idx, 21);
+      // crossAxis
+      regCache.data[gRegArray[idx][18]] = calParams->crossAxisSource;
+      regOffsetWrite(calParams->crossAxis[1], idx, 19);
+      regOffsetWrite(calParams->crossAxis[0], idx, 20);
+      regOffsetWrite(-calParams->crossAxis[2], idx, 21);
 
-        // Only copy the actual group size
-        memcpy(data->data, reg, kGroupSizeRegAccelDynCalParams);
-        success &= regWrite(data);
-      }
+      // TODO: opportunistically save to regsitry w/o waking up AP
     }
-    memoryFree(dataRead);
-    memoryFree(data);
   }
   return success;
 }
@@ -458,48 +455,44 @@ bool ashLoadCalibrationParams(uint8_t sensorType,
       scaling = kMicroTeslaPerGauss;
     }
 
-    auto *data = memoryAlloc<sns_reg_group_read_resp_msg_v02>();
-    if (data != nullptr) {
-      success = regRead(data);
-      if (success) {
-        uint8_t *reg = data->data;
+    if (regCache.valid) {
+      success = true;
 
-        // offset
-        calParams->offsetSource = reg[gRegArray[idx][0]];
-        calParams->offset[1] = regOffsetRead(reg, idx, 1) * scaling;
-        calParams->offset[0] = regOffsetRead(reg, idx, 2) * scaling;
-        calParams->offset[2] = -regOffsetRead(reg, idx, 3) * scaling;
+      // TODO: refactor so we don't have to manually insert column index.
+      // offset
+      calParams->offsetSource = regCache.data[gRegArray[idx][0]];
+      calParams->offset[1] = regOffsetRead(idx, 1) * scaling;
+      calParams->offset[0] = regOffsetRead(idx, 2) * scaling;
+      calParams->offset[2] = -regOffsetRead(idx, 3) * scaling;
 
-        // offsetTempCelsius
-        calParams->offsetTempCelsiusSource = reg[gRegArray[idx][4]];
-        calParams->offsetTempCelsius = regOffsetRead(reg, idx, 5);
+      // offsetTempCelsius
+      calParams->offsetTempCelsiusSource = regCache.data[gRegArray[idx][4]];
+      calParams->offsetTempCelsius = regOffsetRead(idx, 5);
 
-        // tempSensitivity
-        calParams->tempSensitivitySource = reg[gRegArray[idx][6]];
-        calParams->tempSensitivity[1] = regOffsetRead(reg, idx, 7) * scaling;
-        calParams->tempSensitivity[0] = regOffsetRead(reg, idx, 8) * scaling;
-        calParams->tempSensitivity[2] = -regOffsetRead(reg, idx, 9) * scaling;
+      // tempSensitivity
+      calParams->tempSensitivitySource = regCache.data[gRegArray[idx][6]];
+      calParams->tempSensitivity[1] = regOffsetRead(idx, 7) * scaling;
+      calParams->tempSensitivity[0] = regOffsetRead(idx, 8) * scaling;
+      calParams->tempSensitivity[2] = -regOffsetRead(idx, 9) * scaling;
 
-        // tempIntercept
-        calParams->tempInterceptSource = reg[gRegArray[idx][10]];
-        calParams->tempIntercept[1] = regOffsetRead(reg, idx, 11) * scaling;
-        calParams->tempIntercept[0] = regOffsetRead(reg, idx, 12) * scaling;
-        calParams->tempIntercept[2] = -regOffsetRead(reg, idx, 13) * scaling;
+      // tempIntercept
+      calParams->tempInterceptSource = regCache.data[gRegArray[idx][10]];
+      calParams->tempIntercept[1] = regOffsetRead(idx, 11) * scaling;
+      calParams->tempIntercept[0] = regOffsetRead(idx, 12) * scaling;
+      calParams->tempIntercept[2] = -regOffsetRead(idx, 13) * scaling;
 
-        // scaleFactor
-        calParams->scaleFactorSource = reg[gRegArray[idx][14]];
-        calParams->scaleFactor[1] = regOffsetRead(reg, idx, 15);
-        calParams->scaleFactor[0] = regOffsetRead(reg, idx, 16);
-        calParams->scaleFactor[2] = -regOffsetRead(reg, idx, 17);
+      // scaleFactor
+      calParams->scaleFactorSource = regCache.data[gRegArray[idx][14]];
+      calParams->scaleFactor[1] = regOffsetRead(idx, 15);
+      calParams->scaleFactor[0] = regOffsetRead(idx, 16);
+      calParams->scaleFactor[2] = -regOffsetRead(idx, 17);
 
-        // crossAxis
-        calParams->crossAxisSource = reg[gRegArray[idx][18]];
-        calParams->crossAxis[1] = regOffsetRead(reg, idx, 19);
-        calParams->crossAxis[0] = regOffsetRead(reg, idx, 20);
-        calParams->crossAxis[2] = -regOffsetRead(reg, idx, 21);
-      }
+      // crossAxis
+      calParams->crossAxisSource = regCache.data[gRegArray[idx][18]];
+      calParams->crossAxis[1] = regOffsetRead(idx, 19);
+      calParams->crossAxis[0] = regOffsetRead(idx, 20);
+      calParams->crossAxis[2] = -regOffsetRead(idx, 21);
     }
-    memoryFree(data);
   }
   return success;
 }
