@@ -472,7 +472,7 @@ void *allocateAndPopulateEvent(
     }
 
     default:
-      LOGW("Unhandled sensor data %" PRIu8, sensorType);
+      LOGW("Unhandled sensor data %" PRIu8, static_cast<uint8_t>(sensorType));
       return nullptr;
   }
 }
