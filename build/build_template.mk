@@ -151,7 +151,7 @@ $$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
 # Include generated dependency files if they are in the requested build target.
 # This avoids dependency generation from occuring for a debug target when a
 # non-debug target is requested.
-ifneq ($$(filter $$(1) all, $(MAKECMDGOALS)),)
+ifneq ($(filter $(1) all, $(MAKECMDGOALS)),)
 include $$(patsubst %.o, %.d, $$($$(1)_CXX_DEPS))
 include $$(patsubst %.o, %.d, $$($$(1)_C_DEPS))
 endif
