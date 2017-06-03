@@ -27,6 +27,7 @@ NANOPB_GEN_SRCS += $(patsubst %.proto, $(NANOPB_GEN_PATH)/%.pb.c, \
 ifneq ($(NANOPB_GEN_SRCS),)
 COMMON_CFLAGS += -I$(NANOPB_PREFIX)
 COMMON_CFLAGS += -I$(NANOPB_GEN_PATH)
+COMMON_CFLAGS += $(addprefix -I$(NANOPB_GEN_PATH)/, $(NANOPB_INCLUDES))
 endif
 
 # NanoPB Compiler Flags ########################################################
