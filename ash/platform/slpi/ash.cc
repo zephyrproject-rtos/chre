@@ -49,82 +49,87 @@ constexpr float kGaussPerMicroTesla = 0.01f;
 //! Android.
 constexpr float kMicroTeslaPerGauss = 100.0f;
 
+//! Group size of sensor registry SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02,
+//! hard-coded in sns_reg_group_info[] of sns_reg_data.c
+constexpr uint16_t kGroupSizeRegAccelDynCalParams = 234;
+
 //! The QMI registry service client handle.
 qmi_client_type gRegistryServiceQmiClientHandle = nullptr;
 
-//! The registry IDs that have been designated to store cal params.
+// TODO: create a script to auto-generat this array.
+//! The offset of registry IDs that have been designated to store cal params.
 const uint16_t gRegArray[3][22] = {
   {  // accel
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP1_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP1_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP1_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP1_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP1_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP1_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP2_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP2_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP2_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP2_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP2_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP2_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP2_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP2_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP3_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP3_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP3_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP3_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP3_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP3_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP3_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP3_V02,
+    26,   // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP1_V02,
+    28,   // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP1_V02,
+    32,   // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP1_V02,
+    36,   // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP1_V02,
+    27,   // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP1_V02,
+    40,   // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP1_V02,
+    52,   // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP2_V02,
+    54,   // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP2_V02,
+    58,   // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP2_V02,
+    62,   // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP2_V02,
+    53,   // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP2_V02,
+    66,   // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP2_V02,
+    70,   // SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP2_V02,
+    74,   // SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP2_V02,
+    78,   // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP3_V02,
+    80,   // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP3_V02,
+    84,   // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP3_V02,
+    88,   // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP3_V02,
+    79,   // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP3_V02,
+    92,   // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP3_V02,
+    96,   // SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP3_V02,
+    100,  // SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP3_V02,
   },
   {  // gyro
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP4_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP4_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP4_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP4_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP4_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP4_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP5_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP5_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP5_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP5_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP5_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP5_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP5_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP5_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP6_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP6_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP6_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP6_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP6_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP6_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP6_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP6_V02,
+    104,  // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP4_V02,
+    106,  // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP4_V02,
+    110,  // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP4_V02,
+    114,  // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP4_V02,
+    105,  // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP4_V02,
+    118,  // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP4_V02,
+    130,  // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP5_V02,
+    132,  // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP5_V02,
+    136,  // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP5_V02,
+    140,  // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP5_V02,
+    131,  // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP5_V02,
+    144,  // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP5_V02,
+    148,  // SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP5_V02,
+    152,  // SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP5_V02,
+    156,  // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP6_V02,
+    158,  // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP6_V02,
+    162,  // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP6_V02,
+    166,  // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP6_V02,
+    157,  // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP6_V02,
+    170,  // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP6_V02,
+    174,  // SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP6_V02,
+    178,  // SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP6_V02,
   },
   {  // mag
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP7_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP7_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP7_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP7_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP7_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP7_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP8_V02,
-    SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP8_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP8_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP8_V02,
-    SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP8_V02,
-    SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP8_V02,
-    SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP8_V02,
-    SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP8_V02,
-    SNS_REG_ITEM_MAG_DYN_CAL_BIAS_VALID_V02,
-    SNS_REG_ITEM_MAG_X_DYN_BIAS_V02,
-    SNS_REG_ITEM_MAG_Y_DYN_BIAS_V02,
-    SNS_REG_ITEM_MAG_Z_DYN_BIAS_V02,
-    SNS_REG_ITEM_MAG_DYN_CAL_CALIBRATION_MATRIX_VALID_V02,
-    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_0_V02,
-    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_1_V02,
-    SNS_REG_ITEM_MAG_DYN_COMPENSATION_MATRIX_0_2_V02,
+    182,  // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP7_V02,
+    184,  // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP7_V02,
+    188,  // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP7_V02,
+    192,  // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP7_V02,
+    183,  // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP7_V02,
+    196,  // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP7_V02,
+    208,  // SNS_REG_ITEM_ACC_DYN_CAL_VALID_FLAG_GROUP8_V02,
+    210,  // SNS_REG_ITEM_ACC_X_DYN_BIAS_GROUP8_V02,
+    214,  // SNS_REG_ITEM_ACC_Y_DYN_BIAS_GROUP8_V02,
+    218,  // SNS_REG_ITEM_ACC_Z_DYN_BIAS_GROUP8_V02,
+    209,  // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_MIN_GROUP8_V02,
+    222,  // SNS_REG_ITEM_ACC_X_DYN_SCALE_GROUP8_V02,
+    226,  // SNS_REG_ITEM_ACC_Y_DYN_SCALE_GROUP8_V02,
+    230,  // SNS_REG_ITEM_ACC_Z_DYN_SCALE_GROUP8_V02,
+    24,   // SNS_REG_ITEM_ACC_DYN_CAL_HEADER_V02,
+    0,    // SNS_REG_ITEM_ACC_X_DYN_BIAS_V02,
+    4,    // SNS_REG_ITEM_ACC_Y_DYN_BIAS_V02,
+    8,    // SNS_REG_ITEM_ACC_Z_DYN_BIAS_V02,
+    25,   // SNS_REG_ITEM_ACC_DYN_CAL_TEMP_BIN_SIZE_V02,
+    12,   // SNS_REG_ITEM_ACC_X_DYN_SCALE_V02,
+    16,   // SNS_REG_ITEM_ACC_Y_DYN_SCALE_V02,
+    20,   // SNS_REG_ITEM_ACC_Z_DYN_SCALE_V02 ,
   },
 };
 
@@ -230,66 +235,60 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
 }
 
 /**
- * A helper function that reads from the sensor registry.
+ * A helper function that reads the sensor registry group.
  *
- * @param regId The registry ID to read from.
- * @param data A non-null pointer that registry content will be written to.
- * @param dataSize The number of bytes to read from this registry ID.
+ * @param response A non-null pointer that registry group content will be
+ *        written to.
  * @return true if the registry content has been successfully written to data.
  */
-bool regRead(uint16_t regId, void *data, size_t dataSize) {
-  CHRE_ASSERT(data);
+bool regRead(sns_reg_group_read_resp_msg_v02 *response) {
+  CHRE_ASSERT(response);
 
   bool success = false;
-  if (data != nullptr) {
-    sns_reg_single_read_req_msg_v02 request;
-    sns_reg_single_read_resp_msg_v02 response;
-
-    request.item_id = regId;
+  if (response != nullptr) {
+    sns_reg_group_read_req_msg_v02 request;
+    request.group_id = SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02;
 
     qmi_client_error_type status = qmi_client_send_msg_sync(
-        gRegistryServiceQmiClientHandle, SNS_REG_SINGLE_READ_REQ_V02,
-        &request, sizeof(request), &response, sizeof(response),
+        gRegistryServiceQmiClientHandle, SNS_REG_GROUP_READ_REQ_V02,
+        &request, sizeof(request), response, sizeof(*response),
         kQmiTimeoutMs);
 
     if (status != QMI_NO_ERR) {
       LOGE("Error reading sensor registry: status %d", status);
-    } else if (response.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+    } else if (response->resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
       LOGE("Reading sensor registry failed with error: %" PRIu8,
-           response.resp.sns_err_t);
-    } else if (response.data_len < dataSize) {
-      LOGE("Registry data len is less than requested.");
+           response->resp.sns_err_t);
+    } else if (response->group_id
+               != SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02) {
+      LOGE("Incorrect response group id %" PRIu16, response->group_id);
     } else {
       success = true;
-      memcpy(data, &response.data, dataSize);
     }
   }
   return success;
 }
 
 /**
- * A helper function that writes to the sensor registry.
+ * A helper function that writes to the sensor registry group.
  *
- * @param regId The registry ID to write to.
- * @param data A non-null pointer to data that will be written to the registry.
- * @param dataSize The number of bytes to write to this registry ID.
+ * @param request A non-null pointer to data that will be written to the
+          registry group.
  * @return true if data has been successfully written to the registry.
  */
-bool regWrite(uint16_t regId, const void *data, size_t dataSize) {
-  CHRE_ASSERT(data);
+bool regWrite(sns_reg_group_write_req_msg_v02 *request) {
+  CHRE_ASSERT(request);
 
   bool success = false;
-  if (data != nullptr) {
-    sns_reg_single_write_req_msg_v02 request;
-    sns_reg_single_write_resp_msg_v02 response;
-
-    request.item_id = regId;
-    request.data_len = dataSize;
-    memcpy(&request.data, data, dataSize);
+  if (request != nullptr) {
+    sns_reg_group_write_resp_msg_v02 response;
+    request->group_id = SNS_REG_SCM_GROUP_ACCEL_DYN_CAL_PARAMS_V02;
+    // Must set to actual group size, or the qmi request would fail.
+    request->data_len = kGroupSizeRegAccelDynCalParams;
 
     qmi_client_error_type status = qmi_client_send_msg_sync(
-        gRegistryServiceQmiClientHandle, SNS_REG_SINGLE_WRITE_REQ_V02,
-        &request, sizeof(request), &response, sizeof(response),
+        gRegistryServiceQmiClientHandle, SNS_REG_GROUP_WRITE_REQ_V02,
+        request, sizeof(*request), &response, sizeof(response),
         kQmiTimeoutMs);
 
     if (status != QMI_NO_ERR) {
@@ -302,6 +301,21 @@ bool regWrite(uint16_t regId, const void *data, size_t dataSize) {
     }
   }
   return success;
+}
+
+// A helper function that converts a floating-point value to Q16 format and
+// writes it to the specified index and offset of a two-dimensional reg array.
+void regOffsetWrite(float value, uint8_t *reg, size_t index, uint16_t offset) {
+  int32_t value32 = FX_FLTTOFIX_Q16(value);
+  memcpy(reg + gRegArray[index][offset], &value32, sizeof(value32));
+}
+
+// A helper function that reads the specified index and offset of a
+// two-dimensional reg array and converts it to a floating-point value.
+float regOffsetRead(uint8_t *reg, size_t index, uint16_t offset) {
+  int32_t value32;
+  memcpy(&value32, reg + gRegArray[index][offset], sizeof(value32));
+  return FX_FIXTOFLT_Q16(value32);
 }
 
 }  // namespace
@@ -337,7 +351,6 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
     // Allocate request and response for sensor calibraton.
     auto *calRequest = memoryAlloc<sns_smgr_sensor_cal_req_msg_v01>();
     auto *calResponse = memoryAlloc<sns_smgr_sensor_cal_resp_msg_v01>();
-
     if (calRequest == nullptr || calResponse == nullptr) {
       LOGE("Failed to allocated sensor cal memory");
     } else {
@@ -357,14 +370,12 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
         success = true;
       }
     }
-
     memoryFree(calRequest);
     memoryFree(calResponse);
   }
   return success;
 }
 
-// TODO: use group write to improve efficiency.
 bool ashSaveCalibrationParams(uint8_t sensorType,
                               const struct ashCalParams *calParams) {
   CHRE_ASSERT(calParams);
@@ -373,70 +384,66 @@ bool ashSaveCalibrationParams(uint8_t sensorType,
   if (!isCalibrationSupported(sensorType)) {
     LOGE("Attempting to save cal params of sensor %" PRIu8, sensorType);
   } else if (calParams != nullptr) {
-    success = true;
     size_t idx = getRegArrayRowIndex(sensorType);
-    int32_t value32;
     float scaling = 1.0f;
     if (sensorType == CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD) {
       scaling = kGaussPerMicroTesla;
     }
 
-    // offset
-    success &= regWrite(gRegArray[idx][0], &calParams->offsetSource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->offset[1] * scaling);
-    success &= regWrite(gRegArray[idx][1], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(calParams->offset[0] * scaling);
-    success &= regWrite(gRegArray[idx][2], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(-calParams->offset[2] * scaling);
-    success &= regWrite(gRegArray[idx][3], &value32, sizeof(value32));
+    // Read the registry group, modify the items of interest and write it back
+    auto *dataRead = memoryAlloc<sns_reg_group_read_resp_msg_v02>();
+    auto *data = memoryAlloc<sns_reg_group_write_req_msg_v02>();
+    if (dataRead != nullptr && data != nullptr) {
+      success = regRead(dataRead);
+      if (success) {
+        uint8_t *reg = dataRead->data;
 
-    // offsetTempCelsius
-    success &= regWrite(gRegArray[idx][4],
-                        &calParams->offsetTempCelsiusSource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->offsetTempCelsius);
-    success &= regWrite(gRegArray[idx][5], &value32, sizeof(value32));
+        // TODO: refactory so we don't have to manually insert offset.
+        // offset
+        reg[gRegArray[idx][0]] = calParams->offsetSource;
+        regOffsetWrite(calParams->offset[1] * scaling, reg, idx, 1);
+        regOffsetWrite(calParams->offset[0] * scaling, reg, idx, 2);
+        regOffsetWrite(-calParams->offset[2] * scaling, reg, idx, 3);
 
-    // tempSensitivity
-    success &= regWrite(gRegArray[idx][6],
-                        &calParams->tempSensitivitySource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[1] * scaling);
-    success &= regWrite(gRegArray[idx][7], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(calParams->tempSensitivity[0] * scaling);
-    success &= regWrite(gRegArray[idx][8], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(-calParams->tempSensitivity[2] * scaling);
-    success &= regWrite(gRegArray[idx][9], &value32, sizeof(value32));
+        // offsetTempCelsius
+        reg[gRegArray[idx][4]] = calParams->offsetTempCelsiusSource;
+        regOffsetWrite(calParams->offsetTempCelsius, reg, idx, 5);
 
-    // tempIntercept
-    success &= regWrite(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[1] * scaling);
-    success &= regWrite(gRegArray[idx][11], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(calParams->tempIntercept[0] * scaling);
-    success &= regWrite(gRegArray[idx][12], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(-calParams->tempIntercept[2] * scaling);
-    success &= regWrite(gRegArray[idx][13], &value32, sizeof(value32));
+        // tempSensitivity
+        reg[gRegArray[idx][6]] = calParams->tempSensitivitySource;
+        regOffsetWrite(calParams->tempSensitivity[1] * scaling, reg, idx, 7);
+        regOffsetWrite(calParams->tempSensitivity[0] * scaling, reg, idx, 8);
+        regOffsetWrite(-calParams->tempSensitivity[2] * scaling, reg, idx, 9);
 
-    // scaleFactor
-    success &= regWrite(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->scaleFactor[1]);
-    success &= regWrite(gRegArray[idx][15], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(calParams->scaleFactor[0]);
-    success &= regWrite(gRegArray[idx][16], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(-calParams->scaleFactor[2]);
-    success &= regWrite(gRegArray[idx][17], &value32, sizeof(value32));
+        // tempIntercept
+        reg[gRegArray[idx][10]] = calParams->tempInterceptSource;
+        regOffsetWrite(calParams->tempIntercept[1] * scaling, reg, idx, 11);
+        regOffsetWrite(calParams->tempIntercept[0] * scaling, reg, idx, 12);
+        regOffsetWrite(-calParams->tempIntercept[2] * scaling, reg, idx, 13);
 
-    // crossAxis
-    success &= regWrite(gRegArray[idx][18], &calParams->crossAxisSource, 1);
-    value32 = FX_FLTTOFIX_Q16(calParams->crossAxis[1]);
-    success &= regWrite(gRegArray[idx][19], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(calParams->crossAxis[0]);
-    success &= regWrite(gRegArray[idx][20], &value32, sizeof(value32));
-    value32 = FX_FLTTOFIX_Q16(-calParams->crossAxis[2]);
-    success &= regWrite(gRegArray[idx][21], &value32, sizeof(value32));
+        // scaleFactor
+        reg[gRegArray[idx][14]] = calParams->scaleFactorSource;
+        regOffsetWrite(calParams->scaleFactor[1], reg, idx, 15);
+        regOffsetWrite(calParams->scaleFactor[0], reg, idx, 16);
+        regOffsetWrite(-calParams->scaleFactor[2], reg, idx, 17);
+
+        // crossAxis
+        reg[gRegArray[idx][18]] = calParams->crossAxisSource;
+        regOffsetWrite(calParams->crossAxis[1], reg, idx, 19);
+        regOffsetWrite(calParams->crossAxis[0], reg, idx, 20);
+        regOffsetWrite(-calParams->crossAxis[2], reg, idx, 21);
+
+        // Only copy the actual group size
+        memcpy(data->data, reg, kGroupSizeRegAccelDynCalParams);
+        success &= regWrite(data);
+      }
+    }
+    memoryFree(dataRead);
+    memoryFree(data);
   }
   return success;
 }
 
-// TODO: use group read to improve efficiency.
 bool ashLoadCalibrationParams(uint8_t sensorType,
                               struct ashCalParams *calParams) {
   CHRE_ASSERT(calParams);
@@ -445,64 +452,54 @@ bool ashLoadCalibrationParams(uint8_t sensorType,
   if (!isCalibrationSupported(sensorType)) {
     LOGE("Attempting to write cal params of sensor %" PRIu8, sensorType);
   } else if (calParams != nullptr) {
-    success = true;
     size_t idx = getRegArrayRowIndex(sensorType);
-    int32_t value32;
     float scaling = 1.0f;
     if (sensorType == CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD) {
       scaling = kMicroTeslaPerGauss;
     }
 
-    // offset
-    success &= regRead(gRegArray[idx][0], &calParams->offsetSource, 1);
-    success &= regRead(gRegArray[idx][1], &value32, sizeof(value32));
-    calParams->offset[1] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][2], &value32, sizeof(value32));
-    calParams->offset[0] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][3], &value32, sizeof(value32));
-    calParams->offset[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
+    auto *data = memoryAlloc<sns_reg_group_read_resp_msg_v02>();
+    if (data != nullptr) {
+      success = regRead(data);
+      if (success) {
+        uint8_t *reg = data->data;
 
-    // offsetTempCelsius
-    success &= regRead(gRegArray[idx][4],
-                       &calParams->offsetTempCelsiusSource, 1);
-    success &= regRead(gRegArray[idx][5], &value32, sizeof(value32));
-    calParams->offsetTempCelsius = FX_FIXTOFLT_Q16(value32);
+        // offset
+        calParams->offsetSource = reg[gRegArray[idx][0]];
+        calParams->offset[1] = regOffsetRead(reg, idx, 1) * scaling;
+        calParams->offset[0] = regOffsetRead(reg, idx, 2) * scaling;
+        calParams->offset[2] = -regOffsetRead(reg, idx, 3) * scaling;
 
-    // tempSensitivity
-    success &= regRead(gRegArray[idx][6], &calParams->tempSensitivitySource, 1);
-    success &= regRead(gRegArray[idx][7], &value32, sizeof(value32));
-    calParams->tempSensitivity[1] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][8], &value32, sizeof(value32));
-    calParams->tempSensitivity[0] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][9], &value32, sizeof(value32));
-    calParams->tempSensitivity[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
+        // offsetTempCelsius
+        calParams->offsetTempCelsiusSource = reg[gRegArray[idx][4]];
+        calParams->offsetTempCelsius = regOffsetRead(reg, idx, 5);
 
-    // tempIntercept
-    success &= regRead(gRegArray[idx][10], &calParams->tempInterceptSource, 1);
-    success &= regRead(gRegArray[idx][11], &value32, sizeof(value32));
-    calParams->tempIntercept[1] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][12], &value32, sizeof(value32));
-    calParams->tempIntercept[0] = FX_FIXTOFLT_Q16(value32) * scaling;
-    success &= regRead(gRegArray[idx][13], &value32, sizeof(value32));
-    calParams->tempIntercept[2] = -FX_FIXTOFLT_Q16(value32) * scaling;
+        // tempSensitivity
+        calParams->tempSensitivitySource = reg[gRegArray[idx][6]];
+        calParams->tempSensitivity[1] = regOffsetRead(reg, idx, 7) * scaling;
+        calParams->tempSensitivity[0] = regOffsetRead(reg, idx, 8) * scaling;
+        calParams->tempSensitivity[2] = -regOffsetRead(reg, idx, 9) * scaling;
 
-    // scaleFactor
-    success &= regRead(gRegArray[idx][14], &calParams->scaleFactorSource, 1);
-    success &= regRead(gRegArray[idx][15], &value32, sizeof(value32));
-    calParams->scaleFactor[1] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][16], &value32, sizeof(value32));
-    calParams->scaleFactor[0] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][17], &value32, sizeof(value32));
-    calParams->scaleFactor[2] = -FX_FIXTOFLT_Q16(value32);
+        // tempIntercept
+        calParams->tempInterceptSource = reg[gRegArray[idx][10]];
+        calParams->tempIntercept[1] = regOffsetRead(reg, idx, 11) * scaling;
+        calParams->tempIntercept[0] = regOffsetRead(reg, idx, 12) * scaling;
+        calParams->tempIntercept[2] = -regOffsetRead(reg, idx, 13) * scaling;
 
-    // crossAxis
-    success &= regRead(gRegArray[idx][18], &calParams->crossAxisSource, 1);
-    success &= regRead(gRegArray[idx][19], &value32, sizeof(value32));
-    calParams->crossAxis[1] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][20], &value32, sizeof(value32));
-    calParams->crossAxis[0] = FX_FIXTOFLT_Q16(value32);
-    success &= regRead(gRegArray[idx][21], &value32, sizeof(value32));
-    calParams->crossAxis[2] = -FX_FIXTOFLT_Q16(value32);
+        // scaleFactor
+        calParams->scaleFactorSource = reg[gRegArray[idx][14]];
+        calParams->scaleFactor[1] = regOffsetRead(reg, idx, 15);
+        calParams->scaleFactor[0] = regOffsetRead(reg, idx, 16);
+        calParams->scaleFactor[2] = -regOffsetRead(reg, idx, 17);
+
+        // crossAxis
+        calParams->crossAxisSource = reg[gRegArray[idx][18]];
+        calParams->crossAxis[1] = regOffsetRead(reg, idx, 19);
+        calParams->crossAxis[0] = regOffsetRead(reg, idx, 20);
+        calParams->crossAxis[2] = -regOffsetRead(reg, idx, 21);
+      }
+    }
+    memoryFree(data);
   }
   return success;
 }
