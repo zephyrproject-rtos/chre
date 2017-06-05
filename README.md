@@ -78,6 +78,10 @@ The CHRE project is organized as follows:
     - This is reference code and is not required for the CHRE to function.
 - ``util``
     - Contains data structures used throughout CHRE and common utility code.
+- ``variant/simulator``
+    - Contains the CHRE variant for the simulator. This is a good example to
+      start from when porting to new devices. Variants are explained in more
+      detail below.
 
 Within each of these directories, you may find a ``tests`` subdirectory
 containing tests written against the googletest framework.
@@ -128,6 +132,22 @@ C++ style guide is used with the exception of Android naming conventions for
 methods and variables. This means 2 space indents, camelCase method names, an
 mPrefix on class members and so on. Style rules that are not specified in the
 Android style guide are inherited from Google.
+
+## CHRE Variants
+
+A CHRE variant allows injecting additional source files into the build on a
+per-device basis. This can be used to inject:
+
+* A version string
+    * Set to ``undefined`` if not specified
+* A static nanoapp list
+    * Empty if left undefined
+* Additional static nanoapp includes
+    * Vendor-specific nanoapps could be specified in the variant
+
+Export the ``CHRE_VARIANT_MK_INCLUDES`` containing the mk files that you wish to
+be included the CHRE variant build. Refer to ``run_sim.sh`` and the
+``variant/simulator`` subdirectory for an example as used by the simulator.
 
 * [Google C++ Style][1]
 

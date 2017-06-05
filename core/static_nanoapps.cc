@@ -23,22 +23,13 @@ namespace chre {
 
 // The CHRE build variant can supply this macro to override the default list of
 // static nanoapps. Most production variants will supply this macro as these
-// nanoapps are mostly intended for testing and evaluation purposes.
+// nanoapps are mostly intended for testing and evaluation purposes. This list
+// is supplied empty to ensure that the symbol is avilable for platforms with
+// no static nanoapps.
 #ifndef CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
 //! The default list of static nanoapps to load.
-const StaticNanoappInitFunction kStaticNanoappList[] = {
-  initializeStaticNanoappGnssWorld,
-  initializeStaticNanoappHelloWorld,
-  initializeStaticNanoappImuCal,
-  initializeStaticNanoappMessageWorld,
-  initializeStaticNanoappSensorWorld,
-  initializeStaticNanoappSpammer,
-  initializeStaticNanoappTimerWorld,
-  initializeStaticNanoappUnloadTester,
-  initializeStaticNanoappWifiWorld,
-  initializeStaticNanoappWwanWorld,
-};
+const StaticNanoappInitFunction kStaticNanoappList[] = {};
 
 //! The size of the default static nanoapp list.
 const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
@@ -46,9 +37,16 @@ const size_t kStaticNanoappCount = ARRAY_SIZE(kStaticNanoappList);
 #endif  // CHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
 void loadStaticNanoapps() {
-  for (size_t i = 0; i < kStaticNanoappCount; i++) {
-    UniquePtr<Nanoapp> nanoapp = kStaticNanoappList[i]();
-    EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
+  // Compare with zero to allow the compiler to optimize away the loop.
+  // Tautological comparisons are not warnings when comparing a const with
+  // another const.
+  if (kStaticNanoappCount > 0) {
+    // Cast the kStaticNanoappCount to size_t to avoid tautological comparison
+    // warnings when the kStaticNanoappCount is zero.
+    for (size_t i = 0; i < reinterpret_cast<size_t>(kStaticNanoappCount); i++) {
+      UniquePtr<Nanoapp> nanoapp = kStaticNanoappList[i]();
+      EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
+    }
   }
 }
 
