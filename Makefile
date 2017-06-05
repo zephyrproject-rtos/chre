@@ -53,9 +53,6 @@ COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 # Place nanoapps in a namespace.
 COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
 
-# Force all CHRE symbols to be hidden by default.
-COMMON_CFLAGS += -fvisibility=hidden
-
 ifeq ($(CHRE_PATCH_VERSION),)
 # Compute the patch version as the number of hours since the start of some
 # arbitrary epoch. This will roll over 16 bits after ~7 years, but patch version

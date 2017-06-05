@@ -35,6 +35,9 @@ COMMON_DEBUG_CFLAGS += -g
 DEP_CFLAGS = -MT $$@ -MMD -MP -MF $$(basename $$@).Td
 DEP_POST_COMPILE = @mv -f $$(basename $$@).Td $$(basename $$@).d && touch $$@
 
+# Compile with hidden visibility by default.
+COMMON_CFLAGS += -fvisibility=hidden
+
 # Common Archive Flags #########################################################
 
 COMMON_ARFLAGS += rsc
