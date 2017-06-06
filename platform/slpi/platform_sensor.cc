@@ -297,7 +297,7 @@ void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
   // Override one-shot sensor's minInterval to default
   SensorType sensorType = getSensorTypeFromSensorId(
       sensorInfo.SensorID, sensorInfo.DataType, calType);
-  sensor.minInterval = sensorTypeIsOnChange(sensorType) ?
+  sensor.minInterval = sensorTypeIsOneShot(sensorType) ?
       CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
           Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
 
