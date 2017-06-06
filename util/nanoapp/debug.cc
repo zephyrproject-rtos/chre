@@ -17,6 +17,7 @@
 #include "chre/util/nanoapp/debug.h"
 
 #include <cctype>
+#include <cstdio>
 
 #ifdef CHRE_NANOAPP_INTERNAL
 #include "chre/platform/log.h"
