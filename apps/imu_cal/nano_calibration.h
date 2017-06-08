@@ -48,12 +48,16 @@
 
 #ifdef MAG_CAL_ENABLED
 #include "calibration/magnetometer/mag_cal.h"
+#ifdef SPHERE_FIT_ENABLED
+#include "calibration/magnetometer/mag_sphere_fit.h"
+#endif  // SPHERE_FIT_ENABLED
 #endif  // MAG_CAL_ENABLED
 
 #include <chre.h>
 
 namespace nano_calibration {
 
+// TODO: Clean up, unifying constexpr variables location.
 // Default sensor temperature used for initialization.
 constexpr float kDefaultTemperatureCelsius = 20.0f;
 
@@ -65,6 +69,17 @@ constexpr float kPi = 3.141592653589793238f;
 
 // Unit conversion from nanoseconds to microseconds.
 constexpr float kNanoToMicroseconds = 1e-3f;
+
+// Data struct for sample rate estimate fuction. Visible for the class in order
+// to allow usage in all algorithms.
+struct SampleRateData {
+  uint64_t last_timestamp_nanos;
+  uint64_t time_delta_accumulator;
+  size_t num_samples;
+};
+
+// TODO: move typedef to mag_cal.h.
+typedef uint32_t MagUpdateFlags;
 
 /*
  * Class Definition:  NanoSensorCal.
@@ -121,7 +136,7 @@ class NanoSensorCal {
   // Updates the local calibration parameters containers.
   void UpdateAccelCalParams();
   void UpdateGyroCalParams();
-  void UpdateMagCalParams();
+  void UpdateMagCalParams(MagUpdateFlags new_update);
 
   // Loads persistent calibration data using the ASH API.
   void LoadAshAccelCal();
@@ -132,7 +147,7 @@ class NanoSensorCal {
   // information using the ASH API.
   void NotifyAshAccelCal();
   void NotifyAshGyroCal();
-  void NotifyAshMagCal();
+  void NotifyAshMagCal(MagUpdateFlags new_update);
 
 #ifdef ACCEL_CAL_ENABLED
   // Accelerometer runtime calibration.
@@ -154,6 +169,11 @@ class NanoSensorCal {
 #ifdef MAG_CAL_ENABLED
   // Magnetometer runtime calibration.
   struct MagCal mag_cal_;
+#ifdef SPHERE_FIT_ENABLED
+  struct SampleRateData mag_sample_rate_data_;
+  struct MagCalSphere mag_cal_sphere_;
+  float mag_odr_estimate_hz_ = 0;
+#endif  // SPHERE_FIT_ENABLED
 #endif  // MAG_CAL_ENABLED
 
   // Flag to indicate whether the NanoSensorCal object has been initialized.
