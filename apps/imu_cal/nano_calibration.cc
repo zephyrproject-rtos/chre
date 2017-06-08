@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include "../imu_cal/nano_calibration.h"
+#include "nano_calibration.h"
 
 #include <cmath>
 #include <cstring>
@@ -35,6 +34,63 @@ namespace {
 #else
 #define NANO_CAL_LOG(tag, format, ...) chreLogNull(format, ##__VA_ARGS__)
 #endif
+
+#ifdef SPHERE_FIT_ENABLED
+constexpr size_t kSamplesToAverageForOdrEstimateMag = 10;
+
+// Unit conversion: nanoseconds to seconds.
+constexpr float kNanosToSec = 1.0e-9f;
+
+
+// Helper function that estimates the ODR based on the incoming data timestamp.
+void SamplingRateEstimate(struct SampleRateData *sample_rate_data,
+                          float *mean_sampling_rate_hz,
+                          uint64_t timestamp_nanos,
+                          bool reset_stats) {
+  // If 'mean_sampling_rate_hz' is not nullptr then this function just reads
+  // out the estimate of the sampling rate.
+  if (mean_sampling_rate_hz != nullptr) {
+    if (sample_rate_data->num_samples > 1 &&
+        sample_rate_data->time_delta_accumulator > 0) {
+      // Computes the final mean calculation.
+      *mean_sampling_rate_hz =
+          sample_rate_data->num_samples /
+          (static_cast<float>(sample_rate_data->time_delta_accumulator) *
+           kNanosToSec);
+    } else {
+      // Not enough samples to compute a valid sample rate estimate. Indicate
+      // this with a -1 value.
+      *mean_sampling_rate_hz = -1.0f;
+    }
+    reset_stats = true;
+  }
+
+  // Resets the sampling rate mean estimator data.
+  if (reset_stats) {
+    sample_rate_data->last_timestamp_nanos = 0;
+    sample_rate_data->time_delta_accumulator = 0;
+    sample_rate_data->num_samples = 0;
+    return;
+  }
+
+  // Skip adding this data to the accumulator if:
+  //   1. A bad timestamp was received (i.e., time not monotonic).
+  //   2. 'last_timestamp_nanos' is zero.
+  if (timestamp_nanos <= sample_rate_data->last_timestamp_nanos ||
+      sample_rate_data->last_timestamp_nanos == 0) {
+    sample_rate_data->last_timestamp_nanos = timestamp_nanos;
+    return;
+  }
+
+  // Increments the number of samples.
+  sample_rate_data->num_samples++;
+
+  // Accumulate the time steps.
+  sample_rate_data->time_delta_accumulator += timestamp_nanos -
+      sample_rate_data->last_timestamp_nanos;
+  sample_rate_data->last_timestamp_nanos = timestamp_nanos;
+}
+#endif  // SPHERE_FIT_ENABLED
 
 // Helper function that resets calibration data to a known initial state.
 void ResetCalParams(struct ashCalParams *cal_params) {
@@ -273,6 +329,29 @@ void NanoSensorCal::Initialize() {
 
 #ifdef MAG_CAL_ENABLED
 #ifdef DIVERSITY_CHECK_ENABLED
+#ifdef SPHERE_FIT_ENABLED
+  // Full Sphere Fit.
+  // TODO: Replace function parameters with a struct, to avoid swapping them per
+  // accident.
+  initMagCalSphere(&mag_cal_sphere_,
+                   0.0f, 0.0f, 0.0f,            // bias x, y, z.
+                   1.0f, 0.0f, 0.0f,            // c00, c01, c02.
+                   0.0f, 1.0f, 0.0f,            // c10, c11, c12.
+                   0.0f, 0.0f, 1.0f,            // c20, c21, c22.
+                   7357000,                     // min_batch_window_in_micros
+                   15,                          // min_num_diverse_vectors.
+                   1,                           // max_num_max_distance.
+                   5.0f,                        // var_threshold.
+                   8.0f,                        // max_min_threshold.
+                   48.f,                        // local_field.
+                   0.49f,                       // threshold_tuning_param.
+                   2.5f);                       // max_distance_tuning_param.
+  magCalSphereOdrUpdate(&mag_cal_sphere_, 50 /* Default sample rate Hz */);
+
+  // ODR init.
+  memset(&mag_sample_rate_data_, 0, sizeof(SampleRateData));
+#endif  // SPHERE_FIT_ENABLED
+
   // Initializes the magnetometer offset calibration algorithm (with diversity
   // checker).
   initMagCal(&mag_cal_,
@@ -286,15 +365,16 @@ void NanoSensorCal::Initialize() {
              6.0f,              // var_threshold
              10.0f,             // max_min_threshold
              48.f,              // local_field
-             0.5f,              // threshold_tuning_param
-             2.552f);           // max_distance_tuning_param
+             0.49f,             // threshold_tuning_param
+             2.5f);             // max_distance_tuning_param
 #else
   // Initializes the magnetometer offset calibration algorithm.
   initMagCal(&mag_cal_,
              0.0f, 0.0f, 0.0f,   // bias x, y, z
              1.0f, 0.0f, 0.0f,   // c00, c01, c02
              0.0f, 1.0f, 0.0f,   // c10, c11, c12
-             0.0f, 0.0f, 1.0f);  // c20, c21, c22
+             0.0f, 0.0f, 1.0f,   // c20, c21, c22
+             3000000);           // min_batch_window_in_micros
 #endif  // DIVERSITY_CHECK_ENABLED
 
   // Retrieves stored calibration data using the ASH API.
@@ -494,30 +574,50 @@ void NanoSensorCal::HandleSensorSamplesMagCal(
     const auto header = event_data->header;
     const auto *data = event_data->readings;
     uint64_t timestamp_nanos = header.baseTimestamp;
-    bool new_calibration_update = false;
+    MagUpdateFlags new_calibration_update_mag_cal = MagUpdate::NO_UPDATE;
+
     for (size_t i = 0; i < header.readingCount; i++) {
       timestamp_nanos += data[i].timestampDelta;
-      float mx, my, mz;
-      magCalRemoveSoftiron(&mag_cal_,
-                           data[i].v[0],  // x-axis data [uT]
-                           data[i].v[1],  // y-axis data [uT]
-                           data[i].v[2],  // z-axis data [uT]
-                           &mx, &my, &mz);
 
       // Sets the flag to indicate a new calibration update.
-      new_calibration_update |=
-          (magCalUpdate(
-               &mag_cal_,
-               static_cast<uint64_t>(timestamp_nanos * kNanoToMicroseconds), mx,
-               my, mz) > 0);
+      new_calibration_update_mag_cal |= magCalUpdate(
+          &mag_cal_,
+          static_cast<uint64_t>(timestamp_nanos * kNanoToMicroseconds),
+          data[i].v[0],   // x-axis data [uT]
+          data[i].v[1],   // y-axis data [uT]
+          data[i].v[2]);  // z-axis data [uT]
+
+#ifdef SPHERE_FIT_ENABLED
+      // Sphere Fit Algo Part.
+
+      // getting ODR.
+      if (mag_sample_rate_data_.num_samples <
+           kSamplesToAverageForOdrEstimateMag) {
+        SamplingRateEstimate(&mag_sample_rate_data_, nullptr, timestamp_nanos,
+                             false);
+      } else {
+        SamplingRateEstimate(&mag_sample_rate_data_, &mag_odr_estimate_hz_,
+                             0, true);
+
+        // Sphere fit ODR update.
+        magCalSphereOdrUpdate(&mag_cal_sphere_, mag_odr_estimate_hz_);
+      }
+
+      // Running Sphere fit, and getting trigger.
+      new_calibration_update_mag_cal |= magCalSphereUpdate(
+          &mag_cal_sphere_,
+          static_cast<uint64_t>(timestamp_nanos * kNanoToMicroseconds),
+          data[i].v[0],   // x-axis data [uT]
+          data[i].v[1],   // y-axis data [uT]
+          data[i].v[2]);  // z-axis data [uT]
+#endif  // SPHERE_FIT_ENABLED
     }
 
-    if (new_calibration_update) {
+    if ((MagUpdate::UPDATE_BIAS & new_calibration_update_mag_cal) ||
+        (MagUpdate::UPDATE_SPHERE_FIT & new_calibration_update_mag_cal)) {
       // Sets the flag to indicate a new calibration update is pending.
       mag_calibration_ready_ = true;
-
-      // Provides a new magnetometer calibration update.
-      NotifyAshMagCal();
+      NotifyAshMagCal(new_calibration_update_mag_cal);
     }
   }
 #endif  // MAG_CAL_ENABLED
@@ -586,16 +686,48 @@ void NanoSensorCal::UpdateGyroCalParams() {
 #endif  // GYRO_CAL_ENABLED
 }
 
-void NanoSensorCal::UpdateMagCalParams() {
+void NanoSensorCal::UpdateMagCalParams(MagUpdateFlags new_update) {
 #ifdef MAG_CAL_ENABLED
-  // Gets the magnetometer's offset vector and temperature.
-  magCalGetBias(&mag_cal_, &mag_cal_params_.offset[0],
-                     &mag_cal_params_.offset[1], &mag_cal_params_.offset[2]);
-  mag_cal_params_.offsetTempCelsius = temperature_celsius_;
+  if (MagUpdate::UPDATE_SPHERE_FIT & new_update) {
+#ifdef SPHERE_FIT_ENABLED
+    // Updating the mag offset from sphere fit.
+    mag_cal_params_.offset[0] = mag_cal_sphere_.sphere_fit.sphere_param.bias[0];
+    mag_cal_params_.offset[1] = mag_cal_sphere_.sphere_fit.sphere_param.bias[1];
+    mag_cal_params_.offset[2] = mag_cal_sphere_.sphere_fit.sphere_param.bias[2];
 
-  // Sets the parameter source to runtime calibration.
-  mag_cal_params_.offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-  mag_cal_params_.offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    // Updating the Sphere Param.
+    mag_cal_params_.scaleFactor[0] =
+        mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_x;
+    mag_cal_params_.scaleFactor[1] =
+        mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_y;
+    mag_cal_params_.scaleFactor[2] =
+        mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_z;
+    mag_cal_params_.crossAxis[0] =
+        mag_cal_sphere_.sphere_fit.sphere_param.skew_yx;
+    mag_cal_params_.crossAxis[1] =
+        mag_cal_sphere_.sphere_fit.sphere_param.skew_zx;
+    mag_cal_params_.crossAxis[2] =
+        mag_cal_sphere_.sphere_fit.sphere_param.skew_zy;
+
+    // Updating the temperature.
+    mag_cal_params_.offsetTempCelsius = temperature_celsius_;
+
+    // Sets the parameter source to runtime calibration.
+    mag_cal_params_.offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    mag_cal_params_.scaleFactorSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    mag_cal_params_.crossAxisSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    mag_cal_params_.offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+#endif  // SPHERE_FIT_ENABLED
+  } else if (MagUpdate::UPDATE_BIAS & new_update) {
+    // Gets the magnetometer's offset vector and temperature.
+    magCalGetBias(&mag_cal_, &mag_cal_params_.offset[0],
+                  &mag_cal_params_.offset[1], &mag_cal_params_.offset[2]);
+    mag_cal_params_.offsetTempCelsius = temperature_celsius_;
+
+    // Sets the parameter source to runtime calibration.
+    mag_cal_params_.offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    mag_cal_params_.offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+  }
 #endif  // MAG_CAL_ENABLED
 }
 
@@ -738,19 +870,53 @@ void NanoSensorCal::LoadAshMagCal() {
       magCalReset(&mag_cal_);  // Resets the magnetometer's offset vector.
       magCalAddBias(&mag_cal_, mag_cal_params_.offset[0],
                     mag_cal_params_.offset[1], mag_cal_params_.offset[2]);
+
+#ifdef SPHERE_FIT_ENABLED
+      // Sets Sphere Fit calibration data.
+      mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_x =
+          mag_cal_params_.scaleFactor[0];
+      mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_y =
+          mag_cal_params_.scaleFactor[1];
+      mag_cal_sphere_.sphere_fit.sphere_param.scale_factor_z =
+          mag_cal_params_.scaleFactor[2];
+      mag_cal_sphere_.sphere_fit.sphere_param.skew_yx =
+          mag_cal_params_.crossAxis[0];
+      mag_cal_sphere_.sphere_fit.sphere_param.skew_zx =
+          mag_cal_params_.crossAxis[1];
+      mag_cal_sphere_.sphere_fit.sphere_param.skew_zy =
+          mag_cal_params_.crossAxis[2];
+      mag_cal_sphere_.sphere_fit.sphere_param.bias[0] =
+          mag_cal_params_.offset[0];
+      mag_cal_sphere_.sphere_fit.sphere_param.bias[1] =
+          mag_cal_params_.offset[1];
+      mag_cal_sphere_.sphere_fit.sphere_param.bias[2] =
+          mag_cal_params_.offset[2];
+#endif  // SPHERE_FIT_ENABLED
       load_successful = true;
     }
   }
 
   if (load_successful) {
     // Updates the calibration data with ASH.
-    NotifyAshMagCal();
+#ifdef SPHERE_FIT_ENABLED
+    NotifyAshMagCal(MagUpdate::UPDATE_SPHERE_FIT);
+#else
+    NotifyAshMagCal(MagUpdate::UPDATE_BIAS);
+#endif  // SPHERE_FIT_ENABLED
 
     // Prints recalled calibration data.
     NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
-                 "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                 "Offset [uT] | Temp [Celsius] : %.3f, %.3f, %.3f | %.3f",
                  mag_cal_params_.offset[0], mag_cal_params_.offset[1],
                  mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
+#ifdef SPHERE_FIT_ENABLED
+    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
+                 "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f |"
+                 " %.3f, %.3f, %.3f",
+                 mag_cal_params_.scaleFactor[0], mag_cal_params_.scaleFactor[1],
+                 mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
+                 mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
+#endif  // SPHERE_FIT_ENABLED
   } else {
     NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
                  "Failed to recall Magnetometer calibration data from "
@@ -829,13 +995,15 @@ void NanoSensorCal::NotifyAshGyroCal() {
 #endif  // GYRO_CAL_ENABLED
 }
 
-void NanoSensorCal::NotifyAshMagCal() {
+void NanoSensorCal::NotifyAshMagCal(MagUpdateFlags new_update) {
 #ifdef MAG_CAL_ENABLED
   // Update ASH with the latest calibration data.
-  UpdateMagCalParams();
+  UpdateMagCalParams(new_update);
   struct ashCalInfo cal_info;
   ResetCalInfo(&cal_info);
   memcpy(cal_info.bias, mag_cal_params_.offset, sizeof(cal_info.bias));
+
+  // TODO: Adding Sphere Parameters to compensation matrix.
   cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
   ashSetCalibration(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD, &cal_info);
 
@@ -850,6 +1018,14 @@ void NanoSensorCal::NotifyAshMagCal() {
                  "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
                  mag_cal_params_.offset[0], mag_cal_params_.offset[1],
                  mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
+#ifdef SPHERE_FIT_ENABLED
+    NANO_CAL_LOG("[NanoSensorCal:STORED MAG]",
+                 "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f | "
+                 " %.3f, %.3f, %.3f",
+                 mag_cal_params_.scaleFactor[0], mag_cal_params_.scaleFactor[1],
+                 mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
+                 mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
+#endif  // SPHERE_FIT_ENABLED
   }
 #endif  // FACTORYCAL_IS_VERIFIED
 #endif  // MAG_CAL_ENABLED
