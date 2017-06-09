@@ -86,6 +86,10 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         break;
       }
 
+      case fbs::ChreMessage::DebugDumpRequest:
+        HostMessageHandlers::handleDebugDumpRequest(hostClientId);
+        break;
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -161,6 +165,24 @@ void HostProtocolChre::encodeLogMessages(
       reinterpret_cast<const int8_t *>(logBuffer), bufferSize);
   auto message = fbs::CreateLogMessage(builder, logBufferOffset);
   finalize(builder, fbs::ChreMessage::LogMessage, message.Union());
+}
+
+void HostProtocolChre::encodeDebugDumpData(
+    flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+    const char *debugStr, size_t debugStrSize) {
+  auto debugStrOffset = builder.CreateVector(
+      reinterpret_cast<const int8_t *>(debugStr), debugStrSize);
+  auto message = fbs::CreateDebugDumpData(builder, debugStrOffset);
+  finalize(builder, fbs::ChreMessage::DebugDumpData, message.Union(),
+           hostClientId);
+}
+
+void HostProtocolChre::encodeDebugDumpResponse(
+      flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+      bool success, uint32_t dataCount) {
+  auto response = fbs::CreateDebugDumpResponse(builder, success, dataCount);
+  finalize(builder, fbs::ChreMessage::DebugDumpResponse, response.Union(),
+           hostClientId);
 }
 
 }  // namespace chre

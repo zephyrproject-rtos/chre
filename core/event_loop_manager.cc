@@ -34,6 +34,18 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
   return currentNanoapp;
 }
 
+UniquePtr<char> EventLoopManager::debugDump() {
+  // TODO: gather debug info from all subsystems
+  constexpr size_t kDebugStringSize = 256;
+  char *debugStr = static_cast<char *>(memoryAlloc(kDebugStringSize));
+  if (debugStr != nullptr) {
+    debugStr[kDebugStringSize - 1] = '\0';
+    snprintf(debugStr, kDebugStringSize - 1, "CHRE debug dump test\n");
+  }
+
+  return UniquePtr<char>(debugStr);
+}
+
 bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
                                      SystemCallbackFunction *callback) {
   return mEventLoop.postEvent(static_cast<uint16_t>(type), data, callback,

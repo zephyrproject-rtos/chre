@@ -118,6 +118,24 @@ bool HostProtocolHost::decodeMessageFromChre(
         break;
       }
 
+      case fbs::ChreMessage::DebugDumpData: {
+        const auto *msg = static_cast<const fbs::DebugDumpData *>(
+            container->message());
+        fbs::DebugDumpDataT dumpData;
+        msg->UnPackTo(&dumpData);
+        handlers.handleDebugDumpData(dumpData);
+        break;
+      }
+
+      case fbs::ChreMessage::DebugDumpResponse: {
+        const auto *resp = static_cast<const fbs::DebugDumpResponse *>(
+            container->message());
+        fbs::DebugDumpResponseT response;
+        resp->UnPackTo(&response);
+        handlers.handleDebugDumpResponse(response);
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -160,6 +178,11 @@ void HostProtocolHost::encodeTimeSyncMessage(FlatBufferBuilder& builder,
                                              int64_t offset) {
   auto request = fbs::CreateTimeSyncMessage(builder, offset);
   finalize(builder, fbs::ChreMessage::TimeSyncMessage, request.Union());
+}
+
+void HostProtocolHost::encodeDebugDumpRequest(FlatBufferBuilder& builder) {
+  auto request = fbs::CreateDebugDumpRequest(builder);
+  finalize(builder, fbs::ChreMessage::DebugDumpRequest, request.Union());
 }
 
 bool HostProtocolHost::extractHostClientIdAndType(

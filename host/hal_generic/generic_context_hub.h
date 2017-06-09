@@ -40,6 +40,7 @@ using ::android::hardware::contexthub::V1_0::IContexthub;
 using ::android::hardware::contexthub::V1_0::IContexthubCallback;
 using ::android::hardware::contexthub::V1_0::NanoAppBinary;
 using ::android::hardware::contexthub::V1_0::Result;
+using ::android::hardware::hidl_handle;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
@@ -48,6 +49,8 @@ using ::android::sp;
 class GenericContextHub : public IContexthub {
  public:
   GenericContextHub();
+
+  Return<void> debug(const hidl_handle& fd, const hidl_vec<hidl_string>& options) override;
 
   // Methods from ::android::hardware::contexthub::V1_0::IContexthub follow.
   Return<void> getHubs(getHubs_cb _hidl_cb) override;
@@ -92,6 +95,12 @@ class GenericContextHub : public IContexthub {
     void handleUnloadNanoappResponse(
       const ::chre::fbs::UnloadNanoappResponseT& response) override;
 
+    void handleDebugDumpData(
+      const ::chre::fbs::DebugDumpDataT& data) override;
+
+    void handleDebugDumpResponse(
+      const ::chre::fbs::DebugDumpResponseT& response) override;
+
    private:
     GenericContextHub& mParent;
     bool mHaveConnected = false;
@@ -111,6 +120,16 @@ class GenericContextHub : public IContexthub {
   bool mHubInfoValid = false;
   std::mutex mHubInfoMutex;
   std::condition_variable mHubInfoCond;
+
+  static constexpr int kInvalidFd = -1;
+  int mDebugFd = kInvalidFd;
+  bool mDebugDumpPending = false;
+  std::mutex mDebugDumpMutex;
+  std::condition_variable mDebugDumpCond;
+
+  // Write a string to mDebugFd
+  void writeToDebugFile(const char *str);
+  void writeToDebugFile(const char *str, size_t len);
 };
 
 extern "C" IContexthub* HIDL_FETCH_IContexthub(const char* name);
