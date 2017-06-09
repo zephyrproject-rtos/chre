@@ -86,6 +86,46 @@ The CHRE project is organized as follows:
 Within each of these directories, you may find a ``tests`` subdirectory
 containing tests written against the googletest framework.
 
+### Platform Directory Structure
+
+The platform directory contains an interface that common code under ``core``
+leverages to implement the runtime. All platforms are required to implement the
+interface provided in ``platform/include``.
+
+The following gives a more detailed explanation of the directory structure.
+
+- ``platform`` - The top-level directory for platform-specific code.
+    - ``include`` - The interface that platforms are required to implement.
+    - ``shared`` - Code that may be shared by more than one platform but not
+                   necessarily required for all.
+    - ``slpi`` - The implementation of the common interface for the SLPI and any
+                 SLPI-specific code.
+    - ``linux`` - The implementation of the common interface for the simulator
+                  running on Linux and any simulator-specific code.
+
+Common CHRE code that is expected to run across all platforms is located in
+``core``. This code must have a stable way to access the platform-specific
+implementation of the common platform API. This is handled by providing a stable
+include path and changing the search path for the platform implementation. Here
+is an example directory layout:
+
+- ``platform``
+    - ``<platform_name>``
+        - ``include``
+            - ``chre``
+                - ``target_platform``
+
+The build system will add ``platform/<platform_name>/include`` to the include
+search path allowing common code to find the implementation of the platform
+interface. Here is an example of core code including a platform-specific header
+in this way:
+
+``#include "chre/target_platform/log.h"``
+
+When building for the linux platform, the file is included from:
+
+``platform/linux/include/chre/target_platform/log.h``
+
 ## Supplied Nanoapps
 
 This project includes a number of nanoapps that serve as both examples of how to
