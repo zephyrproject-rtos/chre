@@ -147,7 +147,7 @@ void sendMessageToNanoapp(SocketClient& client) {
   uint8_t messageData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   HostProtocolHost::encodeNanoappMessage(
       builder, chre::kMessageWorldAppId, kHostEndpoint,
-      1234 /* transactionId */, messageData, sizeof(messageData));
+      1234 /* messageType */, messageData, sizeof(messageData));
 
   LOGI("Sending message to nanoapp (%" PRIu32 " bytes w/%zu bytes of payload)",
        builder.GetSize(), sizeof(messageData));
