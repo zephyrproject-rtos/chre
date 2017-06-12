@@ -29,7 +29,7 @@ namespace {
 namespace {
 
 constexpr uint32_t kMessageType = 1234;
-uint8_t gMessageData[] = {1, 2, 3, 4, 5, 6, 7, 8};
+uint8_t gMessageData[CHRE_MESSAGE_TO_HOST_MAX_SIZE] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 void messageFreeCallback(void *message, size_t messageSize) {
   LOGI("Got message free callback for message @"
