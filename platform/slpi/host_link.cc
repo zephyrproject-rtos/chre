@@ -56,6 +56,12 @@ struct LoadNanoappCallbackData {
   UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();
 };
 
+struct NanoappListData {
+  FlatBufferBuilder *builder;
+  DynamicVector<NanoappListEntryOffset> nanoappEntries;
+  uint16_t hostClientId;
+};
+
 enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
@@ -165,51 +171,32 @@ bool buildAndEnqueueMessage(PendingMessageType msgType,
   return pushed;
 }
 
-void buildNanoappListResponse(
-    FlatBufferBuilder& builder,
-    DynamicVector<NanoappListEntryOffset>& nanoappEntries,
-    uint16_t hostClientId) {
-  struct CallbackData {
-    CallbackData(FlatBufferBuilder& builder_,
-                 DynamicVector<NanoappListEntryOffset>& nanoappEntries_)
-        : builder(builder_), nanoappEntries(nanoappEntries_) {}
-
-    FlatBufferBuilder& builder;
-    DynamicVector<NanoappListEntryOffset>& nanoappEntries;
-  };
-
-  auto callback = [](const Nanoapp *nanoapp, void *data) {
-    auto *cbData = static_cast<CallbackData *>(data);
+/**
+ * FlatBuffer message builder callback used with constructNanoappListCallback()
+ */
+void buildNanoappListResponse(FlatBufferBuilder& builder, void *cookie) {
+  auto nanoappAdderCallback = [](const Nanoapp *nanoapp, void *data) {
+    auto *cbData = static_cast<NanoappListData *>(data);
     HostProtocolChre::addNanoappListEntry(
-        cbData->builder, cbData->nanoappEntries, nanoapp->getAppId(),
+        *(cbData->builder), cbData->nanoappEntries, nanoapp->getAppId(),
         nanoapp->getAppVersion(), true /*enabled*/,
         nanoapp->isSystemNanoapp());
   };
 
   // Add a NanoappListEntry to the FlatBuffer for each nanoapp
-  CallbackData cbData(builder, nanoappEntries);
+  auto *cbData = static_cast<NanoappListData *>(cookie);
+  cbData->builder = &builder;
   EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  eventLoop.forEachNanoapp(callback, &cbData);
-  HostProtocolChre::finishNanoappListResponse(builder, nanoappEntries,
-                                              hostClientId);
+  eventLoop.forEachNanoapp(nanoappAdderCallback, cbData);
+  HostProtocolChre::finishNanoappListResponse(
+      builder, cbData->nanoappEntries, cbData->hostClientId);
 }
 
 void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
-  struct NanoappListData {
-    DynamicVector<NanoappListEntryOffset> nanoappEntries;
-    uint16_t hostClientId;
-  };
-
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
-    auto *cbData = static_cast<NanoappListData *>(cookie);
-    buildNanoappListResponse(builder, cbData->nanoappEntries,
-                             cbData->hostClientId);
-  };
-
   HostClientIdCallbackData clientIdCbData;
   clientIdCbData.ptr = deferCbData;
 
-  NanoappListData cbData;
+  NanoappListData cbData = {};
   cbData.hostClientId = clientIdCbData.hostClientId;
 
   const EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
@@ -217,13 +204,14 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
   if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
     LOGE("Couldn't reserve space for list of nanoapp offsets");
   } else {
-    constexpr size_t kFixedOverhead = 56;
-    constexpr size_t kPerNanoappSize = 16;
+    constexpr size_t kFixedOverhead  = 48;
+    constexpr size_t kPerNanoappSize = 32;
     size_t initialBufferSize =
         (kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
 
     buildAndEnqueueMessage(PendingMessageType::NanoappListResponse,
-                           initialBufferSize, msgBuilder, &cbData);
+                           initialBufferSize, buildNanoappListResponse,
+                           &cbData);
   }
 }
 
