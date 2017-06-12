@@ -31,6 +31,11 @@ namespace {
 
 namespace {
 
+//! Enable/disable all sensors by default.
+// This allows disabling all sensens by default and enabling only targeted
+// sensors for testing by locally overriding 'enable' field in SensorState.
+constexpr bool kEnableDefault = true;
+
 struct SensorState {
   const uint8_t type;
   uint32_t handle;
@@ -43,63 +48,63 @@ struct SensorState {
 
 SensorState sensors[] = {
   { .type = CHRE_SENSOR_TYPE_ACCELEROMETER,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
-    .enable = false,
+    .enable = false,  // InstantMotion is triggered by Prox
   },
   { .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
-    .enable = false,
+    .enable = false,  // StationaryDetect is triggered by Prox
   },
   { .type = CHRE_SENSOR_TYPE_GYROSCOPE,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_PRESSURE,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(200).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_LIGHT,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(200).toRawNanoseconds(),
     .latency = 0,
   },
   { .type = CHRE_SENSOR_TYPE_PROXIMITY,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(200).toRawNanoseconds(),
     .latency = 0,
   },
   { .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Seconds(2).toRawNanoseconds(),
     .latency = 0,
   },
   { .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Seconds(2).toRawNanoseconds(),
     .latency = 0,
   },
   { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
   { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
-    .enable = true,
+    .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
     .latency = Seconds(4).toRawNanoseconds(),
   },
