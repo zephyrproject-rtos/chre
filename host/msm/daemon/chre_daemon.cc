@@ -231,7 +231,6 @@ static void sendTimeSyncMessage() {
  * @return always returns NULL
  */
 static void *chre_message_to_host_thread(void *arg) {
-  // TODO: size this appropriately to handle encoded messages
   unsigned char messageBuffer[4096];
   unsigned int messageLen;
   int result = 0;
@@ -383,7 +382,7 @@ void onMessageReceivedFromClient(uint16_t clientId, void *data, size_t length) {
   } else if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
     LOGE("Couldn't set host client ID in message container!");
   } else {
-    LOGD("Delivering message from host (size %zu)", length);
+    LOGV("Delivering message from host (size %zu)", length);
     log_buffer(static_cast<const uint8_t *>(data), length);
     int ret = chre_slpi_deliver_message_from_host(
         static_cast<const unsigned char *>(data), static_cast<int>(length));
