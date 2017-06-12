@@ -1090,7 +1090,11 @@ void populateSensorRequest(
       sensorId, dataType, calType));
   uint64_t cappedInterval = chreRequest.getInterval().toRawNanoseconds();
   if (cappedInterval == CHRE_SENSOR_INTERVAL_DEFAULT) {
-    cappedInterval = std::max(minInterval, kDefaultInterval);
+    // For one-shot sensors, we've overridden minInterval to default in init.
+    // However, for InstantMotion/StationaryDetect, making a request with
+    // default interval will not trigger.
+    cappedInterval =
+        isOneShot ? kDefaultInterval : std::max(minInterval, kDefaultInterval);
   }
   SensorRequest request(chreRequest.getMode(), Nanoseconds(cappedInterval),
                         isOneShot ? Nanoseconds(0) : chreRequest.getLatency());
