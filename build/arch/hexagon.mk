@@ -12,7 +12,7 @@ $(error "You must supply a HEXAGON_TOOLS_PREFIX environment variable \
          export HEXAGON_TOOLS_PREFIX=$$HOME/Qualcomm/HEXAGON_Tools/8.0.07")
 endif
 
-ifneq ($(IS_NANOAPP_BUILD),)
+ifeq ($(IS_NANOAPP_BUILD),)
 ifeq ($(SLPI_PREFIX),)
 $(error "You must supply an SLPI_PREFIX environment variable \
          containing a path to the SLPI source tree. Example: \
