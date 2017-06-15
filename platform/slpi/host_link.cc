@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-#include <inttypes.h>
-#include <limits.h>
-
+#include "ash/debug.h"
 #include "qurt.h"
 
 #include "chre/core/event_loop_manager.h"
@@ -32,6 +30,9 @@
 #include "chre/util/macros.h"
 #include "chre/util/unique_ptr.h"
 #include "chre_api/chre/version.h"
+
+#include <inttypes.h>
+#include <limits.h>
 
 using flatbuffers::FlatBufferBuilder;
 
@@ -70,6 +71,8 @@ enum class PendingMessageType {
   NanoappListResponse,
   LoadNanoappResponse,
   UnloadNanoappResponse,
+  DebugDumpData,
+  DebugDumpResponse,
 };
 
 struct PendingMessage {
@@ -102,6 +105,12 @@ struct UnloadNanoappCallbackData {
   uint32_t transactionId;
   uint16_t hostClientId;
   bool allowSystemNanoappUnload;
+};
+
+struct DebugDumpCallbackData {
+  uint32_t dataCount;
+  uint16_t hostClientId;
+  bool success;
 };
 
 /**
@@ -330,6 +339,60 @@ int generateMessageFromBuilder(
   return result;
 }
 
+void sendDebugDumpData(uint16_t hostClientId, const char *debugStr,
+                       size_t debugStrSize) {
+  struct DebugDumpMessageData {
+    uint16_t hostClientId;
+    const char *debugStr;
+    size_t debugStrSize;
+  };
+
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    const auto *data = static_cast<const DebugDumpMessageData *>(cookie);
+    HostProtocolChre::encodeDebugDumpData(
+        builder, data->hostClientId, data->debugStr, data->debugStrSize);
+  };
+
+  constexpr size_t kInitialSize = 48;
+  DebugDumpMessageData data;
+  data.hostClientId = hostClientId;
+  data.debugStr     = debugStr;
+  data.debugStrSize = debugStrSize;
+  buildAndEnqueueMessage(PendingMessageType::DebugDumpData, kInitialSize,
+                         msgBuilder, &data);
+}
+
+void sendDebugDumpResponse(DebugDumpCallbackData *data) {
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    const auto *cbData = static_cast<const DebugDumpCallbackData *>(cookie);
+    HostProtocolChre::encodeDebugDumpResponse(
+        builder, cbData->hostClientId, cbData->success, cbData->dataCount);
+  };
+
+  constexpr size_t kInitialSize = 52;
+  buildAndEnqueueMessage(PendingMessageType::DebugDumpResponse, kInitialSize,
+                         msgBuilder, data);
+}
+
+/**
+ * @see ashDebugDumpReadyCbFunc
+ */
+void onDebugDumpDataReady(void *cookie, const char *debugStr,
+                          size_t debugStrSize, bool complete) {
+  auto *cbData = static_cast<DebugDumpCallbackData *>(cookie);
+  if (debugStrSize > 0) {
+    sendDebugDumpData(cbData->hostClientId, debugStr, debugStrSize);
+    cbData->dataCount++;
+  }
+
+  if (complete) {
+    sendDebugDumpResponse(cbData);
+
+    // This needs to persist across multiple calls
+    memoryFree(cbData);
+  }
+}
+
 /**
  * FastRPC method invoked by the host to block on messages
  *
@@ -378,6 +441,8 @@ extern "C" int chre_slpi_get_message_to_host(
       case PendingMessageType::NanoappListResponse:
       case PendingMessageType::LoadNanoappResponse:
       case PendingMessageType::UnloadNanoappResponse:
+      case PendingMessageType::DebugDumpData:
+      case PendingMessageType::DebugDumpResponse:
         result = generateMessageFromBuilder(pendingMsg.data.builder,
                                             buffer, bufferSize, messageLen);
         break;
@@ -574,6 +639,23 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
 
 void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
   setEstimatedHostTimeOffset(offset);
+}
+
+void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
+  auto *cbData = memoryAlloc<DebugDumpCallbackData>();
+  if (cbData == nullptr) {
+    LOGE("Couldn't allocate debug dump callback data");
+  } else {
+    cbData->hostClientId = hostClientId;
+    cbData->dataCount = 0;
+    cbData->success = ashTriggerDebugDump(onDebugDumpDataReady, cbData);
+
+    if (!cbData->success) {
+      LOGE("Couldn't post callback to complete debug dump");
+      sendDebugDumpResponse(cbData);
+      memoryFree(cbData);
+    }
+  }
 }
 
 }  // namespace chre

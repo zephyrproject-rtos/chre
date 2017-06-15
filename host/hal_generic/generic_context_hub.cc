@@ -23,6 +23,7 @@
 #include <cinttypes>
 #include <vector>
 
+#include <unistd.h>
 #include <utils/Log.h>
 
 namespace android {
@@ -58,6 +59,14 @@ constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   return static_cast<uint16_t>(chreVersion);
 }
 
+/**
+ * @return file descriptor contained in the hidl_handle, or -1 if there is none
+ */
+int hidlHandleToFileDescriptor(const hidl_handle& hh) {
+  const native_handle_t *handle = hh.getNativeHandle();
+  return (handle->numFds >= 1) ? handle->data[0] : -1;
+}
+
 }  // anonymous namespace
 
 GenericContextHub::GenericContextHub() {
@@ -67,6 +76,42 @@ GenericContextHub::GenericContextHub() {
   if (!mClient.connectInBackground(kChreSocketName, mSocketCallbacks)) {
     ALOGE("Couldn't start socket client");
   }
+}
+
+Return<void> GenericContextHub::debug(
+    const hidl_handle& hh_fd, const hidl_vec<hidl_string>& /*options*/) {
+  // Timeout inside CHRE is typically 5 seconds, grant 500ms extra here to let
+  // the data reach us
+  constexpr auto kDebugDumpTimeout = std::chrono::milliseconds(5500);
+
+  mDebugFd = hidlHandleToFileDescriptor(hh_fd);
+  if (mDebugFd < 0) {
+    ALOGW("Can't dump debug info to invalid fd");
+  } else {
+    writeToDebugFile("-- Dumping CHRE/ASH debug info --\n");
+
+    ALOGV("Sending debug dump request");
+    FlatBufferBuilder builder;
+    HostProtocolHost::encodeDebugDumpRequest(builder);
+    std::unique_lock<std::mutex> lock(mDebugDumpMutex);
+    mDebugDumpPending = true;
+    if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+      ALOGW("Couldn't send debug dump request");
+    } else {
+      mDebugDumpCond.wait_for(lock, kDebugDumpTimeout,
+                              [this]() { return !mDebugDumpPending; });
+      if (mDebugDumpPending) {
+        ALOGI("Timed out waiting on debug dump data");
+        mDebugDumpPending = false;
+      }
+    }
+    writeToDebugFile("\n-- End of CHRE/ASH debug info --\n");
+
+    mDebugFd = kInvalidFd;
+    ALOGV("Debug dump complete");
+  }
+
+  return Void();
 }
 
 Return<void> GenericContextHub::getHubs(getHubs_cb _hidl_cb) {
@@ -371,11 +416,48 @@ void GenericContextHub::SocketCallbacks::handleUnloadNanoappResponse(
   });
 }
 
+void GenericContextHub::SocketCallbacks::handleDebugDumpData(
+    const ::chre::fbs::DebugDumpDataT& data) {
+  ALOGV("Got debug dump data, size %zu", data.debug_str.size());
+  if (mParent.mDebugFd == kInvalidFd) {
+    ALOGW("Got unexpected debug dump data message");
+  } else {
+    mParent.writeToDebugFile(
+        reinterpret_cast<const char *>(data.debug_str.data()),
+        data.debug_str.size());
+  }
+}
+
+void GenericContextHub::SocketCallbacks::handleDebugDumpResponse(
+    const ::chre::fbs::DebugDumpResponseT& response) {
+  ALOGV("Got debug dump response, success %d, data count %" PRIu32,
+        response.success, response.data_count);
+  std::lock_guard<std::mutex> lock(mParent.mDebugDumpMutex);
+  if (!mParent.mDebugDumpPending) {
+    ALOGI("Ignoring duplicate/unsolicited debug dump response");
+  } else {
+    mParent.mDebugDumpPending = false;
+    mParent.mDebugDumpCond.notify_all();
+  }
+}
+
 void GenericContextHub::SocketCallbacks::invokeClientCallback(
     std::function<void()> callback) {
   std::lock_guard<std::mutex> lock(mParent.mCallbacksLock);
   if (mParent.mCallbacks != nullptr) {
     callback();
+  }
+}
+
+void GenericContextHub::writeToDebugFile(const char *str) {
+  writeToDebugFile(str, strlen(str));
+}
+
+void GenericContextHub::writeToDebugFile(const char *str, size_t len) {
+  ssize_t written = write(mDebugFd, str, len);
+  if (written != (ssize_t) len) {
+    ALOGW("Couldn't write to debug header: returned %zd, expected %zu "
+          "(errno %d)", written, len, errno);
   }
 }
 

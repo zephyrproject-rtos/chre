@@ -51,6 +51,8 @@ class HostMessageHandlers {
       bool allowSystemNanoappUnload);
 
   static void handleTimeSyncMessage(int64_t offset);
+
+  static void handleDebugDumpRequest(uint16_t hostClientId);
 };
 
 /**
@@ -144,6 +146,23 @@ class HostProtocolChre : public HostProtocolCommon {
   static void encodeLogMessages(
       flatbuffers::FlatBufferBuilder& builder, const char *logBuffer,
       size_t bufferSize);
+
+  /**
+   * Encodes a string into a DebugDumpData message.
+   *
+   * @param debugStr Null-terminated ASCII string containing debug information
+   * @param debugStrSize Size of the debugStr buffer, including null termination
+   */
+  static void encodeDebugDumpData(
+      flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+      const char *debugStr, size_t debugStrSize);
+
+  /**
+   * Encodes the final response to a debug dump request.
+   */
+  static void encodeDebugDumpResponse(
+      flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
+      bool success, uint32_t dataCount);
 };
 
 }  // namespace chre

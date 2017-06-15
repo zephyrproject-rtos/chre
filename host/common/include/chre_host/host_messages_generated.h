@@ -12,9 +12,6 @@ namespace fbs {
 struct NanoappMessage;
 struct NanoappMessageT;
 
-struct LogMessage;
-struct LogMessageT;
-
 struct HubInfoRequest;
 struct HubInfoRequestT;
 
@@ -42,8 +39,20 @@ struct UnloadNanoappRequestT;
 struct UnloadNanoappResponse;
 struct UnloadNanoappResponseT;
 
+struct LogMessage;
+struct LogMessageT;
+
 struct TimeSyncMessage;
 struct TimeSyncMessageT;
+
+struct DebugDumpRequest;
+struct DebugDumpRequestT;
+
+struct DebugDumpData;
+struct DebugDumpDataT;
+
+struct DebugDumpResponse;
+struct DebugDumpResponseT;
 
 struct HostAddress;
 
@@ -65,8 +74,11 @@ enum class ChreMessage : uint8_t {
   UnloadNanoappResponse = 9,
   LogMessage = 10,
   TimeSyncMessage = 11,
+  DebugDumpRequest = 12,
+  DebugDumpData = 13,
+  DebugDumpResponse = 14,
   MIN = NONE,
-  MAX = TimeSyncMessage
+  MAX = DebugDumpResponse
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -83,6 +95,9 @@ inline const char **EnumNamesChreMessage() {
     "UnloadNanoappResponse",
     "LogMessage",
     "TimeSyncMessage",
+    "DebugDumpRequest",
+    "DebugDumpData",
+    "DebugDumpResponse",
     nullptr
   };
   return names;
@@ -139,6 +154,18 @@ template<> struct ChreMessageTraits<LogMessage> {
 
 template<> struct ChreMessageTraits<TimeSyncMessage> {
   static const ChreMessage enum_value = ChreMessage::TimeSyncMessage;
+};
+
+template<> struct ChreMessageTraits<DebugDumpRequest> {
+  static const ChreMessage enum_value = ChreMessage::DebugDumpRequest;
+};
+
+template<> struct ChreMessageTraits<DebugDumpData> {
+  static const ChreMessage enum_value = ChreMessage::DebugDumpData;
+};
+
+template<> struct ChreMessageTraits<DebugDumpResponse> {
+  static const ChreMessage enum_value = ChreMessage::DebugDumpResponse;
 };
 
 struct ChreMessageUnion {
@@ -208,7 +235,19 @@ struct ChreMessageUnion {
   }
   TimeSyncMessageT *AsTimeSyncMessage() {
     return type == ChreMessage::TimeSyncMessage ?
-       reinterpret_cast<TimeSyncMessageT *>(table) : nullptr;
+      reinterpret_cast<TimeSyncMessageT *>(table) : nullptr;
+  }
+  DebugDumpRequestT *AsDebugDumpRequest() {
+    return type == ChreMessage::DebugDumpRequest ?
+      reinterpret_cast<DebugDumpRequestT *>(table) : nullptr;
+  }
+  DebugDumpDataT *AsDebugDumpData() {
+    return type == ChreMessage::DebugDumpData ?
+      reinterpret_cast<DebugDumpDataT *>(table) : nullptr;
+  }
+  DebugDumpResponseT *AsDebugDumpResponse() {
+    return type == ChreMessage::DebugDumpResponse ?
+      reinterpret_cast<DebugDumpResponseT *>(table) : nullptr;
   }
 };
 
@@ -359,149 +398,6 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessageDirect(
 }
 
 flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::FlatBufferBuilder &_fbb, const NanoappMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct LogMessageT : public flatbuffers::NativeTable {
-  typedef LogMessage TableType;
-  std::vector<int8_t> buffer;
-  LogMessageT() {
-  }
-};
-
-/// Represents log messages from CHRE.
-struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef LogMessageT NativeTableType;
-  enum {
-    VT_BUFFER = 4
-  };
-  /// A buffer containing formatted log data. A flat array is used here to avoid
-  /// overhead in serializing and deserializing. The format is as follows:
-  ///
-  /// uint8_t                 - log level (1 = error, 2 = warning,
-  ///                                      3 = info, 4 = debug)
-  /// uint64_t, little-endian - timestamp in nanoseconds
-  /// char[]                  - message to log
-  /// char, \0                - null-terminator
-  ///
-  /// This pattern repeats until the end of the buffer for multiple log
-  /// messages. The last byte will always be a null-terminator. There are no
-  /// padding bytes between these fields. Treat this like a packed struct and be
-  /// cautious with unaligned access when reading/writing this buffer.
-  const flatbuffers::Vector<int8_t> *buffer() const {
-    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_BUFFER);
-  }
-  flatbuffers::Vector<int8_t> *mutable_buffer() {
-    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_BUFFER);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, VT_BUFFER) &&
-           verifier.Verify(buffer()) &&
-           verifier.EndTable();
-  }
-  LogMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<LogMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct LogMessageBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
-    fbb_.AddOffset(LogMessage::VT_BUFFER, buffer);
-  }
-  LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  LogMessageBuilder &operator=(const LogMessageBuilder &);
-  flatbuffers::Offset<LogMessage> Finish() {
-    const auto end = fbb_.EndTable(start_, 1);
-    auto o = flatbuffers::Offset<LogMessage>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<LogMessage> CreateLogMessage(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer = 0) {
-  LogMessageBuilder builder_(_fbb);
-  builder_.add_buffer(buffer);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<int8_t> *buffer = nullptr) {
-  return chre::fbs::CreateLogMessage(
-      _fbb,
-      buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
-}
-
-flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct TimeSyncMessageT : public flatbuffers::NativeTable {
-  typedef TimeSyncMessage TableType;
-  int64_t offset;
-  TimeSyncMessageT() : offset(0) {
-  }
-};
-
-/// Represents timestamp offset messages sent to CHRE
-struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef TimeSyncMessageT NativeTableType;
-  enum {
-    VT_OFFSET = 4
-  };
-  int64_t offset() const {
-    return GetField<int64_t>(VT_OFFSET, 0);
-  }
-  bool mutate_offset(int64_t offset) {
-    return SetField(VT_OFFSET, offset);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<int64_t>(verifier, VT_OFFSET) &&
-           verifier.EndTable();
-  }
-  TimeSyncMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(TimeSyncMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<TimeSyncMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct TimeSyncMessageBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_offset(int64_t offset) {
-    fbb_.AddElement<int64_t>(TimeSyncMessage::VT_OFFSET, offset, 0);
-  }
-  TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
-  flatbuffers::Offset<TimeSyncMessage> Finish() {
-    const auto end = fbb_.EndTable(start_, 1);
-    auto o = flatbuffers::Offset<TimeSyncMessage>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    int64_t offset = 0) {
-  TimeSyncMessageBuilder builder_(_fbb);
-  builder_.add_offset(offset);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessageDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    int64_t offset = 0) {
-  return chre::fbs::CreateTimeSyncMessage(
-      _fbb, offset);
-}
-
-flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct HubInfoRequestT : public flatbuffers::NativeTable {
   typedef HubInfoRequest TableType;
@@ -1385,6 +1281,329 @@ inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(
 
 flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(flatbuffers::FlatBufferBuilder &_fbb, const UnloadNanoappResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct LogMessageT : public flatbuffers::NativeTable {
+  typedef LogMessage TableType;
+  std::vector<int8_t> buffer;
+  LogMessageT() {
+  }
+};
+
+/// Represents log messages from CHRE.
+struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LogMessageT NativeTableType;
+  enum {
+    VT_BUFFER = 4
+  };
+  /// A buffer containing formatted log data. A flat array is used here to avoid
+  /// overhead in serializing and deserializing. The format is as follows:
+  ///
+  /// uint8_t                 - log level (1 = error, 2 = warning,
+  ///                                      3 = info, 4 = debug)
+  /// uint64_t, little-endian - timestamp in nanoseconds
+  /// char[]                  - message to log
+  /// char, \0                - null-terminator
+  ///
+  /// This pattern repeats until the end of the buffer for multiple log
+  /// messages. The last byte will always be a null-terminator. There are no
+  /// padding bytes between these fields. Treat this like a packed struct and be
+  /// cautious with unaligned access when reading/writing this buffer.
+  const flatbuffers::Vector<int8_t> *buffer() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  flatbuffers::Vector<int8_t> *mutable_buffer() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_BUFFER) &&
+           verifier.Verify(buffer()) &&
+           verifier.EndTable();
+  }
+  LogMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LogMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LogMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
+    fbb_.AddOffset(LogMessage::VT_BUFFER, buffer);
+  }
+  LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LogMessageBuilder &operator=(const LogMessageBuilder &);
+  flatbuffers::Offset<LogMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<LogMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer = 0) {
+  LogMessageBuilder builder_(_fbb);
+  builder_.add_buffer(buffer);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int8_t> *buffer = nullptr) {
+  return chre::fbs::CreateLogMessage(
+      _fbb,
+      buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0);
+}
+
+flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TimeSyncMessageT : public flatbuffers::NativeTable {
+  typedef TimeSyncMessage TableType;
+  int64_t offset;
+  TimeSyncMessageT()
+      : offset(0) {
+  }
+};
+
+/// Represents a message sent to CHRE to indicate AP timestamp for time sync
+struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TimeSyncMessageT NativeTableType;
+  enum {
+    VT_OFFSET = 4
+  };
+  /// Offset between AP and CHRE timestamp
+  int64_t offset() const {
+    return GetField<int64_t>(VT_OFFSET, 0);
+  }
+  bool mutate_offset(int64_t _offset) {
+    return SetField(VT_OFFSET, _offset);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int64_t>(verifier, VT_OFFSET) &&
+           verifier.EndTable();
+  }
+  TimeSyncMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TimeSyncMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TimeSyncMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct TimeSyncMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_offset(int64_t offset) {
+    fbb_.AddElement<int64_t>(TimeSyncMessage::VT_OFFSET, offset, 0);
+  }
+  TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
+  flatbuffers::Offset<TimeSyncMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<TimeSyncMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int64_t offset = 0) {
+  TimeSyncMessageBuilder builder_(_fbb);
+  builder_.add_offset(offset);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct DebugDumpRequestT : public flatbuffers::NativeTable {
+  typedef DebugDumpRequest TableType;
+  DebugDumpRequestT() {
+  }
+};
+
+/// A request to gather and return debugging information. Only one debug dump
+/// session can be active at a time. Upon accepting a request, zero or more
+/// DebugDumpData messages are generated, followed by a DebugDumpResponse
+/// indicating the completion of the operation.
+struct DebugDumpRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpRequestT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  DebugDumpRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(DebugDumpRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<DebugDumpRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct DebugDumpRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  DebugDumpRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  DebugDumpRequestBuilder &operator=(const DebugDumpRequestBuilder &);
+  flatbuffers::Offset<DebugDumpRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<DebugDumpRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  DebugDumpRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct DebugDumpDataT : public flatbuffers::NativeTable {
+  typedef DebugDumpData TableType;
+  std::vector<int8_t> debug_str;
+  DebugDumpDataT() {
+  }
+};
+
+struct DebugDumpData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpDataT NativeTableType;
+  enum {
+    VT_DEBUG_STR = 4
+  };
+  /// Null-terminated ASCII string containing debugging information
+  const flatbuffers::Vector<int8_t> *debug_str() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_DEBUG_STR);
+  }
+  flatbuffers::Vector<int8_t> *mutable_debug_str() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_DEBUG_STR);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_DEBUG_STR) &&
+           verifier.Verify(debug_str()) &&
+           verifier.EndTable();
+  }
+  DebugDumpDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(DebugDumpDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<DebugDumpData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct DebugDumpDataBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_debug_str(flatbuffers::Offset<flatbuffers::Vector<int8_t>> debug_str) {
+    fbb_.AddOffset(DebugDumpData::VT_DEBUG_STR, debug_str);
+  }
+  DebugDumpDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  DebugDumpDataBuilder &operator=(const DebugDumpDataBuilder &);
+  flatbuffers::Offset<DebugDumpData> Finish() {
+    const auto end = fbb_.EndTable(start_, 1);
+    auto o = flatbuffers::Offset<DebugDumpData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<DebugDumpData> CreateDebugDumpData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> debug_str = 0) {
+  DebugDumpDataBuilder builder_(_fbb);
+  builder_.add_debug_str(debug_str);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<DebugDumpData> CreateDebugDumpDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int8_t> *debug_str = nullptr) {
+  return chre::fbs::CreateDebugDumpData(
+      _fbb,
+      debug_str ? _fbb.CreateVector<int8_t>(*debug_str) : 0);
+}
+
+flatbuffers::Offset<DebugDumpData> CreateDebugDumpData(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct DebugDumpResponseT : public flatbuffers::NativeTable {
+  typedef DebugDumpResponse TableType;
+  bool success;
+  uint32_t data_count;
+  DebugDumpResponseT()
+      : success(false),
+        data_count(0) {
+  }
+};
+
+struct DebugDumpResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpResponseT NativeTableType;
+  enum {
+    VT_SUCCESS = 4,
+    VT_DATA_COUNT = 6
+  };
+  /// true if the request was accepted and a dump was performed, false if it was
+  /// rejected or failed to complete for some reason
+  bool success() const {
+    return GetField<uint8_t>(VT_SUCCESS, 0) != 0;
+  }
+  bool mutate_success(bool _success) {
+    return SetField(VT_SUCCESS, static_cast<uint8_t>(_success));
+  }
+  /// The number of DebugDumpData messages sent in this session
+  uint32_t data_count() const {
+    return GetField<uint32_t>(VT_DATA_COUNT, 0);
+  }
+  bool mutate_data_count(uint32_t _data_count) {
+    return SetField(VT_DATA_COUNT, _data_count);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_SUCCESS) &&
+           VerifyField<uint32_t>(verifier, VT_DATA_COUNT) &&
+           verifier.EndTable();
+  }
+  DebugDumpResponseT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(DebugDumpResponseT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<DebugDumpResponse> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpResponseT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct DebugDumpResponseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_success(bool success) {
+    fbb_.AddElement<uint8_t>(DebugDumpResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
+  }
+  void add_data_count(uint32_t data_count) {
+    fbb_.AddElement<uint32_t>(DebugDumpResponse::VT_DATA_COUNT, data_count, 0);
+  }
+  DebugDumpResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  DebugDumpResponseBuilder &operator=(const DebugDumpResponseBuilder &);
+  flatbuffers::Offset<DebugDumpResponse> Finish() {
+    const auto end = fbb_.EndTable(start_, 2);
+    auto o = flatbuffers::Offset<DebugDumpResponse>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool success = false,
+    uint32_t data_count = 0) {
+  DebugDumpResponseBuilder builder_(_fbb);
+  builder_.add_data_count(data_count);
+  builder_.add_success(success);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
@@ -1394,8 +1613,8 @@ struct MessageContainerT : public flatbuffers::NativeTable {
 };
 
 /// The top-level container that encapsulates all possible messages. Note that
-/// per FlatBuffers requirements, we can't use a union as the top-level structure
-/// (root type), so we must wrap it in a table.
+/// per FlatBuffers requirements, we can't use a union as the top-level
+/// structure (root type), so we must wrap it in a table.
 struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MessageContainerT NativeTableType;
   enum {
@@ -1512,56 +1731,6 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::Fla
       _message_type,
       _host_endpoint,
       _message);
-}
-
-inline LogMessageT *LogMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = new LogMessageT();
-  UnPackTo(_o, _resolver);
-  return _o;
-}
-
-inline void LogMessage::UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = buffer(); if (_e) for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer.push_back(_e->Get(_i)); } };
-}
-
-inline flatbuffers::Offset<LogMessage> LogMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateLogMessage(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  auto _buffer = _o->buffer.size() ? _fbb.CreateVector(_o->buffer) : 0;
-  return chre::fbs::CreateLogMessage(
-      _fbb,
-      _buffer);
-}
-
-inline TimeSyncMessageT *TimeSyncMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = new TimeSyncMessageT();
-  UnPackTo(_o, _resolver);
-  return _o;
-}
-
-inline void TimeSyncMessage::UnPackTo(TimeSyncMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = offset(); _o->offset = _e; };
-}
-
-inline flatbuffers::Offset<TimeSyncMessage> TimeSyncMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateTimeSyncMessage(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  auto _offset = _o->offset;
-  return chre::fbs::CreateTimeSyncMessage(
-      _fbb,
-      _offset);
 }
 
 inline HubInfoRequestT *HubInfoRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -1849,6 +2018,131 @@ inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(fl
       _success);
 }
 
+inline LogMessageT *LogMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new LogMessageT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void LogMessage::UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = buffer(); if (_e) for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer.push_back(_e->Get(_i)); } };
+}
+
+inline flatbuffers::Offset<LogMessage> LogMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLogMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _buffer = _o->buffer.size() ? _fbb.CreateVector(_o->buffer) : 0;
+  return chre::fbs::CreateLogMessage(
+      _fbb,
+      _buffer);
+}
+
+inline TimeSyncMessageT *TimeSyncMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TimeSyncMessageT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TimeSyncMessage::UnPackTo(TimeSyncMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = offset(); _o->offset = _e; };
+}
+
+inline flatbuffers::Offset<TimeSyncMessage> TimeSyncMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTimeSyncMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _offset = _o->offset;
+  return chre::fbs::CreateTimeSyncMessage(
+      _fbb,
+      _offset);
+}
+
+inline DebugDumpRequestT *DebugDumpRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new DebugDumpRequestT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void DebugDumpRequest::UnPackTo(DebugDumpRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<DebugDumpRequest> DebugDumpRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateDebugDumpRequest(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  return chre::fbs::CreateDebugDumpRequest(
+      _fbb);
+}
+
+inline DebugDumpDataT *DebugDumpData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new DebugDumpDataT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void DebugDumpData::UnPackTo(DebugDumpDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = debug_str(); if (_e) for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->debug_str.push_back(_e->Get(_i)); } };
+}
+
+inline flatbuffers::Offset<DebugDumpData> DebugDumpData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateDebugDumpData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<DebugDumpData> CreateDebugDumpData(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _debug_str = _o->debug_str.size() ? _fbb.CreateVector(_o->debug_str) : 0;
+  return chre::fbs::CreateDebugDumpData(
+      _fbb,
+      _debug_str);
+}
+
+inline DebugDumpResponseT *DebugDumpResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new DebugDumpResponseT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void DebugDumpResponse::UnPackTo(DebugDumpResponseT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = success(); _o->success = _e; };
+  { auto _e = data_count(); _o->data_count = _e; };
+}
+
+inline flatbuffers::Offset<DebugDumpResponse> DebugDumpResponse::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpResponseT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateDebugDumpResponse(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _success = _o->success;
+  auto _data_count = _o->data_count;
+  return chre::fbs::CreateDebugDumpResponse(
+      _fbb,
+      _success,
+      _data_count);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -1929,6 +2223,18 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const TimeSyncMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::DebugDumpRequest: {
+      auto ptr = reinterpret_cast<const DebugDumpRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::DebugDumpData: {
+      auto ptr = reinterpret_cast<const DebugDumpData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::DebugDumpResponse: {
+      auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -1986,6 +2292,22 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const LogMessage *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::TimeSyncMessage: {
+      auto ptr = reinterpret_cast<const TimeSyncMessage *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::DebugDumpRequest: {
+      auto ptr = reinterpret_cast<const DebugDumpRequest *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::DebugDumpData: {
+      auto ptr = reinterpret_cast<const DebugDumpData *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::DebugDumpResponse: {
+      auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -2031,6 +2353,22 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::LogMessage: {
       auto ptr = reinterpret_cast<const LogMessageT *>(table);
       return CreateLogMessage(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::TimeSyncMessage: {
+      auto ptr = reinterpret_cast<const TimeSyncMessageT *>(table);
+      return CreateTimeSyncMessage(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::DebugDumpRequest: {
+      auto ptr = reinterpret_cast<const DebugDumpRequestT *>(table);
+      return CreateDebugDumpRequest(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::DebugDumpData: {
+      auto ptr = reinterpret_cast<const DebugDumpDataT *>(table);
+      return CreateDebugDumpData(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::DebugDumpResponse: {
+      auto ptr = reinterpret_cast<const DebugDumpResponseT *>(table);
+      return CreateDebugDumpResponse(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -2085,6 +2423,26 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::LogMessage: {
       auto ptr = reinterpret_cast<LogMessageT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::TimeSyncMessage: {
+      auto ptr = reinterpret_cast<TimeSyncMessageT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::DebugDumpRequest: {
+      auto ptr = reinterpret_cast<DebugDumpRequestT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::DebugDumpData: {
+      auto ptr = reinterpret_cast<DebugDumpDataT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::DebugDumpResponse: {
+      auto ptr = reinterpret_cast<DebugDumpResponseT *>(table);
       delete ptr;
       break;
     }
