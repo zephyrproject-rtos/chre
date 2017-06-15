@@ -49,6 +49,7 @@ enum class SystemCallbackType : uint16_t {
   HandleUnloadNanoapp,
   GnssLocationSessionStatusChange,
   SensorStatusUpdate,
+  PerformDebugDump,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free
@@ -84,6 +85,16 @@ class EventLoopManager : public NonCopyable {
     *         the context of a nanoapp.
     */
   static Nanoapp *validateChreApiCall(const char *functionName);
+
+  /**
+   * Collect debugging information for this CHRE instance. Must only be called
+   * from the context of the main CHRE thread.
+   *
+   * @return Buffer containing debugging information stored in a null-terminated
+   *         string allocated on the heap (possibly nullptr if the allocation
+   *         failed)
+   */
+  UniquePtr<char> debugDump();
 
   /**
    * Leverages the event queue mechanism to schedule a CHRE system callback to

@@ -50,10 +50,16 @@ class IChreMessageHandlers {
       const ::chre::fbs::NanoappListResponseT& response) = 0;
 
   virtual void handleLoadNanoappResponse(
-      const ::chre::fbs::LoadNanoappResponseT& response) = 0;
+      const ::chre::fbs::LoadNanoappResponseT& /*response*/) {};
 
   virtual void handleUnloadNanoappResponse(
-      const ::chre::fbs::UnloadNanoappResponseT& response) = 0;
+      const ::chre::fbs::UnloadNanoappResponseT& /*response*/) {};
+
+  virtual void handleDebugDumpData(
+      const ::chre::fbs::DebugDumpDataT& /*data*/) {};
+
+  virtual void handleDebugDumpResponse(
+      const ::chre::fbs::DebugDumpResponseT& /*response*/) {};
 };
 
 /**
@@ -132,6 +138,14 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    */
   static void encodeTimeSyncMessage(flatbuffers::FlatBufferBuilder& builder,
                                     int64_t offset);
+
+  /**
+   * Encodes a message requesting debugging information from CHRE
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeDebugDumpRequest(flatbuffers::FlatBufferBuilder& builder);
 
   /**
    * Decodes the host client ID included in the message container

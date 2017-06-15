@@ -22,6 +22,8 @@ extern "C" {
 
 }  // extern "C"
 
+#include "ash/debug.h"
+
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
@@ -39,6 +41,7 @@ using chre::EventLoop;
 using chre::EventLoopManagerSingleton;
 using chre::LockGuard;
 using chre::Mutex;
+using chre::UniquePtr;
 
 extern "C" int chre_slpi_stop_thread(void);
 
@@ -107,6 +110,23 @@ void onUnload(void) {
   chre::PlatformLogSingleton::deinit();
 }
 
+void performDebugDumpCallback(uint16_t /*eventType*/, void *data) {
+  auto *handle = static_cast<const uint32_t *>(data);
+  UniquePtr<char> dump = chre::EventLoopManagerSingleton::get()->debugDump();
+  ashCommitDebugDump(*handle, dump.get(), true /*done*/);
+}
+
+void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
+  static uint32_t debugDumpHandle;
+
+  debugDumpHandle = handle;
+  if (!chre::EventLoopManagerSingleton::get()->deferCallback(
+          chre::SystemCallbackType::PerformDebugDump, &debugDumpHandle,
+          performDebugDumpCallback)) {
+    LOGW("Failed to post event to get debug dump");
+  }
+}
+
 /**
  * Entry point for the QuRT thread that runs CHRE.
  *
@@ -116,8 +136,10 @@ void chreThreadEntry(void * /*data*/) {
   EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   chre::loadStaticNanoapps();
   loadPreloadedNanoapps(eventLoop);
+  ashRegisterDebugDumpCallback("CHRE", onDebugDumpRequested, nullptr);
   eventLoop->run();
 
+  ashUnregisterDebugDumpCallback(onDebugDumpRequested);
   chre::deinit();
   gThreadRunning = false;
   LOGD("CHRE thread exiting");
