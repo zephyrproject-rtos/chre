@@ -295,10 +295,10 @@ void NanoSensorCal::Initialize() {
       0, 0, 0,                  // initial bias offset calibration
       0,                        // time stamp of initial bias calibration
       1.5e9,                    // analysis window length = 1.5 seconds
-      6.3e-6f,                  // gyroscope variance threshold [rad/sec]^2
-      1.3e-6f,                  // gyroscope confidence delta [rad/sec]^2
-      3.1e-4f,                  // accelerometer variance threshold [m/sec^2]^2
-      6.2e-5f,                  // accelerometer confidence delta [m/sec^2]^2
+      7.5e-5f,                  // gyroscope variance threshold [rad/sec]^2
+      1e-5f,                    // gyroscope confidence delta [rad/sec]^2
+      8e-3f,                    // accelerometer variance threshold [m/sec^2]^2
+      1.6e-3f,                  // accelerometer confidence delta [m/sec^2]^2
       3.0f,                     // magnetometer variance threshold [uT]^2
       0.6f,                     // magnetometer confidence delta [uT]^2
       0.95f,                    // stillness threshold [0,1]
