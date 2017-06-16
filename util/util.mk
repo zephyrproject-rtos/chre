@@ -12,6 +12,7 @@ COMMON_CFLAGS += -Iutil/include
 COMMON_SRCS += util/nanoapp/debug.cc
 COMMON_SRCS += util/nanoapp/sensor.cc
 COMMON_SRCS += util/nanoapp/wifi.cc
+COMMON_SRCS += util/system/debug_dump.cc
 
 # GoogleTest Source Files ######################################################
 

@@ -51,4 +51,9 @@ bool PlatformNanoapp::isSystemNanoapp() const {
   return true;
 }
 
+bool PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                       size_t bufferSize) const {
+  return true;
+}
+
 }  // namespace chre

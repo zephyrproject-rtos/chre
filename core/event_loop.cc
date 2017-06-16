@@ -23,6 +23,7 @@
 #include "chre/platform/log.h"
 #include "chre/util/conditional_lock_guard.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -294,6 +295,15 @@ bool EventLoop::populateNanoappInfoForInstanceId(
 
 bool EventLoop::currentNanoappIsStopping() const {
   return (mCurrentApp == mStoppingNanoapp || !mRunning);
+}
+
+bool EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                 size_t bufferSize) const {
+  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
+  for (const UniquePtr<Nanoapp>& app : mNanoapps) {
+    success &= app->logStateToBuffer(buffer, bufferPos, bufferSize);
+  }
+  return success;
 }
 
 bool EventLoop::deliverEvents() {
