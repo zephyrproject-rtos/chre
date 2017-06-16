@@ -28,6 +28,10 @@ ifneq ($(NANOPB_GEN_SRCS),)
 COMMON_CFLAGS += -I$(NANOPB_PREFIX)
 COMMON_CFLAGS += -I$(NANOPB_GEN_PATH)
 COMMON_CFLAGS += $(addprefix -I$(NANOPB_GEN_PATH)/, $(NANOPB_INCLUDES))
+
+COMMON_SRCS += $(NANOPB_PREFIX)/pb_common.c
+COMMON_SRCS += $(NANOPB_PREFIX)/pb_decode.c
+COMMON_SRCS += $(NANOPB_PREFIX)/pb_encode.c
 endif
 
 # NanoPB Compiler Flags ########################################################
