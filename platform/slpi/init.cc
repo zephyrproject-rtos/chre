@@ -22,7 +22,6 @@ extern "C" {
 
 }  // extern "C"
 
-#include "ash/ash.h"
 #include "ash/debug.h"
 
 #include "chre/core/event_loop.h"
@@ -134,7 +133,6 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
  * @param data Argument passed to qurt_thread_create()
  */
 void chreThreadEntry(void * /*data*/) {
-  ashInit();
   EventLoopManagerSingleton::get()->lateInit();
   EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   chre::loadStaticNanoapps();
@@ -143,7 +141,6 @@ void chreThreadEntry(void * /*data*/) {
   eventLoop->run();
 
   ashUnregisterDebugDumpCallback(onDebugDumpRequested);
-  ashDeinit();
   chre::deinit();
   gThreadRunning = false;
   LOGD("CHRE thread exiting");

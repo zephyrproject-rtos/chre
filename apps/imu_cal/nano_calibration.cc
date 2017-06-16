@@ -740,7 +740,8 @@ void NanoSensorCal::LoadAshAccelCal() {
 #ifdef ACCEL_CAL_ENABLED
   bool load_successful = false;
   struct ashCalParams cal_params;
-  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER, &cal_params)) {
+  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
+                               ASH_CAL_STORAGE_ASH, &cal_params)) {
     // Checks for and performs required processing on input factory cal data.
     HandleAccelFactoryCalibration(&cal_params);
 
@@ -779,7 +780,8 @@ void NanoSensorCal::LoadAshGyroCal() {
 #ifdef GYRO_CAL_ENABLED
   bool load_successful = false;
   struct ashCalParams cal_params;
-  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, &cal_params)) {
+  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE,
+                               ASH_CAL_STORAGE_ASH, &cal_params)) {
     // Checks for and performs required processing on input factory cal data.
     HandleGyroFactoryCalibration(&cal_params);
 
@@ -862,7 +864,7 @@ void NanoSensorCal::LoadAshMagCal() {
   bool load_successful = false;
   struct ashCalParams cal_params;
   if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-                               &cal_params)) {
+                               ASH_CAL_STORAGE_ASH, &cal_params)) {
     // Checks for and performs required processing on input factory cal data.
     HandleMagFactoryCalibration(&cal_params);
 
