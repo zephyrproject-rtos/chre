@@ -137,7 +137,13 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
 void handleTimerEvent(const void *eventData) {
   const uint32_t *timerHandle = static_cast<const uint32_t *>(eventData);
   if (*timerHandle == gWifiScanTimerHandle) {
-    if (chreWifiRequestScanAsyncDefault(&kOnDemandScanCookie)) {
+    struct chreWifiScanParams params = {};
+    params.scanType         = CHRE_WIFI_SCAN_TYPE_ACTIVE;
+    params.maxScanAgeMs     = 5000;  // 5 seconds
+    params.frequencyListLen = 0;
+    params.ssidListLen      = 0;
+
+    if (chreWifiRequestScanAsync(&params, &kOnDemandScanCookie)) {
       LOGI("Requested a wifi scan successfully");
     } else {
       LOGE("Failed to request a wifi scan");
