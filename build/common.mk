@@ -28,6 +28,10 @@ ifeq ($(MAKECMDGOALS),)
 MAKECMDGOALS = all
 endif
 
+# Variant-specific Support Source Files ########################################
+
+SYS_SUPPORT_PATH = $(CHRE_PREFIX)/build/sys_support
+
 # Makefile Includes ############################################################
 
 # Common Includes
