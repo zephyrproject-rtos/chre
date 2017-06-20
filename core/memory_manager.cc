@@ -65,22 +65,6 @@ void MemoryManager::nanoappFree(void *ptr) {
   }
 }
 
-size_t MemoryManager::getTotalAllocatedBytes() const {
-  return mTotalAllocatedBytes;
-}
-
-size_t MemoryManager::getAllocationCount() const {
-  return mAllocationCount;
-}
-
-size_t MemoryManager::getMaxAllocationBytes() const {
-  return kMaxAllocationBytes;
-}
-
-size_t MemoryManager::getMaxAllocationCount() const {
-  return kMaxAllocationCount;
-}
-
 bool MemoryManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                      size_t bufferSize) const {
   return debugDumpPrint(buffer, bufferPos, bufferSize,

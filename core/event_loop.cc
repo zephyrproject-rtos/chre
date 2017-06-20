@@ -262,18 +262,6 @@ void EventLoop::stop() {
   mRunning = false;
 }
 
-Nanoapp *EventLoop::getCurrentNanoapp() const {
-  return mCurrentApp;
-}
-
-size_t EventLoop::getNanoappCount() const {
-  return mNanoapps.size();
-}
-
-TimerPool& EventLoop::getTimerPool() {
-  return mTimerPool;
-}
-
 Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   return lookupAppByInstanceId(instanceId);
