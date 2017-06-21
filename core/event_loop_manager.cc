@@ -76,32 +76,4 @@ uint32_t EventLoopManager::getNextInstanceId() {
   return mLastInstanceId;
 }
 
-EventLoop& EventLoopManager::getEventLoop() {
-  return mEventLoop;
-}
-
-GnssRequestManager& EventLoopManager::getGnssRequestManager() {
-  return mGnssRequestManager;
-}
-
-HostCommsManager& EventLoopManager::getHostCommsManager() {
-  return mHostCommsManager;
-}
-
-SensorRequestManager& EventLoopManager::getSensorRequestManager() {
-  return mSensorRequestManager;
-}
-
-WifiRequestManager& EventLoopManager::getWifiRequestManager() {
-  return mWifiRequestManager;
-}
-
-WwanRequestManager& EventLoopManager::getWwanRequestManager() {
-  return mWwanRequestManager;
-}
-
-MemoryManager& EventLoopManager::getMemoryManager() {
-  return mMemoryManager;
-}
-
 }  // namespace chre
