@@ -295,23 +295,31 @@ class SensorRequest {
   /**
    * @return Returns the interval of samples for this request.
    */
-  Nanoseconds getInterval() const;
+  Nanoseconds getInterval() const {
+    return mInterval;
+  }
 
   /**
    * @return Returns the maximum amount of time samples can be batched prior to
    * dispatching to the client.
    */
-  Nanoseconds getLatency() const;
+  Nanoseconds getLatency() const {
+    return mLatency;
+  }
 
   /**
    * @return The mode of this request.
    */
-  SensorMode getMode() const;
+  SensorMode getMode() const {
+    return mMode;
+  }
 
   /**
    * @return The nanoapp that owns this sensor request.
    */
-  Nanoapp *getNanoapp() const;
+  Nanoapp *getNanoapp() const {
+    return mNanoapp;
+  }
 
  private:
   //! The nanoapp that made this request. This will be nullptr when returned by

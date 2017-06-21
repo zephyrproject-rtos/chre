@@ -24,14 +24,6 @@
 
 namespace chre {
 
-uint32_t Nanoapp::getInstanceId() const {
-  return mInstanceId;
-}
-
-void Nanoapp::setInstanceId(uint32_t instanceId) {
-  mInstanceId = instanceId;
-}
-
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
   return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
 }

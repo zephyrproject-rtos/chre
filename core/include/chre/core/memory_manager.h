@@ -56,22 +56,30 @@ class MemoryManager : public NonCopyable {
   /**
    * @return current total allocated memory in bytes.
    */
-  size_t getTotalAllocatedBytes() const;
+  size_t getTotalAllocatedBytes() const {
+    return mTotalAllocatedBytes;
+  }
 
   /**
    * @return current count of allocated memory spaces.
    */
-  size_t getAllocationCount() const;
+  size_t getAllocationCount() const {
+    return mAllocationCount;
+  }
 
   /**
    * @return max total allocatable memory in bytes.
    */
-  size_t getMaxAllocationBytes() const;
+  size_t getMaxAllocationBytes() const {
+    return kMaxAllocationBytes;
+  }
 
   /**
    * @return max allocatable memory counts.
    */
-  size_t getMaxAllocationCount() const;
+  size_t getMaxAllocationCount() const {
+    return kMaxAllocationCount;
+  }
 
   /**
    * Prints state in a string buffer. Must only be called from the context of

@@ -53,7 +53,9 @@ class Sensor : public PlatformSensor {
    *
    * @return A const reference to the SensorRequest.
    */
-  const SensorRequest& getRequest() const;
+  const SensorRequest& getRequest() const {
+    return mSensorRequest;
+  }
 
   /**
    * Sets the current request of this sensor. If this request is a change from
