@@ -42,13 +42,17 @@ class Nanoapp : public PlatformNanoapp {
   /**
    * @return The unique identifier for this Nanoapp instance
    */
-  uint32_t getInstanceId() const;
+  uint32_t getInstanceId() const {
+    return mInstanceId;
+  }
 
   /**
    * Assigns an instance ID to this Nanoapp. This must be called prior to
    * starting this Nanoapp.
    */
-  void setInstanceId(uint32_t instanceId);
+  void setInstanceId(uint32_t instanceId) {
+    mInstanceId = instanceId;
+  }
 
   /**
    * @return true if the nanoapp should receive broadcast events with the given

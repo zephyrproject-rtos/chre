@@ -18,10 +18,6 @@
 
 namespace chre {
 
-const SensorRequest& Sensor::getRequest() const {
-  return mSensorRequest;
-}
-
 bool Sensor::setRequest(const SensorRequest& request) {
   bool success = false;
 

@@ -300,20 +300,4 @@ bool SensorRequest::mergeWith(const SensorRequest& request) {
   return attributesChanged;
 }
 
-Nanoseconds SensorRequest::getInterval() const {
-  return mInterval;
-}
-
-Nanoseconds SensorRequest::getLatency() const {
-  return mLatency;
-}
-
-SensorMode SensorRequest::getMode() const {
-  return mMode;
-}
-
-Nanoapp *SensorRequest::getNanoapp() const {
-  return mNanoapp;
-}
-
 }  // namespace chre
