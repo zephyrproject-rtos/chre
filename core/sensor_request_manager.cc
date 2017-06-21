@@ -19,6 +19,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre_api/chre/version.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 namespace {
@@ -279,6 +280,28 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
     sensorIndex = getSensorTypeArrayIndex(sensorType);
   }
   return mSensorRequests[sensorIndex].multiplexer.getRequests();
+}
+
+bool SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                            size_t bufferSize) const {
+  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");
+  for (uint8_t i = 0; i < static_cast<uint8_t>(SensorType::SENSOR_TYPE_COUNT);
+       i++) {
+    SensorType sensor = static_cast<SensorType>(i);
+    if (sensor != SensorType::Unknown) {
+      for (auto const &request : getRequests(sensor)) {
+        success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                                  " %s: mode=%d interval=%" PRIu64 " latency=%"
+                                  PRIu64 " nanoappId=%" PRIu32 "\n",
+                                  getSensorTypeName(sensor), request.getMode(),
+                                  request.getInterval().toRawNanoseconds(),
+                                  request.getLatency().toRawNanoseconds(),
+                                  request.getNanoapp()->getInstanceId());
+      }
+    }
+  }
+
+  return success;
 }
 
 const SensorRequest *SensorRequestManager::SensorRequests::find(

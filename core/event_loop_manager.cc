@@ -35,12 +35,21 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
 }
 
 UniquePtr<char> EventLoopManager::debugDump() {
-  // TODO: gather debug info from all subsystems
-  constexpr size_t kDebugStringSize = 256;
+  constexpr size_t kDebugStringSize = 2048;
   char *debugStr = static_cast<char *>(memoryAlloc(kDebugStringSize));
   if (debugStr != nullptr) {
-    debugStr[kDebugStringSize - 1] = '\0';
-    snprintf(debugStr, kDebugStringSize - 1, "CHRE debug dump test\n");
+    // TODO: Add GNSS, wifi, WWAN info
+    size_t debugStrPos = 0;
+    if (!mMemoryManager.logStateToBuffer(debugStr, &debugStrPos,
+                                         kDebugStringSize)) {
+      LOGE("Memory manager debug dump failed.");
+    } else if (!mEventLoop.logStateToBuffer(debugStr, &debugStrPos,
+                                            kDebugStringSize)) {
+      LOGE("Event loop debug dump failed.");
+    } else if (!mSensorRequestManager.logStateToBuffer(debugStr, &debugStrPos,
+                                                       kDebugStringSize)) {
+      LOGE("Sensor request manager debug dump failed.");
+    }
   }
 
   return UniquePtr<char>(debugStr);
