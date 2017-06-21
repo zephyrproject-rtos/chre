@@ -20,6 +20,7 @@
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -93,6 +94,18 @@ Event *Nanoapp::processNextEvent() {
   }
 
   return event;
+}
+
+bool Nanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
+                               size_t bufferSize) const {
+  bool success = PlatformNanoapp::logStateToBuffer(buffer, bufferPos,
+                                                   bufferSize);
+  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                            " Id=%" PRIu32 " AppId=0x%016" PRIx64
+                            " ver=0x%" PRIx32 " targetAPI=0x%" PRIx32 "\n",
+                            getInstanceId(), getAppId(),
+                            getAppVersion(), getTargetApiVersion());
+  return success;
 }
 
 }  // namespace chre
