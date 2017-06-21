@@ -15,6 +15,7 @@
  */
 
 #include "chre/core/memory_manager.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -78,6 +79,13 @@ size_t MemoryManager::getMaxAllocationBytes() const {
 
 size_t MemoryManager::getMaxAllocationCount() const {
   return kMaxAllocationCount;
+}
+
+bool MemoryManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                     size_t bufferSize) const {
+  return debugDumpPrint(buffer, bufferPos, bufferSize,
+                        "\nNanoapp heap usage: %zu bytes allocated, count %zu\n",
+                        getTotalAllocatedBytes(), getAllocationCount());
 }
 
 }  // namespace chre

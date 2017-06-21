@@ -73,6 +73,19 @@ class MemoryManager : public NonCopyable {
    */
   size_t getMaxAllocationCount() const;
 
+  /**
+   * Prints state in a string buffer. Must only be called from the context of
+   * the main CHRE thread.
+   *
+   * @param buffer Pointer to the start of the buffer.
+   * @param bufferPos Pointer to buffer position to start the print (in-out).
+   * @param size Size of the buffer in bytes.
+   *
+   * @return true if entire log printed, false if overflow or error.
+   */
+  bool logStateToBuffer(char *buffer, size_t *bufferPos,
+                        size_t bufferSize) const;
+
  private:
   /**
    * Header to store allocation details for tracking.
