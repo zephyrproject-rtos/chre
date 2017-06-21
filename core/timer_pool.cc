@@ -198,6 +198,12 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
     } else {
       Nanoseconds duration = currentTimerRequest.expirationTime - currentTime;
       mSystemTimer.set(handleSystemTimerCallback, this, duration);
+
+      // Assign success to true here to handle timers that tick before their
+      // expiration time. This should be rarely required, but for systems where
+      // a timer may tick earlier than requested the request is rescheduled with
+      // the remaining time as computed above.
+      success = true;
       break;
     }
   }
