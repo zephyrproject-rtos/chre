@@ -120,9 +120,10 @@ Return<void> GenericContextHub::getHubs(getHubs_cb _hidl_cb) {
   ALOGV("%s", __func__);
 
   // If we're not connected yet, give it some time
-  int maxSleepIterations = 50;
+  // TODO refactor from polling into conditional wait
+  int maxSleepIterations = 250;
   while (!mHubInfoValid && !mClient.isConnected() && --maxSleepIterations > 0) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
 
   if (!mClient.isConnected()) {
