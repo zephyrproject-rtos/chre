@@ -938,7 +938,7 @@ void NanoSensorCal::NotifyAshAccelCal() {
   // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
   // saving calibration parameter updates to the sensor registry, after Factory
   // Calibration testing has been fully qualified on hardware.
-#define FACTORYCAL_IS_VERIFIED 0  // Set to 0, blocks overwriting factory data.
+#define FACTORYCAL_IS_VERIFIED 1  // Set to 0, blocks overwriting factory data.
 #if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (ashSaveCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
