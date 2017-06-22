@@ -329,9 +329,15 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
   // Success is defined as having no errors ... in life ༼ つ ◕_◕ ༽つ
   bool success = (errorCode == CHRE_ERROR_NONE);
 
+  // TODO(b/62904616): re-enable this assertion
+  //CHRE_ASSERT_LOG(!mScanMonitorStateTransitions.empty(),
+  //                "handleScanMonitorStateChangeSync called with no transitions");
+  if (mScanMonitorStateTransitions.empty()) {
+    LOGE("WiFi PAL error: handleScanMonitorStateChangeSync called with no "
+         "transitions (enabled %d errorCode %" PRIu8 ")", enabled, errorCode);
+  }
+
   // Always check the front of the queue.
-  CHRE_ASSERT_LOG(!mScanMonitorStateTransitions.empty(),
-                  "handleScanMonitorStateChangeSync called with no transitions");
   if (!mScanMonitorStateTransitions.empty()) {
     const auto& stateTransition = mScanMonitorStateTransitions.front();
     success &= (stateTransition.enable == enabled);
