@@ -36,6 +36,12 @@ namespace chre {
 class WwanRequestManager : public NonCopyable {
  public:
   /**
+   * Initializes the underlying platform-specific WWAN module. Must be called
+   * prior to invoking any other methods in this class.
+   */
+  void init();
+
+  /**
    * @return the WWAN capabilities exposed by this platform.
    */
   uint32_t getCapabilities();

@@ -40,6 +40,12 @@ class WifiRequestManager : public NonCopyable {
   WifiRequestManager();
 
   /**
+   * Initializes the underlying platform-specific WiFi module. Must be called
+   * prior to invoking any other methods in this class.
+   */
+  void init();
+
+  /**
    * @return the WiFi capabilities exposed by this platform.
    */
   uint32_t getCapabilities();

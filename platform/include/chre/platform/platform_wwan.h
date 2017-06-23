@@ -24,14 +24,16 @@ namespace chre {
 class PlatformWwan : public PlatformWwanBase {
  public:
   /**
-   * Performs platform-specific initialization of the PlatformWwan instance.
-   */
-  PlatformWwan();
-
-  /**
    * Performs platform-specific deinitialization of the PlatformWwan instance.
    */
   ~PlatformWwan();
+
+  /**
+   * Initializes the platform-specific WWAN implementation. This is potentially
+   * called at a later stage of initialization than the constructor, so platform
+   * implementations are encouraged to put any blocking initialization here.
+   */
+  void init();
 
   /**
    * Returns the set of WWAN capabilities that the platform has exposed. This

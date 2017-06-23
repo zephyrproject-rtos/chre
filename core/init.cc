@@ -16,7 +16,6 @@
 
 #include "chre/core/init.h"
 
-#include "ash/ash.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/system_time.h"
@@ -37,19 +36,17 @@ void init() {
 
   SystemTime::init();
   PlatformSensor::init();
-  ashInit();
   EventLoopManagerSingleton::init();
 }
 
 void deinit() {
-  ashDeinit();
   PlatformSensor::deinit();
 
   // EventLoopManager has to be the last one to deinit to handle callback
   // functions in PlatformSensor potentially from a different thread.
   EventLoopManagerSingleton::deinit();
 
-  LOGI("CHRE deinit");
+  LOGD("CHRE deinit");
 }
 
 }  // namespace chre
