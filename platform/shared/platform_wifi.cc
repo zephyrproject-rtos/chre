@@ -24,7 +24,15 @@
 
 namespace chre {
 
-PlatformWifi::PlatformWifi() {
+PlatformWifi::~PlatformWifi() {
+  if (mWifiApi != nullptr) {
+    LOGD("Platform WiFi closing");
+    mWifiApi->close();
+    LOGD("Platform WiFi closed");
+  }
+}
+
+void PlatformWifi::init() {
   mWifiApi = chrePalWifiGetApi(CHRE_PAL_WIFI_API_CURRENT_VERSION);
   if (mWifiApi != nullptr) {
     mWifiCallbacks.scanMonitorStatusChangeCallback =
@@ -40,14 +48,6 @@ PlatformWifi::PlatformWifi() {
   } else {
     LOGW("Requested Wifi PAL (version %08" PRIx32 ") not found",
          CHRE_PAL_WIFI_API_CURRENT_VERSION);
-  }
-}
-
-PlatformWifi::~PlatformWifi() {
-  if (mWifiApi != nullptr) {
-    LOGD("Platform WiFi closing");
-    mWifiApi->close();
-    LOGD("Platform WiFi closed");
   }
 }
 

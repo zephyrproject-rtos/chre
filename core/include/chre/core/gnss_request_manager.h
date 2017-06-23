@@ -41,6 +41,12 @@ class GnssRequestManager : public NonCopyable {
   GnssRequestManager();
 
   /**
+   * Initializes the underlying platform-specific GNSS module. Must be called
+   * prior to invoking any other methods in this class.
+   */
+  void init();
+
+  /**
    * @return the GNSS capabilities exposed by this platform.
    */
   uint32_t getCapabilities();
