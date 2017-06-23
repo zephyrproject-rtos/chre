@@ -25,14 +25,16 @@ namespace chre {
 class PlatformGnss : public PlatformGnssBase {
  public:
   /**
-   * Performs platform-specific initialization of the PlatformGnss instance.
-   */
-  PlatformGnss();
-
-  /**
    * Performs platform-specific deinitialization of the PlatformGnss instance.
    */
   ~PlatformGnss();
+
+  /**
+   * Initializes the platform-specific GNSS implementation. This is potentially
+   * called at a later stage of initialization than the constructor, so platform
+   * implementations are encouraged to put any blocking initialization here.
+   */
+  void init();
 
   /**
    * Returns the set of GNSS capabilities that the platform has exposed. This

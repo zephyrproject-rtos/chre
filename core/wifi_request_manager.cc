@@ -32,6 +32,10 @@ WifiRequestManager::WifiRequestManager() {
   }
 }
 
+void WifiRequestManager::init() {
+  mPlatformWifi.init();
+}
+
 uint32_t WifiRequestManager::getCapabilities() {
   return mPlatformWifi.getCapabilities();
 }

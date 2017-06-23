@@ -24,7 +24,15 @@
 
 namespace chre {
 
-PlatformGnss::PlatformGnss() {
+PlatformGnss::~PlatformGnss() {
+  if (mGnssApi != nullptr) {
+    LOGD("Platform GNSS closing");
+    mGnssApi->close();
+    LOGD("Platform GNSS closed");
+  }
+}
+
+void PlatformGnss::init() {
   mGnssApi = chrePalGnssGetApi(CHRE_PAL_GNSS_API_CURRENT_VERSION);
   if (mGnssApi != nullptr) {
     mGnssCallbacks.requestStateResync =
@@ -44,14 +52,6 @@ PlatformGnss::PlatformGnss() {
   } else {
     LOGW("Requested GNSS PAL (version %08" PRIx32 ") not found",
          CHRE_PAL_GNSS_API_CURRENT_VERSION);
-  }
-}
-
-PlatformGnss::~PlatformGnss() {
-  if (mGnssApi != nullptr) {
-    LOGD("Platform GNSS closing");
-    mGnssApi->close();
-    LOGD("Platform GNSS closed");
   }
 }
 

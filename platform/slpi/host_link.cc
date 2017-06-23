@@ -319,6 +319,7 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
   constexpr float kSleepPower = 1;
   constexpr float kPeakPower = 15;
 
+  // Note that this may execute prior to EventLoopManager::lateInit() completing
   FlatBufferBuilder builder(kInitialBufferSize);
   HostProtocolChre::encodeHubInfoResponse(
       builder, kHubName, kVendor, kToolchain, kLegacyPlatformVersion,

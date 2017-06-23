@@ -22,6 +22,10 @@
 
 namespace chre {
 
+void WwanRequestManager::init() {
+  return mPlatformWwan.init();
+}
+
 uint32_t WwanRequestManager::getCapabilities() {
   return mPlatformWwan.getCapabilities();
 }
