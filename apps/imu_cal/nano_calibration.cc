@@ -290,17 +290,17 @@ void NanoSensorCal::Initialize() {
   // Initializes the gyroscope offset calibration algorithm.
   gyroCalInit(
       &gyro_cal_,
-      5e9,                      // min stillness period = 5 seconds
-      6e9,                      // max stillness period = 6 seconds
+      2.0e9,                    // min stillness period = 2.0 seconds
+      3.0e9,                    // max stillness period = 3.0 seconds
       0, 0, 0,                  // initial bias offset calibration
       0,                        // time stamp of initial bias calibration
-      1.5e9,                    // analysis window length = 1.5 seconds
+      1.0e9,                    // analysis window length = 1.0 seconds
       7.5e-5f,                  // gyroscope variance threshold [rad/sec]^2
       1e-5f,                    // gyroscope confidence delta [rad/sec]^2
       8e-3f,                    // accelerometer variance threshold [m/sec^2]^2
       1.6e-3f,                  // accelerometer confidence delta [m/sec^2]^2
-      3.0f,                     // magnetometer variance threshold [uT]^2
-      0.6f,                     // magnetometer confidence delta [uT]^2
+      5.0f,                     // magnetometer variance threshold [uT]^2
+      1.0f,                     // magnetometer confidence delta [uT]^2
       0.95f,                    // stillness threshold [0,1]
       60.0e-3f * kPi / 180.0f,  // stillness mean variation limit [rad/sec]
       1.5f,   // maximum temperature deviation during stillness [C]
@@ -314,12 +314,12 @@ void NanoSensorCal::Initialize() {
       5,                        // Min num of points to enable model update
       5000000000,               // Min model update interval [nsec]
       0.75f,                    // Temperature span of bin method [C]
-      80.0e-3f * kPi / 180.0f,  // Model fit tolerance [rad/sec]
+      100.0e-3f * kPi / 180.0f, // Model fit tolerance [rad/sec]
       250.0e-3f * kPi / 180.0f, // Outlier rejection tolerance [rad/sec]
       172800000000000,          // Model data point age limit [nsec]
-      100.0e-3f * kPi / 180.0f, // Limit for temp. sensitivity [rad/sec/C]
-      3.0f * kPi / 180.0f,      // Limit for model intercept parameter [rad/sec]
-      3.0e-3f * kPi / 180.0f,   // Significant offset change [rad/sec]
+      250.0e-3f * kPi / 180.0f, // Limit for temp. sensitivity [rad/sec/C]
+      8.0f * kPi / 180.0f,      // Limit for model intercept parameter [rad/sec]
+      0.5e-3f * kPi / 180.0f,   // Significant offset change [rad/sec]
       true);                    // Over-temp compensation enable
 #endif  // OVERTEMPCAL_GYRO_ENABLED
 
