@@ -38,7 +38,7 @@ UniquePtr<char> EventLoopManager::debugDump() {
   constexpr size_t kDebugStringSize = 2048;
   char *debugStr = static_cast<char *>(memoryAlloc(kDebugStringSize));
   if (debugStr != nullptr) {
-    // TODO: Add GNSS, wifi, WWAN info
+    // TODO: Add wifi, WWAN info
     size_t debugStrPos = 0;
     if (!mMemoryManager.logStateToBuffer(debugStr, &debugStrPos,
                                          kDebugStringSize)) {
@@ -49,6 +49,9 @@ UniquePtr<char> EventLoopManager::debugDump() {
     } else if (!mSensorRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                        kDebugStringSize)) {
       LOGE("Sensor request manager debug dump failed.");
+    } else if (!mGnssRequestManager.logStateToBuffer(debugStr, &debugStrPos,
+                                                     kDebugStringSize)) {
+      LOGE("GNSS request manager debug dump failed.");
     }
   }
 
