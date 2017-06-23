@@ -22,6 +22,7 @@ extern "C" {
 
 }  // extern "C"
 
+#include "ash/ash.h"
 #include "ash/debug.h"
 
 #include "chre/core/event_loop.h"
@@ -133,6 +134,8 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
  * @param data Argument passed to qurt_thread_create()
  */
 void chreThreadEntry(void * /*data*/) {
+  ashInit();
+  EventLoopManagerSingleton::get()->lateInit();
   EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   chre::loadStaticNanoapps();
   loadPreloadedNanoapps(eventLoop);
@@ -140,6 +143,7 @@ void chreThreadEntry(void * /*data*/) {
   eventLoop->run();
 
   ashUnregisterDebugDumpCallback(onDebugDumpRequested);
+  ashDeinit();
   chre::deinit();
   gThreadRunning = false;
   LOGD("CHRE thread exiting");
@@ -173,6 +177,8 @@ extern "C" int chre_slpi_start_thread(void) {
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
   } else {
+    // This must complete before we can receive messages that might result in
+    // posting an event
     chre::init();
 
     // Human-readable name for the CHRE thread (not const in QuRT API, but they

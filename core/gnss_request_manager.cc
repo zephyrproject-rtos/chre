@@ -30,6 +30,10 @@ GnssRequestManager::GnssRequestManager()
   }
 }
 
+void GnssRequestManager::init() {
+  mPlatformGnss.init();
+}
+
 uint32_t GnssRequestManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
 }

@@ -24,7 +24,15 @@
 
 namespace chre {
 
-PlatformWwan::PlatformWwan() {
+PlatformWwan::~PlatformWwan() {
+  if (mWwanApi != nullptr) {
+    LOGD("Platform WWAN closing");
+    mWwanApi->close();
+    LOGD("Platform WWAN closed");
+  }
+}
+
+void PlatformWwan::init() {
   mWwanApi = chrePalWwanGetApi(CHRE_PAL_WWAN_API_CURRENT_VERSION);
   if (mWwanApi != nullptr) {
     mWwanCallbacks.cellInfoResultCallback =
@@ -36,14 +44,6 @@ PlatformWwan::PlatformWwan() {
   } else {
     LOGW("Requested WWAN PAL (version %08" PRIx32 ") not found",
          CHRE_PAL_WWAN_API_CURRENT_VERSION);
-  }
-}
-
-PlatformWwan::~PlatformWwan() {
-  if (mWwanApi != nullptr) {
-    LOGD("Platform WWAN closing");
-    mWwanApi->close();
-    LOGD("Platform WWAN closed");
   }
 }
 

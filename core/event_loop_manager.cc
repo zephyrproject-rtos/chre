@@ -79,4 +79,10 @@ uint32_t EventLoopManager::getNextInstanceId() {
   return mLastInstanceId;
 }
 
+void EventLoopManager::lateInit() {
+  mGnssRequestManager.init();
+  mWifiRequestManager.init();
+  mWwanRequestManager.init();
+}
+
 }  // namespace chre
