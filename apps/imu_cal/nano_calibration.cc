@@ -24,23 +24,43 @@
 
 #include "calibration/util/cal_log.h"
 #include "chre/util/nanoapp/log.h"
-#include "chre/util/time.h"
 
 namespace nano_calibration {
 
 namespace {
+
+// Nano calibration log macros.
 #ifdef NANO_SENSOR_CAL_DBG_ENABLED
-#define NANO_CAL_LOG(tag, format, ...) CAL_DEBUG_LOG(tag, format, ##__VA_ARGS__)
+#define NANO_CAL_LOGD(tag, format, ...) \
+  chreLog(CHRE_LOG_DEBUG, "%s " format, tag, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGI(tag, format, ...) \
+  chreLog(CHRE_LOG_INFO, "%s " format, tag, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGW(tag, format, ...) \
+  chreLog(CHRE_LOG_WARN, "%s " format, tag, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGE(tag, format, ...) \
+  chreLog(CHRE_LOG_ERROR, "%s " format, tag, ##__VA_ARGS__)
 #else
-#define NANO_CAL_LOG(tag, format, ...) chreLogNull(format, ##__VA_ARGS__)
-#endif
+#define NANO_CAL_LOGD(tag, format, ...) \
+  chreLogNull(format, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGI(tag, format, ...) \
+  chreLogNull(format, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGW(tag, format, ...) \
+  chreLogNull(format, ##__VA_ARGS__)
+
+#define NANO_CAL_LOGE(tag, format, ...) \
+  chreLogNull(format, ##__VA_ARGS__)
+#endif  // NANO_SENSOR_CAL_DBG_ENABLED
 
 #ifdef SPHERE_FIT_ENABLED
 constexpr size_t kSamplesToAverageForOdrEstimateMag = 10;
 
 // Unit conversion: nanoseconds to seconds.
 constexpr float kNanosToSec = 1.0e-9f;
-
 
 // Helper function that estimates the ODR based on the incoming data timestamp.
 void SamplingRateEstimate(struct SampleRateData *sample_rate_data,
@@ -120,22 +140,24 @@ void ResetCalInfo(struct ashCalInfo *cal_info) {
 
 // Helper function to print out calibration data.
 void PrintAshCalParams(const struct ashCalParams &cal_params, const char *tag) {
-  NANO_CAL_LOG(tag, "Offset | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-               cal_params.offset[0], cal_params.offset[1], cal_params.offset[2],
-               cal_params.offsetTempCelsius);
+  NANO_CAL_LOGI(tag, "Offset | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                cal_params.offset[0], cal_params.offset[1],
+                cal_params.offset[2], cal_params.offsetTempCelsius);
 
-  NANO_CAL_LOG(
-      tag, "Temp Sensitivity | Intercept: %.6f, %.6f, %.6f | %.6f, %.6f, %.6f",
-      cal_params.tempSensitivity[0], cal_params.tempSensitivity[1],
-      cal_params.tempSensitivity[2], cal_params.tempIntercept[0],
-      cal_params.tempIntercept[1], cal_params.tempIntercept[2]);
+  NANO_CAL_LOGI(tag, "Temp Sensitivity [rad/sec/C]: %.6f, %.6f, %.6f",
+                cal_params.tempSensitivity[0], cal_params.tempSensitivity[1],
+                cal_params.tempSensitivity[2]);
+  NANO_CAL_LOGI(tag, "Temp Intercept [rad/sec]: %.6f, %.6f, %.6f",
+                cal_params.tempIntercept[0], cal_params.tempIntercept[1],
+                cal_params.tempIntercept[2]);
 
-  NANO_CAL_LOG(tag, "Scale Factor: %.6f, %.6f, %.6f", cal_params.scaleFactor[0],
-               cal_params.scaleFactor[1], cal_params.scaleFactor[2]);
+  NANO_CAL_LOGI(tag, "Scale Factor: %.6f, %.6f, %.6f",
+                cal_params.scaleFactor[0], cal_params.scaleFactor[1],
+                cal_params.scaleFactor[2]);
 
-  NANO_CAL_LOG(tag, "Cross-Axis in [yx, zx, zy] order: %.6f, %.6f, %.6f",
-               cal_params.crossAxis[0], cal_params.crossAxis[1],
-               cal_params.crossAxis[2]);
+  NANO_CAL_LOGI(tag, "Cross-Axis in [yx, zx, zy] order: %.6f, %.6f, %.6f",
+                cal_params.crossAxis[0], cal_params.crossAxis[1],
+                cal_params.crossAxis[2]);
 }
 
 // Detects and converts Factory Calibration data into a format consumable by the
@@ -184,7 +206,7 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
 
   if (factory_cal_detected) {
     // Prints the received factory data.
-    PrintAshCalParams(*cal_params,"[NanoSensorCal:GYRO_FACTORY_CAL]");
+    PrintAshCalParams(*cal_params,"[NanoSensorCal:OTC_GYRO_FACTORY_CAL]");
 
     // Sets the parameter source to runtime calibration.
     cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
@@ -266,7 +288,7 @@ NanoSensorCal::NanoSensorCal() {
 }
 
 void NanoSensorCal::Initialize() {
-  NANO_CAL_LOG("[NanoSensorCal]", "Initialized.");
+  NANO_CAL_LOGI("[NanoSensorCal]", "Initialized.");
 
 #ifdef ACCEL_CAL_ENABLED
   // Initializes the accelerometer offset calibration algorithm.
@@ -324,7 +346,11 @@ void NanoSensorCal::Initialize() {
 #endif  // OVERTEMPCAL_GYRO_ENABLED
 
   // Retrieves stored calibration data using the ASH API.
+#ifdef OVERTEMPCAL_GYRO_ENABLED
+  LoadAshOtcGyroCal();
+#else
   LoadAshGyroCal();
+#endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
 
 #ifdef MAG_CAL_ENABLED
@@ -653,7 +679,8 @@ void NanoSensorCal::UpdateAccelCalParams() {
 #ifdef ACCEL_CAL_ENABLED
   // Gets the accelerometer's offset vector and temperature.
   accelCalUpdateBias(&accel_cal_, &accel_cal_params_.offset[0],
-                     &accel_cal_params_.offset[1], &accel_cal_params_.offset[2]);
+                     &accel_cal_params_.offset[1],
+                     &accel_cal_params_.offset[2]);
   accel_cal_params_.offsetTempCelsius = temperature_celsius_;
 
   // Sets the parameter source to runtime calibration.
@@ -738,60 +765,114 @@ void NanoSensorCal::UpdateMagCalParams(MagUpdateFlags new_update) {
 
 void NanoSensorCal::LoadAshAccelCal() {
 #ifdef ACCEL_CAL_ENABLED
-  bool load_successful = false;
   struct ashCalParams cal_params;
-  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
-                               ASH_CAL_STORAGE_ASH, &cal_params)) {
+  if (!ashLoadCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
+                                ASH_CAL_STORAGE_ASH, &cal_params)) {
+    NANO_CAL_LOGE("[NanoSensorCal:RECALL ACCEL]",
+                  "ASH failed to recall accelerometer calibration data from "
+                  "persistent memory.");
+  } else {
     // Checks for and performs required processing on input factory cal data.
     HandleAccelFactoryCalibration(&cal_params);
 
     // Checks for valid calibration data.
-    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
-        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+    bool runtime_cal_detected =
+        cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    if (!runtime_cal_detected) {
+      NANO_CAL_LOGW("[NanoSensorCal:RECALL ACCEL]",
+                    "No valid calibration data found.");
+    } else {
       // On a successful load, copies the new set of calibration parameters.
       memcpy(&accel_cal_params_, &cal_params, sizeof(struct ashCalParams));
 
       // Sets the accelerometer algorithm's calibration data.
       accelCalBiasSet(&accel_cal_, accel_cal_params_.offset[0],
                       accel_cal_params_.offset[1], accel_cal_params_.offset[2]);
-      load_successful = true;
+
+      // Prints recalled calibration data.
+      NANO_CAL_LOGI(
+          "[NanoSensorCal:RECALL ACCEL]",
+          "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+          accel_cal_params_.offset[0], accel_cal_params_.offset[1],
+          accel_cal_params_.offset[2], accel_cal_params_.offsetTempCelsius);
+
+      // Updates the calibration data using ASH.
+      NotifyAshAccelCal();
     }
-  }
-
-  if (load_successful) {
-    // Updates the calibration data with ASH.
-    NotifyAshAccelCal();
-
-    // Prints recalled calibration data.
-    NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
-                 "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-                 accel_cal_params_.offset[0], accel_cal_params_.offset[1],
-                 accel_cal_params_.offset[2],
-                 accel_cal_params_.offsetTempCelsius);
-  } else {
-    NANO_CAL_LOG("[NanoSensorCal:RECALL ACCEL]",
-                 "Failed to recall accelerometer calibration data from "
-                 "persistent memory.");
   }
 #endif  // ACCEL_CAL_ENABLED
 }
 
 void NanoSensorCal::LoadAshGyroCal() {
 #ifdef GYRO_CAL_ENABLED
-  bool load_successful = false;
   struct ashCalParams cal_params;
-  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE,
-                               ASH_CAL_STORAGE_ASH, &cal_params)) {
+  if (!ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, ASH_CAL_STORAGE_ASH,
+                                &cal_params)) {
+    NANO_CAL_LOGE("[NanoSensorCal:RECALL GYRO]",
+                  "ASH failed to recall gyroscope calibration data from "
+                  "persistent memory.");
+  } else {
     // Checks for and performs required processing on input factory cal data.
     HandleGyroFactoryCalibration(&cal_params);
 
+    // Gyroscope offset calibration parameters were recalled.
+    bool runtime_cal_detected =
+        cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    if (!runtime_cal_detected) {
+      NANO_CAL_LOGW("[NanoSensorCal:RECALL GYRO]",
+                    "No valid calibration data found.");
+    } else {
+      // On a successful load, copies the new set of calibration parameters.
+      memcpy(&gyro_cal_params_, &cal_params, sizeof(struct ashCalParams));
+
+      // Sets the gyroscope algorithm's calibration data.
+      gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
+                     gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
+                     /*calibration_time_nanos=*/0);
+
+      // Prints recalled calibration data.
+      NANO_CAL_LOGI(
+          "[NanoSensorCal:RECALL GYRO]",
+          "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+          gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+          gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
+
+      // Updates the calibration data using ASH.
+      NotifyAshGyroCal();
+    }
+  }
+#endif  // GYRO_CAL_ENABLED
+}
+
+void NanoSensorCal::LoadAshOtcGyroCal() {
+#ifdef GYRO_CAL_ENABLED
 #ifdef OVERTEMPCAL_GYRO_ENABLED
+  struct ashCalParams cal_params;
+  if (!ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, ASH_CAL_STORAGE_ASH,
+                                &cal_params)) {
+    NANO_CAL_LOGE("[NanoSensorCal:RECALL OTC-GYRO]",
+                  "ASH failed to recall gyroscope calibration data from "
+                  "persistent memory.");
+  } else {
+    // Checks for and performs required processing on input factory cal data.
+    HandleGyroFactoryCalibration(&cal_params);
+
     // Gyroscope offset calibration with over-temperature compensation (OTC)
     // parameters were recalled.
-    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+    bool runtime_cal_detected =
+        cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
         cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
         cal_params.tempSensitivitySource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
-        cal_params.tempInterceptSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+        cal_params.tempInterceptSource == ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    if (!runtime_cal_detected) {
+      NANO_CAL_LOGW("[NanoSensorCal:RECALL OTC-GYRO]",
+                    "No valid calibration data found.");
+    } else {
       // On a successful load, copies the new set of calibration parameters.
       memcpy(&gyro_cal_params_, &cal_params, sizeof(struct ashCalParams));
 
@@ -800,77 +881,55 @@ void NanoSensorCal::LoadAshGyroCal() {
       gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
                      gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
                      timestamp_nanos);
-      overTempCalSetModel(&over_temp_gyro_cal_,
-                          gyro_cal_params_.offset,
-                          gyro_cal_params_.offsetTempCelsius,
-                          timestamp_nanos,
+      overTempCalSetModel(&over_temp_gyro_cal_, gyro_cal_params_.offset,
+                          gyro_cal_params_.offsetTempCelsius, timestamp_nanos,
                           gyro_cal_params_.tempSensitivity,
                           gyro_cal_params_.tempIntercept,
                           /*jump_start_model=*/true);
-      load_successful = true;
 
       // Prints recalled calibration data.
-      NANO_CAL_LOG("[NanoSensorCal:RECALL OTC-GYRO]",
-                   "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-                   gyro_cal_params_.offset[2],
-                   gyro_cal_params_.offsetTempCelsius);
-      NANO_CAL_LOG("[NanoSensorCal:RECALL OTC-GYRO]",
-                   "Sensitivity [rad/sec/C] | Intercept [rad/sec]: %.6f, %.6f, "
-                   "%.6f | %.6f, %.6f, %.6f",
-                   gyro_cal_params_.tempSensitivity[0],
-                   gyro_cal_params_.tempSensitivity[1],
-                   gyro_cal_params_.tempSensitivity[2],
-                   gyro_cal_params_.tempIntercept[0],
-                   gyro_cal_params_.tempIntercept[1],
-                   gyro_cal_params_.tempIntercept[2]);
-    }
-#else
-    // Gyroscope offset calibration parameters were recalled.
-    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
-        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
-      // On a successful load, copies the new set of calibration parameters.
-      memcpy(&gyro_cal_params_, &cal_params, sizeof(struct ashCalParams));
+      NANO_CAL_LOGI(
+          "[NanoSensorCal:RECALL OTC-GYRO]",
+          "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+          gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+          gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
+      NANO_CAL_LOGI("[NanoSensorCal:RECALL OTC-GYRO]",
+                    "Temp Sensitivity [rad/sec/C]: %.6f, %.6f, %.6f",
+                    gyro_cal_params_.tempSensitivity[0],
+                    gyro_cal_params_.tempSensitivity[1],
+                    gyro_cal_params_.tempSensitivity[2]);
+      NANO_CAL_LOGI("[NanoSensorCal:RECALL OTC-GYRO]",
+                    "Temp Intercept [rad/sec]: %.6f, %.6f, %.6f",
+                    gyro_cal_params_.tempIntercept[0],
+                    gyro_cal_params_.tempIntercept[1],
+                    gyro_cal_params_.tempIntercept[2]);
 
-      // Sets the gyroscope algorithm's calibration data.
-      gyroCalSetBias(&gyro_cal_, gyro_cal_params_.offset[0],
-                     gyro_cal_params_.offset[1], gyro_cal_params_.offset[2],
-                     /*calibration_time_nanos=*/0);
-      load_successful = true;
-
-      // Prints recalled calibration data.
-      NANO_CAL_LOG("[NanoSensorCal:RECALL GYRO]",
-                   "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-                   gyro_cal_params_.offset[2],
-                   gyro_cal_params_.offsetTempCelsius);
+      // Updates the calibration data using ASH.
+      NotifyAshGyroCal();
     }
+  }
 #endif  // OVERTEMPCAL_GYRO_ENABLED
-  }
-
-  if (load_successful) {
-    // Updates the calibration data with ASH.
-    NotifyAshGyroCal();
-  } else {
-    NANO_CAL_LOG(
-        "[NanoSensorCal:RECALL GYRO]",
-        "Failed to recall gyroscope calibration data from persistent memory.");
-  }
 #endif  // GYRO_CAL_ENABLED
 }
 
 void NanoSensorCal::LoadAshMagCal() {
 #ifdef MAG_CAL_ENABLED
-  bool load_successful = false;
   struct ashCalParams cal_params;
-  if (ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-                               ASH_CAL_STORAGE_ASH, &cal_params)) {
+  if (!ashLoadCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+                                ASH_CAL_STORAGE_ASH, &cal_params)) {
+    NANO_CAL_LOGE("[NanoSensorCal:RECALL MAG]",
+                  "ASH failed to recall Magnetometer calibration data from "
+                  "persistent memory.");
+  } else {
     // Checks for and performs required processing on input factory cal data.
     HandleMagFactoryCalibration(&cal_params);
 
     // Checks for valid calibration data.
-    if (cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
-        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME) {
+    bool runtime_cal_detected =
+        cal_params.offsetSource == ASH_CAL_PARAMS_SOURCE_RUNTIME &&
+        cal_params.offsetTempCelsiusSource == ASH_CAL_PARAMS_SOURCE_RUNTIME;
+
+    if (runtime_cal_detected) {
       // On a successful load, copies the new set of calibration parameters.
       memcpy(&mag_cal_params_, &cal_params, sizeof(struct ashCalParams));
 
@@ -900,35 +959,33 @@ void NanoSensorCal::LoadAshMagCal() {
       mag_cal_sphere_.sphere_fit.sphere_param.bias[2] =
           mag_cal_params_.offset[2];
 #endif  // SPHERE_FIT_ENABLED
-      load_successful = true;
-    }
-  }
 
-  if (load_successful) {
-    // Updates the calibration data with ASH.
+      // Prints recalled calibration data.
+      NANO_CAL_LOGI("[NanoSensorCal:RECALL MAG]",
+                    "Offset [uT] | Temp [Celsius]: %.3f, %.3f, %.3f | %.3f",
+                    mag_cal_params_.offset[0], mag_cal_params_.offset[1],
+                    mag_cal_params_.offset[2],
+                    mag_cal_params_.offsetTempCelsius);
 #ifdef SPHERE_FIT_ENABLED
-    NotifyAshMagCal(MagUpdate::UPDATE_SPHERE_FIT);
+      NANO_CAL_LOGI(
+          "[NanoSensorCal:RECALL MAG]",
+          "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f |"
+          " %.3f, %.3f, %.3f",
+          mag_cal_params_.scaleFactor[0], mag_cal_params_.scaleFactor[1],
+          mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
+          mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
+#endif  // SPHERE_FIT_ENABLED
+
+// Updates the calibration data using ASH.
+#ifdef SPHERE_FIT_ENABLED
+      NotifyAshMagCal(MagUpdate::UPDATE_SPHERE_FIT);
 #else
-    NotifyAshMagCal(MagUpdate::UPDATE_BIAS);
+      NotifyAshMagCal(MagUpdate::UPDATE_BIAS);
 #endif  // SPHERE_FIT_ENABLED
-
-    // Prints recalled calibration data.
-    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
-                 "Offset [uT] | Temp [Celsius] : %.3f, %.3f, %.3f | %.3f",
-                 mag_cal_params_.offset[0], mag_cal_params_.offset[1],
-                 mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
-#ifdef SPHERE_FIT_ENABLED
-    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
-                 "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f |"
-                 " %.3f, %.3f, %.3f",
-                 mag_cal_params_.scaleFactor[0], mag_cal_params_.scaleFactor[1],
-                 mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
-                 mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
-#endif  // SPHERE_FIT_ENABLED
-  } else {
-    NANO_CAL_LOG("[NanoSensorCal:RECALL MAG]",
-                 "Failed to recall Magnetometer calibration data from "
-                 "persistent memory.");
+    } else {
+      NANO_CAL_LOGW("[NanoSensorCal:RECALL MAG]",
+                    "No valid calibration data found.");
+    }
   }
 #endif  // MAG_CAL_ENABLED
 }
@@ -941,13 +998,16 @@ void NanoSensorCal::NotifyAshAccelCal() {
   ResetCalInfo(&cal_info);
   memcpy(cal_info.bias, accel_cal_params_.offset, sizeof(cal_info.bias));
   cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
-  ashSetCalibration(CHRE_SENSOR_TYPE_ACCELEROMETER, &cal_info);
-
-  NANO_CAL_LOG("[NanoSensorCal:UPDATE ACCEL]",
-               "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-               accel_cal_params_.offset[0], accel_cal_params_.offset[1],
-               accel_cal_params_.offset[2],
-               accel_cal_params_.offsetTempCelsius);
+  if (!ashSetCalibration(CHRE_SENSOR_TYPE_ACCELEROMETER, &cal_info)) {
+    NANO_CAL_LOGE("[NanoSensorCal:UPDATE ACCEL]",
+                  "ASH failed to apply calibration update.");
+  } else {
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE ACCEL]",
+                  "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  accel_cal_params_.offset[0], accel_cal_params_.offset[1],
+                  accel_cal_params_.offset[2],
+                  accel_cal_params_.offsetTempCelsius);
+  }
 
   // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
   // saving calibration parameter updates to the sensor registry, after Factory
@@ -956,9 +1016,9 @@ void NanoSensorCal::NotifyAshAccelCal() {
 #if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
-                               &accel_cal_params_)) {
-    NANO_CAL_LOG("[NanoSensorCal:STORE ACCEL]",
-                 "ASH failed to write calibration update.");
+                                &accel_cal_params_)) {
+    NANO_CAL_LOGE("[NanoSensorCal:STORE ACCEL]",
+                  "ASH failed to write calibration update.");
   }
 #endif  // FACTORYCAL_IS_VERIFIED
 #endif  // ACCEL_CAL_ENABLED
@@ -972,35 +1032,44 @@ void NanoSensorCal::NotifyAshGyroCal() {
   ResetCalInfo(&cal_info);
   memcpy(cal_info.bias, gyro_cal_params_.offset, sizeof(cal_info.bias));
   cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
-  ashSetCalibration(CHRE_SENSOR_TYPE_GYROSCOPE, &cal_info);
-
+  if (!ashSetCalibration(CHRE_SENSOR_TYPE_GYROSCOPE, &cal_info)) {
+    NANO_CAL_LOGE("[NanoSensorCal:UPDATE GYRO]",
+                  "ASH failed to apply calibration update.");
+  } else {
 #ifdef OVERTEMPCAL_GYRO_ENABLED
-  NANO_CAL_LOG("[NanoSensorCal:UPDATE OTC-GYRO]",
-               "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-               gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-               gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
-  NANO_CAL_LOG(
-      "[NanoSensorCal:UPDATE OTC-GYRO]",
-      "Sensitivity [rad/sec/C] | Intercept [rad/sec]: %.6f, %.6f, "
-      "%.6f | %.6f, %.6f, %.6f",
-      gyro_cal_params_.tempSensitivity[0], gyro_cal_params_.tempSensitivity[1],
-      gyro_cal_params_.tempSensitivity[2], gyro_cal_params_.tempIntercept[0],
-      gyro_cal_params_.tempIntercept[1], gyro_cal_params_.tempIntercept[2]);
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
+                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                  gyro_cal_params_.offset[2],
+                  gyro_cal_params_.offsetTempCelsius);
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
+                  "Temp Sensitivity [rad/sec/C]: %.6f, %.6f, %.6f",
+                  gyro_cal_params_.tempSensitivity[0],
+                  gyro_cal_params_.tempSensitivity[1],
+                  gyro_cal_params_.tempSensitivity[2]);
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
+                  "Temp Intercept [rad/sec]: %.6f, %.6f, %.6f",
+                  gyro_cal_params_.tempIntercept[0],
+                  gyro_cal_params_.tempIntercept[1],
+                  gyro_cal_params_.tempIntercept[2]);
 #else
-  NANO_CAL_LOG("[NanoSensorCal:UPDATE GYRO]",
-               "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-               gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-               gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE GYRO]",
+                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+                  gyro_cal_params_.offset[2],
+                  gyro_cal_params_.offsetTempCelsius);
 #endif  // OVERTEMPCAL_GYRO_ENABLED
+  }
 
-  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
-  // saving calibration parameter updates to the sensor registry, after Factory
-  // Calibration testing has been fully qualified on hardware.
+// TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
+// saving calibration parameter updates to the sensor registry, after Factory
+// Calibration testing has been fully qualified on hardware.
 #if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
-  if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE, &gyro_cal_params_)) {
-    NANO_CAL_LOG("[NanoSensorCal:STORE GYRO]",
-                 "ASH failed to write calibration update.");
+  if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE,
+                                &gyro_cal_params_)) {
+    NANO_CAL_LOGE("[NanoSensorCal:STORE GYRO]",
+                  "ASH failed to write calibration update.");
   }
 #endif  // FACTORYCAL_IS_VERIFIED
 #endif  // GYRO_CAL_ENABLED
@@ -1016,30 +1085,34 @@ void NanoSensorCal::NotifyAshMagCal(MagUpdateFlags new_update) {
 
   // TODO: Adding Sphere Parameters to compensation matrix.
   cal_info.accuracy = ASH_CAL_ACCURACY_HIGH;
-  ashSetCalibration(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD, &cal_info);
-
-  NANO_CAL_LOG("[NanoSensorCal:UPDATE MAG]",
-               "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
-               mag_cal_params_.offset[0], mag_cal_params_.offset[1],
-               mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
+  if (!ashSetCalibration(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD, &cal_info)) {
+    NANO_CAL_LOGE("[NanoSensorCal:UPDATE MAG]",
+                  "ASH failed to apply calibration update.");
+  } else {
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE MAG]",
+                  "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  mag_cal_params_.offset[0], mag_cal_params_.offset[1],
+                  mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
 #ifdef SPHERE_FIT_ENABLED
-  NANO_CAL_LOG("[NanoSensorCal:UPDATE MAG]",
-               "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f | "
-               " %.3f, %.3f, %.3f",
-               mag_cal_params_.scaleFactor[0], mag_cal_params_.scaleFactor[1],
-               mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
-               mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
+    NANO_CAL_LOGD("[NanoSensorCal:UPDATE MAG]",
+                  "Scale Factor [%] | Cross Axis [%]: %.3f, %.3f, %.3f | "
+                  " %.3f, %.3f, %.3f",
+                  mag_cal_params_.scaleFactor[0],
+                  mag_cal_params_.scaleFactor[1],
+                  mag_cal_params_.scaleFactor[2], mag_cal_params_.crossAxis[0],
+                  mag_cal_params_.crossAxis[1], mag_cal_params_.crossAxis[2]);
 #endif  // SPHERE_FIT_ENABLED
+  }
 
-  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
-  // saving calibration parameter updates to the sensor registry, after Factory
-  // Calibration testing has been fully qualified on hardware.
+// TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
+// saving calibration parameter updates to the sensor registry, after Factory
+// Calibration testing has been fully qualified on hardware.
 #if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-                               &mag_cal_params_)) {
-    NANO_CAL_LOG("[NanoSensorCal:STORE MAG]",
-                 "ASH failed to write calibration update.");
+                                &mag_cal_params_)) {
+    NANO_CAL_LOGE("[NanoSensorCal:STORE MAG]",
+                  "ASH failed to write calibration update.");
   }
 #endif  // FACTORYCAL_IS_VERIFIED
 #endif  // MAG_CAL_ENABLED
