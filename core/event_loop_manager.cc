@@ -35,10 +35,9 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
 }
 
 UniquePtr<char> EventLoopManager::debugDump() {
-  constexpr size_t kDebugStringSize = 2048;
+  constexpr size_t kDebugStringSize = 4096;
   char *debugStr = static_cast<char *>(memoryAlloc(kDebugStringSize));
   if (debugStr != nullptr) {
-    // TODO: Add wifi, WWAN info
     size_t debugStrPos = 0;
     if (!mMemoryManager.logStateToBuffer(debugStr, &debugStrPos,
                                          kDebugStringSize)) {
@@ -52,7 +51,14 @@ UniquePtr<char> EventLoopManager::debugDump() {
     } else if (!mGnssRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                      kDebugStringSize)) {
       LOGE("GNSS request manager debug dump failed.");
+    } else if (!mWifiRequestManager.logStateToBuffer(debugStr, &debugStrPos,
+                                                     kDebugStringSize)) {
+      LOGE("Wifi request manager debug dump failed.");
+    } else if (!mWwanRequestManager.logStateToBuffer(debugStr, &debugStrPos,
+                                                     kDebugStringSize)) {
+      LOGE("WWAN request manager debug dump failed.");
     }
+    LOGD("Debug dump used %zu bytes of log buffer", debugStrPos);
   }
 
   return UniquePtr<char>(debugStr);

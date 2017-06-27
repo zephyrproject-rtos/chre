@@ -19,6 +19,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -74,6 +75,17 @@ void WwanRequestManager::handleCellInfoResultSync(
   } else {
     LOGE("Cell info results received unexpectedly");
   }
+}
+
+bool WwanRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                          size_t bufferSize) const {
+  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nWWAN:\n");
+  if (mCellInfoRequestingNanoappInstanceId.has_value()) {
+    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                              " WWAN request pending nanoappId=%" PRIu32 "\n",
+                              mCellInfoRequestingNanoappInstanceId.value());
+  }
+  return success;
 }
 
 void WwanRequestManager::handleFreeCellInfoResult(
