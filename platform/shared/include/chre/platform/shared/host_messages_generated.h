@@ -39,6 +39,8 @@ struct DebugDumpData;
 
 struct DebugDumpResponse;
 
+struct TimeSyncRequest;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -61,8 +63,9 @@ enum class ChreMessage : uint8_t {
   DebugDumpRequest = 12,
   DebugDumpData = 13,
   DebugDumpResponse = 14,
+  TimeSyncRequest = 15,
   MIN = NONE,
-  MAX = DebugDumpResponse
+  MAX = TimeSyncRequest
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -82,6 +85,7 @@ inline const char **EnumNamesChreMessage() {
     "DebugDumpRequest",
     "DebugDumpData",
     "DebugDumpResponse",
+    "TimeSyncRequest",
     nullptr
   };
   return names;
@@ -150,6 +154,10 @@ template<> struct ChreMessageTraits<DebugDumpData> {
 
 template<> struct ChreMessageTraits<DebugDumpResponse> {
   static const ChreMessage enum_value = ChreMessage::DebugDumpResponse;
+};
+
+template<> struct ChreMessageTraits<TimeSyncRequest> {
+  static const ChreMessage enum_value = ChreMessage::TimeSyncRequest;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -1140,6 +1148,35 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(
   return builder_.Finish();
 }
 
+/// A request from CHRE for host to initiate a time sync message
+struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimeSyncRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  TimeSyncRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TimeSyncRequestBuilder &operator=(const TimeSyncRequestBuilder &);
+  flatbuffers::Offset<TimeSyncRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<TimeSyncRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  TimeSyncRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level
 /// structure (root type), so we must wrap it in a table.
@@ -1271,6 +1308,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::DebugDumpResponse: {
       auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::TimeSyncRequest: {
+      auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
