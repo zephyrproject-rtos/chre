@@ -54,16 +54,9 @@ COMMON_SRCS += $(NANOPB_GEN_SRCS)
 
 NANOPB_PROTOC = $(NANOPB_PREFIX)/generator/protoc-gen-nanopb
 
-# We may want to override the system protoc by injecting it through an
-# environment variable. If the variable is not supplied, default to the system
-# protoc.
-ifeq ($(PROTOC),)
-PROTOC = protoc
-endif
-
 $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
                                                      $(wildcard %.options) \
                                                      $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
-	$(PROTOC) --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) \
+	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) \
 	  --nanopb_out=$(NANOPB_GEN_PATH) $<
