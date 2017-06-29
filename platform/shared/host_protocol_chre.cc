@@ -185,4 +185,10 @@ void HostProtocolChre::encodeDebugDumpResponse(
            hostClientId);
 }
 
+void HostProtocolChre::encodeTimeSyncRequest(
+    flatbuffers::FlatBufferBuilder& builder) {
+  auto request = fbs::CreateTimeSyncRequest(builder);
+  finalize(builder, fbs::ChreMessage::TimeSyncRequest, request.Union());
+}
+
 }  // namespace chre

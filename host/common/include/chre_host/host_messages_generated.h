@@ -54,6 +54,9 @@ struct DebugDumpDataT;
 struct DebugDumpResponse;
 struct DebugDumpResponseT;
 
+struct TimeSyncRequest;
+struct TimeSyncRequestT;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -77,8 +80,9 @@ enum class ChreMessage : uint8_t {
   DebugDumpRequest = 12,
   DebugDumpData = 13,
   DebugDumpResponse = 14,
+  TimeSyncRequest = 15,
   MIN = NONE,
-  MAX = DebugDumpResponse
+  MAX = TimeSyncRequest
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -98,6 +102,7 @@ inline const char **EnumNamesChreMessage() {
     "DebugDumpRequest",
     "DebugDumpData",
     "DebugDumpResponse",
+    "TimeSyncRequest",
     nullptr
   };
   return names;
@@ -166,6 +171,10 @@ template<> struct ChreMessageTraits<DebugDumpData> {
 
 template<> struct ChreMessageTraits<DebugDumpResponse> {
   static const ChreMessage enum_value = ChreMessage::DebugDumpResponse;
+};
+
+template<> struct ChreMessageTraits<TimeSyncRequest> {
+  static const ChreMessage enum_value = ChreMessage::TimeSyncRequest;
 };
 
 struct ChreMessageUnion {
@@ -248,6 +257,10 @@ struct ChreMessageUnion {
   DebugDumpResponseT *AsDebugDumpResponse() {
     return type == ChreMessage::DebugDumpResponse ?
       reinterpret_cast<DebugDumpResponseT *>(table) : nullptr;
+  }
+  TimeSyncRequestT *AsTimeSyncRequest() {
+    return type == ChreMessage::TimeSyncRequest ?
+      reinterpret_cast<TimeSyncRequestT *>(table) : nullptr;
   }
 };
 
@@ -1604,6 +1617,47 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(
 
 flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct TimeSyncRequestT : public flatbuffers::NativeTable {
+  typedef TimeSyncRequest TableType;
+  TimeSyncRequestT() {
+  }
+};
+
+/// A request from CHRE for host to initiate a time sync message
+struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TimeSyncRequestT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  TimeSyncRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TimeSyncRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TimeSyncRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct TimeSyncRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  TimeSyncRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TimeSyncRequestBuilder &operator=(const TimeSyncRequestBuilder &);
+  flatbuffers::Offset<TimeSyncRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<TimeSyncRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  TimeSyncRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
@@ -2143,6 +2197,28 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffer
       _data_count);
 }
 
+inline TimeSyncRequestT *TimeSyncRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TimeSyncRequestT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TimeSyncRequest::UnPackTo(TimeSyncRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<TimeSyncRequest> TimeSyncRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTimeSyncRequest(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  return chre::fbs::CreateTimeSyncRequest(
+      _fbb);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -2235,6 +2311,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::TimeSyncRequest: {
+      auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -2308,6 +2388,10 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::TimeSyncRequest: {
+      auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -2369,6 +2453,10 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::DebugDumpResponse: {
       auto ptr = reinterpret_cast<const DebugDumpResponseT *>(table);
       return CreateDebugDumpResponse(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::TimeSyncRequest: {
+      auto ptr = reinterpret_cast<const TimeSyncRequestT *>(table);
+      return CreateTimeSyncRequest(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -2443,6 +2531,11 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::DebugDumpResponse: {
       auto ptr = reinterpret_cast<DebugDumpResponseT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::TimeSyncRequest: {
+      auto ptr = reinterpret_cast<TimeSyncRequestT *>(table);
       delete ptr;
       break;
     }

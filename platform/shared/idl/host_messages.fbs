@@ -158,6 +158,9 @@ table DebugDumpResponse {
   data_count:uint;
 }
 
+/// A request from CHRE for host to initiate a time sync message
+table TimeSyncRequest {}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -182,6 +185,8 @@ union ChreMessage {
   DebugDumpRequest,
   DebugDumpData,
   DebugDumpResponse,
+
+  TimeSyncRequest,
 }
 
 struct HostAddress {
