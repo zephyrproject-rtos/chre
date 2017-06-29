@@ -163,6 +163,11 @@ class HostProtocolChre : public HostProtocolCommon {
   static void encodeDebugDumpResponse(
       flatbuffers::FlatBufferBuilder& builder, uint16_t hostClientId,
       bool success, uint32_t dataCount);
+
+  /**
+   * Encodes a message requesting time sync from host.
+   */
+  static void encodeTimeSyncRequest(flatbuffers::FlatBufferBuilder& builder);
 };
 
 }  // namespace chre
