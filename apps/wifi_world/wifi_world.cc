@@ -42,6 +42,10 @@ const Nanoseconds kWifiScanInterval = Nanoseconds(Seconds(10));
 //! A handle for the cyclic timer to request periodic on-demand wifi-scans.
 uint32_t gWifiScanTimerHandle;
 
+//! A global instance of wifi capabilities to use when reqeuesting wifi
+//! functionality. This is populated at startup.
+uint32_t gWifiCapabilities;
+
 namespace {
 
 /**
@@ -82,6 +86,24 @@ void logChreWifiResult(const chreWifiScanResult& result) {
 }
 
 /**
+ * Requests a delayed wifi scan using a one-shot timer. The interval is
+ * specified as a constant at the top of this file.
+ */
+void requestDelayedWifiScan() {
+  if (gWifiCapabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
+    // Schedule a timer to send an active wifi scan.
+    gWifiScanTimerHandle = chreTimerSet(kWifiScanInterval.toRawNanoseconds(),
+                                        &gWifiScanTimerHandle /* data */,
+                                        true /* oneShot */);
+    if (gWifiScanTimerHandle == CHRE_TIMER_INVALID) {
+      LOGE("Failed to set timer for delayed wifi scan");
+    } else {
+      LOGI("Set a timer to request a WiFi scan");
+    }
+  }
+}
+
+/**
  * Handles the result of an asynchronous request for a wifi resource.
  *
  * @param result a pointer to the event structure containing the result of the
@@ -110,6 +132,8 @@ void handleWifiAsyncResult(const chreAsyncResult *result) {
     if (result->cookie != &kOnDemandScanCookie) {
       LOGE("On-demand scan cookie mismatch");
     }
+
+    requestDelayedWifiScan();
   } else {
     LOGE("Received invalid async result");
   }
@@ -158,30 +182,30 @@ void handleTimerEvent(const void *eventData) {
 bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
-  const char *wifiCapabilitiesStr;
-  uint32_t wifiCapabilities = chreWifiGetCapabilities();
-  switch (wifiCapabilities) {
+  const char *gWifiCapabilitiesStr;
+  gWifiCapabilities = chreWifiGetCapabilities();
+  switch (gWifiCapabilities) {
     case CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN
         | CHRE_WIFI_CAPABILITIES_SCAN_MONITORING:
-      wifiCapabilitiesStr = "ON_DEMAND_SCAN | SCAN_MONITORING";
+      gWifiCapabilitiesStr = "ON_DEMAND_SCAN | SCAN_MONITORING";
       break;
     case CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN:
-      wifiCapabilitiesStr = "ON_DEMAND_SCAN";
+      gWifiCapabilitiesStr = "ON_DEMAND_SCAN";
       break;
     case CHRE_WIFI_CAPABILITIES_SCAN_MONITORING:
-      wifiCapabilitiesStr = "SCAN_MONITORING";
+      gWifiCapabilitiesStr = "SCAN_MONITORING";
       break;
     case CHRE_WIFI_CAPABILITIES_NONE:
-      wifiCapabilitiesStr = "NONE";
+      gWifiCapabilitiesStr = "NONE";
       break;
     default:
-      wifiCapabilitiesStr = "INVALID";
+      gWifiCapabilitiesStr = "INVALID";
   }
 
   LOGI("Detected WiFi support as: %s (%" PRIu32 ")",
-       wifiCapabilitiesStr, wifiCapabilities);
+       gWifiCapabilitiesStr, gWifiCapabilities);
 
-  if (wifiCapabilities & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
+  if (gWifiCapabilities & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
     if (chreWifiConfigureScanMonitorAsync(true, &kScanMonitoringCookie)) {
       LOGI("Scan monitor enable request successful");
     } else {
@@ -189,18 +213,7 @@ bool nanoappStart() {
     }
   }
 
-  if (wifiCapabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
-    // Schedule a timer to send an active wifi scan.
-    gWifiScanTimerHandle = chreTimerSet(kWifiScanInterval.toRawNanoseconds(),
-                                        &gWifiScanTimerHandle /* data */,
-                                        false /* oneShot */);
-    if (gWifiScanTimerHandle == CHRE_TIMER_INVALID) {
-      LOGE("Failed to set periodic scan timer");
-    } else {
-      LOGI("Set a timer to request periodic WiFi scans");
-    }
-  }
-
+  requestDelayedWifiScan();
   return true;
 }
 
