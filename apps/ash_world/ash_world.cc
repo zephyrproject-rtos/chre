@@ -123,7 +123,7 @@ void handleTimerEvent(const void *eventData) {
   } else {
     struct ashCalParams p;
     tic = chreGetTime();
-    success = ashLoadCalibrationParams(sensor, &p);
+    success = ashLoadCalibrationParams(sensor, ASH_CAL_STORAGE_ASH, &p);
     toc = chreGetTime();
     LOGI("*** load sensor %" PRIu8 ": %s, time %" PRIu64 " us",
          sensor, success ? "success" : "fail", (toc - tic) / 1000);
