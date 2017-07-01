@@ -191,7 +191,7 @@ static int64_t getTimeOffset() {
   // Use uint64_t to store since the MRS instruction uses 64 bit (X) registers
   // (http://infocenter.arm.com/help/topic/
   // com.arm.doc.den0024a/ch06s05s02.html)
- uint64_t qTimerCount = 0, qTimerFreqKHz = 0;
+  uint64_t qTimerCount = 0, qTimerFreqKHz = 0;
   uint64_t hostTimeNano = elapsedRealtimeNano();
   asm volatile("mrs %0, cntpct_el0" : "=r"(qTimerCount));
   asm volatile("mrs %0, cntfrq_el0" : "=r"(qTimerFreqKHz));
@@ -259,6 +259,8 @@ static void *chre_message_to_host_thread(void *arg) {
 
       if (messageType == fbs::ChreMessage::LogMessage) {
         parseAndEmitLogMessages(messageBuffer);
+      } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
+        sendTimeSyncMessage();
       } else if (hostClientId == chre::kHostClientIdUnspecified) {
         server->sendToAllClients(messageBuffer,
                                  static_cast<size_t>(messageLen));

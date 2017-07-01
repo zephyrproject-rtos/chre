@@ -457,6 +457,10 @@ extern "C" int chre_slpi_get_message_to_host(
 
   FARF(MEDIUM, "Returning message to host (result %d length %u)",
        result, *messageLen);
+
+  // Opportunistically send a time sync message
+  requestTimeSyncIfStale();
+
   return result;
 }
 
@@ -559,6 +563,7 @@ void sendTimeSyncRequest() {
   constexpr size_t kInitialSize = 52;
   buildAndEnqueueMessage(PendingMessageType::TimeSyncRequest, kInitialSize,
                          msgBuilder, nullptr);
+  updateLastTimeSyncRequest();
 }
 
 void requestHostLinkLogBufferFlush() {
