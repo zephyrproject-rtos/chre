@@ -20,6 +20,7 @@
 #include "chre/core/wifi_request_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -157,6 +158,37 @@ void WifiRequestManager::handleScanEvent(chreWifiScanEvent *event) {
 
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::WifiHandleScanEvent, event, callback);
+}
+
+bool WifiRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                          size_t bufferSize) const {
+  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nWifi: "
+                                "scan monitor %s\n", scanMonitorIsEnabled() ?
+                                "enabled" : "disabled");
+
+  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                            " Wifi scan monitor enabled nanoapps:\n");
+  for (const auto& instanceId : mScanMonitorNanoapps) {
+    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                              "  nanoappId=%" PRIu32 "\n", instanceId);
+  }
+
+  if (mScanRequestingNanoappInstanceId.has_value()) {
+    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                              " Wifi request pending nanoappId=%" PRIu32 "\n",
+                              mScanRequestingNanoappInstanceId.value());
+  }
+
+  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                            " Wifi transition queue:\n");
+  for (const auto& transition : mScanMonitorStateTransitions) {
+    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                              "  enable=%s nanoappId=%" PRIu32 "\n",
+                              transition.enable ? "true" : "false",
+                              transition.nanoappInstanceId);
+  }
+
+  return success;
 }
 
 bool WifiRequestManager::scanMonitorIsEnabled() const {
