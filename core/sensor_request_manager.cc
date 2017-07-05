@@ -289,7 +289,7 @@ bool SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
        i++) {
     SensorType sensor = static_cast<SensorType>(i);
     if (sensor != SensorType::Unknown) {
-      for (auto const &request : getRequests(sensor)) {
+      for (const auto& request : getRequests(sensor)) {
         uint32_t instanceId = (request.getNanoapp() != nullptr) ?
             request.getNanoapp()->getInstanceId() : kInvalidInstanceId;
         success &= debugDumpPrint(buffer, bufferPos, bufferSize, " %s: mode=%d"
