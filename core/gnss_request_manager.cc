@@ -103,7 +103,7 @@ bool GnssRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
 
   success &= debugDumpPrint(buffer, bufferPos, bufferSize,
                             " GNSS requests:\n");
-  for (const auto &request : mLocationSessionRequests) {
+  for (const auto& request : mLocationSessionRequests) {
     success &= debugDumpPrint(buffer, bufferPos, bufferSize, "  minInterval(ms)"
                               "=%" PRIu64 " nanoappId=%" PRIu32 "\n",
                               request.minInterval.getMilliseconds(),
@@ -112,7 +112,7 @@ bool GnssRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
 
   success &= debugDumpPrint(buffer, bufferPos, bufferSize,
                             " GNSS transition queue:\n");
-  for (const auto &transition : mLocationSessionStateTransitions) {
+  for (const auto& transition : mLocationSessionStateTransitions) {
     success &= debugDumpPrint(buffer, bufferPos, bufferSize,
                               "  minInterval(ms)=%" PRIu64 " enable=%d"
                               " nanoappId=%" PRIu32 "\n",
