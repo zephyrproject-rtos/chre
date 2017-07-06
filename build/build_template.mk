@@ -104,10 +104,12 @@ endif
 # Compile ######################################################################
 
 $$($$(1)_CXX_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
-	$(3) $(COMMON_CXX_CFLAGS) $(2) -c $$< -o $$@
+	$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
+	    -o $$@
 
 $$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
-	$(3) $(COMMON_C_CFLAGS) $(2) -c $$< -o $$@
+	$(3) $(COMMON_C_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
+	    -o $$@
 
 # Archive ######################################################################
 
