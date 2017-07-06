@@ -56,6 +56,7 @@ X86_CFLAGS += -Iplatform/linux/include
 # x86-specific Source Files ####################################################
 
 X86_SRCS += platform/linux/context.cc
+X86_SRCS += platform/linux/fatal_error.cc
 X86_SRCS += platform/linux/host_link.cc
 X86_SRCS += platform/linux/platform_log.cc
 X86_SRCS += platform/linux/system_time.cc
