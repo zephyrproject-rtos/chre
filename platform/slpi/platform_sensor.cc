@@ -45,6 +45,10 @@ extern "C" {
 namespace chre {
 namespace {
 
+//! Timeout for QMI client initialization, in milliseconds. Allow more time here
+//! due to external dependencies that may block initialization of SMGR.
+constexpr uint32_t kQmiInitTimeoutMs = 5000;
+
 //! The timeout for QMI messages in milliseconds.
 constexpr uint32_t kQmiTimeoutMs = 1000;
 
@@ -1359,7 +1363,7 @@ void PlatformSensor::init() {
   qmi_client_os_params sensorContextOsParams;
   qmi_client_error_type status = qmi_client_init_instance(sensorServiceObject,
       QMI_CLIENT_INSTANCE_ANY, &platformSensorServiceQmiIndicationCallback,
-      nullptr, &sensorContextOsParams, kQmiTimeoutMs,
+      nullptr, &sensorContextOsParams, kQmiInitTimeoutMs,
       &gPlatformSensorServiceQmiClientHandle);
   if (status != QMI_NO_ERR) {
     FATAL_ERROR("Failed to initialize the sensor service QMI client: %d",
@@ -1375,7 +1379,7 @@ void PlatformSensor::init() {
   status = qmi_client_init_instance(sensorServiceObject,
       QMI_CLIENT_INSTANCE_ANY,
       &platformSensorInternalServiceQmiIndicationCallback, nullptr,
-      &sensorContextOsParams, kQmiTimeoutMs,
+      &sensorContextOsParams, kQmiInitTimeoutMs,
       &gPlatformSensorInternalServiceQmiClientHandle);
   if (status != QMI_NO_ERR) {
     FATAL_ERROR("Failed to initialize the sensor internal service QMI client: "
