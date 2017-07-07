@@ -19,9 +19,11 @@
 
 #include "err.h"
 
+#include "chre/util/macros.h"
+
 #define FATAL_ERROR_QUIT() \
   ::chre::preFatalError(); \
-  ERR_FATAL("Fatal error in CHRE", 0, 0, 0)
+  ERR_FATAL("CHRE fatal@" CHRE_FILENAME ":" STRINGIFY(__LINE__), 0, 0, 0)
 
 namespace chre {
 
