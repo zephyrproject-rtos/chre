@@ -141,6 +141,7 @@ class NanoSensorCal {
   // Loads persistent calibration data using the ASH API.
   void LoadAshAccelCal();
   void LoadAshGyroCal();
+  void LoadAshOtcGyroCal();
   void LoadAshMagCal();
 
   // Stores persistent calibration data parameters and updates calibration
