@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_FATAL_ERROR_H_
-#define CHRE_PLATFORM_LINUX_FATAL_ERROR_H_
+#include "chre/target_platform/fatal_error.h"
 
-#include <cstdlib>
-
-#define FATAL_ERROR_QUIT() do { \
-    chre::preFatalError();      \
-    abort();                    \
-  } while (0)
+#include "chre/platform/shared/platform_log.h"
 
 namespace chre {
 
-/**
- * Do preparation for an impending fatal error including flushing logs.
- *
- * It must not be possible for FATAL_ERROR() to be called by this function or
- * any of its callees.
- */
-void preFatalError();
+void preFatalError() {
+  // Flush logs before fatally quitting.
+  chre::PlatformLogSingleton::deinit();
+}
 
 }  // namespace chre
-
-#endif  // CHRE_PLATFORM_LINUX_FATAL_ERROR_H_
