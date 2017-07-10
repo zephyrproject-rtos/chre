@@ -206,14 +206,10 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
 
   if (factory_cal_detected) {
     // Prints the received factory data.
-    PrintAshCalParams(*cal_params,"[NanoSensorCal:OTC_GYRO_FACTORY_CAL]");
+    PrintAshCalParams(*cal_params, "[NanoSensorCal:OTC_GYRO_FACTORY_CAL]");
 
-    // Sets the parameter source to runtime calibration.
-    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-    cal_params->tempSensitivitySource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-    cal_params->tempInterceptSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
-
+#ifdef GYRO_OTC_FACTORY_CAL_ENABLED
+    // Factory OTC calibration initialization is ENABLED.
     // Since the Factory-Cal OTC model is computed from raw measured data and
     // the 'offset' at 'offsetTempCelsius' is removed from the input sensor
     // stream, the intercept must be adjusted so that the runtime OTC produces a
@@ -225,6 +221,18 @@ void HandleGyroFactoryCalibration(struct ashCalParams *cal_params) {
           cal_params->tempIntercept[i];
       cal_params->tempIntercept[i] -= offset_at_offsetTempCelsius;
     }
+#else
+    // Factory OTC calibration initialization is DISABLED. This resets the
+    // AshCalParams and invalidates factory initialization. No factory
+    // initialized model data will be loaded.
+    ResetCalParams(cal_params);
+#endif  // GYRO_OTC_FACTORY_CAL_ENABLED
+
+    // Sets the parameter source to runtime calibration.
+    cal_params->offsetSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->offsetTempCelsiusSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->tempSensitivitySource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
+    cal_params->tempInterceptSource = ASH_CAL_PARAMS_SOURCE_RUNTIME;
 
     // Ensures that the offset vector is zero in case it has been overwritten by
     // mistake.
@@ -312,19 +320,19 @@ void NanoSensorCal::Initialize() {
   // Initializes the gyroscope offset calibration algorithm.
   gyroCalInit(
       &gyro_cal_,
-      2.0e9,                    // min stillness period = 2.0 seconds
-      3.0e9,                    // max stillness period = 3.0 seconds
+      1.0e9,                    // min stillness period = 1.0 seconds
+      1.5e9,                    // max stillness period = 1.5 seconds
       0, 0, 0,                  // initial bias offset calibration
       0,                        // time stamp of initial bias calibration
-      1.0e9,                    // analysis window length = 1.0 seconds
-      7.5e-5f,                  // gyroscope variance threshold [rad/sec]^2
-      1e-5f,                    // gyroscope confidence delta [rad/sec]^2
-      8e-3f,                    // accelerometer variance threshold [m/sec^2]^2
-      1.6e-3f,                  // accelerometer confidence delta [m/sec^2]^2
+      0.5e9f,                   // analysis window length = 0.5 seconds
+      1.5e-5f,                  // gyroscope variance threshold [rad/sec]^2
+      3.0e-6f,                  // gyroscope confidence delta [rad/sec]^2
+      4.5e-3f,                  // accelerometer variance threshold [m/sec^2]^2
+      9.0e-4f,                  // accelerometer confidence delta [m/sec^2]^2
       5.0f,                     // magnetometer variance threshold [uT]^2
       1.0f,                     // magnetometer confidence delta [uT]^2
       0.95f,                    // stillness threshold [0,1]
-      60.0e-3f * kPi / 180.0f,  // stillness mean variation limit [rad/sec]
+      40.0f * kPi / 180.0f,     // stillness mean variation limit [rad/sec]
       1.5f,   // maximum temperature deviation during stillness [C]
       true);  // gyro calibration enable
 
@@ -496,35 +504,41 @@ void NanoSensorCal::HandleSensorSamplesGyroCal(
     uint16_t event_type, const chreSensorThreeAxisData *event_data) {
     uint64_t timestamp_nanos = 0;
 #ifdef GYRO_CAL_ENABLED
-  switch (event_type) {
-    case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA: {
-      const auto header = event_data->header;
-      const auto *data = event_data->readings;
-      timestamp_nanos = header.baseTimestamp;
-      for (size_t i = 0; i < header.readingCount; i++) {
-        timestamp_nanos += data[i].timestampDelta;
-        gyroCalUpdateAccel(&gyro_cal_, timestamp_nanos,
-                           data[i].v[0],   // x-axis data [m/sec^2]
-                           data[i].v[1],   // y-axis data [m/sec^2]
-                           data[i].v[2]);  // z-axis data [m/sec^2]
-      }
-      break;
+    // Only updates the gyroscope calibration algorithm when measured
+    // temperature is valid.
+    if (temperature_celsius_ <= kInvalidTemperatureCelsius) {
+        return;
     }
 
-    case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA: {
-      const auto header = event_data->header;
-      const auto *data = event_data->readings;
-      timestamp_nanos = header.baseTimestamp;
-      for (size_t i = 0; i < header.readingCount; i++) {
-        timestamp_nanos += data[i].timestampDelta;
-        gyroCalUpdateGyro(&gyro_cal_, timestamp_nanos,
-                          data[i].v[0],  // x-axis data [rad/sec]
-                          data[i].v[1],  // y-axis data [rad/sec]
-                          data[i].v[2],  // z-axis data [rad/sec]
-                          temperature_celsius_);
+    switch (event_type) {
+      case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA: {
+        const auto header = event_data->header;
+        const auto *data = event_data->readings;
+        timestamp_nanos = header.baseTimestamp;
+        for (size_t i = 0; i < header.readingCount; i++) {
+          timestamp_nanos += data[i].timestampDelta;
+          gyroCalUpdateAccel(&gyro_cal_, timestamp_nanos,
+                             data[i].v[0],   // x-axis data [m/sec^2]
+                             data[i].v[1],   // y-axis data [m/sec^2]
+                             data[i].v[2]);  // z-axis data [m/sec^2]
+        }
+        break;
       }
 
-      if (gyroCalNewBiasAvailable(&gyro_cal_)) {
+      case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA: {
+        const auto header = event_data->header;
+        const auto *data = event_data->readings;
+        timestamp_nanos = header.baseTimestamp;
+        for (size_t i = 0; i < header.readingCount; i++) {
+          timestamp_nanos += data[i].timestampDelta;
+          gyroCalUpdateGyro(&gyro_cal_, timestamp_nanos,
+                            data[i].v[0],  // x-axis data [rad/sec]
+                            data[i].v[1],  // y-axis data [rad/sec]
+                            data[i].v[2],  // z-axis data [rad/sec]
+                            temperature_celsius_);
+        }
+
+        if (gyroCalNewBiasAvailable(&gyro_cal_)) {
 #ifdef OVERTEMPCAL_GYRO_ENABLED
         // Sends new GyroCal offset estimate to the OTC-Gyro.
         float offset[3] = {0.0f, 0.0f, 0.0f};
@@ -541,26 +555,18 @@ void NanoSensorCal::HandleSensorSamplesGyroCal(
       }
 
 #ifdef OVERTEMPCAL_GYRO_ENABLED
-      // Limits the frequency of the offset update checks.
-      if ((timestamp_nanos >=
-           otc_offset_timer_nanos_ + kOtcGyroOffsetMaxUpdateIntervalNanos) ||
-          (timestamp_nanos < otc_offset_timer_nanos_)) {
-        otc_offset_timer_nanos_ = timestamp_nanos;
+      // Checks OTC for new calibration model update.
+      bool new_otc_model_update =
+          overTempCalNewModelUpdateAvailable(&over_temp_gyro_cal_);
 
-        // Checks OTC for new calibration model update.
-        bool new_otc_model_update =
-            overTempCalNewModelUpdateAvailable(&over_temp_gyro_cal_);
+      // Checks for a change in the OTC-Gyro temperature compensated offset
+      // estimate.
+      bool new_otc_offset = overTempCalNewOffsetAvailable(&over_temp_gyro_cal_);
 
-        // Checks for a change in the OTC-Gyro temperature compensated offset
-        // estimate.
-        bool new_otc_offset =
-            overTempCalNewOffsetAvailable(&over_temp_gyro_cal_);
-
-        if (new_otc_model_update || new_otc_offset) {
-          // Provides a temperature compensated gyroscope calibration update.
-          gyro_calibration_ready_ = true;
-          NotifyAshGyroCal();
-        }
+      if (new_otc_model_update || new_otc_offset) {
+        // Provides a temperature compensated gyroscope calibration update.
+        gyro_calibration_ready_ = true;
+        NotifyAshGyroCal();
       }
 #endif  // OVERTEMPCAL_GYRO_ENABLED
       break;
@@ -885,7 +891,7 @@ void NanoSensorCal::LoadAshOtcGyroCal() {
                           gyro_cal_params_.offsetTempCelsius, timestamp_nanos,
                           gyro_cal_params_.tempSensitivity,
                           gyro_cal_params_.tempIntercept,
-                          /*jump_start_model=*/true);
+                          /*jump_start_model=*/false);
 
       // Prints recalled calibration data.
       NANO_CAL_LOGI(
@@ -1003,24 +1009,18 @@ void NanoSensorCal::NotifyAshAccelCal() {
                   "ASH failed to apply calibration update.");
   } else {
     NANO_CAL_LOGD("[NanoSensorCal:UPDATE ACCEL]",
-                  "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  "Offset [m/sec^2] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
                   accel_cal_params_.offset[0], accel_cal_params_.offset[1],
                   accel_cal_params_.offset[2],
                   accel_cal_params_.offsetTempCelsius);
   }
 
-  // TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
-  // saving calibration parameter updates to the sensor registry, after Factory
-  // Calibration testing has been fully qualified on hardware.
-#define FACTORYCAL_IS_VERIFIED 1  // Set to 0, blocks overwriting factory data.
-#if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_ACCELEROMETER,
                                 &accel_cal_params_)) {
     NANO_CAL_LOGE("[NanoSensorCal:STORE ACCEL]",
                   "ASH failed to write calibration update.");
   }
-#endif  // FACTORYCAL_IS_VERIFIED
 #endif  // ACCEL_CAL_ENABLED
 }
 
@@ -1038,7 +1038,7 @@ void NanoSensorCal::NotifyAshGyroCal() {
   } else {
 #ifdef OVERTEMPCAL_GYRO_ENABLED
     NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
-                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
                   gyro_cal_params_.offset[2],
                   gyro_cal_params_.offsetTempCelsius);
@@ -1054,24 +1054,19 @@ void NanoSensorCal::NotifyAshGyroCal() {
                   gyro_cal_params_.tempIntercept[2]);
 #else
     NANO_CAL_LOGD("[NanoSensorCal:UPDATE GYRO]",
-                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
                   gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
                   gyro_cal_params_.offset[2],
                   gyro_cal_params_.offsetTempCelsius);
 #endif  // OVERTEMPCAL_GYRO_ENABLED
   }
 
-// TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
-// saving calibration parameter updates to the sensor registry, after Factory
-// Calibration testing has been fully qualified on hardware.
-#if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GYROSCOPE,
                                 &gyro_cal_params_)) {
     NANO_CAL_LOGE("[NanoSensorCal:STORE GYRO]",
                   "ASH failed to write calibration update.");
   }
-#endif  // FACTORYCAL_IS_VERIFIED
 #endif  // GYRO_CAL_ENABLED
 }
 
@@ -1090,7 +1085,7 @@ void NanoSensorCal::NotifyAshMagCal(MagUpdateFlags new_update) {
                   "ASH failed to apply calibration update.");
   } else {
     NANO_CAL_LOGD("[NanoSensorCal:UPDATE MAG]",
-                  "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.6f",
+                  "Offset [uT] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
                   mag_cal_params_.offset[0], mag_cal_params_.offset[1],
                   mag_cal_params_.offset[2], mag_cal_params_.offsetTempCelsius);
 #ifdef SPHERE_FIT_ENABLED
@@ -1104,17 +1099,12 @@ void NanoSensorCal::NotifyAshMagCal(MagUpdateFlags new_update) {
 #endif  // SPHERE_FIT_ENABLED
   }
 
-// TODO: Remove #if FACTORYCAL_IS_VERIFIED directives, which currently prevent
-// saving calibration parameter updates to the sensor registry, after Factory
-// Calibration testing has been fully qualified on hardware.
-#if FACTORYCAL_IS_VERIFIED
   // Store the calibration parameters using the ASH API.
   if (!ashSaveCalibrationParams(CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
                                 &mag_cal_params_)) {
     NANO_CAL_LOGE("[NanoSensorCal:STORE MAG]",
                   "ASH failed to write calibration update.");
   }
-#endif  // FACTORYCAL_IS_VERIFIED
 #endif  // MAG_CAL_ENABLED
 }
 
