@@ -58,11 +58,8 @@
 namespace nano_calibration {
 
 // TODO: Clean up, unifying constexpr variables location.
-// Default sensor temperature used for initialization.
-constexpr float kDefaultTemperatureCelsius = 20.0f;
-
-// Maximum interval at which to check for OTC gyroscope offset updates.
-constexpr uint64_t kOtcGyroOffsetMaxUpdateIntervalNanos = 500000000;
+// Indicates and invalid sensor temperature.
+constexpr float kInvalidTemperatureCelsius = -274.0f;
 
 // The mathematical constant, Pi.
 constexpr float kPi = 3.141592653589793238f;
@@ -161,9 +158,6 @@ class NanoSensorCal {
 #ifdef OVERTEMPCAL_GYRO_ENABLED
   // Gyroscope over-temperature runtime calibration.
   struct OverTempCal over_temp_gyro_cal_;
-
-  // Helper timer used to throttle OTC offset calibration updates.
-  uint64_t otc_offset_timer_nanos_ = 0;
 #endif  // OVERTEMPCAL_GYRO_ENABLED
 #endif  // GYRO_CAL_ENABLED
 
@@ -186,7 +180,7 @@ class NanoSensorCal {
   mutable bool mag_calibration_ready_ = false;
 
   // Sensor temperature.
-  float temperature_celsius_ = kDefaultTemperatureCelsius;
+  float temperature_celsius_ = kInvalidTemperatureCelsius;
 
   // Sensor calibration parameter containers.
   struct ashCalParams accel_cal_params_;

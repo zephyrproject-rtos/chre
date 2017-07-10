@@ -53,19 +53,19 @@ SensorState sensors[] = {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
         .enable = true,
         .interval = Milliseconds(10).toRawNanoseconds(),
-        .latency = Seconds(1).toRawNanoseconds(),
+        .latency = Milliseconds(250).toRawNanoseconds(),
     },
     {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
         .enable = true,
         .interval = Milliseconds(10).toRawNanoseconds(),
-        .latency = Seconds(1).toRawNanoseconds(),
+        .latency = Milliseconds(250).toRawNanoseconds(),
     },
     {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
         .enable = true,
         .interval = Milliseconds(20).toRawNanoseconds(),
-        .latency = Seconds(1).toRawNanoseconds(),
+        .latency = Milliseconds(250).toRawNanoseconds(),
     },
 };
 
