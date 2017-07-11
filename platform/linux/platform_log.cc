@@ -47,7 +47,7 @@ void PlatformLogBase::logLooper() {
     // If we get here, there must be a log message to output. This is outside of
     // the context of the lock which means that the logging thread will only be
     // blocked for the minimum amount of time.
-    std::cout << logMessage.get() << std::endl;
+    std::cerr << logMessage.get() << std::endl;
   }
 }
 
