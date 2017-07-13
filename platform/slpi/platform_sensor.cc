@@ -358,9 +358,9 @@ void populateThreeAxisEvent(
         getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
 
     // Convert from SMGR's NED coordinate to Android coordinate.
-    data->readings[i].x = FX_FIXTOFLT_Q16(sensorData.Data[1]);
-    data->readings[i].y = FX_FIXTOFLT_Q16(sensorData.Data[0]);
-    data->readings[i].z = -FX_FIXTOFLT_Q16(sensorData.Data[2]);
+    data->readings[i].x = FX_FIXTOFLT_Q16_SP(sensorData.Data[1]);
+    data->readings[i].y = FX_FIXTOFLT_Q16_SP(sensorData.Data[0]);
+    data->readings[i].z = -FX_FIXTOFLT_Q16_SP(sensorData.Data[2]);
 
     // Convert from Gauss to micro Tesla
     if (sensorType == SensorType::GeomagneticField
@@ -384,7 +384,7 @@ void populateFloatEvent(
     // TimeStampOffset has max value of < 2 sec so it will not overflow.
     data->readings[i].timestampDelta =
         getNanosecondsFromSmgrTicks(sensorData.TimeStampOffset);
-    data->readings[i].value = FX_FIXTOFLT_Q16(sensorData.Data[0]);
+    data->readings[i].value = FX_FIXTOFLT_Q16_SP(sensorData.Data[0]);
   }
 }
 
