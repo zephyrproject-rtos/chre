@@ -112,7 +112,19 @@ class GenericContextHub : public IContexthub {
     void invokeClientCallback(std::function<void()> callback);
   };
 
+  class DeathRecipient : public hidl_death_recipient {
+   public:
+    DeathRecipient(const sp<GenericContextHub> contexthub);
+    void serviceDied(uint64_t cookie,
+                     const wp<::android::hidl::base::V1_0::IBase>& who)
+        override;
+
+   private:
+    sp<GenericContextHub> mGenericContextHub;
+  };
+
   sp<SocketCallbacks> mSocketCallbacks;
+  sp<DeathRecipient> mDeathRecipient;
 
   // Cached hub info used for getHubs(), and synchronization primitives to make
   // that function call synchronous if we need to query it
@@ -130,6 +142,9 @@ class GenericContextHub : public IContexthub {
   // Write a string to mDebugFd
   void writeToDebugFile(const char *str);
   void writeToDebugFile(const char *str, size_t len);
+
+  // Unregisters callback when context hub service dies
+  void handleServiceDeath(uint32_t hubId);
 };
 
 extern "C" IContexthub* HIDL_FETCH_IContexthub(const char* name);

@@ -69,6 +69,15 @@ int hidlHandleToFileDescriptor(const hidl_handle& hh) {
 
 }  // anonymous namespace
 
+GenericContextHub::DeathRecipient::DeathRecipient(
+    sp<GenericContextHub> contexthub) : mGenericContextHub(contexthub){}
+
+void GenericContextHub::DeathRecipient::serviceDied(
+    uint64_t cookie, const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+  uint32_t hubId = static_cast<uint32_t>(cookie);
+  mGenericContextHub->handleServiceDeath(hubId);
+}
+
 GenericContextHub::GenericContextHub() {
   constexpr char kChreSocketName[] = "chre";
 
@@ -76,6 +85,8 @@ GenericContextHub::GenericContextHub() {
   if (!mClient.connectInBackground(kChreSocketName, mSocketCallbacks)) {
     ALOGE("Couldn't start socket client");
   }
+
+  mDeathRecipient = new DeathRecipient(this);
 }
 
 Return<void> GenericContextHub::debug(
@@ -162,6 +173,18 @@ Return<Result> GenericContextHub::registerCallback(
   // TODO: currently we only support 1 hub behind this HAL implementation
   if (hubId == kDefaultHubId) {
     std::lock_guard<std::mutex> lock(mCallbacksLock);
+
+    if (cb != nullptr) {
+      if (mCallbacks != nullptr) {
+        ALOGD("Modifying callback for hubId %" PRIu32, hubId);
+        mCallbacks->unlinkToDeath(mDeathRecipient);
+      }
+      Return<bool> linkReturn = cb->linkToDeath(mDeathRecipient, hubId);
+      if (!linkReturn.withDefault(false)) {
+        ALOGW("Could not link death recipient to hubId %" PRIu32, hubId);
+      }
+    }
+
     mCallbacks = cb;
     result = Result::OK;
   } else {
@@ -462,6 +485,11 @@ void GenericContextHub::writeToDebugFile(const char *str, size_t len) {
   }
 }
 
+void GenericContextHub::handleServiceDeath(uint32_t hubId) {
+  std::lock_guard<std::mutex> lock(mCallbacksLock);
+  ALOGI("Context hub service died for hubId %" PRIu32, hubId);
+  mCallbacks.clear();
+}
 
 IContexthub* HIDL_FETCH_IContexthub(const char* /* name */) {
   return new GenericContextHub();
