@@ -142,12 +142,14 @@ $$(OUT)/$$$(1):
 
 $$($$(1)_CXX_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
 	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) $(2) -c $$< -o $$@
+	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
+	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 	$(DEP_POST_COMPILE)
 
 $$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
 	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) $(2) -c $$< -o $$@
+	$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) \
+	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 	$(DEP_POST_COMPILE)
 
 # Include generated dependency files if they are in the requested build target.
