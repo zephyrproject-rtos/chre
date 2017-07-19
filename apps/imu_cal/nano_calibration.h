@@ -171,6 +171,9 @@ class NanoSensorCal {
 #endif  // SPHERE_FIT_ENABLED
 #endif  // MAG_CAL_ENABLED
 
+  // Used to limit the rate of gyro debug notification messages.
+  uint64_t gyro_notification_time_check_ = 0;
+
   // Flag to indicate whether the NanoSensorCal object has been initialized.
   bool nanosensorcal_initialized_ = false;
 
