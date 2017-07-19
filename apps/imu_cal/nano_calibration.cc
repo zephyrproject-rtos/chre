@@ -56,6 +56,9 @@ namespace {
   chreLogNull(format, ##__VA_ARGS__)
 #endif  // NANO_SENSOR_CAL_DBG_ENABLED
 
+// Limits NanoSensorCal gyro notifications to once every minute.
+constexpr uint64_t kNanoSensorCalMessageIntervalNanos = 60e9;
+
 #ifdef SPHERE_FIT_ENABLED
 constexpr size_t kSamplesToAverageForOdrEstimateMag = 10;
 
@@ -1036,29 +1039,34 @@ void NanoSensorCal::NotifyAshGyroCal() {
     NANO_CAL_LOGE("[NanoSensorCal:UPDATE GYRO]",
                   "ASH failed to apply calibration update.");
   } else {
+    const uint64_t timestamp_nanos = chreGetTime();
+    if (timestamp_nanos >=
+        gyro_notification_time_check_ + kNanoSensorCalMessageIntervalNanos) {
+      gyro_notification_time_check_ = timestamp_nanos;
 #ifdef OVERTEMPCAL_GYRO_ENABLED
-    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
-                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
-                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-                  gyro_cal_params_.offset[2],
-                  gyro_cal_params_.offsetTempCelsius);
-    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
-                  "Temp Sensitivity [rad/sec/C]: %.6f, %.6f, %.6f",
-                  gyro_cal_params_.tempSensitivity[0],
-                  gyro_cal_params_.tempSensitivity[1],
-                  gyro_cal_params_.tempSensitivity[2]);
-    NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
-                  "Temp Intercept [rad/sec]: %.6f, %.6f, %.6f",
-                  gyro_cal_params_.tempIntercept[0],
-                  gyro_cal_params_.tempIntercept[1],
-                  gyro_cal_params_.tempIntercept[2]);
+      NANO_CAL_LOGD(
+          "[NanoSensorCal:UPDATE OTC-GYRO]",
+          "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
+          gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+          gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
+      NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
+                    "Temp Sensitivity [rad/sec/C]: %.6f, %.6f, %.6f",
+                    gyro_cal_params_.tempSensitivity[0],
+                    gyro_cal_params_.tempSensitivity[1],
+                    gyro_cal_params_.tempSensitivity[2]);
+      NANO_CAL_LOGD("[NanoSensorCal:UPDATE OTC-GYRO]",
+                    "Temp Intercept [rad/sec]: %.6f, %.6f, %.6f",
+                    gyro_cal_params_.tempIntercept[0],
+                    gyro_cal_params_.tempIntercept[1],
+                    gyro_cal_params_.tempIntercept[2]);
 #else
-    NANO_CAL_LOGD("[NanoSensorCal:UPDATE GYRO]",
-                  "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
-                  gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
-                  gyro_cal_params_.offset[2],
-                  gyro_cal_params_.offsetTempCelsius);
+      NANO_CAL_LOGD(
+          "[NanoSensorCal:UPDATE GYRO]",
+          "Offset [rad/sec] | Temp [Celsius]: %.6f, %.6f, %.6f | %.2f",
+          gyro_cal_params_.offset[0], gyro_cal_params_.offset[1],
+          gyro_cal_params_.offset[2], gyro_cal_params_.offsetTempCelsius);
 #endif  // OVERTEMPCAL_GYRO_ENABLED
+    }
   }
 
   // Store the calibration parameters using the ASH API.
