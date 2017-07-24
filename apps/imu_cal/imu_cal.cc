@@ -81,7 +81,7 @@ SensorState sensors[] = {
     .enable = true,
     .interval = Milliseconds(10).toRawNanoseconds(),
     .highPerformanceLatency = kDefaultHighPerformanceLatency,
-    .standByLatency = kDefaultStandByLatency,
+    .standByLatency = kDefaultHighPerformanceLatency,
   },
   [SENSOR_INDEX_MAG] = {
     .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
