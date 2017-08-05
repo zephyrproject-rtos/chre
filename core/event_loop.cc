@@ -114,6 +114,8 @@ void EventLoop::run() {
     }
 
     havePendingEvents = deliverEvents();
+
+    mPowerControlManager.postEventLoopProcess(mEvents.size());
   }
 
   // Deliver any events sitting in Nanoapps' own queues (we could drop them to
