@@ -45,6 +45,43 @@ TEST(ArrayQueueTest, SimplePushPop) {
   EXPECT_TRUE(q.push(3));
 }
 
+TEST(ArrayQueueTest, SimplePushPopBackPush) {
+  ArrayQueue<int, 3> q;
+  EXPECT_TRUE(q.push(0));
+  EXPECT_TRUE(q.push(1));
+  EXPECT_TRUE(q.push(2));
+  q.pop_back();
+  EXPECT_EQ(2, q.size());
+  EXPECT_EQ(0, q[0]);
+  EXPECT_EQ(1, q[1]);
+
+  EXPECT_TRUE(q.push(3));
+  EXPECT_EQ(3, q.size());
+  EXPECT_EQ(0, q[0]);
+  EXPECT_EQ(1, q[1]);
+  EXPECT_EQ(3, q[2]);
+
+  q.pop_back();
+  q.pop_back();
+  q.pop_back();
+
+  EXPECT_EQ(0, q.size());
+  EXPECT_TRUE(q.push(4));
+  EXPECT_TRUE(q.push(5));
+  EXPECT_TRUE(q.push(6));
+  EXPECT_EQ(3, q.size());
+  EXPECT_EQ(4, q[0]);
+  EXPECT_EQ(5, q[1]);
+  EXPECT_EQ(6, q[2]);
+
+  q.pop();
+
+  EXPECT_TRUE(q.push(7));
+  EXPECT_EQ(5, q[0]);
+  EXPECT_EQ(6, q[1]);
+  EXPECT_EQ(7, q[2]);
+}
+
 TEST(ArrayQueueTest, TestSize) {
   ArrayQueue<int, 2> q;
   q.push(1);
@@ -71,6 +108,12 @@ TEST(ArrayQueueTest, TestEmpty) {
 TEST(ArrayQueueTest, PopWhenEmpty) {
   ArrayQueue<int, 4> q;
   q.pop();
+  EXPECT_EQ(0, q.size());
+}
+
+TEST(ArrayQueueTest, PopBackWhenEmpty) {
+  ArrayQueue<int, 4> q;
+  q.pop_back();
   EXPECT_EQ(0, q.size());
 }
 
