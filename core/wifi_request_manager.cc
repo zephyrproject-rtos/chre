@@ -445,20 +445,20 @@ void WifiRequestManager::handleScanResponseSync(bool pending,
 }
 
 void WifiRequestManager::handleScanEventSync(chreWifiScanEvent *event) {
+  postScanEventFatal(event);
+}
+
+void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
   if (mScanRequestResultsArePending) {
     // Reset the event distribution logic once an entire scan event has been
-    // received.
-    mScanEventResultCountAccumulator += event->resultCount;
-    if (mScanEventResultCountAccumulator >= event->resultTotal) {
+    // received and processed by the nanoapp requesting the scan event.
+    mScanEventResultCountAccumulator += scanEvent->resultCount;
+    if (mScanEventResultCountAccumulator >= scanEvent->resultTotal) {
       mScanEventResultCountAccumulator = 0;
       mScanRequestResultsArePending = false;
     }
   }
 
-  postScanEventFatal(event);
-}
-
-void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
   mPlatformWifi.releaseScanEvent(scanEvent);
 
   if (!mScanRequestResultsArePending
