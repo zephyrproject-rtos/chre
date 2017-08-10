@@ -115,6 +115,13 @@ class ArrayQueue : public NonCopyable {
   void pop();
 
   /**
+   * Removes the back element from the array queue if the array queue is not
+   * empty. Only iterators and references to the back of the queue are
+   * invalidated.
+   */
+  void pop_back();
+
+  /**
    * Removes an element from the array queue given an index. It returns false if
    * the array queue contains fewer items than the index. All iterators and
    * references to elements before the removed one are unaffected. Iterators
@@ -262,6 +269,12 @@ class ArrayQueue : public NonCopyable {
    * accordingly. It is illegal to call this function on an empty array queue.
    */
   void pullHead();
+
+  /*
+   * Pulls mTail to the previous element in the array queue and decrements mSize
+   * accordingly. It is illegal to call this function on an empty array queue.
+   */
+  void pullTail();
 
   /*
    * Pushes mTail to the next available storage space and increments mSize

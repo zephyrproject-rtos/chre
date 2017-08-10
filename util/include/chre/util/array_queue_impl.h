@@ -98,6 +98,15 @@ void ArrayQueue<ElementType, kCapacity>::pop() {
   }
 }
 
+template<typename ElementType, size_t kCapacity>
+void ArrayQueue<ElementType, kCapacity>::pop_back() {
+  if (mSize > 0) {
+    size_t absoluteIndex = relativeIndexToAbsolute(mSize - 1);
+    data()[absoluteIndex].~ElementType();
+    pullTail();
+  }
+}
+
 // Assuming popping from the middle of the queue is rare, part of the
 // array is copied over.
 template<typename ElementType, size_t kCapacity>
@@ -207,6 +216,17 @@ void ArrayQueue<ElementType, kCapacity>::pullHead() {
   CHRE_ASSERT(mSize > 0);
   if (++mHead == kCapacity) {
       mHead = 0;
+  }
+  mSize--;
+}
+
+template<typename ElementType, size_t kCapacity>
+void ArrayQueue<ElementType, kCapacity>::pullTail() {
+  CHRE_ASSERT(mSize > 0);
+  if (mTail == 0) {
+    mTail = kCapacity - 1;
+  } else {
+    mTail--;
   }
   mSize--;
 }
