@@ -151,9 +151,7 @@ bool GnssRequestManager::configureLocationSession(
       success = mPlatformGnss.controlLocationSession(enable, minInterval,
                                                      Milliseconds(0));
       if (!success) {
-        // TODO: Add a pop_back method.
-        mLocationSessionStateTransitions.remove(
-            mLocationSessionRequests.size() - 1);
+        mLocationSessionStateTransitions.pop_back();
         LOGE("Failed to enable a GNSS location session for nanoapp instance "
              "%" PRIu32, instanceId);
       }

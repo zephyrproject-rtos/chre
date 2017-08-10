@@ -61,9 +61,7 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
     if (success) {
       success = mPlatformWifi.configureScanMonitor(enable);
       if (!success) {
-        // TODO: Add a pop_back method.
-        mScanMonitorStateTransitions.remove(
-            mScanMonitorStateTransitions.size() - 1);
+        mScanMonitorStateTransitions.pop_back();
         LOGE("Failed to enable the scan monitor for nanoapp instance %" PRIu32,
              instanceId);
       }
