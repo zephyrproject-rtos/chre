@@ -34,11 +34,11 @@ include $(CHRE_PREFIX)/build/defs.mk
 #     $10 - TARGET_BIN_LDFLAGS   - Linker flags that are passed to the linker
 #                                  when building an executable binary.
 #     $11 - TARGET_SO_EARLY_LIBS - Link against a set of libraries when building
-#                                  a shared object. These are placed before the
-#                                  objects produced by this build.
+#                                  a shared object or binary. These are placed
+#                                  before the objects produced by this build.
 #     $12 - TARGET_SO_LATE_LIBS  - Link against a set of libraries when building
-#                                  a shared object. These are placed after the
-#                                  objects produced by this build.
+#                                  a shared object or binary. These are placed
+#                                  after the objects produced by this build.
 #
 ################################################################################
 
@@ -128,7 +128,7 @@ $$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
 
 $$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
                $$($$(1)_C_DEPS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
-	$(3) -o $$@ $$(filter %.o, $$^) $(10)
+	$(3) -o $$@ $(11) $$(filter %.o, $$^) $(12) $(10)
 
 # Output Directories ###########################################################
 
