@@ -47,6 +47,10 @@ HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc
 HEXAGON_SRCS += platform/slpi/preloaded_nanoapps.cc
 HEXAGON_SRCS += platform/slpi/system_time.cc
 HEXAGON_SRCS += platform/slpi/system_timer.cc
+HEXAGON_SRCS += $(SLPI_PREFIX)/Sensors/common/idl/src/sns_common_v01.c
+HEXAGON_SRCS += $(SLPI_PREFIX)/Sensors/common/idl/src/sns_smgr_api_v01.c
+HEXAGON_SRCS += $(SLPI_PREFIX)/Sensors/common/idl/src/sns_smgr_common_v01.c
+HEXAGON_SRCS += $(SLPI_PREFIX)/Sensors/common/idl/src/sns_smgr_internal_api_v02.c
 
 # x86-specific Compiler Flags ##################################################
 
