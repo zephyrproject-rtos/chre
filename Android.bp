@@ -76,6 +76,13 @@ cc_library_shared {
 }
 
 cc_library_headers {
+    name: "chre_api",
+    export_include_dirs: [
+        "chre_api/include/chre_api",
+    ]
+}
+
+cc_library_headers {
     name: "chre_flatbuffers",
     vendor: true,
     export_include_dirs: [
