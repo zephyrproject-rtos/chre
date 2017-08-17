@@ -18,9 +18,12 @@
 #define CHRE_WIFI_OFFLOAD_WIFI_OFFLOAD_H_
 
 #include <cinttypes>
+#include <chre/wifi.h>
 
 #ifdef BUILD_FOR_CHRE_WIFI_OFFLOAD
-#include <chre.h>
+#include <chre/event.h>
+#include <chre/re.h>
+#include <chre/version.h>
 
 #ifndef FLATBUFFERS_CHRE
 #define FLATBUFFERS_CHRE
@@ -61,8 +64,6 @@ using Vector = chre::DynamicVector<T>;
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-#include "chre/apps/wifi_offload/chre_types.h"
 
 namespace wifi_offload {
 template <typename T>
