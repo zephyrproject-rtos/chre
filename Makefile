@@ -80,5 +80,6 @@ include build/common.mk
 # google_cm4_nanohub as Nanohub itself is a CHRE implementation.
 include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_googletest.mk
