@@ -48,24 +48,31 @@ define BUILD_TEMPLATE
 # Target Objects ###############################################################
 
 # Source files.
-$$(1)_CXX_SRCS = $$(filter %.cc, $(COMMON_SRCS) $(8))
+$$(1)_CC_SRCS = $$(filter %.cc, $(COMMON_SRCS) $(8))
+$$(1)_CPP_SRCS = $$(filter %.cpp, $(COMMON_SRCS) $(8))
 $$(1)_C_SRCS = $$(filter %.c, $(COMMON_SRCS) $(8))
 
 # Object files.
 $$(1)_OBJS_DIR = $(1)_objs
-$$(1)_CXX_OBJS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
-                             $$($$(1)_CXX_SRCS))
+$$(1)_CC_OBJS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
+                            $$($$(1)_CC_SRCS))
+$$(1)_CPP_OBJS = $$(patsubst %.cpp, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
+                             $$($$(1)_CPP_SRCS))
 $$(1)_C_OBJS = $$(patsubst %.c, $(OUT)/$$($$(1)_OBJS_DIR)/%.o, \
                            $$($$(1)_C_SRCS))
 
 # Automatic dependency resolution Makefiles.
-$$(1)_CXX_DEPS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
-                             $$($$(1)_CXX_SRCS))
+$$(1)_CC_DEPS = $$(patsubst %.cc, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
+                            $$($$(1)_CC_SRCS))
+$$(1)_CPP_DEPS = $$(patsubst %.cpp, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
+                             $$($$(1)_CPP_SRCS))
 $$(1)_C_DEPS = $$(patsubst %.c, $(OUT)/$$($$(1)_OBJS_DIR)/%.d, \
                            $$($$(1)_C_SRCS))
 
 # Add object file directories.
-$$$(1)_DIRS = $$(sort $$(dir $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)))
+$$$(1)_DIRS = $$(sort $$(dir $$($$(1)_CC_OBJS) \
+                             $$($$(1)_CPP_OBJS) \
+                             $$($$(1)_C_OBJS)))
 
 # Outputs ######################################################################
 
@@ -103,7 +110,11 @@ endif
 
 # Compile ######################################################################
 
-$$($$(1)_CXX_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
+$$($$(1)_CPP_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cpp
+	$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
+	    -o $$@
+
+$$($$(1)_CC_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
 	$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
 	    -o $$@
 
@@ -117,17 +128,20 @@ $$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
 $$$(1)_ARFLAGS = $(COMMON_ARFLAGS) \
     $(6)
 
-$$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
+$$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_OBJS) \
+              $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS)
 	$(7) $$($$$(1)_ARFLAGS) $$@ $$(filter %.o, $$^)
 
 # Link #########################################################################
 
-$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
-              $$($$(1)_C_DEPS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
+$$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_DEPS) \
+              $$($$(1)_CPP_DEPS) $$($$(1)_C_DEPS) $$($$(1)_CC_OBJS) \
+              $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS)
 	$(5) $(4) -o $$@ $(11) $$(filter %.o, $$^) $(12)
 
-$$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CXX_DEPS) \
-               $$($$(1)_C_DEPS) $$($$(1)_CXX_OBJS) $$($$(1)_C_OBJS)
+$$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_DEPS) \
+               $$($$(1)_CPP_DEPS) $$($$(1)_C_DEPS) $$($$(1)_CC_OBJS) \
+               $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS)
 	$(3) -o $$@ $(11) $$(filter %.o, $$^) $(12) $(10)
 
 # Output Directories ###########################################################
@@ -140,7 +154,13 @@ $$(OUT)/$$$(1):
 
 # Automatic Dependency Resolution ##############################################
 
-$$($$(1)_CXX_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
+$$($$(1)_CC_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
+	mkdir -p $$(dir $$@)
+	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
+	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
+	$(DEP_POST_COMPILE)
+
+$$($$(1)_CPP_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cpp
 	mkdir -p $$(dir $$@)
 	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
 	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
@@ -156,7 +176,8 @@ $$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
 # This avoids dependency generation from occuring for a debug target when a
 # non-debug target is requested.
 ifneq ($(filter $(1) all, $(MAKECMDGOALS)),)
-include $$(patsubst %.o, %.d, $$($$(1)_CXX_DEPS))
+include $$(patsubst %.o, %.d, $$($$(1)_CC_DEPS))
+include $$(patsubst %.o, %.d, $$($$(1)_CPP_DEPS))
 include $$(patsubst %.o, %.d, $$($$(1)_C_DEPS))
 endif
 
