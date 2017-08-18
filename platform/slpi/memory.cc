@@ -15,16 +15,46 @@
  */
 
 #include "chre/platform/memory.h"
+#include "chre/platform/slpi/memory.h"
 
-#include <stdlib.h>
+extern "C" {
+
+#include "qurt.h"
+#include "sns_memmgr.h"
+
+} // extern "C"
 
 namespace chre {
 
 void *memoryAlloc(size_t size) {
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  return SNS_OS_U_MALLOC(SNS_CHRE, size);
+#else
+  return malloc(size);
+#endif // CHRE_SLPI_UIMG_ENABLED
+}
+
+void *memoryAllocBigImage(size_t size) {
+  return malloc(size);
+}
+
+void *palSystemApiMemoryAlloc(size_t size) {
   return malloc(size);
 }
 
 void memoryFree(void *pointer) {
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  SNS_OS_FREE(pointer);
+#else
+  free(pointer);
+#endif // CHRE_SLPI_UIMG_ENABLED
+}
+
+void memoryFreeBigImage(void *pointer) {
+  free(pointer);
+}
+
+void palSystemApiMemoryFree(void *pointer) {
   free(pointer);
 }
 
