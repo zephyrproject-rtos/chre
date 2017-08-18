@@ -16,11 +16,13 @@
 
 #include "chre/platform/platform_nanoapp.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/memory.h"
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
+#include "chre/target_platform/power_control_util.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
 
@@ -89,16 +91,28 @@ PlatformNanoapp::~PlatformNanoapp() {
 
 bool PlatformNanoapp::start() {
   // Invoke the start entry point after successfully opening the app
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   return openNanoapp() ? mAppInfo->entryPoints.start() : false;
 }
 
 void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
                                   uint16_t eventType,
                                   const void *eventData) {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
 }
 
 void PlatformNanoapp::end() {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.end();
   closeNanoapp();
 }
