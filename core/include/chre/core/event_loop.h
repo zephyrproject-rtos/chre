@@ -22,6 +22,7 @@
 #include "chre/core/timer_pool.h"
 #include "chre/platform/mutex.h"
 #include "chre/platform/platform_nanoapp.h"
+#include "chre/platform/power_control_manager.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
@@ -231,6 +232,15 @@ class EventLoop : public NonCopyable {
   bool logStateToBuffer(char *buffer, size_t *bufferPos,
                         size_t bufferSize) const;
 
+
+  /**
+   * Returns a reference to the power control manager. This allows power
+   * controls from subsystems outside the event loops.
+   */
+  PowerControlManager& getPowerControlManager() {
+    return mPowerControlManager;
+  }
+
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = 256;
@@ -269,6 +279,9 @@ class EventLoop : public NonCopyable {
 
   //! Set to the nanoapp we are in the process of unloading in unloadNanoapp()
   Nanoapp *mStoppingNanoapp = nullptr;
+
+  //! The object which manages power related controls.
+  PowerControlManager mPowerControlManager;
 
   /**
    * Do one round of Nanoapp event delivery, only considering events in

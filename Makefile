@@ -57,6 +57,7 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
 
 # Makefile Includes ############################################################
 
