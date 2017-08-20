@@ -70,6 +70,7 @@ DSO_SUPPORT_LIB_PATH = $(CHRE_PREFIX)/platform/shared/nanoapp
 GOOGLE_HEXAGONV60_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 GOOGLE_HEXAGONV62_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 QCOM_HEXAGONV60_NANOHUB_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support.cc
+QCOM_HEXAGONV60_NANOHUB-UIMG_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support_uimg.cc
 
 # Makefile Includes ############################################################
 
@@ -80,5 +81,7 @@ include $(CHRE_PREFIX)/build/common.mk
 include $(CHRE_PREFIX)/build/variant/google_cm4_nanohub.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
 include $(CHRE_PREFIX)/build/variant/qcom_hexagonv60_nanohub.mk
+include $(CHRE_PREFIX)/build/variant/qcom_hexagonv60_nanohub-uimg.mk

@@ -70,6 +70,11 @@ class PlatformNanoappBase {
    */
   bool isLoaded() const;
 
+  /**
+   * @return true if the app runs in micro-image.
+   */
+  bool isUimgApp() const;
+
  protected:
   //! The app ID we received in the metadata alongside the nanoapp binary. This
   //! is also included in (and checked against) mAppInfo.

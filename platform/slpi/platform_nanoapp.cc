@@ -16,10 +16,13 @@
 
 #include "chre/platform/platform_nanoapp.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
+#include "chre/platform/slpi/memory.h"
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
+#include "chre/target_platform/power_control_util.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
 
@@ -82,22 +85,34 @@ bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
 PlatformNanoapp::~PlatformNanoapp() {
   closeNanoapp();
   if (mAppBinary != nullptr) {
-    memoryFree(mAppBinary);
+    memoryFreeBigImage(mAppBinary);
   }
 }
 
 bool PlatformNanoapp::start() {
   // Invoke the start entry point after successfully opening the app
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   return openNanoapp() ? mAppInfo->entryPoints.start() : false;
 }
 
 void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
                                   uint16_t eventType,
                                   const void *eventData) {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
 }
 
 void PlatformNanoapp::end() {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.end();
   closeNanoapp();
 }
@@ -112,7 +127,7 @@ bool PlatformNanoappBase::loadFromBuffer(uint64_t appId, uint32_t appVersion,
   if (appBinaryLen > kMaxAppSize) {
     LOGE("Rejecting app size %zu above limit %zu", appBinaryLen, kMaxAppSize);
   } else {
-    mAppBinary = memoryAlloc(appBinaryLen);
+    mAppBinary = memoryAllocBigImage(appBinaryLen);
     if (mAppBinary == nullptr) {
       LOGE("Couldn't allocate %zu byte buffer for nanoapp 0x%016" PRIx64,
            appBinaryLen, appId);
@@ -142,6 +157,11 @@ void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {
 
 bool PlatformNanoappBase::isLoaded() const {
   return (mIsStatic || mAppBinary != nullptr);
+}
+
+bool PlatformNanoappBase::isUimgApp() const {
+  // TODO: Populate a field to check if nanoapp is in uimg
+  return false;
 }
 
 void PlatformNanoappBase::closeNanoapp() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,10 @@
  * limitations under the License.
  */
 
-#include "chre/platform/memory.h"
-
-#include <stdlib.h>
+#include "chre/platform/shared/platform_pal.h"
 
 namespace chre {
 
-void *memoryAlloc(size_t size) {
-  return malloc(size);
-}
-
-void memoryFree(void *pointer) {
-  free(pointer);
-}
+void PlatformPal::prePalApiCall() {}
 
 }  // namespace chre
