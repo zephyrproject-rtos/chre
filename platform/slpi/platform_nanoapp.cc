@@ -156,7 +156,7 @@ void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {
 }
 
 bool PlatformNanoappBase::isLoaded() const {
-  return (mIsStatic || mAppBinary != nullptr);
+  return (mIsStatic || mAppBinary != nullptr || mDsoHandle != nullptr);
 }
 
 bool PlatformNanoappBase::isUimgApp() const {
@@ -218,6 +218,8 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
       } else {
         LOGI("Successfully loaded nanoapp: %s (0x%016" PRIx64 ") version 0x%"
              PRIx32, mAppInfo->name, mAppInfo->appId, mAppInfo->appVersion);
+        memoryFreeBigImage(mAppBinary);
+        mAppBinary = nullptr;
       }
     }
   }
