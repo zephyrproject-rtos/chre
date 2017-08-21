@@ -23,7 +23,9 @@ namespace chre {
 SystemTimer::SystemTimer() {}
 
 SystemTimer::~SystemTimer() {
-  slpiTimerUndef(&mTimerHandle);
+  if (mInitialized) {
+    slpiTimerUndef(&mTimerHandle);
+  }
 }
 
 bool SystemTimer::init() {
