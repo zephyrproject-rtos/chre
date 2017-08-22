@@ -28,6 +28,7 @@ typedef utimer_timetick_type SlpiTimerTickType;
 typedef utimer_error_type SlpiTimerErrorType;
 
 #define SlpiTimerTickUnit UT_TICK
+#define SlpiTimerMicroUnit UT_USEC
 #define SLPI_TIMER_SUCCESS UTE_SUCCESS
 #define slpiTimerClr64 utimer_clr_64
 #define slpiTimerGet64 utimer_get_64
@@ -42,6 +43,7 @@ typedef time_timetick_type SlpiTimerTickType;
 typedef timer_error_type SlpiTimerErrorType;
 
 #define SlpiTimerTickUnit T_TICK
+#define SlpiTimerMicroUnit T_USEC
 #define SLPI_TIMER_SUCCESS TE_SUCCESS
 #define slpiTimerClr64 timer_clr_64
 #define slpiTimerGet64 timer_get_64

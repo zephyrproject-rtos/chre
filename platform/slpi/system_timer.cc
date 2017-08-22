@@ -23,7 +23,9 @@ namespace chre {
 SystemTimer::SystemTimer() {}
 
 SystemTimer::~SystemTimer() {
-  slpiTimerUndef(&mTimerHandle);
+  if (mInitialized) {
+    slpiTimerUndef(&mTimerHandle);
+  }
 }
 
 bool SystemTimer::init() {
@@ -59,7 +61,7 @@ bool SystemTimer::set(SystemTimerCallback *callback, void *data,
     mCallback = callback;
     mData = data;
     SlpiTimerErrorType status = slpiTimerSet64(&mTimerHandle,
-        Microseconds(delay).getMicroseconds(), 0, SlpiTimerTickUnit);
+        Microseconds(delay).getMicroseconds(), 0, SlpiTimerMicroUnit);
     if (status != SLPI_TIMER_SUCCESS) {
       LOGE("Error setting timer %d", status);
     } else {
