@@ -40,11 +40,6 @@ namespace chre {
 class EventLoop : public NonCopyable {
  public:
   /**
-   * Setup the event loop.
-   */
-  EventLoop();
-
-  /**
    * Synchronous callback used with forEachNanoapp
    */
   typedef void (NanoappCallbackFunction)(const Nanoapp *nanoapp, void *data);

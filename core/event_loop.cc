@@ -55,9 +55,6 @@ bool populateNanoappInfo(const Nanoapp *app, struct chreNanoappInfo *info) {
 
 }  // anonymous namespace
 
-EventLoop::EventLoop()
-    : mTimerPool(*this) {}
-
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
                                              uint32_t *instanceId) const {
   CHRE_ASSERT(instanceId != nullptr);
