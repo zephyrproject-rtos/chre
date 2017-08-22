@@ -69,6 +69,7 @@ DSO_SUPPORT_LIB_PATH = $(CHRE_PREFIX)/platform/shared/nanoapp
 
 GOOGLE_HEXAGONV60_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 GOOGLE_HEXAGONV62_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
+GOOGLE_HEXAGONV62_SLPI-UIMG_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 QCOM_HEXAGONV60_NANOHUB_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support.cc
 QCOM_HEXAGONV60_NANOHUB-UIMG_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support_uimg.cc
 
