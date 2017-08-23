@@ -160,8 +160,7 @@ bool PlatformNanoappBase::isLoaded() const {
 }
 
 bool PlatformNanoappBase::isUimgApp() const {
-  // TODO: Populate a field to check if nanoapp is in uimg
-  return false;
+  return (mAppInfo != nullptr) ? mAppInfo->isTcmNanoapp : false;
 }
 
 void PlatformNanoappBase::closeNanoapp() {
