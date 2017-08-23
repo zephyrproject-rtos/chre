@@ -221,6 +221,10 @@ class EventLoopManager : public NonCopyable {
 //! Provide an alias to the EventLoopManager singleton.
 typedef Singleton<EventLoopManager> EventLoopManagerSingleton;
 
+//! Extern the explicit EventLoopManagerSingleton to force non-inline method
+//! calls. This reduces codesize considerably.
+extern template class Singleton<EventLoopManager>;
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_EVENT_LOOP_MANAGER_H_
