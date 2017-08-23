@@ -80,9 +80,7 @@ qurt_thread_t gThreadHandle;
 
 //! Protects access to thread metadata, like gThreadRunning, during critical
 //! sections (starting/stopping the CHRE thread).
-Mutex *gThreadMutex;
-typename std::aligned_storage<sizeof(Mutex), alignof(Mutex)>::type
-    gThreadMutexStorage;
+Mutex gThreadMutex;
 
 //! Set to true when the CHRE thread starts, and false when it exits normally.
 bool gThreadRunning;
@@ -92,22 +90,14 @@ bool gThreadRunning;
 int gTlsKey;
 bool gTlsKeyValid;
 
-// TODO: We would prefer to just use static global C++ constructor/destructor
-// support, but currently, destructors do not seem to get called. These work as
-// a temporary workaround, though.
 __attribute__((constructor))
 void onLoad(void) {
   // Initialize the platform logging as early as possible.
   chre::PlatformLogSingleton::init();
-
-  gThreadMutex = new(&gThreadMutexStorage) Mutex();
 }
 
 __attribute__((destructor))
 void onUnload(void) {
-  gThreadMutex->~Mutex();
-  gThreadMutex = nullptr;
-
   // Defer platform logging deinitialization to as late as possible.
   chre::PlatformLogSingleton::deinit();
 }
@@ -170,7 +160,7 @@ bool inEventLoopThread() {
  */
 extern "C" int chre_slpi_start_thread(void) {
   // This lock ensures that we only start the thread once
-  LockGuard<Mutex> lock(*gThreadMutex);
+  LockGuard<Mutex> lock(gThreadMutex);
   int fastRpcResult = CHRE_FASTRPC_ERROR;
 
   if (gThreadRunning) {
@@ -240,7 +230,7 @@ extern "C" int chre_slpi_wait_on_thread_exit(void) {
 extern "C" int chre_slpi_stop_thread(void) {
   // This lock ensures that we will complete shutdown before the thread can be
   // started again
-  LockGuard<Mutex> lock(*gThreadMutex);
+  LockGuard<Mutex> lock(gThreadMutex);
 
   if (!gThreadRunning) {
     LOGD("Tried to stop CHRE thread, but not running");
@@ -289,7 +279,7 @@ extern "C" int chre_slpi_stop_thread(void) {
  * @return 0 on success, nonzero on failure (per FastRPC requirements)
  */
 extern "C" int chre_slpi_initialize_reverse_monitor(void) {
-  LockGuard<Mutex> lock(*gThreadMutex);
+  LockGuard<Mutex> lock(gThreadMutex);
 
   if (!gTlsKeyValid) {
     int result = qurt_tls_create_key(&gTlsKey, onHostProcessTerminated);
