@@ -40,7 +40,33 @@ extern "C" {
 #include "chre/platform/slpi/smgr_client.h"
 #include "chre/util/macros.h"
 
-// TODO: [Passive] explain passive sensor design
+// As SMGR doesn't support passive sensor request, it's now implemented on the
+// client (CHRE) side using a combination of the SNS_SMGR_INTERNAL_API_V02 and a
+// modified SNS_SMGR_API_V01.
+//
+// Here's a summary of its design:
+// 1. A sensor status monitor is added in addSensorMonitor() to receive the
+//    SNS_SMGR_SENSOR_STATUS_MONITOR_IND_V02 message the first time a sensor is
+//    requested.
+// 2. When a request is made in PlatformSensor::applyRequest(), it checkes
+//    whether it's allowed at that point and makes a corresponding QMI request.
+//    1) The request is allowed if
+//       - it's an active or an off request, or
+//       - it's a passive request and the merged mode (to be explained
+//         shortly) is active or there exist other SMGR clients.
+//    2) If the request is allowed, a QMI request to add the sensor request is
+//       made. Otherwise, a QMI request to remove the sensor request is made to
+//       handle the potential active-and-allowed to passive-and-disallowed
+//       transition.
+//    3) The merged mode of a sensor is the strongest mode of all sensor
+//       requests of the same sensor ID, with active > passive > off.
+// 3. When SNS_SMGR_SENSOR_STATUS_MONITOR_IND_V02 from SMGR is received, a
+//    SNS_SMGR_CLIENT_REQUEST_INFO_REQ_V01 message is sent to query SMGR on the
+//    existence of other clients.
+//    - If a transition from absence-to-presence of other clients is detected,
+//      all pending passive requests are made.
+//    - If a transition from presence-to-absence of other clients is deteted,
+//      all passive requests are removed if the merged mode is passive.
 
 namespace chre {
 namespace {
@@ -80,7 +106,7 @@ sns_smgr_buffering_ind_msg_v01 gSmgrBufferingIndMsg;
 //! A struct to store the number of SMGR clients of a sensor ID.
 struct SensorMonitor {
   uint8_t sensorId;
-  uint8_t numClients;
+  bool otherClientPresent;
 };
 
 //! A vector that tracks the SensorMonitor of each supported sensor ID.
@@ -688,30 +714,6 @@ size_t populateSensorTypeArrayFromSensorId(uint8_t sensorId,
 }
 
 /**
- * Obtains the number of SMGR clients of a sensor ID that were originated by
- * CHRE.
- *
- * @param sensorId The sensor ID as provided by the SMGR.
- * @return The number of CHRE clients.
- */
-size_t getNumChreClients(uint8_t sensorId) {
-  size_t numChreClients = 0;
-
-  // Identify sensor types of the specified sensor ID
-  SensorType sensorTypes[kMaxNumSensorsPerSensorId];
-  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
-      sensorId, sensorTypes);
-  for (size_t i = 0; i < numSensorTypes; i++) {
-    const Sensor *sensor = EventLoopManagerSingleton::get()
-        ->getSensorRequestManager().getSensor(sensorTypes[i]);
-    if (sensor != nullptr && !sensor->isSensorOff) {
-      numChreClients++;
-    }
-  }
-  return numChreClients;
-}
-
-/**
  * Obtains the merged SensorMode of the specified sensor ID, with sensorType's
  * sensor request replaced by the supplied request.
  *
@@ -742,22 +744,19 @@ SensorMode getMergedMode(uint8_t sensorId, SensorType sensorType,
 }
 
 /**
- * Makes or removes passive sensor requests when the number of SMGR clients
- * changes.
+ * Makes or removes passive sensor requests when the presence of other SMGR
+ * clients changes.
  *
  * @param sensorID The sensor ID being monitored.
- * @param prevNumClients The previous number of SMGR clients.
- * @param currNumclients The current number of SMGR clients.
+ * @param otherClientPresent The presence of other SMGR clients.
  */
-void onNumSmgrClientsChange(uint8_t sensorId, uint8_t prevNumClients,
-                            uint8_t currNumClients) {
-  bool makeAllRequests = (prevNumClients == 0 && currNumClients > 0);
+void onOtherClientPresenceChange(uint8_t sensorId, bool otherClientPresent) {
+  bool makeAllRequests = otherClientPresent;
+
   SensorRequest dummyRequest;
   SensorMode mode = getMergedMode(sensorId, SensorType::Unknown, dummyRequest);
-  bool removeAllRequests = (sensorModeIsPassive(mode)
-                            && currNumClients < prevNumClients
-                            && currNumClients == getNumChreClients(sensorId)
-                            && currNumClients > 0);
+  bool removeAllRequests = (sensorModeIsPassive(mode) && !otherClientPresent);
+
   bool qmiRequestMade = false;
   if (makeAllRequests) {
     qmiRequestMade = makeAllPendingRequests(sensorId);
@@ -766,9 +765,9 @@ void onNumSmgrClientsChange(uint8_t sensorId, uint8_t prevNumClients,
   }
 
   if (qmiRequestMade) {
-    LOGD("%s: id %" PRIu8 ", prev %" PRIu8 " curr %" PRIu8 ", mode %d, chre %d",
-         makeAllRequests ? "+" : "-", sensorId, prevNumClients, currNumClients,
-         static_cast<size_t>(mode), getNumChreClients(sensorId));
+    LOGD("%s: id %" PRIu8 ", otherClientPresent %d, mode %d",
+         makeAllRequests ? "+" : "-", sensorId, otherClientPresent,
+         static_cast<size_t>(mode));
   }
 }
 
@@ -783,10 +782,33 @@ void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
     LOGE("Sensor status monitor update of invalid sensor ID %" PRIu64,
          status.sensor_id);
   } else {
-    uint8_t numClients = gSensorMonitors[index].numClients;
-    if (numClients != status.num_clients) {
-      onNumSmgrClientsChange(status.sensor_id, numClients, status.num_clients);
-      gSensorMonitors[index].numClients = status.num_clients;
+    // Use asynchronous sensor status monitor indication message as a cue to
+    // query and obtain the synchronous client request info.
+    // As the info conveyed in the indication is asynchronous from current
+    // status and is insufficient to determine other clients' status, relying on
+    // it to enable/disable passive sensors may put the system in an incorrect
+    // state or lead to a request loop.
+    sns_smgr_client_request_info_req_msg_v01 infoRequest;
+    sns_smgr_client_request_info_resp_msg_v01 infoResponse;
+    infoRequest.sensor_id = status.sensor_id;
+
+    qmi_client_error_type qmiStatus = qmi_client_send_msg_sync(
+        gPlatformSensorServiceQmiClientHandle,
+        SNS_SMGR_CLIENT_REQUEST_INFO_REQ_V01,
+        &infoRequest, sizeof(infoRequest),
+        &infoResponse, sizeof(infoResponse), kQmiTimeoutMs);
+
+    if (qmiStatus != QMI_NO_ERR) {
+      LOGE("Error requesting client request info: %d", qmiStatus);
+    } else if (infoResponse.resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
+      LOGE("Client request info failed with error: %" PRIu8 ", id %" PRIu8,
+           infoResponse.resp.sns_err_t, infoRequest.sensor_id);
+    }
+
+    bool otherClientPresent = infoResponse.other_client_present;
+    if (gSensorMonitors[index].otherClientPresent != otherClientPresent) {
+      onOtherClientPresenceChange(status.sensor_id, otherClientPresent);
+      gSensorMonitors[index].otherClientPresent = otherClientPresent;
     }
   }
 }
@@ -821,7 +843,7 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
  */
 void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
   // With SMGR's implementation, sampling interval will be filtered to be the
-  // same as requeted. Latency can be shorter if there were other SMGR clients
+  // same as requested. Latency can be shorter if there were other SMGR clients
   // with proc_type also set to SNS_PROC_SSC_V01.
   // If the request is passive, 'enabled' may change over time and needs to be
   // updated.
@@ -969,7 +991,7 @@ void addSensorMonitor(uint8_t sensorId) {
     // Initialize sensor monitor status before making a QMI request.
     SensorMonitor monitor;
     monitor.sensorId = sensorId;
-    monitor.numClients = 0;
+    monitor.otherClientPresent = false;
     gSensorMonitors.push_back(monitor);
 
     // Make a QMI request to add the status monitor
@@ -1146,35 +1168,7 @@ void populateSensorRequest(
 }
 
 /**
- * Obtains the number of SMGR clients that were not originated by CHRE.
- *
- * @param sensorId The sensorID as provided by the SMGR.
- * @return The number of non-CHRE clients.
- */
-size_t getNumNonChreClients(uint8_t sensorId) {
-  size_t numChreClients = getNumChreClients(sensorId);
-  size_t numSmgrClients = 0;
-  size_t index = getSensorMonitorIndex(sensorId);
-  if (index == gSensorMonitors.size()) {
-    LOGE("Accessing sensor monitor with invalid sensorId %" PRIu8, sensorId);
-  } else {
-    numSmgrClients = gSensorMonitors[index].numClients;
-  }
-
-  size_t numNonChreClients = 0;
-  if (numChreClients > numSmgrClients) {
-    // SMGR status monitor indication may lag behind if back-to-back requests
-    // are made.
-    LOGW("numChreClients %zu > numSmgrClients %zu",
-         numChreClients, numSmgrClients);
-  } else {
-    numNonChreClients = numSmgrClients - numChreClients;
-  }
-  return numNonChreClients;
-}
-
-/**
- * Determines whether a requet is allowed. A passive request is not always
+ * Determines whether a request is allowed. A passive request is not always
  * allowed.
  *
  * @param sensorType The SensorType of this request
@@ -1187,15 +1181,22 @@ bool isRequestAllowed(SensorType sensorType, const SensorRequest& request) {
   const Sensor *sensor = EventLoopManagerSingleton::get()
       ->getSensorRequestManager().getSensor(sensorType);
   if (sensor != nullptr) {
-    // If it's an ACTIVE or an OFF request, it's always allowed.
-    allowed = true;
     if (sensorModeIsPassive(request.getMode())) {
-      size_t numNonChreClients = getNumNonChreClients(sensor->sensorId);
-      SensorMode mode = getMergedMode(sensor->sensorId, sensorType, request);
-      allowed = (numNonChreClients > 0 || sensorModeIsActive(mode));
-      LOGD("sensorType %d allowed %d: mergedMode %d, numNonChreClients %zu",
-           static_cast<size_t>(sensorType), allowed, static_cast<int>(mode),
-           numNonChreClients);
+      size_t index = getSensorMonitorIndex(sensor->sensorId);
+      if (index == gSensorMonitors.size()) {
+        LOGE("SensorId %" PRIu8 " doesn't have a monitor", sensor->sensorId);
+      } else {
+        SensorMode mergedMode = getMergedMode(
+            sensor->sensorId, sensorType, request);
+        bool otherClientPresent = gSensorMonitors[index].otherClientPresent;
+        allowed = (sensorModeIsActive(mergedMode) || otherClientPresent);
+        LOGD("sensorType %d allowed %d: mergedMode %d, otherClientPresent %d",
+             static_cast<size_t>(sensorType), allowed,
+             static_cast<int>(mergedMode), otherClientPresent);
+      }
+    } else {
+      // If it's an ACTIVE or an OFF request, it's always allowed.
+      allowed = true;
     }
   }
   return allowed;
@@ -1259,9 +1260,7 @@ bool makeRequest(SensorType sensorType, const SensorRequest& request) {
 
   Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
       .getSensor(sensorType);
-  if (sensor == nullptr) {
-    LOGE("Invalid sensorType %d", static_cast<size_t>(sensorType));
-  } else {
+  if (sensor != nullptr) {
     // Do not make a QMI off request if the sensor is off. Otherwise, SMGR
     // returns an error.
     if (request.getMode() == SensorMode::Off) {
