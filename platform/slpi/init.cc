@@ -35,6 +35,7 @@ extern "C" {
 #include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/preloaded_nanoapps.h"
+#include "chre/platform/slpi/uimg_util.h"
 #include "chre/util/lock_guard.h"
 
 using chre::EventLoop;
@@ -57,9 +58,10 @@ namespace {
 constexpr size_t kStackSize = (8 * 1024);
 
 //! Memory partition where the thread control block (TCB) should be stored,
-//! which controls micro-image support (0 = big image, 1 = micro image).
+//! which controls micro-image support.
 //! @see qurt_thread_attr_set_tcb_partition
-constexpr unsigned char kTcbPartition = 0;
+constexpr unsigned char kTcbPartition = chre::isSlpiUimgSupported() ?
+    QURT_THREAD_ATTR_TCB_PARTITION_TCM : QURT_THREAD_ATTR_TCB_PARTITION_RAM;
 
 //! The priority to set for the CHRE thread (value between 1-255, with 1 being
 //! the highest).
