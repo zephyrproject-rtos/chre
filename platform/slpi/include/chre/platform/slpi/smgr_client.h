@@ -17,18 +17,35 @@
 #ifndef CHRE_PLATFORM_SLPI_SMGR_CLIENT_H_
 #define CHRE_PLATFORM_SLPI_SMGR_CLIENT_H_
 
-extern "C" {
+#include "chre/platform/slpi/smr_helper.h"
+#include "chre/util/singleton.h"
 
-#include "qmi_client.h"
-
-}  // extern "C"
+/**
+ * @file
+ * Exposes the SMR helper and SMGR (non-internal) client handle used by the
+ * platform sensor implementation, for use in other modules.
+ */
 
 namespace chre {
 
+//! A singleton instance of SmrHelper that can be used for making synchronous
+//! sensor requests while remaining in micro-image. This must only be used from
+//! the CHRE thread.
+typedef Singleton<SmrHelper> SmrHelperSingleton;
+
 /**
- * @return A QMI sensor service client handle
+ * Convenience method for fetching the SMR helper singleton instance. Must only
+ * be used from the CHRE thread.
  */
-qmi_client_type getSensorServiceQmiClientHandle();
+inline SmrHelper *getSmrHelper() {
+  return SmrHelperSingleton::get();
+}
+
+/**
+ * @return The SMR client handle to the SMGR (non-internal) API, created by the
+ *         SLPI platform-specific sensors implementation
+ */
+smr_client_hndl getSensorServiceSmrClientHandle();
 
 }  // namespace chre
 

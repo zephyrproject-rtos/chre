@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_UNIQUE_PTR_IMPL_H_
 #define CHRE_UTIL_UNIQUE_PTR_IMPL_H_
 
+#include <string.h>
+#include <type_traits>
 #include <utility>
 
 #include "chre/platform/memory.h"
@@ -89,6 +91,22 @@ template<typename ObjectType, typename... Args>
 inline UniquePtr<ObjectType> MakeUnique(Args&&... args) {
   return UniquePtr<ObjectType>(memoryAlloc<ObjectType>(
       std::forward<Args>(args)...));
+}
+
+template<typename ObjectType>
+inline UniquePtr<ObjectType> MakeUniqueZeroFill() {
+  // For simplicity, we call memset *after* memoryAlloc<ObjectType>() - this is
+  // only valid for types that have a trivial constructor. This utility function
+  // is really meant to be used with trivial types only - if there's a desire to
+  // zero things out in a non-trivial type, the right place for that is in its
+  // constructor.
+  static_assert(std::is_trivial<ObjectType>::value,
+                "MakeUniqueZeroFill is only supported for trivial types");
+  auto ptr = UniquePtr<ObjectType>(memoryAlloc<ObjectType>());
+  if (!ptr.isNull()) {
+    memset(ptr.get(), 0, sizeof(ObjectType));
+  }
+  return ptr;
 }
 
 }  // namespace chre
