@@ -119,6 +119,14 @@ class UniquePtr : public NonCopyable {
 template<typename ObjectType, typename... Args>
 UniquePtr<ObjectType> MakeUnique(Args&&... args);
 
+/**
+ * Just like MakeUnique(), except it zeros out any allocated memory. Intended to
+ * be used for creating objects that have trivial constructors (e.g. C structs)
+ * but should start with a known state.
+ */
+template<typename ObjectType>
+UniquePtr<ObjectType> MakeUniqueZeroFill();
+
 }  // namespace chre
 
 #include "chre/util/unique_ptr_impl.h"
