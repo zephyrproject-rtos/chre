@@ -146,6 +146,14 @@ extern "C" {
 #define CHRE_EVENT_WWAN_LAST_EVENT   UINT16_C(0x032F)
 
 /**
+ * First event in the block reserved for audio. These events are defined in
+ * chre/audio.h.
+ */
+
+#define CHRE_EVENT_AUDIO_FIRST_EVENT UINT16_C(0x0330)
+#define CHRE_EVENT_AUDIO_LAST_EVENT  UINT16_C(0x033F)
+
+/**
  * First in the extended range of values dedicated for internal CHRE
  * implementation usage.
  *
