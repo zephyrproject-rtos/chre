@@ -216,7 +216,9 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
         mAppInfo = nullptr;
       } else {
         LOGI("Successfully loaded nanoapp: %s (0x%016" PRIx64 ") version 0x%"
-             PRIx32, mAppInfo->name, mAppInfo->appId, mAppInfo->appVersion);
+             PRIx32 " uimg %d system %d", mAppInfo->name, mAppInfo->appId,
+             mAppInfo->appVersion, mAppInfo->isTcmNanoapp,
+             mAppInfo->isSystemNanoapp);
         memoryFreeBigImage(mAppBinary);
         mAppBinary = nullptr;
       }
@@ -246,8 +248,9 @@ bool PlatformNanoappBase::openNanoappFromFile() {
         mAppInfo = nullptr;
       } else {
         LOGI("Successfully loaded nanoapp %s (0x%016" PRIx64 ") version 0x%"
-             PRIx32 " from file %s", mAppInfo->name, mAppInfo->appId,
-             mAppInfo->appVersion, mFilename);
+             PRIx32 " uimg %d system %d from file %s", mAppInfo->name,
+             mAppInfo->appId, mAppInfo->appVersion, mAppInfo->isTcmNanoapp,
+             mAppInfo->isSystemNanoapp, mFilename);
         // Save the app version field in case this app gets disabled and we
         // still get a query request for the version later on. We are OK not
         // knowing the version prior to the first load because we assume that
