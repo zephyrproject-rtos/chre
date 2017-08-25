@@ -37,6 +37,10 @@ namespace chre {
 //! Default timeout for sendReqSync
 constexpr Nanoseconds kDefaultSmrTimeout = Seconds(1);
 
+//! Default timeout for waitForService. Have a longer timeout since there may be
+//! external dependencies blocking SMGR initialization.
+constexpr Nanoseconds kDefaultSmrWaitTimeout = Seconds(5);
+
 /**
  * A helper class for making synchronous requests to SMR (Sensors Message
  * Router). Not safe to use from multiple threads.
@@ -99,7 +103,18 @@ class SmrHelper : public NonCopyable {
     return result;
   }
 
-  // TODO: add waitForService() using client_check()
+  /**
+   * Wrapper to convert the async smr_client_check_ext() to a synchronous call.
+   * Waits for an SMR service to become available.
+   *
+   * @param serviceObj The SMR service object to wait for.
+   * @param timeout The wait timeout in microseconds.
+   *
+   * @return Result code returned by smr_client_check_ext, or SMR_TIMEOUT_ERR if
+   *         the timeout was reached
+   */
+  smr_err waitForService(qmi_idl_service_object_type serviceObj,
+                         Microseconds timeout = kDefaultSmrWaitTimeout);
 
  private:
   /**
@@ -148,6 +163,16 @@ class SmrHelper : public NonCopyable {
                         void *resp_c_struct, unsigned int resp_c_struct_len,
                         void *resp_cb_data, smr_err transp_err);
 
+  /**
+   * SMR wait for service callback used with waitForService()
+   *
+   * @see smr_client_init_ext_cb
+   */
+  static void smrWaitForServiceCb(qmi_idl_service_object_type service_obj,
+                                  qmi_service_instance instance_id,
+                                  bool timeout_expired,
+                                  void *wait_for_service_cb_data);
+
   ConditionVariable mCond;
   Mutex mMutex;
 
@@ -157,6 +182,9 @@ class SmrHelper : public NonCopyable {
   //! While waiting on a response, set to the response buffer given to
   //! sendReqSync()
   void *mPendingRespBuf = nullptr;
+
+  //! true if timed out while waiting for a service to become available
+  bool mServiceTimedOut = false;
 
   //! The (transport) error code given in the response callback
   smr_err mTranspErr;
