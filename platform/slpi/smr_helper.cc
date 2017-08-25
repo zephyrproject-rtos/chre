@@ -54,6 +54,35 @@ smr_err SmrHelper::releaseSync(smr_client_hndl clientHandle,
   return result;
 }
 
+smr_err SmrHelper::waitForService(qmi_idl_service_object_type serviceObj,
+                                  Microseconds timeout) {
+  // smr_client_check_ext is synchronous if the service already exists,
+  // so don't hold the lock while calling to prevent deadlock in the callback.
+  {
+    LockGuard<Mutex> lock(mMutex);
+    CHRE_ASSERT(!mWaiting);
+    mWaiting = true;
+  }
+
+  smr_err result = smr_client_check_ext(serviceObj, SMR_CLIENT_INSTANCE_ANY,
+                                        timeout.getMicroseconds(),
+                                        SmrHelper::smrWaitForServiceCb, this);
+  if (result == SMR_NO_ERR) {
+    LockGuard<Mutex> lock(mMutex);
+    while (mWaiting) {
+      mCond.wait(mMutex);
+    }
+
+    if (mServiceTimedOut) {
+      LOGE("Wait for SMR service timed out");
+      result = SMR_TIMEOUT_ERR;
+      mServiceTimedOut = false;
+    }
+  }
+
+  return result;
+}
+
 bool SmrHelper::sendReqSyncUntyped(
     smr_client_hndl client_handle, unsigned int msg_id,
     void *req_c_struct, unsigned int req_c_struct_len,
@@ -125,6 +154,17 @@ void SmrHelper::smrRespCb(smr_client_hndl client_handle, unsigned int msg_id,
   SmrHelper *obj = static_cast<SmrHelper *>(resp_cb_data);
   obj->handleResp(client_handle, msg_id, resp_c_struct, resp_c_struct_len,
                   transp_err);
+}
+
+void SmrHelper::smrWaitForServiceCb(qmi_idl_service_object_type /* service_obj */,
+                                    qmi_service_instance /* instance_id */,
+                                    bool timeout_expired,
+                                    void *wait_for_service_cb_data) {
+  SmrHelper *obj = static_cast<SmrHelper *>(wait_for_service_cb_data);
+  LockGuard<Mutex> lock(obj->mMutex);
+  obj->mServiceTimedOut = timeout_expired;
+  obj->mWaiting = false;
+  obj->mCond.notify_one();
 }
 
 }  // namespace chre

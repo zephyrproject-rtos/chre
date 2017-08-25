@@ -73,10 +73,6 @@ extern "C" {
 namespace chre {
 namespace {
 
-//! Timeout for SMR client initialization, in milliseconds. Allow more time here
-//! due to external dependencies that may block initialization of SMGR.
-constexpr uint32_t kSmrInitTimeoutMs = 5000;
-
 //! The constant used to convert from SMGR to Android unit for magnetometer.
 constexpr float kMicroTeslaPerGauss = 100.0f;
 
@@ -1350,6 +1346,9 @@ PlatformSensor::~PlatformSensor() {
 }
 
 void PlatformSensor::init() {
+  // Timeout for SMR client initialization, in milliseconds.
+  constexpr uint32_t kSmrInitTimeoutMs = 10;
+
   SmrHelperSingleton::init();
 
   // sns_smgr_api_v01
@@ -1359,8 +1358,11 @@ void PlatformSensor::init() {
     FATAL_ERROR("Failed to obtain the SNS SMGR service instance");
   }
 
-  // TODO: use smr_client_check[_ext]() to confirm that the service is
-  // registered before we attempt to register it here
+  smr_err result = getSmrHelper()->waitForService(smgrSvcObj);
+  if (result != SMR_NO_ERR) {
+    FATAL_ERROR("Failed while waiting for SNS SMGR service");
+  }
+
   // Note: giving nullptr for err_cb prevents this from degrading to a regular
   // QMI client if the service is not found.
   smr_err status = smr_client_init(
@@ -1377,6 +1379,11 @@ void PlatformSensor::init() {
       SNS_SMGR_INTERNAL_SVC_get_service_object_v02();
   if (smgrInternalSvcObj == nullptr) {
     FATAL_ERROR("Failed to obtain the SNS SMGR internal service instance");
+  }
+
+  result = getSmrHelper()->waitForService(smgrInternalSvcObj);
+  if (result != SMR_NO_ERR) {
+    FATAL_ERROR("Failed while waiting for SNS SMGR internal service");
   }
 
   status = smr_client_init(
