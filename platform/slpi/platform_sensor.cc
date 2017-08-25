@@ -69,6 +69,12 @@ extern "C" {
 //      all pending passive requests are made.
 //    - If a transition from presence-to-absence of other clients is deteted,
 //      all passive requests are removed if the merged mode is passive.
+//
+// Note that currently the sensor status monitor indication only supports
+// primary sensor status change. So for a secondary sensor that can be requested
+// without an accompanying primary sensor (Light), this design doesn't work.
+// In PlatformSensor::applyRequest(), a passive Light sensor request is
+// overridden to be an active one.
 
 namespace chre {
 namespace {
@@ -1462,14 +1468,27 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     // Adds a sensor monitor the first time this sensor is requested.
     addSensorMonitor(this->sensorId);
 
+    // As sensor status monior indication doesn't support secondary sensor
+    // status change, Light sensor (a secondary one) is always overridden to be
+    // requested with an active mode.
+    bool passiveLight = (getSensorType() == SensorType::Light
+                         && sensorModeIsPassive(request.getMode()));
+    if (passiveLight) {
+      LOGE("Passive request for Light sensor is not supported. "
+           "Overriding request to active");
+    }
+    SensorRequest localRequest(
+        passiveLight ? SensorMode::ActiveContinuous : request.getMode(),
+        request.getInterval(), request.getLatency());
+
     // Determines whether a (passive) request is allowed at this point.
-    bool requestAllowed = isRequestAllowed(getSensorType(), request);
+    bool requestAllowed = isRequestAllowed(getSensorType(), localRequest);
 
     // If request is not allowed, turn off the sensor. Otherwise, make request.
     SensorRequest offRequest;
-    success = makeRequest(getSensorType(), requestAllowed ? request : offRequest);
+    success = makeRequest(getSensorType(),
+                          requestAllowed ? localRequest : offRequest);
   }
-
   return success;
 }
 
