@@ -20,6 +20,7 @@
 #include "chre/core/static_nanoapps.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
+#include "chre/platform/slpi/uimg_util.h"
 
 /**
  * Initializes a static nanoapp that is based on the SLPI implementation of
@@ -43,6 +44,7 @@ UniquePtr<Nanoapp> initializeStaticNanoapp##appName() {        \
   appInfo.vendor = "Google"; /* TODO: make this configurable */\
   appInfo.name = #appName;                                     \
   appInfo.isSystemNanoapp = true;                              \
+  appInfo.isTcmNanoapp = isSlpiUimgSupported();                \
   appInfo.appId = appId_;                                      \
   appInfo.appVersion = appVersion_;                            \
   appInfo.entryPoints.start = nanoappStart;                    \
