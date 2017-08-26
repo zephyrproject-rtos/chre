@@ -42,11 +42,6 @@ class PowerControlManagerBase {
     */
   bool votePowerMode(sns_pm_img_mode_e mode);
 
-  /**
-   * @return true if SLPI is currently in micro-image mode.
-   */
-  bool slpiInUimgMode() const;
-
  protected:
   //! Client handle for the subscription to the power manager
   sns_pm_handle_t mClientHandle = nullptr;
