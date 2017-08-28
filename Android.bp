@@ -90,3 +90,7 @@ cc_library_headers {
         "external/flatbuffers/include",
     ],
 }
+
+subdirs = [
+    "apps/wifi_offload",
+]
