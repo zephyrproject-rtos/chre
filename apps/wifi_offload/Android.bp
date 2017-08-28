@@ -39,7 +39,14 @@ cc_library_static {
         "liblog",
         "libutils",
     ],
-    static_libs: ["chre_client"],
+    header_libs: [
+        "chre_flatbuffers",
+        "chre_api",
+    ],
+    export_header_lib_headers: [
+        "chre_flatbuffers",
+        "chre_api",
+    ],
     vendor: true,
     proprietary: true,
 }
