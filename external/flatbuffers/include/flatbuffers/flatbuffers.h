@@ -49,7 +49,7 @@
   // std::function) aren't strictly required, so setting it for now.
   #define FLATBUFFERS_CPP98_STL
 
-  #include "chre/platform/assert.h"
+  #include "chre/util/container_support.h"
   #include "chre/util/dynamic_vector.h"
   #include "chre/util/unique_ptr.h"
 
