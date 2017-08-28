@@ -44,6 +44,10 @@ TARGET_CFLAGS += -D'__QAIC_SKEL_EXPORT=__attribute__((visibility("default")))'
 # that any Qualcomm code needs it.
 TARGET_CFLAGS += -D__V_DYNAMIC__
 
+# This flag is used by some QC-supplied code to differentiate things intended to
+# run on Hexagon vs. other architectures
+TARGET_CFLAGS += -DQDSP6
+
 # Hexagon Shared Object Linker Flags ###########################################
 
 TARGET_SO_LDFLAGS += --gc-sections

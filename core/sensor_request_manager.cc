@@ -243,7 +243,7 @@ Sensor *SensorRequestManager::getSensor(SensorType sensorType) {
   if (sensorType == SensorType::Unknown
       || sensorType >= SensorType::SENSOR_TYPE_COUNT) {
     LOGW("Attempting to get Sensor of an invalid SensorType %d",
-         static_cast<size_t>(sensorType));
+         static_cast<int>(sensorType));
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     if (mSensorRequests[sensorIndex].sensor.has_value()) {

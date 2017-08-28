@@ -30,14 +30,15 @@ extern "C" {
 #include "chre/platform/slpi/smgr_client.h"
 #include "chre_api/chre/sensor.h"
 
-using chre::getSensorServiceQmiClientHandle;
+using chre::getSmrHelper;
+using chre::getSensorServiceSmrClientHandle;
+using chre::MakeUnique;
+using chre::MakeUniqueZeroFill;
 using chre::memoryAlloc;
 using chre::memoryFree;
+using chre::UniquePtr;
 
 namespace {
-
-//! The timeout for QMI messages in milliseconds.
-constexpr uint32_t kQmiTimeoutMs = 1000;
 
 //! The constant to convert magnetometer readings from uT in Android to Gauss
 //! in SMGR.
@@ -135,19 +136,18 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
     LOGE("Attempting to set calibration of sensor %" PRIu8, sensorType);
   } else {
     // Allocate request and response for sensor calibraton.
-    auto *calRequest = memoryAlloc<sns_smgr_sensor_cal_req_msg_v01>();
-    auto *calResponse = memoryAlloc<sns_smgr_sensor_cal_resp_msg_v01>();
-    if (calRequest == nullptr || calResponse == nullptr) {
+    auto calRequest = MakeUniqueZeroFill<sns_smgr_sensor_cal_req_msg_v01>();
+    auto calResponse = MakeUnique<sns_smgr_sensor_cal_resp_msg_v01>();
+    if (calRequest.isNull() || calResponse.isNull()) {
       LOGE("Failed to allocated sensor cal memory");
     } else {
-      populateCalRequest(sensorType, calInfo, calRequest);
+      populateCalRequest(sensorType, calInfo, calRequest.get());
 
-      qmi_client_error_type status = qmi_client_send_msg_sync(
-          getSensorServiceQmiClientHandle(), SNS_SMGR_CAL_REQ_V01,
-          calRequest, sizeof(*calRequest), calResponse, sizeof(*calResponse),
-          kQmiTimeoutMs);
+      smr_err status = getSmrHelper()->sendReqSync(
+          getSensorServiceSmrClientHandle(), SNS_SMGR_CAL_REQ_V01,
+          &calRequest, &calResponse);
 
-      if (status != QMI_NO_ERR) {
+      if (status != SMR_NO_ERR) {
         LOGE("Error setting sensor calibration: status %d", status);
       } else if (calResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
         LOGE("Setting sensor calibration failed with error: %" PRIu8,
@@ -156,8 +156,6 @@ bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
         success = true;
       }
     }
-    memoryFree(calRequest);
-    memoryFree(calResponse);
   }
   return success;
 }
