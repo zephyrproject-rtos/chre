@@ -42,6 +42,14 @@ inline bool slpiInUImage() {
   return (qurt_island_get_status() == 1);
 }
 
+/**
+ * @return true if the vote succeeds.
+ */
+inline bool slpiRemoveBigImageVote() {
+  return EventLoopManagerSingleton::get()->getEventLoop().
+      getPowerControlManager().votePowerMode(SNS_IMG_MODE_NOCLIENT);
+}
+
 } // namespace chre
 
 #endif // CHRE_PLATFORM_POWER_CONTROL_UTIL_H
