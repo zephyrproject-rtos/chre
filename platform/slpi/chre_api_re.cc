@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-#include <cinttypes>
-
+#include "ash/debug.h"
 #include "chre_api/chre/re.h"
-#include "chre/platform/log.h"
+#include "chre/util/macros.h"
 
-void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
-  char logBuf[512];
+DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
+  enum ashLogLevel ashLevel;
   va_list args;
-
-  va_start(args, formatStr);
-  vsnprintf(logBuf, sizeof(logBuf), formatStr, args);
-  va_end(args);
 
   switch (level) {
     case CHRE_LOG_ERROR:
-      LOGE("%s", logBuf);
+      ashLevel = ASH_LOG_ERROR;
       break;
     case CHRE_LOG_WARN:
-      LOGW("%s", logBuf);
+      ashLevel = ASH_LOG_WARN;
       break;
     case CHRE_LOG_INFO:
-      LOGI("%s", logBuf);
+      ashLevel = ASH_LOG_INFO;
       break;
     case CHRE_LOG_DEBUG:
     default:
-      LOGD("%s", logBuf);
+      ashLevel = ASH_LOG_DEBUG;
   }
+
+  va_start(args, formatStr);
+  ashVaLog(ASH_SOURCE_CHRE, ashLevel, formatStr, args);
+  va_end(args);
 }

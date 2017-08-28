@@ -36,6 +36,7 @@ HEXAGON_SRCS += platform/shared/platform_gnss.cc
 HEXAGON_SRCS += platform/shared/platform_wifi.cc
 HEXAGON_SRCS += platform/shared/platform_wwan.cc
 HEXAGON_SRCS += platform/shared/system_time.cc
+HEXAGON_SRCS += platform/slpi/chre_api_re.cc
 HEXAGON_SRCS += platform/slpi/fatal_error.cc
 HEXAGON_SRCS += platform/slpi/host_link.cc
 HEXAGON_SRCS += platform/slpi/init.cc
@@ -58,6 +59,7 @@ X86_CFLAGS += -Iplatform/linux/include
 
 # x86-specific Source Files ####################################################
 
+X86_SRCS += platform/linux/chre_api_re.cc
 X86_SRCS += platform/linux/context.cc
 X86_SRCS += platform/linux/fatal_error.cc
 X86_SRCS += platform/linux/host_link.cc
