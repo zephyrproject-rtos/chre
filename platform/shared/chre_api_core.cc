@@ -116,27 +116,3 @@ DLL_EXPORT void chreConfigureNanoappInfoEvents(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   nanoapp->configureNanoappInfoEvents(enable);
 }
-
-DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
-  char logBuf[512];
-  va_list args;
-
-  va_start(args, formatStr);
-  vsnprintf(logBuf, sizeof(logBuf), formatStr, args);
-  va_end(args);
-
-  switch (level) {
-    case CHRE_LOG_ERROR:
-      LOGE("%s", logBuf);
-      break;
-    case CHRE_LOG_WARN:
-      LOGW("%s", logBuf);
-      break;
-    case CHRE_LOG_INFO:
-      LOGI("%s", logBuf);
-      break;
-    case CHRE_LOG_DEBUG:
-    default:
-      LOGD("%s", logBuf);
-  }
-}
