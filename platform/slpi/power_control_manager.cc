@@ -16,12 +16,6 @@
 
 #include "chre/platform/power_control_manager.h"
 
-extern "C" {
-
-#include "qurt_island.h"
-
-} // extern "C"
-
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 
@@ -55,10 +49,6 @@ bool PowerControlManagerBase::votePowerMode(
 #else
   return true;
 #endif // CHRE_SLPI_UIMG_ENABLED
-}
-
-bool PowerControlManagerBase::slpiInUimgMode() const {
-  return (qurt_island_get_status() == 1);
 }
 
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
