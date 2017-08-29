@@ -14,14 +14,34 @@
  * limitations under the License.
  */
 
-#include "chre/platform/shared/platform_pal.h"
+#ifndef CHRE_PLATFORM_POWER_CONTROL_UTIL_H
+#define CHRE_PLATFORM_POWER_CONTROL_UTIL_H
 
-#include "chre/platform/slpi/power_control_util.h"
+extern "C" {
+
+#include "qurt_island.h"
+
+}  // extern "C"
+
+#include "chre/core/event_loop_manager.h"
 
 namespace chre {
 
-void PlatformPal::prePalApiCall() {
-  slpiForceBigImage();
+/**
+ * @return true if the vote succeeds.
+ */
+inline bool slpiForceBigImage() {
+  return EventLoopManagerSingleton::get()->getEventLoop().
+      getPowerControlManager().votePowerMode(SNS_IMG_MODE_BIG);
 }
 
-}  // namespace chre
+/**
+ * @return true if we're currently running in micro-image, aka island mode.
+ */
+inline bool slpiInUImage() {
+  return (qurt_island_get_status() == 1);
+}
+
+} // namespace chre
+
+#endif // CHRE_PLATFORM_POWER_CONTROL_UTIL_H

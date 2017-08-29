@@ -20,9 +20,9 @@
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
-#include "chre/platform/slpi/memory.h"
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
-#include "chre/target_platform/power_control_util.h"
+#include "chre/platform/slpi/memory.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
 

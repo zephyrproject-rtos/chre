@@ -14,21 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_POWER_CONTROL_UTIL_H
-#define CHRE_PLATFORM_POWER_CONTROL_UTIL_H
+#include "ash/debug.h"
+#include "chre_api/chre/re.h"
+#include "chre/util/macros.h"
 
-#include "chre/core/event_loop_manager.h"
+DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
+  enum ashLogLevel ashLevel;
+  va_list args;
 
-namespace chre {
+  switch (level) {
+    case CHRE_LOG_ERROR:
+      ashLevel = ASH_LOG_ERROR;
+      break;
+    case CHRE_LOG_WARN:
+      ashLevel = ASH_LOG_WARN;
+      break;
+    case CHRE_LOG_INFO:
+      ashLevel = ASH_LOG_INFO;
+      break;
+    case CHRE_LOG_DEBUG:
+    default:
+      ashLevel = ASH_LOG_DEBUG;
+  }
 
-/**
- * @return true if the vote succeeds.
- */
-inline bool slpiForceBigImage() {
-  return EventLoopManagerSingleton::get()->getEventLoop().
-      getPowerControlManager().votePowerMode(SNS_IMG_MODE_BIG);
+  va_start(args, formatStr);
+  ashVaLog(ASH_SOURCE_CHRE, ashLevel, formatStr, args);
+  va_end(args);
 }
-
-} // namespace chre
-
-#endif // CHRE_PLATFORM_POWER_CONTROL_UTIL_H
