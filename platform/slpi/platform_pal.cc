@@ -16,7 +16,7 @@
 
 #include "chre/platform/shared/platform_pal.h"
 
-#include "chre/target_platform/power_control_util.h"
+#include "chre/platform/slpi/power_control_util.h"
 
 namespace chre {
 
