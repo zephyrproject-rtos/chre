@@ -62,6 +62,12 @@ OUTPUT_NAME = $(NANOAPP_NAME)
 # Add the CHRE API to the include search path.
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/chre_api/include/chre_api
 
+# Allows a nanoapp to know that is compiled separately from the CHRE system.
+COMMON_CFLAGS += -DCHRE_IS_NANOAPP_BUILD
+
+# Compile FlatBuffers in a portable way
+COMMON_CFLAGS += -DFLATBUFFERS_CHRE
+
 # Variant-specific Nanoapp Support Source Files ################################
 
 APP_SUPPORT_PATH = $(CHRE_PREFIX)/build/app_support
