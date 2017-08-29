@@ -27,10 +27,19 @@
 #include "chre/util/time.h"
 
 #include <csignal>
+#include <tclap/CmdLine.h>
 #include <thread>
 
 using chre::EventLoopManagerSingleton;
 using chre::Milliseconds;
+
+//! A description of the simulator.
+constexpr char kSimDescription[] = "A simulation environment for the Context "
+                                   "Hub Runtime Environment (CHRE)";
+
+//! The version of the simulator. This is not super important but is assigned by
+//! rules of semantic versioning.
+constexpr char kSimVersion[] = "0.1.0";
 
 namespace {
 
@@ -42,21 +51,28 @@ extern "C" void signalHandler(int sig) {
 
 }
 
-int main() {
-  chre::PlatformLogSingleton::init();
-  chre::init();
+int main(int argc, char **argv) {
+  try {
+    TCLAP::CmdLine cmd(kSimDescription, ' ', kSimVersion);
+    cmd.parse(argc, argv);
 
-  // Register a signal handler.
-  std::signal(SIGINT, signalHandler);
+    // Initialize the system.
+    chre::PlatformLogSingleton::init();
+    chre::init();
 
-  // Load any static nanoapps and start the event loop.
-  std::thread chreThread([&]() {
-    chre::loadStaticNanoapps();
-    EventLoopManagerSingleton::get()->getEventLoop().run();
-  });
-  chreThread.join();
+    // Register a signal handler.
+    std::signal(SIGINT, signalHandler);
 
-  chre::deinit();
-  chre::PlatformLogSingleton::deinit();
+    // Load any static nanoapps and start the event loop.
+    std::thread chreThread([&]() {
+      chre::loadStaticNanoapps();
+      EventLoopManagerSingleton::get()->getEventLoop().run();
+    });
+    chreThread.join();
+
+    chre::deinit();
+    chre::PlatformLogSingleton::deinit();
+  } catch (TCLAP::ExitException) {}
+
   return 0;
 }

@@ -22,6 +22,12 @@ CHRE is compatible with Linux as a simulator.
 
 #### Linux Build/Run
 
+The simulator uses TCLAP for command-line argument parsing. It must be available
+on the system path of the simulator. Here is an example of how to install it for
+Ubuntu:
+
+    sudo apt-get install libtclap-dev
+
 The build target for x86 linux is ``google_x86_linux``. You can build/run the
 simulator with the following command:
 
