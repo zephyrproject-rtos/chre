@@ -15,15 +15,14 @@
  */
 
 #include "chre/core/event_loop.h"
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/timer_pool.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/system_time.h"
-#include "chre/util/lock_guard.h"
 
 namespace chre {
 
-TimerPool::TimerPool(EventLoop& eventLoop)
-    : mEventLoop(eventLoop) {
+TimerPool::TimerPool() {
   if (!mSystemTimer.init()) {
     FATAL_ERROR("Failed to initialize a system timer for the TimerPool");
   }
@@ -32,7 +31,6 @@ TimerPool::TimerPool(EventLoop& eventLoop)
 TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
     const void *cookie, bool isOneShot) {
   CHRE_ASSERT(nanoapp);
-  LockGuard<Mutex> lock(mMutex);
 
   TimerRequest timerRequest;
   timerRequest.nanoappInstanceId = nanoapp->getInstanceId();
@@ -67,7 +65,6 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
 
 bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
   CHRE_ASSERT(nanoapp);
-  LockGuard<Mutex> lock(mMutex);
 
   size_t index;
   bool success = false;
@@ -158,15 +155,6 @@ bool TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
   return success;
 }
 
-void TimerPool::onSystemTimerCallback() {
-  // Gain exclusive access to the timer pool. This is needed because the context
-  // of this callback is not defined.
-  LockGuard<Mutex> lock(mMutex);
-  if (!handleExpiredTimersAndScheduleNext()) {
-    LOGE("Timer callback invoked with no outstanding timers");
-  }
-}
-
 bool TimerPool::handleExpiredTimersAndScheduleNext() {
   bool success = false;
   while (!mTimerRequests.empty()) {
@@ -174,10 +162,9 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
     TimerRequest& currentTimerRequest = mTimerRequests.top();
     if (currentTime >= currentTimerRequest.expirationTime) {
       // Post an event for an expired timer.
-      success = mEventLoop.postEvent(CHRE_EVENT_TIMER,
-          const_cast<void *>(currentTimerRequest.cookie), nullptr,
-          kSystemInstanceId,
-          currentTimerRequest.nanoappInstanceId);
+      success = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+          CHRE_EVENT_TIMER, const_cast<void *>(currentTimerRequest.cookie),
+          nullptr, kSystemInstanceId, currentTimerRequest.nanoappInstanceId);
       if (!success) {
         FATAL_ERROR("Failed to post timer event");
       }
@@ -212,10 +199,18 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
 }
 
 void TimerPool::handleSystemTimerCallback(void *timerPoolPtr) {
-  // Cast the context pointer to a TimerPool context and call into the callback
-  // handler.
-  TimerPool *timerPool = static_cast<TimerPool *>(timerPoolPtr);
-  timerPool->onSystemTimerCallback();
+  auto callback = [](uint16_t /* eventType */, void *eventData) {
+    auto *timerPool = static_cast<TimerPool *>(eventData);
+    if (!timerPool->handleExpiredTimersAndScheduleNext()) {
+      LOGE("Timer callback invoked with no outstanding timers");
+    }
+  };
+
+  bool callbackDeferred = EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::TimerPoolTick, timerPoolPtr, callback);
+  if (!callbackDeferred) {
+    FATAL_ERROR("Failed to defer timer callback");
+  }
 }
 
 }  // namespace chre
