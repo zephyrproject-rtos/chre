@@ -24,16 +24,9 @@ extern "C" {
 }  // extern "C"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/slpi/uimg_util.h"
 
 namespace chre {
-
-/**
- * @return true if the vote succeeds.
- */
-inline bool slpiForceBigImage() {
-  return EventLoopManagerSingleton::get()->getEventLoop().
-      getPowerControlManager().votePowerMode(SNS_IMG_MODE_BIG);
-}
 
 /**
  * @return true if we're currently running in micro-image, aka island mode.
@@ -43,6 +36,22 @@ inline bool slpiInUImage() {
 }
 
 /**
+ * @return true if the successfully made a micro to big image transition.
+ */
+inline bool slpiForceBigImage() {
+  bool success = false;
+  if (isSlpiUimgSupported() && slpiInUImage()) {
+    success = EventLoopManagerSingleton::get()->getEventLoop().
+        getPowerControlManager().votePowerMode(SNS_IMG_MODE_BIG);
+  }
+
+  return success;
+}
+
+/**
+ * Removes a big image vote from CHRE. Should only be called when the system is
+ * idle.
+ *
  * @return true if the vote succeeds.
  */
 inline bool slpiRemoveBigImageVote() {
