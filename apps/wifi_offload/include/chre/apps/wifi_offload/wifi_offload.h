@@ -25,16 +25,11 @@
 #include <chre/re.h>
 #include <chre/version.h>
 
-#ifndef FLATBUFFERS_CHRE
-#define FLATBUFFERS_CHRE
-#endif  // FLATBUFFERS_CHRE
+#define LOG_TAG "[WifiOffload]"
 
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/nanoapp/log.h"
 #include "chre/util/unique_ptr.h"
-// TODO: (b/62868460) eventually should use "chre/util/nanoapp/log.h" instead
-#include "chre/platform/log.h"
-
-#define LOG_TAG "[WifiOffload]"
 
 #undef LOGE
 #undef LOGW
