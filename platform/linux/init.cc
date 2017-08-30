@@ -53,7 +53,12 @@ extern "C" void signalHandler(int sig) {
 
 int main(int argc, char **argv) {
   try {
+    // Parse command-line arguments.
     TCLAP::CmdLine cmd(kSimDescription, ' ', kSimVersion);
+    TCLAP::SwitchArg no_static_nanoapps_arg("", "no_static_nanoapps",
+        "disable running static nanoapps", cmd, false);
+    TCLAP::MultiArg<std::string> nanoapps_arg("", "nanoapp",
+        "a nanoapp shared object to load and execute", false, "path", cmd);
     cmd.parse(argc, argv);
 
     // Initialize the system.
@@ -65,7 +70,20 @@ int main(int argc, char **argv) {
 
     // Load any static nanoapps and start the event loop.
     std::thread chreThread([&]() {
-      chre::loadStaticNanoapps();
+      // Load static nanoapps unless they are disabled by a command-line flag.
+      if (!no_static_nanoapps_arg.getValue()) {
+        chre::loadStaticNanoapps();
+      }
+
+      // Load dynamic nanoapps specified on the command-line.
+      chre::DynamicVector<chre::UniquePtr<chre::Nanoapp>> dynamicNanoapps;
+      for (const auto& nanoapp : nanoapps_arg.getValue()) {
+        dynamicNanoapps.push_back(chre::MakeUnique<chre::Nanoapp>());
+        dynamicNanoapps.back()->loadFromFile(nanoapp);
+        EventLoopManagerSingleton::get()->getEventLoop()
+            .startNanoapp(dynamicNanoapps.back());
+      }
+
       EventLoopManagerSingleton::get()->getEventLoop().run();
     });
     chreThread.join();
