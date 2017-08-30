@@ -153,9 +153,13 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
 bool enqueueMessage(PendingMessage message) {
   // Vote for big image temporarily when waking up the main thread waiting for
   // the message
-  slpiForceBigImage();
+  bool voteSuccess = slpiForceBigImage();
   bool success = gOutboundQueue.push(message);
-  slpiRemoveBigImageVote();
+
+  // Remove the vote only if we successfully made a big image transition
+  if (voteSuccess) {
+    slpiRemoveBigImageVote();
+  }
 
   return success;
 }

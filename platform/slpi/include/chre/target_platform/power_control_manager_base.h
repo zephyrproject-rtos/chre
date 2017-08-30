@@ -33,8 +33,7 @@ class PowerControlManagerBase {
   ~PowerControlManagerBase();
 
   /**
-    * Votes for a power mode to the SLPI power manager. Should only be called
-    * from the context of the main CHRE thread.
+    * Votes for a power mode to the SLPI power manager.
     *
     * @param mode The power mode to vote for.
     *

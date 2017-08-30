@@ -18,6 +18,7 @@
 
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/slpi/power_control_util.h"
 
 namespace chre {
 
@@ -45,6 +46,7 @@ bool PowerControlManagerBase::votePowerMode(
   if (result != SNS_PM_SUCCESS) {
     LOGE("Failed to vote for power mode %d with result %d", mode, result);
   }
+
   return (result == SNS_PM_SUCCESS);
 #else
   return true;
@@ -52,7 +54,7 @@ bool PowerControlManagerBase::votePowerMode(
 }
 
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
-  if (numPendingEvents == 0) {
+  if (numPendingEvents == 0 && !slpiInUImage()) {
     votePowerMode(SNS_IMG_MODE_NOCLIENT);
   }
 }
