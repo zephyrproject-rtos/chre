@@ -52,6 +52,16 @@ class UniquePtr : public NonCopyable {
   UniquePtr(UniquePtr<ObjectType>&& other);
 
   /**
+   * Constructs a new UniquePtr via moving the Object from another UniquePtr.
+   * This constructor allows conversion (ie: upcast) to another type if
+   * possible.
+   *
+   * @param other UniquePtr instance to move and convert into this object.
+   */
+  template<typename OtherObjectType>
+  UniquePtr(UniquePtr<OtherObjectType>&& other);
+
+  /**
    * Deconstructs the object (if necessary) and releases associated memory.
    */
   ~UniquePtr();
@@ -105,6 +115,11 @@ class UniquePtr : public NonCopyable {
   UniquePtr<ObjectType>& operator=(UniquePtr<ObjectType>&& other);
 
  private:
+  // Befriend this class to itself to allow the templated conversion constructor
+  // permission to access mObject below.
+  template<typename OtherObjectType>
+  friend class UniquePtr;
+
   //! A pointer to the underlying storage for this object.
   ObjectType *mObject;
 };
