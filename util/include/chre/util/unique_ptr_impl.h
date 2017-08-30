@@ -38,6 +38,13 @@ UniquePtr<ObjectType>::UniquePtr(UniquePtr<ObjectType>&& other) {
 }
 
 template<typename ObjectType>
+template<typename OtherObjectType>
+UniquePtr<ObjectType>::UniquePtr(UniquePtr<OtherObjectType>&& other) {
+  mObject = other.mObject;
+  other.mObject = nullptr;
+}
+
+template<typename ObjectType>
 UniquePtr<ObjectType>::~UniquePtr() {
   if (mObject != nullptr) {
     mObject->~ObjectType();
