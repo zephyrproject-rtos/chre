@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "chre/platform/memory.h"
+#include "chre/util/memory.h"
 
 namespace chre {
 
