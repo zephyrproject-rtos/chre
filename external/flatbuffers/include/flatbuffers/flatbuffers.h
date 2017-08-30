@@ -593,7 +593,7 @@ class vector_downward {
 
   uoffset_t size() const {
     assert(cur_ != nullptr && buf_ != nullptr);
-    return static_cast<uoffset_t>(reserved_ - (cur_ - buf_));
+    return static_cast<uoffset_t>(reserved_ - static_cast<size_t>(cur_ - buf_));
   }
 
   uint8_t *data() const {
