@@ -35,7 +35,7 @@ TARGET_CFLAGS += $(GOOGLE_X86_GOOGLETEST_CFLAGS)
 TARGET_BUILD_BIN = true
 
 # Link in libraries for the final executable.
-TARGET_BIN_LDFLAGS += -lrt
+TARGET_BIN_LDFLAGS += -lrt -ldl
 TARGET_BIN_LDFLAGS += -lpthread
 
 include $(CHRE_PREFIX)/build/build_template.mk
