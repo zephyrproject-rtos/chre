@@ -18,8 +18,9 @@
 
 #include "chre_api/chre/re.h"
 #include "chre/platform/log.h"
+#include "chre/util/macros.h"
 
-void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
+DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
   char logBuf[512];
   va_list args;
 
