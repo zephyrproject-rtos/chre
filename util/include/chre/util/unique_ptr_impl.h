@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "chre/platform/memory.h"
+#include "chre/util/memory.h"
 
 namespace chre {
 
@@ -33,6 +33,13 @@ UniquePtr<ObjectType>::UniquePtr(ObjectType *object) : mObject(object) {}
 
 template<typename ObjectType>
 UniquePtr<ObjectType>::UniquePtr(UniquePtr<ObjectType>&& other) {
+  mObject = other.mObject;
+  other.mObject = nullptr;
+}
+
+template<typename ObjectType>
+template<typename OtherObjectType>
+UniquePtr<ObjectType>::UniquePtr(UniquePtr<OtherObjectType>&& other) {
   mObject = other.mObject;
   other.mObject = nullptr;
 }

@@ -25,6 +25,7 @@
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/system_time.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
@@ -142,6 +143,24 @@ int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
 }
 
 /**
+ * Wrapper function to enqueue a message on the outbound message queue. All
+ * outgoing message to the host must be called through this function.
+ *
+ * @param message The message to send to host.
+ *
+ * @return true if the message was successfully added to the queue.
+ */
+bool enqueueMessage(PendingMessage message) {
+  // Vote for big image temporarily when waking up the main thread waiting for
+  // the message
+  slpiForceBigImage();
+  bool success = gOutboundQueue.push(message);
+  slpiRemoveBigImageVote();
+
+  return success;
+}
+
+/**
  * Helper function that takes care of the boilerplate for allocating a
  * FlatBufferBuilder on the heap and adding it to the outbound message queue.
  *
@@ -169,7 +188,7 @@ bool buildAndEnqueueMessage(PendingMessageType msgType,
 
     // TODO: if this fails, ideally we should block for some timeout until
     // there's space in the queue
-    if (!gOutboundQueue.push(PendingMessage(msgType, builder.get()))) {
+    if (!enqueueMessage(PendingMessage(msgType, builder.get()))) {
       LOGE("Couldn't push message type %d to outbound queue",
            static_cast<int>(msgType));
     } else {
@@ -511,7 +530,7 @@ void HostLink::flushMessagesSentByNanoapp(uint64_t /*appId*/) {
 }
 
 bool HostLink::sendMessage(const MessageToHost *message) {
-  return gOutboundQueue.push(
+  return enqueueMessage(
       PendingMessage(PendingMessageType::NanoappMessageToHost, message));
 }
 
@@ -535,7 +554,7 @@ void HostLinkBase::shutdown() {
   // a state where it's not blocked in chre_slpi_get_message_to_host().
   int retryCount = 5;
   FARF(MEDIUM, "Shutting down host link");
-  while (!gOutboundQueue.push(PendingMessage(PendingMessageType::Shutdown))
+  while (!enqueueMessage(PendingMessage(PendingMessageType::Shutdown))
          && --retryCount > 0) {
     qurt_timer_sleep(kPollingIntervalUsec);
   }
@@ -567,7 +586,7 @@ void sendTimeSyncRequest() {
 }
 
 void requestHostLinkLogBufferFlush() {
-  if (!gOutboundQueue.push(PendingMessage(PendingMessageType::LogMessage))) {
+  if (!enqueueMessage(PendingMessage(PendingMessageType::LogMessage))) {
     // Use FARF as there is a problem sending logs to the host.
     FARF(ERROR, "Failed to enqueue log flush");
     CHRE_ASSERT(false);
@@ -590,7 +609,7 @@ void HostMessageHandlers::handleNanoappMessage(
 void HostMessageHandlers::handleHubInfoRequest(uint16_t hostClientId) {
   // We generate the response in the context of chre_slpi_get_message_to_host
   LOGD("Got hub info request from client ID %" PRIu16, hostClientId);
-  gOutboundQueue.push(PendingMessage(
+  enqueueMessage(PendingMessage(
       PendingMessageType::HubInfoResponse, hostClientId));
 }
 

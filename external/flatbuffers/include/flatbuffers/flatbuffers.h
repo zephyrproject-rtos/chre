@@ -49,7 +49,7 @@
   // std::function) aren't strictly required, so setting it for now.
   #define FLATBUFFERS_CPP98_STL
 
-  #include "chre/platform/assert.h"
+  #include "chre/util/container_support.h"
   #include "chre/util/dynamic_vector.h"
   #include "chre/util/unique_ptr.h"
 
@@ -593,7 +593,7 @@ class vector_downward {
 
   uoffset_t size() const {
     assert(cur_ != nullptr && buf_ != nullptr);
-    return static_cast<uoffset_t>(reserved_ - (cur_ - buf_));
+    return static_cast<uoffset_t>(reserved_ - static_cast<size_t>(cur_ - buf_));
   }
 
   uint8_t *data() const {

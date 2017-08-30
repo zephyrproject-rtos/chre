@@ -62,6 +62,23 @@ OUTPUT_NAME = $(NANOAPP_NAME)
 # Add the CHRE API to the include search path.
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/chre_api/include/chre_api
 
+# Add util and platform/shared to the include search path.
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/util/include
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/platform/shared/include
+
+# Allows a nanoapp to know that is compiled separately from the CHRE system.
+COMMON_CFLAGS += -DCHRE_IS_NANOAPP_BUILD
+
+# Compile FlatBuffers in a portable way.
+COMMON_CFLAGS += -DFLATBUFFERS_CHRE
+
+# Nanoapp configuration flags.
+COMMON_CFLAGS += -DNANOAPP_ID=$(NANOAPP_ID)
+COMMON_CFLAGS += -DNANOAPP_VERSION=$(NANOAPP_VERSION)
+COMMON_CFLAGS += -DNANOAPP_VENDOR_STRING=$(NANOAPP_VENDOR_STRING)
+COMMON_CFLAGS += -DNANOAPP_NAME_STRING=$(NANOAPP_NAME_STRING)
+COMMON_CFLAGS += -DNANOAPP_IS_SYSTEM_NANOAPP=$(NANOAPP_IS_SYSTEM_NANOAPP)
+
 # Variant-specific Nanoapp Support Source Files ################################
 
 APP_SUPPORT_PATH = $(CHRE_PREFIX)/build/app_support
@@ -70,6 +87,7 @@ DSO_SUPPORT_LIB_PATH = $(CHRE_PREFIX)/platform/shared/nanoapp
 GOOGLE_HEXAGONV60_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 GOOGLE_HEXAGONV62_SLPI_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 GOOGLE_HEXAGONV62_SLPI-UIMG_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
+GOOGLE_X86_LINUX_SRCS += $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.c
 QCOM_HEXAGONV60_NANOHUB_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support.cc
 QCOM_HEXAGONV60_NANOHUB-UIMG_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_support_uimg.cc
 

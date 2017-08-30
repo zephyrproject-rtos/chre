@@ -21,8 +21,7 @@
 #include <new>
 #include <utility>
 
-#include "chre/platform/assert.h"
-#include "chre/platform/memory.h"
+#include "chre/util/container_support.h"
 #include "chre/util/memory.h"
 
 namespace chre {
