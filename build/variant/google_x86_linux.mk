@@ -26,8 +26,9 @@ else
 # Instruct the build to link a final executable.
 TARGET_BUILD_BIN = true
 
-# Link in libraries for the final executable.
-TARGET_BIN_LDFLAGS += -lrt
+# Link in libraries for the final executable and export symbols to dynamically
+# loaded objects.
+TARGET_BIN_LDFLAGS += -lrt -ldl -Wl,--export-dynamic
 endif
 
 include $(CHRE_PREFIX)/build/arch/x86.mk
