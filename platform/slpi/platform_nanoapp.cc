@@ -47,7 +47,7 @@ bool PlatformNanoapp::start() {
     slpiForceBigImage();
   }
 
-  return openNanoapp() ? mAppInfo->entryPoints.start() : false;
+  return openNanoapp() && mAppInfo->entryPoints.start();
 }
 
 void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
@@ -117,10 +117,8 @@ bool PlatformNanoappBase::isUimgApp() const {
 
 void PlatformNanoappBase::closeNanoapp() {
   if (mDsoHandle != nullptr) {
-    mAppInfo = nullptr;
     if (dlclose(mDsoHandle) != 0) {
-      const char *name = (mAppInfo != nullptr) ? mAppInfo->name : "unknown";
-      LOGE("dlclose of %s failed: %s", name, dlerror());
+      LOGE("dlclose failed: %s", dlerror());
     }
     mDsoHandle = nullptr;
   }
