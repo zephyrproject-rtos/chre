@@ -415,8 +415,13 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
 
 void WifiRequestManager::handleScanResponseSync(bool pending,
                                                 uint8_t errorCode) {
-  CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
-                  "handleScanResponseSync called with no outstanding request");
+  // TODO(b/65206783): re-enable this assertion
+  //CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
+  //                "handleScanResponseSync called with no outstanding request");
+  if (!mScanRequestingNanoappInstanceId.has_value()) {
+    LOGE("handleScanResponseSync called with no outstanding request");
+  }
+
   if (mScanRequestingNanoappInstanceId.has_value()) {
     bool success = (pending && errorCode == CHRE_ERROR_NONE);
     postScanRequestAsyncResultEventFatal(*mScanRequestingNanoappInstanceId,
