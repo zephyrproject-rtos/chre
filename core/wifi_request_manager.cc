@@ -422,8 +422,18 @@ void WifiRequestManager::handleScanResponseSync(bool pending,
     LOGE("handleScanResponseSync called with no outstanding request");
   }
 
+  // TODO: raise this to CHRE_ASSERT_LOG
+  if (!pending && errorCode == CHRE_ERROR_NONE) {
+    LOGE("Invalid wifi scan response");
+    errorCode = CHRE_ERROR;
+  }
+
   if (mScanRequestingNanoappInstanceId.has_value()) {
     bool success = (pending && errorCode == CHRE_ERROR_NONE);
+    if (!success) {
+      LOGW("Wifi scan request failed: pending %d, errorCode %" PRIu8,
+           pending, errorCode);
+    }
     postScanRequestAsyncResultEventFatal(*mScanRequestingNanoappInstanceId,
                                          success, errorCode,
                                          mScanRequestingNanoappCookie);
