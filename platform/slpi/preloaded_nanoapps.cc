@@ -36,12 +36,12 @@ void loadPreloadedNanoapps(EventLoop *eventLoop) {
     UniquePtr<Nanoapp> nanoapp;
   };
 
-  // These nanoapps will be delivered via GMS Core in a future GMS release, but
-  // are pre-loaded for now.
+  // The list of nanoapps to be loaded from the filesystem of the device.
   // TODO: allow these to be overridden by target-specific build configuration
   static PreloadedNanoappDescriptor preloadedNanoapps[] = {
     { 0x476f6f676c00100b, "activity.so", MakeUnique<Nanoapp>() },
     { 0x476f6f676c001004, "geofence.so", MakeUnique<Nanoapp>() },
+    { 0x476f6f676c00100c, "wifi_offload.so", MakeUnique<Nanoapp>() },
   };
 
   for (size_t i = 0; i < ARRAY_SIZE(preloadedNanoapps); i++) {

@@ -20,6 +20,7 @@
 
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
@@ -91,6 +92,9 @@ bool SmrHelper::sendReqSyncUntyped(
   LockGuard<Mutex> lock(mMutex);
   CHRE_ASSERT(!mWaiting);
   bool waitSuccess = true;
+
+  // Force big image since smr_client_send_req is not supported in micro-image
+  slpiForceBigImage();
 
   // Note that null txn_handle means we can't abandon the transaction, but it's
   // only supported for QMI (non-SMR) services, and we don't expect that anyway.

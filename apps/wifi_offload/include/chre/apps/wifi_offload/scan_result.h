@@ -17,10 +17,12 @@
 #ifndef CHRE_WIFI_OFFLOAD_SCAN_RESULT_H_
 #define CHRE_WIFI_OFFLOAD_SCAN_RESULT_H_
 
+// First to pickup the LOG_TAG
+#include "chre/apps/wifi_offload/wifi_offload.h"
+
 #include "chre/apps/wifi_offload/flatbuffers_types_generated.h"
 #include "chre/apps/wifi_offload/preferred_network.h"
 #include "chre/apps/wifi_offload/ssid.h"
-#include "chre/apps/wifi_offload/wifi_offload.h"
 
 namespace wifi_offload {
 

@@ -413,8 +413,13 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
 
 void WifiRequestManager::handleScanResponseSync(bool pending,
                                                 uint8_t errorCode) {
-  CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
-                  "handleScanResponseSync called with no outstanding request");
+  // TODO(b/65206783): re-enable this assertion
+  //CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
+  //                "handleScanResponseSync called with no outstanding request");
+  if (!mScanRequestingNanoappInstanceId.has_value()) {
+    LOGE("handleScanResponseSync called with no outstanding request");
+  }
+
   if (mScanRequestingNanoappInstanceId.has_value()) {
     bool success = (pending && errorCode == CHRE_ERROR_NONE);
     postScanRequestAsyncResultEventFatal(*mScanRequestingNanoappInstanceId,
@@ -455,23 +460,24 @@ void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
       mScanEventResultCountAccumulator = 0;
       mScanRequestResultsArePending = false;
     }
+
+    if (!mScanRequestResultsArePending
+        && mScanRequestingNanoappInstanceId.has_value()) {
+      Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+          .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
+      if (nanoapp == nullptr) {
+        CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
+                        "WiFi scan events");
+      } else if (!nanoappHasScanMonitorRequest(
+          *mScanRequestingNanoappInstanceId)) {
+        nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
+      }
+
+      mScanRequestingNanoappInstanceId.reset();
+    }
   }
 
   mPlatformWifi.releaseScanEvent(scanEvent);
-
-  if (!mScanRequestResultsArePending
-      && mScanRequestingNanoappInstanceId.has_value()) {
-    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
-        .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
-    if (nanoapp == nullptr) {
-      CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
-                      "WiFi scan events");
-    } else if (!nanoappHasScanMonitorRequest(*mScanRequestingNanoappInstanceId)) {
-      nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
-    }
-
-    mScanRequestingNanoappInstanceId.reset();
-  }
 }
 
 void WifiRequestManager::freeWifiScanEventCallback(uint16_t eventType,
