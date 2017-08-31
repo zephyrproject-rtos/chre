@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-#include "chre/core/memory_manager.h"
+#include "chre/platform/memory_manager.h"
+
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
-
-MemoryManager::MemoryManager()
-    : mTotalAllocatedBytes(0), mAllocationCount(0) {}
 
 void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
   AllocHeader *header = nullptr;
@@ -33,7 +31,7 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
            ": not enough space.", app->getInstanceId());
     } else {
       header = static_cast<AllocHeader*>(
-          chre::memoryAlloc(sizeof(AllocHeader) + bytes));
+          doAlloc(app, sizeof(AllocHeader) + bytes));
 
       if (header != nullptr) {
         mTotalAllocatedBytes += bytes;
@@ -47,7 +45,7 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
   return header;
 }
 
-void MemoryManager::nanoappFree(void *ptr) {
+void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
   if (ptr != nullptr) {
     AllocHeader *header = static_cast<AllocHeader*>(ptr);
     header--;
@@ -61,7 +59,7 @@ void MemoryManager::nanoappFree(void *ptr) {
       mAllocationCount--;
     }
 
-    memoryFree(header);
+    doFree(app, header);
   }
 }
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_CORE_MEMORY_MANAGER_H_
-#define CHRE_CORE_MEMORY_MANAGER_H_
+#ifndef CHRE_PLATFORM_MEMORY_MANAGER_H_
+#define CHRE_PLATFORM_MEMORY_MANAGER_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -28,30 +28,27 @@ namespace chre {
 /**
  * The MemoryManager keeps track of heap memory allocated/deallocated by all
  * nanoapps.
- * TODO: Free memory space when nanoapps are unloaded.
- * TODO: Move this implementation to platform-specific code area.
  *
+ * TODO: Free memory space when nanoapps are unloaded.
  */
 class MemoryManager : public NonCopyable {
  public:
   /**
-   * Initializes a MemoryManager.
-   */
-  MemoryManager();
-
-  /**
    * Allocate heap memory in CHRE.
+   *
+   * @param app The pointer to the nanoapp requesting memory.
    * @param bytes The size in bytes to allocate.
-   * @param app Pointer to the nanoapp requesting memory.
    * @return the allocated memory pointer. nullptr if the allocation fails.
    */
   void *nanoappAlloc(Nanoapp *app, uint32_t bytes);
 
   /**
    * Free heap memory in CHRE.
+   *
+   * @param app The pointer to the nanoapp requesting memory free.
    * @param ptr The pointer to the memory to deallocate.
    */
-  void nanoappFree(void *ptr);
+  void nanoappFree(Nanoapp *app, void *ptr);
 
   /**
    * @return current total allocated memory in bytes.
@@ -113,18 +110,32 @@ class MemoryManager : public NonCopyable {
   };
 
   //! Stores total allocated memory in bytes (not including header).
-  size_t mTotalAllocatedBytes;
+  size_t mTotalAllocatedBytes = 0;
 
   //! Stores total number of allocated memory spaces.
-  size_t mAllocationCount;
+  size_t mAllocationCount = 0;
 
   //! The maximum allowable total allocated memory in bytes for all nanoapps.
   static constexpr size_t kMaxAllocationBytes = (128 * 1024);
 
   //! The maximum allowable count of memory allocations for all nanoapps.
   static constexpr size_t kMaxAllocationCount = (8 * 1024);
+
+  /**
+   * Called by nanoappAlloc to perform the appropriate call to memory alloc.
+   *
+   * The semantics are the same as nanoappAlloc.
+   */
+  void *doAlloc(Nanoapp *app, uint32_t size);
+
+  /**
+   * Called by nanoappFree to perform the appropriate call to memory free.
+   *
+   * The sematics are the same as nanoappFree.
+   */
+  void doFree(Nanoapp *app, void *ptr);
 };
 
 }  // namespace chre
 
-#endif  // CHRE_CORE_MEMORY_MANAGER_H_
+#endif  // CHRE_PLATFORM_MEMORY_MANAGER_H_

@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/core/memory_manager.h"
+#include "chre/platform/memory_manager.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/log.h"
 
@@ -41,14 +41,15 @@ TEST(MemoryManager, BasicAllocationFree) {
   EXPECT_NE(ptr, nullptr);
   EXPECT_EQ(manager.getTotalAllocatedBytes(), 1);
   EXPECT_EQ(manager.getAllocationCount(), 1);
-  manager.nanoappFree(ptr);
+  manager.nanoappFree(&app, ptr);
   EXPECT_EQ(manager.getTotalAllocatedBytes(), 0);
   EXPECT_EQ(manager.getAllocationCount(), 0);
 }
 
 TEST(MemoryManager, NullPointerFree) {
   MemoryManager manager;
-  manager.nanoappFree(nullptr);
+  Nanoapp app;
+  manager.nanoappFree(&app, nullptr);
   EXPECT_EQ(manager.getTotalAllocatedBytes(), 0);
   EXPECT_EQ(manager.getAllocationCount(), 0);
 }
@@ -89,7 +90,7 @@ TEST(MemoryManager, ManyAllocationsTest) {
   curr = head;
   for (size_t i = 0; i < maxCount; i++) {
     node *temp = curr->next;
-    manager.nanoappFree(curr);
+    manager.nanoappFree(&app, curr);
     curr = temp;
   }
   EXPECT_EQ(manager.getTotalAllocatedBytes(), 0);
