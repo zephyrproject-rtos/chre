@@ -243,11 +243,11 @@ class EventLoop : public NonCopyable {
 
  private:
   //! The maximum number of events that can be active in the system.
-  static constexpr size_t kMaxEventCount = 256;
+  static constexpr size_t kMaxEventCount = 96;
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.
-  static constexpr size_t kMaxUnscheduledEventCount = 256;
+  static constexpr size_t kMaxUnscheduledEventCount = 96;
 
   //! The memory pool to allocate incoming events from.
   SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
@@ -282,6 +282,9 @@ class EventLoop : public NonCopyable {
 
   //! The object which manages power related controls.
   PowerControlManager mPowerControlManager;
+
+  //! The maximum number of events ever waiting in the event pool.
+  size_t mMaxEventPoolUsage = 0;
 
   /**
    * Do one round of Nanoapp event delivery, only considering events in
