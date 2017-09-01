@@ -57,16 +57,6 @@
 
 namespace nano_calibration {
 
-// TODO: Clean up, unifying constexpr variables location.
-// Indicates and invalid sensor temperature.
-constexpr float kInvalidTemperatureCelsius = -274.0f;
-
-// The mathematical constant, Pi.
-constexpr float kPi = 3.141592653589793238f;
-
-// Unit conversion from nanoseconds to microseconds.
-constexpr float kNanoToMicroseconds = 1e-3f;
-
 // Data struct for sample rate estimate fuction. Visible for the class in order
 // to allow usage in all algorithms.
 struct SampleRateData {
@@ -155,6 +145,9 @@ class NanoSensorCal {
 #ifdef GYRO_CAL_ENABLED
   // Gyroscope runtime calibration.
   struct GyroCal gyro_cal_;
+
+  // Used to limit the rate of gyro debug notification messages.
+  uint64_t gyro_notification_time_check_ = 0;
 #ifdef OVERTEMPCAL_GYRO_ENABLED
   // Gyroscope over-temperature runtime calibration.
   struct OverTempCal over_temp_gyro_cal_;
@@ -171,9 +164,6 @@ class NanoSensorCal {
 #endif  // SPHERE_FIT_ENABLED
 #endif  // MAG_CAL_ENABLED
 
-  // Used to limit the rate of gyro debug notification messages.
-  uint64_t gyro_notification_time_check_ = 0;
-
   // Flag to indicate whether the NanoSensorCal object has been initialized.
   bool nanosensorcal_initialized_ = false;
 
@@ -183,7 +173,7 @@ class NanoSensorCal {
   mutable bool mag_calibration_ready_ = false;
 
   // Sensor temperature.
-  float temperature_celsius_ = kInvalidTemperatureCelsius;
+  float temperature_celsius_;
 
   // Sensor calibration parameter containers.
   struct ashCalParams accel_cal_params_;
