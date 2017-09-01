@@ -112,7 +112,7 @@ bool PlatformNanoappBase::isLoaded() const {
 }
 
 bool PlatformNanoappBase::isUimgApp() const {
-  return (mAppInfo != nullptr) ? mAppInfo->isTcmNanoapp : false;
+  return mIsUimgApp;
 }
 
 void PlatformNanoappBase::closeNanoapp() {
@@ -135,6 +135,12 @@ bool PlatformNanoappBase::openNanoapp() {
     success = openNanoappFromBuffer();
   } else {
     CHRE_ASSERT(false);
+  }
+
+  // Save this flag locally since it may be referenced while the system is in
+  // micro-image
+  if (mAppInfo != nullptr) {
+    mIsUimgApp = mAppInfo->isTcmNanoapp;
   }
 
   return success;
