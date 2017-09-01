@@ -105,6 +105,9 @@ class PlatformNanoappBase {
   //! applicable.
   bool mIsStatic = false;
 
+  //! True if the nanoapp runs in micro-image.
+  bool mIsUimgApp = false;
+
   /**
    * Calls through to openNanoappFromBuffer or openNanoappFromFile, depending on
    * how this nanoapp was loaded.
