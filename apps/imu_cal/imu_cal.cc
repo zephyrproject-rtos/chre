@@ -64,7 +64,7 @@ SensorState sensors[] = {
   [SENSOR_INDEX_TEMP] = {
     .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
     .enable = true,
-    .interval = Seconds(1).toRawNanoseconds(),
+    .interval = Milliseconds(500).toRawNanoseconds(),
     .highPerformanceLatency = 0,
     // TODO(b/63908396): this sensor should be disabled in stand-by mode
     .standByLatency = Seconds(60).toRawNanoseconds(),
