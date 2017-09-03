@@ -24,6 +24,7 @@
 
 #include "calibration/util/cal_log.h"
 #include "chre/util/nanoapp/log.h"
+#include "common/math/macros.h"
 
 namespace nano_calibration {
 
@@ -56,14 +57,21 @@ namespace {
   chreLogNull(format, ##__VA_ARGS__)
 #endif  // NANO_SENSOR_CAL_DBG_ENABLED
 
+// Indicates and invalid sensor temperature.
+constexpr float kInvalidTemperatureCelsius = -274.0f;
+
+#ifdef GYRO_CAL_ENABLED
 // Limits NanoSensorCal gyro notifications to once every minute.
-constexpr uint64_t kNanoSensorCalMessageIntervalNanos = 60e9;
+constexpr uint64_t kNanoSensorCalMessageIntervalNanos = MIN_TO_NANOS(1);
+#endif  // GYRO_CAL_ENABLED
+
+#ifdef MAG_CAL_ENABLED
+// Unit conversion from nanoseconds to microseconds.
+constexpr float kNanoToMicroseconds = 1e-3f;
+#endif  // MAG_CAL_ENABLED
 
 #ifdef SPHERE_FIT_ENABLED
 constexpr size_t kSamplesToAverageForOdrEstimateMag = 10;
-
-// Unit conversion: nanoseconds to seconds.
-constexpr float kNanosToSec = 1.0e-9f;
 
 // Helper function that estimates the ODR based on the incoming data timestamp.
 void SamplingRateEstimate(struct SampleRateData *sample_rate_data,
@@ -79,7 +87,7 @@ void SamplingRateEstimate(struct SampleRateData *sample_rate_data,
       *mean_sampling_rate_hz =
           sample_rate_data->num_samples /
           (static_cast<float>(sample_rate_data->time_delta_accumulator) *
-           kNanosToSec);
+           NANOS_TO_SEC);
     } else {
       // Not enough samples to compute a valid sample rate estimate. Indicate
       // this with a -1 value.
@@ -296,6 +304,9 @@ NanoSensorCal::NanoSensorCal() {
   ResetCalParams(&accel_cal_params_);
   ResetCalParams(&gyro_cal_params_);
   ResetCalParams(&mag_cal_params_);
+
+  // Initializes sensor temperature.
+  temperature_celsius_ = kInvalidTemperatureCelsius;
 }
 
 void NanoSensorCal::Initialize() {
@@ -323,21 +334,25 @@ void NanoSensorCal::Initialize() {
   // Initializes the gyroscope offset calibration algorithm.
   gyroCalInit(
       &gyro_cal_,
-      1.4e9,                    // min stillness period = 1.4 seconds
-      1.5e9,                    // max stillness period = 1.5 seconds
-      0, 0, 0,                  // initial bias offset calibration
-      0,                        // time stamp of initial bias calibration
-      0.5e9f,                   // analysis window length = 0.5 seconds
-      3.0e-5f,                  // gyroscope variance threshold [rad/sec]^2
-      3.0e-6f,                  // gyroscope confidence delta [rad/sec]^2
-      9.0e-3f,                  // accelerometer variance threshold [m/sec^2]^2
-      9.0e-4f,                  // accelerometer confidence delta [m/sec^2]^2
-      5.0f,                     // magnetometer variance threshold [uT]^2
-      1.0f,                     // magnetometer confidence delta [uT]^2
-      0.95f,                    // stillness threshold [0,1]
-      60.0f * kPi / 180.0f,     // stillness mean variation limit [rad/sec]
-      1.5f,   // maximum temperature deviation during stillness [C]
-      true);  // gyro calibration enable
+      SEC_TO_NANOS(1.4f),       // Min stillness period = 1.4 seconds
+      SEC_TO_NANOS(1.4f),       // Max stillness period = 1.5 seconds (NOTE 1)
+      0, 0, 0,                  // Initial bias offset calibration
+      0,                        // Time stamp of initial bias calibration
+      SEC_TO_NANOS(0.5f),       // Analysis window length = 0.5 seconds
+      3.0e-5f,                  // Gyroscope variance threshold [rad/sec]^2
+      3.0e-6f,                  // Gyroscope confidence delta [rad/sec]^2
+      4.5e-3f,                  // Accelerometer variance threshold [m/sec^2]^2
+      9.0e-4f,                  // Accelerometer confidence delta [m/sec^2]^2
+      5.0f,                     // Magnetometer variance threshold [uT]^2
+      1.0f,                     // Magnetometer confidence delta [uT]^2
+      0.95f,                    // Stillness threshold [0,1]
+      60.0f * MDEG_TO_RAD,      // Stillness mean variation limit [rad/sec]
+      1.5f,                     // Max temperature delta during stillness [C]
+      true);                    // Gyro calibration enable
+  // NOTE 1: This parameter is set to 1.4 seconds to achieve a max stillness
+  // period of 1.5 seconds and avoid buffer boundary conditions that could push
+  // the max stillness to the next multiple of the analysis window length
+  // (i.e., 2.0 seconds).
 
 #ifdef OVERTEMPCAL_GYRO_ENABLED
   // Initializes the over-temperature compensated gyroscope (OTC-Gyro) offset
@@ -345,14 +360,14 @@ void NanoSensorCal::Initialize() {
   overTempCalInit(
       &over_temp_gyro_cal_,
       5,                        // Min num of points to enable model update
-      100000000,                // Min temperature update interval [nsec]
+      SEC_TO_NANOS(0.1f),       // Min temperature update interval [nsec]
       0.75f,                    // Temperature span of bin method [C]
-      40.0e-3f * kPi / 180.0f,  // Jump tolerance [rad/sec]
-      250.0e-3f * kPi / 180.0f, // Outlier rejection tolerance [rad/sec]
-      172800000000000,          // Model data point age limit [nsec]
-      250.0e-3f * kPi / 180.0f, // Limit for temp. sensitivity [rad/sec/C]
-      8.0f * kPi / 180.0f,      // Limit for model intercept parameter [rad/sec]
-      0.1e-3f * kPi / 180.0f,   // Significant offset change [rad/sec]
+      40.0f * MDEG_TO_RAD,      // Jump tolerance [rad/sec]
+      100.0f * MDEG_TO_RAD,     // Outlier rejection tolerance [rad/sec]
+      DAYS_TO_NANOS(2),         // Model data point age limit [nsec]
+      250.0f * MDEG_TO_RAD,     // Limit for temp. sensitivity [rad/sec/C]
+      8.0e3f * MDEG_TO_RAD,     // Limit for model intercept parameter [rad/sec]
+      0.1f * MDEG_TO_RAD,       // Significant offset change [rad/sec]
       true);                    // Over-temp compensation enable
 #endif  // OVERTEMPCAL_GYRO_ENABLED
 
@@ -371,18 +386,18 @@ void NanoSensorCal::Initialize() {
   // TODO: Replace function parameters with a struct, to avoid swapping them per
   // accident.
   initMagCalSphere(&mag_cal_sphere_,
-                   0.0f, 0.0f, 0.0f,            // bias x, y, z.
-                   1.0f, 0.0f, 0.0f,            // c00, c01, c02.
-                   0.0f, 1.0f, 0.0f,            // c10, c11, c12.
-                   0.0f, 0.0f, 1.0f,            // c20, c21, c22.
+                   0.0f, 0.0f, 0.0f,            // Bias x, y, z
+                   1.0f, 0.0f, 0.0f,            // c00, c01, c02
+                   0.0f, 1.0f, 0.0f,            // c10, c11, c12
+                   0.0f, 0.0f, 1.0f,            // c20, c21, c22
                    7357000,                     // min_batch_window_in_micros
-                   15,                          // min_num_diverse_vectors.
-                   1,                           // max_num_max_distance.
-                   5.0f,                        // var_threshold.
-                   8.0f,                        // max_min_threshold.
-                   48.f,                        // local_field.
-                   0.49f,                       // threshold_tuning_param.
-                   2.5f);                       // max_distance_tuning_param.
+                   15,                          // min_num_diverse_vectors
+                   1,                           // max_num_max_distance
+                   5.0f,                        // var_threshold
+                   8.0f,                        // max_min_threshold
+                   48.f,                        // local_field
+                   0.49f,                       // threshold_tuning_param
+                   2.5f);                       // max_distance_tuning_param
   magCalSphereOdrUpdate(&mag_cal_sphere_, 50 /* Default sample rate Hz */);
 
   // ODR init.
@@ -505,8 +520,8 @@ void NanoSensorCal::HandleSensorSamplesAccelCal(
 // TODO: Factor common code to shorten function and improve readability.
 void NanoSensorCal::HandleSensorSamplesGyroCal(
     uint16_t event_type, const chreSensorThreeAxisData *event_data) {
-    uint64_t timestamp_nanos = 0;
 #ifdef GYRO_CAL_ENABLED
+    uint64_t timestamp_nanos = 0;
     // Only updates the gyroscope calibration algorithm when measured
     // temperature is valid.
     if (temperature_celsius_ <= kInvalidTemperatureCelsius) {
