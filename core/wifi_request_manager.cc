@@ -20,6 +20,7 @@
 #include "chre/core/wifi_request_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -80,15 +81,28 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
                                      const void *cookie) {
   CHRE_ASSERT(nanoapp);
 
+  // TODO(b/65331248): replace with a timer to actively check response timeout
+  bool timedOut = (mScanRequestingNanoappInstanceId.has_value()
+                   && mLastScanRequestTime
+                       + Nanoseconds(CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS)
+                     < SystemTime::getMonotonicTime());
+  if (timedOut) {
+    LOGE("Scan request async response timed out");
+    mScanRequestingNanoappInstanceId.reset();
+  }
+
   bool success = false;
-  if (!mScanRequestingNanoappInstanceId.has_value()) {
+  if (mScanRequestingNanoappInstanceId.has_value()) {
+     LOGE("Active wifi scan request made while a request is in flight");
+  } else {
     success = mPlatformWifi.requestScan(params);
-    if (success) {
+    if (!success) {
+      LOGE("Wifi scan request failed");
+    } else {
       mScanRequestingNanoappInstanceId = nanoapp->getInstanceId();
       mScanRequestingNanoappCookie = cookie;
+      mLastScanRequestTime = SystemTime::getMonotonicTime();
     }
-  } else {
-    LOGE("Active wifi scan request made while a request is in flight");
   }
 
   return success;
