@@ -20,6 +20,7 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/platform_wifi.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -353,6 +354,9 @@ class WifiRequestManager : public NonCopyable {
    * @param eventData a pointer to the scan event to release.
    */
   static void freeWifiScanEventCallback(uint16_t eventType, void *eventData);
+
+  //! System time when last scan request was made.
+  Nanoseconds mLastScanRequestTime;
 };
 
 }  // namespace chre
