@@ -31,6 +31,7 @@ TARGET_BUILD_BIN = true
 # Link in libraries for the final executable and export symbols to dynamically
 # loaded objects.
 TARGET_BIN_LDFLAGS += -lrt -ldl -Wl,--export-dynamic
+TARGET_BIN_LDFLAGS += $(shell pkg-config --libs sndfile)
 endif
 
 include $(CHRE_PREFIX)/build/arch/x86.mk
