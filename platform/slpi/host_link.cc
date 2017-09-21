@@ -260,10 +260,13 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
         startedSuccessfully);
   };
 
+  // Re-wrap the callback data struct, so it is destructed and freed, ensuring
+  // we don't leak the embedded UniquePtr<Nanoapp>
+  UniquePtr<LoadNanoappCallbackData> dataWrapped(
+      static_cast<LoadNanoappCallbackData *>(data));
   constexpr size_t kInitialBufferSize = 48;
   buildAndEnqueueMessage(PendingMessageType::LoadNanoappResponse,
                          kInitialBufferSize, msgBuilder, data);
-  memoryFree(data);
 }
 
 void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
