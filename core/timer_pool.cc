@@ -45,9 +45,6 @@ TimerHandle TimerPool::setTimer(const Nanoapp *nanoapp, Nanoseconds duration,
   bool success = insertTimerRequest(timerRequest);
 
   if (success) {
-    LOGD("App %" PRIx64 " requested timer with duration %" PRIu64 "ns",
-         nanoapp->getAppId(), duration.toRawNanoseconds());
-
     if (newTimerExpiresEarliest) {
       if (mSystemTimer.isActive()) {
         mSystemTimer.cancel();
@@ -77,7 +74,6 @@ bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
     LOGW("Failed to cancel timer ID %" PRIu32 ": permission denied",
          timerHandle);
   } else {
-    TimerHandle cancelledTimerHandle = timerRequest->timerHandle;
     mTimerRequests.remove(index);
     if (index == 0) {
       if (mSystemTimer.isActive()) {
@@ -87,8 +83,6 @@ bool TimerPool::cancelTimer(const Nanoapp *nanoapp, TimerHandle timerHandle) {
       handleExpiredTimersAndScheduleNext();
     }
 
-    LOGD("App %" PRIx64 " cancelled timer %" PRIu32, nanoapp->getAppId(),
-         cancelledTimerHandle);
     success = true;
   }
 
