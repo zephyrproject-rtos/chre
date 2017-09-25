@@ -20,7 +20,7 @@
 #include "ash/debug.h"
 
 #ifndef __FILENAME__
-#define __FILENAME__ __FILE__
+#define __FILENAME__ CHRE_FILENAME
 #endif
 
 #ifndef FARF_MEDIUM
@@ -28,8 +28,8 @@
 #endif
 #include "HAP_farf.h"
 
-// TODO: Replace ashLog with FARF and chre::PlatformLogSingleton::get()->log
-//       once it can log without waking up the AP
+// TODO: Replace ashLog with a builtin logging destination that does not wake
+// the AP unless necessary.
 #define LOGE(fmt, ...) \
   ashLog(ASH_SOURCE_CHRE, ASH_LOG_ERROR, fmt, ##__VA_ARGS__)
 
