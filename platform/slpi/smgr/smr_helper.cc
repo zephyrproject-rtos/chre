@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/slpi/smr_helper.h"
+#include "chre/platform/slpi/smgr/smr_helper.h"
 
 #include <inttypes.h>
 

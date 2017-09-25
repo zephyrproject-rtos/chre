@@ -16,6 +16,7 @@ COMMON_CFLAGS += -Iplatform/include
 # Include paths.
 HEXAGON_CFLAGS += -Iplatform/shared/include
 HEXAGON_CFLAGS += -Iplatform/slpi/include
+HEXAGON_CFLAGS += -Iplatform/slpi/smgr/include
 
 # We use FlatBuffers in the Hexagon (SLPI) platform layer
 HEXAGON_CFLAGS += $(FLATBUFFERS_CFLAGS)
@@ -47,13 +48,13 @@ HEXAGON_SRCS += platform/slpi/memory_manager.cc
 HEXAGON_SRCS += platform/slpi/platform_log.cc
 HEXAGON_SRCS += platform/slpi/platform_nanoapp.cc
 HEXAGON_SRCS += platform/slpi/platform_pal.cc
-HEXAGON_SRCS += platform/slpi/platform_sensor.cc
-HEXAGON_SRCS += platform/slpi/platform_sensor_util.cc
 HEXAGON_SRCS += platform/slpi/power_control_manager.cc
 HEXAGON_SRCS += platform/slpi/preloaded_nanoapps.cc
-HEXAGON_SRCS += platform/slpi/smr_helper.cc
 HEXAGON_SRCS += platform/slpi/system_time.cc
 HEXAGON_SRCS += platform/slpi/system_timer.cc
+HEXAGON_SRCS += platform/slpi/smgr/platform_sensor.cc
+HEXAGON_SRCS += platform/slpi/smgr/platform_sensor_util.cc
+HEXAGON_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # x86-specific Compiler Flags ##################################################
 
@@ -102,5 +103,5 @@ GOOGLETEST_CFLAGS += -Iplatform/slpi/include
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += platform/linux/assert.cc
-GOOGLETEST_SRCS += platform/slpi/platform_sensor_util.cc
-GOOGLETEST_SRCS += platform/slpi/tests/platform_sensor_util_test.cc
+GOOGLETEST_SRCS += platform/slpi/smgr/platform_sensor_util.cc
+GOOGLETEST_SRCS += platform/slpi/smgr/tests/platform_sensor_util_test.cc

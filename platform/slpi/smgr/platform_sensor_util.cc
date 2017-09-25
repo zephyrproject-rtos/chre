@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/slpi/platform_sensor_util.h"
+#include "chre/platform/slpi/smgr/platform_sensor_util.h"
 
 #include <algorithm>
 

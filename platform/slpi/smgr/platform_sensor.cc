@@ -36,10 +36,10 @@ extern "C" {
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
-#include "chre/platform/slpi/platform_sensor_util.h"
-#include "chre/platform/slpi/smgr_client.h"
-#include "chre/platform/slpi/smr_helper.h"
 #include "chre/platform/slpi/uimg_util.h"
+#include "chre/platform/slpi/smgr/platform_sensor_util.h"
+#include "chre/platform/slpi/smgr/smgr_client.h"
+#include "chre/platform/slpi/smgr/smr_helper.h"
 #include "chre/util/macros.h"
 
 // As SMGR doesn't support passive sensor request, it's now implemented on the

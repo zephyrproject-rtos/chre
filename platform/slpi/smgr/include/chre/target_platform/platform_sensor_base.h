@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
-#define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
+#ifndef CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_BASE_H_
+#define CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_BASE_H_
 
 extern "C" {
 
@@ -81,4 +81,4 @@ class PlatformSensorBase {
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
+#endif  // CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_BASE_H_

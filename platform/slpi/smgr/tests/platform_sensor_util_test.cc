@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/platform/slpi/platform_sensor_util.h"
+#include "chre/platform/slpi/smgr/platform_sensor_util.h"
 
 using chre::intervalToSmgrSamplingRate;
 using chre::intervalToSmgrQ16ReportRate;
