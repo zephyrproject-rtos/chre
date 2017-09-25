@@ -332,7 +332,7 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
 
   constexpr char kHubName[] = "CHRE on SLPI";
   constexpr char kVendor[] = "Google";
-  constexpr char kToolchain[] = "Hexagon Tools 8.0 (clang "
+  constexpr char kToolchain[] = "Hexagon Tools 8.x (clang "
     STRINGIFY(__clang_major__) "."
     STRINGIFY(__clang_minor__) "."
     STRINGIFY(__clang_patchlevel__) ")";
