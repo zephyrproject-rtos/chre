@@ -44,19 +44,19 @@
 #define LOGE(fmt, ...) chreLogNull(fmt, ##__VA_ARGS__)
 #endif
 
-#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_WARN
+#if NANOAPP_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_WARN
 #define LOGW(fmt, ...) chreLog(CHRE_LOG_WARN, LOG_TAG " " fmt, ##__VA_ARGS__)
 #else
 #define LOGW(fmt, ...) chreLogNull(fmt, ##__VA_ARGS__)
 #endif
 
-#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_INFO
+#if NANOAPP_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_INFO
 #define LOGI(fmt, ...) chreLog(CHRE_LOG_INFO, LOG_TAG " " fmt, ##__VA_ARGS__)
 #else
 #define LOGI(fmt, ...) chreLogNull(fmt, ##__VA_ARGS__)
 #endif
 
-#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_DEBUG
+#if NANOAPP_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_DEBUG
 #define LOGD(fmt, ...) chreLog(CHRE_LOG_DEBUG, LOG_TAG " " fmt, ##__VA_ARGS__)
 #else
 #define LOGD(fmt, ...) chreLogNull(fmt, ##__VA_ARGS__)

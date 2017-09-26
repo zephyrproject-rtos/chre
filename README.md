@@ -22,11 +22,17 @@ CHRE is compatible with Linux as a simulator.
 
 #### Linux Build/Run
 
-The simulator uses TCLAP for command-line argument parsing. It must be available
-on the system path of the simulator. Here is an example of how to install it for
-Ubuntu:
+The simulator has system dependencies:
+
+- TCLAP
+    - Command-line argument parsing.
+- libsndfile
+    - WAV file parsing for audio support.
+
+These are the commands to install these dependencies for Ubuntu:
 
     sudo apt-get install libtclap-dev
+    sudo apt-get install libsndfile1-dev
 
 The build target for x86 linux is ``google_x86_linux``. You can build/run the
 simulator with the following command:
