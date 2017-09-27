@@ -27,7 +27,7 @@ extern "C" {
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
-#include "chre/platform/slpi/smgr_client.h"
+#include "chre/platform/slpi/smgr/smgr_client.h"
 #include "chre_api/chre/sensor.h"
 
 using chre::getSmrHelper;

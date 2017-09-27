@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SMGR_CLIENT_H_
-#define CHRE_PLATFORM_SLPI_SMGR_CLIENT_H_
+#ifndef CHRE_PLATFORM_SLPI_SMGR_SMGR_CLIENT_H_
+#define CHRE_PLATFORM_SLPI_SMGR_SMGR_CLIENT_H_
 
-#include "chre/platform/slpi/smr_helper.h"
+#include "chre/platform/slpi/smgr/smr_helper.h"
 #include "chre/util/singleton.h"
 
 /**
@@ -49,4 +49,4 @@ smr_client_hndl getSensorServiceSmrClientHandle();
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_SMGR_CLIENT_H_
+#endif  // CHRE_PLATFORM_SLPI_SMGR_SMGR_CLIENT_H_

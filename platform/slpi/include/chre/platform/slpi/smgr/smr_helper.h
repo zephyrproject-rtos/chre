@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SMR_HELPER_H_
-#define CHRE_PLATFORM_SLPI_SMR_HELPER_H_
+#ifndef CHRE_PLATFORM_SLPI_SMGR_SMR_HELPER_H_
+#define CHRE_PLATFORM_SLPI_SMGR_SMR_HELPER_H_
 
 #include <type_traits>
 
@@ -192,4 +192,4 @@ class SmrHelper : public NonCopyable {
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_SMR_HELPER_H_
+#endif  // CHRE_PLATFORM_SLPI_SMGR_SMR_HELPER_H_
