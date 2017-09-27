@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_
-#define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_
+#ifndef CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_UTIL_H_
+#define CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_UTIL_H_
 
 #include <cstdint>
 
@@ -45,4 +45,4 @@ uint32_t intervalToSmgrQ16ReportRate(Nanoseconds interval);
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_UTIL_H_
+#endif  // CHRE_PLATFORM_SLPI_SMGR_PLATFORM_SENSOR_UTIL_H_

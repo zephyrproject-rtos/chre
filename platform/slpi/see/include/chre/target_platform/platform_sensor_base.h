@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
-#define CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
-
-extern "C" {
-
-#include "sns_smgr_api_v01.h"
-
-}  // extern "C"
+#ifndef CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
+#define CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
 
 #include "chre/core/sensor_request.h"
 
 namespace chre {
 
 /**
- * Storage for the SLPI implementation of the PlatformSensor class.
+ * Storage for the SLPI SEE implementation of the PlatformSensor class.
  */
 class PlatformSensorBase {
  public:
@@ -40,20 +34,8 @@ class PlatformSensorBase {
    */
   void setLastEvent(const ChreSensorData *event);
 
-  //! The handle to uniquely identify this sensor.
-  uint8_t sensorId;
-
-  //! The type of data that this sensor uses. SMGR overloads sensor IDs and
-  //! allows them to behave as two sensors. The data type differentiates which
-  //! sensor this object refers to.
-  uint8_t dataType;
-
-  //! The calibration type of this sensor. SMGR overloads sensorId and dataType
-  //! and allows them to represent both uncalibrated and calibrated sensors.
-  uint8_t calType;
-
   //! The name (type and model) of this sensor.
-  char sensorName[SNS_SMGR_MAX_SENSOR_NAME_SIZE_V01];
+  char sensorName[1];
 
   //! The minimum interval of this sensor.
   uint64_t minInterval;
@@ -81,4 +63,4 @@ class PlatformSensorBase {
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_PLATFORM_SENSOR_BASE_H_
+#endif  // CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
