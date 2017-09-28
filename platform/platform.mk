@@ -11,50 +11,50 @@ COMMON_CFLAGS += -Iplatform/include
 
 # Common Compiler Flags ########################################################
 
-# Hexagon-specific Compiler Flags ##############################################
+# SLPI-specific Compiler Flags #################################################
 
 # Include paths.
-HEXAGON_CFLAGS += -Iplatform/shared/include
-HEXAGON_CFLAGS += -Iplatform/slpi/include
-HEXAGON_CFLAGS += -Iplatform/slpi/smgr/include
+SLPI_CFLAGS += -Iplatform/shared/include
+SLPI_CFLAGS += -Iplatform/slpi/include
+SLPI_CFLAGS += -Iplatform/slpi/smgr/include
 
-# We use FlatBuffers in the Hexagon (SLPI) platform layer
-HEXAGON_CFLAGS += $(FLATBUFFERS_CFLAGS)
+# We use FlatBuffers in the SLPI platform layer
+SLPI_CFLAGS += $(FLATBUFFERS_CFLAGS)
 
-# Hexagon-specific Source Files ################################################
+# SLPI-specific Source Files ################################################
 
-HEXAGON_SRCS += platform/shared/chre_api_core.cc
-HEXAGON_SRCS += platform/shared/chre_api_gnss.cc
-HEXAGON_SRCS += platform/shared/chre_api_re.cc
-HEXAGON_SRCS += platform/shared/chre_api_sensor.cc
-HEXAGON_SRCS += platform/shared/chre_api_version.cc
-HEXAGON_SRCS += platform/shared/chre_api_wifi.cc
-HEXAGON_SRCS += platform/shared/chre_api_wwan.cc
-HEXAGON_SRCS += platform/shared/host_protocol_chre.cc
-HEXAGON_SRCS += platform/shared/host_protocol_common.cc
-HEXAGON_SRCS += platform/shared/memory_manager.cc
-HEXAGON_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
-HEXAGON_SRCS += platform/shared/pal_system_api.cc
-HEXAGON_SRCS += platform/shared/platform_gnss.cc
-HEXAGON_SRCS += platform/shared/platform_wifi.cc
-HEXAGON_SRCS += platform/shared/platform_wwan.cc
-HEXAGON_SRCS += platform/shared/system_time.cc
-HEXAGON_SRCS += platform/slpi/chre_api_re.cc
-HEXAGON_SRCS += platform/slpi/fatal_error.cc
-HEXAGON_SRCS += platform/slpi/host_link.cc
-HEXAGON_SRCS += platform/slpi/init.cc
-HEXAGON_SRCS += platform/slpi/memory.cc
-HEXAGON_SRCS += platform/slpi/memory_manager.cc
-HEXAGON_SRCS += platform/slpi/platform_log.cc
-HEXAGON_SRCS += platform/slpi/platform_nanoapp.cc
-HEXAGON_SRCS += platform/slpi/platform_pal.cc
-HEXAGON_SRCS += platform/slpi/power_control_manager.cc
-HEXAGON_SRCS += platform/slpi/preloaded_nanoapps.cc
-HEXAGON_SRCS += platform/slpi/system_time.cc
-HEXAGON_SRCS += platform/slpi/system_timer.cc
-HEXAGON_SRCS += platform/slpi/smgr/platform_sensor.cc
-HEXAGON_SRCS += platform/slpi/smgr/platform_sensor_util.cc
-HEXAGON_SRCS += platform/slpi/smgr/smr_helper.cc
+SLPI_SRCS += platform/shared/chre_api_core.cc
+SLPI_SRCS += platform/shared/chre_api_gnss.cc
+SLPI_SRCS += platform/shared/chre_api_re.cc
+SLPI_SRCS += platform/shared/chre_api_sensor.cc
+SLPI_SRCS += platform/shared/chre_api_version.cc
+SLPI_SRCS += platform/shared/chre_api_wifi.cc
+SLPI_SRCS += platform/shared/chre_api_wwan.cc
+SLPI_SRCS += platform/shared/host_protocol_chre.cc
+SLPI_SRCS += platform/shared/host_protocol_common.cc
+SLPI_SRCS += platform/shared/memory_manager.cc
+SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
+SLPI_SRCS += platform/shared/pal_system_api.cc
+SLPI_SRCS += platform/shared/platform_gnss.cc
+SLPI_SRCS += platform/shared/platform_wifi.cc
+SLPI_SRCS += platform/shared/platform_wwan.cc
+SLPI_SRCS += platform/shared/system_time.cc
+SLPI_SRCS += platform/slpi/chre_api_re.cc
+SLPI_SRCS += platform/slpi/fatal_error.cc
+SLPI_SRCS += platform/slpi/host_link.cc
+SLPI_SRCS += platform/slpi/init.cc
+SLPI_SRCS += platform/slpi/memory.cc
+SLPI_SRCS += platform/slpi/memory_manager.cc
+SLPI_SRCS += platform/slpi/platform_log.cc
+SLPI_SRCS += platform/slpi/platform_nanoapp.cc
+SLPI_SRCS += platform/slpi/platform_pal.cc
+SLPI_SRCS += platform/slpi/power_control_manager.cc
+SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
+SLPI_SRCS += platform/slpi/system_time.cc
+SLPI_SRCS += platform/slpi/system_timer.cc
+SLPI_SRCS += platform/slpi/smgr/platform_sensor.cc
+SLPI_SRCS += platform/slpi/smgr/platform_sensor_util.cc
+SLPI_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # x86-specific Compiler Flags ##################################################
 
