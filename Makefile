@@ -33,33 +33,6 @@ endif
 
 COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
 
-# SLPI Flags ###################################################################
-
-# Define CUST_H to allow including the customer header file.
-SLPI_CFLAGS += -DCUST_H
-
-# Include paths.
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/ms
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/cust
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/debugtools
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/HAP
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/smr/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
-
 # Makefile Includes ############################################################
 
 # Variant-specific includes.

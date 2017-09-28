@@ -19,6 +19,10 @@ HEXAGON_ARCH = v62
 TARGET_CFLAGS += $(SLPI_CFLAGS)
 TARGET_VARIANT_SRCS += $(SLPI_SRCS)
 
+# Add SLPI/SMGR-specific compiler flags and source files
+TARGET_CFLAGS += $(SLPI_SMGR_CFLAGS)
+TARGET_VARIANT_SRCS += $(SLPI_SMGR_SRCS)
+
 # Enable uImage support.
 TARGET_VARIANT_SRCS += $(SYS_SUPPORT_PATH)/qcom/uimg_dl_ver.c
 TARGET_SO_LDFLAGS += --script=$(SYS_SUPPORT_PATH)/qcom/uimage.lcs.toolv80

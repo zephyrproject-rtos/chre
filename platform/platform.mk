@@ -13,7 +13,24 @@ COMMON_CFLAGS += -Iplatform/include
 
 # SLPI-specific Compiler Flags #################################################
 
+# Define CUST_H to allow including the customer header file.
+SLPI_CFLAGS += -DCUST_H
+
 # Include paths.
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/ms
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/cust
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/debugtools
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/HAP
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
+
 SLPI_CFLAGS += -Iplatform/shared/include
 SLPI_CFLAGS += -Iplatform/slpi/include
 SLPI_CFLAGS += -Iplatform/slpi/smgr/include
@@ -21,7 +38,18 @@ SLPI_CFLAGS += -Iplatform/slpi/smgr/include
 # We use FlatBuffers in the SLPI platform layer
 SLPI_CFLAGS += $(FLATBUFFERS_CFLAGS)
 
-# SLPI-specific Source Files ################################################
+# SLPI/SMGR-specific Compiler Flags ############################################
+
+# Include paths.
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/inc
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/smr/inc
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
+SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
+
+# SLPI-specific Source Files ###################################################
 
 SLPI_SRCS += platform/shared/chre_api_core.cc
 SLPI_SRCS += platform/shared/chre_api_gnss.cc
@@ -52,9 +80,12 @@ SLPI_SRCS += platform/slpi/power_control_manager.cc
 SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
 SLPI_SRCS += platform/slpi/system_time.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
-SLPI_SRCS += platform/slpi/smgr/platform_sensor.cc
-SLPI_SRCS += platform/slpi/smgr/platform_sensor_util.cc
-SLPI_SRCS += platform/slpi/smgr/smr_helper.cc
+
+# SLPI/SMGR-specific Source Files ###########################################
+
+SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor.cc
+SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor_util.cc
+SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # x86-specific Compiler Flags ##################################################
 

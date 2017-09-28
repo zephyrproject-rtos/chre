@@ -7,9 +7,9 @@
 # Include paths.
 COMMON_CFLAGS += -Iash/include
 
-# SLPI-specific Source Files ###################################################
+# SLPI/SMGR-specific Source Files ##############################################
 
-SLPI_SRCS += ash/platform/slpi/smgr/ash.cc
+SLPI_SMGR_SRCS += ash/platform/slpi/smgr/ash.cc
 
 # x86-specific Source Files ####################################################
 
