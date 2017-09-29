@@ -17,6 +17,7 @@
 #include "chre/core/init.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/platform_audio.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/singleton.h"
@@ -36,10 +37,12 @@ void init() {
 
   SystemTime::init();
   PlatformSensor::init();
+  PlatformAudio::init();
   EventLoopManagerSingleton::init();
 }
 
 void deinit() {
+  PlatformAudio::deinit();
   PlatformSensor::deinit();
 
   // EventLoopManager has to be the last one to deinit to handle callback
