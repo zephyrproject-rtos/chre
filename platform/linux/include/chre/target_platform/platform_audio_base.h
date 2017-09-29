@@ -14,34 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_PLATFORM_AUDIO_H_
-#define CHRE_PLATFORM_PLATFORM_AUDIO_H_
+#ifndef CHRE_PLATFORM_LINUX_PLATFORM_AUDIO_BASE_H_
+#define CHRE_PLATFORM_LINUX_PLATFORM_AUDIO_BASE_H_
 
-#include "chre/target_platform/platform_audio_base.h"
-#include "chre/util/non_copyable.h"
+#include "chre/platform/linux/audio_source.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 
 /**
- * Defines the common interface to audio functionality.
+ * The base PlatformAudio class for the Linux simulator to inject platform
+ * specific functionality from.
  */
-class PlatformAudio : public PlatformAudioBase,
-                      public NonCopyable {
+class PlatformAudioBase {
  public:
   /**
-   * Initializes the audio subsystem. This must be called as part of the
-   * initialization of the runtime.
+   * Adds an audio source to the simulator.
+   *
+   * @param source the audio source to provide. Ownership is transferred to the
+   *     PlatformAudio implementation.
    */
-  static void init();
-
-  /**
-   * Deinitializes the audio subsystem, including releasing any outstanding
-   * audio requests. This must be called as part of deinitialization of the
-   * runtime.
-   */
-  static void deinit();
+  static void addAudioSource(UniquePtr<AudioSource>& source);
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_PLATFORM_AUDIO_H_
+#endif  // CHRE_PLATFORM_LINUX_PLATFORM_AUDIO_BASE_H_

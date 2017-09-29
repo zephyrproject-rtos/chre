@@ -16,7 +16,18 @@
 
 #include "chre/platform/platform_audio.h"
 
+#include <cinttypes>
+
+#include "chre/platform/log.h"
+#include "chre/util/dynamic_vector.h"
+
 namespace chre {
+namespace {
+
+//! The list of audio sources provided by the simulator.
+DynamicVector<UniquePtr<AudioSource>> gAudioSources;
+
+}
 
 void PlatformAudio::init() {
   // TODO: Init libsndfile.
@@ -24,6 +35,14 @@ void PlatformAudio::init() {
 
 void PlatformAudio::deinit() {
   // TODO: Deinit libsndfile.
+}
+
+void PlatformAudioBase::addAudioSource(UniquePtr<AudioSource>& source) {
+  LOGI("Adding audio source - filename: %s, min buf size: %" PRIu64 "ms, "
+       "max buf size: %" PRIu64 "ms", source->audioFilename.c_str(),
+       Milliseconds(source->minBufferSize).getMilliseconds(),
+       Milliseconds(source->maxBufferSize).getMilliseconds());
+  gAudioSources.push_back(std::move(source));
 }
 
 }  // namespace chre
