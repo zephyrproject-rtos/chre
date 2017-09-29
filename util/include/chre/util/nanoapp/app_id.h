@@ -76,6 +76,8 @@ constexpr uint64_t kWwanWorldAppId    = makeExampleNanoappId(7);
 constexpr uint64_t kSpammerAppId      = makeExampleNanoappId(9);
 constexpr uint64_t kUnloadTesterAppId = makeExampleNanoappId(10);
 constexpr uint64_t kAshWorldAppId     = makeExampleNanoappId(11);
+constexpr uint64_t kAudioWorldAppId   = makeExampleNanoappId(12);
+
 
 constexpr uint64_t kImuCalAppId       = makeGoogleNanoappId(0x16);
 
