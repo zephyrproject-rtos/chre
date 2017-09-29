@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_PLATFORM_AUDIO_H_
 #define CHRE_PLATFORM_PLATFORM_AUDIO_H_
 
+#include "chre_api/chre/audio.h"
 #include "chre/target_platform/platform_audio_base.h"
 #include "chre/util/non_copyable.h"
 
@@ -40,6 +41,15 @@ class PlatformAudio : public PlatformAudioBase,
    * runtime.
    */
   static void deinit();
+
+  /**
+   * Obtains the audio source description for a given handle.
+   *
+   * @param handle the handle for the requested audio source.
+   * @param audioSource the chreAudioSource to populate with details of the
+   *     audio source. This pointer must never be null.
+   */
+  static bool getAudioSource(uint32_t handle, chreAudioSource *audioSource);
 };
 
 }  // namespace chre
