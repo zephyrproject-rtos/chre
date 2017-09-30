@@ -33,7 +33,6 @@ SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
 
 SLPI_CFLAGS += -Iplatform/shared/include
 SLPI_CFLAGS += -Iplatform/slpi/include
-SLPI_CFLAGS += -Iplatform/slpi/smgr/include
 
 # We use FlatBuffers in the SLPI platform layer
 SLPI_CFLAGS += $(FLATBUFFERS_CFLAGS)
@@ -48,6 +47,10 @@ SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/smr/inc
 SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
 SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
 SLPI_SMGR_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
+
+SLPI_SMGR_CFLAGS += -Iplatform/slpi/smgr/include
+
+SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 
 # SLPI-specific Source Files ###################################################
 
@@ -76,7 +79,6 @@ SLPI_SRCS += platform/slpi/memory_manager.cc
 SLPI_SRCS += platform/slpi/platform_log.cc
 SLPI_SRCS += platform/slpi/platform_nanoapp.cc
 SLPI_SRCS += platform/slpi/platform_pal.cc
-SLPI_SRCS += platform/slpi/power_control_manager.cc
 SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
 SLPI_SRCS += platform/slpi/system_time.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
@@ -85,6 +87,7 @@ SLPI_SRCS += platform/slpi/system_timer.cc
 
 SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor.cc
 SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor_util.cc
+SLPI_SMGR_SRCS += platform/slpi/smgr/power_control_manager.cc
 SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # x86-specific Compiler Flags ##################################################
