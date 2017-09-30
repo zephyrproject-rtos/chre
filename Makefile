@@ -33,33 +33,6 @@ endif
 
 COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
 
-# Hexagon Flags ################################################################
-
-# Define CUST_H to allow including the customer header file.
-HEXAGON_CFLAGS += -DCUST_H
-
-# Include paths.
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/ms
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/build/cust
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/debugtools
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/services
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/devcfg
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/qurt
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/dal
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/HAP
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/smr/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
-HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
-
 # Makefile Includes ############################################################
 
 # Variant-specific includes.
