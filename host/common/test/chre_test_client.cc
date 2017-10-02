@@ -198,7 +198,6 @@ void sendUnloadNanoappRequest(SocketClient& client, uint64_t appId) {
 }  // anonymous namespace
 
 int main() {
-  int ret = -1;
   SocketClient client;
   sp<SocketCallbacks> callbacks = new SocketCallbacks();
 
