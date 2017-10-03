@@ -34,6 +34,7 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
 # Common Source Files ##########################################################
 
 COMMON_SRCS += audio_world.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/audio.cc
 
 # Makefile Includes ############################################################
 
