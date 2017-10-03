@@ -21,6 +21,7 @@
 #include <cstdint>
 
 #include "chre_api/chre/audio.h"
+#include "chre/platform/platform_audio.h"
 #include "chre/util/non_copyable.h"
 
 namespace chre {
@@ -31,17 +32,11 @@ namespace chre {
  */
 class AudioRequestManager : public NonCopyable {
  public:
-  /**
-   * Obtains a description of an audio source given a handle. The description is
-   * obtained from the underlying platform which has knowledge of the available
-   * sources of audio in the system.
-   *
-   * @param handle the handle for which a nanoapp is querying for.
-   * @param audioSource an instance of a chreAudioSource to populate with the
-   *     details of an audio source.
-   * @return true if the provided handle was valid, false otherwise.
-   */
-  bool getAudioSource(uint32_t handle, chreAudioSource *audioSource);
+
+ private:
+  //! The instance of platform audio that is managed by this AudioRequestManager
+  //! and used to service requests for audio data.
+  PlatformAudio mPlatformAudio;
 };
 
 }  // namespace chre

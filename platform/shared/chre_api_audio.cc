@@ -17,12 +17,17 @@
 #include "chre_api/chre/audio.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/platform_audio.h"
 #include "chre/util/macros.h"
 
 using chre::EventLoopManagerSingleton;
 
 DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
                                    struct chreAudioSource *audioSource) {
-  return EventLoopManagerSingleton::get()->getAudioRequestManager()
-      .getAudioSource(handle, audioSource);
+  bool success = (audioSource != nullptr);
+  if (success) {
+    success = chre::PlatformAudio::getAudioSource(handle, audioSource);
+  }
+
+  return success;
 }

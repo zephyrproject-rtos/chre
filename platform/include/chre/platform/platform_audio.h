@@ -30,17 +30,16 @@ class PlatformAudio : public PlatformAudioBase,
                       public NonCopyable {
  public:
   /**
-   * Initializes the audio subsystem. This must be called as part of the
-   * initialization of the runtime.
+   * Initializes the audio subsystem. This is invoked as part of the
+   * construction of the EventLoopManager.
    */
-  static void init();
+  PlatformAudio();
 
   /**
-   * Deinitializes the audio subsystem, including releasing any outstanding
-   * audio requests. This must be called as part of deinitialization of the
-   * runtime.
+   * Deinitializes the audio subsystem. This is invoked as part of the
+   * destruction of the EventLoopManager.
    */
-  static void deinit();
+  ~PlatformAudio();
 
   /**
    * Obtains the audio source description for a given handle.

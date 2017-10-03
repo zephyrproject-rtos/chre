@@ -18,12 +18,18 @@
 
 namespace chre {
 
-void PlatformAudio::init() {
+PlatformAudio::PlatformAudio() {
   // TODO: Init the connection to the audio subsystem.
 }
 
-void PlatformAudio::deinit() {
+PlatformAudio::~PlatformAudio() {
   // TODO: Deinit the connection to the audio subsystem.
+}
+
+bool PlatformAudio::getAudioSource(uint32_t handle,
+                                   chreAudioSource *source) {
+  // TODO(P1-f3f9a0): Implement this.
+  return false;
 }
 
 }  // namespace chre

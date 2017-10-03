@@ -16,18 +16,8 @@
 
 #include "chre/core/audio_request_manager.h"
 
-#include "chre/platform/platform_audio.h"
-
 namespace chre {
 
-bool AudioRequestManager::getAudioSource(uint32_t handle,
-                                         chreAudioSource *audioSource) {
-  bool success = (audioSource != nullptr);
-  if (success) {
-    success = PlatformAudio::getAudioSource(handle, audioSource);
-  }
 
-  return success;
-}
 
 }  // namespace chre

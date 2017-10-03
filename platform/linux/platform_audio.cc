@@ -30,9 +30,9 @@ DynamicVector<UniquePtr<AudioSource>> gAudioSources;
 
 }
 
-void PlatformAudio::init() {}
+PlatformAudio::PlatformAudio() {}
 
-void PlatformAudio::deinit() {}
+PlatformAudio::~PlatformAudio() {}
 
 bool PlatformAudio::getAudioSource(uint32_t handle,
                                    chreAudioSource *audioSource) {
