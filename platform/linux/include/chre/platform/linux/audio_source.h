@@ -17,8 +17,10 @@
 #ifndef CHRE_PLATFORM_LINUX_AUDIO_SOURCE_H_
 #define CHRE_PLATFORM_LINUX_AUDIO_SOURCE_H_
 
+#include <sndfile.h>
 #include <string>
 
+#include "chre_api/chre/audio.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
 
@@ -49,6 +51,15 @@ class AudioSource : public NonCopyable {
 
   //! The maximum buffer size for this audio source.
   const Nanoseconds maxBufferSize;
+
+  //! The format for the audio data of this source.
+  enum chreAudioDataFormat dataFormat;
+
+  //! The libsndfile for this audio file.
+  SNDFILE *audioFile = nullptr;
+
+  //! The libsndfile audio info for this source.
+  SF_INFO audioInfo;
 };
 
 }  // namespace chre

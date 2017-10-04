@@ -18,6 +18,7 @@
 
 #include <cinttypes>
 
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/util/dynamic_vector.h"
 
@@ -29,23 +30,22 @@ DynamicVector<UniquePtr<AudioSource>> gAudioSources;
 
 }
 
-void PlatformAudio::init() {
-  // TODO: Init libsndfile.
-}
+void PlatformAudio::init() {}
 
-void PlatformAudio::deinit() {
-  // TODO: Deinit libsndfile.
-}
+void PlatformAudio::deinit() {}
 
 bool PlatformAudio::getAudioSource(uint32_t handle,
                                    chreAudioSource *audioSource) {
   bool success = (handle < gAudioSources.size());
   if (success) {
-    // TODO(P1-ca44e0): Read sample rate and format from the WAV file.
     const auto& source = gAudioSources[handle];
+    // TODO(P1-b9ff35): Ensure that name never exceeds 40 bytes in length.
     audioSource->name = source->audioFilename.c_str();
+    audioSource->sampleRate =
+        static_cast<uint32_t>(source->audioInfo.samplerate);
     audioSource->minBufferDuration = source->minBufferSize.toRawNanoseconds();
     audioSource->maxBufferDuration = source->maxBufferSize.toRawNanoseconds();
+    audioSource->format = source->dataFormat;
   }
 
   return success;
@@ -56,6 +56,20 @@ void PlatformAudioBase::addAudioSource(UniquePtr<AudioSource>& source) {
        "max buf size: %" PRIu64 "ms", source->audioFilename.c_str(),
        Milliseconds(source->minBufferSize).getMilliseconds(),
        Milliseconds(source->maxBufferSize).getMilliseconds());
+  auto& audioInfo = source->audioInfo;
+  source->audioFile = sf_open(source->audioFilename.c_str(), SFM_READ,
+                              &audioInfo);
+  if (source->audioFile == nullptr) {
+    FATAL_ERROR("Failed to open provided audio file %s",
+                source->audioFilename.c_str());
+  } else if ((audioInfo.format & SF_FORMAT_ULAW) == SF_FORMAT_ULAW) {
+    source->dataFormat = CHRE_AUDIO_DATA_FORMAT_8_BIT_U_LAW;
+  } else if ((audioInfo.format & SF_FORMAT_PCM_16) == SF_FORMAT_PCM_16) {
+    source->dataFormat = CHRE_AUDIO_DATA_FORMAT_16_BIT_SIGNED_PCM;
+  } else {
+    FATAL_ERROR("Invalid format 0x%08x", audioInfo.format);
+  }
+
   gAudioSources.push_back(std::move(source));
 }
 
