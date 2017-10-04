@@ -63,6 +63,7 @@ SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
 
 # SLPI-specific Source Files ###################################################
 
+SLPI_SRCS += platform/shared/chre_api_audio.cc
 SLPI_SRCS += platform/shared/chre_api_core.cc
 SLPI_SRCS += platform/shared/chre_api_gnss.cc
 SLPI_SRCS += platform/shared/chre_api_re.cc
@@ -127,6 +128,7 @@ X86_SRCS += platform/linux/system_time.cc
 X86_SRCS += platform/linux/system_timer.cc
 X86_SRCS += platform/linux/platform_nanoapp.cc
 X86_SRCS += platform/linux/platform_sensor.cc
+X86_SRCS += platform/shared/chre_api_audio.cc
 X86_SRCS += platform/shared/chre_api_core.cc
 X86_SRCS += platform/shared/chre_api_gnss.cc
 X86_SRCS += platform/shared/chre_api_re.cc

@@ -37,6 +37,20 @@ void PlatformAudio::deinit() {
   // TODO: Deinit libsndfile.
 }
 
+bool PlatformAudio::getAudioSource(uint32_t handle,
+                                   chreAudioSource *audioSource) {
+  bool success = (handle < gAudioSources.size());
+  if (success) {
+    // TODO(P1-ca44e0): Read sample rate and format from the WAV file.
+    const auto& source = gAudioSources[handle];
+    audioSource->name = source->audioFilename.c_str();
+    audioSource->minBufferDuration = source->minBufferSize.toRawNanoseconds();
+    audioSource->maxBufferDuration = source->maxBufferSize.toRawNanoseconds();
+  }
+
+  return success;
+}
+
 void PlatformAudioBase::addAudioSource(UniquePtr<AudioSource>& source) {
   LOGI("Adding audio source - filename: %s, min buf size: %" PRIu64 "ms, "
        "max buf size: %" PRIu64 "ms", source->audioFilename.c_str(),
