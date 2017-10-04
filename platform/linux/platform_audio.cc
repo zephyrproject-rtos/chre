@@ -34,6 +34,10 @@ PlatformAudio::PlatformAudio() {}
 
 PlatformAudio::~PlatformAudio() {}
 
+size_t PlatformAudio::getSourceCount() {
+  return gAudioSources.size();
+}
+
 bool PlatformAudio::getAudioSource(uint32_t handle,
                                    chreAudioSource *audioSource) {
   bool success = (handle < gAudioSources.size());

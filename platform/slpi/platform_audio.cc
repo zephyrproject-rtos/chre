@@ -26,6 +26,11 @@ PlatformAudio::~PlatformAudio() {
   // TODO: Deinit the connection to the audio subsystem.
 }
 
+size_t PlatformAudio::getSourceCount() {
+  // TODO(P1-f3f9a0): Implement this.
+  return 0;
+}
+
 bool PlatformAudio::getAudioSource(uint32_t handle,
                                    chreAudioSource *source) {
   // TODO(P1-f3f9a0): Implement this.
