@@ -98,6 +98,7 @@ X86_CFLAGS += -Iplatform/linux/include
 
 # x86-specific Source Files ####################################################
 
+X86_SRCS += platform/linux/audio_source.cc
 X86_SRCS += platform/linux/chre_api_re.cc
 X86_SRCS += platform/linux/context.cc
 X86_SRCS += platform/linux/fatal_error.cc
