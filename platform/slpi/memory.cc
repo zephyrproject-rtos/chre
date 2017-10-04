@@ -19,8 +19,12 @@
 
 extern "C" {
 
+#if CHRE_SLPI_SMGR
 #include "qurt.h"
 #include "sns_memmgr.h"
+#else
+#include <cstdlib>
+#endif  // CHRE_SLPI_SMGR
 
 } // extern "C"
 
