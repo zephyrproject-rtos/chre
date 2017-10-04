@@ -28,7 +28,12 @@ namespace chre {
 
 void *memoryAlloc(size_t size) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  return SNS_OS_U_MALLOC(SNS_CHRE, size);
+  #if CHRE_SLPI_SMGR
+    return SNS_OS_U_MALLOC(SNS_CHRE, size);
+  #else
+    // TODO(P2-32b2a4): Allocate from uImage memory
+    #error SLPI_SEE UIMG memory allocation not supported
+  #endif
 #else
   return malloc(size);
 #endif // CHRE_SLPI_UIMG_ENABLED
@@ -44,7 +49,12 @@ void *palSystemApiMemoryAlloc(size_t size) {
 
 void memoryFree(void *pointer) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  SNS_OS_FREE(pointer);
+  #if CHRE_SLPI_SMGR
+    SNS_OS_FREE(pointer);
+  #else
+    // TODO(P2-32b2a4): Release uImage memory
+    #error SLPI_SEE UIMG memory free not supported
+  #endif
 #else
   free(pointer);
 #endif // CHRE_SLPI_UIMG_ENABLED
