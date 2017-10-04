@@ -16,38 +16,26 @@
 
 #include "chre/platform/power_control_manager.h"
 
-#include "chre/platform/fatal_error.h"
-#include "chre/platform/log.h"
 #include "chre/platform/slpi/power_control_util.h"
 
 namespace chre {
 
 PowerControlManagerBase::PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  char kClientName[] = "CHRE";
-  sns_pm_err_code_e result = sns_pm_client_init(
-      &mClientHandle, nullptr, kClientName, SNS_PM_CLIENT_ID_CHRE);
-  if (result != SNS_PM_SUCCESS) {
-    FATAL_ERROR("Power manager client init failed.");
-  }
+  // TODO(P2-51d645): Initialize PM client
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
 PowerControlManagerBase::~PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  sns_pm_client_close(mClientHandle);
+  // TODO(P2-51d645): Release PM client
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
 bool PowerControlManagerBase::voteBigImage(bool bigImage) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  sns_pm_img_mode_e mode = bigImage ? SNS_IMG_MODE_BIG : SNS_IMG_MODE_NOCLIENT;
-  sns_pm_err_code_e result = sns_pm_vote_img_mode(mClientHandle, mode);
-  if (result != SNS_PM_SUCCESS) {
-    LOGE("Failed to vote for power mode %d with result %d", mode, result);
-  }
-
-  return (result == SNS_PM_SUCCESS);
+  // TODO(P2-51d645): Implement this
+  #error SLPI/SEE voteBigImage not supported
 #else
   return true;
 #endif // CHRE_SLPI_UIMG_ENABLED
