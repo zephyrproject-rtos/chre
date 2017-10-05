@@ -30,7 +30,7 @@ WifiRequestManager::WifiRequestManager() {
   // the first asynchronous push_back will succeed. Future push_backs will be
   // synchronous and failures will be returned to the client.
   if (!mScanMonitorNanoapps.reserve(1)) {
-    FATAL_ERROR("Failed to allocate scan monitoring nanoapps list at startup");
+    FATAL_ERROR_OOM();
   }
 }
 
