@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-#include "chre/platform/platform_audio.h"
+#ifndef CHRE_PLATFORM_SLPI_PLATFORM_AUDIO_BASE_H_
+#define CHRE_PLATFORM_SLPI_PLATFORM_AUDIO_BASE_H_
 
 namespace chre {
 
-PlatformAudio::PlatformAudio() {
-  // TODO: Init the connection to the audio subsystem.
-}
-
-PlatformAudio::~PlatformAudio() {
-  // TODO: Deinit the connection to the audio subsystem.
-}
-
-bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
-}
+/**
+ * The base PlatformAudio class for the SLPI to inject platform specific
+ * functionality from.
+ */
+class PlatformAudioBase {
+ public:
+};
 
 }  // namespace chre
+
+#endif  // CHRE_PLATFORM_SLPI_PLATFORM_AUDIO_BASE_H_

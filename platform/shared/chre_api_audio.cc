@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
+#include "chre_api/chre/audio.h"
+
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/platform_audio.h"
+#include "chre/util/macros.h"
 
-namespace chre {
+using chre::EventLoopManagerSingleton;
 
-PlatformAudio::PlatformAudio() {
-  // TODO: Init the connection to the audio subsystem.
+DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
+                                   struct chreAudioSource *audioSource) {
+  bool success = (audioSource != nullptr);
+  if (success) {
+    success = chre::PlatformAudio::getAudioSource(handle, audioSource);
+  }
+
+  return success;
 }
-
-PlatformAudio::~PlatformAudio() {
-  // TODO: Deinit the connection to the audio subsystem.
-}
-
-bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
-}
-
-}  // namespace chre

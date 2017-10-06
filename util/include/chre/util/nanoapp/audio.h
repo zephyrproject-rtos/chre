@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-#include "chre/platform/platform_audio.h"
+#ifndef CHRE_UTIL_NANOAPP_AUDIO_H_
+#define CHRE_UTIL_NANOAPP_AUDIO_H_
+
+#include "chre_api/chre/audio.h"
+
+#include <cstdint>
 
 namespace chre {
 
-PlatformAudio::PlatformAudio() {
-  // TODO: Init the connection to the audio subsystem.
-}
-
-PlatformAudio::~PlatformAudio() {
-  // TODO: Deinit the connection to the audio subsystem.
-}
-
-bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
-}
+/**
+ * Returns a string description of a given audio format.
+ *
+ * @param format the format to obtain a string for.
+ * @return a pointer to the string or some indication of invalid.
+ */
+const char *getChreAudioFormatString(uint8_t format);
 
 }  // namespace chre
+
+#endif  // CHRE_UTIL_NANOAPP_AUDIO_H_

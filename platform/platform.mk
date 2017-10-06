@@ -52,8 +52,18 @@ SLPI_SMGR_CFLAGS += -Iplatform/slpi/smgr/include
 
 SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 
+# SLPI/SEE-specific Compiler Flags #############################################
+
+# Include paths.
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/api
+
+SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
+
+SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
+
 # SLPI-specific Source Files ###################################################
 
+SLPI_SRCS += platform/shared/chre_api_audio.cc
 SLPI_SRCS += platform/shared/chre_api_core.cc
 SLPI_SRCS += platform/shared/chre_api_gnss.cc
 SLPI_SRCS += platform/shared/chre_api_re.cc
@@ -84,12 +94,17 @@ SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
 SLPI_SRCS += platform/slpi/system_time.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
 
-# SLPI/SMGR-specific Source Files ###########################################
+# SLPI/SMGR-specific Source Files ##############################################
 
 SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor.cc
 SLPI_SMGR_SRCS += platform/slpi/smgr/platform_sensor_util.cc
 SLPI_SMGR_SRCS += platform/slpi/smgr/power_control_manager.cc
 SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
+
+# SLPI/SEE-specific Source Files ###############################################
+
+SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
+SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 
 # x86-specific Compiler Flags ##################################################
 
@@ -98,6 +113,7 @@ X86_CFLAGS += -Iplatform/linux/include
 
 # x86-specific Source Files ####################################################
 
+X86_SRCS += platform/linux/audio_source.cc
 X86_SRCS += platform/linux/chre_api_re.cc
 X86_SRCS += platform/linux/context.cc
 X86_SRCS += platform/linux/fatal_error.cc
@@ -112,6 +128,7 @@ X86_SRCS += platform/linux/system_time.cc
 X86_SRCS += platform/linux/system_timer.cc
 X86_SRCS += platform/linux/platform_nanoapp.cc
 X86_SRCS += platform/linux/platform_sensor.cc
+X86_SRCS += platform/shared/chre_api_audio.cc
 X86_SRCS += platform/shared/chre_api_core.cc
 X86_SRCS += platform/shared/chre_api_gnss.cc
 X86_SRCS += platform/shared/chre_api_re.cc

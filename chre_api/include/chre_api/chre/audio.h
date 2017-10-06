@@ -294,8 +294,7 @@ struct chreAudioDataEvent {
  * Invalid: 0, 2
  *
  * @param handle The handle for an audio source to obtain details for. The
- *     range of acceptable handles must be zero-indexed and contiguous as
- *     described in the chreAudioSource handle member.
+ *     range of acceptable handles must be zero-indexed and contiguous.
  * @param audioSource A struct to populate with details of the audio source.
  * @return true if the query was successful, false if the provided handle is
  *     invalid or the supplied audioSource is NULL.
@@ -364,9 +363,8 @@ bool chreAudioGetSource(uint32_t handle, struct chreAudioSource *audioSource);
  * under normal conditions (e.g. not required for some other system function,
  * such as hotword).
  *
- * @param handle The handle for this audio source. The provided handle is
- *     obtained from a chreAudioSource which is requested from the
- *     chreAudioGetSource API.
+ * @param handle The handle for this audio source. The handle for the desired
+ *     audio source can be determined using chreAudioGetSource().
  * @param enable true if enabling the source, false otherwise. When passed as
  *     false, the bufferDuration and deliveryInterval parameters are ignored.
  * @param bufferDuration The amount of time to capture audio samples from this

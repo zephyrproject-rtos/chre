@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-#include "chre/platform/platform_audio.h"
+#include "chre/platform/linux/audio_source.h"
 
 namespace chre {
 
-PlatformAudio::PlatformAudio() {
-  // TODO: Init the connection to the audio subsystem.
-}
-
-PlatformAudio::~PlatformAudio() {
-  // TODO: Deinit the connection to the audio subsystem.
-}
-
-bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
-}
+AudioSource::AudioSource(const std::string& audioFilename,
+                         double minBufferSize, double maxBufferSize)
+    : audioFilename(audioFilename),
+      minBufferSize(
+          static_cast<uint64_t>(minBufferSize * kOneSecondInNanoseconds)),
+      maxBufferSize(
+          static_cast<uint64_t>(maxBufferSize * kOneSecondInNanoseconds)) {}
 
 }  // namespace chre

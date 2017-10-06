@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-#include "chre/platform/platform_audio.h"
+#include "chre/util/nanoapp/audio.h"
 
 namespace chre {
 
-PlatformAudio::PlatformAudio() {
-  // TODO: Init the connection to the audio subsystem.
-}
-
-PlatformAudio::~PlatformAudio() {
-  // TODO: Deinit the connection to the audio subsystem.
-}
-
-bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
+const char *getChreAudioFormatString(uint8_t format) {
+  switch (format) {
+    case CHRE_AUDIO_DATA_FORMAT_8_BIT_U_LAW:
+      return "u-Law";
+    case CHRE_AUDIO_DATA_FORMAT_16_BIT_SIGNED_PCM:
+      return "16-bit linear PCM";
+    default:
+      return "unknown";
+  }
 }
 
 }  // namespace chre

@@ -37,12 +37,10 @@ void init() {
 
   SystemTime::init();
   PlatformSensor::init();
-  PlatformAudio::init();
   EventLoopManagerSingleton::init();
 }
 
 void deinit() {
-  PlatformAudio::deinit();
   PlatformSensor::deinit();
 
   // EventLoopManager has to be the last one to deinit to handle callback

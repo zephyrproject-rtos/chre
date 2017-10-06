@@ -67,7 +67,7 @@ TARGET_SO_LATE_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/finiS.o
 
 # Supported Hexagon Architectures ##############################################
 
-HEXAGON_SUPPORTED_ARCHS = v60 v62
+HEXAGON_SUPPORTED_ARCHS = v60 v62 v65
 
 # Environment Checks ###########################################################
 

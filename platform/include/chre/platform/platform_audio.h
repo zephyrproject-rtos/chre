@@ -17,6 +17,8 @@
 #ifndef CHRE_PLATFORM_PLATFORM_AUDIO_H_
 #define CHRE_PLATFORM_PLATFORM_AUDIO_H_
 
+#include "chre_api/chre/audio.h"
+#include "chre/target_platform/platform_audio_base.h"
 #include "chre/util/non_copyable.h"
 
 namespace chre {
@@ -24,20 +26,29 @@ namespace chre {
 /**
  * Defines the common interface to audio functionality.
  */
-class PlatformAudio : public NonCopyable {
+class PlatformAudio : public PlatformAudioBase,
+                      public NonCopyable {
  public:
   /**
-   * Initializes the audio subsystem. This must be called as part of the
-   * initialization of the runtime.
+   * Initializes the audio subsystem. This is invoked as part of the
+   * construction of the EventLoopManager.
    */
-  static void init();
+  PlatformAudio();
 
   /**
-   * Deinitializes the audio subsystem, including releasing any outstanding
-   * audio requests. This must be called as part of deinitialization of the
-   * runtime.
+   * Deinitializes the audio subsystem. This is invoked as part of the
+   * destruction of the EventLoopManager.
    */
-  static void deinit();
+  ~PlatformAudio();
+
+  /**
+   * Obtains the audio source description for a given handle.
+   *
+   * @param handle the handle for the requested audio source.
+   * @param audioSource the chreAudioSource to populate with details of the
+   *     audio source. This pointer must never be null.
+   */
+  static bool getAudioSource(uint32_t handle, chreAudioSource *audioSource);
 };
 
 }  // namespace chre

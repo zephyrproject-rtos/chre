@@ -26,7 +26,7 @@ namespace chre {
 GnssRequestManager::GnssRequestManager()
     : mCurrentLocationSessionInterval(UINT64_MAX) {
   if (!mLocationSessionRequests.reserve(1)) {
-    FATAL_ERROR("Failed to allocate GNSS requests list at startup");
+    FATAL_ERROR_OOM();
   }
 }
 

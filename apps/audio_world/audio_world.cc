@@ -17,6 +17,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/nanoapp/audio.h"
 #include "chre/util/nanoapp/log.h"
 
 #define LOG_TAG "[AudioWorld]"
@@ -30,6 +31,16 @@ namespace {
 
 bool nanoappStart() {
   LOGI("Started");
+
+  struct chreAudioSource audioSource;
+  for (uint32_t i = 0; chreAudioGetSource(i, &audioSource); i++) {
+    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data - min buffer "
+         "duration: %" PRIu64 "ns, max buffer duration: %" PRIu64 "ns",
+         audioSource.name, audioSource.sampleRate,
+         getChreAudioFormatString(audioSource.format),
+         audioSource.minBufferDuration, audioSource.maxBufferDuration);
+  }
+
   return true;
 }
 

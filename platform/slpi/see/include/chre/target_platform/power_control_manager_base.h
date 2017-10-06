@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SMGR_POWER_CONTROL_MANAGER_BASE_H_
-#define CHRE_PLATFORM_SLPI_SMGR_POWER_CONTROL_MANAGER_BASE_H_
-
-extern "C" {
-
-#include "qurt.h"
-#include "sns_pm.h"
-
-} // extern "C"
+#ifndef CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
+#define CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 
 namespace chre {
 
@@ -36,15 +29,13 @@ class PowerControlManagerBase {
    *
    * @param bigImage Whether to vote for bigImage or not.
    *
-   * @return true if the vote returned SNS_PM_SUCCESS.
+   * @return true if the vote returned success.
    */
   bool voteBigImage(bool bigImage);
 
- protected:
-  //! Client handle for the subscription to the power manager
-  sns_pm_handle_t mClientHandle = nullptr;
+  // TODO(P2-51d645): Declare PM client handle
 };
 
 } // namespace chre
 
-#endif // CHRE_PLATFORM_SLPI_SMGR_POWER_CONTROL_MANAGER_BASE_H_
+#endif // CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
