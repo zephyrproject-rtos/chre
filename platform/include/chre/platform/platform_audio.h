@@ -42,6 +42,12 @@ class PlatformAudio : public PlatformAudioBase,
   ~PlatformAudio();
 
   /**
+   * @return the number of sources supported by the implementation. The returned
+   * value must be exactly one greater than the maximum supported audio handle.
+   */
+  static size_t getSourceCount();
+
+  /**
    * Obtains the audio source description for a given handle.
    *
    * @param handle the handle for the requested audio source.

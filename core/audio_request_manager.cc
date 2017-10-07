@@ -16,8 +16,14 @@
 
 #include "chre/core/audio_request_manager.h"
 
+#include "chre/platform/fatal_error.h"
+
 namespace chre {
 
-
+AudioRequestManager::AudioRequestManager() {
+  if (!mAudioRequests.reserve(PlatformAudio::getSourceCount())) {
+    FATAL_ERROR_OOM();
+  }
+}
 
 }  // namespace chre
