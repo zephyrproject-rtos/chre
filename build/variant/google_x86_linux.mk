@@ -28,6 +28,10 @@ else
 # Instruct the build to link a final executable.
 TARGET_BUILD_BIN = true
 
+# Add CFLAGS for the simulator.
+TARGET_CFLAGS += $(shell pkg-config --cflags tclap)
+TARGET_CFLAGS += $(shell pkg-config --cflags sndfile)
+
 # Link in libraries for the final executable and export symbols to dynamically
 # loaded objects.
 TARGET_BIN_LDFLAGS += -lrt -ldl -Wl,--export-dynamic
