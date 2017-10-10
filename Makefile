@@ -22,13 +22,23 @@ COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 # Place nanoapps in a namespace.
 COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
 
+# Determine the CHRE_HOST_OS to resolve build discrepancies across Darwin and
+# Linux.
+CHRE_HOST_OS := $(shell uname)
+
 ifeq ($(CHRE_PATCH_VERSION),)
+ifeq ($(CHRE_HOST_OS),Darwin)
+DATE_CMD=gdate
+else
+DATE_CMD=date
+endif
+
 # Compute the patch version as the number of hours since the start of some
 # arbitrary epoch. This will roll over 16 bits after ~7 years, but patch version
 # is scoped to the API version, so we can adjust the offset when a new API
 # version is released.
-EPOCH=$(shell date --date='2017-01-01' +%s)
-CHRE_PATCH_VERSION = $(shell echo $$(((`date +%s` - $(EPOCH)) / (60 * 60))))
+EPOCH=$(shell $(DATE_CMD) --date='2017-01-01' +%s)
+CHRE_PATCH_VERSION = $(shell echo $$(((`$(DATE_CMD) +%s` - $(EPOCH)) / (60 * 60))))
 endif
 
 COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
