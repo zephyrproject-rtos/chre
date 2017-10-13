@@ -69,6 +69,24 @@ class AudioRequestManager : public NonCopyable {
   void handleAudioDataEvent(const struct chreAudioDataEvent *event);
 
   /**
+   * A convenience function to convert sample count and sample rate into a time
+   * duration. It is illegal to call this function with a rate of zero.
+   *
+   * @param sampleCount The number of samples to convert to time at the provided
+   *        rate.
+   * @param sampleRate The rate to perform the time conversion at.
+   * @return The duration of time for these two parameters.
+   */
+  static constexpr Nanoseconds getDurationFromSampleCountAndRate(
+      uint32_t sampleCount, uint32_t sampleRate) {
+    // This function will overflow with high sample counts but does work for
+    // reasonable expected values.
+    //
+    // Example: 22050 * 1000000000 / 44100 = 500000000ns
+    return Nanoseconds((sampleCount * kOneSecondInNanoseconds) / sampleRate);
+  }
+
+  /**
    * A convenience function to convert sample rate and duration into a sample
    * count. This can be used by platform implementations to ensure that the
    * computed buffer sizes match those expected by CHRE.
