@@ -177,6 +177,13 @@ TEST(Time, NanosecGreaterThanEqual) {
   EXPECT_FALSE(t1 >= t3);
 }
 
+TEST(Time, NanosecLessThanEqual) {
+  Nanoseconds t1(5), t2(5), t3(6);
+  EXPECT_TRUE(t2 <= t1);
+  EXPECT_TRUE(t1 <= t3);
+  EXPECT_FALSE(t3 <= t1);
+}
+
 TEST(Time, NanosecLessThan) {
   Nanoseconds t1(5), t2(5), t3(6);
   EXPECT_FALSE(t2 < t1);
