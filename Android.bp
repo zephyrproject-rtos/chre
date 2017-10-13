@@ -34,6 +34,7 @@ cc_library_static {
         "liblog",
         "libutils",
     ],
+    cflags: ["-Wall", "-Werror"],
 }
 
 cc_test {
@@ -46,6 +47,7 @@ cc_test {
     srcs: [
         "host/common/test/chre_test_client.cc",
     ],
+    cflags: ["-Wall", "-Werror"],
     shared_libs: [
         "libcutils",
         "liblog",
@@ -63,6 +65,7 @@ cc_library_shared {
     srcs: [
         "host/hal_generic/generic_context_hub.cc",
     ],
+    cflags: ["-Wall", "-Werror"],
     shared_libs: [
         "libcutils",
         "liblog",
