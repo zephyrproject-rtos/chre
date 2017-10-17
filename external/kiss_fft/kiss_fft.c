@@ -141,13 +141,13 @@ static void kf_bfly5(
         )
 {
     kiss_fft_cpx *Fout0,*Fout1,*Fout2,*Fout3,*Fout4;
-    int u;
+    size_t u;
     kiss_fft_cpx scratch[13];
     kiss_fft_cpx * twiddles = st->twiddles;
     kiss_fft_cpx *tw;
     kiss_fft_cpx ya,yb;
-    ya = twiddles[fstride*m];
-    yb = twiddles[fstride*2*m];
+    ya = twiddles[fstride*(size_t)m];
+    yb = twiddles[fstride*2*(size_t)m];
 
     Fout0=Fout;
     Fout1=Fout0+m;
@@ -156,7 +156,7 @@ static void kf_bfly5(
     Fout4=Fout0+4*m;
 
     tw=st->twiddles;
-    for ( u=0; u<m; ++u ) {
+    for ( u=0; u<(size_t)m; ++u ) {
         C_FIXDIV( *Fout0,5); C_FIXDIV( *Fout1,5); C_FIXDIV( *Fout2,5); C_FIXDIV( *Fout3,5); C_FIXDIV( *Fout4,5);
         scratch[0] = *Fout0;
 
@@ -208,7 +208,7 @@ static void kf_bfly_generic(
     kiss_fft_cpx t;
     int Norig = st->nfft;
 
-    kiss_fft_cpx * scratch = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC(sizeof(kiss_fft_cpx)*p);
+    kiss_fft_cpx * scratch = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC(sizeof(kiss_fft_cpx)*(size_t)p);
 
     for ( u=0; u<m; ++u ) {
         k=u;
@@ -223,7 +223,7 @@ static void kf_bfly_generic(
             int twidx=0;
             Fout[ k ] = scratch[0];
             for (q=1;q<p;++q ) {
-                twidx += fstride * k;
+                twidx += fstride * (size_t)k;
                 if (twidx>=Norig) twidx-=Norig;
                 C_MUL(t,scratch[q] , twiddles[twidx] );
                 C_ADDTO( Fout[ k ] ,t);
@@ -276,7 +276,7 @@ void kf_work(
     if (m==1) {
         do{
             *Fout = *f;
-            f += fstride*in_stride;
+            f += fstride*(size_t)in_stride;
         }while(++Fout != Fout_end );
     }else{
         do{
@@ -284,8 +284,8 @@ void kf_work(
             // DFT of size m*p performed by doing
             // p instances of smaller DFTs of size m, 
             // each one takes a decimated version of the input
-            kf_work( Fout , f, fstride*p, in_stride, factors,st);
-            f += fstride*in_stride;
+            kf_work( Fout , f, fstride*(size_t)p, in_stride, factors,st);
+            f += fstride*(size_t)in_stride;
         }while( (Fout += m) != Fout_end );
     }
 
@@ -294,8 +294,8 @@ void kf_work(
     // recombine the p smaller DFTs 
     switch (p) {
         case 2: kf_bfly2(Fout,fstride,st,m); break;
-        case 3: kf_bfly3(Fout,fstride,st,m); break; 
-        case 4: kf_bfly4(Fout,fstride,st,m); break;
+        case 3: kf_bfly3(Fout,fstride,st,(size_t)m); break; 
+        case 4: kf_bfly4(Fout,fstride,st,(size_t)m); break;
         case 5: kf_bfly5(Fout,fstride,st,m); break; 
         default: kf_bfly_generic(Fout,fstride,st,m,p); break;
     }
@@ -340,7 +340,7 @@ kiss_fft_cfg kiss_fft_alloc(int nfft,int inverse_fft,void * mem,size_t * lenmem 
 {
     kiss_fft_cfg st=NULL;
     size_t memneeded = sizeof(struct kiss_fft_state)
-        + sizeof(kiss_fft_cpx)*(nfft-1); /* twiddle factors*/
+        + sizeof(kiss_fft_cpx)*(size_t)(nfft-1); /* twiddle factors*/
 
     if ( lenmem==NULL ) {
         st = ( kiss_fft_cfg)KISS_FFT_MALLOC( memneeded );
@@ -373,9 +373,9 @@ void kiss_fft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,
     if (fin == fout) {
         //NOTE: this is not really an in-place FFT algorithm.
         //It just performs an out-of-place FFT into a temp buffer
-        kiss_fft_cpx * tmpbuf = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC( sizeof(kiss_fft_cpx)*st->nfft);
+        kiss_fft_cpx * tmpbuf = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC( sizeof(kiss_fft_cpx)*(size_t)st->nfft);
         kf_work(tmpbuf,fin,1,in_stride, st->factors,st);
-        memcpy(fout,tmpbuf,sizeof(kiss_fft_cpx)*st->nfft);
+        memcpy(fout,tmpbuf,sizeof(kiss_fft_cpx)*(size_t)(st->nfft));
         KISS_FFT_TMP_FREE(tmpbuf);
     }else{
         kf_work( fout, fin, 1,in_stride, st->factors,st );
