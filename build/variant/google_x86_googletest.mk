@@ -37,6 +37,7 @@ TARGET_BUILD_BIN = true
 # Link in libraries for the final executable.
 TARGET_BIN_LDFLAGS += -lrt -ldl
 TARGET_BIN_LDFLAGS += -lpthread
+TARGET_BIN_LDFLAGS += $(shell pkg-config --libs sndfile)
 
 include $(CHRE_PREFIX)/build/build_template.mk
 endif
