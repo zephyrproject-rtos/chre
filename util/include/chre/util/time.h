@@ -233,6 +233,16 @@ constexpr bool operator>=(const Nanoseconds& nanos_a,
                           const Nanoseconds& nanos_b);
 
 /**
+ * Performs a less than or equal to comparison on two nanoseconds values.
+ *
+ * @param nanos_a the first nanoseconds duration
+ * @param nanos_b the second nanoseconds duration
+ * @return Whether nanos_a is less than or equal to nanos_b.
+ */
+constexpr bool operator<=(const Nanoseconds& nanos_a,
+                          const Nanoseconds& nanos_b);
+
+/**
  * Performs a less than comparison on two nanoseconds values.
  *
  * @param nanos_a the first nanoseconds duration
