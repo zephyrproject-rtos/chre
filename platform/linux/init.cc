@@ -61,17 +61,20 @@ int main(int argc, char **argv) {
         "disable running static nanoapps", cmd, false);
     TCLAP::MultiArg<std::string> nanoappsArg("", "nanoapp",
         "nanoapp shared object to load and execute", false, "path", cmd);
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
     TCLAP::ValueArg<std::string> audioFileArg("", "audio_file",
         "WAV file to open for audio simulation", false, "", "path", cmd);
     TCLAP::ValueArg<double> minAudioBufSizeArg("", "min_audio_buf_size",
         "min buffer size for audio simulation", false, 1.0, "seconds", cmd);
     TCLAP::ValueArg<double> maxAudioBufSizeArg("", "max_audio_buf_size",
         "max buffer size for audio simulation", false, 10.0, "seconds", cmd);
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
     cmd.parse(argc, argv);
 
     // Initialize logging.
     chre::PlatformLogSingleton::init();
 
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
     // Initialize audio sources.
     if (!audioFileArg.getValue().empty()) {
       auto audioSource = chre::MakeUnique<chre::AudioSource>(
@@ -82,6 +85,7 @@ int main(int argc, char **argv) {
 
     // TODO(P1-d24c82): Add another command line argument that takes a json
     // configuration to support multiple sources.
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
     // Initialize the system.
     chre::init();
