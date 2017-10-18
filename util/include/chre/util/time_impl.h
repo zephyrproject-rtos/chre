@@ -123,6 +123,11 @@ constexpr bool operator>=(const Nanoseconds& nanos_a,
   return nanos_a.toRawNanoseconds() >= nanos_b.toRawNanoseconds();
 }
 
+constexpr bool operator<=(const Nanoseconds& nanos_a,
+                          const Nanoseconds& nanos_b) {
+  return nanos_a.toRawNanoseconds() <= nanos_b.toRawNanoseconds();
+}
+
 constexpr bool operator<(const Nanoseconds& nanos_a,
                          const Nanoseconds& nanos_b) {
   return nanos_a.toRawNanoseconds() < nanos_b.toRawNanoseconds();
