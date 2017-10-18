@@ -140,8 +140,8 @@ struct kiss_fft_state{
 
 #define  kf_cexp(x,phase) \
 	do{ \
-		(x)->r = KISS_FFT_COS(phase);\
-		(x)->i = KISS_FFT_SIN(phase);\
+		(x)->r = (int16_t)KISS_FFT_COS(phase);\
+		(x)->i = (int16_t)KISS_FFT_SIN(phase);\
 	}while(0)
 
 
