@@ -15,7 +15,8 @@ TARGET_SO_LATE_LIBS = $(GOOGLE_X86_LINUX_LATE_LIBS)
 # within our control we expect that there will be no conversion issues. It would
 # be nice to enable this globally in the tools_config.mk but some vendor header
 # files do not compile cleanly with it.
-TARGET_CFLAGS += -Wconversion
+# TODO(P1-b3eccd): Re-enable -Wconversion once Kiss FFT compiles cleanly
+# TARGET_CFLAGS += -Wconversion
 
 # Add the target CFLAGS after the -Wconversion warning to allow targets to
 # disable it.
