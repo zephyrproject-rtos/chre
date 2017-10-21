@@ -39,6 +39,13 @@ bool nanoappStart() {
          audioSource.name, audioSource.sampleRate,
          getChreAudioFormatString(audioSource.format),
          audioSource.minBufferDuration, audioSource.maxBufferDuration);
+
+    if (chreAudioConfigureSource(i, true, audioSource.minBufferDuration,
+                                 audioSource.minBufferDuration)) {
+      LOGI("Requested audio from handle %" PRIu32 " successfully", i);
+    } else {
+      LOGE("Failed to request audio from handle %" PRIu32, i);
+    }
   }
 
   return true;
@@ -47,7 +54,14 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
+  const auto *audioDataEvent = static_cast<const struct chreAudioDataEvent *>(
+      eventData);
+
   switch (eventType) {
+    case CHRE_EVENT_AUDIO_DATA:
+      LOGI("Received audio data event at %" PRIu64 "ns with %" PRIu32
+           " samples", audioDataEvent->timestamp, audioDataEvent->sampleCount);
+      break;
     default:
       LOGW("Unknown event received");
       break;
