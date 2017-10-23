@@ -55,6 +55,8 @@ SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 # SLPI/SEE-specific Compiler Flags #############################################
 
 # Include paths.
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/qmimsgs/common/api
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/framework/cm/inc
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/api
 
 SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
