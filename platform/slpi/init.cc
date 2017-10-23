@@ -18,6 +18,7 @@
 
 extern "C" {
 
+#include "timer.h"
 #include "qurt.h"
 
 }  // extern "C"
@@ -70,7 +71,7 @@ constexpr unsigned short kThreadPriority = 192;
 
 //! How long we wait (in microseconds) between checks on whether the CHRE thread
 //! has exited after we invoked stop().
-constexpr qurt_timer_duration_t kThreadStatusPollingIntervalUsec = 5000;  // 5ms
+constexpr time_timetick_type kThreadStatusPollingIntervalUsec = 5000;  // 5ms
 
 //! Buffer to use for the CHRE thread's stack.
 typename std::aligned_storage<kStackSize>::type gStack;
@@ -251,7 +252,8 @@ extern "C" int chre_slpi_stop_thread(void) {
     // is invalid. Technically, we could use a condition variable, but this is
     // simpler and we don't care too much about being notified right away.
     while (gThreadRunning) {
-      qurt_timer_sleep(kThreadStatusPollingIntervalUsec);
+      timer_sleep(kThreadStatusPollingIntervalUsec, T_USEC,
+                  true /* non_deferrable */);
     }
     gThreadHandle = 0;
 

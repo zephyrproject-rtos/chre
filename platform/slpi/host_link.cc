@@ -15,7 +15,7 @@
  */
 
 #include "ash/debug.h"
-#include "qurt.h"
+#include "timer.h"
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
@@ -532,8 +532,8 @@ void HostLink::flushMessagesSentByNanoapp(uint64_t /*appId*/) {
 
   // One extra sleep to try to ensure that any messages popped just before
   // checking empty() are fully processed before we return
-  constexpr qurt_timer_duration_t kFinalDelayUsec = 10000;
-  qurt_timer_sleep(kFinalDelayUsec);
+  constexpr time_timetick_type kFinalDelayUsec = 10000;
+  timer_sleep(kFinalDelayUsec, T_USEC, true /* non_deferrable */);
 }
 
 bool HostLink::sendMessage(const MessageToHost *message) {
@@ -547,7 +547,7 @@ bool HostLinkBase::flushOutboundQueue() {
 
   FARF(LOW, "Draining message queue");
   while (!gOutboundQueue.empty() && waitCount-- > 0) {
-    qurt_timer_sleep(kPollingIntervalUsec);
+    timer_sleep(kPollingIntervalUsec, T_USEC, true /* non_deferrable */);
   }
 
   return (waitCount >= 0);
@@ -563,7 +563,7 @@ void HostLinkBase::shutdown() {
   FARF(MEDIUM, "Shutting down host link");
   while (!enqueueMessage(PendingMessage(PendingMessageType::Shutdown))
          && --retryCount > 0) {
-    qurt_timer_sleep(kPollingIntervalUsec);
+    timer_sleep(kPollingIntervalUsec, T_USEC, true /* non_deferrable */);
   }
 
   if (retryCount <= 0) {
