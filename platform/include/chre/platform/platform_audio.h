@@ -20,6 +20,7 @@
 #include "chre_api/chre/audio.h"
 #include "chre/target_platform/platform_audio_base.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -40,6 +41,57 @@ class PlatformAudio : public PlatformAudioBase,
    * destruction of the EventLoopManager.
    */
   ~PlatformAudio();
+
+  /**
+   * Requests an audio data event from the platform for the provided handle. A
+   * call to this method must cancel any previous request.
+   *
+   * The event requested here may contain data from previously posted events.
+   * The concept is to allow the platform to manage its own buffers for audio
+   * data. If a request comes in for 8000 samples of data and the most recent
+   * request was for 4000 samples of data, the platform implementation may reuse
+   * the existing 4000 samples of data and append 4000 samples of new data
+   * (assuming that the arguments passed here allow that).
+   *
+   * Once a request for a given source has been made, the platform
+   * implementation must maintain a buffer of previously collected audio samples
+   * to provide when a request comes in for data in the past (up to the maximum
+   * buffer size for this source). This happens when numSamples at the source
+   * sample rate is a greater amount of time than eventDelay. This buffer can be
+   * released once cancelAudioDataEventRequest has been invoked for a given
+   * source.
+   *
+   * The event is provided to CHRE through the handleAudioDataEvent function of
+   * the AudioRequestManager.
+   *
+   * @param handle The handle for which an audio event is requested.
+   * @param numSamples The number of samples to send once the request has been
+   *        completed.
+   * @param eventDelay The amount of time that must pass before providing the
+   *        data event to CHRE.
+   */
+  bool requestAudioDataEvent(uint32_t handle,
+                             uint32_t numSamples,
+                             Nanoseconds eventDelay);
+
+  /**
+   * Cancels the previous call to requestAudioDataEvent. No audio data is
+   * allowed to be posted to CHRE after this function has been called and before
+   * the next call to requestAudioDataEvent.
+   *
+   * @param handle The handle for which the most recent call to
+   *        requestAudioDataEvent will be cancelled.
+   */
+  void cancelAudioDataEventRequest(uint32_t handle);
+
+  /**
+   * Releases a previously posted audio event. This will be invoked by CHRE to
+   * say that all nanoapps have processed the previously scheduled data event.
+   *
+   * @param event An audio data event that was previously provided to
+   *        CHRE as a result of a request for audio data.
+   */
+  void releaseAudioDataEvent(struct chreAudioDataEvent *event);
 
   /**
    * @return the number of sources supported by the implementation. The returned

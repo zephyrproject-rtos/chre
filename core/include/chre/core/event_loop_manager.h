@@ -52,6 +52,7 @@ enum class SystemCallbackType : uint16_t {
   SensorStatusUpdate,
   PerformDebugDump,
   TimerPoolTick,
+  AudioHandleDataEvent,
 };
 
 //! The function signature of a system callback mirrors the CHRE event free
