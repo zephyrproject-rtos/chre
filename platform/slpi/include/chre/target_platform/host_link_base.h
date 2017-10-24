@@ -17,7 +17,7 @@
 #ifndef CHRE_PLATFORM_SLPI_HOST_LINK_BASE_H_
 #define CHRE_PLATFORM_SLPI_HOST_LINK_BASE_H_
 
-#include "qurt_timer.h"
+#include "timer.h"
 
 namespace chre {
 
@@ -40,7 +40,7 @@ class HostLinkBase {
   static void shutdown();
 
  private:
-  static constexpr qurt_timer_duration_t kPollingIntervalUsec = 5000;
+  static constexpr time_timetick_type kPollingIntervalUsec = 5000;
 };
 
 /**

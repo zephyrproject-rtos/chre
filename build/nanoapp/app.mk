@@ -23,25 +23,25 @@ $(error "The NANOAPP_VERSION variable must be set to the version of the nanoapp.
 endif
 
 ifeq ($(NANOAPP_NAME_STRING),)
-$(error The NANOAPP_NAME_STRING variable must be set to the friendly name of \
-        the nanoapp. This should be assigned by the Makefile that includes \
-        app.mk.)
+$(error "The NANOAPP_NAME_STRING variable must be set to the friendly name of \
+         the nanoapp. This should be assigned by the Makefile that includes \
+         app.mk.")
 endif
 
 ifeq ($(NANOAPP_VENDOR_STRING),)
-$(info NANOAPP_VENDOR_STRING not supplied, defaulting to "Google".)
+$(info "NANOAPP_VENDOR_STRING not supplied, defaulting to \"Google\".")
 NANOAPP_VENDOR_STRING = \"Google\"
 endif
 
 ifeq ($(NANOAPP_IS_SYSTEM_NANOAPP),)
-$(info NANOAPP_IS_SYSTEM_NANOAPP not supplied, defaulting to 0.)
+$(info "NANOAPP_IS_SYSTEM_NANOAPP not supplied, defaulting to 0.")
 NANOAPP_IS_SYSTEM_NANOAPP = 0
 endif
 
 ifeq ($(CHRE_PREFIX),)
 ifeq ($(ANDROID_BUILD_TOP),)
-$(error You must run lunch, or specify an explicit CHRE_PREFIX environment \
-        variable)
+$(error "You must run lunch, or specify an explicit CHRE_PREFIX environment \
+         variable")
 else
 CHRE_PREFIX = $(ANDROID_BUILD_TOP)/system/chre
 endif

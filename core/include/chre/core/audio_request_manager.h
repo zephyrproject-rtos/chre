@@ -21,6 +21,7 @@
 #include <cstdint>
 
 #include "chre_api/chre/audio.h"
+#include "chre/core/nanoapp.h"
 #include "chre/platform/platform_audio.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -39,23 +40,181 @@ class AudioRequestManager : public NonCopyable {
    */
   AudioRequestManager();
 
+  /**
+   * Updates the current request for audio from a nanoapp for a given audio
+   * source.
+   *
+   * @param nanoapp A non-null pointer to the nanoapp requesting this change.
+   * @param handle The audio source handle for which this request is directed
+   *        toward.
+   * @param enable true if enabling the source, false if disabling.
+   * @param bufferDuration The amount of data to deliver to the nanoapp.
+   * @param deliveryInterval How frequently to deliver this data.
+   * @return true if the request was successful, false otherwise. When enabling,
+   *         the bufferDuration must be less than or equal to deliveryInterval.
+   *
+   * @see chreAudioConfigureSource()
+   */
+  bool configureSource(const Nanoapp *nanoapp, uint32_t handle, bool enable,
+                       uint64_t bufferDuration, uint64_t deliveryInterval);
+
+  /**
+   * Handles a new batch of audio from the PlatformAudio interface.
+   *
+   * @param event The audio data event provided to the audio request manager.
+   *        Ownership of this event is transferred to the CHRE runtime until it
+   *        is released via the PlatformAudio::releaseAudioDataEvent platform
+   *        API.
+   */
+  void handleAudioDataEvent(const struct chreAudioDataEvent *event);
+
+  /**
+   * A convenience function to convert sample rate and duration into a sample
+   * count. This can be used by platform implementations to ensure that the
+   * computed buffer sizes match those expected by CHRE.
+   *
+   * @param sampleRate The sample rate of the audio source.
+   * @param duration The duration of the buffer delivered.
+   * @return The number of samples given this configuration.
+   */
+  static constexpr uint32_t getSampleCountFromRateAndDuration(
+      uint32_t sampleRate, Nanoseconds duration) {
+    // This function will overflow at high sample rates or extremely high
+    // durations, but does work for reasonable expected values.
+    //
+    // Example: 44100 * 60 seconds (in nanoseconds) fits into a uint64_t as an
+    // intermediate value before casting to uint32_t.
+    return static_cast<uint32_t>((sampleRate * duration.toRawNanoseconds())
+        / kOneSecondInNanoseconds);
+  }
+
  private:
   /**
-   * Tracks requests for an audio source from individual nanoapps. The handle of
-   * the audio source is implied by the array index of this object in a
-   * container type.
+   * One instance of an audio request from a nanoapp.
    */
-  struct AudioRequests {
-    // TODO(P1-678d91): Add relevant members to track requests from nanoapps.
+  struct AudioRequest {
+    AudioRequest(uint32_t instanceId, uint32_t numSamples,
+                 Nanoseconds deliveryInterval, Nanoseconds nextEventTimestamp)
+        : instanceId(instanceId),
+          numSamples(numSamples),
+          deliveryInterval(deliveryInterval),
+          nextEventTimestamp(nextEventTimestamp) {}
+
+    //! The nanoapp instance ID that owns this request.
+    uint32_t instanceId;
+
+    //! The number of samples requested for this request.
+    uint32_t numSamples;
+
+    //! The delivery interval for this request.
+    Nanoseconds deliveryInterval;
+
+    //! The expected timestamp of the next event delivery.
+    Nanoseconds nextEventTimestamp;
+  };
+
+  /**
+   * A list of audio requests for a given source. Note that each nanoapp may
+   * have at most one open request for a given source. When the source is
+   * disabled it is removed from this list.
+   */
+  struct AudioRequestList {
+    //! The request to post the next event to.
+    AudioRequest *nextAudioRequest = nullptr;
+
+    //! The list of requests for this source that are currently open.
+    DynamicVector<AudioRequest> requests;
   };
 
   //! Maps audio handles to requests from multiple nanoapps for an audio source.
   //! The array index implies the audio handle which is being managed.
-  DynamicVector<AudioRequests> mAudioRequests;
+  DynamicVector<AudioRequestList> mAudioRequestLists;
 
   //! The instance of platform audio that is managed by this AudioRequestManager
   //! and used to service requests for audio data.
   PlatformAudio mPlatformAudio;
+
+  /**
+   * Validates the arguments provided to configureSource to ensure that the
+   * handle is valid and enable, bufferDuration and deliveryInterval are in a
+   * valid configuration.
+   *
+   * @see configureSource for paramater documentation.
+   *
+   * @param numSamples Assigned the number of samples for this request if the
+   *        return value is true.
+   * @return true if the arguments are configured in a valid arrangement.
+   */
+  bool validateConfigureSourceArguments(uint32_t handle, bool enable,
+      uint64_t bufferDuration, uint64_t deliveryInterval, uint32_t *numSamples);
+
+  /**
+   * Finds an audio request for a given audio handle and nanoapp instance ID. If
+   * no existing request is available, nullptr is returned.
+   *
+   * @param handle The audio handle to query for. This must be guaranteed by the
+   *     caller to be less than the size of the mAudioRequestLists member.
+   * @param instanceId The nanoapp instance ID that owns the existing request
+   *     for this handle.
+   * @param index Populated with the index of the request if it was found.
+   * @return The AudioRequest for this handle and instanceId, nullptr if not
+   *     found.
+   */
+  AudioRequest *findAudioRequest(uint32_t handle, uint32_t instanceId,
+                                 size_t *index);
+
+  /**
+   * Finds the next expiring request for audio data for a given handle.
+   *
+   * @param handle the handle to determine the next request to service for
+   * @return The audio request for this handle that expires next. If no requests
+   *         are bound to this handle, nullptr is returned.
+   */
+  AudioRequest *findNextAudioRequest(uint32_t handle);
+
+  /**
+   * Handles an audio data event from the platform synchronously. This is
+   * invoked on the CHRE thread through a scheduled callback.
+   *
+   * @param event The event to provide to nanoapps containg audio data.
+   */
+  void handleAudioDataEventSync(struct chreAudioDataEvent *event);
+
+  /**
+   * Iterates the list of outstanding requests for the provided handle and
+   * schedules the next request to the platform.
+   *
+   * @param handle the audio source for which to schedule a request.
+   */
+  void scheduleNextAudioDataEvent(uint32_t handle);
+
+  /**
+   * Posts the provided audio data event to a nanoapp with the given instance ID
+   * and fails fatally if the event is not posted. Fatal error is an acceptable
+   * error handling mechanism here because there is no way to satisfy the
+   * requirements of the API without posting an event.
+   *
+   * @param audioDataEvent The audio data event to send to a nanoapp.
+   * @param instanceId The nanoapp instance ID to direct the event to.
+   */
+  void postAudioDataEventFatal(struct chreAudioDataEvent *event,
+                               uint32_t instanceId);
+
+  /**
+   * Invoked by the freeAudioDataEventCallback to decrement the reference count
+   * of the most recently published event and free it if unreferenced.
+   *
+   * @param audioDataEvent the audio data event to process.
+   */
+  void handleFreeAudioDataEvent(struct chreAudioDataEvent *audioDataEvent);
+
+  /**
+   * Releases an audio data event after nanoapps have consumed it.
+   *
+   * @param eventType the type of event being freed.
+   * @param eventData a pointer to the scan event to release.
+   */
+  static void freeAudioDataEventCallback(uint16_t eventType, void *eventData);
 };
 
 }  // namespace chre

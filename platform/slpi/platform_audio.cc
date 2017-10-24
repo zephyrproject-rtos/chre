@@ -26,6 +26,21 @@ PlatformAudio::~PlatformAudio() {
   // TODO: Deinit the connection to the audio subsystem.
 }
 
+bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
+                                          uint32_t numSamples,
+                                          Nanoseconds eventDelay) {
+  // TODO(P1-f3f9a0): Implement this.
+  return false;
+}
+
+void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
+  // TODO(P1-f3f9a0): Implement this.
+}
+
+void PlatformAudio::releaseAudioDataEvent(struct chreAudioDataEvent *event) {
+  // TODO(P1-f3f9a0): Implement this.
+}
+
 size_t PlatformAudio::getSourceCount() {
   // TODO(P1-f3f9a0): Implement this.
   return 0;

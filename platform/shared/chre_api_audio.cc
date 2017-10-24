@@ -20,7 +20,9 @@
 #include "chre/platform/platform_audio.h"
 #include "chre/util/macros.h"
 
+using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
+using chre::Nanoapp;
 
 DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
                                    struct chreAudioSource *audioSource) {
@@ -30,4 +32,13 @@ DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
   }
 
   return success;
+}
+
+DLL_EXPORT bool chreAudioConfigureSource(uint32_t handle, bool enable,
+                                         uint64_t bufferDuration,
+                                         uint64_t deliveryInterval) {
+  Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return EventLoopManagerSingleton::get()->getAudioRequestManager()
+      .configureSource(nanoapp, handle, enable, bufferDuration,
+                       deliveryInterval);
 }

@@ -34,6 +34,21 @@ PlatformAudio::PlatformAudio() {}
 
 PlatformAudio::~PlatformAudio() {}
 
+bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
+                                          uint32_t numSamples,
+                                          Nanoseconds deliveryInterval) {
+  // TODO(P1-41459d): Implement this API in terms of libsndfile.
+  return false;
+}
+
+void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
+  // TODO(P1-41459d): Implement this API in terms of libsndfile.
+}
+
+void PlatformAudio::releaseAudioDataEvent(struct chreAudioDataEvent *event) {
+  // TODO(P1-41459d): Implement this API in terms of libsndfile.
+}
+
 size_t PlatformAudio::getSourceCount() {
   return gAudioSources.size();
 }
