@@ -16,6 +16,13 @@
 
 #include "chre/platform/platform_sensor.h"
 
+extern "C" {
+
+#include "qmi_client.h"
+#include "sns_client_api_v01.h"
+
+}  // extern "C"
+
 #include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor.h"
@@ -25,6 +32,41 @@
 #include "chre/platform/system_time.h"
 
 namespace chre {
+namespace {
+
+//! Timeout for QMI client initialization, in milliseconds. Allow more time here
+//! due to external dependencies that may block initialization of SEE.
+constexpr uint32_t kQmiInitTimeoutMs = 5000;
+
+//! The QMI sensor service client handle.
+qmi_client_type gPlatformSensorServiceQmiClientHandle = nullptr;
+
+/**
+ * This callback is invoked by the QMI framework when an asynchronous message is
+ * delivered. Unhandled messages are logged. The signature is defined by the QMI
+ * library.
+ *
+ * @param userHandle The userHandle is used by the QMI library.
+ * @param messageId The type of the message to decode.
+ * @param buffer The buffer to decode.
+ * @param bufferLength The length of the buffer to decode.
+ * @param callbackData Data that is provided as a context to this callback. This
+ *                     is not used in this context.
+ */
+void platformSensorServiceQmiIndicationCallback(void *userHandle,
+                                                unsigned int messageId,
+                                                void *buffer,
+                                                unsigned int bufferLength,
+                                                void *callbackData) {
+  // TODO: Implement this.
+  switch (messageId) {
+    default:
+      LOGW("Received unhandled sensor service message: 0x%x", messageId);
+      break;
+  };
+}
+
+}  // anonymous namespace
 
 PlatformSensor::~PlatformSensor() {
   if (lastEvent != nullptr) {
@@ -35,11 +77,32 @@ PlatformSensor::~PlatformSensor() {
 }
 
 void PlatformSensor::init() {
-  // TODO: Implement this.
+  qmi_idl_service_object_type snsSvcObj =
+      SNS_CLIENT_SVC_get_service_object_v01();
+  if (snsSvcObj == nullptr) {
+    FATAL_ERROR("Failed to obtain the SNS service instance");
+  }
+
+  // TODO(P2-aa0089): Replace QMI with an interface that doesn't introduce big
+  // image wakeups.
+  qmi_client_os_params sensorContextOsParams;
+  qmi_client_error_type status = qmi_client_init_instance(snsSvcObj,
+      QMI_CLIENT_INSTANCE_ANY, &platformSensorServiceQmiIndicationCallback,
+      nullptr, &sensorContextOsParams, kQmiInitTimeoutMs,
+      &gPlatformSensorServiceQmiClientHandle);
+  if (status != QMI_NO_ERR) {
+    FATAL_ERROR("Failed to initialize the sensor service QMI client: %d",
+                status);
+  }
 }
 
 void PlatformSensor::deinit() {
-  // TODO: Implement this.
+  qmi_client_error_type err = qmi_client_release(
+      gPlatformSensorServiceQmiClientHandle);
+  if (err != QMI_NO_ERR) {
+    LOGE("Failed to release SensorService QMI client: %d", err);
+  }
+  gPlatformSensorServiceQmiClientHandle = nullptr;
 }
 
 bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {

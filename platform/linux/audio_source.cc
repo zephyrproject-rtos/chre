@@ -16,14 +16,27 @@
 
 #include "chre/platform/linux/audio_source.h"
 
+#include "chre/platform/fatal_error.h"
+
 namespace chre {
 
 AudioSource::AudioSource(const std::string& audioFilename,
-                         double minBufferSize, double maxBufferSize)
+                         double minBufferDuration, double maxBufferDuration)
     : audioFilename(audioFilename),
-      minBufferSize(
-          static_cast<uint64_t>(minBufferSize * kOneSecondInNanoseconds)),
-      maxBufferSize(
-          static_cast<uint64_t>(maxBufferSize * kOneSecondInNanoseconds)) {}
+      minBufferDuration(
+          static_cast<uint64_t>(minBufferDuration * kOneSecondInNanoseconds)),
+      maxBufferDuration(
+          static_cast<uint64_t>(maxBufferDuration * kOneSecondInNanoseconds)) {
+  if (!timer.init()) {
+    FATAL_ERROR("Failed to initialize audio source timer");
+  }
+}
+
+AudioSource::~AudioSource() {
+  if (dataEvent.samplesULaw8 != nullptr) {
+    free(reinterpret_cast<void *>(
+        const_cast<uint8_t *>(dataEvent.samplesULaw8)));
+  }
+}
 
 }  // namespace chre

@@ -15,6 +15,6 @@ SLPI_SMGR_SRCS += ash/platform/slpi/smgr/ash.cc
 
 SLPI_SEE_SRCS += ash/platform/slpi/see/ash.cc
 
-# x86-specific Source Files ####################################################
+# Simulator-specific Source Files ##############################################
 
-X86_SRCS += ash/platform/linux/ash.cc
+SIM_SRCS += ash/platform/linux/ash.cc
