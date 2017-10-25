@@ -11,6 +11,9 @@ TARGET_BIN_LDFLAGS = $(GOOGLE_X86_LINUX_BIN_LDFLAGS)
 TARGET_SO_EARLY_LIBS = $(GOOGLE_X86_LINUX_EARLY_LIBS)
 TARGET_SO_LATE_LIBS = $(GOOGLE_X86_LINUX_LATE_LIBS)
 
+TARGET_CFLAGS += $(SIM_CFLAGS)
+TARGET_VARIANT_SRCS += $(SIM_SRCS)
+
 # Enable conversion warnings for the simulator. Since this is a platform 100%
 # within our control we expect that there will be no conversion issues. It would
 # be nice to enable this globally in the tools_config.mk but some vendor header

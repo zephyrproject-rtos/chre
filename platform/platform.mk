@@ -108,46 +108,46 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 
-# x86-specific Compiler Flags ##################################################
+# Simulator-specific Compiler Flags ############################################
 
-X86_CFLAGS += -Iplatform/shared/include
-X86_CFLAGS += -Iplatform/linux/include
+SIM_CFLAGS += -Iplatform/shared/include
+SIM_CFLAGS += -Iplatform/linux/include
 
-# x86-specific Source Files ####################################################
+# Simulator-specific Source Files ##############################################
 
-X86_SRCS += platform/linux/audio_source.cc
-X86_SRCS += platform/linux/chre_api_re.cc
-X86_SRCS += platform/linux/context.cc
-X86_SRCS += platform/linux/fatal_error.cc
-X86_SRCS += platform/linux/host_link.cc
-X86_SRCS += platform/linux/memory.cc
-X86_SRCS += platform/linux/memory_manager.cc
-X86_SRCS += platform/linux/platform_audio.cc
-X86_SRCS += platform/linux/platform_log.cc
-X86_SRCS += platform/linux/platform_pal.cc
-X86_SRCS += platform/linux/power_control_manager.cc
-X86_SRCS += platform/linux/system_time.cc
-X86_SRCS += platform/linux/system_timer.cc
-X86_SRCS += platform/linux/platform_nanoapp.cc
-X86_SRCS += platform/linux/platform_sensor.cc
-X86_SRCS += platform/shared/chre_api_audio.cc
-X86_SRCS += platform/shared/chre_api_core.cc
-X86_SRCS += platform/shared/chre_api_gnss.cc
-X86_SRCS += platform/shared/chre_api_re.cc
-X86_SRCS += platform/shared/chre_api_sensor.cc
-X86_SRCS += platform/shared/chre_api_version.cc
-X86_SRCS += platform/shared/chre_api_wifi.cc
-X86_SRCS += platform/shared/chre_api_wwan.cc
-X86_SRCS += platform/shared/memory_manager.cc
-X86_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
-X86_SRCS += platform/shared/pal_gnss_stub.cc
-X86_SRCS += platform/shared/pal_wifi_stub.cc
-X86_SRCS += platform/shared/pal_wwan_stub.cc
-X86_SRCS += platform/shared/pal_system_api.cc
-X86_SRCS += platform/shared/platform_gnss.cc
-X86_SRCS += platform/shared/platform_wifi.cc
-X86_SRCS += platform/shared/platform_wwan.cc
-X86_SRCS += platform/shared/system_time.cc
+SIM_SRCS += platform/linux/audio_source.cc
+SIM_SRCS += platform/linux/chre_api_re.cc
+SIM_SRCS += platform/linux/context.cc
+SIM_SRCS += platform/linux/fatal_error.cc
+SIM_SRCS += platform/linux/host_link.cc
+SIM_SRCS += platform/linux/memory.cc
+SIM_SRCS += platform/linux/memory_manager.cc
+SIM_SRCS += platform/linux/platform_audio.cc
+SIM_SRCS += platform/linux/platform_log.cc
+SIM_SRCS += platform/linux/platform_pal.cc
+SIM_SRCS += platform/linux/power_control_manager.cc
+SIM_SRCS += platform/linux/system_time.cc
+SIM_SRCS += platform/linux/system_timer.cc
+SIM_SRCS += platform/linux/platform_nanoapp.cc
+SIM_SRCS += platform/linux/platform_sensor.cc
+SIM_SRCS += platform/shared/chre_api_audio.cc
+SIM_SRCS += platform/shared/chre_api_core.cc
+SIM_SRCS += platform/shared/chre_api_gnss.cc
+SIM_SRCS += platform/shared/chre_api_re.cc
+SIM_SRCS += platform/shared/chre_api_sensor.cc
+SIM_SRCS += platform/shared/chre_api_version.cc
+SIM_SRCS += platform/shared/chre_api_wifi.cc
+SIM_SRCS += platform/shared/chre_api_wwan.cc
+SIM_SRCS += platform/shared/memory_manager.cc
+SIM_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
+SIM_SRCS += platform/shared/pal_gnss_stub.cc
+SIM_SRCS += platform/shared/pal_wifi_stub.cc
+SIM_SRCS += platform/shared/pal_wwan_stub.cc
+SIM_SRCS += platform/shared/pal_system_api.cc
+SIM_SRCS += platform/shared/platform_gnss.cc
+SIM_SRCS += platform/shared/platform_wifi.cc
+SIM_SRCS += platform/shared/platform_wwan.cc
+SIM_SRCS += platform/shared/system_time.cc
 
 GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
 
