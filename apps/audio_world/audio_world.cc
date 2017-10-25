@@ -16,18 +16,91 @@
 
 #include <chre.h>
 #include <cinttypes>
+#include <cmath>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/audio.h"
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/time.h"
+#include "kiss_fftr.h"
 
 #define LOG_TAG "[AudioWorld]"
-
-// TODO(P1-6f72cb): Exercise the CHRE Audio API once it is available.
 
 #ifdef CHRE_NANOAPP_INTERNAL
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
+
+//! The number of frequencies to generate an FFT over.
+constexpr size_t kNumFrequencies = 128;
+
+//! State for Kiss FFT and logging.
+uint8_t gKissFftBuffer[4096];
+kiss_fftr_cfg gKissFftConfig;
+kiss_fft_cpx gKissFftOutput[(kNumFrequencies / 2) + 1];
+chre::Milliseconds gFirstAudioEventTimestamp = chre::Milliseconds(0);
+
+/**
+ * Returns a graphical representation of a uint16_t value.
+ *
+ * @param value the value to visualize.
+ * @return a character that visually represents the value.
+ */
+char getFftCharForValue(uint16_t value) {
+  if (value < 2048) {
+    return '_';
+  } else if (value >= 2048 && value < 4096) {
+    return '.';
+  } else if (value >= 4096 && value < 8192) {
+    return 'x';
+  } else {
+    return 'X';
+  }
+}
+
+/**
+ * Initializes Kiss FFT.
+ */
+void initKissFft() {
+  size_t kissFftBufferSize = sizeof(gKissFftBuffer);
+  gKissFftConfig = kiss_fftr_alloc(kNumFrequencies, false,
+                                   gKissFftBuffer, &kissFftBufferSize);
+  if (gKissFftConfig == NULL) {
+    LOGE("Failed to init Kiss FFT, needs minimum %zu buffer size",
+         kissFftBufferSize);
+  } else {
+    LOGI("Initialized Kiss FFT, using %zu/%zu of the buffer",
+         kissFftBufferSize, sizeof(gKissFftBuffer));
+  }
+}
+
+/**
+ * Logs an audio data event with an FFT visualization of the received audio
+ * data.
+ *
+ * @param event the audio data event to log.
+ */
+void logAudioDataEvent(const struct chreAudioDataEvent *event) {
+  kiss_fftr(gKissFftConfig, event->samplesS16, gKissFftOutput);
+
+  char fftStr[ARRAY_SIZE(gKissFftOutput) + 1];
+  fftStr[ARRAY_SIZE(gKissFftOutput)] = '\0';
+
+  for (size_t i = 0; i < ARRAY_SIZE(gKissFftOutput); i++) {
+    float value = sqrtf(powf(gKissFftOutput[i].r, 2)
+        + powf(gKissFftOutput[i].i, 2));
+    fftStr[i] = getFftCharForValue(static_cast<uint16_t>(value));
+  }
+
+  Milliseconds timestamp = Milliseconds(Nanoseconds(event->timestamp));
+  if (gFirstAudioEventTimestamp == Milliseconds(0)) {
+    gFirstAudioEventTimestamp = timestamp;
+  }
+
+  Milliseconds adjustedTimestamp = timestamp - gFirstAudioEventTimestamp;
+  LOGD("Audio data - FFT [%s] at %" PRIu64 "ms with %" PRIu32 " samples",
+       fftStr, adjustedTimestamp.getMilliseconds(), event->sampleCount);
+}
 
 bool nanoappStart() {
   LOGI("Started");
@@ -48,20 +121,20 @@ bool nanoappStart() {
     }
   }
 
+  initKissFft();
   return true;
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  const auto *audioDataEvent = static_cast<const struct chreAudioDataEvent *>(
-      eventData);
-
   switch (eventType) {
-    case CHRE_EVENT_AUDIO_DATA:
-      LOGI("Received audio data event at %" PRIu64 "ns with %" PRIu32
-           " samples", audioDataEvent->timestamp, audioDataEvent->sampleCount);
+    case CHRE_EVENT_AUDIO_DATA: {
+      const auto *event = static_cast<const struct chreAudioDataEvent *>(
+          eventData);
+      logAudioDataEvent(event);
       break;
+    }
     default:
       LOGW("Unknown event received");
       break;
