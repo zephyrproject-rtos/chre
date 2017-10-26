@@ -26,19 +26,27 @@ using chre::Nanoapp;
 
 DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
                                    struct chreAudioSource *audioSource) {
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
   bool success = (audioSource != nullptr);
   if (success) {
     success = chre::PlatformAudio::getAudioSource(handle, audioSource);
   }
 
   return success;
+#else
+  return false;
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 }
 
 DLL_EXPORT bool chreAudioConfigureSource(uint32_t handle, bool enable,
                                          uint64_t bufferDuration,
                                          uint64_t deliveryInterval) {
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return EventLoopManagerSingleton::get()->getAudioRequestManager()
       .configureSource(nanoapp, handle, enable, bufferDuration,
                        deliveryInterval);
+#else
+  return false;
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 }

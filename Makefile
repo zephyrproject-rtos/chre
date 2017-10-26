@@ -8,6 +8,10 @@
 # current directory.
 CHRE_PREFIX = .
 
+# Variant Configuration ########################################################
+
+include $(CHRE_VARIANT_MK_INCLUDES)
+
 # Build Configuration ##########################################################
 
 OUTPUT_NAME = libchre
@@ -21,6 +25,11 @@ COMMON_CFLAGS += -DCHRE_ASSERTIONS_ENABLED
 
 # Place nanoapps in a namespace.
 COMMON_CFLAGS += -DCHRE_NANOAPP_INTERNAL
+
+# Optional audio support.
+ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+COMMON_CFLAGS += -DCHRE_AUDIO_SUPPORT_ENABLED
+endif
 
 # Determine the CHRE_HOST_OS to resolve build discrepancies across Darwin and
 # Linux.
@@ -44,9 +53,6 @@ endif
 COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
 
 # Makefile Includes ############################################################
-
-# Variant-specific includes.
-include $(CHRE_VARIANT_MK_INCLUDES)
 
 # CHRE Implementation includes.
 include apps/apps.mk

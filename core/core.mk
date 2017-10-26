@@ -9,7 +9,6 @@ COMMON_CFLAGS += -Icore/include
 
 # Common Source Files ##########################################################
 
-COMMON_SRCS += core/audio_request_manager.cc
 COMMON_SRCS += core/event.cc
 COMMON_SRCS += core/event_loop.cc
 COMMON_SRCS += core/event_loop_manager.cc
@@ -26,6 +25,11 @@ COMMON_SRCS += core/timer_pool.cc
 COMMON_SRCS += core/wifi_request_manager.cc
 COMMON_SRCS += core/wifi_scan_request.cc
 COMMON_SRCS += core/wwan_request_manager.cc
+
+# Optional audio support.
+ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+COMMON_SRCS += core/audio_request_manager.cc
+endif
 
 # GoogleTest Source Files ######################################################
 
