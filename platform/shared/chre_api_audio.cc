@@ -17,8 +17,11 @@
 #include "chre_api/chre/audio.h"
 
 #include "chre/core/event_loop_manager.h"
-#include "chre/platform/platform_audio.h"
 #include "chre/util/macros.h"
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+#include "chre/platform/platform_audio.h"
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
 using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
