@@ -115,18 +115,15 @@ SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 # Simulator-specific Compiler Flags ############################################
 
 SIM_CFLAGS += -Iplatform/shared/include
-SIM_CFLAGS += -Iplatform/linux/include
 
 # Simulator-specific Source Files ##############################################
 
-SIM_SRCS += platform/linux/audio_source.cc
 SIM_SRCS += platform/linux/chre_api_re.cc
 SIM_SRCS += platform/linux/context.cc
 SIM_SRCS += platform/linux/fatal_error.cc
 SIM_SRCS += platform/linux/host_link.cc
 SIM_SRCS += platform/linux/memory.cc
 SIM_SRCS += platform/linux/memory_manager.cc
-SIM_SRCS += platform/linux/platform_audio.cc
 SIM_SRCS += platform/linux/platform_log.cc
 SIM_SRCS += platform/linux/platform_pal.cc
 SIM_SRCS += platform/linux/power_control_manager.cc
@@ -153,7 +150,27 @@ SIM_SRCS += platform/shared/platform_wifi.cc
 SIM_SRCS += platform/shared/platform_wwan.cc
 SIM_SRCS += platform/shared/system_time.cc
 
+# Linux-specific Compiler Flags ################################################
+
+GOOGLE_X86_LINUX_CFLAGS += -Iplatform/linux/include
+
+# Linux-specific Source Files ##################################################
+
+GOOGLE_X86_LINUX_SRCS += platform/linux/audio_source.cc
+GOOGLE_X86_LINUX_SRCS += platform/linux/platform_audio.cc
 GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+
+# Android-specific Source Files ################################################
+
+# Add the Android include search path for Android-specific header files.
+GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/android/include
+
+# Also add the linux sources to fall back to the default Linux implementation.
+GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/linux/include
+
+# Android-specific Source Files ################################################
+
+GOOGLE_ARM64_ANDROID_SRCS += platform/android/init.cc
 
 # GoogleTest Compiler Flags ####################################################
 

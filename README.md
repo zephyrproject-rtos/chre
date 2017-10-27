@@ -47,6 +47,14 @@ script and they are passed to the gtest framework. (example:
 
     ./run_tests.sh
 
+### CHRE Simulator for Android
+
+CHRE is also compatible with Android as a simulator.
+
+This is not intended to be a production implementation but is suitable for
+testing CHRE nanoapps on the applications processor where Android runs. It uses
+Android NDK APIs to interact with the system.
+
 ### SLPI Hexagon
 
 First, setup paths to the Hexagon Tools (v8.x.x), SDK (v3.0), and SLPI source

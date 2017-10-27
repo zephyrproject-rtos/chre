@@ -21,8 +21,8 @@ COMMON_CFLAGS += -Wno-unused-parameter
 COMMON_CFLAGS += -Wshadow
 
 # Disable exceptions and RTTI.
-COMMON_CFLAGS += -fno-exceptions
-COMMON_CFLAGS += -fno-rtti
+COMMON_CXX_CFLAGS += -fno-exceptions
+COMMON_CXX_CFLAGS += -fno-rtti
 
 # Enable the linker to garbage collect unused code and variables.
 COMMON_CFLAGS += -fdata-sections
