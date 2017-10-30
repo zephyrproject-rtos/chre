@@ -17,7 +17,6 @@
 #include "chre/core/init.h"
 
 #include "chre/core/event_loop_manager.h"
-#include "chre/platform/platform_audio.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/singleton.h"

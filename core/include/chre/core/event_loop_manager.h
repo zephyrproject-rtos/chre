@@ -18,7 +18,6 @@
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
 #include "chre_api/chre/event.h"
-#include "chre/core/audio_request_manager.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/gnss_request_manager.h"
 #include "chre/core/host_comms_manager.h"
@@ -31,6 +30,10 @@
 #include "chre/util/non_copyable.h"
 #include "chre/util/singleton.h"
 #include "chre/util/unique_ptr.h"
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+#include "chre/core/audio_request_manager.h"
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
 namespace chre {
 
