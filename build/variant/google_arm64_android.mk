@@ -22,7 +22,7 @@ else
 # Instruct the build to link a final executable.
 TARGET_BUILD_BIN = true
 
-TARGET_BIN_LDFLAGS += -pie -llog -ldl
+TARGET_BIN_LDFLAGS += -pie -laaudio -llog -ldl
 endif
 
 include $(CHRE_PREFIX)/build/arch/arm64.mk
