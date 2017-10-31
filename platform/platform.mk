@@ -55,9 +55,12 @@ SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 # SLPI/SEE-specific Compiler Flags #############################################
 
 # Include paths.
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/libstd/stringl
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/qmimsgs/common/api
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/framework/cm/inc
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/api
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/utils/nanopb
 
 SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
 
@@ -109,8 +112,20 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # SLPI/SEE-specific Source Files ###############################################
 
+# TODO(P2-c001d8): (b/68860346) replace pb-related source files with exported
+# symbols.
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_common.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_decode.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_encode.c
+
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
+SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 
 # Simulator-specific Compiler Flags ############################################
 
