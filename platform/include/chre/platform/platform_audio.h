@@ -97,7 +97,7 @@ class PlatformAudio : public PlatformAudioBase,
    * @return the number of sources supported by the implementation. The returned
    * value must be exactly one greater than the maximum supported audio handle.
    */
-  static size_t getSourceCount();
+  size_t getSourceCount();
 
   /**
    * Obtains the audio source description for a given handle.
@@ -106,7 +106,7 @@ class PlatformAudio : public PlatformAudioBase,
    * @param audioSource the chreAudioSource to populate with details of the
    *     audio source. This pointer must never be null.
    */
-  static bool getAudioSource(uint32_t handle, chreAudioSource *audioSource);
+  bool getAudioSource(uint32_t handle, chreAudioSource *audioSource);
 };
 
 }  // namespace chre

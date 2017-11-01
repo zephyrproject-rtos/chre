@@ -41,6 +41,18 @@ class AudioRequestManager : public NonCopyable {
   AudioRequestManager();
 
   /**
+   * Obtains an audio source from the platform audio implementation.
+   *
+   * @param handle The audio source to query for.
+   * @param audioSource The audio source to populate with the details of this
+   *        handle, if found.
+   * @return true if the query was successful.
+   */
+  bool getAudioSource(uint32_t handle, struct chreAudioSource *audioSource) {
+    return mPlatformAudio.getAudioSource(handle, audioSource);
+  }
+
+  /**
    * Updates the current request for audio from a nanoapp for a given audio
    * source.
    *

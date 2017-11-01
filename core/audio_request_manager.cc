@@ -39,7 +39,7 @@
 namespace chre {
 
 AudioRequestManager::AudioRequestManager() {
-  size_t sourceCount = PlatformAudio::getSourceCount();
+  size_t sourceCount = mPlatformAudio.getSourceCount();
   if (!mAudioRequestLists.reserve(sourceCount)) {
     FATAL_ERROR_OOM();
   }

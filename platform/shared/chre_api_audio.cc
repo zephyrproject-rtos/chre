@@ -30,9 +30,10 @@ using chre::Nanoapp;
 DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
                                    struct chreAudioSource *audioSource) {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
-  bool success = (audioSource != nullptr);
-  if (success) {
-    success = chre::PlatformAudio::getAudioSource(handle, audioSource);
+  bool success = false;
+  if (audioSource != nullptr) {
+    success = EventLoopManagerSingleton::get()->getAudioRequestManager()
+        .getAudioSource(handle, audioSource);
   }
 
   return success;
