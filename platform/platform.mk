@@ -174,10 +174,16 @@ GOOGLE_ARM64_ANDROID_SRCS += platform/android/init.cc
 
 # GoogleTest Compiler Flags ####################################################
 
+# The order here is important so that the googletest target prefers shared,
+# linux and then SLPI.
+GOOGLETEST_CFLAGS += -Iplatform/shared/include
+GOOGLETEST_CFLAGS += -Iplatform/linux/include
 GOOGLETEST_CFLAGS += -Iplatform/slpi/include
 
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += platform/linux/assert.cc
+GOOGLETEST_SRCS += platform/linux/audio_source.cc
+GOOGLETEST_SRCS += platform/linux/platform_audio.cc
 GOOGLETEST_SRCS += platform/slpi/smgr/platform_sensor_util.cc
 GOOGLETEST_SRCS += platform/slpi/smgr/tests/platform_sensor_util_test.cc
