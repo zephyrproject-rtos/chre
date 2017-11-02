@@ -17,30 +17,46 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/core/static_nanoapps.h"
+#include "chre/platform/android/host_link.h"
 #include "chre/platform/shared/platform_log.h"
+#include "chre_host/host_protocol_host.h"
 
 #include <csignal>
 #include <thread>
 
+using android::chre::HostProtocolHost;
 using chre::EventLoopManagerSingleton;
 
 namespace {
 
-extern "C" void signalHandler(int sig) {
-  (void) sig;
-  LOGI("Stop request received");
-  EventLoopManagerSingleton::get()->getEventLoop().stop();
+void onMessageReceivedFromClient(uint16_t clientId, void *data, size_t length) {
+  if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
+    LOGE("Couldn't set host client ID in message container!");
+  } else {
+    LOGD("Delivering message from host (size %zu)", length);
+    if (!chre::handleMessageFromHost(data, length)) {
+      LOGE("Failed to decode message from host");
+    }
+  }
 }
 
 }
 
 int main(int argc, char **argv) {
-  // Initilize the system.
+  // Initilize CHRE.
   chre::init();
-
-  // Register a signal handler and start CHRE.
-  std::signal(SIGINT, signalHandler);
   chre::loadStaticNanoapps();
+
+  // Initialize the socket server.
+  chre::SocketServerSingleton::init();
+
+  // Setup the socket server for communications with the HAL.
+  std::thread socketServerThread([&]() {
+    chre::SocketServerSingleton::get()->run(
+        "chre", true, onMessageReceivedFromClient);
+    EventLoopManagerSingleton::get()->getEventLoop().stop();
+  });
+
   EventLoopManagerSingleton::get()->getEventLoop().run();
 
   chre::deinit();

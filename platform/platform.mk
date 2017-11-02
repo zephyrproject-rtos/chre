@@ -160,17 +160,40 @@ GOOGLE_X86_LINUX_SRCS += platform/linux/audio_source.cc
 GOOGLE_X86_LINUX_SRCS += platform/linux/platform_audio.cc
 GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
 
-# Android-specific Source Files ################################################
+# Android-specific Compiler Flags ##############################################
 
 # Add the Android include search path for Android-specific header files.
 GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/android/include
 
+# Add in host sources to allow the executable to both be a socket server and
+# CHRE implementation.
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/base/include
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/libcutils/include
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/libutils/include
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/liblog/include
+GOOGLE_ARM64_ANDROID_CFLAGS += -Ihost/common/include
+
 # Also add the linux sources to fall back to the default Linux implementation.
 GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/linux/include
 
+# We use FlatBuffers in the Android simulator
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(FLATBUFFERS_PATH)/include
+
 # Android-specific Source Files ################################################
 
+ANDROID_CUTILS_TOP = $(ANDROID_BUILD_TOP)/system/core/libcutils
+ANDROID_LOG_TOP = $(ANDROID_BUILD_TOP)/system/core/liblog
+
+GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_CUTILS_TOP)/sockets_unix.cpp
+GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_CUTILS_TOP)/android_get_control_file.cpp
+GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_CUTILS_TOP)/socket_local_server_unix.c
+GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_LOG_TOP)/logd_reader.c
+
 GOOGLE_ARM64_ANDROID_SRCS += platform/android/init.cc
+GOOGLE_ARM64_ANDROID_SRCS += platform/android/host_link.cc
+GOOGLE_ARM64_ANDROID_SRCS += platform/shared/host_protocol_common.cc
+GOOGLE_ARM64_ANDROID_SRCS += host/common/host_protocol_host.cc
+GOOGLE_ARM64_ANDROID_SRCS += host/common/socket_server.cc
 
 # Optional audio support.
 ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
