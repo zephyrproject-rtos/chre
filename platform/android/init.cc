@@ -18,6 +18,7 @@
 #include "chre/core/init.h"
 #include "chre/core/static_nanoapps.h"
 #include "chre/platform/android/host_link.h"
+#include "chre/platform/linux/preloaded_nanoapps.h"
 #include "chre/platform/shared/platform_log.h"
 #include "chre_host/host_protocol_host.h"
 
@@ -46,6 +47,7 @@ int main(int argc, char **argv) {
   // Initilize CHRE.
   chre::init();
   chre::loadStaticNanoapps();
+  chre::loadPreloadedNanoapps();
 
   // Initialize the socket server.
   chre::SocketServerSingleton::init();
