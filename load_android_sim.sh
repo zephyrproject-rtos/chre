@@ -14,7 +14,7 @@ fi
 # Export the variant Makefile.
 export CHRE_VARIANT_MK_INCLUDES=variant/android/variant.mk
 
-make google_arm64_android -j$JOB_COUNT
+make google_arm64_android_debug -j$JOB_COUNT
 adb shell setenforce 0
-adb push out/google_arm64_android/libchre /system/bin/chre
+adb push out/google_arm64_android_debug/libchre /system/bin/chre
 adb push variant/android/chre-stub /vendor/bin/chre
