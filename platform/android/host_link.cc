@@ -24,6 +24,15 @@
 
 namespace chre {
 
+//! Used to pass the client ID through the user data pointer in deferCallback
+union HostClientIdCallbackData {
+  uint16_t hostClientId;
+  void *ptr;
+};
+
+static_assert(sizeof(uint16_t) <= sizeof(void*),
+              "Pointer must at least fit a u16 for passing the host client ID");
+
 /**
  * Assigns a vector the contents of a C-style, null-terminated string.
  *
@@ -32,6 +41,32 @@ namespace chre {
  */
 void setVectorToString(std::vector<int8_t> *vector, const char *str) {
   *vector = std::vector<int8_t>(str, str + strlen(str));
+}
+
+/**
+ * Sends a message to the host given a hostClientId.
+ *
+ * @param message The message to send to the host.
+ * @param hostClientId The host who made the original request for which this is
+ *        a reply.
+ */
+template<typename T>
+void sendFlatbufferToHost(T& message, uint16_t hostClientId) {
+  static_assert(
+      fbs::ChreMessageTraits<typename T::TableType>::enum_value
+          != fbs::ChreMessage::NONE,
+      "Only works for message types supported by ChreMessageUnion");
+
+  fbs::MessageContainerT container;
+  container.message.Set(std::move(message));
+  container.host_addr.reset(new fbs::HostAddress(hostClientId));
+
+  flatbuffers::FlatBufferBuilder builder;
+  auto containerOffset = CreateMessageContainer(builder, &container, nullptr);
+  builder.Finish(containerOffset);
+
+  SocketServerSingleton::get()->sendToClientById(
+      builder.GetBufferPointer(), builder.GetSize(), hostClientId);
 }
 
 /**
@@ -69,16 +104,29 @@ void handleHubInfoRequest(uint16_t hostClientId) {
   response.platform_id = chreGetPlatformId();
   response.chre_platform_version = chreGetVersion();
 
-  fbs::MessageContainerT container;
-  container.message.Set(std::move(response));
-  container.host_addr.reset(new fbs::HostAddress(hostClientId));
+  sendFlatbufferToHost(response, hostClientId);
+}
 
-  flatbuffers::FlatBufferBuilder builder;
-  auto containerOffset = CreateMessageContainer(builder, &container, nullptr);
-  builder.Finish(containerOffset);
+void constructNanoappListCallback(uint16_t /*eventType*/, void *cookie) {
+  HostClientIdCallbackData clientIdCbData;
+  clientIdCbData.ptr = cookie;
 
-  SocketServerSingleton::get()->sendToClientById(
-      builder.GetBufferPointer(), builder.GetSize(), hostClientId);
+  auto nanoappAddCallback = [](const Nanoapp *nanoapp, void *data) {
+    auto response = static_cast<fbs::NanoappListResponseT *>(data);
+    auto nanoappListEntry =
+        std::unique_ptr<fbs::NanoappListEntryT>(new fbs::NanoappListEntryT());
+    nanoappListEntry->app_id = nanoapp->getAppId();
+    nanoappListEntry->version = nanoapp->getAppVersion();
+    nanoappListEntry->enabled = true;
+    nanoappListEntry->is_system = nanoapp->isSystemNanoapp();
+    response->nanoapps.push_back(std::move(nanoappListEntry));
+  };
+
+  fbs::NanoappListResponseT response;
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  eventLoop.forEachNanoapp(nanoappAddCallback, &response);
+
+  sendFlatbufferToHost(response, clientIdCbData.hostClientId);
 }
 
 /**
@@ -88,6 +136,11 @@ void handleHubInfoRequest(uint16_t hostClientId) {
  */
 void handleNanoappListRequest(uint16_t hostClientId) {
   LOGD("handleNanoappListRequest");
+  HostClientIdCallbackData cbData = {};
+  cbData.hostClientId = hostClientId;
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::NanoappListResponse, cbData.ptr,
+      constructNanoappListCallback);
 }
 
 /**
