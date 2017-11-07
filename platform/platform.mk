@@ -172,6 +172,11 @@ GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/linux/include
 
 GOOGLE_ARM64_ANDROID_SRCS += platform/android/init.cc
 
+# Optional audio support.
+ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+GOOGLE_ARM64_ANDROID_SRCS += platform/android/platform_audio.cc
+endif
+
 # GoogleTest Compiler Flags ####################################################
 
 # The order here is important so that the googletest target prefers shared,
