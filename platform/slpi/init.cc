@@ -127,11 +127,10 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
  */
 void chreThreadEntry(void * /*data*/) {
   EventLoopManagerSingleton::get()->lateInit();
-  EventLoop *eventLoop = &EventLoopManagerSingleton::get()->getEventLoop();
   chre::loadStaticNanoapps();
-  loadPreloadedNanoapps(eventLoop);
+  chre::loadPreloadedNanoapps();
   ashRegisterDebugDumpCallback("CHRE", onDebugDumpRequested, nullptr);
-  eventLoop->run();
+  EventLoopManagerSingleton::get()->getEventLoop().run();
 
   ashUnregisterDebugDumpCallback(onDebugDumpRequested);
   chre::deinit();

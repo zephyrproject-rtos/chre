@@ -16,6 +16,7 @@
 
 #include "chre/platform/slpi/preloaded_nanoapps.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/util/macros.h"
@@ -23,13 +24,7 @@
 
 namespace chre {
 
-/**
- * Loads nanoapps that are standalone .so file (i.e. not static nanoapps), but
- * are pre-loaded in the system image.
- *
- * @param eventLoop The event loop where these nanoapps should run
- */
-void loadPreloadedNanoapps(EventLoop *eventLoop) {
+void loadPreloadedNanoapps() {
   struct PreloadedNanoappDescriptor {
     const uint64_t appId;
     const char *filename;
@@ -44,13 +39,14 @@ void loadPreloadedNanoapps(EventLoop *eventLoop) {
     { 0x476f6f676c00100c, "wifi_offload.so", MakeUnique<Nanoapp>() },
   };
 
+  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   for (size_t i = 0; i < ARRAY_SIZE(preloadedNanoapps); i++) {
     if (preloadedNanoapps[i].nanoapp.isNull()) {
       FATAL_ERROR("Couldn't allocate memory for preloaded nanoapp");
     } else {
       preloadedNanoapps[i].nanoapp->loadFromFile(preloadedNanoapps[i].appId,
                                                  preloadedNanoapps[i].filename);
-      eventLoop->startNanoapp(preloadedNanoapps[i].nanoapp);
+      eventLoop.startNanoapp(preloadedNanoapps[i].nanoapp);
     }
   }
 }

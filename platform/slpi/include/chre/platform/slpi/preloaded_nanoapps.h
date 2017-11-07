@@ -19,17 +19,13 @@
 
 #include <stdint.h>
 
-#include "chre/core/event_loop.h"
-
 namespace chre {
 
 /**
  * Loads nanoapps that are standalone .so file (i.e. not static nanoapps), but
  * are pre-loaded in the system image.
- *
- * @param eventLoop The event loop where these nanoapps should run
  */
-void loadPreloadedNanoapps(EventLoop *eventLoop);
+void loadPreloadedNanoapps();
 
 }  // namespace chre
 
