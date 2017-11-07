@@ -22,7 +22,9 @@ else
 # Instruct the build to link a final executable.
 TARGET_BUILD_BIN = true
 
-TARGET_BIN_LDFLAGS += -pie -laaudio -llog -ldl
+# Link in libraries for the final executable and export symbols to dynamically
+# loaded objects.
+TARGET_BIN_LDFLAGS += -pie -laaudio -llog -ldl -Wl,--export-dynamic
 endif
 
 include $(CHRE_PREFIX)/build/arch/arm64.mk
