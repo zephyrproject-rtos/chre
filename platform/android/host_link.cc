@@ -76,6 +76,11 @@ void sendFlatbufferToHost(T& message, uint16_t hostClientId) {
  */
 void handleNanoappMessage(const fbs::NanoappMessageT& message) {
   LOGD("handleNanoappMessage");
+  HostCommsManager& manager =
+      EventLoopManagerSingleton::get()->getHostCommsManager();
+  manager.sendMessageToNanoappFromHost(
+      message.app_id, message.message_type, message.host_endpoint,
+      message.message.data(), message.message.size());
 }
 
 /**
