@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-#include "chre/platform/slpi/preloaded_nanoapps.h"
+#include "chre/platform/linux/preloaded_nanoapps.h"
 
 #include "chre/core/event_loop_manager.h"
-#include "chre/core/nanoapp.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/util/macros.h"
 #include "chre/util/unique_ptr.h"
@@ -26,7 +25,6 @@ namespace chre {
 
 void loadPreloadedNanoapps() {
   struct PreloadedNanoappDescriptor {
-    const uint64_t appId;
     const char *filename;
     UniquePtr<Nanoapp> nanoapp;
   };
@@ -34,9 +32,7 @@ void loadPreloadedNanoapps() {
   // The list of nanoapps to be loaded from the filesystem of the device.
   // TODO: allow these to be overridden by target-specific build configuration
   static PreloadedNanoappDescriptor preloadedNanoapps[] = {
-    { 0x476f6f676c00100b, "activity.so", MakeUnique<Nanoapp>() },
-    { 0x476f6f676c001004, "geofence.so", MakeUnique<Nanoapp>() },
-    { 0x476f6f676c00100c, "wifi_offload.so", MakeUnique<Nanoapp>() },
+    { "activity.so", MakeUnique<Nanoapp>() },
   };
 
   EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
@@ -44,8 +40,7 @@ void loadPreloadedNanoapps() {
     if (preloadedNanoapps[i].nanoapp.isNull()) {
       FATAL_ERROR("Couldn't allocate memory for preloaded nanoapp");
     } else {
-      preloadedNanoapps[i].nanoapp->loadFromFile(preloadedNanoapps[i].appId,
-                                                 preloadedNanoapps[i].filename);
+      preloadedNanoapps[i].nanoapp->loadFromFile(preloadedNanoapps[i].filename);
       eventLoop.startNanoapp(preloadedNanoapps[i].nanoapp);
     }
   }

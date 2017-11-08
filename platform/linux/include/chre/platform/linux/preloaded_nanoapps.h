@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_PRELOADED_NANOAPPS_H_
-#define CHRE_PLATFORM_SLPI_PRELOADED_NANOAPPS_H_
+#ifndef CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_
+#define CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_
 
 #include <stdint.h>
+
+#include "chre/core/event_loop.h"
 
 namespace chre {
 
@@ -29,4 +31,4 @@ void loadPreloadedNanoapps();
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_PRELOADED_NANOAPPS_H_
+#endif  // CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_

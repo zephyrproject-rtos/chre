@@ -35,7 +35,7 @@ extern "C" {
 namespace chre {
 
 //! Default timeout for sendReqSync
-constexpr Nanoseconds kDefaultSmrTimeout = Seconds(1);
+constexpr Nanoseconds kDefaultSmrTimeout = Seconds(2);
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
 //! external dependencies blocking SMGR initialization.
@@ -94,7 +94,8 @@ class SmrHelper : public NonCopyable {
     // SMR's internal request structure maintains a pointer to the client
     // request and response buffers, so in the event of a timeout, it is unsafe
     // for us to free the memory because the service may try to send the
-    // response later on.
+    // response later on - we'll try to free it if that ever happens, but
+    // otherwise we need to leave the memory allocation open.
     if (timedOut) {
       req->release();
       resp->release();
@@ -118,6 +119,25 @@ class SmrHelper : public NonCopyable {
 
  private:
   /**
+   * Used to track asynchronous SMR requests from sendReqSyncUntyped() to
+   * smrRespCb()
+   */
+  struct SmrTransaction {
+    //! Value of SmrHelper::mCurrentTransactionId when this instance was
+    //! created - if it does not match at the time the transaction is given in
+    //! the callback, this transaction is invalid (it has timed out)
+    uint32_t transactionId;
+
+    //! Pointer to the SmrHelper instance that created this transaction
+    SmrHelper *parent;
+
+    // SMR request and response buffers given by the client; only used to free
+    // memory in the event of a late (post-timeout) callback
+    void *reqBuf;
+    void *rspBuf;
+  };
+
+  /**
    * Implements sendReqSync(), but with accepting untyped (void*) buffers.
    * snake_case parameters exactly match those given to smr_client_send_req().
    *
@@ -137,7 +157,6 @@ class SmrHelper : public NonCopyable {
       void *resp_c_struct, unsigned int resp_c_struct_len,
       Nanoseconds timeout, smr_err *result);
 
-
   /**
    * Processes an SMR response callback
    *
@@ -145,7 +164,13 @@ class SmrHelper : public NonCopyable {
    */
   void handleResp(smr_client_hndl client_handle, unsigned int msg_id,
                   void *resp_c_struct, unsigned int resp_c_struct_len,
-                  smr_err transp_err);
+                  smr_err transp_err, SmrTransaction *txn);
+
+  /**
+   * Sets mWaiting to true in advance of calling an async SMR function.
+   * Preconditions: mMutex not held, mWaiting false
+   */
+  void prepareForWait();
 
   /**
    * SMR release complete callback used with releaseSync()
@@ -173,15 +198,18 @@ class SmrHelper : public NonCopyable {
                                   bool timeout_expired,
                                   void *wait_for_service_cb_data);
 
+  //! Used to synchronize responses
   ConditionVariable mCond;
+
+  //! Used with mCond, and to protect access to member variables from other
+  //! threads
   Mutex mMutex;
 
   //! true if we are waiting on an async response
   bool mWaiting = false;
 
-  //! While waiting on a response, set to the response buffer given to
-  //! sendReqSync()
-  void *mPendingRespBuf = nullptr;
+  //! The transaction ID we're expecting in the next response callback
+  uint32_t mCurrentTransactionId = 0;
 
   //! true if timed out while waiting for a service to become available
   bool mServiceTimedOut = false;

@@ -800,12 +800,12 @@ void onStatusChange(const sns_smgr_sensor_status_monitor_ind_msg_v02& status) {
       } else if (infoResponse->resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
         LOGE("Client request info failed with error: %" PRIu8 ", id %" PRIu8,
              infoResponse->resp.sns_err_t, infoRequest->sensor_id);
-      }
-
-      bool otherClientPresent = infoResponse->other_client_present;
-      if (gSensorMonitors[index].otherClientPresent != otherClientPresent) {
-        onOtherClientPresenceChange(status.sensor_id, otherClientPresent);
-        gSensorMonitors[index].otherClientPresent = otherClientPresent;
+      } else {
+        bool otherClientPresent = infoResponse->other_client_present;
+        if (gSensorMonitors[index].otherClientPresent != otherClientPresent) {
+          onOtherClientPresenceChange(status.sensor_id, otherClientPresent);
+          gSensorMonitors[index].otherClientPresent = otherClientPresent;
+        }
       }
     }
   }
