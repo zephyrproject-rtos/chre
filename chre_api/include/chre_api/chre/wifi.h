@@ -57,6 +57,11 @@ extern "C" {
 //! Requesting WiFi scans on-demand is supported via chreWifiRequestScanAsync()
 #define CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN   UINT32_C(1 << 1)
 
+//! Specifying the radio chain preference in on-demand scan requests, and
+//! reporting it in scan events is supported
+//! @since v1.2
+#define CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF  UINT32_C(1 << 2)
+
 /** @} */
 
 /**
@@ -181,6 +186,19 @@ extern "C" {
 /** @} */
 
 /**
+ * Identifies which radio chain was used to discover an AP. The underlying
+ * hardware does not necessarily support more than one radio chain.
+ * @defgroup CHRE_WIFI_RADIO_CHAIN_FLAGS
+ * @{
+ */
+
+#define CHRE_WIFI_RADIO_CHAIN_UNKNOWN  UINT8_C(0)
+#define CHRE_WIFI_RADIO_CHAIN_0        UINT8_C(1 << 0)
+#define CHRE_WIFI_RADIO_CHAIN_1        UINT8_C(1 << 1)
+
+/** @} */
+
+/**
  * Identifies a WiFi frequency band
  */
 enum chreWifiBand {
@@ -225,6 +243,33 @@ enum chreWifiScanType {
 enum chreWifiRequestType {
     CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR = 1,
     CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN           = 2,
+};
+
+/**
+ * Allows a nanoapp to express its preference for how multiple available
+ * radio chains should be used when performing an on-demand scan. This is only a
+ * preference from the nanoapp and is not guaranteed to be honored by the WiFi
+ * firmware.
+ */
+enum chreWifiRadioChainPref {
+    //! No preference for radio chain usage
+    CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT = 0,
+
+    //! In a scan result, indicates that the radio chain preference used for the
+    //! scan is not known
+    CHRE_WIFI_RADIO_CHAIN_PREF_UNKNOWN = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+
+    //! Prefer to use available radio chains in a way that minimizes time to
+    //! complete the scan
+    CHRE_WIFI_RADIO_CHAIN_PREF_LOW_LATENCY = 1,
+
+    //! Prefer to use available radio chains in a way that minimizes total power
+    //! consumed for the scan
+    CHRE_WIFI_RADIO_CHAIN_PREF_LOW_POWER = 2,
+
+    //! Prefer to use available radio chains in a way that maximizes accuracy of
+    //! the scan result, e.g. RSSI measurements
+    CHRE_WIFI_RADIO_CHAIN_PREF_HIGH_ACCURACY = 3,
 };
 
 /**
@@ -274,6 +319,13 @@ struct chreWifiScanParams {
     //! Pointer to an array of SSIDs to use for directed probe requests. May be
     //! NULL if ssidListLen is 0.
     const struct chreWifiSsidListItem *ssidList;
+
+    //! Set to a value from enum chreWifiRadioChainPref to specify the desired
+    //! trade-off between power consumption, accuracy, etc. If
+    //! chreWifiGetCapabilities() does not have the applicable bit set, this
+    //! parameter is ignored.
+    //! @since v1.2
+    uint8_t radioChainPref;
 };
 
 /**
@@ -306,6 +358,9 @@ struct chreWifiScanResult {
     uint8_t flags;
 
     //! RSSI (Received Signal Strength Indicator), in dBm. Typically negative.
+    //! If multiple radio chains were used to scan this AP, this is a "best
+    //! available" measure that may be a composite of measurements taken across
+    //! the radio chains.
     int8_t  rssi;
 
     //! Operating band, set to a value from enum chreWifiBand
@@ -356,8 +411,23 @@ struct chreWifiScanResult {
     //! @see CHRE_WIFI_SECURITY_MODE_FLAGS
     uint8_t securityMode;
 
+    //! Identifies the radio chain(s) used to discover this AP
+    //! @see CHRE_WIFI_RADIO_CHAIN_FLAGS
+    //! @since v1.2
+    uint8_t radioChain;
+
+    //! If the CHRE_WIFI_RADIO_CHAIN_0 bit is set in radioChain, gives the RSSI
+    //! measured on radio chain 0 in dBm; otherwise invalid and set to 0. This
+    //! field, along with its relative rssiChain1, can be used to determine RSSI
+    //! measurements from each radio chain when multiple chains were used to
+    //! discover this AP.
+    //! @see #radioChain
+    //! @since v1.2
+    int8_t rssiChain0;
+    int8_t rssiChain1;  //!< @see #rssiChain0
+
     //! Reserved; set to 0
-    uint8_t reserved[10];
+    uint8_t reserved[7];
 };
 
 /**
@@ -416,6 +486,13 @@ struct chreWifiScanEvent {
     //! Pointer to an array containing resultCount entries. May be NULL if
     //! resultCount is 0.
     const struct chreWifiScanResult *results;
+
+    //! Set to a value from enum chreWifiRadioChainPref indicating the radio
+    //! chain preference used for the scan. If the applicable bit is not set in
+    //! chreWifiGetCapabilities(), this will always be set to
+    //! CHRE_WIFI_RADIO_CHAIN_PREF_UNKNOWN.
+    //! @since v1.2
+    uint8_t radioChainPref;
 };
 
 /**
@@ -526,6 +603,7 @@ inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
     params.maxScanAgeMs     = 5000;  // 5 seconds
     params.frequencyListLen = 0;
     params.ssidListLen      = 0;
+    params.radioChainPref   = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
     return chreWifiRequestScanAsync(&params, cookie);
 }
 
