@@ -17,6 +17,7 @@
 #include "chre/platform/slpi/see/see_helper.h"
 
 #include "stringl.h"
+#include "timer.h"
 
 #include <cfloat>
 #include <cinttypes>
@@ -28,6 +29,12 @@
 
 namespace chre {
 namespace {
+
+//! Interval between SUID request retry.
+constexpr Milliseconds kSuidReqIntervalMsec = Milliseconds(100);
+
+//! Maximum dwell time to try a data type's SUID request.
+constexpr Seconds kSuidReqMaxDwellSec = Seconds(10);
 
 //! A struct to facilitate pb encode/decode
 struct SeeBufArg {
@@ -645,9 +652,32 @@ bool SeeHelper::findSuidSync(const char *dataType,
         success = encodeSnsSuidReq(dataType, false, msg, &msgLen);
 
         if (success) {
-          success = sendReq(sns_suid_sensor_init_default,
-                            SNS_SUID_MSGID_SNS_SUID_REQ, msg, msgLen,
-                            true /* waitForIndication */);
+          // TODO: modify retry implementation  when b/69066253 is resolved.
+          // Sensor client QMI service may come up before SEE sensors are
+          // enumerated. A max dwell time is set and retries are performed as
+          // currently there's no message indicating that SEE intialization is
+          // complete.
+          constexpr time_timetick_type kSuidReqIntervalUsec =
+              kSuidReqIntervalMsec.getMicroseconds();
+          constexpr uint32_t kSuidReqMaxTrialCount =
+              kSuidReqMaxDwellSec.toRawNanoseconds()
+              / kSuidReqIntervalMsec.toRawNanoseconds();
+
+          uint32_t trialCount = 0;
+          do {
+            if (++trialCount > 1) {
+              timer_sleep(kSuidReqIntervalUsec, T_USEC,
+                          true /* non_deferrable */);
+            }
+            success = sendReq(sns_suid_sensor_init_default,
+                              SNS_SUID_MSGID_SNS_SUID_REQ, msg, msgLen,
+                              true /* waitForIndication */);
+          } while (suids->empty() && trialCount < kSuidReqMaxTrialCount);
+          if (trialCount > 1) {
+            LOGD("%" PRIu32 " trials took %" PRIu32 " msec", trialCount,
+                   static_cast<uint32_t>(
+                       trialCount * kSuidReqIntervalMsec.getMilliseconds()));
+          }
         }
       }
       memoryFree(msg);
