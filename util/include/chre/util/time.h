@@ -30,6 +30,9 @@ constexpr uint64_t kOneMillisecondInNanoseconds(1000000);
 //! The number of nanoseconds in one millisecond.
 constexpr uint64_t kOneMicrosecondInNanoseconds(1000);
 
+//! The number of microseconds in one millisecond.
+constexpr uint64_t kOneMillisecondInMicroseconds(1000);
+
 // Forward declare classes for unit-conversion constructors.
 class Milliseconds;
 class Microseconds;
@@ -82,6 +85,13 @@ class Milliseconds {
    * @return the value of milliseconds converted to nanoseconds
    */
   constexpr uint64_t toRawNanoseconds() const;
+
+  /*
+   * Obtains the number of Microseconds stroed by this time duration.
+   *
+   * @return the value of microseconds.
+   */
+  constexpr uint64_t getMicroseconds() const;
 
   /**
    * Obtains the number of Milliseconds stroed by this time duration.
