@@ -35,7 +35,9 @@
 #include <chre/common.h>
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,6 +64,10 @@ extern "C" {
 //! @since v1.2
 #define CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF  UINT32_C(1 << 2)
 
+//! Requesting RTT ranging is supported via chreWifiRequestRangingAsync()
+//! @since v1.2
+#define CHRE_WIFI_CAPABILITIES_RTT_RANGING      UINT32_C(1 << 3)
+
 /** @} */
 
 /**
@@ -86,6 +92,13 @@ extern "C" {
  */
 #define CHRE_EVENT_WIFI_SCAN_RESULT  CHRE_WIFI_EVENT_ID(1)
 
+/**
+ * nanoappHandleEvent argument: struct chreWifiRangingEvent
+ *
+ * Provides results of an RTT ranging request.
+ */
+#define CHRE_EVENT_WIFI_RANGING_RESULT  CHRE_WIFI_EVENT_ID(2)
+
 // NOTE: Do not add new events with ID > 15; only values 0-15 are reserved
 // (see chre/event.h)
 
@@ -98,10 +111,24 @@ extern "C" {
 #define CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS  (30 * CHRE_NSEC_PER_SEC)
 
 /**
+ * The maximum amount of time that is allowed to elapse between a call to
+ * chreWifiRequestRangingAsync() that returns true, and the associated
+ * CHRE_EVENT_WIFI_RANGING_RESULT used to indicate whether the ranging operation
+ * completed successfully or not.
+ */
+#define CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS  (30 * CHRE_NSEC_PER_SEC)
+
+/**
  * The current compatibility version of the chreWifiScanEvent structure,
  * including nested structures.
  */
 #define CHRE_WIFI_SCAN_EVENT_VERSION  UINT8_C(1)
+
+/**
+ * The current compatibility version of the chreWifiRangingEvent structure,
+ * including nested structures.
+ */
+#define CHRE_WIFI_RANGING_EVENT_VERSION  UINT8_C(0)
 
 /**
  * Maximum number of frequencies that can be explicitly specified when
@@ -116,6 +143,13 @@ extern "C" {
  * @see #chreWifiScanParams
  */
 #define CHRE_WIFI_SSID_LIST_MAX_LEN  (20)
+
+/**
+ * The maximum number of devices that can be specified in a single RTT ranging
+ * request.
+ * @see #chreWifiRangingParams
+ */
+#define CHRE_WIFI_RANGING_LIST_MAX_LEN  (10)
 
 /**
  * The maximum number of octets in an SSID (see 802.11 7.3.2.1)
@@ -154,8 +188,13 @@ extern "C" {
 #define CHRE_WIFI_SCAN_RESULT_FLAGS_VHT_OPS_PRESENT              UINT8_C(1 << 1)
 
 //! Element ID 127 (Extended Capbilities) is present, and bit 70 (Fine Timing
-//! Measurement Responder) is set to 1 (see IEEE draft 802.11mc 8.4.2.26)
-#define CHRE_WIFI_SCAN_RESULT_FLAGS_IS_80211MC_RTT_RESPONDER     UINT8_C(1 << 2)
+//! Measurement Responder) is set to 1 (see IEEE Std 802.11-2016 9.4.2.27)
+#define CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER             UINT8_C(1 << 2)
+
+//! Retained for backwards compatibility
+//! @see CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER
+#define CHRE_WIFI_SCAN_RESULT_FLAGS_IS_80211MC_RTT_RESPONDER \
+    CHRE_WIFI_SCAN_RESULT_FLAGS_IS_RTT_RESPONDER
 
 //! HT Operation element indicates that a secondary channel is present
 //! (see HT 7.3.2.57)
@@ -237,12 +276,24 @@ enum chreWifiScanType {
 };
 
 /**
+ * Indicates whether RTT ranging with a specific device succeeded
+ */
+enum chreWifiRangingStatus {
+    //! Ranging completed successfully
+    CHRE_WIFI_RANGING_STATUS_SUCCESS = 0,
+
+    //! Ranging failed due to an unspecified error
+    CHRE_WIFI_RANGING_STATUS_ERROR   = 1,
+};
+
+/**
  * Indicates a type of request made in this API. Used to populate the resultType
  * field of struct chreAsyncResult sent with CHRE_EVENT_WIFI_ASYNC_RESULT.
  */
 enum chreWifiRequestType {
     CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR = 1,
     CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN           = 2,
+    CHRE_WIFI_REQUEST_TYPE_RANGING                = 3,
 };
 
 /**
@@ -496,6 +547,108 @@ struct chreWifiScanEvent {
 };
 
 /**
+ * Identifies a device to perform RTT ranging against. These values are normally
+ * populated based on the contents of a scan result.
+ * @see #chreWifiScanResult
+ * @see chreWifiRangingTargetFromScanResult()
+ */
+struct chreWifiRangingTarget {
+    //! Device MAC address, specified in the same byte order as
+    //! {@link #chreWifiScanResult.bssid}
+    uint8_t macAddress[CHRE_WIFI_BSSID_LEN];
+
+    //! Center frequency of the primary 20MHz channel, in MHz
+    //! @see #chreWifiScanResult.primaryChannel
+    uint32_t primaryChannel;
+
+    //! Channel center frequency, in MHz, or 0 if not relevant
+    //! @see #chreWifiScanResult.centerFreqPrimary
+    uint32_t centerFreqPrimary;
+
+    //! Channel center frequency of segment 1 if channel width is 80+80MHz,
+    //! otherwise 0
+    //! @see #chreWifiScanResult.centerFreqSecondary
+    uint32_t centerFreqSecondary;
+
+    //! @see #chreWifiChannelWidth
+    uint8_t channelWidth;
+
+    //! Reserved for future use and ignored by CHRE
+    uint8_t reserved[3];
+};
+
+/**
+ * Parameters for an RTT ("Fine Timing Measurement" in terms of 802.11-2016)
+ * ranging request, supplied to chreWifiRequestRangingAsync().
+ */
+struct chreWifiRangingParams {
+    //! Number of devices to perform ranging against and the length of
+    //! targetList, in range [1, CHRE_WIFI_RANGING_LIST_MAX_LEN]
+    uint8_t targetListLen;
+
+    //! Array of macAddressListLen MAC addresses (e.g. BSSIDs) with which to
+    //! attempt RTT ranging
+    const struct chreWifiRangingTarget *targetList;
+};
+
+/**
+ * Provides the result of RTT ranging with a single device.
+ */
+struct chreWifiRangingResult {
+    //! Time when the ranging operation on this device was performed, in the
+    //! same time base as chreGetTime() (in nanoseconds)
+    uint64_t timestamp;
+
+    //! MAC address of the device for which ranging was requested
+    uint8_t macAddress[CHRE_WIFI_BSSID_LEN];
+
+    //! Gives the result of ranging to this device. If not set to
+    //! CHRE_WIFI_RANGING_STATUS_SUCCESS, the ranging attempt to this device
+    //! failed, and other fields in this structure may be invalid.
+    //! @see #chreWifiRangingStatus
+    uint8_t status;
+
+    //! The mean RSSI measured during the RTT burst, in dBm. Typically negative.
+    //! If status is not CHRE_WIFI_RANGING_STATUS_SUCCESS, will be set to 0.
+    int8_t rssi;
+
+    //! Estimated distance to the device with the given BSSID, in millimeters.
+    //! Generally the mean of multiple measurements performed in a single burst.
+    //! If status is not CHRE_WIFI_RANGING_STATUS_SUCCESS, will be set to 0.
+    uint32_t distance;
+
+    //! Standard deviation of estimated distance across multiple measurements
+    //! performed in a single RTT burst, in millimeters. If status is not
+    //! CHRE_WIFI_RANGING_STATUS_SUCCESS, will be set to 0.
+    uint32_t distanceStdDev;
+
+    //! Reserved; set to 0
+    uint8_t reserved[8];
+};
+
+/**
+ * Data structure sent with events of type CHRE_EVENT_WIFI_RANGING_RESULT.
+ */
+struct chreWifiRangingEvent {
+    //! Indicates the version of the structure, for compatibility purposes.
+    //! Clients do not normally need to worry about this field; the CHRE
+    //! implementation guarantees that the client only receives the structure
+    //! version it expects.
+    uint8_t version;
+
+    //! The number of ranging results included in the results array; matches the
+    //! number of MAC addresses specified in the request
+    uint8_t resultCount;
+
+    //! Reserved; set to 0
+    uint8_t reserved[2];
+
+    //! Pointer to an array containing resultCount entries
+    const struct chreWifiRangingResult *results;
+};
+
+
+/**
  * Retrieves a set of flags indicating the WiFi features supported by the
  * current CHRE implementation. The value returned by this function must be
  * consistent for the entire duration of the Nanoapp's execution.
@@ -597,7 +750,7 @@ bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
  *
  * @since v1.1
  */
-inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
+static inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
     struct chreWifiScanParams params = {};
     params.scanType         = CHRE_WIFI_SCAN_TYPE_ACTIVE;
     params.maxScanAgeMs     = 5000;  // 5 seconds
@@ -606,6 +759,64 @@ inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
     params.radioChainPref   = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
     return chreWifiRequestScanAsync(&params, cookie);
 }
+
+/**
+ * Issues a request to initiate distance measurements using round-trip time
+ * (RTT), aka Fine Timing Measurement (FTM), to one or more devices identified
+ * by MAC address. Within CHRE, MACs are typically the BSSIDs of scanned APs
+ * that have the CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER flag set.
+ *
+ * This resulting status of this request is delivered asynchronously via an
+ * event of type CHRE_EVENT_WIFI_ASYNC_RESULT. The result must be delivered
+ * within CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS of the this request. Refer to the
+ * note in {@link #chreAsyncResult} for more details.
+ *
+ * A successful result provided in CHRE_EVENT_WIFI_ASYNC_RESULT indicates that
+ * the results of ranging will be delivered in a subsequent event of type
+ * CHRE_EVENT_WIFI_RANGING_RESULT. Note that the CHRE_EVENT_WIFI_ASYNC_RESULT
+ * gives an overall status - for example, it is used to indicate failure if the
+ * entire ranging request was rejected because WiFi is disabled. However, it is
+ * valid for this event to indicate success, but RTT ranging to fail for all
+ * requested devices - for example, they may be out of range. Therefore, it is
+ * also necessary to check the status field in chreWifiRangingResult.
+ *
+ * @param params Structure containing the parameters of the scan request,
+ *        including the list of devices to attempt ranging.
+ * @param cookie An opaque value that will be included in the chreAsyncResult
+ *        sent in relation to this request.
+ *
+ * @return true if the request was accepted for processing, false otherwise
+ *
+ * @since v1.2
+ */
+bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
+                                 const void *cookie);
+
+/**
+ * Helper function to populate an instance of struct chreWifiRangingTarget with
+ * the contents of a scan result provided in struct chreWifiScanResult.
+ * Populates other parameters that are not directly derived from the scan result
+ * with default values.
+ *
+ * @param scanResult The scan result to parse as input
+ * @param rangingTarget The RTT ranging target to populate as output
+ */
+static inline void chreWifiRangingTargetFromScanResult(
+        const struct chreWifiScanResult *scanResult,
+        struct chreWifiRangingTarget *rangingTarget) {
+    memcpy(rangingTarget->macAddress, scanResult->bssid,
+           sizeof(rangingTarget->macAddress));
+    rangingTarget->primaryChannel      = scanResult->primaryChannel;
+    rangingTarget->centerFreqPrimary   = scanResult->centerFreqPrimary;
+    rangingTarget->centerFreqSecondary = scanResult->centerFreqSecondary;
+    rangingTarget->channelWidth        = scanResult->channelWidth;
+
+    // Note that this is not strictly necessary (CHRE can see which API version
+    // the nanoapp was built against, so it knows to ignore these fields), but
+    // we do it here to keep things nice and tidy
+    memset(rangingTarget->reserved, 0, sizeof(rangingTarget->reserved));
+}
+
 
 #ifdef __cplusplus
 }
