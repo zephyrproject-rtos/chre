@@ -25,12 +25,14 @@ using chre::Nanoseconds;
 using chre::kOneSecondInNanoseconds;
 using chre::kOneMillisecondInNanoseconds;
 using chre::kOneMicrosecondInNanoseconds;
+using chre::kOneMillisecondInMicroseconds;
 
 // Tests for Time constants
 TEST(Time, CheckTimeConversionConstants) {
   EXPECT_EQ(kOneSecondInNanoseconds, 1e9);
   EXPECT_EQ(kOneMillisecondInNanoseconds, 1e6);
   EXPECT_EQ(kOneMicrosecondInNanoseconds, 1e3);
+  EXPECT_EQ(kOneMillisecondInMicroseconds, 1e3);
 }
 
 // Tests for Seconds
@@ -59,6 +61,11 @@ TEST(Time, InitializeMillisecFromNanosec) {
   Nanoseconds tNano(5 * kOneMillisecondInNanoseconds);
   Milliseconds tMilli(tNano);
   EXPECT_EQ(tMilli.getMilliseconds(), 5);
+}
+
+TEST(Time, ConcertMillisecToMicrosec) {
+  Milliseconds t(5);
+  EXPECT_EQ(t.getMicroseconds(), 5 * kOneMillisecondInMicroseconds);
 }
 
 TEST(Time, ConvertMillisecToNanosec) {
