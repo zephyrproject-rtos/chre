@@ -132,9 +132,6 @@ PlatformAudio::~PlatformAudio() {
 bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
                                           uint32_t numSamples,
                                           Nanoseconds eventDelay) {
-  LOGD("Request for audio data made for handle %" PRIu32 " with %" PRIu32
-       " samples and %" PRIu64 " delivery interval", handle, numSamples,
-       eventDelay.toRawNanoseconds());
   mNumSamples = numSamples;
   mEventDelay = eventDelay;
   mDataEvent.sampleCount = numSamples;
