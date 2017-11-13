@@ -78,11 +78,6 @@ class PlatformSensorBase {
   //! and we have a copy of the most recent event in lastEvent.
   bool mLastEventValid = false;
 
-  //! Whether the sensor is turned off. This can be different from what's been
-  //! requested through Sensor::setRequest() as a passive request may not
-  //! always be honored by PlatformSensor and the sensor can stay off.
-  bool mIsSensorOff = true;
-
   //! Stores the sampling status for all CHRE clients of this sensor.
   struct chreSensorSamplingStatus mSamplingStatus;
 };

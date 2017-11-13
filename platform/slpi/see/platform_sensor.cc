@@ -265,7 +265,6 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
   other.mLastEventSize = 0;
 
   mLastEventValid = other.mLastEventValid;
-  mIsSensorOff = other.mIsSensorOff;
   mSamplingStatus = other.mSamplingStatus;
 
   return *this;
