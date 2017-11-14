@@ -127,6 +127,8 @@ class SeeHelper : public NonCopyable {
    * SUID.
    *
    * @param suid The SUID of the sensor the request is sent to
+   * @param syncData The data struct or container to receive a sync call's data
+   * @param dataType The data type we are waiting for.
    * @param msgId Message ID of the request to send
    * @param payload A non-null pointer to the pb-encoded message
    * @param payloadLen The length of payload
@@ -139,17 +141,11 @@ class SeeHelper : public NonCopyable {
    *         waiting for has been successfully received
    */
   bool sendReq(
-      const sns_std_suid& suid, uint32_t msgId, void *payload,
-      size_t payloadLen, bool waitForIndication,
+      const sns_std_suid& suid, void *syncData, const char *dataType,
+      uint32_t msgId, void *payload, size_t payloadLen,
+      bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout);
-
-  /**
-   * Unblocks the waiting thread if suid is what we are waiting for.
-   *
-   * @param suid The SUID to compare against the one we are waitig for.
-   */
-  void unblockIfPendingSuid(const sns_std_suid& suid);
 
   /**
    * Handles the payload of a sns_client_report_ind_msg_v01 message.
@@ -188,6 +184,10 @@ class SeeHelper : public NonCopyable {
 
   //! The SUID whose indication this SeeHelper is waiting for.
   sns_std_suid mWaitingSuid;
+
+  //! The data type whose indication this SeeHelper is waiting for in
+  //! findSuidSync.
+  const char *mWaitingDataType;
 
   qmi_client_type mQmiHandle = nullptr;
 };

@@ -48,6 +48,9 @@ struct SeeInfoArg {
   void *syncData;
   sns_std_suid suid;
   uint32_t msgId;
+  bool syncIndFound;
+  const char *syncDataType;
+  sns_std_suid syncSuid;
 };
 
 //! A struct to facilitate decoding sensor attributes.
@@ -66,6 +69,11 @@ struct SeeAttrArg {
   };
   bool initialized;
 };
+
+bool suidsMatch(const sns_std_suid& suid0, const sns_std_suid& suid1) {
+  return (suid0.suid_high == suid1.suid_high
+          && suid0.suid_low == suid1.suid_low);
+}
 
 /**
  * Copy an encoded pb message to a wrapper proto's field.
@@ -256,14 +264,11 @@ bool decodeStringField(pb_istream_t *stream, const pb_field_t *field,
  */
 bool decodeSnsSuidEventSuid(pb_istream_t *stream, const pb_field_t *field,
                             void **arg) {
-  bool success = false;
-
   sns_std_suid suid = sns_std_suid_init_zero;
-  if (!pb_decode(stream, sns_std_suid_fields, &suid)) {
+  bool success = pb_decode(stream, sns_std_suid_fields, &suid);
+  if (!success) {
     LOGE("Error decoding sns_std_suid: %s", PB_GET_ERROR(stream));
   } else {
-    success = true;
-
     auto *suids = static_cast<DynamicVector<sns_std_suid> *>(*arg);
     suids->push_back(suid);
     LOGD("Received SUID 0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
@@ -282,31 +287,45 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
   switch (info->msgId) {
     case SNS_SUID_MSGID_SNS_SUID_EVENT: {
       SeeBufArg data;
+      DynamicVector<sns_std_suid> suids;
       sns_suid_event event = {
         .data_type.funcs.decode = decodeStringField,
         .data_type.arg = &data,
         .suid.funcs.decode = decodeSnsSuidEventSuid,
+        .suid.arg = &suids,
       };
 
-      DynamicVector<sns_std_suid> suids;
-      if (info->syncData == nullptr) {
-        // TODO: add a QMI transaction ID to identify whether this indication
-        // is the one we are waiting for.
-        LOGW("SNS_SUID_MSGID_SNS_SUID_EVENT received without sync data");
-        event.suid.arg = &suids;
+      success = pb_decode(stream, sns_suid_event_fields, &event);
+      if (!success) {
+        LOGE("Error decoding sns_suid_event: %s", PB_GET_ERROR(stream));
       } else {
-        event.suid.arg = info->syncData;
-      }
+        // TODO: remove dataType once initial development is complete.
+        char dataType[data.bufLen + 1];
+        memcpy(dataType, data.buf, data.bufLen);
+        dataType[data.bufLen] = '\0';
 
-      if (!pb_decode(stream, sns_suid_event_fields, &event)) {
-        LOGE("Error decoding SUID Event: %s", PB_GET_ERROR(stream));
-      } else {
-        success = true;
-        char data_type[data.bufLen + 1];
-        memcpy(data_type, data.buf, data.bufLen);
-        data_type[data.bufLen] = '\0';
-
-        LOGD("Finished sns_suid_event with data type '%s'", data_type);
+        // If syncData == nullptr, this indication is received outside of a sync
+        // call. If the decoded data type doesn't match the one we are waiting
+        // for, this indication is from a previous call (may be findSuidSync)
+        // and happens to arrive between another sync req/ind pair.
+        // Note that req/ind misalignment can still happen if findSuidSync is
+        // called again with the same data type.
+        // Note that there's no need to compare the SUIDs as no other calls
+        // but findSuidSync populate mWaitingDataType and can lead to a data
+        // type match.
+        if (info->syncData == nullptr
+            || strncmp(info->syncDataType, dataType,
+                       std::min(data.bufLen, kSeeAttrStrValLen)) != 0) {
+          LOGW("Received late SNS_SUID_MSGID_SNS_SUID_EVENT indication");
+        } else {
+          info->syncIndFound = true;
+          auto *outputSuids = static_cast<DynamicVector<sns_std_suid> *>(
+              info->syncData);
+          for (const auto& suid : suids) {
+            outputSuids->push_back(suid);
+          }
+        }
+        LOGD("Finished sns_suid_event of data type '%s'", dataType);
       }
       break;
     }
@@ -385,10 +404,6 @@ const char *getAttrNameFromAttrId(int32_t id) {
  */
 bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
                            void **arg) {
-  bool success = false;
-
-  auto *attrVal = static_cast<SeeAttrArg *>(*arg);
-
   SeeBufArg strData = {
     .buf = nullptr,
     .bufLen = 0,
@@ -401,10 +416,11 @@ bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
     .subtype.values.arg = &subtypeAttrArg,
   };
 
-  if (!pb_decode(stream, sns_std_attr_value_data_fields, &value)) {
+  bool success = pb_decode(stream, sns_std_attr_value_data_fields, &value);
+  if (!success) {
     LOGE("Error decoding sns_std_attr_value_data: %s", PB_GET_ERROR(stream));
   } else {
-    success = true;
+    auto *attrVal = static_cast<SeeAttrArg *>(*arg);
     if (value.has_flt) {
       // If this is a float (repeated) field, initialize the union as floats
       // to store the maximum and minmum values of the repeated fields.
@@ -447,8 +463,6 @@ bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
                       void **arg) {
-  bool success = false;
-
   SeeAttrArg attrArg = {
     .initialized = false,
   };
@@ -457,11 +471,10 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
     .value.values.arg = &attrArg,
   };
 
-  if (!pb_decode(stream, sns_std_attr_fields, &attr)) {
+  bool success = pb_decode(stream, sns_std_attr_fields, &attr);
+  if (!success) {
     LOGE("Error decoding sns_std_attr: %s", PB_GET_ERROR(stream));
   } else {
-    success = true;
-
     auto *attrData = static_cast<SeeAttributes *>(*arg);
     if (attr.attr_id == SNS_STD_SENSOR_ATTRID_VENDOR) {
       strlcpy(attrData->vendor, attrArg.strVal, sizeof(attrData->vendor));
@@ -479,26 +492,31 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStdAttrEvent(pb_istream_t *stream, const pb_field_t *field,
                            void **arg) {
-  bool success = false;
-
-  auto *info = static_cast<SeeInfoArg *>(*arg);
-
+  SeeAttributes attr;
   sns_std_attr_event event = {
     .attributes.funcs.decode = decodeSnsStrAttr,
+    .attributes.arg = &attr,
   };
 
-  SeeAttributes attr;
-  if (info->syncData == nullptr) {
-    LOGW("SNS_STD_MSGID_SNS_STD_ATTR_EVENT received without sync data");
-    event.attributes.arg = &attr;
-  } else {
-    event.attributes.arg = info->syncData;
-  }
-
-  if (!pb_decode(stream, sns_std_attr_event_fields, &event)) {
+  bool success = pb_decode(stream, sns_std_attr_event_fields, &event);
+  if (!success) {
     LOGE("Error decoding sns_std_attr_event: %s", PB_GET_ERROR(stream));
   } else {
-    success = true;
+    auto *info = static_cast<SeeInfoArg *>(*arg);
+
+    // If syncData == nullptr, this indication is received outside of a sync
+    // call. If the decoded SUID doesn't match the one we are waiting for,
+    // this indication is from a previous getAttributes call and happens to
+    // arrive between a later findAttributesSync req/ind pair.
+    // Note that req/ind misalignment can still happen if getAttributesSync is
+    // called again with the same SUID.
+    if (info->syncData == nullptr
+        || !suidsMatch(info->suid, info->syncSuid)) {
+      LOGW("Received late SNS_STD_MSGID_SNS_STD_ATTR_EVENT indication");
+    } else {
+      info->syncIndFound = true;
+      memcpy(info->syncData, &attr, sizeof(attr));
+    }
   }
   return success;
 }
@@ -518,10 +536,10 @@ bool decodeSnsStdEvent(pb_istream_t *stream, const pb_field_t *field,
 
     case SNS_STD_MSGID_SNS_STD_ERROR_EVENT: {
       sns_std_error_event event = sns_std_error_event_init_zero;
-      if (!pb_decode(stream, sns_std_error_event_fields, &event)) {
+      success = pb_decode(stream, sns_std_error_event_fields, &event);
+      if (!success) {
         LOGE("Error decoding sns_std_error_event: %s", PB_GET_ERROR(stream));
       } else {
-        success = true;
         LOGW("SNS_STD_MSGID_SNS_STD_ERROR_EVENT: %d", event.error);
       }
       break;
@@ -537,16 +555,14 @@ bool decodeSnsStdEvent(pb_istream_t *stream, const pb_field_t *field,
  * Decodes pb-encoded msg_id defined in sns_client_event
  */
 bool getMsgId(pb_istream_t *stream, uint32_t *msgId) {
-  bool success = false;
-
   sns_client_event_msg_sns_client_event event =
     sns_client_event_msg_sns_client_event_init_zero;
 
-  if (!pb_decode(stream, sns_client_event_msg_sns_client_event_fields,
-                 &event)) {
+  bool success = pb_decode(stream, sns_client_event_msg_sns_client_event_fields,
+                           &event);
+  if (!success) {
     LOGE("Error decoding msg ID: %s", PB_GET_ERROR(stream));
   } else {
-    success = true;
     *msgId = event.msg_id;
   }
   return success;
@@ -572,20 +588,18 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
     };
 
     const sns_std_suid suidLookup = sns_suid_sensor_init_default;
-    if (info->suid.suid_high == suidLookup.suid_high
-        && info->suid.suid_low == suidLookup.suid_low
+    if (suidsMatch(info->suid, suidLookup)
         && info->msgId == SNS_SUID_MSGID_SNS_SUID_EVENT) {
-      event.payload.funcs.decode = &decodeSnsSuidEvent;
+      event.payload.funcs.decode = decodeSnsSuidEvent;
     } else {
-      event.payload.funcs.decode = &decodeSnsStdEvent;
+      event.payload.funcs.decode = decodeSnsStdEvent;
     }
 
-    if (!pb_decode(stream, sns_client_event_msg_sns_client_event_fields,
-                   &event)) {
+    success = pb_decode(stream, sns_client_event_msg_sns_client_event_fields,
+                        &event);
+    if (!success) {
       LOGE("Error decoding sns_client_event_msg_sns_client_event: %s",
            PB_GET_ERROR(stream));
-    } else {
-      success = true;
     }
   }
   return success;
@@ -606,24 +620,38 @@ void SeeHelper::handleSnsClientEventMsg(const void *payload,
   if (!pb_decode(&stream, sns_client_event_msg_fields, &event)) {
     LOGE("Error decoding sns_client_event_msg: %s", PB_GET_ERROR(&stream));
   } else {
+    // Only initialize fields that are not accessed in the main CHRE thread.
     SeeInfoArg info = {
       .indCb = mIndCb,
-      .syncData = mSyncData,
       .suid = event.suid,
+      .syncIndFound = false,
     };
     event.events.funcs.decode = decodeSnsClientEventMsg;
     event.events.arg = &info;
-
     stream = pb_istream_from_buffer(
         static_cast<const pb_byte_t *>(payload), payloadLen);
+
+    mMutex.lock();
+    bool synchronizedDecode = mWaiting;
+    if (!synchronizedDecode) {
+      // Early unlock, we're not going to use anything from the main thread.
+      mMutex.unlock();
+    } else {
+      // Populate fields set by the main thread.
+      info.syncData = mSyncData;
+      info.syncDataType = mWaitingDataType;
+      info.syncSuid = mWaitingSuid;
+    }
+
     if (!pb_decode(&stream, sns_client_event_msg_fields, &event)) {
       LOGE("Error decoding sns_client_event_msg: %s", PB_GET_ERROR(&stream));
-    } else {
-      // TODO: add more checks besides SUID.
-      // Try unblock only if the whole pb message is successfully decoded even
-      // though only SUID is needed to determine whether this is the blocking
-      // event we were waiting for.
-      unblockIfPendingSuid(event.suid);
+    } else if (synchronizedDecode && info.syncIndFound) {
+      mWaiting = false;
+      mCond.notify_one();
+    }
+
+    if (synchronizedDecode) {
+      mMutex.unlock();
     }
   }
 }
@@ -637,7 +665,6 @@ bool SeeHelper::findSuidSync(const char *dataType,
     LOGE("Sensor client service QMI client wasn't initialized.");
   } else {
     suids->clear();
-    mSyncData = suids;
 
     pb_byte_t *msg = nullptr;
     size_t msgLen;
@@ -669,7 +696,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
               timer_sleep(kSuidReqIntervalUsec, T_USEC,
                           true /* non_deferrable */);
             }
-            success = sendReq(sns_suid_sensor_init_default,
+            success = sendReq(sns_suid_sensor_init_default, suids, dataType,
                               SNS_SUID_MSGID_SNS_SUID_REQ, msg, msgLen,
                               true /* waitForIndication */);
           } while (suids->empty() && trialCount < kSuidReqMaxTrialCount);
@@ -682,7 +709,6 @@ bool SeeHelper::findSuidSync(const char *dataType,
       }
       memoryFree(msg);
     }
-    mSyncData = nullptr;
   }
   return success;
 }
@@ -695,8 +721,6 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
   if (mQmiHandle == nullptr) {
     LOGE("Sensor client service QMI client wasn't initialized.");
   } else {
-    mSyncData = attr;
-
     pb_byte_t *msg = nullptr;
     size_t msgLen;
     // Obtain only pb-encoded message size to allocate memory first.
@@ -710,13 +734,13 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
         success = encodeSnsStdAttrReq(false, msg, &msgLen);
 
         if (success) {
-          success = sendReq(suid, SNS_STD_MSGID_SNS_STD_ATTR_REQ, msg, msgLen,
+          success = sendReq(suid, attr, nullptr,
+                            SNS_STD_MSGID_SNS_STD_ATTR_REQ, msg, msgLen,
                             true /* waitForIndication */);
         }
       }
       memoryFree(msg);
     }
-    mSyncData = nullptr;
   }
   return success;
 }
@@ -759,7 +783,8 @@ bool SeeHelper::initService(SeeIndCallback *indCb, Microseconds timeout) {
 }
 
 bool SeeHelper::sendReq(
-    const sns_std_suid& suid, uint32_t msgId, void *payload, size_t payloadLen,
+    const sns_std_suid& suid, void *syncData, const char *dataType,
+    uint32_t msgId, void *payload, size_t payloadLen,
     bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
   CHRE_ASSERT(payload || payloadLen == 0);
   bool success = false;
@@ -775,8 +800,10 @@ bool SeeHelper::sendReq(
     LockGuard<Mutex> lock(mMutex);
     CHRE_ASSERT(!mWaiting);
 
-    // Specify the SUID to wait for.
+    // Specify members needed for a sync call.
     mWaitingSuid = suid;
+    mSyncData = syncData;
+    mWaitingDataType = dataType;
 
     success = sendSnsClientReq(mQmiHandle, suid, msgId, payload, payloadLen,
                                timeoutResp);
@@ -796,22 +823,13 @@ bool SeeHelper::sendReq(
         mWaiting = false;
       }
     }
+
+    // Reset members needed for a sync call.
+    mWaitingSuid = sns_suid_sensor_init_zero;
+    mSyncData = nullptr;
+    mWaitingDataType = nullptr;
   }
   return success;
-}
-
-void SeeHelper::unblockIfPendingSuid(const sns_std_suid& suid) {
-  LockGuard<Mutex> lock(mMutex);
-
-  if (mWaiting) {
-    // Unblock the waiting thread if the indication message has the same SUID
-    // as the one we are waiting for.
-    if (suid.suid_high == mWaitingSuid.suid_high
-        && suid.suid_low == mWaitingSuid.suid_low) {
-      mWaiting = false;
-      mCond.notify_one();
-    }
-  }
 }
 
 void SeeHelper::handleInd(qmi_client_type clientHandle, unsigned int msgId,
