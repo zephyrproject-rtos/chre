@@ -22,6 +22,10 @@
 #include "chre/util/time.h"
 #include "chre/util/nanoapp/wifi.h"
 
+using chre::kOneMillisecondInNanoseconds;
+using chre::Nanoseconds;
+using chre::Seconds;
+
 #define LOG_TAG "[WifiWorld]"
 
 //#define WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
@@ -78,17 +82,17 @@ uint8_t gScanTypeIndex = 0;
  */
 void logChreWifiResult(const chreWifiScanResult& result) {
   const char *ssidStr = "<non-printable>";
-  char ssidBuffer[kMaxSsidStrLen];
+  char ssidBuffer[chre::kMaxSsidStrLen];
   if (result.ssidLen == 0) {
     ssidStr = "<empty>";
-  } else if (parseSsidToStr(ssidBuffer, kMaxSsidStrLen,
-                            result.ssid, result.ssidLen)) {
+  } else if (chre::parseSsidToStr(ssidBuffer, sizeof(ssidBuffer),
+                                  result.ssid, result.ssidLen)) {
     ssidStr = ssidBuffer;
   }
 
   const char *bssidStr = "<non-printable>";
-  char bssidBuffer[kBssidStrLen];
-  if (parseBssidToStr(result.bssid, bssidBuffer, kBssidStrLen)) {
+  char bssidBuffer[chre::kBssidStrLen];
+  if (chre::parseBssidToStr(result.bssid, bssidBuffer, sizeof(bssidBuffer))) {
     bssidStr = bssidBuffer;
   }
 
@@ -99,7 +103,8 @@ void logChreWifiResult(const chreWifiScanResult& result) {
   LOGI("  bssid: %s", bssidStr);
   LOGI("  flags: %" PRIx8, result.flags);
   LOGI("  rssi: %" PRId8 "dBm", result.rssi);
-  LOGI("  band: %s (%" PRIu8 ")", parseChreWifiBand(result.band), result.band);
+  LOGI("  band: %s (%" PRIu8 ")",
+       chre::parseChreWifiBand(result.band), result.band);
   LOGI("  primary channel: %" PRIu32, result.primaryChannel);
   LOGI("  center frequency primary: %" PRIu32, result.centerFreqPrimary);
   LOGI("  center frequency secondary: %" PRIu32, result.centerFreqSecondary);
