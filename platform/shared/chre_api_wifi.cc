@@ -37,6 +37,7 @@ DLL_EXPORT bool chreWifiConfigureScanMonitorAsync(bool enable,
 DLL_EXPORT bool chreWifiRequestScanAsync(
     const struct chreWifiScanParams *params, const void *cookie) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return EventLoopManagerSingleton::get()->getWifiRequestManager()
-      .requestScan(nanoapp, params, cookie);
+  return (params == nullptr) ? false :
+      EventLoopManagerSingleton::get()->getWifiRequestManager()
+          .requestScan(nanoapp, params, cookie);
 }

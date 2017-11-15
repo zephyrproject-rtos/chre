@@ -21,6 +21,7 @@
 #include "chre/platform/platform_wifi.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
+#include "chre_api/chre/wifi.h"
 
 namespace chre {
 
@@ -75,7 +76,8 @@ class WifiRequestManager : public NonCopyable {
    * builds and a no-op in production (ie: subsequent requests are ignored).
    *
    * @param nanoapp The nanoapp that has requested an active wifi scan.
-   * @param params The parameters of the wifi scan.
+   * @param params Non-null pointer to the scan parameters structure supplied by
+   *        the nanoapp.
    * @param cookie A cookie that is round-tripped back to the nanoapp to provide
    *        a context when making the request.
    * @return true if the request was accepted. The result is delivered
