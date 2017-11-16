@@ -16,7 +16,10 @@
 
 #include "chre/platform/platform_sensor.h"
 
+#include "sns_std_sensor.pb.h"
 #include "stringl.h"
+
+#include <cmath>
 
 #include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
@@ -37,6 +40,7 @@ typedef Singleton<SeeHelper> SeeHelperSingleton;
 
 // TODO: Complete the list.
 //! The list of SEE platform sensor data types that CHRE intends to support.
+//! The standardized strings are defined in sns_xxx.proto.
 const char *kSeeDataTypes[] = {
   "accel",
   "gyro",
@@ -78,10 +82,49 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
 }
 
 /**
+ * A helper function that updates the last event of a sensor in the main thread.
+ * Platform should call this function only for an on-change sensor.
+ *
+ * @param sensorType The SensorType of the sensor.
+ * @param eventData A non-null pointer to the sensor's CHRE event data.
+ */
+void updateLastEvent(SensorType sensorType, const void *eventData) {
+  // TODO: Implement this.
+}
+
+void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
+  memoryFree(eventData);
+
+  // Remove all requests if it's a one-shot sensor and only after data has been
+  // delivered to all clients.
+  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
+  if (sensorTypeIsOneShot(sensorType)) {
+    EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .removeAllRequests(sensorType);
+  }
+}
+
+/**
  * The async indication callback of SeeHelper.
  */
-void seeHelperIndCb(const sns_std_suid& suid, uint32_t msgId, void *cbData) {
-  LOGW("IndCb: Unhandled msg id %" PRIu32, msgId);
+void seeHelperIndCb(SensorType sensorType, UniquePtr<uint8_t>&& eventData) {
+  if (sensorType == SensorType::Unknown) {
+    LOGE("seeHelperIndCb: Invalid SensorType");
+  } else {
+    // Schedule a deferred callback to update on-change sensor's last
+    // event in the main thread.
+    if (sensorTypeIsOnChange(sensorType)) {
+      updateLastEvent(sensorType, eventData.get());
+    }
+
+    uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
+    if (!EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+            eventType, eventData.get(), seeSensorDataEventFree)) {
+      LOGE("Failed to post sensor data event: %" PRIu16, eventType);
+    } else {
+      eventData.release();
+    }
+  }
 }
 
 /**
@@ -147,8 +190,7 @@ void addSensor(const sns_std_suid& suid, SensorType sensorType, bool calibrated,
   // Override one-shot sensor's minInterval to default
   uint64_t minInterval = sensorTypeIsOneShot(sensorType) ?
       CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          Seconds(1).toRawNanoseconds()
-          / static_cast<uint64_t>(attr.maxSampleRate));
+          ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
 
   // Allocates memory for on-change sensor's last event.
   size_t lastEventSize;
@@ -162,6 +204,29 @@ void addSensor(const sns_std_suid& suid, SensorType sensorType, bool calibrated,
   if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
+
+  if (!SeeHelperSingleton::get()->registerSuid(suid, sensorType)) {
+    FATAL_ERROR("Failed to register SUID/SensorType mapping.");
+  }
+}
+
+/**
+ * Compare SEE reported stream type attribute to the expected one. Some SEE
+ * sensors may support more than one stream type.
+ */
+bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
+  bool success = true;
+  if ((sensorTypeIsContinuous(sensorType)
+       && streamType != SNS_STD_SENSOR_STREAM_TYPE_STREAMING)
+      || (sensorTypeIsOnChange(sensorType)
+          && streamType != SNS_STD_SENSOR_STREAM_TYPE_ON_CHANGE)
+      || (sensorTypeIsOneShot(sensorType)
+          && streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)) {
+    success = false;
+    LOGE("Inconsistent sensor type %" PRIu8 " and stream type %" PRIu8,
+         static_cast<uint8_t>(sensorType), streamType);
+  }
+  return success;
 }
 
 }  // anonymous namespace
@@ -176,11 +241,11 @@ PlatformSensor::~PlatformSensor() {
 
 void PlatformSensor::init() {
   SeeHelperSingleton::init();
-  SeeHelperSingleton::get()->initService(&seeHelperIndCb);
+  SeeHelperSingleton::get()->init(&seeHelperIndCb);
 }
 
 void PlatformSensor::deinit() {
-  SeeHelperSingleton::get()->release();
+  SeeHelperSingleton::get()->deinit();
   SeeHelperSingleton::deinit();
 }
 
@@ -211,14 +276,13 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
         LOGI("Found %s: %s %s, Max ODR %f Hz",
              attr.type, attr.vendor, attr.name, attr.maxSampleRate);
 
-        SensorType sensorType = getSensorTypeFromDataType(dataType, true);
-        addSensor(suids[0], sensorType, true, attr, sensors);
-
-        // Add an uncalibrated version if defined.
-        SensorType uncalibratedType =
-            getSensorTypeFromDataType(dataType, false);
-        if (sensorType != uncalibratedType) {
-          addSensor(suids[0], uncalibratedType, false, attr, sensors);
+        SensorType sensorType = getSensorTypeFromDataType(
+            dataType, false /* calibrated */);
+        if (sensorType == SensorType::Unknown) {
+          LOGE("Unknown sensor type found for '%s'", dataType);
+        } else if (isStreamTypeCorrect(sensorType, attr.streamType)) {
+          addSensor(suids[0], sensorType, false /* calibrated */, attr,
+                    sensors);
         }
       }
     }
@@ -227,8 +291,18 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
 }
 
 bool PlatformSensor::applyRequest(const SensorRequest& request) {
-  // TODO: Implement this.
-  return false;
+  SeeSensorRequest req = {
+    // TODO: Implement passive mode
+    .enable = (request.getMode() != SensorMode::Off),
+    .continuous = sensorTypeIsContinuous(mSensorType),
+    .suid = mSuid,
+    .samplingRateHz = static_cast<float>(
+        kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
+    .batchPeriodUs = static_cast<uint32_t>(
+        request.getLatency().toRawNanoseconds()
+        / kOneMicrosecondInNanoseconds),
+  };
+  return SeeHelperSingleton::get()->makeRequest(req);
 }
 
 SensorType PlatformSensor::getSensorType() const {
