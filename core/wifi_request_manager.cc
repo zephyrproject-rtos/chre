@@ -15,6 +15,8 @@
  */
 
 #include <cinttypes>
+#include <cstddef>
+#include <cstring>
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/wifi_request_manager.h"
@@ -22,6 +24,7 @@
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre_api/chre/version.h"
 
 namespace chre {
 
@@ -75,7 +78,7 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
 }
 
 bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
-                                     const chreWifiScanParams *params,
+                                     const struct chreWifiScanParams *params,
                                      const void *cookie) {
   CHRE_ASSERT(nanoapp);
 
@@ -87,6 +90,15 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
   if (timedOut) {
     LOGE("Scan request async response timed out");
     mScanRequestingNanoappInstanceId.reset();
+  }
+
+  // Handle compatibility with nanoapps compiled against API v1.1, which doesn't
+  // include the radioChainPref parameter in chreWifiScanParams
+  struct chreWifiScanParams paramsCompat;
+  if (nanoapp->getTargetApiVersion() < CHRE_API_VERSION_1_2) {
+    memcpy(&paramsCompat, params, offsetof(chreWifiScanParams, radioChainPref));
+    paramsCompat.radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
+    params = &paramsCompat;
   }
 
   bool success = false;
