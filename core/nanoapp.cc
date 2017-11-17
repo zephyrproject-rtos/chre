@@ -77,6 +77,24 @@ void Nanoapp::configureNanoappInfoEvents(bool enable) {
   }
 }
 
+void Nanoapp::configureHostSleepEvents(bool enable) {
+  bool success;
+  if (enable) {
+    success = registerForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
+    success &= registerForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
+  } else {
+    success = unregisterForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
+    success &= unregisterForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
+  }
+
+  if (!success) {
+    // If we fail to register/unregister for events, the nanoapp will be in an
+    // undefined state (potentially waiting on an event to continue operation)
+    // so the only sensible response is to FATAL_ERROR.
+    FATAL_ERROR("Failed to configure host sleep state events to %d", enable);
+  }
+}
+
 Event *Nanoapp::processNextEvent() {
   Event *event = mEventQueue.pop();
 
