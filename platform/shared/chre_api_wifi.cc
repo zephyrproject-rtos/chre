@@ -41,3 +41,11 @@ DLL_EXPORT bool chreWifiRequestScanAsync(
       EventLoopManagerSingleton::get()->getWifiRequestManager()
           .requestScan(nanoapp, params, cookie);
 }
+
+DLL_EXPORT bool chreWifiRequestRangingAsync(
+    const struct chreWifiRangingParams *params, const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return (params == nullptr) ? false :
+      EventLoopManagerSingleton::get()->getWifiRequestManager()
+          .requestRanging(nanoapp, params, cookie);
+}
