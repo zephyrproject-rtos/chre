@@ -61,10 +61,9 @@ void setTimeSyncRequestTimer(Nanoseconds delay) {
 }
 } // anonymous namespace
 
-Nanoseconds SystemTime::getMonotonicTime() {
+uint64_t getNanosecondsFromQTimerTicks(uint64_t ticks) {
   constexpr uint64_t kClockFreq = 19200000;  // 19.2MHz QTimer clock
 
-  uint64_t ticks = uTimetick_Get();
   uint64_t nsec = 0;
   if (ticks >= kClockFreq) {
     uint64_t seconds = (ticks / kClockFreq);
@@ -73,8 +72,11 @@ Nanoseconds SystemTime::getMonotonicTime() {
     nsec = (seconds * kOneSecondInNanoseconds);
   }
   nsec += (ticks * kOneSecondInNanoseconds) / kClockFreq;
+  return nsec;
+}
 
-  return Nanoseconds(nsec);
+Nanoseconds SystemTime::getMonotonicTime() {
+  return Nanoseconds(getNanosecondsFromQTimerTicks(uTimetick_Get()));
 }
 
 int64_t SystemTime::getEstimatedHostTimeOffset() {

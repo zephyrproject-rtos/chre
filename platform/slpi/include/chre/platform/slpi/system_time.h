@@ -20,6 +20,14 @@
 namespace chre {
 
 /**
+ * Converts QTimer ticks to nanoseconds.
+ *
+ * @param ticks The number of ticks.
+ * @return The number of nanoseconds represented by the ticks value.
+ */
+uint64_t getNanosecondsFromQTimerTicks(uint64_t ticks);
+
+/**
  * Sets the estimated offset between the host and SLPI clock.
  *
  * @param offset The current estimated offset in nanoseconds.
