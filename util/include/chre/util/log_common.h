@@ -27,6 +27,9 @@
  * An inline stub function to direct log messages to when logging is disabled.
  * This avoids unused variable warnings and will result in no overhead.
  */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((format(printf, 1, 2)))
+#endif
 inline void chreLogNull(const char *fmt, ...) { (void) fmt; }
 
 //! The logging level to specify that no logs are output.

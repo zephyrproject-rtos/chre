@@ -62,4 +62,10 @@
 #define LOGD(fmt, ...) chreLogNull(fmt, ##__VA_ARGS__)
 #endif
 
+// Apply printf-style compiler warnings to chreLog calls via GCC/clang
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((format(printf, 2, 3)))
+void chreLog(enum chreLogLevel level, const char *formatStr, ...);
+#endif
+
 #endif  // CHRE_UTIL_NANOAPP_LOG_H_
