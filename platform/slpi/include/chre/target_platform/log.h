@@ -18,6 +18,7 @@
 #define CHRE_PLATFORM_SLPI_LOG_H_
 
 #include "ash/debug.h"
+#include "chre/util/toolchain.h"
 
 #ifndef __FILENAME__
 #define __FILENAME__ CHRE_FILENAME
@@ -30,16 +31,16 @@
 
 // TODO: Replace ashLog with a builtin logging destination that does not wake
 // the AP unless necessary.
-#define LOGE(fmt, ...) \
-  ashLog(ASH_SOURCE_CHRE, ASH_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define CHRE_SLPI_LOG(level, fmt, ...) \
+    do { \
+      CHRE_LOG_PREAMBLE \
+      ashLog(ASH_SOURCE_CHRE, level, fmt, ##__VA_ARGS__); \
+      CHRE_LOG_EPILOGUE \
+    } while (0)
 
-#define LOGW(fmt, ...) \
-  ashLog(ASH_SOURCE_CHRE, ASH_LOG_WARN, fmt, ##__VA_ARGS__)
-
-#define LOGI(fmt, ...) \
-  ashLog(ASH_SOURCE_CHRE, ASH_LOG_INFO, fmt, ##__VA_ARGS__)
-
-#define LOGD(fmt, ...) \
-  ashLog(ASH_SOURCE_CHRE, ASH_LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define LOGE(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_WARN, fmt, ##__VA_ARGS__)
+#define LOGI(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_INFO, fmt, ##__VA_ARGS__)
+#define LOGD(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_DEBUG, fmt, ##__VA_ARGS__)
 
 #endif  // CHRE_PLATFORM_SLPI_LOG_H_

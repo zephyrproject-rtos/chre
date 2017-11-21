@@ -32,8 +32,8 @@
  * the log levels Error, Warning, Informational, and Debug, respectively.
  */
 
-#include "chre/util/log_common.h"
 #include "chre/target_platform/log.h"
+#include "chre/util/log_common.h"
 
 /*
  * Log errors if the platform does not supply logging macros.

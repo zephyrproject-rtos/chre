@@ -107,9 +107,9 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
 
   // ScaleFactor will be over-written by compensation matrix.
   calRequest->ScaleFactor_len = 3;
-  calRequest->ScaleFactor[0] = FX_FLTTOFIX_Q16(1.0);
-  calRequest->ScaleFactor[1] = FX_FLTTOFIX_Q16(1.0);
-  calRequest->ScaleFactor[2] = FX_FLTTOFIX_Q16(1.0);
+  calRequest->ScaleFactor[0] = FX_FLTTOFIX_Q16(1.0f);
+  calRequest->ScaleFactor[1] = FX_FLTTOFIX_Q16(1.0f);
+  calRequest->ScaleFactor[2] = FX_FLTTOFIX_Q16(1.0f);
 
   // Convert from Android to SMGR's NED coordinate.
   calRequest->CompensationMatrix_valid = true;
