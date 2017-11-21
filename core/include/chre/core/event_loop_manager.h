@@ -21,6 +21,7 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/gnss_request_manager.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/core/host_sleep_event_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
 #include "chre/core/wwan_request_manager.h"
@@ -163,6 +164,15 @@ class EventLoopManager : public NonCopyable {
   }
 
   /**
+   * @return A reference to the host sleep event manager which tracks the sleep
+   *         state of the host processor and dispatches sleep/resume events as
+   *         necessary.
+   */
+  HostSleepEventManager& getHostSleepEventManager() {
+    return mHostSleepEventManager;
+  }
+
+  /**
    * @return Returns a reference to the sensor request manager. This allows
    *         interacting with the platform sensors and managing requests from
    *         various nanoapps.
@@ -221,8 +231,11 @@ class EventLoopManager : public NonCopyable {
   //! manages the state of the GNSS subsystem that the runtime subscribes to.
   GnssRequestManager mGnssRequestManager;
 
-  //! Handles communications with the host processor
+  //! Handles communications with the host processor.
   HostCommsManager mHostCommsManager;
+
+  //! Tracks the sleep state of the host processor.
+  HostSleepEventManager mHostSleepEventManager;
 
   //! The SensorRequestManager that handles requests for all nanoapps. This
   //! manages the state of all sensors that runtime subscribes to.

@@ -60,6 +60,18 @@ const ElementType& ArrayQueue<ElementType, kCapacity>::front() const {
 }
 
 template<typename ElementType, size_t kCapacity>
+ElementType& ArrayQueue<ElementType, kCapacity>::back() {
+  CHRE_ASSERT(mSize > 0);
+  return data()[mTail];
+}
+
+template<typename ElementType, size_t kCapacity>
+const ElementType& ArrayQueue<ElementType, kCapacity>::back() const {
+  CHRE_ASSERT(mSize > 0);
+  return data()[mTail];
+}
+
+template<typename ElementType, size_t kCapacity>
 ElementType& ArrayQueue<ElementType, kCapacity>::operator[](size_t index) {
   CHRE_ASSERT(index < mSize);
   return data()[relativeIndexToAbsolute(index)];

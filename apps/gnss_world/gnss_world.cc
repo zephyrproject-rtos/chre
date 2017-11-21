@@ -82,7 +82,7 @@ void makeLocationRequest() {
 }
 
 void handleTimerEvent(const void *eventData) {
-  LOGI("Timer event received, count %d", gTimerCount);
+  LOGI("Timer event received, count %" PRIu32, gTimerCount);
   if (!gAsyncResultReceived) {
     LOGE("Async result not received!");
   }

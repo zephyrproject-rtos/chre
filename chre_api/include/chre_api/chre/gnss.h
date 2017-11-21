@@ -53,7 +53,7 @@ extern "C" {
 //! A lack of flags indicates that GNSS is not supported in this CHRE
 #define CHRE_GNSS_CAPABILITIES_NONE          UINT32_C(0)
 
-//! GNSS position fixes are supported via chreGnssPositionSessionStartAsync()
+//! GNSS position fixes are supported via chreGnssLocationSessionStartAsync()
 #define CHRE_GNSS_CAPABILITIES_LOCATION      UINT32_C(1 << 0)
 
 //! GNSS raw measurements are supported via
@@ -361,7 +361,7 @@ uint32_t chreGnssGetCapabilities(void);
 /**
  * Initiates a GNSS positioning session, or changes the requested interval of an
  * existing session. If starting or modifying the session was successful, then
- * the GPS engine will work on determining the device's position.
+ * the GNSS engine will work on determining the device's position.
  *
  * This result of this request is delivered asynchronously via an event of type
  * CHRE_EVENT_GNSS_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
@@ -467,6 +467,32 @@ bool chreGnssMeasurementSessionStartAsync(uint32_t minIntervalMs,
  */
 bool chreGnssMeasurementSessionStopAsync(const void *cookie);
 
+/**
+ * Controls whether this nanoapp will passively receive GNSS-based location
+ * fixes produced as a result of location sessions initiated by other nanoapps.
+ * Note that this does not include fixes requested by the host (applications
+ * processor). This function allows a nanoapp to receive location fixes via
+ * CHRE_EVENT_GNSS_LOCATION events without imposing additional power cost,
+ * though with no guarantees as to when or how often those events will arrive.
+ *
+ * Enabling location monitoring is not required to receive events for an active
+ * location session started via chreGnssLocationSessionStartAsync(). This
+ * setting is independent of the active location session, so modifying one does
+ * not have an effect on the other.
+ *
+ * If chreGnssGetCapabilities() returns a value that does not have the
+ * CHRE_GNSS_CAPABILITIES_LOCATION flag set or the value returned by
+ * chreGetApiVersion() is less than CHRE_API_VERSION_1_2, then this method will
+ * return false.
+ *
+ * @param enable true to receive location fixes, false to disable them
+ *
+ * @return true if the configuration was processed successfully, false on error
+ *     or if this feature is not supported
+ *
+ * @since v1.2
+ */
+bool chreGnssConfigureLocationMonitor(bool enable);
 
 #ifdef __cplusplus
 }

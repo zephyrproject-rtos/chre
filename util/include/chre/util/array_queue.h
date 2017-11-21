@@ -63,16 +63,16 @@ class ArrayQueue : public NonCopyable {
    * @return The front element.
    */
   ElementType& front();
+  const ElementType& front() const;
 
   /**
-   * Obtains the front element of the array queue. It is illegal to access the
-   * front element when the array queue is empty. The user of the API must check
-   * the size() or empty() function prior to accessing the front element to
-   * ensure that they will not read out of bounds.
+   * Obtains the last element in the queue. Illegal to call when empty() is
+   * true.
    *
-   * @return The front element.
+   * @return The last element in the queue.
    */
-  const ElementType& front() const;
+  ElementType& back();
+  const ElementType& back() const;
 
   /**
    * Obtains an element of the array queue given an index. It is illegal to

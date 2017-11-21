@@ -129,6 +129,11 @@ TEST(ArrayQueueDeathTest, FrontWhenEmpty) {
   EXPECT_DEATH(q.front(), "");
 }
 
+TEST(ArrayQueueDeathTest, BackWhenEmpty) {
+  ArrayQueue<int, 4> q;
+  EXPECT_DEATH(q.back(), "");
+}
+
 TEST(ArrayQueueTest, TestFront) {
   ArrayQueue<int, 3> q;
   q.push(1);
@@ -136,6 +141,19 @@ TEST(ArrayQueueTest, TestFront) {
   q.pop();
   q.push(2);
   EXPECT_EQ(2, q.front());
+  q.push(3);
+  EXPECT_EQ(2, q.front());
+}
+
+TEST(ArrayQueueTest, TestBack) {
+  ArrayQueue<int, 3> q;
+  q.push(1);
+  EXPECT_EQ(1, q.back());
+  q.pop();
+  q.push(2);
+  EXPECT_EQ(2, q.back());
+  q.push(3);
+  EXPECT_EQ(3, q.back());
 }
 
 TEST(ArrayQueueDeathTest, InvalidSubscript) {

@@ -39,7 +39,7 @@ namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
 uint32_t gCyclicTimerHandle;
-int gCyclicTimerCount;
+uint32_t gCyclicTimerCount;
 
 struct ashCalParams accCalParams = {
   .offset = {0.0, 1.0, 2.0},
