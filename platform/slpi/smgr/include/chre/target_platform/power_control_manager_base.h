@@ -43,6 +43,13 @@ class PowerControlManagerBase {
  protected:
   //! Client handle for the subscription to the power manager
   sns_pm_handle_t mClientHandle = nullptr;
+
+  /**
+   * Invoked by the SNS Power Manager when the AP has suspended or resumed.
+   *
+   * @param apSuspended set to true when the AP has suspended, false on resume.
+   */
+  static void apSuspendCallback(bool apSuspended);
 };
 
 } // namespace chre
