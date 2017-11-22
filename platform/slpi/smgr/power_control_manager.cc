@@ -62,6 +62,8 @@ void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
 }
 
 void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
+  EventLoopManagerSingleton::get()->getEventLoop()
+      .getPowerControlManager().mHostIsAwake = !apSuspended;
   if (apSuspended) {
     EventLoopManagerSingleton::get()->getHostSleepEventManager()
         .handleHostSleep();
@@ -69,6 +71,10 @@ void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
     EventLoopManagerSingleton::get()->getHostSleepEventManager()
         .handleHostAwake();
   }
+}
+
+bool PowerControlManager::hostIsAwake() {
+  return mHostIsAwake;
 }
 
 } // namespace chre

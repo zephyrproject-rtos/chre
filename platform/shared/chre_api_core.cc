@@ -123,6 +123,6 @@ DLL_EXPORT void chreConfigureHostSleepStateEvents(bool enable) {
 }
 
 DLL_EXPORT bool chreIsHostAwake() {
-  return EventLoopManagerSingleton::get()->getHostSleepEventManager()
-      .hostIsAwake();
+  return EventLoopManagerSingleton::get()->getEventLoop()
+      .getPowerControlManager().hostIsAwake();
 }
