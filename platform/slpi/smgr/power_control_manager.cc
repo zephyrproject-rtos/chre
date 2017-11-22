@@ -26,9 +26,9 @@ PowerControlManagerBase::PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
   char kClientName[] = "CHRE";
   sns_pm_err_code_e result = sns_pm_client_init(
-      &mClientHandle, nullptr, kClientName, SNS_PM_CLIENT_ID_CHRE);
+      &mClientHandle, apSuspendCallback, kClientName, SNS_PM_CLIENT_ID_CHRE);
   if (result != SNS_PM_SUCCESS) {
-    FATAL_ERROR("Power manager client init failed.");
+    FATAL_ERROR("Power manager client init failed");
   }
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
@@ -58,6 +58,16 @@ bool PowerControlManagerBase::voteBigImage(bool bigImage) {
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
   if (numPendingEvents == 0 && !slpiInUImage()) {
     voteBigImage(false);
+  }
+}
+
+void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
+  if (apSuspended) {
+    EventLoopManagerSingleton::get()->getHostSleepEventManager()
+        .handleHostSleep();
+  } else {
+    EventLoopManagerSingleton::get()->getHostSleepEventManager()
+        .handleHostAwake();
   }
 }
 

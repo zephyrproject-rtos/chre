@@ -27,7 +27,7 @@ constexpr uint64_t kOneSecondInNanoseconds(1000000000);
 //! The number of nanoseconds in one millisecond.
 constexpr uint64_t kOneMillisecondInNanoseconds(1000000);
 
-//! The number of nanoseconds in one millisecond.
+//! The number of nanoseconds in one microsecond.
 constexpr uint64_t kOneMicrosecondInNanoseconds(1000);
 
 //! The number of microseconds in one millisecond.
