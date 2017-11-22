@@ -623,7 +623,7 @@ void handleSensorDataIndication(
           updateLastEvent(sensorType, eventData);
         }
 
-        EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+        EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
             getSampleEventTypeForSensorType(sensorType), eventData,
             smgrSensorDataEventFree);
       }
@@ -828,7 +828,7 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
     event->sensorHandle = sensorHandle;
     memcpy(&event->status, &status, sizeof(event->status));
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
         CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
         kSystemInstanceId, instanceId);
   }
@@ -1342,9 +1342,8 @@ bool removeAllPassiveRequests(uint8_t sensorId) {
 
 PlatformSensor::~PlatformSensor() {
   if (lastEvent != nullptr) {
-    LOGD("Releasing lastEvent: 0x%p, id %" PRIu8 ", type %" PRIu8 ", cal %"
-         PRIu8 ", size %zu",
-         lastEvent, sensorId, dataType, calType, lastEventSize);
+    LOGD("Releasing lastEvent: id %" PRIu8 ", type %" PRIu8 ", cal %" PRIu8
+         ", size %zu", sensorId, dataType, calType, lastEventSize);
     memoryFree(lastEvent);
   }
 }
