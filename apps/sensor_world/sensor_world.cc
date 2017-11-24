@@ -93,6 +93,11 @@ SensorState sensors[] = {
     .interval = Seconds(2).toRawNanoseconds(),
     .latency = 0,
   },
+  { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE,
+    .enable = kEnableDefault,
+    .interval = Seconds(2).toRawNanoseconds(),
+    .latency = 0,
+  },
   { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
     .enable = kEnableDefault,
     .interval = Milliseconds(80).toRawNanoseconds(),
@@ -222,7 +227,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
     case CHRE_EVENT_SENSOR_PRESSURE_DATA:
     case CHRE_EVENT_SENSOR_LIGHT_DATA:
     case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA:
-    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA: {
+    case CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA:
+    case CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA: {
       const auto *ev = static_cast<const chreSensorFloatData *>(eventData);
       const auto header = ev->header;
 

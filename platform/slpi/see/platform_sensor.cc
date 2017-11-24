@@ -34,6 +34,12 @@
 namespace chre {
 namespace {
 
+//! A struct to facilitate sensor discovery
+struct SuidAttr {
+  sns_std_suid suid;
+  SeeAttributes attr;
+};
+
 //! A singleton instance of SeeHelper that can be used for making synchronous
 //! sensor requests. This must only be used from the CHRE thread.
 typedef Singleton<SeeHelper> SeeHelperSingleton;
@@ -160,8 +166,8 @@ void seeHelperIndCb(SensorType sensorType, UniquePtr<uint8_t>&& eventData) {
   if (sensorType == SensorType::Unknown) {
     LOGE("seeHelperIndCb: Invalid SensorType");
   } else {
-    // Schedule a deferred callback to update on-change sensor's last
-    // event in the main thread.
+    // Schedule a deferred callback to update on-change sensor's last event in
+    // the main thread.
     if (sensorTypeIsOnChange(sensorType)) {
       updateLastEvent(sensorType, eventData.get());
     }
@@ -212,8 +218,8 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
     event = static_cast<ChreSensorData *>(memoryAlloc(*eventSize));
     if (event == nullptr) {
       *eventSize = 0;
-      FATAL_ERROR("Failed to allocate last event memory for SensorType %d",
-                  static_cast<int>(sensorType));
+      FATAL_ERROR("Failed to allocate last event memory for SensorType %" PRIu8,
+                  static_cast<uint8_t>(sensorType));
     }
   }
   return event;
@@ -228,7 +234,7 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
  * @param attr A reference to SeeAttrbutes.
  * @param sensor The sensor list.
  */
-void addSensor(const sns_std_suid& suid, SensorType sensorType, bool calibrated,
+void addSensor(SensorType sensorType, const sns_std_suid& suid,
                const SeeAttributes& attr, DynamicVector<Sensor> *sensors) {
   // Concatenate vendor and name with a space in between.
   char sensorName[kSensorNameMaxLen];
@@ -252,14 +258,19 @@ void addSensor(const sns_std_suid& suid, SensorType sensorType, bool calibrated,
 
   // Constructs and initializes PlatformSensorBase.
   Sensor sensor;
-  sensor.initBase(suid, sensorType, calibrated, minInterval, sensorName,
-                  lastEvent, lastEventSize);
+  sensor.initBase(sensorType, minInterval, sensorName, lastEvent,
+                  lastEventSize);
 
   if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
 
-  if (!SeeHelperSingleton::get()->registerSuid(suid, sensorType)) {
+  bool prevRegistered;
+  bool registered = SeeHelperSingleton::get()->registerSensor(
+      sensorType, suid, &prevRegistered);
+  if (!registered && prevRegistered) {
+    LOGW("SUID has been previously registered");
+  } else if (!registered) {
     FATAL_ERROR("Failed to register SUID/SensorType mapping.");
   }
 }
@@ -281,6 +292,53 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
          static_cast<uint8_t>(sensorType), streamType);
   }
   return success;
+}
+
+/**
+ * Obtains the list of SUIDs and their attributes that support the specified
+ * data type.
+ */
+bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
+  DynamicVector<sns_std_suid> suids;
+  bool success = SeeHelperSingleton::get()->findSuidSync(dataType, &suids);
+  if (!success) {
+    LOGE("Failed to find sensor '%s'", dataType);
+  } else {
+    if (suids.empty()) {
+      LOGW("No SUID found for '%s'", dataType);
+    } else {
+      LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
+    }
+
+    for (const auto& suid : suids) {
+      LOGD("0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
+
+      SeeAttributes attr;
+      if (!SeeHelperSingleton::get()->getAttributesSync(suid, &attr)) {
+        success = false;
+        LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
+             suid.suid_high, suid.suid_low);
+      } else {
+        LOGI("%s %s, max ODR %f Hz, stream type %" PRIu8,
+             attr.vendor, attr.name, attr.maxSampleRate, attr.streamType);
+        SuidAttr sensor = {
+          .suid = suid,
+          .attr = attr,
+        };
+        if (!suidAttrs->push_back(sensor)) {
+          success = false;
+          LOGE("Failed to add SuidAttr");
+        }
+      }
+    }
+  }
+  return success;
+}
+
+bool vendorAndNameMatch(const SeeAttributes& attr0,
+                        const SeeAttributes& attr1) {
+  return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0)
+          && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0));
 }
 
 }  // anonymous namespace
@@ -306,36 +364,51 @@ void PlatformSensor::deinit() {
 bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
-  DynamicVector<sns_std_suid> suids;
+  DynamicVector<SuidAttr> tempSensors;
+  if (!getSuidAndAttrs("sensor_temperature", &tempSensors)) {
+      FATAL_ERROR("Failed to get temperature sensor UID and attributes");
+  }
+
   for (size_t i = 0; i < ARRAY_SIZE(kSeeDataTypes); i++) {
     const char *dataType = kSeeDataTypes[i];
 
-    if (!SeeHelperSingleton::get()->findSuidSync(dataType, &suids)) {
-      LOGE("Failed to find sensor '%s'", dataType);
-    } else if (suids.empty()) {
-      LOGW("No SUID found for '%s'", dataType);
+    SensorType sensorType = getSensorTypeFromDataType(
+        dataType, false /* calibrated */);
+    if (sensorType == SensorType::Unknown) {
+      LOGE("Unknown sensor type found for '%s'", dataType);
+      continue;
+    }
+
+    DynamicVector<SuidAttr> primarySensors;
+    if (!getSuidAndAttrs(dataType, &primarySensors)) {
+      FATAL_ERROR("Failed to get primary sensor UID and attributes");
     } else {
-      LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
+      for (const auto& primarySensor : primarySensors) {
+        sns_std_suid suid = primarySensor.suid;
+        SeeAttributes attr = primarySensor.attr;
 
-      for (const auto& suid : suids) {
-        LOGD("0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
-
-        // If there are more than one sensors that support the data type,
+        // Some sensors support both continuous and on-change streams.
+        // If there are more than one SUIDs that support the data type,
         // choose the first one that has the expected stream type.
-        SeeAttributes attr;
-        if (!SeeHelperSingleton::get()->getAttributesSync(suid, &attr)) {
-          LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
-               suid.suid_high, suid.suid_low);
-        } else {
-          LOGI("%s %s, max ODR %f Hz, stream type %" PRIu8,
-               attr.vendor, attr.name, attr.maxSampleRate, attr.streamType);
+        if (isStreamTypeCorrect(sensorType, attr.streamType)) {
+          addSensor(sensorType, suid, attr, sensors);
 
-          SensorType sensorType = getSensorTypeFromDataType(
-              dataType, false /* calibrated */);
-          if (isStreamTypeCorrect(sensorType, attr.streamType)) {
-            addSensor(suid, sensorType, false /* calibrated */, attr, sensors);
-            break;
+          // Check if this sensor has a secondary temperature sensor.
+          SensorType tempSensorType = getTempSensorType(sensorType);
+          if (tempSensorType != SensorType::Unknown) {
+            for (const auto& tempSensor : tempSensors) {
+              sns_std_suid tempSuid = tempSensor.suid;
+              SeeAttributes tempAttr = tempSensor.attr;
+
+              if (vendorAndNameMatch(attr, tempAttr)) {
+                LOGD("Found temperature sensor SUID 0x%" PRIx64 " %" PRIx64,
+                     tempSuid.suid_high, tempSuid.suid_low);
+                addSensor(tempSensorType, tempSuid, tempAttr, sensors);
+                break;
+              }
+            }
           }
+          break;
         }
       }
     }
@@ -345,10 +418,9 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
 
 bool PlatformSensor::applyRequest(const SensorRequest& request) {
   SeeSensorRequest req = {
+    .sensorType = getSensorType(),
     // TODO: Implement passive mode
     .enable = (request.getMode() != SensorMode::Off),
-    .continuous = sensorTypeIsContinuous(mSensorType),
-    .suid = mSuid,
     .samplingRateHz = static_cast<float>(
         kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
     // Override batch period to 0 for non-continuous sensors to ensure one
@@ -381,11 +453,9 @@ PlatformSensor::PlatformSensor(PlatformSensor&& other) {
 PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
   // Note: if this implementation is ever changed to depend on "this" containing
   // initialized values, the move constructor implemenation must be updated.
-  mSuid = other.mSuid;
-  memcpy(mSensorName, other.mSensorName, kSensorNameMaxLen);
   mSensorType = other.mSensorType;
-  mCalibrated = other.mCalibrated;
   mMinInterval = other.mMinInterval;
+  memcpy(mSensorName, other.mSensorName, kSensorNameMaxLen);
 
   mLastEvent = other.mLastEvent;
   other.mLastEvent = nullptr;
@@ -416,12 +486,9 @@ bool PlatformSensor::getSamplingStatus(
 }
 
 void PlatformSensorBase::initBase(
-    const sns_std_suid& suid, SensorType sensorType, bool calibrated,
-    uint64_t minInterval, const char *sensorName,
+    SensorType sensorType,uint64_t minInterval, const char *sensorName,
     ChreSensorData *lastEvent, size_t lastEventSize) {
-  mSuid = suid;
   mSensorType = sensorType;
-  mCalibrated = calibrated;
   mMinInterval = minInterval;
   memcpy(mSensorName, sensorName, kSensorNameMaxLen);
   mLastEvent = lastEvent;

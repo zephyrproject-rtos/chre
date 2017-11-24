@@ -83,6 +83,7 @@ struct SeeDataArg {
 
 //! A struct to facilitate pb decode
 struct SeeInfoArg {
+  qmi_client_type qmiHandle;
   sns_std_suid suid;
   uint32_t msgId;
   SeeSyncArg *sync;
@@ -991,14 +992,15 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
 }
 
 /**
- * Obtain the SensorType from the list of registered SUIDs.
+ * Obtain the SensorType from the list of registered SensorInfos.
  */
-SensorType getSensorTypeFromSuid(
-    const sns_std_suid& suid,
-    const DynamicVector<SeeHelper::SuidSensorType>& suids) {
-  for (size_t i = 0; i < suids.size(); i++) {
-    if (suidsMatch(suid, suids[i].suid)) {
-        return suids[i].sensorType;
+SensorType getSensorTypeFromSensorInfo(
+    qmi_client_type qmiHandle, const sns_std_suid& suid,
+    const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
+  for (const auto& sensorInfo : sensorInfos) {
+    if (suidsMatch(sensorInfo.suid, suid)
+        && sensorInfo.qmiHandle == qmiHandle) {
+        return sensorInfo.sensorType;
     }
   }
   return SensorType::Unknown;
@@ -1042,11 +1044,12 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 }
 
 // Allocates the sensor event memory and partially populates the header.
-bool prepareSensorEvent(SeeInfoArg& info,
-                        const DynamicVector<SeeHelper::SuidSensorType>& suids) {
+bool prepareSensorEvent(
+    SeeInfoArg& info, const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
   bool success = false;
 
-  info.data->sensorType = getSensorTypeFromSuid(info.suid, suids);
+  info.data->sensorType = getSensorTypeFromSensorInfo(
+      info.qmiHandle, info.suid, sensorInfos);
   UniquePtr<uint8_t> buf(static_cast<uint8 *>(
       allocateEvent(info.data->sensorType, info.data->sampleIndex)));
   info.data->event = std::move(buf);
@@ -1075,10 +1078,32 @@ bool prepareSensorEvent(SeeInfoArg& info,
   return success;
 }
 
+/**
+ * Obtains the QMI handle and SUID of the specified SensorType.
+ */
+bool getSensorInfo(SensorType sensorType,
+                   const DynamicVector<SeeHelper::SensorInfo>& sensorInfos,
+                   qmi_client_type *qmiHandle,
+                   sns_std_suid *suid) {
+  CHRE_ASSERT(qmiHandle);
+  CHRE_ASSERT(suid);
+  bool success = false;
+
+  for (const auto& sensorInfo : sensorInfos) {
+    if (sensorInfo.sensorType == sensorType) {
+      success = true;
+      *qmiHandle = sensorInfo.qmiHandle;
+      *suid = sensorInfo.suid;
+      break;
+    }
+  }
+  return success;
+}
+
 }  // anonymous
 
-void SeeHelper::handleSnsClientEventMsg(const void *payload,
-                                        size_t payloadLen) {
+void SeeHelper::handleSnsClientEventMsg(
+    qmi_client_type qmiHandle, const void *payload, size_t payloadLen) {
   CHRE_ASSERT(payload);
 
   pb_istream_t stream = pb_istream_from_buffer(
@@ -1091,6 +1116,7 @@ void SeeHelper::handleSnsClientEventMsg(const void *payload,
   SeeSyncArg syncArg = {};
   SeeDataArg dataArg = {};
   SeeInfoArg info = {
+    .qmiHandle = qmiHandle,
     .sync = &syncArg,
     .data = &dataArg,
     .decodeMsgIdOnly = true,
@@ -1119,7 +1145,7 @@ void SeeHelper::handleSnsClientEventMsg(const void *payload,
     }
 
     if (info.data->sampleIndex > 0) {
-      if (!prepareSensorEvent(info, mSuids)) {
+      if (!prepareSensorEvent(info, mSensorInfos)) {
         LOGE("Failed to prepare sensor event");
       }
     }
@@ -1145,7 +1171,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
   CHRE_ASSERT(suids);
   bool success = false;
 
-  if (mQmiHandle == nullptr) {
+  if (mQmiHandles.empty()) {
     LOGE("Sensor client service QMI client wasn't initialized");
   } else {
     suids->clear();
@@ -1170,7 +1196,8 @@ bool SeeHelper::findSuidSync(const char *dataType,
         if (++trialCount > 1) {
           timer_sleep(kSuidReqIntervalUsec, T_USEC, true /* non_deferrable */);
         }
-        success = sendReq(sns_suid_sensor_init_default, suids, dataType,
+        success = sendReq(mQmiHandles[0], sns_suid_sensor_init_default,
+                          suids, dataType,
                           SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                           false /* batchValid */, 0 /* batchPeriodUs */,
                           true /* waitForIndication */);
@@ -1190,7 +1217,7 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
   CHRE_ASSERT(attr);
   bool success = false;
 
-  if (mQmiHandle == nullptr) {
+  if (mQmiHandles.empty()) {
     LOGE("Sensor client service QMI client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
@@ -1198,7 +1225,8 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
     success = encodeSnsStdAttrReq(&msg, &msgLen);
 
     if (success) {
-      success = sendReq(suid, attr, nullptr /* syncDataType */,
+      success = sendReq(mQmiHandles[0], suid,
+                        attr, nullptr /* syncDataType */,
                         SNS_STD_MSGID_SNS_STD_ATTR_REQ, msg.get(), msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
                         true /* waitForIndication */);
@@ -1208,26 +1236,15 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
 }
 
 bool SeeHelper::init(SeeIndCallback *indCb, Microseconds timeout) {
-  bool success = false;
-
   mIndCb = indCb;
   if (indCb == nullptr) {
     LOGW("SeeHelper indication callback not provided");
   }
 
-  qmi_idl_service_object_type snsSvcObj =
-      SNS_CLIENT_SVC_get_service_object_v01();
-  if (snsSvcObj == nullptr) {
-    LOGE("Failed to obtain the sensor client service instance");
-  } else {
-    qmi_client_os_params sensorContextOsParams;
-    qmi_client_error_type status = qmi_client_init_instance(
-        snsSvcObj, QMI_CLIENT_INSTANCE_ANY, SeeHelper::qmiIndCb, this,
-        &sensorContextOsParams, timeout.getMicroseconds(), &mQmiHandle);
-    if (status != QMI_NO_ERR) {
-      LOGE("Failed to initialize the sensor client service QMI client: %d",
-           status);
-    }
+  qmi_client_type qmiHandle;
+  bool success = waitForService(&qmiHandle, timeout);
+  if (success) {
+    success = mQmiHandles.push_back(qmiHandle);
   }
   return success;
 }
@@ -1235,8 +1252,10 @@ bool SeeHelper::init(SeeIndCallback *indCb, Microseconds timeout) {
 bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
   bool success = false;
 
-  if (mQmiHandle == nullptr) {
-    LOGE("Sensor client service QMI client wasn't initialized");
+  qmi_client_type qmiHandle;
+  sns_std_suid suid;
+  if (!getSensorInfo(request.sensorType, mSensorInfos, &qmiHandle, &suid)) {
+    LOGE("SensorType hasn't been registered");
   } else {
     uint32_t msgId;
     UniquePtr<pb_byte_t> msg;
@@ -1246,7 +1265,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
       // An empty message
       msgId = SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
       success = true;
-    } else if (request.continuous) {
+    } else if (sensorTypeIsContinuous(request.sensorType)) {
       msgId = SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_CONFIG;
       success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
     } else {
@@ -1256,7 +1275,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     }
 
     if (success) {
-      success = sendReq(request.suid,
+      success = sendReq(qmiHandle, suid,
                         nullptr /* syncData */, nullptr /* syncDatType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
@@ -1267,18 +1286,22 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
 }
 
 bool SeeHelper::deinit() {
-  qmi_client_error_type status = qmi_client_release(mQmiHandle);
-  if (status != QMI_NO_ERR) {
-    LOGE("Failed to release sensor client service QMI client: %d", status);
+  bool success = true;
+  for (const auto& handle : mQmiHandles) {
+    qmi_client_error_type status = qmi_client_release(handle);
+    if (status != QMI_NO_ERR) {
+      success = false;
+      LOGE("Failed to release sensor client service QMI client: %d", status);
+    }
   }
-
-  mQmiHandle = nullptr;
-  mSuids.clear();
-  return (status == QMI_NO_ERR);
+  mQmiHandles.clear();
+  mSensorInfos.clear();
+  return success;
 }
 
 bool SeeHelper::sendReq(
-    const sns_std_suid& suid, void *syncData, const char *syncDataType,
+    const qmi_client_type& qmiHandle, const sns_std_suid& suid,
+    void *syncData, const char *syncDataType,
     uint32_t msgId, void *payload, size_t payloadLen,
     bool batchValid, uint32_t batchPeriodUs,
     bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
@@ -1290,7 +1313,7 @@ bool SeeHelper::sendReq(
   slpiForceBigImage();
 
   if (!waitForIndication) {
-    success = sendSnsClientReq(mQmiHandle, suid, msgId, payload, payloadLen,
+    success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
                                batchValid, batchPeriodUs, timeoutResp);
   } else {
     LockGuard<Mutex> lock(mMutex);
@@ -1301,7 +1324,7 @@ bool SeeHelper::sendReq(
     mSyncData = syncData;
     mSyncDataType = syncDataType;
 
-    success = sendSnsClientReq(mQmiHandle, suid, msgId, payload, payloadLen,
+    success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
                                batchValid, batchPeriodUs, timeoutResp);
 
     if (success) {
@@ -1346,7 +1369,7 @@ void SeeHelper::handleInd(qmi_client_type clientHandle, unsigned int msgId,
         if (status != QMI_NO_ERR) {
           LOGE("Error parsing SNS_CLIENT_REPORT_IND_V01: %d", status);
         } else {
-          handleSnsClientEventMsg(ind->payload, ind->payload_len);
+          handleSnsClientEventMsg(clientHandle, ind->payload, ind->payload_len);
         }
       }
       break;
@@ -1365,24 +1388,68 @@ void SeeHelper::qmiIndCb(qmi_client_type clientHandle, unsigned int msgId,
   obj->handleInd(clientHandle, msgId, indBuf, indBufLen);
 }
 
-bool SeeHelper::registerSuid(const sns_std_suid& suid, SensorType sensorType) {
-  bool success = true;
+bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
+                               bool *prevRegistered) {
+  CHRE_ASSERT(sensorType != SensorType::Unknown);
+  CHRE_ASSERT(prevRegistered);
+  bool success = false;
 
-  bool found = false;
-  for (SuidSensorType suidSensorType : mSuids) {
-    if (suidsMatch(suid, suidSensorType.suid)) {
-      found = true;
-      break;
+  // Check whether the SUID/SensorType pair has been previously registered.
+  // Also count how many other SensorTypes the SUID has been registered with.
+  *prevRegistered = false;
+  size_t suidRegCount = 0;
+  for (const auto& sensorInfo : mSensorInfos) {
+    if (suidsMatch(suid, sensorInfo.suid)) {
+      suidRegCount++;
+      if (sensorInfo.sensorType == sensorType) {
+        *prevRegistered = true;
+      }
     }
   }
 
-  // Add a new entry only if this SUID hasn't been registered.
-  if (!found) {
-    SuidSensorType suidSensorType = {
+  // Initialize another QMI client if the SUID has been previously registered
+  // with more SensorTypes than the number of QMI clients can disambiguate.
+  bool qmiClientAvailable = true;
+  if (mQmiHandles.size() <= suidRegCount) {
+    qmi_client_type qmiHandle;
+    qmiClientAvailable = waitForService(&qmiHandle);
+    if (qmiClientAvailable) {
+      qmiClientAvailable = mQmiHandles.push_back(qmiHandle);
+    }
+  }
+
+  // Add a new entry only if this SUID/SensorType pair hasn't been registered.
+  if (!*prevRegistered && qmiClientAvailable) {
+    SensorInfo sensorInfo = {
       .suid = suid,
       .sensorType = sensorType,
+      .qmiHandle = mQmiHandles[suidRegCount],
     };
-    success = mSuids.push_back(suidSensorType);
+    success = mSensorInfos.push_back(sensorInfo);
+  }
+  return success;
+}
+
+bool SeeHelper::waitForService(qmi_client_type *qmiHandle,
+                               Microseconds timeout) {
+  CHRE_ASSERT(qmiHandle);
+  bool success = false;
+
+  qmi_idl_service_object_type snsSvcObj =
+      SNS_CLIENT_SVC_get_service_object_v01();
+  if (snsSvcObj == nullptr) {
+    LOGE("Failed to obtain the sensor client service instance");
+  } else {
+    qmi_client_os_params sensorContextOsParams;
+    qmi_client_error_type status = qmi_client_init_instance(
+        snsSvcObj, QMI_CLIENT_INSTANCE_ANY, SeeHelper::qmiIndCb, this,
+        &sensorContextOsParams, timeout.getMicroseconds(), qmiHandle);
+
+    success = (status == QMI_NO_ERR);
+    if (!success) {
+      LOGE("Failed to initialize the sensor client service QMI client: %d",
+           status);
+    }
   }
   return success;
 }

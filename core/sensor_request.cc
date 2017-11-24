@@ -165,6 +165,22 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
   }
 }
 
+SensorType getTempSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+    case SensorType::UncalibratedAccelerometer:
+      return SensorType::AccelerometerTemperature;
+    case SensorType::Gyroscope:
+    case SensorType::UncalibratedGyroscope:
+      return SensorType::GyroscopeTemperature;
+    case SensorType::GeomagneticField:
+    case SensorType::UncalibratedGeomagneticField:
+      return SensorType::GeomagneticFieldTemperature;
+    default:
+      return SensorType::Unknown;
+  }
+}
+
 SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
   switch (sensorType) {
     case SensorType::Accelerometer:
