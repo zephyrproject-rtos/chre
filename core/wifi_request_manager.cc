@@ -376,12 +376,8 @@ void WifiRequestManager::postScanRequestAsyncResultEventFatal(
 }
 
 void WifiRequestManager::postScanEventFatal(chreWifiScanEvent *event) {
-  bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
-      .postEvent(CHRE_EVENT_WIFI_SCAN_RESULT, event, freeWifiScanEventCallback,
-                 kSystemInstanceId, kBroadcastInstanceId);
-  if (!eventPosted) {
-    FATAL_ERROR("Failed to send WiFi scan event");
-  }
+  EventLoopManagerSingleton::get()->getEventLoop()
+      .postEvent(CHRE_EVENT_WIFI_SCAN_RESULT, event, freeWifiScanEventCallback);
 }
 
 void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,

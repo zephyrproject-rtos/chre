@@ -85,9 +85,7 @@ bool DynamicVector<ElementType>::empty() const {
 template<typename ElementType>
 void DynamicVector<ElementType>::pop_back() {
   CHRE_ASSERT(!empty());
-  if (!empty()) {
-    erase(mSize - 1);
-  }
+  erase(mSize - 1);
 }
 
 template<typename ElementType>
@@ -124,10 +122,6 @@ bool DynamicVector<ElementType>::emplace_back(Args&&... args) {
 template<typename ElementType>
 ElementType& DynamicVector<ElementType>::operator[](size_type index) {
   CHRE_ASSERT(index < mSize);
-  if (index >= mSize) {
-    index = mSize - 1;
-  }
-
   return data()[index];
 }
 
@@ -135,10 +129,6 @@ template<typename ElementType>
 const ElementType& DynamicVector<ElementType>::operator[](size_type index)
     const {
   CHRE_ASSERT(index < mSize);
-  if (index >= mSize) {
-    index = mSize - 1;
-  }
-
   return data()[index];
 }
 
@@ -247,14 +237,12 @@ bool DynamicVector<ElementType>::copy_array(const ElementType *array,
 template<typename ElementType>
 void DynamicVector<ElementType>::erase(size_type index) {
   CHRE_ASSERT(index < mSize);
-  if (index < mSize) {
-    mSize--;
-    for (size_type i = index; i < mSize; i++) {
-      moveOrCopyAssign(mData[i], mData[i + 1]);
-    }
-
-    mData[mSize].~ElementType();
+  mSize--;
+  for (size_type i = index; i < mSize; i++) {
+    moveOrCopyAssign(mData[i], mData[i + 1]);
   }
+
+  mData[mSize].~ElementType();
 }
 
 template<typename ElementType>
@@ -274,7 +262,7 @@ typename DynamicVector<ElementType>::size_type
 template<typename ElementType>
 void DynamicVector<ElementType>::swap(size_type index0, size_type index1) {
   CHRE_ASSERT(index0 < mSize && index1 < mSize);
-  if (index0 < mSize && index1 < mSize && index0 != index1) {
+  if (index0 != index1) {
     typename std::aligned_storage<sizeof(ElementType),
         alignof(ElementType)>::type tempStorage;
     ElementType& temp = *reinterpret_cast<ElementType *>(&tempStorage);

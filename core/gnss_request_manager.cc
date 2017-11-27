@@ -86,12 +86,8 @@ void GnssRequestManager::handleLocationSessionStatusChange(bool enabled,
 }
 
 void GnssRequestManager::handleLocationEvent(chreGnssLocationEvent *event) {
-  bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
-      .postEvent(CHRE_EVENT_GNSS_LOCATION, event, freeLocationEventCallback,
-                 kSystemInstanceId, kBroadcastInstanceId);
-  if (!eventPosted) {
-    FATAL_ERROR("Failed to send GNSS location event");
-  }
+  EventLoopManagerSingleton::get()->getEventLoop()
+      .postEvent(CHRE_EVENT_GNSS_LOCATION, event, freeLocationEventCallback);
 }
 
 bool GnssRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,

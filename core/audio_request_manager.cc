@@ -212,13 +212,10 @@ void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
 void AudioRequestManager::postAudioDataEventFatal(
     struct chreAudioDataEvent *event, uint32_t instanceId) {
   // TODO: Ensure that audio data is delimited by audio change events.
-  bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
+  EventLoopManagerSingleton::get()->getEventLoop()
       .postEvent(CHRE_EVENT_AUDIO_DATA, event,
                  freeAudioDataEventCallback,
                  kSystemInstanceId, instanceId);
-  if (!eventPosted) {
-    FATAL_ERROR("Failed to send audio data event");
-  }
 }
 
 void AudioRequestManager::handleFreeAudioDataEvent(

@@ -828,11 +828,9 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
     event->sensorHandle = sensorHandle;
     memcpy(&event->status, &status, sizeof(event->status));
 
-    if (!EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-            CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
-            kSystemInstanceId, instanceId)) {
-      LOGE("Failed to post sampling status change event");
-    }
+    EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+        CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
+        kSystemInstanceId, instanceId);
   }
 }
 
