@@ -36,18 +36,6 @@ class HostSleepEventManager : public NonCopyable {
    * Invoked by the platform to notify CHRE that the host has become awake.
    */
   void handleHostAwake();
-
-  /**
-   * @return true if the host is awake, false otherwise.
-   */
-  bool hostIsAwake() {
-    return mHostIsAwake;
-  }
-
- private:
-  // TODO(P1-d395b8): Remove this bool and pass the API call to the platform.
-  //! Set to true if the host is awake, false if asleep.
-  bool mHostIsAwake = true;
 };
 
 }  // namespace chre

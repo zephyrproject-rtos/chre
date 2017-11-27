@@ -44,6 +44,9 @@ class PowerControlManagerBase {
   //! Client handle for the subscription to the power manager
   sns_pm_handle_t mClientHandle = nullptr;
 
+  //! Set to true if the host is awake, false if asleep.
+  bool mHostIsAwake = true;
+
   /**
    * Invoked by the SNS Power Manager when the AP has suspended or resumed.
    *

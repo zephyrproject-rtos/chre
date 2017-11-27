@@ -23,8 +23,6 @@
 namespace chre {
 
 void HostSleepEventManager::handleHostSleep() {
-  mHostIsAwake = false;
-
   bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
       .postEvent(CHRE_EVENT_HOST_ASLEEP, nullptr, nullptr);
   if (!eventPosted) {
@@ -33,8 +31,6 @@ void HostSleepEventManager::handleHostSleep() {
 }
 
 void HostSleepEventManager::handleHostAwake() {
-  mHostIsAwake = true;
-
   bool eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
       .postEvent(CHRE_EVENT_HOST_AWAKE, nullptr, nullptr);
   if (!eventPosted) {
