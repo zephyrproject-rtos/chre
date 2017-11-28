@@ -9,8 +9,6 @@
 # nanopb compiler. Note that this is global and applies to all protobuf
 # generated source.
 
-include $(CHRE_PREFIX)/build/defs.mk
-
 # Environment Checks ###########################################################
 
 ifneq ($(NANOPB_SRCS),)

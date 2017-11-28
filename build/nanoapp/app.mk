@@ -96,7 +96,11 @@ QCOM_HEXAGONV60_NANOHUB-UIMG_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_suppor
 # Makefile Includes ############################################################
 
 # Common includes
+include $(CHRE_PREFIX)/build/defs.mk
 include $(CHRE_PREFIX)/build/common.mk
+
+# CHRE API version.
+include $(CHRE_PREFIX)/chre_api/chre_api_version.mk
 
 # Supported variants includes
 include $(CHRE_PREFIX)/build/variant/google_arm64_android.mk
