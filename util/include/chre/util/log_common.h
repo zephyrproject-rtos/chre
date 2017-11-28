@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_LOG_COMMON_H_
 #define CHRE_UTIL_LOG_COMMON_H_
 
+#include "chre/util/toolchain.h"
+
 /**
  * @file
  * Includes common logging macros and functions that are shared between nanoapps
@@ -27,10 +29,17 @@
  * An inline stub function to direct log messages to when logging is disabled.
  * This avoids unused variable warnings and will result in no overhead.
  */
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((format(printf, 1, 2)))
-#endif
+CHRE_PRINTF_ATTR(1, 2)
 inline void chreLogNull(const char *fmt, ...) { (void) fmt; }
+
+//! Macro version of chreLogNull that applies toolchain-specific preamble and
+//! epilogue (e.g. to disable double promotion warnings)
+#define CHRE_LOG_NULL(fmt, ...) \
+    do { \
+      CHRE_LOG_PREAMBLE \
+      chreLogNull(fmt, ##__VA_ARGS__); \
+      CHRE_LOG_EPILOGUE \
+    } while (0)
 
 //! The logging level to specify that no logs are output.
 #define CHRE_LOG_LEVEL_MUTE 0

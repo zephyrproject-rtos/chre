@@ -212,6 +212,11 @@ bool sensorTypeIsOnChange(SensorType sensorType) {
           sensorType == SensorType::Proximity);
 }
 
+bool sensorTypeIsContinuous(SensorType sensorType) {
+  return (!sensorTypeIsOneShot(sensorType) &&
+          !sensorTypeIsOnChange(sensorType));
+}
+
 SensorRequest::SensorRequest()
     : SensorRequest(SensorMode::Off,
                     Nanoseconds(CHRE_SENSOR_INTERVAL_DEFAULT),

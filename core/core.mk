@@ -15,7 +15,6 @@ COMMON_SRCS += core/event_loop_manager.cc
 COMMON_SRCS += core/event_ref_queue.cc
 COMMON_SRCS += core/gnss_request_manager.cc
 COMMON_SRCS += core/host_comms_manager.cc
-COMMON_SRCS += core/host_sleep_event_manager.cc
 COMMON_SRCS += core/init.cc
 COMMON_SRCS += core/nanoapp.cc
 COMMON_SRCS += core/sensor.cc

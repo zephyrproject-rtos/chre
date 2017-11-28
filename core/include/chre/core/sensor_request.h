@@ -238,6 +238,14 @@ bool sensorTypeIsOneShot(SensorType sensorType);
 bool sensorTypeIsOnChange(SensorType sensorType);
 
 /**
+ * Indicates whether the sensor type is a continuous sensor.
+ *
+ * @param sensorType The sensor type of the sensor.
+ * @return true if the sensor is a continuous sensor.
+ */
+bool sensorTypeIsContinuous(SensorType sensorType);
+
+/**
  * Models a request for sensor data. This class implements the API set forth by
  * the RequestMultiplexer container.
  */

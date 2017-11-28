@@ -19,6 +19,7 @@ COMMON_CFLAGS += -Wno-unused-parameter
 
 # Additional warnings. Even more! :]
 COMMON_CFLAGS += -Wshadow
+COMMON_CFLAGS += -Wdouble-promotion
 
 # Disable exceptions and RTTI.
 COMMON_CXX_CFLAGS += -fno-exceptions

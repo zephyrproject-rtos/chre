@@ -127,7 +127,9 @@ class EventLoop : public NonCopyable {
 
   /**
    * Posts an event to a nanoapp that is currently running (or all nanoapps if
-   * the target instance ID is kBroadcastInstanceId).
+   * the target instance ID is kBroadcastInstanceId). If the senderInstanceId is
+   * kSystemInstanceId and the event fails to post, this is considered a fatal
+   * error.
    *
    * This function is safe to call from any thread.
    *
@@ -239,6 +241,10 @@ class EventLoop : public NonCopyable {
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = 96;
+
+  //! The minimum number of events to reserve in the event pool for system
+  //! events.
+  static constexpr size_t kMinReservedSystemEventCount = 16;
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.

@@ -17,31 +17,22 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 #define CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 
-extern "C" {
-
-#include "pb_decode.h"
-#include "pb_encode.h"
 #include "qmi_client.h"
-#include "qurt.h"
-#include "sns_client.pb.h"
-#include "sns_client_api_v01.h"
-#include "sns_std.pb.h"
-#include "sns_std_sensor.pb.h"
 #include "sns_suid.pb.h"
 
-}  // extern "C"
-
+#include "chre/core/sensor_request.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 
 //! The type of SeeHelper indication callback.
-typedef void (SeeIndCallback)(const sns_std_suid& suid, uint32_t msgId,
-                              void *cbData);
+typedef void (SeeIndCallback)(SensorType sensorType,
+                              UniquePtr<uint8_t>&& eventData);
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
 //! external dependencies blocking SEE initialization.
@@ -62,6 +53,16 @@ struct SeeAttributes {
   char name[kSeeAttrStrValLen];
   char type[kSeeAttrStrValLen];
   float maxSampleRate;
+  uint8_t streamType;
+};
+
+//! A struct to facilitate making sensor request
+struct SeeSensorRequest {
+  bool enable;
+  bool continuous;
+  sns_std_suid suid;
+  float samplingRateHz;
+  uint32_t batchPeriodUs;
 };
 
 // TODO(P2-aa0089): Replace QMI with an interface that doesn't introduce big
@@ -75,6 +76,12 @@ struct SeeAttributes {
  */
 class SeeHelper : public NonCopyable {
  public:
+  // ! A struct to facilitate mapping an SUID to a sensor type.
+  struct SuidSensorType {
+    sns_std_suid suid;
+    SensorType sensorType;
+  };
+
   /**
    * A synchronous call to discover SUID(s) that supports the specified data
    * type. This API will clear the provided dynamic vector before populating it.
@@ -99,39 +106,61 @@ class SeeHelper : public NonCopyable {
   bool getAttributesSync(const sns_std_suid& suid, SeeAttributes *attr);
 
   /**
-   * Wrapper to call qmi_client_release(). After this is called, the object is
-   * deinitialized until initService is called again.
-   */
-  bool release();
-
-  /**
-   * Wrapper to call qmi_client_init_instance().
    * Initializes and waits for the sensor client QMI service to become
    * available. This function must be called first to initialize the object.
    *
    * @param indCb A pointer to the indication callback. This callback will be
-                  invoked to handle pb-decoded message for all async requests.
+   *              invoked to handle pb-decoded message for all async requests.
    * @param timeout The wait timeout in microseconds.
    *
    * @return true if the qmi client was successfully initialized.
    */
-  bool initService(SeeIndCallback *indCb,
-                   Microseconds timeout = kDefaultSeeWaitTimeout);
+  bool init(SeeIndCallback *indCb,
+            Microseconds timeout = kDefaultSeeWaitTimeout);
+
+  /**
+   * Makes a sensor request to SEE.
+   *
+   * @param request The sensor request to make.
+   *
+   * @return true if the QMI request has been successfully made.
+   */
+  bool makeRequest(const SeeSensorRequest& request);
+
+  /**
+   * Wrapper to call qmi_client_release() and clear the registered SUIDs. After
+   * this is called, the object is deinitialized until init is called again.
+   */
+  bool deinit();
+
+  /**
+   * Register an SUID as the UID of the specified SensorType. Only registered
+   * SUID will call the indication callback provided in init() with populated
+   * CHRE sensor events.
+   *
+   * @param suid The SUID of the sensor.
+   * @param sensorType The sensor type the SUID is mapped to.
+   *
+   * @return true if the SUID/SensorType mapping was successfully registered.
+   */
+  bool registerSuid(const sns_std_suid& suid, SensorType sensorType);
 
  private:
   /**
    * Wrapper to send a QMI request and wait for the indication if it's a
    * synchronous one.
    *
-   * Only one request can be pending at a time per instance of SeeHelper and per
-   * SUID.
+   * Only one request can be pending at a time per instance of SeeHelper.
    *
    * @param suid The SUID of the sensor the request is sent to
    * @param syncData The data struct or container to receive a sync call's data
-   * @param dataType The data type we are waiting for.
+   * @param syncDataType The data type we are waiting for.
    * @param msgId Message ID of the request to send
    * @param payload A non-null pointer to the pb-encoded message
    * @param payloadLen The length of payload
+   * @param batchValid Whether batchPeriodUs is valid and applicable to this
+   *                   request
+   * @param batchPeriodUs The batch period in microseconds
    * @param waitForIndication Whether to wait for the indication of the
    *                          specified SUID or not.
    * @param timeoutRresp How long to wait for the response before abandoning it
@@ -141,8 +170,9 @@ class SeeHelper : public NonCopyable {
    *         waiting for has been successfully received
    */
   bool sendReq(
-      const sns_std_suid& suid, void *syncData, const char *dataType,
+      const sns_std_suid& suid, void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
+      bool batchValid, uint32_t batchPeriodUs,
       bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout);
@@ -169,27 +199,29 @@ class SeeHelper : public NonCopyable {
                        void *ind_buf, unsigned int ind_buf_len,
                        void *ind_cb_data);
 
-
   //! Data struct to store sync APIs data.
   void *mSyncData = nullptr;
 
-  //! Indication callback.
+  //! Indication callback for sensor data events.
   SeeIndCallback *mIndCb = nullptr;
 
   ConditionVariable mCond;
   Mutex mMutex;
 
-  //! true if we are waiting on an async indication.
+  //! true if we are waiting on an indication for a sync call.
   bool mWaiting = false;
 
-  //! The SUID whose indication this SeeHelper is waiting for.
-  sns_std_suid mWaitingSuid;
+  //! The SUID whose indication this SeeHelper is waiting for in a sync call.
+  sns_std_suid mSyncSuid = sns_suid_sensor_init_zero;
 
   //! The data type whose indication this SeeHelper is waiting for in
   //! findSuidSync.
-  const char *mWaitingDataType;
+  const char *mSyncDataType = nullptr;
 
   qmi_client_type mQmiHandle = nullptr;
+
+  //! The list of SUIDs registered and their corresponding sensor types.
+  DynamicVector<SuidSensorType> mSuids;
 };
 
 }  // namespace chre

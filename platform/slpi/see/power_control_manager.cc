@@ -47,4 +47,9 @@ void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
   }
 }
 
+bool PowerControlManager::hostIsAwake() {
+  // TODO(P1-fa1285): Implement this.
+  return true;
+}
+
 } // namespace chre

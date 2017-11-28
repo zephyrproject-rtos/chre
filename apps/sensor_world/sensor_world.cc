@@ -203,15 +203,18 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       y /= header.readingCount;
       z /= header.readingCount;
 
-      LOGI("%s, %d samples: %f %f %f",
-           getSensorNameForEventType(eventType), header.readingCount, x, y, z);
+      LOGI("%s, %d samples: %f %f %f, t=%" PRIu64 " ms",
+           getSensorNameForEventType(eventType), header.readingCount, x, y, z,
+           header.baseTimestamp / kOneMillisecondInNanoseconds);
 
       if (eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA) {
         LOGI("UncalGyro time: first %" PRIu64 " last %" PRIu64 " chre %" PRIu64
              " delta [%" PRId64 ", %" PRId64 "]ms",
              header.baseTimestamp, sampleTime, chreTime,
-             static_cast<int64_t>(header.baseTimestamp - chreTime) / 1000000,
-             static_cast<int64_t>(sampleTime - chreTime) / 1000000);
+             static_cast<int64_t>(header.baseTimestamp - chreTime)
+             / kOneMillisecondInNanoseconds,
+             static_cast<int64_t>(sampleTime - chreTime)
+             / kOneMillisecondInNanoseconds);
       }
       break;
     }
