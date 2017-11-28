@@ -407,9 +407,16 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
         if (isStreamTypeCorrect(sensorType, attr.streamType)) {
           addSensor(sensorType, suid, attr, sensors);
 
+          // Check if this sensor has a runtime-calibrated version.
+          SensorType calibratedType = getSensorTypeFromDataType(
+              dataType, true /* calibrated */);
+          if (calibratedType != sensorType) {
+            addSensor(calibratedType, suid, attr, sensors);
+          }
+
           // Check if this sensor has a secondary temperature sensor.
-          SensorType tempSensorType = getTempSensorType(sensorType);
-          if (tempSensorType != SensorType::Unknown) {
+          SensorType temperatureType = getTempSensorType(sensorType);
+          if (temperatureType != SensorType::Unknown) {
             for (const auto& tempSensor : tempSensors) {
               sns_std_suid tempSuid = tempSensor.suid;
               SeeAttributes tempAttr = tempSensor.attr;
@@ -417,7 +424,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
               if (vendorAndNameMatch(attr, tempAttr)) {
                 LOGD("Found temperature sensor SUID 0x%" PRIx64 " %" PRIx64,
                      tempSuid.suid_high, tempSuid.suid_low);
-                addSensor(tempSensorType, tempSuid, tempAttr, sensors);
+                addSensor(temperatureType, tempSuid, tempAttr, sensors);
                 break;
               }
             }
