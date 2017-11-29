@@ -232,8 +232,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       }
       v /= header.readingCount;
 
-      LOGI("%s, %d samples: %f",
-           getSensorNameForEventType(eventType), header.readingCount, v);
+      LOGI("%s, %d samples: %f, t=%" PRIu64 " ms",
+           getSensorNameForEventType(eventType), header.readingCount, v,
+           header.baseTimestamp / kOneMillisecondInNanoseconds);
       break;
     }
 

@@ -21,6 +21,7 @@
 #include "sns_cal.pb.h"
 #include "sns_client.pb.h"
 #include "sns_client_api_v01.h"
+#include "sns_proximity.pb.h"
 #include "sns_std.pb.h"
 #include "sns_std_sensor.pb.h"
 #include "stringl.h"
@@ -557,7 +558,7 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
       strlcpy(attrData->type, attrArg.strVal, sizeof(attrData->type));
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_RATES) {
       attrData->maxSampleRate = attrArg.fltMax;
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_STREAM_SYNC) {
+    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_STREAM_TYPE) {
       attrData->streamType = attrArg.int64;
     }
   }
@@ -714,7 +715,11 @@ bool decodeFloatData(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStdSensorPhysicalConfigEvent(
     pb_istream_t *stream, const pb_field_t *field, void **arg) {
-  sns_std_sensor_physical_config_event event = {};
+  SeeBufArg data = {};
+  sns_std_sensor_physical_config_event event = {
+    .operation_mode.funcs.decode = decodeStringField,
+    .operation_mode.arg = &data,
+  };
 
   bool success = pb_decode(stream, sns_std_sensor_physical_config_event_fields,
                            &event);
@@ -722,8 +727,41 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
     LOGE("Error decoding sns_std_sensor_physical_config_event: %s",
          PB_GET_ERROR(stream));
   } else {
-    // TODO: handle the sample rate update.
-    LOGD("Sample rate: %f", event.sample_rate);
+    // TODO: handle sensor status update.
+    LOGD("SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_PHYSICAL_CONFIG_EVENT:");
+    if (event.has_sample_rate) {
+      LOGD(" sample rate: %f", event.sample_rate);
+    }
+    if (event.has_water_mark) {
+      LOGD(" water_mark: %" PRIu32, event.water_mark);
+    }
+    if (event.range_count > 0) {
+      LOGD(" range: [%f, %f]", event.range[0], event.range[1]);
+    }
+    if (event.has_resolution) {
+      LOGD(" resolution: %f", event.resolution);
+    }
+    if (data.bufLen > 0) {
+      char opMode[data.bufLen + 1];
+      memcpy(opMode, data.buf, data.bufLen);
+      opMode[data.bufLen] = '\0';
+      LOGD(" operation_mode: %s", opMode);
+    }
+    if (event.has_active_current) {
+      LOGD(" active_current: %" PRIu32 " uA", event.active_current);
+    }
+    if (event.has_stream_is_synchronous) {
+      LOGD(" stream_is_synchronous: %d", event.stream_is_synchronous);
+    }
+    if (event.has_dri_enabled) {
+      LOGD(" dri_enabled: %d", event.dri_enabled);
+    }
+    if (event.has_DAE_watermark) {
+      LOGD(" DAE_watermark: %" PRIu32, event.DAE_watermark);
+    }
+    if (event.has_sync_ts_anchor) {
+      LOGD(" sync_ts_anchor: %" PRIu64, event.sync_ts_anchor);
+    }
   }
   return success;
 }
@@ -771,8 +809,6 @@ bool decodeSnsStdSensorProtoEvent(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
                        void **arg) {
-  bool success = false;
-
   SeeFloatArg offset = {};
   SeeFloatArg scale = {};
   SeeFloatArg matrix = {};
@@ -785,7 +821,7 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     .comp_matrix.arg = &matrix,
   };
 
-  success = pb_decode(stream, sns_cal_event_fields, &event);
+  bool success = pb_decode(stream, sns_cal_event_fields, &event);
   if (!success) {
     LOGE("Error decoding sns_cal_event: %s", PB_GET_ERROR(stream));
   } else {
@@ -821,6 +857,40 @@ bool decodeSnsCalProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
+bool decodeSnsProximityEvent(pb_istream_t *stream, const pb_field_t *field,
+                             void **arg) {
+  sns_proximity_event event = {};
+
+  bool success = pb_decode(stream, sns_proximity_event_fields, &event);
+  if (!success) {
+    LOGE("Error decoding sns_proximity_event: %s", PB_GET_ERROR(stream));
+  } else {
+    float value = static_cast<float>(event.proximity_event_type);
+    auto *info = static_cast<SeeInfoArg *>(*arg);
+    populateEventSample(info->data, &value);
+  }
+  return success;
+}
+
+/**
+ * Decode messages defined in sns_proximity.proto
+ */
+bool decodeSnsProximityProtoEvent(pb_istream_t *stream, const pb_field_t *field,
+                                  void **arg) {
+  bool success = false;
+
+  auto *info = static_cast<SeeInfoArg *>(*arg);
+  switch (info->msgId) {
+    case SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT:
+      success = decodeSnsProximityEvent(stream, field, arg);
+      break;
+
+    default:
+      LOGW("Unhandled sns_proximity.proto msg ID %" PRIu32, info->msgId);
+  }
+  return success;
+}
+
 bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
   bool success = true;
 
@@ -850,6 +920,10 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
     case SNS_CAL_MSGID_SNS_CAL_EVENT:
       payload->funcs.decode = decodeSnsCalProtoEvent;
+      break;
+
+    case SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT:
+      payload->funcs.decode = decodeSnsProximityProtoEvent;
       break;
 
     default:
@@ -908,7 +982,9 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
   }
 
   // Increment sample count only after sensor event decoding.
-  if (success && info->msgId == SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT) {
+  if (success
+      && (info->msgId == SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT
+          || info->msgId == SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT)) {
     info->data->sampleIndex++;
   }
   return success;
@@ -1175,8 +1251,8 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
       success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
     } else {
       msgId = SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG;
-      // TODO: Implement non-continuous sensors.
-      success = false;
+      // No sample rate needed to configure on-change or one-shot sensors.
+      success = true;
     }
 
     if (success) {
