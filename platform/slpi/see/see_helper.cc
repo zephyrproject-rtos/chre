@@ -36,6 +36,10 @@
 #include "chre/platform/slpi/system_time.h"
 #include "chre/util/lock_guard.h"
 
+#ifdef CHREX_SENSOR_SUPPORT
+#include "chre/extensions/platform/vendor_sensor_types.h"
+#endif  // CHREX_SENSOR_SUPPORT
+
 namespace chre {
 namespace {
 
@@ -673,6 +677,17 @@ void populateEventSample(SeeDataArg *data, const float *val) {
         break;
       }
 
+#ifdef CHREX_SENSOR_SUPPORT
+      case SensorSampleType::Vendor0: {
+        auto *event = reinterpret_cast<chrexSensorVendor0Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+#endif  // CHREX_SENSOR_SUPPORT
+
       default:
         LOGE("Invalid sample type %" PRIu8, static_cast<uint8_t>(sampleType));
     }
@@ -1032,6 +1047,12 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
       sampleSize = sizeof(
           chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
       break;
+
+#ifdef CHREX_SENSOR_SUPPORT
+    case SensorSampleType::Vendor0:
+      sampleSize = sizeof(chrexSensorVendor0SampleData);
+      break;
+#endif  // CHREX_SENSOR_SUPPORT
 
     default:
       LOGW("Unhandled SensorSampleType %" PRIu8,

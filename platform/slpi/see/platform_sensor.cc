@@ -31,6 +31,10 @@
 #include "chre/platform/slpi/see/see_helper.h"
 #include "chre/util/singleton.h"
 
+#ifdef CHREX_SENSOR_SUPPORT
+#include "chre/extensions/platform/slpi/see/vendor_data_types.h"
+#endif  // CHREX_SENSOR_SUPPORT
+
 namespace chre {
 namespace {
 
@@ -87,8 +91,12 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     sensorType = SensorType::Light;
   } else if (strcmp(dataType, "proximity") == 0) {
     sensorType = SensorType::Proximity;
+#ifdef CHREX_SENSOR_SUPPORT
+  } else if (strcmp(dataType, kVendorDataTypes[0]) == 0) {
+    sensorType = SensorType::VendorType0;
+#endif  // CHREX_SENSOR_SUPPORT
   } else {
-    sensorType= SensorType::Unknown;
+    sensorType = SensorType::Unknown;
   }
   return sensorType;
 }
@@ -369,8 +377,14 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
       FATAL_ERROR("Failed to get temperature sensor UID and attributes");
   }
 
-  for (size_t i = 0; i < ARRAY_SIZE(kSeeDataTypes); i++) {
-    const char *dataType = kSeeDataTypes[i];
+#ifndef CHREX_SENSOR_SUPPORT
+  const char *kVendorDataTypes[] = {};
+#endif  // CHREX_SENSOR_SUPPORT
+  constexpr size_t kNumSeeTypes = ARRAY_SIZE(kSeeDataTypes);
+  constexpr size_t kNumVendorTypes = ARRAY_SIZE(kVendorDataTypes);
+  for (size_t i = 0; i < kNumSeeTypes + kNumVendorTypes; i++) {
+    const char *dataType = (i < kNumSeeTypes)
+        ? kSeeDataTypes[i] : kVendorDataTypes[i - kNumSeeTypes];
 
     SensorType sensorType = getSensorTypeFromDataType(
         dataType, false /* calibrated */);
