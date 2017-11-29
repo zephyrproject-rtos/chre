@@ -66,6 +66,8 @@ enum class SensorType {
   UncalibratedGyroscope,
   UncalibratedGeomagneticField,
 
+  VendorType0,
+
   // Note to future developers: don't forget to update the implementation of
   // 1) getSensorTypeName,
   // 2) getSensorTypeFromUnsignedInt,
@@ -89,6 +91,7 @@ enum class SensorSampleType {
   Float,
   Occurrence,
   ThreeAxis,
+  Vendor0,
   Unknown,
 };
 

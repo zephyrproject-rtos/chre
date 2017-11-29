@@ -69,6 +69,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Uncal Gyroscope";
     case SensorType::UncalibratedGeomagneticField:
       return "Uncal Geomagnetic Field";
+    case SensorType::VendorType0:
+      return "Vendor Type 0";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -122,6 +124,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::UncalibratedGyroscope;
     case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
       return SensorType::UncalibratedGeomagneticField;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 0):
+      return SensorType::VendorType0;
     default:
       return SensorType::Unknown;
   }
@@ -157,6 +161,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
     case SensorType::UncalibratedGeomagneticField:
       return CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
+    case SensorType::VendorType0:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 0);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -201,6 +207,8 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Occurrence;
     case SensorType::Proximity:
       return SensorSampleType::Byte;
+    case SensorType::VendorType0:
+      return SensorSampleType::Vendor0;
     default:
       CHRE_ASSERT(false);
       return SensorSampleType::Unknown;
