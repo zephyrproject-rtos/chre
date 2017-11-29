@@ -61,6 +61,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Accelerometer Temp";
     case SensorType::GyroscopeTemperature:
       return "Gyroscope Temp";
+    case SensorType::GeomagneticFieldTemperature:
+      return "Geomagnetic Field Temp";
     case SensorType::UncalibratedAccelerometer:
       return "Uncal Accelerometer";
     case SensorType::UncalibratedGyroscope:
@@ -112,6 +114,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::AccelerometerTemperature;
     case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
       return SensorType::GyroscopeTemperature;
+    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE:
+      return SensorType::GeomagneticFieldTemperature;
     case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
       return SensorType::UncalibratedAccelerometer;
     case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
@@ -145,6 +149,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE;
     case SensorType::GyroscopeTemperature:
       return CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE;
+    case SensorType::GeomagneticFieldTemperature:
+      return CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE;
     case SensorType::UncalibratedAccelerometer:
       return CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER;
     case SensorType::UncalibratedGyroscope:
@@ -172,6 +178,7 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
     case SensorType::Light:
     case SensorType::AccelerometerTemperature:
     case SensorType::GyroscopeTemperature:
+    case SensorType::GeomagneticFieldTemperature:
       return SensorSampleType::Float;
     case SensorType::InstantMotion:
     case SensorType::StationaryDetect:

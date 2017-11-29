@@ -61,6 +61,7 @@ enum class SensorType {
   Proximity,
   AccelerometerTemperature,
   GyroscopeTemperature,
+  GeomagneticFieldTemperature,
   UncalibratedAccelerometer,
   UncalibratedGyroscope,
   UncalibratedGeomagneticField,
