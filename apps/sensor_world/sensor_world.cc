@@ -212,9 +212,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
              " delta [%" PRId64 ", %" PRId64 "]ms",
              header.baseTimestamp, sampleTime, chreTime,
              static_cast<int64_t>(header.baseTimestamp - chreTime)
-             / kOneMillisecondInNanoseconds,
+             / static_cast<int64_t>(kOneMillisecondInNanoseconds),
              static_cast<int64_t>(sampleTime - chreTime)
-             / kOneMillisecondInNanoseconds);
+             / static_cast<int64_t>(kOneMillisecondInNanoseconds));
       }
       break;
     }
