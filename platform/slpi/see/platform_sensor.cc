@@ -46,6 +46,8 @@ const char *kSeeDataTypes[] = {
   "gyro",
   "mag",
   "pressure",
+  "ambient_light",
+  "proximity",
 };
 
 // TODO: Complete the list.
@@ -75,12 +77,17 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     }
   } else if (strcmp(dataType, "pressure") == 0) {
     sensorType = SensorType::Pressure;
+  } else if (strcmp(dataType, "ambient_light") == 0) {
+    sensorType = SensorType::Light;
+  } else if (strcmp(dataType, "proximity") == 0) {
+    sensorType = SensorType::Proximity;
   } else {
     sensorType= SensorType::Unknown;
   }
   return sensorType;
 }
 
+// TODO: refactor this out to a common helper function shared with SMGR.
 /**
  * A helper function that updates the last event of a sensor in the main thread.
  * Platform should call this function only for an on-change sensor.
@@ -89,7 +96,49 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
  * @param eventData A non-null pointer to the sensor's CHRE event data.
  */
 void updateLastEvent(SensorType sensorType, const void *eventData) {
-  // TODO: Implement this.
+  CHRE_ASSERT(eventData);
+
+  auto *header = static_cast<const chreSensorDataHeader *>(eventData);
+  if (header->readingCount != 1) {
+    // TODO: better error handling when there are more than one samples.
+    LOGE("%" PRIu16 " samples in an event for on-change sensor %" PRIu8,
+         header->readingCount, static_cast<uint8_t>(sensorType));
+  } else {
+    struct CallbackData {
+      SensorType sensorType;
+      const ChreSensorData *event;
+    };
+    auto *callbackData = memoryAlloc<CallbackData>();
+    if (callbackData == nullptr) {
+      LOGE("Failed to allocate deferred callback memory");
+    } else {
+      callbackData->sensorType = sensorType;
+      callbackData->event = static_cast<const ChreSensorData *>(eventData);
+
+      auto callback = [](uint16_t /* type */, void *data) {
+        auto *cbData = static_cast<CallbackData *>(data);
+
+        Sensor *sensor = EventLoopManagerSingleton::get()
+            ->getSensorRequestManager().getSensor(cbData->sensorType);
+
+        // Mark last event as valid only if the sensor is enabled. Event data
+        // may arrive after sensor is disabled.
+        if (sensor != nullptr
+            && sensor->getRequest().getMode() != SensorMode::Off) {
+          sensor->setLastEvent(cbData->event);
+        }
+        memoryFree(cbData);
+      };
+
+      // Schedule a deferred callback.
+      if (!EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorLastEventUpdate, callbackData, callback)) {
+        LOGE("Failed to schedule a deferred callback for sensorType %" PRIu8,
+             static_cast<uint8_t>(sensorType));
+        memoryFree(callbackData);
+      }
+    }  // if (callbackData == nullptr)
+  }
 }
 
 void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
@@ -187,10 +236,15 @@ void addSensor(const sns_std_suid& suid, SensorType sensorType, bool calibrated,
   strlcat(sensorName, " ", sizeof(sensorName));
   strlcat(sensorName, attr.name, sizeof(sensorName));
 
+  // TODO: remove when b/69719653 is resolved.
+  // Populate on-change sensor's max sample rate to 25Hz.
+  float maxSampleRate = sensorTypeIsOnChange(sensorType)
+      ? 25.0f : attr.maxSampleRate;
+
   // Override one-shot sensor's minInterval to default
   uint64_t minInterval = sensorTypeIsOneShot(sensorType) ?
       CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
+          ceilf(Seconds(1).toRawNanoseconds() / maxSampleRate));
 
   // Allocates memory for on-change sensor's last event.
   size_t lastEventSize;
@@ -223,7 +277,7 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
       || (sensorTypeIsOneShot(sensorType)
           && streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)) {
     success = false;
-    LOGE("Inconsistent sensor type %" PRIu8 " and stream type %" PRIu8,
+    LOGW("Inconsistent sensor type %" PRIu8 " and stream type %" PRIu8,
          static_cast<uint8_t>(sensorType), streamType);
   }
   return success;
@@ -233,8 +287,8 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
 
 PlatformSensor::~PlatformSensor() {
   if (mLastEvent != nullptr) {
-    LOGD("Releasing lastEvent: 0x%p, size %zu",
-         mLastEvent, mLastEventSize);
+    LOGD("Releasing lastEvent: sensor %s, size %zu",
+         getSensorTypeName(getSensorType()), mLastEventSize);
     memoryFree(mLastEvent);
   }
 }
@@ -262,27 +316,26 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
       LOGW("No SUID found for '%s'", dataType);
     } else {
       LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
-      for (size_t j = 0; j < suids.size(); j++) {
-        LOGD("  0x%" PRIx64 " %" PRIx64, suids[j].suid_high, suids[j].suid_low);
-      }
 
-      // If there are more than one sensors that support the data type,
-      // choose the first one for CHRE.
-      SeeAttributes attr;
-      if (!SeeHelperSingleton::get()->getAttributesSync(suids[0], &attr)) {
-        LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
-             suids[0].suid_high, suids[0].suid_low);
-      } else {
-        LOGI("Found %s: %s %s, Max ODR %f Hz",
-             attr.type, attr.vendor, attr.name, attr.maxSampleRate);
+      for (const auto& suid : suids) {
+        LOGD("0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
 
-        SensorType sensorType = getSensorTypeFromDataType(
-            dataType, false /* calibrated */);
-        if (sensorType == SensorType::Unknown) {
-          LOGE("Unknown sensor type found for '%s'", dataType);
-        } else if (isStreamTypeCorrect(sensorType, attr.streamType)) {
-          addSensor(suids[0], sensorType, false /* calibrated */, attr,
-                    sensors);
+        // If there are more than one sensors that support the data type,
+        // choose the first one that has the expected stream type.
+        SeeAttributes attr;
+        if (!SeeHelperSingleton::get()->getAttributesSync(suid, &attr)) {
+          LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
+               suid.suid_high, suid.suid_low);
+        } else {
+          LOGI("%s %s, max ODR %f Hz, stream type %" PRIu8,
+               attr.vendor, attr.name, attr.maxSampleRate, attr.streamType);
+
+          SensorType sensorType = getSensorTypeFromDataType(
+              dataType, false /* calibrated */);
+          if (isStreamTypeCorrect(sensorType, attr.streamType)) {
+            addSensor(suid, sensorType, false /* calibrated */, attr, sensors);
+            break;
+          }
         }
       }
     }
@@ -298,9 +351,11 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     .suid = mSuid,
     .samplingRateHz = static_cast<float>(
         kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
-    .batchPeriodUs = static_cast<uint32_t>(
-        request.getLatency().toRawNanoseconds()
-        / kOneMicrosecondInNanoseconds),
+    // Override batch period to 0 for non-continuous sensors to ensure one
+    // sample per batch.
+    .batchPeriodUs = !sensorTypeIsContinuous(mSensorType) ? 0
+        : static_cast<uint32_t>(request.getLatency().toRawNanoseconds()
+                                / kOneMicrosecondInNanoseconds),
   };
   return SeeHelperSingleton::get()->makeRequest(req);
 }
