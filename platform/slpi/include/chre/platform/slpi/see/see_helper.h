@@ -58,9 +58,8 @@ struct SeeAttributes {
 
 //! A struct to facilitate making sensor request
 struct SeeSensorRequest {
+  SensorType sensorType;
   bool enable;
-  bool continuous;
-  sns_std_suid suid;
   float samplingRateHz;
   uint32_t batchPeriodUs;
 };
@@ -76,10 +75,11 @@ struct SeeSensorRequest {
  */
 class SeeHelper : public NonCopyable {
  public:
-  // ! A struct to facilitate mapping an SUID to a sensor type.
-  struct SuidSensorType {
+  //! A struct to facilitate mapping between 'SUID + qmiHandle' and SensorType.
+  struct SensorInfo {
     sns_std_suid suid;
     SensorType sensorType;
+    qmi_client_type qmiHandle;
   };
 
   /**
@@ -134,16 +134,24 @@ class SeeHelper : public NonCopyable {
   bool deinit();
 
   /**
-   * Register an SUID as the UID of the specified SensorType. Only registered
-   * SUID will call the indication callback provided in init() with populated
-   * CHRE sensor events.
+   * Register a SensorType with the SUID of the SEE sensor/driver.
    *
+   * Only registered SUIDs will call the indication callback provided in init()
+   * with populated CHRE sensor events. Each SUID/SensorType pair can only be
+   * registered once. It's illegal to register SensorType::Unknown.
+   *
+   * If an SUID is registered with a second SensorType, another QMI client may
+   * be created to disambiguate the SUID representation.
+   *
+   * @param sensorType The SensorType to register.
    * @param suid The SUID of the sensor.
-   * @param sensorType The sensor type the SUID is mapped to.
+   * @param prevRegistered A non-null pointer to a boolean that indicates
+   *        whether the SUID/SensorType pair has been previously registered.
    *
-   * @return true if the SUID/SensorType mapping was successfully registered.
+   * @return true if the SUID/SensorType pair was successfully registered.
    */
-  bool registerSuid(const sns_std_suid& suid, SensorType sensorType);
+  bool registerSensor(SensorType sensorType, const sns_std_suid& suid,
+                      bool *prevRegistered);
 
  private:
   /**
@@ -152,6 +160,7 @@ class SeeHelper : public NonCopyable {
    *
    * Only one request can be pending at a time per instance of SeeHelper.
    *
+   * @param qmiHandle The QMI Handle to make QMI requests with.
    * @param suid The SUID of the sensor the request is sent to
    * @param syncData The data struct or container to receive a sync call's data
    * @param syncDataType The data type we are waiting for.
@@ -170,7 +179,8 @@ class SeeHelper : public NonCopyable {
    *         waiting for has been successfully received
    */
   bool sendReq(
-      const sns_std_suid& suid, void *syncData, const char *syncDataType,
+      const qmi_client_type& qmiHandle, const sns_std_suid& suid,
+      void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
       bool batchValid, uint32_t batchPeriodUs,
       bool waitForIndication,
@@ -180,7 +190,8 @@ class SeeHelper : public NonCopyable {
   /**
    * Handles the payload of a sns_client_report_ind_msg_v01 message.
    */
-  void handleSnsClientEventMsg(const void *payload, size_t payloadLen);
+  void handleSnsClientEventMsg(
+      qmi_client_type clientHandle, const void *payload, size_t payloadLen);
 
   /**
    * Processes a QMI indication callback
@@ -198,6 +209,14 @@ class SeeHelper : public NonCopyable {
   static void qmiIndCb(qmi_client_type client_handle, unsigned int msg_id,
                        void *ind_buf, unsigned int ind_buf_len,
                        void *ind_cb_data);
+
+  /**
+   * A wrapper to initialize a QMI client.
+   *
+   * @ see qmi_client_init_instance
+   */
+  bool waitForService(qmi_client_type *qmiHandle,
+                      Microseconds timeout = kDefaultSeeWaitTimeout);
 
   //! Data struct to store sync APIs data.
   void *mSyncData = nullptr;
@@ -218,10 +237,12 @@ class SeeHelper : public NonCopyable {
   //! findSuidSync.
   const char *mSyncDataType = nullptr;
 
-  qmi_client_type mQmiHandle = nullptr;
+  //! The list of QMI handles initiated by SeeHelper.
+  DynamicVector<qmi_client_type> mQmiHandles;
 
-  //! The list of SUIDs registered and their corresponding sensor types.
-  DynamicVector<SuidSensorType> mSuids;
+  //! The list of SensorTypes registered and their corresponding SUID and
+  //! QMI handle.
+  DynamicVector<SensorInfo> mSensorInfos;
 };
 
 }  // namespace chre

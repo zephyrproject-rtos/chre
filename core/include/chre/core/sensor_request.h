@@ -170,6 +170,15 @@ constexpr uint32_t getSensorHandleFromSensorType(SensorType sensorType);
 constexpr SensorType getSensorTypeFromSensorHandle(uint32_t handle);
 
 /**
+ * Obtains the temperature sensor type of the specified sensor type.
+ *
+ * @param sensorType The sensor type to obtain its temperature sensor type for.
+ * @return The temperature sensor type or SensorType::Unknown if not supported
+ *         by CHRE.
+ */
+SensorType getTempSensorType(SensorType sensorType);
+
+/**
  * Maps a sensorType to its SensorSampleType.
  *
  * @param sensorType The type of the sensor to obtain its SensorSampleType for.

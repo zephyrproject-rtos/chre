@@ -17,12 +17,6 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
 #define CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
 
-extern "C" {
-
-#include "sns_std_type.pb.h"  // for sns_std_suid
-
-}  // extern "C"
-
 #include "chre/core/sensor_request.h"
 
 namespace chre {
@@ -38,9 +32,9 @@ class PlatformSensorBase {
   /**
    * Initializes the members of PlatformSensorBase.
    */
-  void initBase(const sns_std_suid& suid, SensorType sensorType,
-                bool calibrated, uint64_t mMinInterval, const char *sensorName,
-                ChreSensorData *lastEvent, size_t lastEventSize);
+  void initBase(
+      SensorType sensorType, uint64_t mMinInterval, const char *sensorName,
+      ChreSensorData *lastEvent, size_t lastEventSize);
 
   /**
    * Copies the supplied event to the sensor's last event and marks last event
@@ -51,14 +45,8 @@ class PlatformSensorBase {
   void setLastEvent(const ChreSensorData *event);
 
  protected:
-  //! The SUID of this sensor
-  sns_std_suid mSuid;
-
   //! The sensor type of this sensor.
   SensorType mSensorType;
-
-  //! Whether the sensor is runtime-calibrated if applicable.
-  bool mCalibrated;
 
   //! The minimum interval of this sensor.
   uint64_t mMinInterval;
