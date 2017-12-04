@@ -30,9 +30,26 @@
 
 namespace chre {
 
-//! The type of SeeHelper indication callback.
-typedef void (SeeIndCallback)(SensorType sensorType,
-                              UniquePtr<uint8_t>&& eventData);
+//! A callback interface for receiving SeeHelper data events.
+class SeeHelperCallbackInterface {
+ public:
+  struct SamplingStatusData {
+    SensorType sensorType;
+    struct chreSensorSamplingStatus status;
+  };
+
+  virtual ~SeeHelperCallbackInterface() {}
+
+  //! Invoked by the SEE thread to update sampling status.
+  virtual void onSamplingStatusUpdate(
+      UniquePtr<SamplingStatusData>&& status) = 0;
+
+  //! Invoked by the SEE thread to provide sensor data events. The event data
+  //! format is one of the chreSensorXXXData defined in the CHRE API, implicitly
+  //! specified by sensorType.
+  virtual void onSensorDataEvent(
+      SensorType sensorType, UniquePtr<uint8_t>&& eventData) = 0;
+};
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
 //! external dependencies blocking SEE initialization.
@@ -109,13 +126,14 @@ class SeeHelper : public NonCopyable {
    * Initializes and waits for the sensor client QMI service to become
    * available. This function must be called first to initialize the object.
    *
-   * @param indCb A pointer to the indication callback. This callback will be
-   *              invoked to handle pb-decoded message for all async requests.
+   * @param cbIf A pointer to the callback interface that will be invoked to
+   *             handle all async requests with callback data type defined in
+   *             the interface.
    * @param timeout The wait timeout in microseconds.
    *
    * @return true if the qmi client was successfully initialized.
    */
-  bool init(SeeIndCallback *indCb,
+  bool init(SeeHelperCallbackInterface *cbIf,
             Microseconds timeout = kDefaultSeeWaitTimeout);
 
   /**
@@ -154,6 +172,36 @@ class SeeHelper : public NonCopyable {
                       bool *prevRegistered);
 
  private:
+  //! Used to synchronize indications.
+  ConditionVariable mCond;
+
+  //! Used with mCond, and to protect access to member variables from other
+  //! threads.
+  Mutex mMutex;
+
+  //! Callback interface for sensor events.
+  SeeHelperCallbackInterface *mCbIf = nullptr;
+
+  //! The list of QMI handles initiated by SeeHelper.
+  DynamicVector<qmi_client_type> mQmiHandles;
+
+  //! The list of SensorTypes registered and their corresponding SUID and
+  //! QMI handle.
+  DynamicVector<SensorInfo> mSensorInfos;
+
+  //! Data struct to store sync APIs data.
+  void *mSyncData = nullptr;
+
+  //! The data type whose indication this SeeHelper is waiting for in
+  //! findSuidSync.
+  const char *mSyncDataType = nullptr;
+
+  //! The SUID whose indication this SeeHelper is waiting for in a sync call.
+  sns_std_suid mSyncSuid = sns_suid_sensor_init_zero;
+
+  //! true if we are waiting on an indication for a sync call.
+  bool mWaiting = false;
+
   /**
    * Initializes SEE calibration sensors and makes data request.
    *
@@ -224,32 +272,6 @@ class SeeHelper : public NonCopyable {
    */
   bool waitForService(qmi_client_type *qmiHandle,
                       Microseconds timeout = kDefaultSeeWaitTimeout);
-
-  //! Data struct to store sync APIs data.
-  void *mSyncData = nullptr;
-
-  //! Indication callback for sensor data events.
-  SeeIndCallback *mIndCb = nullptr;
-
-  ConditionVariable mCond;
-  Mutex mMutex;
-
-  //! true if we are waiting on an indication for a sync call.
-  bool mWaiting = false;
-
-  //! The SUID whose indication this SeeHelper is waiting for in a sync call.
-  sns_std_suid mSyncSuid = sns_suid_sensor_init_zero;
-
-  //! The data type whose indication this SeeHelper is waiting for in
-  //! findSuidSync.
-  const char *mSyncDataType = nullptr;
-
-  //! The list of QMI handles initiated by SeeHelper.
-  DynamicVector<qmi_client_type> mQmiHandles;
-
-  //! The list of SensorTypes registered and their corresponding SUID and
-  //! QMI handle.
-  DynamicVector<SensorInfo> mSensorInfos;
 };
 
 }  // namespace chre
