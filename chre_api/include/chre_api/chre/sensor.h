@@ -53,6 +53,13 @@ extern "C" {
  */
 
 /**
+ * Start value for all of the vendor-defined private sensors.
+ *
+ * @since v1.2
+ */
+#define CHRE_SENSOR_TYPE_VENDOR_START  UINT8_C(192)
+
+/**
  * Accelerometer.
  *
  * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_DATA
@@ -181,6 +188,10 @@ extern "C" {
  * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA
  */
 #define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE  UINT8_C(58)
+
+#if CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE >= CHRE_SENSOR_TYPE_VENDOR_START
+#error Too many sensor types
+#endif
 
 /**
  * Base value for all of the data events for sensors.

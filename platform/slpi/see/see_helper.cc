@@ -36,6 +36,10 @@
 #include "chre/platform/slpi/system_time.h"
 #include "chre/util/lock_guard.h"
 
+#ifdef CHREX_SENSOR_SUPPORT
+#include "chre/extensions/platform/vendor_sensor_types.h"
+#endif  // CHREX_SENSOR_SUPPORT
+
 namespace chre {
 namespace {
 
@@ -47,6 +51,32 @@ constexpr Seconds kSuidReqMaxDwellSec = Seconds(10);
 
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
+
+//! The list of SEE cal sensors.
+enum class SeeCalSensor {
+  AccelCal,
+  GyroCal,
+  MagCal,
+  NumCalSensors,
+};
+
+//! A struct to store a sensor's calibration data
+struct SeeCalData {
+  float bias[3];
+  float scale[3];
+  float matrix[9];
+  bool hasBias;
+  bool hasScale;
+  bool hasMatrix;
+};
+
+//! A struct to store a cal sensor's UID and its cal data.
+struct SeeCalInfo {
+  sns_std_suid suid;
+  SeeCalData cal;
+};
+
+SeeCalInfo gCalInfo[static_cast<size_t>(SeeCalSensor::NumCalSensors)];
 
 //! A struct to facilitate pb encode/decode
 struct SeeBufArg {
@@ -78,6 +108,7 @@ struct SeeDataArg {
   size_t sampleIndex;
   size_t totalSamples;
   UniquePtr<uint8_t> event;
+  SeeCalData *cal;
   SensorType sensorType;
 };
 
@@ -108,6 +139,40 @@ struct SeeAttrArg {
 bool suidsMatch(const sns_std_suid& suid0, const sns_std_suid& suid1) {
   return (suid0.suid_high == suid1.suid_high
           && suid0.suid_low == suid1.suid_low);
+}
+
+size_t getCalIndexFromDataType(const char *dataType) {
+  SeeCalSensor index;
+  if (strcmp(dataType, "accel_cal") == 0) {
+    index =  SeeCalSensor::AccelCal;
+  } else if (strcmp(dataType, "gyro_cal") == 0) {
+    index = SeeCalSensor::GyroCal;
+  } else if (strcmp(dataType, "mag_cal") == 0) {
+    index = SeeCalSensor::MagCal;
+  } else {
+    index = SeeCalSensor::NumCalSensors;
+  }
+  return static_cast<size_t>(index);
+}
+
+size_t getCalIndexFromSuid(const sns_std_suid& suid) {
+  size_t index = 0;
+  for (; index < static_cast<size_t>(SeeCalSensor::NumCalSensors); index++) {
+    if (suidsMatch(suid, gCalInfo[index].suid)) {
+      break;
+    }
+  }
+  return index;
+}
+
+SeeCalData *getCalDataFromSuid(const sns_std_suid& suid) {
+  for (size_t i = 0;
+       i < static_cast<size_t>(SeeCalSensor::NumCalSensors); i++) {
+    if (suidsMatch(suid, gCalInfo[i].suid)) {
+      return &gCalInfo[i].cal;
+    }
+  }
+  return nullptr;
 }
 
 /**
@@ -351,7 +416,6 @@ bool decodeSnsSuidEventSuid(pb_istream_t *stream, const pb_field_t *field,
   } else {
     auto *suids = static_cast<DynamicVector<sns_std_suid> *>(*arg);
     suids->push_back(suid);
-    LOGD("Received SUID 0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
   }
   return success;
 }
@@ -403,7 +467,6 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
         outputSuids->push_back(suid);
       }
     }
-    LOGD("Finished sns_suid_event of data type '%s'", dataType);
   }
   return success;
 }
@@ -555,8 +618,11 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_VENDOR) {
       strlcpy(attrData->vendor, attrArg.strVal, sizeof(attrData->vendor));
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_TYPE) {
-      LOGI("%s: '%s'", getAttrNameFromAttrId(attr.attr_id), attrArg.strVal);
       strlcpy(attrData->type, attrArg.strVal, sizeof(attrData->type));
+    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_AVAILABLE) {
+      if (!attrArg.boolVal) {
+        LOGW("%s: %d", getAttrNameFromAttrId(attr.attr_id), attrArg.boolVal);
+      }
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_RATES) {
       attrData->maxSampleRate = attrArg.fltMax;
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_STREAM_TYPE) {
@@ -632,6 +698,19 @@ bool decodeSnsStdProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
+// TODO: Support compensation matrix and scaling factor calibration
+void applyThreeAxisCalibration(
+    chreSensorThreeAxisData::chreSensorThreeAxisSampleData *sample,
+    const float *val, const SeeCalData *cal) {
+  float bias[3] = {};
+  if (cal != nullptr && cal->hasBias) {
+    memcpy(bias, cal->bias, sizeof(bias));
+  }
+  sample->x = val[0] - bias[0];
+  sample->y = val[1] - bias[1];
+  sample->z = val[2] - bias[2];
+}
+
 void populateEventSample(SeeDataArg *data, const float *val) {
   size_t index = data->sampleIndex;
   if (!data->event.isNull() && index < data->totalSamples) {
@@ -643,9 +722,7 @@ void populateEventSample(SeeDataArg *data, const float *val) {
       case SensorSampleType::ThreeAxis: {
         auto *event = reinterpret_cast<chreSensorThreeAxisData *>(
             data->event.get());
-        event->readings[index].x = val[0];
-        event->readings[index].y = val[1];
-        event->readings[index].z = val[2];
+        applyThreeAxisCalibration(&event->readings[index], val, data->cal);
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
@@ -672,6 +749,17 @@ void populateEventSample(SeeDataArg *data, const float *val) {
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
+
+#ifdef CHREX_SENSOR_SUPPORT
+      case SensorSampleType::Vendor0: {
+        auto *event = reinterpret_cast<chrexSensorVendor0Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+#endif  // CHREX_SENSOR_SUPPORT
 
       default:
         LOGE("Invalid sample type %" PRIu8, static_cast<uint8_t>(sampleType));
@@ -826,15 +914,37 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
   if (!success) {
     LOGE("Error decoding sns_cal_event: %s", PB_GET_ERROR(stream));
   } else {
-    // TODO: handle cal data.
-    LOGD("Bias L=%zu: %f %f %f",
-         offset.index, offset.val[0], offset.val[1], offset.val[2]);
-    LOGD("Scale L=%zu: %f %f %f",
-         scale.index, scale.val[0], scale.val[1], scale.val[2]);
-    LOGD("Matrix L=%zu: %f %f %f, %f %f %f, %f %f %f",
-         matrix.index, matrix.val[0], matrix.val[1], matrix.val[2],
-         matrix.val[3], matrix.val[4], matrix.val[5],
-         matrix.val[6], matrix.val[7], matrix.val[8]);
+    auto *info = static_cast<SeeInfoArg *>(*arg);
+    size_t calIndex = getCalIndexFromSuid(info->suid);
+    if (calIndex >= static_cast<size_t>(SeeCalSensor::NumCalSensors)) {
+      // TODO: uncomment when driver stops delivering cal events.
+      //LOGW("Cal sensor index out of bounds 0x%" PRIx64 " %" PRIx64",
+      //     info->suid.suid_high, info->suid.suid_low);
+    } else {
+      SeeCalData *cal = &gCalInfo[calIndex].cal;
+      LOGD("Cal sensor %zu:", calIndex);
+
+      cal->hasBias = (offset.index == 3);
+      if (cal->hasBias) {
+        memcpy(cal->bias, offset.val, sizeof(cal->bias));
+        LOGD("  Bias: %f %f %f", offset.val[0], offset.val[1], offset.val[2]);
+      }
+
+      cal->hasScale = (scale.index == 3);
+      if (cal->hasScale) {
+        memcpy(cal->scale, scale.val, sizeof(cal->scale));
+        LOGD("  Scale: %f %f %f", scale.val[0], scale.val[1], scale.val[2]);
+      }
+
+      cal->hasMatrix = (matrix.index == 9);
+      if (cal->hasScale) {
+        memcpy(cal->matrix, matrix.val, sizeof(cal->matrix));
+        LOGD("  Matrix: %f %f %f, %f %f %f, %f %f %f",
+             matrix.val[0], matrix.val[1], matrix.val[2],
+             matrix.val[3], matrix.val[4], matrix.val[5],
+             matrix.val[6], matrix.val[7], matrix.val[8]);
+      }
+    }
   }
   return success;
 }
@@ -1033,6 +1143,12 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
           chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
       break;
 
+#ifdef CHREX_SENSOR_SUPPORT
+    case SensorSampleType::Vendor0:
+      sampleSize = sizeof(chrexSensorVendor0SampleData);
+      break;
+#endif  // CHREX_SENSOR_SUPPORT
+
     default:
       LOGW("Unhandled SensorSampleType %" PRIu8,
            static_cast<uint8_t>(sampleType));
@@ -1126,11 +1242,12 @@ void SeeHelper::handleSnsClientEventMsg(
     .events.arg = &info,
   };
 
-  // Decode SUID and MSG ID only to help further decode.
+  // Decode only SUID and MSG ID to help further decode.
   bool success = pb_decode(&stream, sns_client_event_msg_fields, &event);
   if (success) {
     info.suid = event.suid;
     info.decodeMsgIdOnly = false;
+    info.data->cal = getCalDataFromSuid(info.suid);
 
     mMutex.lock();
     bool synchronizedDecode = mWaiting;
@@ -1245,6 +1362,11 @@ bool SeeHelper::init(SeeIndCallback *indCb, Microseconds timeout) {
   bool success = waitForService(&qmiHandle, timeout);
   if (success) {
     success = mQmiHandles.push_back(qmiHandle);
+
+    // Initialize all cal sensors before making sensor data request.
+    if (success) {
+      success = initCalSensors();
+    }
   }
   return success;
 }
@@ -1449,6 +1571,52 @@ bool SeeHelper::waitForService(qmi_client_type *qmiHandle,
     if (!success) {
       LOGE("Failed to initialize the sensor client service QMI client: %d",
            status);
+    }
+  }
+  return success;
+}
+
+bool SeeHelper::initCalSensors() {
+  bool success = true;
+
+  // Zero out gCalInfo to avoid accidental suid and data match.
+  memset(gCalInfo, 0, sizeof(gCalInfo));
+
+  // TODO: uncomment accel_cal when it's ready.
+  const char *kCalTypes[] = {
+    //"accel_cal",
+    "gyro_cal",
+    "mag_cal",
+  };
+
+  // Find the cal sensor's SUID, assign it to gCalInfo, and make cal sensor data
+  // request.
+  DynamicVector<sns_std_suid> suids;
+  for (size_t i = 0; i < ARRAY_SIZE(kCalTypes); i++) {
+    const char *calType = kCalTypes[i];
+    if (!findSuidSync(calType, &suids)) {
+      success = false;
+      LOGE("Failed to find sensor '%s'", calType);
+    } else if (suids.empty()) {
+      LOGE("No '%s' sensor found", calType);
+    } else {
+      size_t index = getCalIndexFromDataType(calType);
+      if (index >= static_cast<size_t>(SeeCalSensor::NumCalSensors)) {
+        success = false;
+        LOGE("Cal sensor '%s' index out of bounds", calType);
+      } else {
+        gCalInfo[index].suid = suids[0];
+
+        if (!sendReq(mQmiHandles[0], suids[0],
+                nullptr /* syncData */, nullptr /* syncDatType */,
+                SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG,
+                nullptr /* msg */, 0 /* msgLen */,
+                false /* batchValid */, 0 /* batchPeriodUs */,
+                false /* waitForIndication */)) {
+          success = false;
+          LOGE("Failed to request '%s' data", calType);
+        }
+      }
     }
   }
   return success;

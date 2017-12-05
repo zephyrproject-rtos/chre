@@ -31,6 +31,10 @@
 #include "chre/platform/slpi/see/see_helper.h"
 #include "chre/util/singleton.h"
 
+#ifdef CHREX_SENSOR_SUPPORT
+#include "chre/extensions/platform/slpi/see/vendor_data_types.h"
+#endif  // CHREX_SENSOR_SUPPORT
+
 namespace chre {
 namespace {
 
@@ -87,8 +91,12 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     sensorType = SensorType::Light;
   } else if (strcmp(dataType, "proximity") == 0) {
     sensorType = SensorType::Proximity;
+#ifdef CHREX_SENSOR_SUPPORT
+  } else if (strcmp(dataType, kVendorDataTypes[0]) == 0) {
+    sensorType = SensorType::VendorType0;
+#endif  // CHREX_SENSOR_SUPPORT
   } else {
-    sensorType= SensorType::Unknown;
+    sensorType = SensorType::Unknown;
   }
   return sensorType;
 }
@@ -369,8 +377,14 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
       FATAL_ERROR("Failed to get temperature sensor UID and attributes");
   }
 
-  for (size_t i = 0; i < ARRAY_SIZE(kSeeDataTypes); i++) {
-    const char *dataType = kSeeDataTypes[i];
+#ifndef CHREX_SENSOR_SUPPORT
+  const char *kVendorDataTypes[] = {};
+#endif  // CHREX_SENSOR_SUPPORT
+  constexpr size_t kNumSeeTypes = ARRAY_SIZE(kSeeDataTypes);
+  constexpr size_t kNumVendorTypes = ARRAY_SIZE(kVendorDataTypes);
+  for (size_t i = 0; i < kNumSeeTypes + kNumVendorTypes; i++) {
+    const char *dataType = (i < kNumSeeTypes)
+        ? kSeeDataTypes[i] : kVendorDataTypes[i - kNumSeeTypes];
 
     SensorType sensorType = getSensorTypeFromDataType(
         dataType, false /* calibrated */);
@@ -393,9 +407,16 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
         if (isStreamTypeCorrect(sensorType, attr.streamType)) {
           addSensor(sensorType, suid, attr, sensors);
 
+          // Check if this sensor has a runtime-calibrated version.
+          SensorType calibratedType = getSensorTypeFromDataType(
+              dataType, true /* calibrated */);
+          if (calibratedType != sensorType) {
+            addSensor(calibratedType, suid, attr, sensors);
+          }
+
           // Check if this sensor has a secondary temperature sensor.
-          SensorType tempSensorType = getTempSensorType(sensorType);
-          if (tempSensorType != SensorType::Unknown) {
+          SensorType temperatureType = getTempSensorType(sensorType);
+          if (temperatureType != SensorType::Unknown) {
             for (const auto& tempSensor : tempSensors) {
               sns_std_suid tempSuid = tempSensor.suid;
               SeeAttributes tempAttr = tempSensor.attr;
@@ -403,7 +424,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
               if (vendorAndNameMatch(attr, tempAttr)) {
                 LOGD("Found temperature sensor SUID 0x%" PRIx64 " %" PRIx64,
                      tempSuid.suid_high, tempSuid.suid_low);
-                addSensor(tempSensorType, tempSuid, tempAttr, sensors);
+                addSensor(temperatureType, tempSuid, tempAttr, sensors);
                 break;
               }
             }

@@ -155,6 +155,13 @@ class SeeHelper : public NonCopyable {
 
  private:
   /**
+   * Initializes SEE calibration sensors and makes data request.
+   *
+   * @return true if cal sensor have been succcessfully initialized.
+   */
+  bool initCalSensors();
+
+  /**
    * Wrapper to send a QMI request and wait for the indication if it's a
    * synchronous one.
    *
