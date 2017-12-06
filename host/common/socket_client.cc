@@ -19,10 +19,12 @@
 #include <inttypes.h>
 
 #include <string.h>
+#include <unistd.h>
 
 #include <chrono>
 
 #include <cutils/sockets.h>
+#include <sys/socket.h>
 #include <utils/RefBase.h>
 #include <utils/StrongPointer.h>
 
@@ -220,16 +222,38 @@ bool SocketClient::reconnect() {
 }
 
 bool SocketClient::tryConnect(bool suppressErrorLogs) {
+  bool success = false;
+
   errno = 0;
-  mSockFd = socket_local_client(mSocketName,
-                                ANDROID_SOCKET_NAMESPACE_RESERVED,
-                                SOCK_SEQPACKET);
-  if (mSockFd == INVALID_SOCKET && !suppressErrorLogs) {
-    LOGE("Couldn't create/connect client socket to '%s': %s",
-         mSocketName, strerror(errno));
+  int sockFd = socket(AF_LOCAL, SOCK_SEQPACKET, 0);
+  if (sockFd >= 0) {
+    // Set the send buffer size to 2MB to allow plenty of room for nanoapp
+    // loading
+    int sndbuf = 2 * 1024 * 1024;
+    int ret = setsockopt(
+        sockFd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf));
+    if (ret == 0) {
+      mSockFd = socket_local_client_connect(
+          sockFd, mSocketName, ANDROID_SOCKET_NAMESPACE_RESERVED,
+          SOCK_SEQPACKET);
+      if (mSockFd != INVALID_SOCKET) {
+        success = true;
+      } else if (!suppressErrorLogs) {
+        LOGE("Couldn't connect client socket to '%s': %s",
+             mSocketName, strerror(errno));
+      }
+    } else if (!suppressErrorLogs) {
+      LOGE("Failed to set SO_SNDBUF to %d: %s", sndbuf, strerror(errno));
+    }
+
+    if (!success) {
+      close(sockFd);
+    }
+  } else if (!suppressErrorLogs) {
+    LOGE("Couldn't create local socket: %s", strerror(errno));
   }
 
-  return (mSockFd != INVALID_SOCKET);
+  return success;
 }
 
 }  // namespace chre

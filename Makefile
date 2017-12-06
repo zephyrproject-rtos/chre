@@ -54,8 +54,11 @@ HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/api
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/idl/inc
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/inc
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/smr/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/common/util/mathtools/inc
 HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/goog/api
+HEXAGON_CFLAGS += -I$(SLPI_PREFIX)/Sensors/pm/inc
 
 # Makefile Includes ############################################################
 
@@ -80,5 +83,6 @@ include build/common.mk
 # google_cm4_nanohub as Nanohub itself is a CHRE implementation.
 include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_googletest.mk

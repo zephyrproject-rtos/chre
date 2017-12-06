@@ -16,6 +16,9 @@ COMMON_CFLAGS += -DCHRE_VERSION_STRING='"$(VERSION_STRING)"'
 # nanoapp list.
 COMMON_CFLAGS += -DCHRE_VARIANT_SUPPLIES_STATIC_NANOAPP_LIST
 
+# Enable exceptions for TCLAP.
+GOOGLE_X86_LINUX_CFLAGS += -fexceptions
+
 # Common Source Files ##########################################################
 
 COMMON_SRCS += variant/simulator/static_nanoapps.cc

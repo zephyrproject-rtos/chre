@@ -20,6 +20,7 @@
 #include "chre/core/wifi_request_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -80,15 +81,28 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
                                      const void *cookie) {
   CHRE_ASSERT(nanoapp);
 
+  // TODO(b/65331248): replace with a timer to actively check response timeout
+  bool timedOut = (mScanRequestingNanoappInstanceId.has_value()
+                   && mLastScanRequestTime
+                       + Nanoseconds(CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS)
+                     < SystemTime::getMonotonicTime());
+  if (timedOut) {
+    LOGE("Scan request async response timed out");
+    mScanRequestingNanoappInstanceId.reset();
+  }
+
   bool success = false;
-  if (!mScanRequestingNanoappInstanceId.has_value()) {
+  if (mScanRequestingNanoappInstanceId.has_value()) {
+     LOGE("Active wifi scan request made while a request is in flight");
+  } else {
     success = mPlatformWifi.requestScan(params);
-    if (success) {
+    if (!success) {
+      LOGE("Wifi scan request failed");
+    } else {
       mScanRequestingNanoappInstanceId = nanoapp->getInstanceId();
       mScanRequestingNanoappCookie = cookie;
+      mLastScanRequestTime = SystemTime::getMonotonicTime();
     }
-  } else {
-    LOGE("Active wifi scan request made while a request is in flight");
   }
 
   return success;
@@ -415,10 +429,25 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
 
 void WifiRequestManager::handleScanResponseSync(bool pending,
                                                 uint8_t errorCode) {
-  CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
-                  "handleScanResponseSync called with no outstanding request");
+  // TODO(b/65206783): re-enable this assertion
+  //CHRE_ASSERT_LOG(mScanRequestingNanoappInstanceId.has_value(),
+  //                "handleScanResponseSync called with no outstanding request");
+  if (!mScanRequestingNanoappInstanceId.has_value()) {
+    LOGE("handleScanResponseSync called with no outstanding request");
+  }
+
+  // TODO: raise this to CHRE_ASSERT_LOG
+  if (!pending && errorCode == CHRE_ERROR_NONE) {
+    LOGE("Invalid wifi scan response");
+    errorCode = CHRE_ERROR;
+  }
+
   if (mScanRequestingNanoappInstanceId.has_value()) {
     bool success = (pending && errorCode == CHRE_ERROR_NONE);
+    if (!success) {
+      LOGW("Wifi scan request failed: pending %d, errorCode %" PRIu8,
+           pending, errorCode);
+    }
     postScanRequestAsyncResultEventFatal(*mScanRequestingNanoappInstanceId,
                                          success, errorCode,
                                          mScanRequestingNanoappCookie);
@@ -445,35 +474,36 @@ void WifiRequestManager::handleScanResponseSync(bool pending,
 }
 
 void WifiRequestManager::handleScanEventSync(chreWifiScanEvent *event) {
-  if (mScanRequestResultsArePending) {
-    // Reset the event distribution logic once an entire scan event has been
-    // received.
-    mScanEventResultCountAccumulator += event->resultCount;
-    if (mScanEventResultCountAccumulator >= event->resultTotal) {
-      mScanEventResultCountAccumulator = 0;
-      mScanRequestResultsArePending = false;
-    }
-  }
-
   postScanEventFatal(event);
 }
 
 void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
-  mPlatformWifi.releaseScanEvent(scanEvent);
-
-  if (!mScanRequestResultsArePending
-      && mScanRequestingNanoappInstanceId.has_value()) {
-    Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
-        .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
-    if (nanoapp == nullptr) {
-      CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
-                      "WiFi scan events");
-    } else if (!nanoappHasScanMonitorRequest(*mScanRequestingNanoappInstanceId)) {
-      nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
+  if (mScanRequestResultsArePending) {
+    // Reset the event distribution logic once an entire scan event has been
+    // received and processed by the nanoapp requesting the scan event.
+    mScanEventResultCountAccumulator += scanEvent->resultCount;
+    if (mScanEventResultCountAccumulator >= scanEvent->resultTotal) {
+      mScanEventResultCountAccumulator = 0;
+      mScanRequestResultsArePending = false;
     }
 
-    mScanRequestingNanoappInstanceId.reset();
+    if (!mScanRequestResultsArePending
+        && mScanRequestingNanoappInstanceId.has_value()) {
+      Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
+          .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
+      if (nanoapp == nullptr) {
+        CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
+                        "WiFi scan events");
+      } else if (!nanoappHasScanMonitorRequest(
+          *mScanRequestingNanoappInstanceId)) {
+        nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
+      }
+
+      mScanRequestingNanoappInstanceId.reset();
+    }
   }
+
+  mPlatformWifi.releaseScanEvent(scanEvent);
 }
 
 void WifiRequestManager::freeWifiScanEventCallback(uint16_t eventType,

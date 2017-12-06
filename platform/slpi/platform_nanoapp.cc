@@ -16,10 +16,14 @@
 
 #include "chre/platform/platform_nanoapp.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
+#include "chre/platform/shared/nanoapp_dso_util.h"
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
+#include "chre/platform/slpi/memory.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
 
@@ -30,74 +34,37 @@
 
 namespace chre {
 
-namespace {
-
-/**
- * Performs sanity checks on the app info structure included in a dynamically
- * loaded nanoapp.
- *
- * @param expectedAppId The app ID passed alongside the binary
- * @param expectedAppVersion The app version number passed alongside the binary
- * @param appInfo App info structure included in the nanoapp binary
- * @param skipVersionValidation if true, ignore the expectedAppVersion parameter
- *
- * @return true if validation was successful
- */
-bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
-                     const struct chreNslNanoappInfo *appInfo,
-                     bool skipVersionValidation = false) {
-  uint32_t ourApiMajorVersion = CHRE_EXTRACT_MAJOR_VERSION(chreGetApiVersion());
-  uint32_t targetApiMajorVersion = CHRE_EXTRACT_MAJOR_VERSION(
-      appInfo->targetApiVersion);
-
-  bool success = false;
-  if (appInfo->magic != CHRE_NSL_NANOAPP_INFO_MAGIC) {
-    LOGE("Invalid app info magic: got 0x%08" PRIx32 " expected 0x%08" PRIx32,
-         appInfo->magic, static_cast<uint32_t>(CHRE_NSL_NANOAPP_INFO_MAGIC));
-  } else if (appInfo->appId == 0) {
-    LOGE("Rejecting invalid app ID 0");
-  } else if (expectedAppId != appInfo->appId) {
-    LOGE("Expected app ID (0x%016" PRIx64 ") doesn't match internal one (0x%016"
-         PRIx64 ")", expectedAppId, appInfo->appId);
-  } else if (!skipVersionValidation
-      && expectedAppVersion != appInfo->appVersion) {
-    LOGE("Expected app version (0x%" PRIx32 ") doesn't match internal one (0x%"
-         PRIx32 ")", expectedAppVersion, appInfo->appVersion);
-  } else if (targetApiMajorVersion != ourApiMajorVersion) {
-    LOGE("App targets a different major API version (%" PRIu32 ") than what we "
-         "provide (%" PRIu32 ")", targetApiMajorVersion, ourApiMajorVersion);
-  } else if (strlen(appInfo->name) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
-    LOGE("App name is too long");
-  } else if (strlen(appInfo->vendor) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
-    LOGE("App vendor is too long");
-  } else {
-    success = true;
-  }
-
-  return success;
-}
-
-}  // anonymous namespace
-
 PlatformNanoapp::~PlatformNanoapp() {
   closeNanoapp();
   if (mAppBinary != nullptr) {
-    memoryFree(mAppBinary);
+    memoryFreeBigImage(mAppBinary);
   }
 }
 
 bool PlatformNanoapp::start() {
   // Invoke the start entry point after successfully opening the app
-  return openNanoapp() ? mAppInfo->entryPoints.start() : false;
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
+  return openNanoapp() && mAppInfo->entryPoints.start();
 }
 
 void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
                                   uint16_t eventType,
                                   const void *eventData) {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
 }
 
 void PlatformNanoapp::end() {
+  if (!isUimgApp()) {
+    slpiForceBigImage();
+  }
+
   mAppInfo->entryPoints.end();
   closeNanoapp();
 }
@@ -112,7 +79,7 @@ bool PlatformNanoappBase::loadFromBuffer(uint64_t appId, uint32_t appVersion,
   if (appBinaryLen > kMaxAppSize) {
     LOGE("Rejecting app size %zu above limit %zu", appBinaryLen, kMaxAppSize);
   } else {
-    mAppBinary = memoryAlloc(appBinaryLen);
+    mAppBinary = memoryAllocBigImage(appBinaryLen);
     if (mAppBinary == nullptr) {
       LOGE("Couldn't allocate %zu byte buffer for nanoapp 0x%016" PRIx64,
            appBinaryLen, appId);
@@ -141,15 +108,17 @@ void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {
 }
 
 bool PlatformNanoappBase::isLoaded() const {
-  return (mIsStatic || mAppBinary != nullptr);
+  return (mIsStatic || mAppBinary != nullptr || mDsoHandle != nullptr);
+}
+
+bool PlatformNanoappBase::isUimgApp() const {
+  return mIsUimgApp;
 }
 
 void PlatformNanoappBase::closeNanoapp() {
   if (mDsoHandle != nullptr) {
-    mAppInfo = nullptr;
     if (dlclose(mDsoHandle) != 0) {
-      const char *name = (mAppInfo != nullptr) ? mAppInfo->name : "unknown";
-      LOGE("dlclose of %s failed: %s", name, dlerror());
+      LOGE("dlclose failed: %s", dlerror());
     }
     mDsoHandle = nullptr;
   }
@@ -166,6 +135,12 @@ bool PlatformNanoappBase::openNanoapp() {
     success = openNanoappFromBuffer();
   } else {
     CHRE_ASSERT(false);
+  }
+
+  // Save this flag locally since it may be referenced while the system is in
+  // micro-image
+  if (mAppInfo != nullptr) {
+    mIsUimgApp = mAppInfo->isTcmNanoapp;
   }
 
   return success;
@@ -197,7 +172,11 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
         mAppInfo = nullptr;
       } else {
         LOGI("Successfully loaded nanoapp: %s (0x%016" PRIx64 ") version 0x%"
-             PRIx32, mAppInfo->name, mAppInfo->appId, mAppInfo->appVersion);
+             PRIx32 " uimg %d system %d", mAppInfo->name, mAppInfo->appId,
+             mAppInfo->appVersion, mAppInfo->isTcmNanoapp,
+             mAppInfo->isSystemNanoapp);
+        memoryFreeBigImage(mAppBinary);
+        mAppBinary = nullptr;
       }
     }
   }
@@ -225,8 +204,9 @@ bool PlatformNanoappBase::openNanoappFromFile() {
         mAppInfo = nullptr;
       } else {
         LOGI("Successfully loaded nanoapp %s (0x%016" PRIx64 ") version 0x%"
-             PRIx32 " from file %s", mAppInfo->name, mAppInfo->appId,
-             mAppInfo->appVersion, mFilename);
+             PRIx32 " uimg %d system %d from file %s", mAppInfo->name,
+             mAppInfo->appId, mAppInfo->appVersion, mAppInfo->isTcmNanoapp,
+             mAppInfo->isSystemNanoapp, mFilename);
         // Save the app version field in case this app gets disabled and we
         // still get a query request for the version later on. We are OK not
         // knowing the version prior to the first load because we assume that

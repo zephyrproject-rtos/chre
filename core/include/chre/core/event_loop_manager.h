@@ -21,10 +21,10 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/gnss_request_manager.h"
 #include "chre/core/host_comms_manager.h"
-#include "chre/core/memory_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
 #include "chre/core/wwan_request_manager.h"
+#include "chre/platform/memory_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
@@ -220,6 +220,10 @@ class EventLoopManager : public NonCopyable {
 
 //! Provide an alias to the EventLoopManager singleton.
 typedef Singleton<EventLoopManager> EventLoopManagerSingleton;
+
+//! Extern the explicit EventLoopManagerSingleton to force non-inline method
+//! calls. This reduces codesize considerably.
+extern template class Singleton<EventLoopManager>;
 
 }  // namespace chre
 

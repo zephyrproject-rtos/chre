@@ -70,6 +70,11 @@ class PlatformNanoappBase {
    */
   bool isLoaded() const;
 
+  /**
+   * @return true if the app runs in micro-image.
+   */
+  bool isUimgApp() const;
+
  protected:
   //! The app ID we received in the metadata alongside the nanoapp binary. This
   //! is also included in (and checked against) mAppInfo.
@@ -99,6 +104,9 @@ class PlatformNanoappBase {
   //! loadStatic(). In this case, the member variables above are not valid or
   //! applicable.
   bool mIsStatic = false;
+
+  //! True if the nanoapp runs in micro-image.
+  bool mIsUimgApp = false;
 
   /**
    * Calls through to openNanoappFromBuffer or openNanoappFromFile, depending on

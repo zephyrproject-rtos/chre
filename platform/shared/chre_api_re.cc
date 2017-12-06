@@ -63,5 +63,7 @@ DLL_EXPORT void *chreHeapAlloc(uint32_t bytes) {
 }
 
 DLL_EXPORT void chreHeapFree(void *ptr) {
-  chre::EventLoopManagerSingleton::get()->getMemoryManager().nanoappFree(ptr);
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  chre::EventLoopManagerSingleton::get()->getMemoryManager().
+      nanoappFree(nanoapp, ptr);
 }

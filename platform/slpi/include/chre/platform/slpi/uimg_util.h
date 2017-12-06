@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_MEMORY_IMPL_H_
-#define CHRE_PLATFORM_MEMORY_IMPL_H_
-
-#include <new>
-#include <utility>
+#ifndef CHRE_PLATFORM_SLPI_UIMG_UTIL_H_
+#define CHRE_PLATFORM_SLPI_UIMG_UTIL_H_
 
 namespace chre {
 
-template<typename T, typename... Args>
-T *memoryAlloc(Args&&... args) {
-  auto *storage = static_cast<T *>(memoryAlloc(sizeof(T)));
-  if (storage != nullptr) {
-    new(storage) T(std::forward<Args>(args)...);
-  }
-
-  return storage;
+/**
+ * @return true if CHRE on micro-image is supported
+ */
+constexpr bool isSlpiUimgSupported() {
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  return true;
+#else
+  return false;
+#endif // CHRE_SLPI_UIMG_ENABLED
 }
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_MEMORY_IMPL_H_
+#endif  // CHRE_PLATFORM_SLPI_UIMG_UTIL_H_

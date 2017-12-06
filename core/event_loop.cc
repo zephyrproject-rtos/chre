@@ -109,11 +109,17 @@ void EventLoop::run() {
     // event is delivered to all interested Nanoapps, its free callback is
     // invoked.
     if (!havePendingEvents || !mEvents.empty()) {
+      if (mEvents.size() > mMaxEventPoolUsage) {
+        mMaxEventPoolUsage = mEvents.size();
+      }
+
       // mEvents.pop() will be a blocking call if mEvents.empty()
       distributeEvent(mEvents.pop());
     }
 
     havePendingEvents = deliverEvents();
+
+    mPowerControlManager.postEventLoopProcess(mEvents.size());
   }
 
   // Deliver any events sitting in Nanoapps' own queues (we could drop them to
@@ -291,6 +297,12 @@ bool EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
     success &= app->logStateToBuffer(buffer, bufferPos, bufferSize);
   }
+
+  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                            "\nEvent Loop:\n");
+  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+                            "  Max event pool usage: %zu/%zu\n",
+                            mMaxEventPoolUsage, kMaxEventCount);
   return success;
 }
 

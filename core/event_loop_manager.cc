@@ -91,4 +91,7 @@ void EventLoopManager::lateInit() {
   mWwanRequestManager.init();
 }
 
+// Explicitly instantiate the EventLoopManagerSingleton to reduce codesize.
+template class Singleton<EventLoopManager>;
+
 }  // namespace chre

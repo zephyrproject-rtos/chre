@@ -179,7 +179,7 @@ static void parseAndEmitLogMessages(unsigned char *message) {
   }
 }
 
-static int64_t getTimeOffset() {
+static int64_t getTimeOffset(bool *success) {
   int64_t timeOffset = 0;
 
 #if defined(__aarch64__)
@@ -191,18 +191,34 @@ static int64_t getTimeOffset() {
   // Use uint64_t to store since the MRS instruction uses 64 bit (X) registers
   // (http://infocenter.arm.com/help/topic/
   // com.arm.doc.den0024a/ch06s05s02.html)
-  uint64_t qTimerCount = 0, qTimerFreqKHz = 0;
+  uint64_t qTimerCount = 0, qTimerFreq = 0;
   uint64_t hostTimeNano = elapsedRealtimeNano();
   asm volatile("mrs %0, cntpct_el0" : "=r"(qTimerCount));
-  asm volatile("mrs %0, cntfrq_el0" : "=r"(qTimerFreqKHz));
-  qTimerFreqKHz /= 1000;
+  asm volatile("mrs %0, cntfrq_el0" : "=r"(qTimerFreq));
 
-  if (qTimerFreqKHz != 0) {
-    uint64_t qTimerNanos = (qTimerCount < UINT64_MAX / 1000000) ?
-        (qTimerCount * 1000000) : UINT64_MAX;
-    qTimerNanos /= qTimerFreqKHz;
+  constexpr uint64_t kOneSecondInNanoseconds = 1000000000;
+  if (qTimerFreq != 0) {
+    // Get the seconds part first, then convert the remainder to prevent
+    // overflow
+    uint64_t qTimerNanos = (qTimerCount / qTimerFreq);
+    if (qTimerNanos > UINT64_MAX / kOneSecondInNanoseconds) {
+      LOGE("CNTPCT_EL0 conversion to nanoseconds overflowed during time sync."
+           " Aborting time sync.");
+      *success = false;
+    } else {
+      qTimerNanos *= kOneSecondInNanoseconds;
 
-    timeOffset = hostTimeNano - qTimerNanos;
+      // Round the remainder portion to the nearest nanosecond
+      uint64_t remainder = (qTimerCount % qTimerFreq);
+      qTimerNanos +=
+          (remainder * kOneSecondInNanoseconds + qTimerFreq / 2) / qTimerFreq;
+
+      timeOffset = hostTimeNano - qTimerNanos;
+      *success = true;
+    }
+  } else {
+    LOGE("CNTFRQ_EL0 had 0 value. Aborting time sync.");
+    *success = false;
   }
 #else
 #error "Unsupported CPU architecture type"
@@ -212,16 +228,19 @@ static int64_t getTimeOffset() {
 }
 
 static void sendTimeSyncMessage() {
-  int64_t timeOffset = getTimeOffset();
+  bool timeSyncSuccess = true;
+  int64_t timeOffset = getTimeOffset(&timeSyncSuccess);
 
-  flatbuffers::FlatBufferBuilder builder(64);
-  HostProtocolHost::encodeTimeSyncMessage(builder, timeOffset);
-  int success = chre_slpi_deliver_message_from_host(
-      static_cast<const unsigned char *>(builder.GetBufferPointer()),
-      static_cast<int>(builder.GetSize()));
+  if (timeSyncSuccess) {
+    flatbuffers::FlatBufferBuilder builder(64);
+    HostProtocolHost::encodeTimeSyncMessage(builder, timeOffset);
+    int success = chre_slpi_deliver_message_from_host(
+        static_cast<const unsigned char *>(builder.GetBufferPointer()),
+        static_cast<int>(builder.GetSize()));
 
-  if (success != 0) {
-    LOGE("Failed to deliver timestamp message from host to CHRE: %d", success);
+    if (success != 0) {
+      LOGE("Failed to deliver timestamp message from host to CHRE: %d", success);
+    }
   }
 }
 

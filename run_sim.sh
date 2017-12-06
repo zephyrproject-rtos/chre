@@ -10,4 +10,4 @@ JOB_COUNT=$((`grep -c ^processor /proc/cpuinfo`))
 export CHRE_VARIANT_MK_INCLUDES=variant/simulator/variant.mk
 
 make google_x86_linux_debug -j$JOB_COUNT
-./out/google_x86_linux_debug/libchre
+./out/google_x86_linux_debug/libchre ${@:1}

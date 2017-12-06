@@ -27,10 +27,19 @@
 #include "chre/util/time.h"
 
 #include <csignal>
+#include <tclap/CmdLine.h>
 #include <thread>
 
 using chre::EventLoopManagerSingleton;
 using chre::Milliseconds;
+
+//! A description of the simulator.
+constexpr char kSimDescription[] = "A simulation environment for the Context "
+                                   "Hub Runtime Environment (CHRE)";
+
+//! The version of the simulator. This is not super important but is assigned by
+//! rules of semantic versioning.
+constexpr char kSimVersion[] = "0.1.0";
 
 namespace {
 
@@ -42,21 +51,46 @@ extern "C" void signalHandler(int sig) {
 
 }
 
-int main() {
-  chre::PlatformLogSingleton::init();
-  chre::init();
+int main(int argc, char **argv) {
+  try {
+    // Parse command-line arguments.
+    TCLAP::CmdLine cmd(kSimDescription, ' ', kSimVersion);
+    TCLAP::SwitchArg no_static_nanoapps_arg("", "no_static_nanoapps",
+        "disable running static nanoapps", cmd, false);
+    TCLAP::MultiArg<std::string> nanoapps_arg("", "nanoapp",
+        "a nanoapp shared object to load and execute", false, "path", cmd);
+    cmd.parse(argc, argv);
 
-  // Register a signal handler.
-  std::signal(SIGINT, signalHandler);
+    // Initialize the system.
+    chre::PlatformLogSingleton::init();
+    chre::init();
 
-  // Load any static nanoapps and start the event loop.
-  std::thread chreThread([&]() {
-    chre::loadStaticNanoapps();
-    EventLoopManagerSingleton::get()->getEventLoop().run();
-  });
-  chreThread.join();
+    // Register a signal handler.
+    std::signal(SIGINT, signalHandler);
 
-  chre::deinit();
-  chre::PlatformLogSingleton::deinit();
+    // Load any static nanoapps and start the event loop.
+    std::thread chreThread([&]() {
+      // Load static nanoapps unless they are disabled by a command-line flag.
+      if (!no_static_nanoapps_arg.getValue()) {
+        chre::loadStaticNanoapps();
+      }
+
+      // Load dynamic nanoapps specified on the command-line.
+      chre::DynamicVector<chre::UniquePtr<chre::Nanoapp>> dynamicNanoapps;
+      for (const auto& nanoapp : nanoapps_arg.getValue()) {
+        dynamicNanoapps.push_back(chre::MakeUnique<chre::Nanoapp>());
+        dynamicNanoapps.back()->loadFromFile(nanoapp);
+        EventLoopManagerSingleton::get()->getEventLoop()
+            .startNanoapp(dynamicNanoapps.back());
+      }
+
+      EventLoopManagerSingleton::get()->getEventLoop().run();
+    });
+    chreThread.join();
+
+    chre::deinit();
+    chre::PlatformLogSingleton::deinit();
+  } catch (TCLAP::ExitException) {}
+
   return 0;
 }
