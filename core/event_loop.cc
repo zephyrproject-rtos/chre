@@ -249,15 +249,31 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
 
   if (mRunning && (senderInstanceId == kSystemInstanceId ||
       mEventPool.getFreeBlockCount() > kMinReservedSystemEventCount)) {
-    Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
-        senderInstanceId, targetInstanceId);
-    if (event != nullptr) {
-      success = mEvents.push(event);
-    } else {
+    success = allocateAndPostEvent(eventType, eventData, freeCallback,
+                                   senderInstanceId,targetInstanceId);
+    if (!success) {
       // This can only happen if the event is a system event type. This
       // postEvent method will fail if a non-system event is posted when the
       // memory pool is close to full.
       FATAL_ERROR("Failed to allocate system event type %" PRIu16, eventType);
+    }
+  }
+
+  return success;
+}
+
+bool EventLoop::postEventOrFree(uint16_t eventType, void *eventData,
+    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
+    uint32_t targetInstanceId) {
+  bool success = false;
+
+  if (mRunning) {
+    success = allocateAndPostEvent(eventType, eventData, freeCallback,
+                                   senderInstanceId,targetInstanceId);
+    if (!success) {
+      freeCallback(eventType, eventData);
+      LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
+           eventType, targetInstanceId);
     }
   }
 
@@ -305,6 +321,19 @@ bool EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
   success &= debugDumpPrint(buffer, bufferPos, bufferSize,
                             "  Max event pool usage: %zu/%zu\n",
                             mMaxEventPoolUsage, kMaxEventCount);
+  return success;
+}
+
+bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
+    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
+    uint32_t targetInstanceId) {
+  bool success = false;
+
+  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
+                                     senderInstanceId, targetInstanceId);
+  if (event != nullptr) {
+    success = mEvents.push(event);
+  }
   return success;
 }
 
