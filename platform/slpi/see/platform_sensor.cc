@@ -48,7 +48,6 @@ struct SuidAttr {
 //! sensor requests. This must only be used from the CHRE thread.
 typedef Singleton<SeeHelper> SeeHelperSingleton;
 
-// TODO: Complete the list.
 //! The list of SEE platform sensor data types that CHRE intends to support.
 //! The standardized strings are defined in sns_xxx.proto.
 const char *kSeeDataTypes[] = {
@@ -58,9 +57,10 @@ const char *kSeeDataTypes[] = {
   "pressure",
   "ambient_light",
   "proximity",
+  "motion_detect",
+  "stationary_detect",
 };
 
-// TODO: Complete the list.
 /**
  * Obtains the sensor type given the specified data type and whether the sensor
  * is runtime-calibrated or not.
@@ -91,6 +91,10 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     sensorType = SensorType::Light;
   } else if (strcmp(dataType, "proximity") == 0) {
     sensorType = SensorType::Proximity;
+  } else if (strcmp(dataType, "motion_detect") == 0) {
+    sensorType = SensorType::InstantMotion;
+  } else if (strcmp(dataType, "stationary_detect") == 0) {
+    sensorType = SensorType::StationaryDetect;
 #ifdef CHREX_SENSOR_SUPPORT
   } else if (strcmp(dataType, kVendorDataTypes[0]) == 0) {
     sensorType = SensorType::VendorType0;
