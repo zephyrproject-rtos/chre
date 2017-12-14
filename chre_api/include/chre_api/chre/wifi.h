@@ -688,7 +688,9 @@ uint32_t chreWifiGetCapabilities(void);
  * CHRE_EVENT_WIFI_SCAN_RESULT.
  *
  * An active scan monitor subscription is not necessary to receive the results
- * of an on-demand scan request sent via chreWifiRequestScanAsync().
+ * of an on-demand scan request sent via chreWifiRequestScanAsync(), and it does
+ * not result in duplicate delivery of scan results generated from
+ * chreWifiRequestScanAsync().
  *
  * This result of this request is delivered asynchronously via an event of type
  * CHRE_EVENT_WIFI_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
