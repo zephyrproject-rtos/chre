@@ -17,9 +17,33 @@
 #ifndef CHRE_PLATFORM_SLPI_PRELOADED_NANOAPPS_H_
 #define CHRE_PLATFORM_SLPI_PRELOADED_NANOAPPS_H_
 
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+
+#include "chre/core/nanoapp.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
+
+/**
+ * A description of a nanoapp to preload via dlopen.
+ */
+struct PreloadedNanoappDescriptor {
+  //! The expected app ID for this nanoapp.
+  const uint64_t appId;
+
+  //! The filename of the shared objec tto open.
+  const char *filename;
+
+  //! The instance of this nanoapp.
+  UniquePtr<Nanoapp> nanoapp;
+};
+
+//! The list of static nanoapps to load.
+extern PreloadedNanoappDescriptor kPreloadedNanoappList[];
+
+//! The number of static nanoapps to load.
+extern const size_t kPreloadedNanoappCount;
 
 /**
  * Loads nanoapps that are standalone .so file (i.e. not static nanoapps), but
