@@ -44,6 +44,13 @@ class PlatformSensorBase {
    */
   void setLastEvent(const ChreSensorData *event);
 
+  /**
+   * Sets the current status of this sensor in the CHRE API format.
+   *
+   * @param status The current sampling status.
+   */
+  void setSamplingStatus(const struct chreSensorSamplingStatus& status);
+
  protected:
   //! The sensor type of this sensor.
   SensorType mSensorType;

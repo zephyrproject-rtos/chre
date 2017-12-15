@@ -29,6 +29,7 @@
 
 #include <cfloat>
 #include <cinttypes>
+#include <cmath>
 
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
@@ -108,6 +109,7 @@ struct SeeDataArg {
   size_t sampleIndex;
   size_t totalSamples;
   UniquePtr<uint8_t> event;
+  UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> status;
   SeeCalData *cal;
   SensorType sensorType;
 };
@@ -219,7 +221,7 @@ bool encodeSnsStdAttrReq(UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
 
     // The encoded size can be 0 as there's only one optional field.
     if (msg->isNull() && *msgLen > 0) {
-      LOGE("No memory allocated to encode sns_std_attr_req");
+      LOG_OOM();
     } else {
       pb_ostream_t stream = pb_ostream_from_buffer(msg->get(), *msgLen);
 
@@ -266,7 +268,7 @@ bool encodeSnsSuidReq(const char *dataType,
     UniquePtr<pb_byte_t> buf(static_cast<pb_byte_t *>(memoryAlloc(*msgLen)));
     *msg = std::move(buf);
     if (msg->isNull()) {
-      LOGE("No memory allocated to encode sns_suid_req");
+      LOG_OOM();
     } else {
       pb_ostream_t stream = pb_ostream_from_buffer(msg->get(), *msgLen);
 
@@ -309,7 +311,7 @@ bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
     UniquePtr<pb_byte_t> buf(static_cast<pb_byte_t *>(memoryAlloc(*msgLen)));
     *msg = std::move(buf);
     if (msg->isNull()) {
-      LOGE("No memory allocated to encode sns_std_sensor_config");
+      LOG_OOM();
     } else {
       pb_ostream_t stream = pb_ostream_from_buffer(msg->get(), *msgLen);
 
@@ -375,7 +377,7 @@ bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
 
   auto qmiReq = MakeUnique<sns_client_req_msg_v01>();
   if (qmiReq.isNull()) {
-    LOGE("Failed to allocate memory for sns_client_req_msg_v01");
+    LOG_OOM();
   } else {
     // Create pb stream
     pb_ostream_t stream = pb_ostream_from_buffer(
@@ -816,40 +818,27 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
     LOGE("Error decoding sns_std_sensor_physical_config_event: %s",
          PB_GET_ERROR(stream));
   } else {
-    // TODO: handle sensor status update.
-    LOGD("SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_PHYSICAL_CONFIG_EVENT:");
-    if (event.has_sample_rate) {
-      LOGD(" sample rate: %f", event.sample_rate);
-    }
-    if (event.has_water_mark) {
-      LOGD(" water_mark: %" PRIu32, event.water_mark);
-    }
-    if (event.range_count > 0) {
-      LOGD(" range: [%f, %f]", event.range[0], event.range[1]);
-    }
-    if (event.has_resolution) {
-      LOGD(" resolution: %f", event.resolution);
-    }
-    if (data.bufLen > 0) {
-      char opMode[data.bufLen + 1];
-      memcpy(opMode, data.buf, data.bufLen);
-      opMode[data.bufLen] = '\0';
-      LOGD(" operation_mode: %s", opMode);
-    }
-    if (event.has_active_current) {
-      LOGD(" active_current: %" PRIu32 " uA", event.active_current);
-    }
-    if (event.has_stream_is_synchronous) {
-      LOGD(" stream_is_synchronous: %d", event.stream_is_synchronous);
-    }
-    if (event.has_dri_enabled) {
-      LOGD(" dri_enabled: %d", event.dri_enabled);
-    }
-    if (event.has_DAE_watermark) {
-      LOGD(" DAE_watermark: %" PRIu32, event.DAE_watermark);
-    }
-    if (event.has_sync_ts_anchor) {
-      LOGD(" sync_ts_anchor: %" PRIu64, event.sync_ts_anchor);
+    auto statusData =
+        MakeUnique<SeeHelperCallbackInterface::SamplingStatusData>();
+    if (statusData.isNull()) {
+      LOG_OOM();
+    } else {
+      struct chreSensorSamplingStatus *status = &statusData->status;
+
+      // TODO: check .enabled and .latency when available.
+      bool hasSamplingStatus = false;
+      if (event.has_sample_rate) {
+        hasSamplingStatus = true;
+        status->interval = static_cast<uint64_t>(
+            ceilf(Seconds(1).toRawNanoseconds() / event.sample_rate));
+        LOGD("sample rate: %f", event.sample_rate);
+      }
+
+      if (hasSamplingStatus) {
+        auto *info = static_cast<SeeInfoArg *>(*arg);
+        statusData->sensorType = info->data->sensorType;
+        info->data->status = std::move(statusData);
+      }
     }
   }
   return success;
@@ -1160,18 +1149,15 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 }
 
 // Allocates the sensor event memory and partially populates the header.
-bool prepareSensorEvent(
-    SeeInfoArg& info, const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
+bool prepareSensorEvent(SeeInfoArg& info) {
   bool success = false;
 
-  info.data->sensorType = getSensorTypeFromSensorInfo(
-      info.qmiHandle, info.suid, sensorInfos);
   UniquePtr<uint8_t> buf(static_cast<uint8 *>(
       allocateEvent(info.data->sensorType, info.data->sampleIndex)));
   info.data->event = std::move(buf);
 
   if (info.data->event.isNull()) {
-    LOGE("Failed to allocate sensor event memory");
+    LOG_OOM();
   } else {
     success = true;
 
@@ -1248,6 +1234,8 @@ void SeeHelper::handleSnsClientEventMsg(
     info.suid = event.suid;
     info.decodeMsgIdOnly = false;
     info.data->cal = getCalDataFromSuid(info.suid);
+    info.data->sensorType = getSensorTypeFromSensorInfo(
+        info.qmiHandle, info.suid, mSensorInfos);
 
     mMutex.lock();
     bool synchronizedDecode = mWaiting;
@@ -1261,10 +1249,8 @@ void SeeHelper::handleSnsClientEventMsg(
       info.sync->syncSuid = mSyncSuid;
     }
 
-    if (info.data->sampleIndex > 0) {
-      if (!prepareSensorEvent(info, mSensorInfos)) {
-        LOGE("Failed to prepare sensor event");
-      }
+    if (info.data->sampleIndex > 0 && !prepareSensorEvent(info)) {
+      LOGE("Failed to prepare sensor event");
     }
 
     success = pb_decode(&streamCpy, sns_client_event_msg_fields, &event);
@@ -1273,8 +1259,14 @@ void SeeHelper::handleSnsClientEventMsg(
     } else if (synchronizedDecode && info.sync->syncIndFound) {
       mWaiting = false;
       mCond.notify_one();
-    } else if (info.data->sampleIndex > 0 && mIndCb != nullptr) {
-      mIndCb(info.data->sensorType, std::move(info.data->event));
+    } else {
+      if (!info.data->event.isNull()) {
+        mCbIf->onSensorDataEvent(
+            info.data->sensorType, std::move(info.data->event));
+      }
+      if (!info.data->status.isNull()) {
+        mCbIf->onSamplingStatusUpdate(std::move(info.data->status));
+      }
     }
 
     if (synchronizedDecode) {
@@ -1352,11 +1344,10 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
   return success;
 }
 
-bool SeeHelper::init(SeeIndCallback *indCb, Microseconds timeout) {
-  mIndCb = indCb;
-  if (indCb == nullptr) {
-    LOGW("SeeHelper indication callback not provided");
-  }
+bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
+  ASSERT(cbIf);
+
+  mCbIf = cbIf;
 
   qmi_client_type qmiHandle;
   bool success = waitForService(&qmiHandle, timeout);
@@ -1483,7 +1474,7 @@ void SeeHelper::handleInd(qmi_client_type clientHandle, unsigned int msgId,
       auto ind = MakeUnique<sns_client_report_ind_msg_v01>();
 
       if (ind.isNull()) {
-        LOGE("Failed to allocate memory for sns_client_report_ind_msg_v01");
+        LOG_OOM();
       } else {
         int status = qmi_client_message_decode(
             clientHandle, QMI_IDL_INDICATION, SNS_CLIENT_REPORT_IND_V01,
