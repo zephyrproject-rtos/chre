@@ -38,6 +38,16 @@
 namespace chre {
 namespace {
 
+//! A class that implements SeeHelperCallbackInterface.
+class SeeHelperCallback : public SeeHelperCallbackInterface {
+  void onSamplingStatusUpdate(
+      UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>&& status)
+      override;
+
+  void onSensorDataEvent(
+      SensorType sensorType, UniquePtr<uint8_t>&& eventData) override;
+};
+
 //! A struct to facilitate sensor discovery
 struct SuidAttr {
   sns_std_suid suid;
@@ -128,7 +138,7 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
     };
     auto *callbackData = memoryAlloc<CallbackData>();
     if (callbackData == nullptr) {
-      LOGE("Failed to allocate deferred callback memory");
+      LOG_OOM();
     } else {
       callbackData->sensorType = sensorType;
       callbackData->event = static_cast<const ChreSensorData *>(eventData);
@@ -172,26 +182,89 @@ void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
 }
 
 /**
- * The async indication callback of SeeHelper.
+ * Posts a CHRE_EVENT_SENSOR_SAMPLING_CHANGE event to the specified Nanoapp.
+ *
+ * @param instaceId The instance ID of the nanoapp with an open request.
+ * @param sensorHandle The handle of the sensor.
+ * @param status A reference of the sampling status to be posted.
  */
-void seeHelperIndCb(SensorType sensorType, UniquePtr<uint8_t>&& eventData) {
-  if (sensorType == SensorType::Unknown) {
-    LOGE("seeHelperIndCb: Invalid SensorType");
+void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
+                             const struct chreSensorSamplingStatus& status) {
+  auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
+  if (event == nullptr) {
+    LOG_OOM();
   } else {
-    // Schedule a deferred callback to update on-change sensor's last event in
-    // the main thread.
-    if (sensorTypeIsOnChange(sensorType)) {
-      updateLastEvent(sensorType, eventData.get());
-    }
+    event->sensorHandle = sensorHandle;
+    event->status = status;
 
-    uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
-    if (!EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-            eventType, eventData.get(), seeSensorDataEventFree)) {
-      LOGE("Failed to post sensor data event: %" PRIu16, eventType);
-    } else {
-      eventData.release();
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+        CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
+        kSystemInstanceId, instanceId);
+  }
+}
+
+/**
+ * Updates the sampling status.
+ */
+void updateSamplingStatus(SensorType sensorType,
+                          const struct chreSensorSamplingStatus& newStatus) {
+  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .getSensor(sensorType);
+  struct chreSensorSamplingStatus prevStatus;
+  struct chreSensorSamplingStatus status = newStatus;
+
+  // TODO: check .enabled and .latency instead of copying them when they become
+  // available.
+  if (sensor != nullptr && sensor->getSamplingStatus(&prevStatus)
+      && !sensorTypeIsOneShot(sensorType)
+      && status.interval != prevStatus.interval) {
+    status.enabled = prevStatus.enabled;
+    status.latency = prevStatus.latency;
+
+    sensor->setSamplingStatus(status);
+
+    // Only post to Nanoapps with an open request.
+    uint32_t sensorHandle = getSensorHandleFromSensorType(sensorType);
+    const DynamicVector<SensorRequest>& requests =
+        EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .getRequests(sensorType);
+    for (const auto& req : requests) {
+      if (req.getNanoapp() != nullptr) {
+        postSamplingStatusEvent(req.getNanoapp()->getInstanceId(),
+                                sensorHandle, status);
+      }
     }
   }
+}
+
+void SeeHelperCallback::onSamplingStatusUpdate(
+    UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>&& status) {
+  auto callback = [](uint16_t /* type */, void *data) {
+    auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
+        static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(data));
+    updateSamplingStatus(cbData->sensorType, cbData->status);
+  };
+
+  // Schedule a deferred callback to handle sensor status change in the main
+  // thread.
+  if (EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorStatusUpdate, status.get(), callback)) {
+    status.release();
+  }
+}
+
+void SeeHelperCallback::onSensorDataEvent(
+    SensorType sensorType, UniquePtr<uint8_t>&& eventData) {
+  // Schedule a deferred callback to update on-change sensor's last event in
+  // the main thread.
+  if (sensorTypeIsOnChange(sensorType)) {
+    updateLastEvent(sensorType, eventData.get());
+  }
+
+  uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
+  EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+      eventType, eventData.get(), seeSensorDataEventFree);
+  eventData.release();
 }
 
 /**
@@ -365,7 +438,9 @@ PlatformSensor::~PlatformSensor() {
 
 void PlatformSensor::init() {
   SeeHelperSingleton::init();
-  SeeHelperSingleton::get()->init(&seeHelperIndCb);
+
+  static SeeHelperCallback seeHelperCallback;
+  SeeHelperSingleton::get()->init(&seeHelperCallback);
 }
 
 void PlatformSensor::deinit() {
@@ -454,7 +529,20 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
         : static_cast<uint32_t>(request.getLatency().toRawNanoseconds()
                                 / kOneMicrosecondInNanoseconds),
   };
-  return SeeHelperSingleton::get()->makeRequest(req);
+
+  bool success = SeeHelperSingleton::get()->makeRequest(req);
+
+  // TODO: remove setSamplingStatus when .enabled and .latency are available in
+  // status update from SEE.
+  if (success) {
+    struct chreSensorSamplingStatus status;
+    if (getSamplingStatus(&status)) {
+      status.enabled = req.enable;
+      status.latency = req.batchPeriodUs * kOneMicrosecondInNanoseconds;
+      setSamplingStatus(status);
+    }
+  }
+  return success;
 }
 
 SensorType PlatformSensor::getSensorType() const {
@@ -527,6 +615,11 @@ void PlatformSensorBase::initBase(
 void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
   memcpy(mLastEvent, event, mLastEventSize);
   mLastEventValid = true;
+}
+
+void PlatformSensorBase::setSamplingStatus(
+    const struct chreSensorSamplingStatus& status) {
+  mSamplingStatus = status;
 }
 
 }  // namespace chre
