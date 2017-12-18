@@ -89,7 +89,7 @@ $$(1)_SO = $(OUT)/$$$(1)/$(OUTPUT_NAME).so
 $$(1)_AR = $(OUT)/$$$(1)/$(OUTPUT_NAME).a
 
 # Nanoapp Header
-$$(1)_HEADER = $$(if $(9), , $(OUT)/$$$(1)/$(OUTPUT_NAME).napp_header)
+$$(1)_HEADER = $$(if $(IS_NANOAPP_BUILD), $(OUT)/$$$(1)/$(OUTPUT_NAME).napp_header, )
 
 # Optional Binary
 $$(1)_BIN = $$(if $(9), $(OUT)/$$$(1)/$(OUTPUT_NAME), )
