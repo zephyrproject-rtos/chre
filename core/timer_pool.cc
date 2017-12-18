@@ -197,11 +197,8 @@ void TimerPool::handleSystemTimerCallback(void *timerPoolPtr) {
     }
   };
 
-  bool callbackDeferred = EventLoopManagerSingleton::get()->deferCallback(
+  EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::TimerPoolTick, timerPoolPtr, callback);
-  if (!callbackDeferred) {
-    FATAL_ERROR("Failed to defer timer callback");
-  }
 }
 
 }  // namespace chre

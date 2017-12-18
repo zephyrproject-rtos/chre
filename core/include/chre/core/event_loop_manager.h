@@ -118,8 +118,11 @@ class EventLoopManager : public NonCopyable {
    * @param data Arbitrary data to provide to the callback
    * @param callback Function to invoke from within the
    */
-  bool deferCallback(SystemCallbackType type, void *data,
-                     SystemCallbackFunction *callback);
+  void deferCallback(SystemCallbackType type, void *data,
+                     SystemCallbackFunction *callback) {
+    mEventLoop.postEvent(static_cast<uint16_t>(type), data, callback,
+                         kSystemInstanceId, kSystemInstanceId);
+  }
 
   /**
    * Returns a guaranteed unique instance identifier to associate with a newly

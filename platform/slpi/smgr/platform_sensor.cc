@@ -581,13 +581,9 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
       };
 
       // Schedule a deferred callback.
-      if (!EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorLastEventUpdate, callbackData, callback)) {
-        LOGE("Failed to schedule a deferred callback for sensorType %d",
-             static_cast<int>(sensorType));
-        memoryFree(callbackData);
-      }
-    }  // if (callbackData == nullptr)
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorLastEventUpdate, callbackData, callback);
+    }
   }
 }
 
@@ -921,11 +917,8 @@ void handleSensorStatusMonitorIndication(
 
     // Schedule a deferred callback to handle sensor status change in the main
     // thread.
-    if (!EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::SensorStatusUpdate, callbackData, callback)) {
-      LOGE("Failed to schedule a deferred callback for status update");
-      memoryFree(callbackData);
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::SensorStatusUpdate, callbackData, callback);
   }
 }
 

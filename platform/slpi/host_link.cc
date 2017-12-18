@@ -650,13 +650,9 @@ void HostMessageHandlers::handleLoadNanoappRequest(
     // Note that if this fails, we'll generate the error response in
     // the normal deferred callback
     cbData->nanoapp->loadFromBuffer(appId, appVersion, appBinary, appBinaryLen);
-    if (!EventLoopManagerSingleton::get()->deferCallback(
-            SystemCallbackType::FinishLoadingNanoapp, cbData.get(),
-            finishLoadingNanoappCallback)) {
-      LOGE("Couldn't post callback to finish loading nanoapp");
-    } else {
-      cbData.release();
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
+        finishLoadingNanoappCallback);
   }
 }
 
@@ -674,12 +670,9 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
     cbData->hostClientId = hostClientId;
     cbData->allowSystemNanoappUnload = allowSystemNanoappUnload;
 
-    if (!EventLoopManagerSingleton::get()->deferCallback(
-            SystemCallbackType::HandleUnloadNanoapp, cbData,
-            handleUnloadNanoappCallback)) {
-      LOGE("Couldn't post callback to unload nanoapp");
-      memoryFree(cbData);
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::HandleUnloadNanoapp, cbData,
+        handleUnloadNanoappCallback);
   }
 }
 

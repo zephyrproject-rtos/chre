@@ -159,13 +159,9 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
       };
 
       // Schedule a deferred callback.
-      if (!EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorLastEventUpdate, callbackData, callback)) {
-        LOGE("Failed to schedule a deferred callback for sensorType %" PRIu8,
-             static_cast<uint8_t>(sensorType));
-        memoryFree(callbackData);
-      }
-    }  // if (callbackData == nullptr)
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SensorLastEventUpdate, callbackData, callback);
+    }
   }
 }
 
@@ -247,10 +243,8 @@ void SeeHelperCallback::onSamplingStatusUpdate(
 
   // Schedule a deferred callback to handle sensor status change in the main
   // thread.
-  if (EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorStatusUpdate, status.get(), callback)) {
-    status.release();
-  }
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::SensorStatusUpdate, status.release(), callback);
 }
 
 void SeeHelperCallback::onSensorDataEvent(
