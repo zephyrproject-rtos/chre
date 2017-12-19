@@ -20,7 +20,7 @@
 #include "qmi_client.h"
 #include "sns_suid.pb.h"
 
-#include "chre/core/sensor_request.h"
+#include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
