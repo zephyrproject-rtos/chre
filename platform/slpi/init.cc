@@ -18,6 +18,7 @@
 
 extern "C" {
 
+#include "HAP_farf.h"
 #include "timer.h"
 #include "qurt.h"
 

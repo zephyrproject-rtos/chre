@@ -24,11 +24,6 @@
 #define __FILENAME__ CHRE_FILENAME
 #endif
 
-#ifndef FARF_MEDIUM
-#define FARF_MEDIUM 1
-#endif
-#include "HAP_farf.h"
-
 // TODO: Replace ashLog with a builtin logging destination that does not wake
 // the AP unless necessary.
 #define CHRE_SLPI_LOG(level, fmt, ...) \
