@@ -96,6 +96,7 @@ SLPI_SRCS += platform/slpi/platform_nanoapp.cc
 SLPI_SRCS += platform/slpi/platform_pal.cc
 SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
 SLPI_SRCS += platform/slpi/system_time.cc
+SLPI_SRCS += platform/slpi/system_time_util.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
 
 # Optional audio support.
