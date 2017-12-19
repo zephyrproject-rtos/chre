@@ -14,33 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_SYSTEM_TIME_H_
-#define CHRE_PLATFORM_SLPI_SYSTEM_TIME_H_
+#ifndef CHRE_PLATFORM_SLPI_SYSTEM_TIME_UTIL_H_
+#define CHRE_PLATFORM_SLPI_SYSTEM_TIME_UTIL_H_
 
 #include <cstdint>
 
 namespace chre {
 
 /**
- * Sets the estimated offset between the host and SLPI clock.
+ * Converts QTimer ticks to nanoseconds.
  *
- * @param offset The current estimated offset in nanoseconds.
+ * @param ticks The number of ticks.
+ * @return The number of nanoseconds represented by the ticks value.
  */
-void setEstimatedHostTimeOffset(int64_t offset);
-
-/**
- * Sends a time sync request if the time since last time sync request exceeds a
- * predefined threshold.
- */
-void requestTimeSyncIfStale();
-
-/**
- * Updates the timestamp tracking the last time a time sync was requested by
- * CHRE. Only to be called if a TimeSyncRequest message was scheduled to be
- * sent.
- */
-void updateLastTimeSyncRequest();
+uint64_t getNanosecondsFromQTimerTicks(uint64_t ticks);
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_SYSTEM_TIME_H_
+#endif  // CHRE_PLATFORM_SLPI_SYSTEM_TIME_UTIL_H_

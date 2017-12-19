@@ -5,8 +5,6 @@
 # for a build variant that targets a specific CPU architecture.
 #
 
-include $(CHRE_PREFIX)/build/defs.mk
-
 ################################################################################
 #
 # Build Template
@@ -39,6 +37,8 @@ include $(CHRE_PREFIX)/build/defs.mk
 #     $12 - TARGET_SO_LATE_LIBS  - Link against a set of libraries when building
 #                                  a shared object or binary. These are placed
 #                                  after the objects produced by this build.
+#     $13 - TARGET_PLATFORM_ID   - The ID of the platform that this nanoapp
+#                                  build targets.
 #
 ################################################################################
 
@@ -88,6 +88,9 @@ $$(1)_SO = $(OUT)/$$$(1)/$(OUTPUT_NAME).so
 # Static Archive
 $$(1)_AR = $(OUT)/$$$(1)/$(OUTPUT_NAME).a
 
+# Nanoapp Header
+$$(1)_HEADER = $$(if $(IS_NANOAPP_BUILD), $(OUT)/$$$(1)/$(OUTPUT_NAME).napp_header, )
+
 # Optional Binary
 $$(1)_BIN = $$(if $(9), $(OUT)/$$$(1)/$(OUTPUT_NAME), )
 
@@ -103,8 +106,11 @@ $(1)_so: $$($$(1)_SO)
 .PHONY: $(1)_bin
 $(1)_bin: $$($$(1)_BIN)
 
+.PHONY: $(1)_header
+$(1)_header: $$($$(1)_HEADER)
+
 .PHONY: $(1)
-$(1): $(1)_ar $(1)_so $(1)_bin
+$(1): $(1)_ar $(1)_so $(1)_bin $(1)_header
 
 # If building the runtime, simply add the archive and shared object to the all
 # target. When building CHRE, it is expected that this runtime just be linked
@@ -113,6 +119,54 @@ $(1): $(1)_ar $(1)_so $(1)_bin
 ifeq ($(IS_NANOAPP_BUILD),)
 all: $(1)
 endif
+
+# Nanoapp Header Generation ####################################################
+
+#
+# Whoa there... what have we here? Some binary file generation ala bash? ಠ_ಠ
+#
+# The following build rule generates a nanoapp header. A nanoapp header is a
+# small binary blob that is prepended to a nanoapp. Android can parse this
+# blob to determine some attributes about the nanoapp, such as version and
+# target hub. The layout is as follows:
+#
+# struct NanoAppBinaryHeader {
+#   uint32_t headerVersion;        // 0x1 for this version
+#   uint32_t magic;                // "NANO"
+#   uint64_t appId;                // App Id, contains vendor id
+#   uint32_t appVersion;           // Version of the app
+#   uint32_t flags;                // Signed, encrypted
+#   uint64_t hwHubType;            // Which hub type is this compiled for
+#   uint8_t targetChreApiMajorVersion; // CHRE API version
+#   uint8_t targetChreApiMinorVersion;
+#   uint8_t reserved[6];
+# } __attribute__((packed));
+#
+# The basic idea here is to generate a hexdump formatted file and then reverse
+# that hexdump into binary form. The way that is accomplished is as follows.
+#
+# ... Why tho?
+#
+# The build system has a lot of knowledge of what it is building: the name of
+# the nanoapp, the version and the app ID. Marshalling this data from the
+# Makefile environment into something like python or even a small C program
+# is an unnecessary step.
+
+$$($$(1)_HEADER):
+	printf "00000000  %.8x " `$(BE_TO_LE_SCRIPT) 0x00000001` > $$@
+	printf "%.8x " `$(BE_TO_LE_SCRIPT) 0x4f4e414e` >> $$@
+	printf "%.16x\n" `$(BE_TO_LE_SCRIPT) $(NANOAPP_ID)` >> $$@
+	printf "00000010  %.8x " `$(BE_TO_LE_SCRIPT) $(NANOAPP_VERSION)` >> $$@
+	printf "%.8x " `$(BE_TO_LE_SCRIPT) 0x00000001` >> $$@
+	printf "%.16x\n" `$(BE_TO_LE_SCRIPT) $(13)` >> $$@
+	printf "00000020  %.2x " \
+	    `$(BE_TO_LE_SCRIPT) $(TARGET_CHRE_API_VERSION_MAJOR)` >> $$@
+	printf "%.2x " \
+	    `$(BE_TO_LE_SCRIPT) $(TARGET_CHRE_API_VERSION_MINOR)` >> $$@
+	printf "%.12x \n" `$(BE_TO_LE_SCRIPT) 0x000000` >> $$@
+	cp $$@ $$@_ascii
+	xxd -r $$@_ascii > $$@
+	rm $$@_ascii
 
 # Compile ######################################################################
 
@@ -216,7 +270,8 @@ $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME), \
                               $(TARGET_BUILD_BIN), \
                               $(TARGET_BIN_LDFLAGS), \
                               $(TARGET_SO_EARLY_LIBS), \
-                              $(TARGET_SO_LATE_LIBS)))
+                              $(TARGET_SO_LATE_LIBS), \
+                              $(TARGET_PLATFORM_ID)))
 
 # Debug Template Invocation ####################################################
 
@@ -232,4 +287,5 @@ $(eval $(call BUILD_TEMPLATE, $(TARGET_NAME)_debug, \
                               $(TARGET_BUILD_BIN), \
                               $(TARGET_BIN_LDFLAGS), \
                               $(TARGET_SO_EARLY_LIBS), \
-                              $(TARGET_SO_LATE_LIBS)))
+                              $(TARGET_SO_LATE_LIBS), \
+                              $(TARGET_PLATFORM_ID)))

@@ -34,7 +34,7 @@
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/power_control_util.h"
-#include "chre/platform/slpi/system_time.h"
+#include "chre/platform/slpi/system_time_util.h"
 #include "chre/util/lock_guard.h"
 
 #ifdef CHREX_SENSOR_SUPPORT

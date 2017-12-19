@@ -54,18 +54,19 @@ COMMON_CFLAGS += -DCHRE_PATCH_VERSION=$(CHRE_PATCH_VERSION)
 
 # Makefile Includes ############################################################
 
-# CHRE Implementation includes.
-include apps/apps.mk
-include ash/ash.mk
-include chre_api/chre_api.mk
-include core/core.mk
-include external/external.mk
-include pal/pal.mk
-include platform/platform.mk
-include util/util.mk
-
 # Common includes.
-include build/common.mk
+include $(CHRE_PREFIX)/build/defs.mk
+include $(CHRE_PREFIX)/build/common.mk
+
+# CHRE Implementation includes.
+include $(CHRE_PREFIX)/apps/apps.mk
+include $(CHRE_PREFIX)/ash/ash.mk
+include $(CHRE_PREFIX)/chre_api/chre_api.mk
+include $(CHRE_PREFIX)/core/core.mk
+include $(CHRE_PREFIX)/external/external.mk
+include $(CHRE_PREFIX)/pal/pal.mk
+include $(CHRE_PREFIX)/platform/platform.mk
+include $(CHRE_PREFIX)/util/util.mk
 
 # Supported Variants Includes. Not all CHRE variants are supported by this
 # implementation of CHRE. Example: this CHRE implementation is never built for
