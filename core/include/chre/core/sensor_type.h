@@ -20,8 +20,6 @@
 #include <cstdint>
 
 #include "chre_api/chre/sensor.h"
-#include "chre/core/nanoapp.h"
-#include "chre/util/time.h"
 
 namespace chre {
 
