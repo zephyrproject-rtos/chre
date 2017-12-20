@@ -64,7 +64,7 @@ void PlatformLog::log(const char *formatStr, ...) {
 
     if (strLen < 0) {
       // A formatting error occured. Don't advance the log buffer index.
-      FARF(MEDIUM, "Failed to format log string. Dropping message");
+      FARF(HIGH, "Failed to format log string. Dropping message");
     } else {
       // Null-terminate if the formatted string does not fit into the buffer.
       if (static_cast<size_t>(strLen) >= messageLen) {

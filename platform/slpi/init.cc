@@ -18,6 +18,7 @@
 
 extern "C" {
 
+#include "HAP_farf.h"
 #include "timer.h"
 #include "qurt.h"
 
@@ -113,11 +114,9 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
   static uint32_t debugDumpHandle;
 
   debugDumpHandle = handle;
-  if (!chre::EventLoopManagerSingleton::get()->deferCallback(
-          chre::SystemCallbackType::PerformDebugDump, &debugDumpHandle,
-          performDebugDumpCallback)) {
-    LOGW("Failed to post event to get debug dump");
-  }
+  chre::EventLoopManagerSingleton::get()->deferCallback(
+      chre::SystemCallbackType::PerformDebugDump, &debugDumpHandle,
+      performDebugDumpCallback);
 }
 
 /**

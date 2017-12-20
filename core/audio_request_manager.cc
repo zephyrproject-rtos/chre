@@ -104,11 +104,9 @@ void AudioRequestManager::handleAudioDataEvent(
   // Cast off the event const so that it can be provided to the free callback as
   // non-const. The event is provided to nanoapps as const and the runtime
   // itself will not modify this memory so this is safe.
-  if (!EventLoopManagerSingleton::get()->deferCallback(
+  EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::AudioHandleDataEvent,
-      const_cast<struct chreAudioDataEvent *>(audioDataEvent), callback)) {
-    FATAL_ERROR("Failed to schedule audio data event callback");
-  }
+      const_cast<struct chreAudioDataEvent *>(audioDataEvent), callback);
 }
 
 bool AudioRequestManager::validateConfigureSourceArguments(

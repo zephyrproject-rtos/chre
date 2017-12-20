@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+#ifndef FARF_MEDIUM
+#define FARF_MEDIUM 1
+#endif
+
 #include "ash/debug.h"
+#include "HAP_farf.h"
 #include "timer.h"
 
 #include "chre/core/event_loop_manager.h"
@@ -481,9 +486,6 @@ extern "C" int chre_slpi_get_message_to_host(
     }
   }
 
-  FARF(MEDIUM, "Returning message to host (result %d length %u)",
-       result, *messageLen);
-
   // Opportunistically send a time sync message
   requestTimeSyncIfStale();
 
@@ -545,7 +547,7 @@ bool HostLinkBase::flushOutboundQueue() {
   // This function is used in preFatalError() so it must never call FATAL_ERROR
   int waitCount = 5;
 
-  FARF(LOW, "Draining message queue");
+  FARF(MEDIUM, "Draining message queue");
   while (!gOutboundQueue.empty() && waitCount-- > 0) {
     timer_sleep(kPollingIntervalUsec, T_USEC, true /* non_deferrable */);
   }
@@ -648,13 +650,9 @@ void HostMessageHandlers::handleLoadNanoappRequest(
     // Note that if this fails, we'll generate the error response in
     // the normal deferred callback
     cbData->nanoapp->loadFromBuffer(appId, appVersion, appBinary, appBinaryLen);
-    if (!EventLoopManagerSingleton::get()->deferCallback(
-            SystemCallbackType::FinishLoadingNanoapp, cbData.get(),
-            finishLoadingNanoappCallback)) {
-      LOGE("Couldn't post callback to finish loading nanoapp");
-    } else {
-      cbData.release();
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
+        finishLoadingNanoappCallback);
   }
 }
 
@@ -672,12 +670,9 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
     cbData->hostClientId = hostClientId;
     cbData->allowSystemNanoappUnload = allowSystemNanoappUnload;
 
-    if (!EventLoopManagerSingleton::get()->deferCallback(
-            SystemCallbackType::HandleUnloadNanoapp, cbData,
-            handleUnloadNanoappCallback)) {
-      LOGE("Couldn't post callback to unload nanoapp");
-      memoryFree(cbData);
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::HandleUnloadNanoapp, cbData,
+        handleUnloadNanoappCallback);
   }
 }
 

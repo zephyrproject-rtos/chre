@@ -27,13 +27,13 @@
 #include "stringl.h"
 #include "timer.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cinttypes>
 #include <cmath>
 
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
-#include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/system_time_util.h"
 #include "chre/util/lock_guard.h"
 
@@ -1421,9 +1421,8 @@ bool SeeHelper::sendReq(
   CHRE_ASSERT(payload || payloadLen == 0);
   bool success = false;
 
-  // Force big image as the future QMI-replacement interface may not be
-  // supported in micro-image.
-  slpiForceBigImage();
+  // TODO: when adding uImage support, may need to force big image here if still
+  // using QMI directly
 
   if (!waitForIndication) {
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,

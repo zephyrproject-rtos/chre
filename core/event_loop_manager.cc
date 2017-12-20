@@ -64,12 +64,6 @@ UniquePtr<char> EventLoopManager::debugDump() {
   return UniquePtr<char>(debugStr);
 }
 
-bool EventLoopManager::deferCallback(SystemCallbackType type, void *data,
-                                     SystemCallbackFunction *callback) {
-  return mEventLoop.postEvent(static_cast<uint16_t>(type), data, callback,
-                              kSystemInstanceId, kSystemInstanceId);
-}
-
 uint32_t EventLoopManager::getNextInstanceId() {
   ++mLastInstanceId;
 

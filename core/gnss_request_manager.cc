@@ -77,11 +77,8 @@ void GnssRequestManager::handleLocationSessionStatusChange(bool enabled,
       memoryFree(state);
     };
 
-    bool callbackDeferred = EventLoopManagerSingleton::get()->deferCallback(
+    EventLoopManagerSingleton::get()->deferCallback(
         SystemCallbackType::GnssLocationSessionStatusChange, cbState, callback);
-    if (!callbackDeferred) {
-      memoryFree(cbState);
-    }
   }
 }
 
