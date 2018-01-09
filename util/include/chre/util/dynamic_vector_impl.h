@@ -49,6 +49,26 @@ DynamicVector<ElementType>::~DynamicVector() {
   }
 }
 
+template<typename ElementType>
+DynamicVector<ElementType>& DynamicVector<ElementType>::operator=(
+    DynamicVector<ElementType>&& other) {
+  if (this == &other) {
+    return *this;
+  }
+  this->~DynamicVector();
+
+  mData = other.mData;
+  mSize = other.mSize;
+  mCapacity = other.mCapacity;
+  mDataIsWrapped = other.mDataIsWrapped;
+
+  other.mData = nullptr;
+  other.mSize = 0;
+  other.mCapacity = 0;
+  other.mDataIsWrapped = false;
+  return *this;
+}
+
 template <typename ElementType>
 void DynamicVector<ElementType>::clear() {
   destroy(mData, mSize);

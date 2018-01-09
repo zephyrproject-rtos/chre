@@ -52,6 +52,12 @@ class DynamicVector : public NonCopyable {
   DynamicVector(DynamicVector<ElementType>&& other);
 
   /**
+   * Move-constructs a dynamic vector from another. The other dynamic vector is
+   * left in an empty state.
+   */
+  DynamicVector& operator=(DynamicVector<ElementType>&& other);
+
+  /**
    * Destructs the objects and releases the memory owned by the vector.
    */
   ~DynamicVector();
