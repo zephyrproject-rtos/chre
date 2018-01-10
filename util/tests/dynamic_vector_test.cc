@@ -721,6 +721,22 @@ TEST(DynamicVector, MoveConstruct) {
   EXPECT_EQ(movedVector.capacity(), 4);
 }
 
+TEST(DynamicVector, MoveAssignmentConstruct) {
+  DynamicVector<int> vector;
+  ASSERT_TRUE(vector.push_back(0));
+  ASSERT_TRUE(vector.push_back(1));
+  ASSERT_TRUE(vector.push_back(2));
+
+  DynamicVector<int> movedVector;
+  movedVector = std::move(vector);
+  EXPECT_EQ(vector.data(), nullptr);
+  EXPECT_NE(movedVector.data(), nullptr);
+  EXPECT_EQ(vector.size(), 0);
+  EXPECT_EQ(movedVector.size(), 3);
+  EXPECT_EQ(vector.capacity(), 0);
+  EXPECT_EQ(movedVector.capacity(), 4);
+}
+
 // Tests basic functionality of a vector wrapping an array
 TEST(DynamicVector, Wrap) {
   constexpr size_t kSize = 4;
