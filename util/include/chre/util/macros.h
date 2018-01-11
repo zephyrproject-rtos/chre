@@ -21,6 +21,7 @@
  * Obtains the number of elements in a C-style array.
  */
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+#define ARRAY_END(array) (array + ARRAY_SIZE(array))
 
 /**
  * Performs macro expansion then converts the value into a string literal
