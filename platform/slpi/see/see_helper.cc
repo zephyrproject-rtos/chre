@@ -22,6 +22,7 @@
 #include "sns_client.pb.h"
 #include "sns_client_api_v01.h"
 #include "sns_proximity.pb.h"
+#include "sns_rc.h"
 #include "sns_std.pb.h"
 #include "sns_std_sensor.pb.h"
 #include "stringl.h"
@@ -340,9 +341,10 @@ bool sendQmiReq(qmi_client_type qmiHandle, const sns_client_req_msg_v01& reqMsg,
   if (status != QMI_NO_ERR) {
     LOGE("Error sending QMI message %d", status);
   } else if (resp.resp.result != QMI_RESULT_SUCCESS_V01) {
-    // TODO: Remove bypass and uncomment logging when b/68825825 is resolved.
-    // LOGE("Client request failed with error %d", resp.resp.error);
-    success = true;
+    LOGE("QMI failed with error %d", resp.resp.error);
+  } else if (!resp.result_valid || resp.result != SNS_RC_SUCCESS) {
+    LOGE("Client request failed with result %" PRIu8,
+         static_cast<uint8_t>(resp.result));
   } else {
     success = true;
   }
