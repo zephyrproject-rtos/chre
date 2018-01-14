@@ -57,8 +57,15 @@ COMMON_SRCS += $(NANOPB_GEN_SRCS)
 NANOPB_PROTOC = $(NANOPB_PREFIX)/generator/protoc-gen-nanopb
 
 $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
-                                                     $(wildcard %.options) \
+                                                     %.options \
                                                      $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
 	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
-	  --nanopb_out=$(NANOPB_GEN_PATH) $<
+	  --nanopb_out="--options-file=$(basename $<).options:$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
+	  $<
+
+$(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
+                                                     $(NANOPB_GENERATOR_SRCS)
+	mkdir -p $(dir $@)
+	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS)\
+	  --nanopb_out="$(NANOPB_GEN_PATH)" $<
