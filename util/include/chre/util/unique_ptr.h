@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_UNIQUE_PTR_H_
 #define CHRE_UTIL_UNIQUE_PTR_H_
 
+#include <cstddef>
+
 #include "chre/util/non_copyable.h"
 
 namespace chre {

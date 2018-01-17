@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_UNIQUE_PTR_IMPL_H_
 #define CHRE_UTIL_UNIQUE_PTR_IMPL_H_
 
+#include "chre/util/unique_ptr.h"
+
 #include <string.h>
 #include <type_traits>
 #include <utility>
