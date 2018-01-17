@@ -26,6 +26,8 @@
  * The typical format for the LOG_TAG macro is: "[AppName]"
  */
 
+#include <chre/re.h>
+
 #include "chre/util/log_common.h"
 #include "chre/util/toolchain.h"
 
