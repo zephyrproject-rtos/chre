@@ -17,6 +17,7 @@
 #ifndef CHRE_UTIL_SINGLETON_IMPL_H_
 #define CHRE_UTIL_SINGLETON_IMPL_H_
 
+#include <new>
 #include <utility>
 
 #include "chre/util/singleton.h"
