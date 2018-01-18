@@ -194,6 +194,21 @@ bool DynamicVector<ElementType>::reserve(size_type newCapacity) {
 }
 
 template<typename ElementType>
+bool DynamicVector<ElementType>::resize(size_type newSize) {
+  // Remove elements from the back to minimize move operations.
+  while (mSize > newSize) {
+    pop_back();
+  }
+
+  bool success = true;
+  while (success && mSize < newSize) {
+    success = emplace_back();
+  }
+
+  return success;
+}
+
+template<typename ElementType>
 bool DynamicVector<ElementType>::insert(size_type index,
                                         const ElementType& element) {
   bool inserted = prepareInsert(index);
