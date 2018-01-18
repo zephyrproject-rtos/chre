@@ -64,7 +64,7 @@ constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
  */
 int hidlHandleToFileDescriptor(const hidl_handle& hh) {
   const native_handle_t *handle = hh.getNativeHandle();
-  return (handle->numFds >= 1) ? handle->data[0] : -1;
+  return (handle != nullptr && handle->numFds >= 1) ? handle->data[0] : -1;
 }
 
 }  // anonymous namespace
