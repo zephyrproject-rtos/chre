@@ -32,6 +32,7 @@ namespace contexthub {
 namespace V1_0 {
 namespace implementation {
 
+using ::android::chre::getStringFromByteVector;
 using ::android::hardware::Return;
 using ::android::hardware::contexthub::V1_0::AsyncEventType;
 using ::android::hardware::contexthub::V1_0::Result;
@@ -330,51 +331,42 @@ void GenericContextHub::SocketCallbacks::onDisconnected() {
 }
 
 void GenericContextHub::SocketCallbacks::handleNanoappMessage(
-    uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-    const void *messageData, size_t messageDataLen) {
+    const fbs::NanoappMessageT& message) {
   ContextHubMsg msg;
-  msg.appName = appId;
-  msg.hostEndPoint = hostEndpoint;
-  msg.msgType = messageType;
+  msg.appName = message.app_id;
+  msg.hostEndPoint = message.host_endpoint;
+  msg.msgType = message.message_type;
+  msg.msg = message.message;
 
-  // Dropping const from messageData when we wrap it in hidl_vec here. This is
-  // safe because we won't modify it here, and the ContextHubMsg we pass to
-  // the callback is const.
-  msg.msg.setToExternal(
-      const_cast<uint8_t *>(static_cast<const uint8_t *>(messageData)),
-      messageDataLen, false /* shouldOwn */);
   invokeClientCallback([&]() {
     mParent.mCallbacks->handleClientMsg(msg);
   });
 }
 
 void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
-    const char *name, const char *vendor,
-    const char *toolchain, uint32_t legacyPlatformVersion,
-    uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
-    float sleepPower, float peakPower, uint32_t maxMessageLen,
-    uint64_t platformId, uint32_t version) {
+    const fbs::HubInfoResponseT& response) {
   ALOGD("Got hub info response");
 
   std::lock_guard<std::mutex> lock(mParent.mHubInfoMutex);
   if (mParent.mHubInfoValid) {
     ALOGI("Ignoring duplicate/unsolicited hub info response");
   } else {
-    mParent.mHubInfo.name = name;
-    mParent.mHubInfo.vendor = vendor;
-    mParent.mHubInfo.toolchain = toolchain;
-    mParent.mHubInfo.platformVersion = legacyPlatformVersion;
-    mParent.mHubInfo.toolchainVersion = legacyToolchainVersion;
+    mParent.mHubInfo.name = getStringFromByteVector(response.name);
+    mParent.mHubInfo.vendor = getStringFromByteVector(response.vendor);
+    mParent.mHubInfo.toolchain = getStringFromByteVector(response.toolchain);
+    mParent.mHubInfo.platformVersion = response.platform_version;
+    mParent.mHubInfo.toolchainVersion = response.toolchain_version;
     mParent.mHubInfo.hubId = kDefaultHubId;
 
-    mParent.mHubInfo.peakMips = peakMips;
-    mParent.mHubInfo.stoppedPowerDrawMw = stoppedPower;
-    mParent.mHubInfo.sleepPowerDrawMw = sleepPower;
-    mParent.mHubInfo.peakPowerDrawMw = peakPower;
+    mParent.mHubInfo.peakMips = response.peak_mips;
+    mParent.mHubInfo.stoppedPowerDrawMw = response.stopped_power;
+    mParent.mHubInfo.sleepPowerDrawMw = response.sleep_power;
+    mParent.mHubInfo.peakPowerDrawMw = response.peak_power;
 
-    mParent.mHubInfo.maxSupportedMsgLen = maxMessageLen;
-    mParent.mHubInfo.chrePlatformId = platformId;
+    mParent.mHubInfo.maxSupportedMsgLen = response.max_msg_len;
+    mParent.mHubInfo.chrePlatformId = response.platform_id;
 
+    uint32_t version = response.chre_platform_version;
     mParent.mHubInfo.chreApiMajorVersion = extractChreApiMajorVersion(version);
     mParent.mHubInfo.chreApiMinorVersion = extractChreApiMinorVersion(version);
     mParent.mHubInfo.chrePatchVersion = extractChrePatchVersion(version);
