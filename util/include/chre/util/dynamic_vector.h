@@ -186,6 +186,17 @@ class DynamicVector : public NonCopyable {
   bool reserve(size_type newCapacity);
 
   /**
+   * Resizes the vector to a new size. If the new capacity is smaller than the
+   * current size, the extraneous objects at the end are destructed. If the new
+   * capacity is larger than the current size, the new objects are
+   * default-constructed.
+   *
+   * @param size The new size of the vector.
+   * @return true if the resize operation was successful.
+   */
+  bool resize(size_type newSize);
+
+  /**
    * Inserts an element into the vector at a given index. If a resize of the
    * vector is required and the allocation fails, false will be returned. This
    * will shift all vector elements after the given index one position backward
