@@ -23,8 +23,8 @@
 #include <cinttypes>
 #include <vector>
 
+#include <log/log.h>
 #include <unistd.h>
-#include <utils/Log.h>
 
 namespace android {
 namespace hardware {
