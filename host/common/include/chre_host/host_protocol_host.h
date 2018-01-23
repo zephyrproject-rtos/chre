@@ -24,8 +24,20 @@
 #include "chre_host/host_messages_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
+#include <vector>
+
 namespace android {
 namespace chre {
+
+/**
+ * Checks that a string encapsulated as a byte vector is null-terminated, and
+ * if it is, returns a pointer to the vector's data. Otherwise returns null.
+ *
+ * @param vec Target vector, can be null
+ *
+ * @return Pointer to the vector's data, or null
+ */
+const char *getStringFromByteVector(const std::vector<int8_t>& vec);
 
 /**
  * Calling code should provide an implementation of this interface to handle
@@ -36,18 +48,13 @@ class IChreMessageHandlers {
   virtual ~IChreMessageHandlers() = default;
 
   virtual void handleNanoappMessage(
-      uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-      const void *messageData, size_t messageDataLen) = 0;
+      const ::chre::fbs::NanoappMessageT& /*message*/) {};
 
   virtual void handleHubInfoResponse(
-      const char *name, const char *vendor,
-      const char *toolchain, uint32_t legacyPlatformVersion,
-      uint32_t legacyToolchainVersion, float peakMips, float stoppedPower,
-      float sleepPower, float peakPower, uint32_t maxMessageLen,
-      uint64_t platformId, uint32_t version) = 0;
+      const ::chre::fbs::HubInfoResponseT& /*response*/) {};
 
   virtual void handleNanoappListResponse(
-      const ::chre::fbs::NanoappListResponseT& response) = 0;
+      const ::chre::fbs::NanoappListResponseT& /*response*/) {};
 
   virtual void handleLoadNanoappResponse(
       const ::chre::fbs::LoadNanoappResponseT& /*response*/) {};
