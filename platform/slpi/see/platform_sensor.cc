@@ -264,7 +264,10 @@ void SeeHelperCallback::onSensorDataEvent(
 }
 
 void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
-  // TODO: post event to power control manager
+  if (EventLoopManagerSingleton::isInitialized()) {
+    EventLoopManagerSingleton::get()->getEventLoop()
+        .getPowerControlManager().onHostWakeSuspendEvent(awake);
+  }
 }
 
 /**
