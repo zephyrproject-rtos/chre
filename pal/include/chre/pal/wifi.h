@@ -266,14 +266,14 @@ struct chrePalWifiApi {
      *   numFramesPerBurst = 8
      *   numRetriesPerRttFrame = 0
      *   numRetriesPerFtmr = 0
-     *   mustRequestLci = false
-     *   mustRequestLcr = false
+     *   mustRequestLci = true
+     *   mustRequestLcr = false (can be true, but not exposed by CHRE)
      *   burstDuration = 15
      *   preamble = derive from channel width
      *   bw = derive from channel width (use total available channel bandwidth)
      *
-     * TODO: support for LCI and explicit preamble extraction from IE to be
-     * added before v1.2 is finalized
+     * TODO: explicit preamble extraction from IE to be added before v1.2 is
+     * finalized
      *
      * @return true if the request was accepted for further processing, in which
      *         case a subsequent call to rangingEventCallback will be used to
