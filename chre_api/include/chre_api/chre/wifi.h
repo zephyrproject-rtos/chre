@@ -25,7 +25,7 @@
  * In this file, specification references use the following shorthand:
  *
  *    Shorthand | Full specification name
- *   -----------+-------------------------
+ *   ---------- | ------------------------
  *     "802.11" | IEEE Std 802.11-2007
  *     "HT"     | IEEE Std 802.11n-2009
  *     "VHT"    | IEEE Std 802.11ac-2013
@@ -80,7 +80,7 @@ extern "C" {
  * nanoappHandleEvent argument: struct chreAsyncResult
  *
  * Communicates the asynchronous result of a request to the WiFi API. The
- * requestType field in chreAsyncResult is set to a value from enum
+ * requestType field in {@link #chreAsyncResult} is set to a value from enum
  * chreWifiRequestType.
  */
 #define CHRE_EVENT_WIFI_ASYNC_RESULT  CHRE_WIFI_EVENT_ID(0)
@@ -237,6 +237,24 @@ extern "C" {
 
 /** @} */
 
+//! Special value indicating that an LCI uncertainty fields is not provided
+//! Ref: RFC 6225
+#define CHRE_WIFI_LCI_UNCERTAINTY_UNKNOWN  UINT8_C(0)
+
+/**
+ * Defines the flags that may be returned in
+ * {@link #chreWifiRangingResult.flags}. Undefined bits are reserved for future
+ * use and must be ignored by nanoapps.
+ * @defgroup CHRE_WIFI_RTT_RESULT_FLAGS
+ * @{
+ */
+
+//! If set, the nested chreWifiLci structure is populated; otherwise it is
+//! invalid and must be ignored
+#define CHRE_WIFI_RTT_RESULT_HAS_LCI  UINT8_C(1 << 0)
+
+/** @} */
+
 /**
  * Identifies a WiFi frequency band
  */
@@ -284,6 +302,15 @@ enum chreWifiRangingStatus {
 
     //! Ranging failed due to an unspecified error
     CHRE_WIFI_RANGING_STATUS_ERROR   = 1,
+};
+
+/**
+ * Possible values for {@link #chreWifiLci.altitudeType}. Ref: RFC 6225 2.4
+ */
+enum chreWifiLciAltitudeType {
+    CHRE_WIFI_LCI_ALTITUDE_TYPE_UNKNOWN = 0,
+    CHRE_WIFI_LCI_ALTITUDE_TYPE_METERS  = 1,
+    CHRE_WIFI_LCI_ALTITUDE_TYPE_FLOORS  = 2,
 };
 
 /**
@@ -622,8 +649,52 @@ struct chreWifiRangingResult {
     //! CHRE_WIFI_RANGING_STATUS_SUCCESS, will be set to 0.
     uint32_t distanceStdDev;
 
+    //! Location Configuration Information (LCI) information optionally returned
+    //! during the ranging procedure. Only valid if {@link #flags} has the
+    //! CHRE_WIFI_RTT_RESULT_HAS_LCI bit set. Refer to IEEE 802.11-2016
+    //! 9.4.2.22.10, 11.24.6.7, and RFC 6225 (July 2011) for more information.
+    //! Coordinates are to be interpreted according to the WGS84 datum.
+    struct chreWifiLci {
+        //! Latitude in degrees as 2's complement fixed-point with 25 fractional
+        //! bits, i.e. degrees * 2^25. Ref: RFC 6225 2.3
+        int64_t latitude;
+
+        //! Longitude, same format as {@link #latitude}
+        int64_t longitude;
+
+        //! Altitude represented as a 2's complement fixed-point value with 8
+        //! fractional bits. Interpretation depends on {@link #altitudeType}. If
+        //! UNKNOWN, this field must be ignored. If *METERS, distance relative
+        //! to the zero point in the vertical datum. If *FLOORS, a floor value
+        //! relative to the ground floor, potentially fractional, e.g. to
+        //! indicate mezzanine levels. Ref: RFC 6225 2.4
+        int32_t altitude;
+
+        //! Maximum extent of latitude uncertainty in degrees, decoded via this
+        //! formula: 2 ^ (8 - x) where "x" is the encoded value passed in this
+        //! field. Unknown if set to CHRE_WIFI_LCI_UNCERTAINTY_UNKNOWN.
+        //! Ref: RFC 6225 2.3.2
+        uint8_t latitudeUncertainty;
+
+        //! @see #latitudeUncertainty
+        uint8_t longitudeUncertainty;
+
+        //! Defines how to interpret altitude, set to a value from enum
+        //! chreWifiLciAltitudeType
+        uint8_t altitudeType;
+
+        //! Uncertainty in altitude, decoded via this formula: 2 ^ (21 - x)
+        //! where "x" is the encoded value passed in this field. Unknown if set
+        //! to CHRE_WIFI_LCI_UNCERTAINTY_UNKNOWN. Only applies when altitudeType
+        //! is CHRE_WIFI_LCI_ALTITUDE_TYPE_METERS. Ref: RFC 6225 2.4.5
+        uint8_t altitudeUncertainty;
+    } lci;
+
+    //! Refer to CHRE_WIFI_RTT_RESULT_FLAGS
+    uint8_t flags;
+
     //! Reserved; set to 0
-    uint8_t reserved[8];
+    uint8_t reserved[7];
 };
 
 /**
@@ -780,7 +851,7 @@ static inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
  * entire ranging request was rejected because WiFi is disabled. However, it is
  * valid for this event to indicate success, but RTT ranging to fail for all
  * requested devices - for example, they may be out of range. Therefore, it is
- * also necessary to check the status field in chreWifiRangingResult.
+ * also necessary to check the status field in {@link #chreWifiRangingResult}.
  *
  * @param params Structure containing the parameters of the scan request,
  *        including the list of devices to attempt ranging.
