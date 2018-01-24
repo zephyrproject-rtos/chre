@@ -28,8 +28,8 @@
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
+#include "chre/platform/slpi/see/see_client.h"
 #include "chre/platform/slpi/see/see_helper.h"
-#include "chre/util/singleton.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/slpi/see/vendor_data_types.h"
@@ -55,10 +55,6 @@ struct SuidAttr {
   sns_std_suid suid;
   SeeAttributes attr;
 };
-
-//! A singleton instance of SeeHelper that can be used for making synchronous
-//! sensor requests. This must only be used from the CHRE thread.
-typedef Singleton<SeeHelper> SeeHelperSingleton;
 
 //! The list of SEE platform sensor data types that CHRE intends to support.
 //! The standardized strings are defined in sns_xxx.proto.
@@ -354,7 +350,7 @@ void addSensor(SensorType sensorType, const sns_std_suid& suid,
   }
 
   bool prevRegistered;
-  bool registered = SeeHelperSingleton::get()->registerSensor(
+  bool registered = getSeeHelper()->registerSensor(
       sensorType, suid, &prevRegistered);
   if (!registered && prevRegistered) {
     LOGW("SUID has been previously registered");
@@ -388,7 +384,7 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
  */
 bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
   DynamicVector<sns_std_suid> suids;
-  bool success = SeeHelperSingleton::get()->findSuidSync(dataType, &suids);
+  bool success = getSeeHelper()->findSuidSync(dataType, &suids);
   if (!success) {
     LOGE("Failed to find sensor '%s'", dataType);
   } else {
@@ -402,7 +398,7 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
       LOGD("0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
 
       SeeAttributes attr;
-      if (!SeeHelperSingleton::get()->getAttributesSync(suid, &attr)) {
+      if (!getSeeHelper()->getAttributesSync(suid, &attr)) {
         success = false;
         LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
              suid.suid_high, suid.suid_low);
@@ -443,13 +439,13 @@ void PlatformSensor::init() {
   SeeHelperSingleton::init();
 
   static SeeHelperCallback seeHelperCallback;
-  if (!SeeHelperSingleton::get()->init(&seeHelperCallback)) {
+  if (!getSeeHelper()->init(&seeHelperCallback)) {
     FATAL_ERROR("Failed to initialize SEE helper");
   }
 }
 
 void PlatformSensor::deinit() {
-  SeeHelperSingleton::get()->deinit();
+  getSeeHelper()->deinit();
   SeeHelperSingleton::deinit();
 }
 

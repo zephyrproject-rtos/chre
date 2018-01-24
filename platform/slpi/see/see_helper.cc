@@ -67,19 +67,9 @@ enum class SeeCalSensor {
   NumCalSensors,
 };
 
-//! A struct to store a sensor's calibration data
-struct SeeCalData {
-  float bias[3];
-  float scale[3];
-  float matrix[9];
-  bool hasBias;
-  bool hasScale;
-  bool hasMatrix;
-};
-
 //! A struct to store a cal sensor's UID and its cal data.
 struct SeeCalInfo {
-  sns_std_suid suid;
+  Optional<sns_std_suid> suid;
   SeeCalData cal;
 };
 
@@ -151,34 +141,52 @@ bool suidsMatch(const sns_std_suid& suid0, const sns_std_suid& suid1) {
           && suid0.suid_low == suid1.suid_low);
 }
 
-size_t getCalIndexFromDataType(const char *dataType) {
+size_t getCalIndexFromSensorType(SensorType sensorType) {
   SeeCalSensor index;
-  if (strcmp(dataType, "accel_cal") == 0) {
-    index =  SeeCalSensor::AccelCal;
-  } else if (strcmp(dataType, "gyro_cal") == 0) {
-    index = SeeCalSensor::GyroCal;
-  } else if (strcmp(dataType, "mag_cal") == 0) {
-    index = SeeCalSensor::MagCal;
-  } else {
-    index = SeeCalSensor::NumCalSensors;
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+      index = SeeCalSensor::AccelCal;
+      break;
+    case SensorType::Gyroscope:
+      index = SeeCalSensor::GyroCal;
+      break;
+    case SensorType::GeomagneticField:
+      index = SeeCalSensor::MagCal;
+      break;
+    default:
+      index = SeeCalSensor::NumCalSensors;
   }
   return static_cast<size_t>(index);
 }
 
+size_t getCalIndexFromDataType(const char *dataType) {
+  SensorType sensorType = SensorType::Unknown;
+  if (strcmp(dataType, "accel_cal") == 0) {
+    sensorType = SensorType::Accelerometer;
+  } else if (strcmp(dataType, "gyro_cal") == 0) {
+    sensorType = SensorType::Gyroscope;
+  } else if (strcmp(dataType, "mag_cal") == 0) {
+    sensorType = SensorType::GeomagneticField;
+  }
+  return getCalIndexFromSensorType(sensorType);
+}
+
 size_t getCalIndexFromSuid(const sns_std_suid& suid) {
-  size_t index = 0;
-  for (; index < static_cast<size_t>(SeeCalSensor::NumCalSensors); index++) {
-    if (suidsMatch(suid, gCalInfo[index].suid)) {
+  size_t i = 0;
+  for (; i < static_cast<size_t>(SeeCalSensor::NumCalSensors); i++) {
+    if (gCalInfo[i].suid.has_value()
+        && suidsMatch(suid, gCalInfo[i].suid.value())) {
       break;
     }
   }
-  return index;
+  return i;
 }
 
 SeeCalData *getCalDataFromSuid(const sns_std_suid& suid) {
   for (size_t i = 0;
        i < static_cast<size_t>(SeeCalSensor::NumCalSensors); i++) {
-    if (suidsMatch(suid, gCalInfo[i].suid)) {
+    if (gCalInfo[i].suid.has_value()
+        && suidsMatch(suid, gCalInfo[i].suid.value())) {
       return &gCalInfo[i].cal;
     }
   }
@@ -965,6 +973,8 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
              matrix.val[3], matrix.val[4], matrix.val[5],
              matrix.val[6], matrix.val[7], matrix.val[8]);
       }
+
+      cal->accuracy = static_cast<uint8_t>(event.status);
     }
   }
   return success;
@@ -1454,7 +1464,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
 
     if (success) {
       success = sendReq(qmiHandle, suid,
-                        nullptr /* syncData */, nullptr /* syncDatType */,
+                        nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
                         false /* waitForIndication */);
@@ -1642,9 +1652,8 @@ bool SeeHelper::initCalSensors() {
   // Zero out gCalInfo to avoid accidental suid and data match.
   memset(gCalInfo, 0, sizeof(gCalInfo));
 
-  // TODO: uncomment accel_cal when it's ready.
   const char *kCalTypes[] = {
-    //"accel_cal",
+    "accel_cal",
     "gyro_cal",
     "mag_cal",
   };
