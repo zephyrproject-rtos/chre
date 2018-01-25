@@ -1430,37 +1430,42 @@ bool SeeHelper::sendReq(
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
                                batchValid, batchPeriodUs, timeoutResp);
   } else {
-    LockGuard<Mutex> lock(mMutex);
-    CHRE_ASSERT(!mWaiting);
+    {
+      LockGuard<Mutex> lock(mMutex);
+      CHRE_ASSERT(!mWaiting);
+      mWaiting = true;
 
-    // Specify members needed for a sync call.
-    mSyncSuid = suid;
-    mSyncData = syncData;
-    mSyncDataType = syncDataType;
+      // Specify members needed for a sync call.
+      mSyncSuid = suid;
+      mSyncData = syncData;
+      mSyncDataType = syncDataType;
+    }
 
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
                                batchValid, batchPeriodUs, timeoutResp);
 
-    if (success) {
-      bool waitSuccess = true;
-      mWaiting = true;
+    {
+      LockGuard<Mutex> lock(mMutex);
+      if (success) {
+        bool waitSuccess = true;
 
-      while (mWaiting && waitSuccess) {
-        waitSuccess = mCond.wait_for(mMutex, timeoutInd);
-      }
+        while (mWaiting && waitSuccess) {
+          waitSuccess = mCond.wait_for(mMutex, timeoutInd);
+        }
 
-      if (!waitSuccess) {
-        LOGE("QMI indication timed out after %" PRIu64 " ms",
-             Milliseconds(timeoutInd).getMilliseconds());
-        success = false;
-        mWaiting = false;
+        if (!waitSuccess) {
+          LOGE("QMI indication timed out after %" PRIu64 " ms",
+               Milliseconds(timeoutInd).getMilliseconds());
+          success = false;
+        }
       }
+      mWaiting = false;
+
+      // Reset members needed for a sync call.
+      mSyncSuid = sns_suid_sensor_init_zero;
+      mSyncData = nullptr;
+      mSyncDataType = nullptr;
     }
-
-    // Reset members needed for a sync call.
-    mSyncSuid = sns_suid_sensor_init_zero;
-    mSyncData = nullptr;
-    mSyncDataType = nullptr;
   }
   return success;
 }
