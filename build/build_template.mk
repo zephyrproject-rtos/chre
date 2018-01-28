@@ -224,34 +224,30 @@ $$($$(1)_CC_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
 	mkdir -p $$(dir $$@)
 	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
 	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
-	$(DEP_POST_COMPILE)
 
 $$($$(1)_CPP_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cpp
 	mkdir -p $$(dir $$@)
 	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
 	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
-	$(DEP_POST_COMPILE)
 
 $$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
 	mkdir -p $$(dir $$@)
 	$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) \
 	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
-	$(DEP_POST_COMPILE)
 
 $$($$(1)_S_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.S
 	mkdir -p $$(dir $$@)
 	$(3) $(DEP_CFLAGS) \
 	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
-	$(DEP_POST_COMPILE)
 
 # Include generated dependency files if they are in the requested build target.
 # This avoids dependency generation from occuring for a debug target when a
 # non-debug target is requested.
 ifneq ($(filter $(1) all, $(MAKECMDGOALS)),)
-include $$(patsubst %.o, %.d, $$($$(1)_CC_DEPS))
-include $$(patsubst %.o, %.d, $$($$(1)_CPP_DEPS))
-include $$(patsubst %.o, %.d, $$($$(1)_C_DEPS))
-include $$(patsubst %.o, %.d, $$($$(1)_S_DEPS))
+-include $$(patsubst %.o, %.d, $$($$(1)_CC_DEPS))
+-include $$(patsubst %.o, %.d, $$($$(1)_CPP_DEPS))
+-include $$(patsubst %.o, %.d, $$($$(1)_C_DEPS))
+-include $$(patsubst %.o, %.d, $$($$(1)_S_DEPS))
 endif
 
 endef
