@@ -119,10 +119,9 @@ struct chreAudioSource {
    *
    * If the requested audio source is preempted by another feature of the system
    * (e.g. hotword), a gap may occur in received audio data. This is indicated
-   * to the client by posting a CHRE_EVENT_AUDIO_SAMPLING_CHANGE event with the
-   * sample rate set to zero. The nanoapp will then receive another
-   * CHRE_EVENT_AUDIO_SAMPLING_CHANGE event once the audio source is available
-   * again.
+   * to the client by posting a CHRE_EVENT_AUDIO_SAMPLING_CHANGE event. The
+   * nanoapp will then receive another CHRE_EVENT_AUDIO_SAMPLING_CHANGE event
+   * once the audio source is available again.
    */
   uint32_t sampleRate;
 
