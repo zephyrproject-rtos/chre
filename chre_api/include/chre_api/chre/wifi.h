@@ -194,7 +194,7 @@ extern "C" {
 //! Retained for backwards compatibility
 //! @see CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER
 #define CHRE_WIFI_SCAN_RESULT_FLAGS_IS_80211MC_RTT_RESPONDER \
-    CHRE_WIFI_SCAN_RESULT_FLAGS_IS_RTT_RESPONDER
+    CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER
 
 //! HT Operation element indicates that a secondary channel is present
 //! (see HT 7.3.2.57)
