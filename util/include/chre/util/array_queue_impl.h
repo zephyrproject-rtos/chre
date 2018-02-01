@@ -20,8 +20,8 @@
 #include <new>
 #include <utility>
 
-#include "chre/platform/assert.h"
 #include "chre/util/array_queue.h"
+#include "chre/util/container_support.h"
 
 namespace chre {
 
