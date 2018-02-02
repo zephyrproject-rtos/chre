@@ -185,6 +185,10 @@ struct chrePalWifiApi {
      * Configures whether the scanEventCallback receives unsolicited scan
      * results, i.e. the results of scans not performed at the request of CHRE.
      *
+     * While not expected, a duplicate request, e.g. one that requests to enable
+     * scan monitoring when it is already enabled, must follow the successful
+     * callback flow.
+     *
      * @param enable true to enable listening for all available scan results
      *
      * @return true if the request was accepted for processing, in which case a
@@ -223,6 +227,20 @@ struct chrePalWifiApi {
      * given, and the call(s) to scanEventCallback() occurring immediately after
      * scanResponseCallback() must be associated with this scan request, and not
      * results delivered pursuant to an active scan monitor registration.
+     *
+     * This function must follow the CHRE API-defined behavior regarding
+     * timeouts. In other words, if a successful scan result is not produced by
+     * the lower layers within CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS,
+     * scanResponseCallback() must be invoked to indicate the failure, and any
+     * late arriving scan result from the lower layers must be dropped.
+     *
+     * At most 1 scan can be in progress from this API at any given time.
+     * In other words, the implementation should return false if another scan
+     * initiated via this function has not completed, i.e. it has not failed
+     * yet, or the final scan event has not yet been delivered via
+     * scanEventCallback(). However, this function must accept and queue a scan
+     * request made from this API while a scan requested by another client, such
+     * as the applications processor, is in progress.
      *
      * @param params See chreWifiRequestScanAsync(). If requestedApiVersion
      *        supplied to chrePalWifiGetApi is at least CHRE_PAL_WIFI_API_V1_2,
@@ -280,6 +298,17 @@ struct chrePalWifiApi {
      *   the configuration used is ultimately negotiated with the responding
      *   STA. Therefore, it is up to the underlying WiFi implementation to pick
      *   suitable values.
+     *
+     * Like {@link #requestScan}, this function must follow the CHRE API-defined
+     * behavior regarding timeouts, indicating failure via rangingEventCallback
+     * if the lower layers do not produce a result within
+     * CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS.
+     *
+     * Also like {@link #requestScan}, at most 1 RTT ranging request can be in
+     * progress from this API at any given time. Implementations should return
+     * false if this condition is not met, but must queue a request made from
+     * this API while a request from another client, such as the applications
+     * processor, is in progress.
      *
      * @return true if the request was accepted for further processing, in which
      *         case a subsequent call to rangingEventCallback will be used to
