@@ -71,7 +71,7 @@ struct chrePalWifiCallbacks {
      *        otherwise
      * @param errorCode An error code from enum chreError
      *
-     * @see #configureScanMonitor
+     * @see chrePalWifiApi.configureScanMonitor
      * @see #chreError
      */
     void (*scanMonitorStatusChangeCallback)(bool enabled, uint8_t errorCode);
@@ -116,8 +116,8 @@ struct chrePalWifiCallbacks {
      *        must ensure that this memory remains accessible until it is passed
      *        to the releaseScanEvent() function in struct chrePalWifiApi.
      *
-     * @see #configureScanMonitor
-     * @see #requestScan
+     * @see chrePalWifiApi.configureScanMonitor
+     * @see chrePalWifiApi.requestScan
      */
     void (*scanEventCallback)(struct chreWifiScanEvent *event);
 
@@ -259,6 +259,7 @@ struct chrePalWifiApi {
      * defined in the HAL in struct RttConfig, the following default values
      * should be used to fill the fields not specified in the CHRE structure:
      *
+     * <pre>
      *   type = TWO_SIDED
      *   peer = AP
      *   burstPeriod = 0
@@ -271,6 +272,7 @@ struct chrePalWifiApi {
      *   burstDuration = 15
      *   preamble = implementation-dependent**
      *   bw = implementation-dependent**
+     * </pre>
      *
      * **These are used to populate the Format And Bandwidth field in the Fine
      *   Timing Measurement Parameters element. Per the specification, proposed
