@@ -86,7 +86,7 @@ struct chrePalGnssCallbacks {
      *        otherwise
      * @param errorCode An error code from enum chreError
      *
-     * @see #controlLocationSession
+     * @see chrePalGnssApi.controlLocationSession
      * @see #chreError
      */
     void (*locationStatusChangeCallback)(bool enabled, uint8_t errorCode);

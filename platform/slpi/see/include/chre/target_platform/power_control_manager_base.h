@@ -33,7 +33,18 @@ class PowerControlManagerBase {
    */
   bool voteBigImage(bool bigImage);
 
-  // TODO(P2-51d645): Declare PM client handle
+  /**
+   * Sets the AP awake/suspended state and posts an event to interested
+   * nanoapps. This method should only be invoked by the SEE helper as a
+   * result of an event from the remote_proc_state sensor.
+   *
+   * @param awake true if the AP is awake, false otherwise
+   */
+  void onHostWakeSuspendEvent(bool awake);
+
+ protected:
+  //! Set to true if the host is awake, false if suspended.
+  bool mHostIsAwake = true;
 };
 
 } // namespace chre

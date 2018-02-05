@@ -49,6 +49,9 @@ class SeeHelperCallbackInterface {
   //! specified by sensorType.
   virtual void onSensorDataEvent(
       SensorType sensorType, UniquePtr<uint8_t>&& eventData) = 0;
+
+  //! Invoked by the SEE thread to update the AP wake/suspend status.
+  virtual void onHostWakeSuspendEvent(bool apAwake) = 0;
 };
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
@@ -208,6 +211,13 @@ class SeeHelper : public NonCopyable {
    * @return true if cal sensor have been succcessfully initialized.
    */
   bool initCalSensors();
+
+  /**
+   * Initializes the SEE remote processor sensor and makes a data request.
+   *
+   * @return true if the remote proc sensor was successfully initialized.
+   */
+  bool initRemoteProcSensor();
 
   /**
    * Wrapper to send a QMI request and wait for the indication if it's a

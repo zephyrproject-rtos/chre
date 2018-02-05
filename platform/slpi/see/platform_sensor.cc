@@ -46,6 +46,8 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
 
   void onSensorDataEvent(
       SensorType sensorType, UniquePtr<uint8_t>&& eventData) override;
+
+  void onHostWakeSuspendEvent(bool awake) override;
 };
 
 //! A struct to facilitate sensor discovery
@@ -261,6 +263,13 @@ void SeeHelperCallback::onSensorDataEvent(
   eventData.release();
 }
 
+void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
+  if (EventLoopManagerSingleton::isInitialized()) {
+    EventLoopManagerSingleton::get()->getEventLoop()
+        .getPowerControlManager().onHostWakeSuspendEvent(awake);
+  }
+}
+
 /**
  * Allocates memory and specifies the memory size for an on-change sensor to
  * store its last data event.
@@ -434,7 +443,9 @@ void PlatformSensor::init() {
   SeeHelperSingleton::init();
 
   static SeeHelperCallback seeHelperCallback;
-  SeeHelperSingleton::get()->init(&seeHelperCallback);
+  if (!SeeHelperSingleton::get()->init(&seeHelperCallback)) {
+    FATAL_ERROR("Failed to initialize SEE helper");
+  }
 }
 
 void PlatformSensor::deinit() {

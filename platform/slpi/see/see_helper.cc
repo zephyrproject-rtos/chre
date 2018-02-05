@@ -23,6 +23,7 @@
 #include "sns_client_api_v01.h"
 #include "sns_proximity.pb.h"
 #include "sns_rc.h"
+#include "sns_remote_proc_state.pb.h"
 #include "sns_std.pb.h"
 #include "sns_std_sensor.pb.h"
 #include "stringl.h"
@@ -37,6 +38,7 @@
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/system_time_util.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/optional.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/vendor_sensor_types.h"
@@ -53,6 +55,9 @@ constexpr Seconds kSuidReqMaxDwellSec = Seconds(10);
 
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
+
+//! The SUID for the remote_proc sensor.
+Optional<sns_std_suid> gRemoteProcSuid;
 
 //! The list of SEE cal sensors.
 enum class SeeCalSensor {
@@ -113,6 +118,8 @@ struct SeeDataArg {
   UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> status;
   SeeCalData *cal;
   SensorType sensorType;
+  bool isHostWakeSuspendEvent;
+  bool isHostAwake;
 };
 
 //! A struct to facilitate pb decode
@@ -322,6 +329,29 @@ bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
       }
     }
   }
+  return success;
+}
+
+bool encodeSnsRemoteProcSensorConfig(pb_byte_t *msgBuffer, size_t msgBufferSize,
+                                     size_t *msgLen,
+                                     sns_std_client_processor processorType) {
+  CHRE_ASSERT(msgBuffer);
+  CHRE_ASSERT(msgLen);
+
+  sns_remote_proc_state_config request = {
+    .proc_type = processorType,
+  };
+
+  pb_ostream_t stream = pb_ostream_from_buffer(msgBuffer, msgBufferSize);
+  bool success = pb_encode(
+      &stream, sns_remote_proc_state_config_fields, &request);
+  if (!success) {
+    LOGE("Error encoding sns_remote_proc_state_config: %s",
+         PB_GET_ERROR(&stream));
+  } else {
+    *msgLen = stream.bytes_written;
+  }
+
   return success;
 }
 
@@ -993,44 +1023,77 @@ bool decodeSnsProximityProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
+bool decodeSnsRemoteProcStateEvent(
+    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+  sns_remote_proc_state_event event = sns_remote_proc_state_event_init_default;
+  bool success = pb_decode(stream, sns_remote_proc_state_event_fields, &event);
+  if (!success) {
+    LOGE("Error decoding sns_remote_proc_state_event: %s",
+         PB_GET_ERROR(stream));
+  } else if (event.proc_type == SNS_STD_CLIENT_PROCESSOR_APSS) {
+    auto *info = static_cast<SeeInfoArg *>(*arg);
+    info->data->isHostWakeSuspendEvent = true;
+    info->data->isHostAwake =
+        (event.event_type == SNS_REMOTE_PROC_STATE_AWAKE);
+  }
+  return success;
+}
+
+/**
+ * Decode messages defined in sns_remote_proc_state.proto
+ */
+bool decodeSnsRemoteProcProtoEvent(
+    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+  bool success = false;
+  auto *info = static_cast<SeeInfoArg *>(*arg);
+  switch (info->msgId) {
+    case SNS_REMOTE_PROC_STATE_MSGID_SNS_REMOTE_PROC_STATE_EVENT:
+      success = decodeSnsRemoteProcStateEvent(stream, field, arg);
+      break;
+
+    default:
+      LOGW("Unhandled sns_remote_proc_state.proto msg ID %" PRIu32,
+           info->msgId);
+  }
+  return success;
+}
+
 bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
   bool success = true;
 
   payload->arg = const_cast<SeeInfoArg *>(info);
 
-  switch (info->msgId) {
-    case SNS_SUID_MSGID_SNS_SUID_EVENT:
-      // TODO: remove the SUID comparison once b/69456964 is resolved.
-      if (suidsMatch(info->suid, kSuidLookup)) {
-        payload->funcs.decode = decodeSnsSuidProtoEvent;
-      } else {
+  if (gRemoteProcSuid.has_value()
+      && suidsMatch(info->suid, gRemoteProcSuid.value())) {
+    payload->funcs.decode = decodeSnsRemoteProcProtoEvent;
+  } else if (suidsMatch(info->suid, kSuidLookup)) {
+    payload->funcs.decode = decodeSnsSuidProtoEvent;
+  } else {
+    // Assumed: "real" sensors SUIDs
+    switch (info->msgId) {
+      case SNS_STD_MSGID_SNS_STD_ATTR_EVENT:
+      case SNS_STD_MSGID_SNS_STD_FLUSH_EVENT:
+      case SNS_STD_MSGID_SNS_STD_ERROR_EVENT:
+        payload->funcs.decode = decodeSnsStdProtoEvent;
+        break;
+
+      case SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_PHYSICAL_CONFIG_EVENT:
+      case SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT:
         payload->funcs.decode = decodeSnsStdSensorProtoEvent;
-      }
-      break;
+        break;
 
-    case SNS_STD_MSGID_SNS_STD_ATTR_EVENT:
-    case SNS_STD_MSGID_SNS_STD_FLUSH_EVENT:
-    case SNS_STD_MSGID_SNS_STD_ERROR_EVENT:
-      payload->funcs.decode = decodeSnsStdProtoEvent;
-      break;
+      case SNS_CAL_MSGID_SNS_CAL_EVENT:
+        payload->funcs.decode = decodeSnsCalProtoEvent;
+        break;
 
-    // TODO: uncomment this case once b/69456964 is resolved.
-    //case SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_PHYSICAL_CONFIG_EVENT:
-    case SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT:
-      payload->funcs.decode = decodeSnsStdSensorProtoEvent;
-      break;
+      case SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT:
+        payload->funcs.decode = decodeSnsProximityProtoEvent;
+        break;
 
-    case SNS_CAL_MSGID_SNS_CAL_EVENT:
-      payload->funcs.decode = decodeSnsCalProtoEvent;
-      break;
-
-    case SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT:
-      payload->funcs.decode = decodeSnsProximityProtoEvent;
-      break;
-
-    default:
-      success = false;
-      LOGW("Unhandled msg ID %" PRIu32, info->msgId);
+      default:
+        success = false;
+        LOGW("Unhandled msg ID %" PRIu32, info->msgId);
+    }
   }
   return success;
 }
@@ -1218,7 +1281,9 @@ void SeeHelper::handleSnsClientEventMsg(
 
   // Only initialize fields that are not accessed in the main CHRE thread.
   SeeSyncArg syncArg = {};
-  SeeDataArg dataArg = {};
+  SeeDataArg dataArg = {
+    .isHostWakeSuspendEvent = false,
+  };
   SeeInfoArg info = {
     .qmiHandle = qmiHandle,
     .sync = &syncArg,
@@ -1262,6 +1327,9 @@ void SeeHelper::handleSnsClientEventMsg(
       mWaiting = false;
       mCond.notify_one();
     } else {
+      if (info.data->isHostWakeSuspendEvent) {
+        mCbIf->onHostWakeSuspendEvent(info.data->isHostAwake);
+      }
       if (!info.data->event.isNull()) {
         mCbIf->onSensorDataEvent(
             info.data->sensorType, std::move(info.data->event));
@@ -1350,18 +1418,13 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
   ASSERT(cbIf);
 
   mCbIf = cbIf;
-
   qmi_client_type qmiHandle;
-  bool success = waitForService(&qmiHandle, timeout);
-  if (success) {
-    success = mQmiHandles.push_back(qmiHandle);
 
-    // Initialize all cal sensors before making sensor data request.
-    if (success) {
-      success = initCalSensors();
-    }
-  }
-  return success;
+  // Initialize cal/remote_proc_state sensors before making sensor data request.
+  return (waitForService(&qmiHandle, timeout)
+          && mQmiHandles.push_back(qmiHandle)
+          && initCalSensors()
+          && initRemoteProcSensor());
 }
 
 bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
@@ -1605,17 +1668,50 @@ bool SeeHelper::initCalSensors() {
         gCalInfo[index].suid = suids[0];
 
         if (!sendReq(mQmiHandles[0], suids[0],
-                nullptr /* syncData */, nullptr /* syncDatType */,
-                SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG,
-                nullptr /* msg */, 0 /* msgLen */,
-                false /* batchValid */, 0 /* batchPeriodUs */,
-                false /* waitForIndication */)) {
+                     nullptr /* syncData */, nullptr /* syncDataType */,
+                     SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG,
+                     nullptr /* msg */, 0 /* msgLen */,
+                     false /* batchValid */, 0 /* batchPeriodUs */,
+                     false /* waitForIndication */)) {
           success = false;
           LOGE("Failed to request '%s' data", calType);
         }
       }
     }
   }
+  return success;
+}
+
+bool SeeHelper::initRemoteProcSensor() {
+  bool success = false;
+
+  const char *kRemoteProcType = "remote_proc_state";
+  DynamicVector<sns_std_suid> suids;
+  if (!findSuidSync(kRemoteProcType, &suids)) {
+    LOGE("Failed to find sensor '%s'", kRemoteProcType);
+  } else if (suids.size() != 1) {
+    LOGE("Invalid number of remote '%s' sensor found: %zu",
+         kRemoteProcType, suids.size());
+  } else {
+    gRemoteProcSuid = suids[0];
+
+    uint32_t msgId = SNS_REMOTE_PROC_STATE_MSGID_SNS_REMOTE_PROC_STATE_CONFIG;
+    constexpr size_t kBufferSize = sns_remote_proc_state_config_size;
+    pb_byte_t msgBuffer[kBufferSize];
+    size_t msgLen;
+    if (encodeSnsRemoteProcSensorConfig(msgBuffer, kBufferSize, &msgLen,
+                                        SNS_STD_CLIENT_PROCESSOR_APSS)) {
+      success = sendReq(mQmiHandles[0], gRemoteProcSuid.value(),
+                        nullptr /* syncData */, nullptr /* syncDataType */,
+                        msgId, msgBuffer, msgLen,
+                        false /* batchValid */, 0 /* batchPeriodUs */,
+                        false /* waitForIndication */);
+      if (!success) {
+        LOGE("Failed to request '%s' config", kRemoteProcType);
+      }
+    }
+  }
+
   return success;
 }
 

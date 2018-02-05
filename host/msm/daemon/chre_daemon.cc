@@ -183,8 +183,8 @@ static int64_t getTimeOffset(bool *success) {
   int64_t timeOffset = 0;
 
 #if defined(__aarch64__)
-  // Reads the system time counter (CNTPCT) and its frequency (CNTFRQ)
-  // CNTPCT is used in the SLPI uTimetick API to compute the CHRE time
+  // Reads the system time counter (CNTVCT) and its frequency (CNTFRQ)
+  // CNTVCT is used in the sensors HAL for time synchronization.
   // More information can be found in the ARM reference manual
   // (http://infocenter.arm.com/help/index.jsp?topic=
   // /com.arm.doc.100048_0002_05_en/jfa1406793266982.html)
@@ -193,7 +193,7 @@ static int64_t getTimeOffset(bool *success) {
   // com.arm.doc.den0024a/ch06s05s02.html)
   uint64_t qTimerCount = 0, qTimerFreq = 0;
   uint64_t hostTimeNano = elapsedRealtimeNano();
-  asm volatile("mrs %0, cntpct_el0" : "=r"(qTimerCount));
+  asm volatile("mrs %0, cntvct_el0" : "=r"(qTimerCount));
   asm volatile("mrs %0, cntfrq_el0" : "=r"(qTimerFreq));
 
   constexpr uint64_t kOneSecondInNanoseconds = 1000000000;
@@ -202,7 +202,7 @@ static int64_t getTimeOffset(bool *success) {
     // overflow
     uint64_t qTimerNanos = (qTimerCount / qTimerFreq);
     if (qTimerNanos > UINT64_MAX / kOneSecondInNanoseconds) {
-      LOGE("CNTPCT_EL0 conversion to nanoseconds overflowed during time sync."
+      LOGE("CNTVCT_EL0 conversion to nanoseconds overflowed during time sync."
            " Aborting time sync.");
       *success = false;
     } else {

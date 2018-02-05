@@ -11,6 +11,7 @@ COMMON_CFLAGS += -Iapps/include
 include apps/audio_world/audio_world.mk
 include apps/gnss_world/gnss_world.mk
 include apps/hello_world/hello_world.mk
+include apps/host_awake_world/host_awake_world.mk
 include apps/message_world/message_world.mk
 include apps/sensor_world/sensor_world.mk
 include apps/spammer/spammer.mk

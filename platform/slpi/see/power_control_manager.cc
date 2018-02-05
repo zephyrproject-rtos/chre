@@ -41,6 +41,16 @@ bool PowerControlManagerBase::voteBigImage(bool bigImage) {
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
+void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
+  if (mHostIsAwake != awake) {
+    mHostIsAwake = awake;
+
+    EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+        mHostIsAwake ? CHRE_EVENT_HOST_AWAKE : CHRE_EVENT_HOST_ASLEEP,
+        nullptr /* eventData */, nullptr /* freeCallback */);
+  }
+}
+
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
   if (numPendingEvents == 0 && !slpiInUImage()) {
     voteBigImage(false);
@@ -48,8 +58,7 @@ void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
 }
 
 bool PowerControlManager::hostIsAwake() {
-  // TODO(P1-fa1285): Implement this.
-  return true;
+  return mHostIsAwake;
 }
 
 } // namespace chre

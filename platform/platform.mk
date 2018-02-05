@@ -129,6 +129,7 @@ SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_cal.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_client.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_physical_sensor_test.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_proximity.pb.c
+SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_remote_proc_state.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std_sensor.pb.c
 SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std_type.pb.c
