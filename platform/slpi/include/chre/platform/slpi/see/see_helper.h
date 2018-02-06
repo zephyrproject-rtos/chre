@@ -76,6 +76,17 @@ struct SeeAttributes {
   uint8_t streamType;
 };
 
+//! A struct to store a sensor's calibration data
+struct SeeCalData {
+  float bias[3];
+  float scale[3];
+  float matrix[9];
+  bool hasBias;
+  bool hasScale;
+  bool hasMatrix;
+  uint8_t accuracy;
+};
+
 //! A struct to facilitate making sensor request
 struct SeeSensorRequest {
   SensorType sensorType;
