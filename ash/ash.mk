@@ -6,6 +6,7 @@
 
 # Include paths.
 COMMON_CFLAGS += -Iash/include
+COMMON_CFLAGS += -Iash/include/ash_api
 
 # SLPI/SMGR-specific Source Files ##############################################
 
