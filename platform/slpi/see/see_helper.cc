@@ -38,6 +38,7 @@
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/system_time_util.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/macros.h"
 #include "chre/util/optional.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
@@ -135,11 +136,6 @@ struct SeeAttrArg {
   };
   bool initialized;
 };
-
-bool suidsMatch(const sns_std_suid& suid0, const sns_std_suid& suid1) {
-  return (suid0.suid_high == suid1.suid_high
-          && suid0.suid_low == suid1.suid_low);
-}
 
 size_t getCalIndexFromSensorType(SensorType sensorType) {
   SeeCalSensor index;
@@ -951,7 +947,8 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
       //     info->suid.suid_high, info->suid.suid_low);
     } else {
       SeeCalData *cal = &gCalInfo[calIndex].cal;
-      LOGD("Cal sensor %zu:", calIndex);
+      LOGD("Cal sensor %zu: status %" PRIu8,
+           calIndex, static_cast<uint8_t>(event.status));
 
       cal->hasBias = (offset.index == 3);
       if (cal->hasBias) {
@@ -1277,7 +1274,7 @@ bool getSensorInfo(SensorType sensorType,
   return success;
 }
 
-}  // anonymous
+}  // anonymous namespace
 
 void SeeHelper::handleSnsClientEventMsg(
     qmi_client_type qmiHandle, const void *payload, size_t payloadLen) {
@@ -1485,6 +1482,18 @@ bool SeeHelper::deinit() {
   mQmiHandles.clear();
   mSensorInfos.clear();
   return success;
+}
+
+const sns_std_suid& SeeHelper::getCalSuidFromSensorType(
+    SensorType sensorType) const {
+  static sns_std_suid suid = sns_suid_sensor_init_zero;
+
+  size_t calIndex = getCalIndexFromSensorType(sensorType);
+  if (calIndex < static_cast<size_t>(SeeCalSensor::NumCalSensors)
+      && gCalInfo[calIndex].suid.has_value()) {
+    suid = gCalInfo[calIndex].suid.value();
+  }
+  return suid;
 }
 
 bool SeeHelper::sendReq(

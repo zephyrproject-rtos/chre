@@ -30,6 +30,11 @@
 
 namespace chre {
 
+inline bool suidsMatch(const sns_std_suid& suid0, const sns_std_suid& suid1) {
+  return (suid0.suid_high == suid1.suid_high
+          && suid0.suid_low == suid1.suid_low);
+}
+
 //! A callback interface for receiving SeeHelper data events.
 class SeeHelperCallbackInterface {
  public:
@@ -184,6 +189,40 @@ class SeeHelper : public NonCopyable {
    */
   bool registerSensor(SensorType sensorType, const sns_std_suid& suid,
                       bool *prevRegistered);
+
+ protected:
+  /**
+   * Get the cached SUID of a calibration sensor that corresponds to the
+   * specified sensorType.
+   *
+   * @param sensorType The sensor type of the calibration sensor.
+   *
+   * @return A constant reference to the calibration sensor's SUID if present.
+   *         Otherwise, a reference to sns_suid_sensor_init_zero is returned.
+   */
+  const sns_std_suid& getCalSuidFromSensorType(SensorType sensorType) const;
+
+  /**
+   * A convenience method to send a QMI request and wait for the indication if
+   * it's a synchronous one using the default QMI handle obtained in init().
+   *
+   * @see sendReq
+   */
+  inline bool sendReq(
+      const sns_std_suid& suid,
+      void *syncData, const char *syncDataType,
+      uint32_t msgId, void *payload, size_t payloadLen,
+      bool batchValid, uint32_t batchPeriodUs,
+      bool waitForIndication,
+      Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
+      Nanoseconds timeoutInd = kDefaultSeeIndTimeout) {
+    return sendReq(mQmiHandles[0], suid,
+                   syncData, syncDataType,
+                   msgId, payload, payloadLen,
+                   batchValid, batchPeriodUs,
+                   waitForIndication,
+                   timeoutResp, timeoutInd);
+  }
 
  private:
   //! Used to synchronize indications.
