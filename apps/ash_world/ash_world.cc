@@ -87,20 +87,20 @@ struct ashCalParams magCalParams = {
 };
 
 struct ashCalInfo accCalInfo = {
-  .bias = {0.1, -0.1, 0.2},
-  .compMatrix = {1.0, 0.1, -0.1, 0.2, -0.2, 1.0, 0.3, -0.3, 1.0},
+  .bias = {0.1f, -0.1f, 0.2f},
+  .compMatrix = {1.0f, 0.1f, -0.1f, 0.2f, -0.2f, 1.0f, 0.3f, -0.3f, 1.0f},
   .accuracy = 1,
 };
 
 struct ashCalInfo gyrCalInfo = {
-  .bias = {0.2, -0.2, 0.1},
-  .compMatrix = {1.0, 0.2, -0.2, 0.4, -0.4, 1.0, 0.6, -0.6, 1.0},
+  .bias = {0.2f, -0.2f, 0.1f},
+  .compMatrix = {1.0f, 0.2f, -0.2f, 0.4f, -0.4f, 1.0f, 0.6f, -0.6f, 1.0f},
   .accuracy = 2,
 };
 
 struct ashCalInfo magCalInfo = {
   .bias = {10, -10, 20},
-  .compMatrix = {1.0, -0.1, 0.1, -0.2, 0.2, 1.0, -0.3, 0.3, 1.0},
+  .compMatrix = {1.0f, -0.1f, 0.1f, -0.2f, 0.2f, 1.0f, -0.3f, 0.3f, 1.0f},
   .accuracy = 3,
 };
 
