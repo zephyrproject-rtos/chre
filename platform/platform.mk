@@ -64,7 +64,7 @@ SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/utils/nanopb
 
 SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
 
-SLPI_SEE_CFLAGS += -I$(SEE_PROTO_DIR)
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
 
 SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
 
@@ -125,15 +125,15 @@ SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_cal.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_client.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_physical_sensor_test.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_proximity.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_remote_proc_state.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std_sensor.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_std_type.pb.c
-SLPI_SEE_SRCS += $(SEE_PROTO_DIR)/sns_suid.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_cal.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_physical_sensor_test.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_proximity.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_remote_proc_state.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c
 
 # Simulator-specific Compiler Flags ############################################
 

@@ -386,13 +386,13 @@ void sendDebugDumpData(uint16_t hostClientId, const char *debugStr,
         builder, data->hostClientId, data->debugStr, data->debugStrSize);
   };
 
-  constexpr size_t kInitialSize = 48;
+  constexpr size_t kFixedSizePortion = 52;
   DebugDumpMessageData data;
   data.hostClientId = hostClientId;
   data.debugStr     = debugStr;
   data.debugStrSize = debugStrSize;
-  buildAndEnqueueMessage(PendingMessageType::DebugDumpData, kInitialSize,
-                         msgBuilder, &data);
+  buildAndEnqueueMessage(PendingMessageType::DebugDumpData,
+                         kFixedSizePortion + debugStrSize, msgBuilder, &data);
 }
 
 void sendDebugDumpResponse(DebugDumpCallbackData *data) {
