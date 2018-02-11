@@ -54,3 +54,39 @@ DLL_EXPORT const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
   },
 };
 
+// New symbols introduced in CHRE API v1.2; default implementations included for
+// backwards compatibility. Note that we don't presently include symbols for
+// v1.1 as the current set of nanoapps using this NSL do not target v1.0
+// implementations.
+
+WEAK_SYMBOL bool chreAudioGetSource(uint32_t handle,
+                                    struct chreAudioSource *audioSource) {
+  return false;
+}
+
+WEAK_SYMBOL bool chreAudioConfigureSource(uint32_t handle, bool enable,
+                                          uint64_t bufferDuration,
+                                          uint64_t deliveryInterval) {
+  return false;
+}
+
+WEAK_SYMBOL bool chreAudioGetStatus(uint32_t handle,
+                                    struct chreAudioSourceStatus *status) {
+  return false;
+}
+
+WEAK_SYMBOL void chreConfigureHostSleepStateEvents(bool enable) {}
+
+WEAK_SYMBOL bool chreIsHostAwake(void) {
+  return false;
+}
+
+WEAK_SYMBOL bool chreGnssConfigureLocationMonitor(bool enable) {
+  return false;
+}
+
+WEAK_SYMBOL bool chreWifiRequestRangingAsync(
+    const struct chreWifiRangingParams *params, const void *cookie) {
+  return false;
+}
+

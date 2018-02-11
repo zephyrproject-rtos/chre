@@ -37,6 +37,9 @@ TARGET_CFLAGS += -fpic
 # Disable splitting double registers.
 TARGET_CFLAGS += -mllvm -disable-hsdr
 
+# Don't use small data section.
+TARGET_CFLAGS += -G0
+
 # Enable default visibility for FastRPC entry points.
 TARGET_CFLAGS += -D'__QAIC_SKEL_EXPORT=__attribute__((visibility("default")))'
 
