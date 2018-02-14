@@ -1661,8 +1661,9 @@ bool SeeHelper::initCalSensors() {
   // Zero out gCalInfo to avoid accidental suid and data match.
   memset(gCalInfo, 0, sizeof(gCalInfo));
 
+  // TODO: uncomment accel_cal when it's enabled in SEE.
   const char *kCalTypes[] = {
-    "accel_cal",
+    // "accel_cal",
     "gyro_cal",
     "mag_cal",
   };
