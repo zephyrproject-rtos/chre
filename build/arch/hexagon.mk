@@ -63,6 +63,7 @@ TARGET_SO_LDFLAGS += --wrap=free
 TARGET_SO_LDFLAGS += --wrap=realloc
 TARGET_SO_LDFLAGS += --wrap=memalign
 TARGET_SO_LDFLAGS += --wrap=__stack_chk_fail
+TARGET_SO_LDFLAGS += --no-threads
 
 HEXAGON_LIB_PATH = $(HEXAGON_TOOLS_PREFIX)/Tools/target/hexagon/lib
 TARGET_SO_EARLY_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/initS.o
