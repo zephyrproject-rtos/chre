@@ -133,7 +133,8 @@ App::adjustHostMessageForNYC(const chreMessageFromHostData *data) {
   const uint8_t *messageBytes = static_cast<const uint8_t*>(data->message);
   nanoapp_testing::memcpy(&(ret.reservedMessageType), messageBytes,
                           sizeof(ret.reservedMessageType));
-  nanoapp_testing::littleEndianToHost(&(ret.reservedMessageType));
+  ret.reservedMessageType =
+      nanoapp_testing::littleEndianToHost(ret.reservedMessageType);
   ret.messageSize = data->messageSize - sizeof(ret.reservedMessageType);
   ret.message = messageBytes + sizeof(ret.reservedMessageType);
   return ret;

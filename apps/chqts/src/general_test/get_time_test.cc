@@ -68,7 +68,7 @@ void GetTimeTest::setUp(uint32_t messageSize, const void * /* message */) {
         "chreGetTime() is not increasing after a large number of calls");
   }
 
-  nanoapp_testing::hostToLittleEndian(&prevTime);
+  prevTime = nanoapp_testing::hostToLittleEndian(prevTime);
   sendMessageToHost(MessageType::kContinue, &prevTime, sizeof(prevTime));
 
   // Now we'll wait to get a 'continue' from the host.
@@ -84,8 +84,7 @@ void GetTimeTest::handleEvent(uint32_t senderInstanceId,
   }
 
   mContinueCount++;
-  uint64_t time = chreGetTime();
-  nanoapp_testing::hostToLittleEndian(&time);
+  uint64_t time = nanoapp_testing::hostToLittleEndian(chreGetTime());
   sendMessageToHost(MessageType::kContinue, &time, sizeof(time));
   // We do nothing else in the CHRE.  It's up to the Host to declare
   // if we've passed.

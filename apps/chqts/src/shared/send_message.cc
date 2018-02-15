@@ -98,8 +98,8 @@ static void *prependMessageType(MessageType messageType, void *memory) {
   if (!needToPrependMessageType()) {
     return memory;
   }
-  uint32_t type = static_cast<uint32_t>(messageType);
-  nanoapp_testing::hostToLittleEndian(&type);
+  uint32_t type = nanoapp_testing::hostToLittleEndian(
+      static_cast<uint32_t>(messageType));
   memcpy(memory, &type, sizeof(type));
   uint8_t *ptr = static_cast<uint8_t*>(memory);
   ptr += sizeof(type);
