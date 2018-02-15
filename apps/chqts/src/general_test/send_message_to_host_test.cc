@@ -84,7 +84,7 @@ extern bool gUseNycMessageHack;
 
 uint8_t SendMessageToHostTest::sSmallMessageData[kSmallMessageTestCount][kSmallMessageSize];
 void *SendMessageToHostTest::sLargeMessageData[2];
-constexpr size_t SendMessageToHostTest::kLargeSizes[2];
+constexpr uint32_t SendMessageToHostTest::kLargeSizes[2];
 
 bool SendMessageToHostTest::sInMethod = false;
 uint32_t SendMessageToHostTest::sFinishedBitmask = 0;

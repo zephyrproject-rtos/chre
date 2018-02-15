@@ -85,7 +85,7 @@ static void *getMessageMemory(size_t *size, bool *dumbAlloc) {
     // Not expected, but possible if the CHRE is lagging in freeing
     // these messages, or if we're sending a huge message.
     *dumbAlloc = false;
-    ret = chreHeapAlloc(*size);
+    ret = chreHeapAlloc(static_cast<uint32_t>(*size));
     if (ret == nullptr) {
       fatalError();
     }
@@ -155,7 +155,8 @@ void sendStringToHost(MessageType messageType, const char *message,
   memcpy(ptr, message, messageStrlen);
   ptr += messageStrlen;
   if (value != nullptr) {
-    uint32ToHexAscii(ptr, fullMessageLen - (ptr - fullMessage), *value);
+    uint32ToHexAscii(
+        ptr, fullMessageLen - static_cast<size_t>(ptr - fullMessage), *value);
   }
   // Add the terminator.
   fullMessage[fullMessageLen - 1] = '\0';
