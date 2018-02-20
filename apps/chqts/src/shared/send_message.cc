@@ -111,10 +111,11 @@ static void internalSendMessage(MessageType messageType, void *data,
   // Note that if the CHRE implementation occasionally drops a message
   // here, then tests will become flaky.  For now, we consider that to
   // be a flaky CHRE implementation which should fail testing.
-  if (!chreSendMessageToHost(data, dataSize,
-                             static_cast<uint32_t>(messageType),
-                             dumbAlloc ? freeDumbAllocMessage :
-                             freeHeapMessage)) {
+  if (!chreSendMessageToHostEndpoint(data, dataSize,
+                                     static_cast<uint32_t>(messageType),
+                                     CHRE_HOST_ENDPOINT_BROADCAST,
+                                     dumbAlloc ? freeDumbAllocMessage :
+                                     freeHeapMessage)) {
     fatalError();
   }
 }
