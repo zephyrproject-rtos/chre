@@ -81,6 +81,10 @@ constexpr uint64_t Microseconds::getMicroseconds() const {
   return mMicroseconds;
 }
 
+constexpr uint64_t Microseconds::getMilliseconds() const {
+  return (mMicroseconds / kOneMillisecondInMicroseconds);
+}
+
 constexpr Nanoseconds::Nanoseconds()
     : mNanoseconds(0) {}
 
