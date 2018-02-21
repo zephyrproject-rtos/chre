@@ -346,20 +346,15 @@ bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
                                                            &nanoappIndex);
     if (enable) {
       if (!hasExistingRequest) {
-        success = nanoapp->registerForBroadcastEvent(
-            CHRE_EVENT_WIFI_SCAN_RESULT);
+        // The scan monitor was successfully enabled for this nanoapp and
+        // there is no existing request. Add it to the list of scan monitoring
+        // nanoapps.
+        success = mScanMonitorNanoapps.push_back(instanceId);
         if (!success) {
-          LOGE("Failed to register nanoapp for wifi scan events");
+          LOGE("Failed to add nanoapp to the list of scan monitoring "
+               "nanoapps");
         } else {
-          // The scan monitor was successfully enabled for this nanoapp and
-          // there is no existing request. Add it to the list of scan monitoring
-          // nanoapps.
-          success = mScanMonitorNanoapps.push_back(instanceId);
-          if (!success) {
-            nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
-            LOGE("Failed to add nanoapp to the list of scan monitoring "
-                 "nanoapps");
-          }
+          nanoapp->registerForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
         }
       }
     } else {

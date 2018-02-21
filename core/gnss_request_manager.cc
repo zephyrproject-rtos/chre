@@ -258,22 +258,18 @@ bool GnssRequestManager::updateLocationSessionRequests(
         // kept up to date.
         mLocationSessionRequests[requestIndex].minInterval = minInterval;
       } else {
-        success = nanoapp->registerForBroadcastEvent(CHRE_EVENT_GNSS_LOCATION);
+        // The location session was successfully enabled for this nanoapp and
+        // there is no existing request. Add it to the list of location
+        // session nanoapps.
+        LocationSessionRequest locationSessionRequest;
+        locationSessionRequest.nanoappInstanceId = instanceId;
+        locationSessionRequest.minInterval = minInterval;
+        success = mLocationSessionRequests.push_back(locationSessionRequest);
         if (!success) {
-          LOGE("Failed to register nanoapp for GNSS location events");
+          LOGE("Failed to add nanoapp to the list of location session "
+               "nanoapps");
         } else {
-          // The location session was successfully enabled for this nanoapp and
-          // there is no existing request. Add it to the list of location
-          // session nanoapps.
-          LocationSessionRequest locationSessionRequest;
-          locationSessionRequest.nanoappInstanceId = instanceId;
-          locationSessionRequest.minInterval = minInterval;
-          success = mLocationSessionRequests.push_back(locationSessionRequest);
-          if (!success) {
-            nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_GNSS_LOCATION);
-            LOGE("Failed to add nanoapp to the list of location session "
-                 "nanoapps");
-          }
+          nanoapp->registerForBroadcastEvent(CHRE_EVENT_GNSS_LOCATION);
         }
       }
     } else {
