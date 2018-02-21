@@ -29,14 +29,15 @@ static void checkFloat(float value, float extremeLow, float extremeHigh) {
   }
 }
 
-static void checkTimestampDelta(uint32_t delta, uint32_t index) {
+static void checkTimestampDelta(uint32_t delta, size_t index) {
   if (index == 0) {
     // This delta is allowed (and expected, but not required) to be 0.
     return;
   }
   if (delta == 0) {
+    uint32_t indexInt = static_cast<uint32_t>(index);
     sendFatalFailureToHost("timestampDelta was 0 for reading index ",
-                           &index);
+                           &indexInt);
   }
 }
 

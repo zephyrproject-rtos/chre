@@ -85,7 +85,7 @@ static void *getMessageMemory(size_t *size, bool *dumbAlloc) {
     // Not expected, but possible if the CHRE is lagging in freeing
     // these messages, or if we're sending a huge message.
     *dumbAlloc = false;
-    ret = chreHeapAlloc(*size);
+    ret = chreHeapAlloc(static_cast<uint32_t>(*size));
     if (ret == nullptr) {
       fatalError();
     }
@@ -98,8 +98,8 @@ static void *prependMessageType(MessageType messageType, void *memory) {
   if (!needToPrependMessageType()) {
     return memory;
   }
-  uint32_t type = static_cast<uint32_t>(messageType);
-  nanoapp_testing::hostToLittleEndian(&type);
+  uint32_t type = nanoapp_testing::hostToLittleEndian(
+      static_cast<uint32_t>(messageType));
   memcpy(memory, &type, sizeof(type));
   uint8_t *ptr = static_cast<uint8_t*>(memory);
   ptr += sizeof(type);
@@ -155,7 +155,8 @@ void sendStringToHost(MessageType messageType, const char *message,
   memcpy(ptr, message, messageStrlen);
   ptr += messageStrlen;
   if (value != nullptr) {
-    uint32ToHexAscii(ptr, fullMessageLen - (ptr - fullMessage), *value);
+    uint32ToHexAscii(
+        ptr, fullMessageLen - static_cast<size_t>(ptr - fullMessage), *value);
   }
   // Add the terminator.
   fullMessage[fullMessageLen - 1] = '\0';
