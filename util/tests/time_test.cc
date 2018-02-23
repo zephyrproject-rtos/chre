@@ -106,6 +106,11 @@ TEST(Time, ConvertMicrosecToNanosecOverflowIsUint64Max) {
   EXPECT_EQ(t.toRawNanoseconds(), UINT64_MAX);
 }
 
+TEST(Time, ConvertMicrosecToMillisec) {
+  Microseconds t(5120);
+  EXPECT_EQ(t.getMilliseconds(), 5);
+}
+
 // Tests for Nanoseconds
 TEST(Time, DefaultNanosecIsZero) {
   Nanoseconds t;

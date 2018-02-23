@@ -86,15 +86,15 @@ class Milliseconds {
    */
   constexpr uint64_t toRawNanoseconds() const;
 
-  /*
-   * Obtains the number of Microseconds stroed by this time duration.
+  /**
+   * Obtains the number of Microseconds stored by this time duration.
    *
    * @return the value of microseconds.
    */
   constexpr uint64_t getMicroseconds() const;
 
   /**
-   * Obtains the number of Milliseconds stroed by this time duration.
+   * Obtains the number of Milliseconds stored by this time duration.
    *
    * @return the value of milliseconds.
    */
@@ -135,12 +135,20 @@ class Microseconds {
    */
   constexpr uint64_t toRawNanoseconds() const;
 
-  /*
-   * Obtains the number of Microseconds stroed by this time duration.
+  /**
+   * Obtains the number of Microseconds stored by this time duration.
    *
    * @return the value of microseconds.
    */
   constexpr uint64_t getMicroseconds() const;
+
+  /**
+   * Obtains the rounded-down number of Milliseconds stored by this time
+   * duration.
+   *
+   * @return the value of milliseconds.
+   */
+  constexpr uint64_t getMilliseconds() const;
 
  private:
   //! Store the time duration.
