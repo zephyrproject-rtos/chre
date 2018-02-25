@@ -59,39 +59,22 @@ bool Nanoapp::hasPendingEvent() {
 }
 
 void Nanoapp::configureNanoappInfoEvents(bool enable) {
-  bool success;
   if (enable) {
-    success = registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
-    success &= registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
+    registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
+    registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
   } else {
-    success = unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
-    success &= unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
-  }
-
-  if (!success) {
-    // An app has failed to register for an event and may be stuck waiting for
-    // an event that it will never receive. This is considered a fatal situation
-    // as the nanoapp is stuck and there is no way to recover other than
-    // unloading the nanoapp. This can happen in an OOM situation.
-    FATAL_ERROR("Failed to configure nanoapp info events to %d", enable);
+    unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);
+    unregisterForBroadcastEvent(CHRE_EVENT_NANOAPP_STOPPED);
   }
 }
 
 void Nanoapp::configureHostSleepEvents(bool enable) {
-  bool success;
   if (enable) {
-    success = registerForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
-    success &= registerForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
+    registerForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
+    registerForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
   } else {
-    success = unregisterForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
-    success &= unregisterForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
-  }
-
-  if (!success) {
-    // If we fail to register/unregister for events, the nanoapp will be in an
-    // undefined state (potentially waiting on an event to continue operation)
-    // so the only sensible response is to FATAL_ERROR.
-    FATAL_ERROR("Failed to configure host sleep state events to %d", enable);
+    unregisterForBroadcastEvent(CHRE_EVENT_HOST_AWAKE);
+    unregisterForBroadcastEvent(CHRE_EVENT_HOST_ASLEEP);
   }
 }
 

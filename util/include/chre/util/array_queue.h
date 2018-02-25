@@ -17,6 +17,7 @@
 #ifndef CHRE_UTIL_ARRAY_QUEUE_H_
 #define CHRE_UTIL_ARRAY_QUEUE_H_
 
+#include <cstddef>
 #include <type_traits>
 
 #include "chre/util/non_copyable.h"
