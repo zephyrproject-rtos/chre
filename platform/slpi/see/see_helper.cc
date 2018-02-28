@@ -665,6 +665,8 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
       attrData->maxSampleRate = attrArg.fltMax;
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_STREAM_TYPE) {
       attrData->streamType = attrArg.int64;
+    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_HW_ID) {
+      attrData->hwId = attrArg.int64;
     }
   }
   return success;
