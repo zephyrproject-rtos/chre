@@ -18,7 +18,9 @@
 
 #include <cstring>
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/log.h"
+#include "chre/util/memory.h"
 #include "wcd_spi.h"
 
 static_assert(
@@ -46,10 +48,32 @@ static_assert(
     "WCD SPI/CHRE audio source format must have the same offset");
 
 namespace chre {
+namespace {
 
 void handleWcdSpiAudioDataEvent(const wcd_spi_audio_data_event_s *event) {
   LOGD("WCD SPI audio data callback");
+
+  auto *dataEvent = memoryAlloc<struct chreAudioDataEvent>();
+  if (dataEvent == nullptr) {
+    LOGE("Failed to allocate data event");
+  } else {
+    dataEvent->handle = event->handle;
+    dataEvent->timestamp = event->timestamp_ns;
+    dataEvent->sampleRate = event->sample_rate_hz;
+    dataEvent->sampleCount = event->sample_count;
+    dataEvent->format = event->format;
+
+    // The sample pointers are a union, so the value will be correct regardless
+    // of the sample format. This is just a shallow copy of the data pointer,
+    // not the contents of the buffer itself.
+    dataEvent->samplesULaw8 = event->samples_ulaw8;
+
+    EventLoopManagerSingleton::get()->getAudioRequestManager()
+        .handleAudioDataEvent(dataEvent);
+  }
 }
+
+}  // anonymous namespace
 
 PlatformAudio::PlatformAudio() {
   wcd_spi_client_init(handleWcdSpiAudioDataEvent);
@@ -62,8 +86,8 @@ PlatformAudio::~PlatformAudio() {
 bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
                                           uint32_t numSamples,
                                           Nanoseconds eventDelay) {
-  // TODO(P1-f3f9a0): Implement this.
-  return false;
+  return wcd_spi_client_request_audio_data_event(handle, numSamples,
+                                                 eventDelay.toRawNanoseconds());
 }
 
 void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
@@ -71,7 +95,8 @@ void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
 }
 
 void PlatformAudio::releaseAudioDataEvent(struct chreAudioDataEvent *event) {
-  // TODO(P1-f3f9a0): Implement this.
+  // TODO: Notify the platform of this event.
+  memoryFree(event);
 }
 
 size_t PlatformAudio::getSourceCount() {
