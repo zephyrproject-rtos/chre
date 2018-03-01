@@ -403,8 +403,9 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
         LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
              suid.suid_high, suid.suid_low);
       } else {
-        LOGI("%s %s, max ODR %f Hz, stream type %" PRIu8,
-             attr.vendor, attr.name, attr.maxSampleRate, attr.streamType);
+        LOGI("%s %s, hw id %" PRId64 ", max ODR %f Hz, stream type %" PRIu8,
+             attr.vendor, attr.name, attr.hwId, attr.maxSampleRate,
+             attr.streamType);
         SuidAttr sensor = {
           .suid = suid,
           .attr = attr,
@@ -419,10 +420,11 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
   return success;
 }
 
-bool vendorAndNameMatch(const SeeAttributes& attr0,
+// When HW ID is absent, it's default to 0 and won't be a factor.
+bool vendorAndHwIdMatch(const SeeAttributes& attr0,
                         const SeeAttributes& attr1) {
   return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0)
-          && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0));
+          && (attr0.hwId == attr1.hwId));
 }
 
 }  // anonymous namespace
@@ -497,16 +499,22 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
           // Check if this sensor has a secondary temperature sensor.
           SensorType temperatureType = getTempSensorType(sensorType);
           if (temperatureType != SensorType::Unknown) {
+            bool tempFound = false;
             for (const auto& tempSensor : tempSensors) {
               sns_std_suid tempSuid = tempSensor.suid;
               SeeAttributes tempAttr = tempSensor.attr;
 
-              if (vendorAndNameMatch(attr, tempAttr)) {
+              if (vendorAndHwIdMatch(attr, tempAttr)) {
                 LOGD("Found temperature sensor SUID 0x%" PRIx64 " %" PRIx64,
                      tempSuid.suid_high, tempSuid.suid_low);
+                tempFound = true;
                 addSensor(temperatureType, tempSuid, tempAttr, sensors);
                 break;
               }
+            }
+            if (!tempFound) {
+              LOGW("Temperature sensor type %" PRIu8 " not found!",
+                   static_cast<uint8_t>(temperatureType));
             }
           }
           break;

@@ -77,6 +77,7 @@ struct SeeAttributes {
   char vendor[kSeeAttrStrValLen];
   char name[kSeeAttrStrValLen];
   char type[kSeeAttrStrValLen];
+  int64_t hwId;
   float maxSampleRate;
   uint8_t streamType;
 };
