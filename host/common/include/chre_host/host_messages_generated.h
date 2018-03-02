@@ -934,14 +934,41 @@ struct LoadNanoappRequestT : public flatbuffers::NativeTable {
   uint32_t app_version;
   uint32_t target_api_version;
   std::vector<uint8_t> app_binary;
+  uint32_t fragment_count;
+  uint32_t total_app_size;
   LoadNanoappRequestT()
       : transaction_id(0),
         app_id(0),
         app_version(0),
-        target_api_version(0) {
+        target_api_version(0),
+        fragment_count(0),
+        total_app_size(0) {
   }
 };
 
+/// Represents a request for loading a nanoapp.
+/// The loading may optionally be fragmented into multiple sequential requests,
+/// which will follow the following steps:
+/// 1. The loader sends a LoadNanoappRequest message to CHRE. If the request
+///    is fragmented, then the fields fragment_count and total_app_size must
+///    be defined. Parallel loading for the different clients is supported.
+///    If there is already a pending request for the client, the pending request
+///    will abort and fail, and the new request will be started.
+/// 2. CHRE preallocates the required amount of memory, and loads app_binary,
+///    appending to already loaded fragments as appropriate.
+/// 3. If the request is fragmented, then the requestor must sequentially send
+///    multiple LoadNanoappRequest with incremental nanoapp binary fragments.
+///    CHRE will respond with LoadNanoappResponse for each request. For
+///    requests starting from the second fragment, all fields except
+///    fragment_count and app_binary should be ignored by CHRE.
+///
+///    Once the LoadNanoappRepsonse for the last fragment is received
+///    by the HAL, the HAL client will receive a callback indicating the
+///    completion/failure of a load request.
+///
+/// If any request fragment is lost, then the entire load request will be
+/// considered to have failed. If the request times out (e.g. the requestor
+/// process crashes), then the load request will be cancelled at CHRE and fail.
 struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LoadNanoappRequestT NativeTableType;
   enum {
@@ -949,7 +976,9 @@ struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_APP_ID = 6,
     VT_APP_VERSION = 8,
     VT_TARGET_API_VERSION = 10,
-    VT_APP_BINARY = 12
+    VT_APP_BINARY = 12,
+    VT_FRAGMENT_COUNT = 14,
+    VT_TOTAL_APP_SIZE = 16
   };
   uint32_t transaction_id() const {
     return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
@@ -981,6 +1010,22 @@ struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<uint8_t> *mutable_app_binary() {
     return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_APP_BINARY);
   }
+  /// Fields that are relevant for fragmented loading
+  /// The framgent count starts at 1 and should end at the total number of
+  /// fragments. For clients that do not support fragmented loading, the
+  /// default behavior should be to assume one fragment.
+  uint32_t fragment_count() const {
+    return GetField<uint32_t>(VT_FRAGMENT_COUNT, 0);
+  }
+  bool mutate_fragment_count(uint32_t _fragment_count) {
+    return SetField(VT_FRAGMENT_COUNT, _fragment_count);
+  }
+  uint32_t total_app_size() const {
+    return GetField<uint32_t>(VT_TOTAL_APP_SIZE, 0);
+  }
+  bool mutate_total_app_size(uint32_t _total_app_size) {
+    return SetField(VT_TOTAL_APP_SIZE, _total_app_size);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
@@ -989,6 +1034,8 @@ struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint32_t>(verifier, VT_TARGET_API_VERSION) &&
            VerifyFieldRequired<flatbuffers::uoffset_t>(verifier, VT_APP_BINARY) &&
            verifier.Verify(app_binary()) &&
+           VerifyField<uint32_t>(verifier, VT_FRAGMENT_COUNT) &&
+           VerifyField<uint32_t>(verifier, VT_TOTAL_APP_SIZE) &&
            verifier.EndTable();
   }
   LoadNanoappRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1014,13 +1061,19 @@ struct LoadNanoappRequestBuilder {
   void add_app_binary(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> app_binary) {
     fbb_.AddOffset(LoadNanoappRequest::VT_APP_BINARY, app_binary);
   }
+  void add_fragment_count(uint32_t fragment_count) {
+    fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_FRAGMENT_COUNT, fragment_count, 0);
+  }
+  void add_total_app_size(uint32_t total_app_size) {
+    fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_TOTAL_APP_SIZE, total_app_size, 0);
+  }
   LoadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
   LoadNanoappRequestBuilder &operator=(const LoadNanoappRequestBuilder &);
   flatbuffers::Offset<LoadNanoappRequest> Finish() {
-    const auto end = fbb_.EndTable(start_, 5);
+    const auto end = fbb_.EndTable(start_, 7);
     auto o = flatbuffers::Offset<LoadNanoappRequest>(end);
     fbb_.Required(o, LoadNanoappRequest::VT_APP_BINARY);
     return o;
@@ -1033,9 +1086,13 @@ inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(
     uint64_t app_id = 0,
     uint32_t app_version = 0,
     uint32_t target_api_version = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> app_binary = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> app_binary = 0,
+    uint32_t fragment_count = 0,
+    uint32_t total_app_size = 0) {
   LoadNanoappRequestBuilder builder_(_fbb);
   builder_.add_app_id(app_id);
+  builder_.add_total_app_size(total_app_size);
+  builder_.add_fragment_count(fragment_count);
   builder_.add_app_binary(app_binary);
   builder_.add_target_api_version(target_api_version);
   builder_.add_app_version(app_version);
@@ -1049,14 +1106,18 @@ inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequestDirect(
     uint64_t app_id = 0,
     uint32_t app_version = 0,
     uint32_t target_api_version = 0,
-    const std::vector<uint8_t> *app_binary = nullptr) {
+    const std::vector<uint8_t> *app_binary = nullptr,
+    uint32_t fragment_count = 0,
+    uint32_t total_app_size = 0) {
   return chre::fbs::CreateLoadNanoappRequest(
       _fbb,
       transaction_id,
       app_id,
       app_version,
       target_api_version,
-      app_binary ? _fbb.CreateVector<uint8_t>(*app_binary) : 0);
+      app_binary ? _fbb.CreateVector<uint8_t>(*app_binary) : 0,
+      fragment_count,
+      total_app_size);
 }
 
 flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(flatbuffers::FlatBufferBuilder &_fbb, const LoadNanoappRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1065,9 +1126,11 @@ struct LoadNanoappResponseT : public flatbuffers::NativeTable {
   typedef LoadNanoappResponse TableType;
   uint32_t transaction_id;
   bool success;
+  uint32_t fragment_count;
   LoadNanoappResponseT()
       : transaction_id(0),
-        success(false) {
+        success(false),
+        fragment_count(0) {
   }
 };
 
@@ -1075,7 +1138,8 @@ struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   typedef LoadNanoappResponseT NativeTableType;
   enum {
     VT_TRANSACTION_ID = 4,
-    VT_SUCCESS = 6
+    VT_SUCCESS = 6,
+    VT_FRAGMENT_COUNT = 8
   };
   uint32_t transaction_id() const {
     return GetField<uint32_t>(VT_TRANSACTION_ID, 0);
@@ -1083,16 +1147,27 @@ struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   bool mutate_transaction_id(uint32_t _transaction_id) {
     return SetField(VT_TRANSACTION_ID, _transaction_id);
   }
+  /// Denotes whether a load request succeeded or failed.
+  /// If any fragment of a load request fails, the entire load request for
+  /// the same transaction will fail.
   bool success() const {
     return GetField<uint8_t>(VT_SUCCESS, 0) != 0;
   }
   bool mutate_success(bool _success) {
     return SetField(VT_SUCCESS, static_cast<uint8_t>(_success));
   }
+  /// The fragment count of the load reponse is for.
+  uint32_t fragment_count() const {
+    return GetField<uint32_t>(VT_FRAGMENT_COUNT, 0);
+  }
+  bool mutate_fragment_count(uint32_t _fragment_count) {
+    return SetField(VT_FRAGMENT_COUNT, _fragment_count);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_TRANSACTION_ID) &&
            VerifyField<uint8_t>(verifier, VT_SUCCESS) &&
+           VerifyField<uint32_t>(verifier, VT_FRAGMENT_COUNT) &&
            verifier.EndTable();
   }
   LoadNanoappResponseT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1109,13 +1184,16 @@ struct LoadNanoappResponseBuilder {
   void add_success(bool success) {
     fbb_.AddElement<uint8_t>(LoadNanoappResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
   }
+  void add_fragment_count(uint32_t fragment_count) {
+    fbb_.AddElement<uint32_t>(LoadNanoappResponse::VT_FRAGMENT_COUNT, fragment_count, 0);
+  }
   LoadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
   LoadNanoappResponseBuilder &operator=(const LoadNanoappResponseBuilder &);
   flatbuffers::Offset<LoadNanoappResponse> Finish() {
-    const auto end = fbb_.EndTable(start_, 2);
+    const auto end = fbb_.EndTable(start_, 3);
     auto o = flatbuffers::Offset<LoadNanoappResponse>(end);
     return o;
   }
@@ -1124,8 +1202,10 @@ struct LoadNanoappResponseBuilder {
 inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t transaction_id = 0,
-    bool success = false) {
+    bool success = false,
+    uint32_t fragment_count = 0) {
   LoadNanoappResponseBuilder builder_(_fbb);
+  builder_.add_fragment_count(fragment_count);
   builder_.add_transaction_id(transaction_id);
   builder_.add_success(success);
   return builder_.Finish();
@@ -1962,6 +2042,8 @@ inline void LoadNanoappRequest::UnPackTo(LoadNanoappRequestT *_o, const flatbuff
   { auto _e = app_version(); _o->app_version = _e; };
   { auto _e = target_api_version(); _o->target_api_version = _e; };
   { auto _e = app_binary(); if (_e) for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->app_binary.push_back(_e->Get(_i)); } };
+  { auto _e = fragment_count(); _o->fragment_count = _e; };
+  { auto _e = total_app_size(); _o->total_app_size = _e; };
 }
 
 inline flatbuffers::Offset<LoadNanoappRequest> LoadNanoappRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LoadNanoappRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1976,13 +2058,17 @@ inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(flatbuff
   auto _app_version = _o->app_version;
   auto _target_api_version = _o->target_api_version;
   auto _app_binary = _fbb.CreateVector(_o->app_binary);
+  auto _fragment_count = _o->fragment_count;
+  auto _total_app_size = _o->total_app_size;
   return chre::fbs::CreateLoadNanoappRequest(
       _fbb,
       _transaction_id,
       _app_id,
       _app_version,
       _target_api_version,
-      _app_binary);
+      _app_binary,
+      _fragment_count,
+      _total_app_size);
 }
 
 inline LoadNanoappResponseT *LoadNanoappResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -1996,6 +2082,7 @@ inline void LoadNanoappResponse::UnPackTo(LoadNanoappResponseT *_o, const flatbu
   (void)_resolver;
   { auto _e = transaction_id(); _o->transaction_id = _e; };
   { auto _e = success(); _o->success = _e; };
+  { auto _e = fragment_count(); _o->fragment_count = _e; };
 }
 
 inline flatbuffers::Offset<LoadNanoappResponse> LoadNanoappResponse::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LoadNanoappResponseT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2007,10 +2094,12 @@ inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(flatbu
   (void)_o;
   auto _transaction_id = _o->transaction_id;
   auto _success = _o->success;
+  auto _fragment_count = _o->fragment_count;
   return chre::fbs::CreateLoadNanoappResponse(
       _fbb,
       _transaction_id,
-      _success);
+      _success,
+      _fragment_count);
 }
 
 inline UnloadNanoappRequestT *UnloadNanoappRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
