@@ -17,8 +17,7 @@
 #ifndef CHRE_UTIL_NANOAPP_AUDIO_H_
 #define CHRE_UTIL_NANOAPP_AUDIO_H_
 
-#include "chre_api/chre/audio.h"
-
+#include <chre/audio.h>
 #include <cstdint>
 
 namespace chre {
