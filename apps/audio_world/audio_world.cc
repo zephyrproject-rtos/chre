@@ -107,17 +107,20 @@ bool nanoappStart() {
 
   struct chreAudioSource audioSource;
   for (uint32_t i = 0; chreAudioGetSource(i, &audioSource); i++) {
-    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data - min buffer "
-         "duration: %" PRIu64 "ns, max buffer duration: %" PRIu64 "ns",
+    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data",
          audioSource.name, audioSource.sampleRate,
-         getChreAudioFormatString(audioSource.format),
-         audioSource.minBufferDuration, audioSource.maxBufferDuration);
+         getChreAudioFormatString(audioSource.format));
+    LOGI("  buffer duration: [%" PRIu64 "ns, %" PRIu64 "ns]",
+        audioSource.minBufferDuration, audioSource.maxBufferDuration);
 
-    if (chreAudioConfigureSource(i, true, audioSource.minBufferDuration,
-                                 audioSource.minBufferDuration)) {
-      LOGI("Requested audio from handle %" PRIu32 " successfully", i);
-    } else {
-      LOGE("Failed to request audio from handle %" PRIu32, i);
+    if (i == 0) {
+      // Only request audio data from the first source, but continue discovery.
+      if (chreAudioConfigureSource(i, true,
+          audioSource.minBufferDuration, audioSource.minBufferDuration)) {
+        LOGI("Requested audio from handle %" PRIu32 " successfully", i);
+      } else {
+        LOGE("Failed to request audio from handle %" PRIu32, i);
+      }
     }
   }
 
