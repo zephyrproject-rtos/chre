@@ -200,32 +200,41 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
 /**
  * Updates the sampling status.
  */
-void updateSamplingStatus(SensorType sensorType,
-                          const struct chreSensorSamplingStatus& newStatus) {
+void updateSamplingStatus(
+    const SeeHelperCallbackInterface::SamplingStatusData& update) {
   Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
-      .getSensor(sensorType);
+      .getSensor(update.sensorType);
   struct chreSensorSamplingStatus prevStatus;
-  struct chreSensorSamplingStatus status = newStatus;
 
-  // TODO: check .enabled and .latency instead of copying them when they become
-  // available.
-  if (sensor != nullptr && sensor->getSamplingStatus(&prevStatus)
-      && !sensorTypeIsOneShot(sensorType)
-      && status.interval != prevStatus.interval) {
-    status.enabled = prevStatus.enabled;
-    status.latency = prevStatus.latency;
+  if (sensor != nullptr && !sensorTypeIsOneShot(update.sensorType)
+      && sensor->getSamplingStatus(&prevStatus)) {
+    struct chreSensorSamplingStatus newStatus = prevStatus;
 
-    sensor->setSamplingStatus(status);
+    if (update.enabledValid) {
+      newStatus.enabled = update.status.enabled;
+    }
+    if (update.intervalValid) {
+      newStatus.interval = update.status.interval;
+    }
+    if (update.latencyValid) {
+      newStatus.latency = update.status.latency;
+    }
 
-    // Only post to Nanoapps with an open request.
-    uint32_t sensorHandle = getSensorHandleFromSensorType(sensorType);
-    const DynamicVector<SensorRequest>& requests =
-        EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .getRequests(sensorType);
-    for (const auto& req : requests) {
-      if (req.getNanoapp() != nullptr) {
-        postSamplingStatusEvent(req.getNanoapp()->getInstanceId(),
-                                sensorHandle, status);
+    if (newStatus.enabled != prevStatus.enabled
+        || newStatus.interval != prevStatus.interval
+        || newStatus.latency != prevStatus.latency) {
+      sensor->setSamplingStatus(newStatus);
+
+      // Only post to Nanoapps with an open request.
+      uint32_t sensorHandle = getSensorHandleFromSensorType(update.sensorType);
+      const DynamicVector<SensorRequest>& requests =
+          EventLoopManagerSingleton::get()->getSensorRequestManager()
+          .getRequests(update.sensorType);
+      for (const auto& req : requests) {
+        if (req.getNanoapp() != nullptr) {
+          postSamplingStatusEvent(req.getNanoapp()->getInstanceId(),
+                                  sensorHandle, newStatus);
+        }
       }
     }
   }
@@ -236,7 +245,7 @@ void SeeHelperCallback::onSamplingStatusUpdate(
   auto callback = [](uint16_t /* type */, void *data) {
     auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
         static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(data));
-    updateSamplingStatus(cbData->sensorType, cbData->status);
+    updateSamplingStatus(*cbData);
   };
 
   // Schedule a deferred callback to handle sensor status change in the main
@@ -343,7 +352,7 @@ void addSensor(SensorType sensorType, const sns_std_suid& suid,
   // Constructs and initializes PlatformSensorBase.
   Sensor sensor;
   sensor.initBase(sensorType, minInterval, sensorName, lastEvent,
-                  lastEventSize);
+                  lastEventSize, attr.passiveRequest);
 
   if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
@@ -403,9 +412,10 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
         LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
              suid.suid_high, suid.suid_low);
       } else {
-        LOGI("%s %s, hw id %" PRId64 ", max ODR %f Hz, stream type %" PRIu8,
+        LOGI("%s %s, hw id %" PRId64 ", max ODR %f Hz, stream type %" PRIu8
+             " passive %d",
              attr.vendor, attr.name, attr.hwId, attr.maxSampleRate,
-             attr.streamType);
+             attr.streamType, attr.passiveRequest);
         SuidAttr sensor = {
           .suid = suid,
           .attr = attr,
@@ -528,8 +538,8 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
 bool PlatformSensor::applyRequest(const SensorRequest& request) {
   SeeSensorRequest req = {
     .sensorType = getSensorType(),
-    // TODO: Implement passive mode
     .enable = (request.getMode() != SensorMode::Off),
+    .passive = sensorModeIsPassive(request.getMode()),
     .samplingRateHz = static_cast<float>(
         kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
     // Override batch period to 0 for non-continuous sensors to ensure one
@@ -539,14 +549,24 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
                                 / kOneMicrosecondInNanoseconds),
   };
 
+  if (req.enable && req.passive && !mPassiveSupported) {
+    LOGD("Promoting sensor %" PRIu8 " passive request to active",
+         static_cast<uint8_t>(getSensorType()));
+  }
+
   bool success = SeeHelperSingleton::get()->makeRequest(req);
 
-  // TODO: remove setSamplingStatus when .enabled and .latency are available in
-  // status update from SEE.
+  // TODO: remove setSamplingStatus when .latency is available in status update
+  // from SEE.
   if (success) {
     struct chreSensorSamplingStatus status;
     if (getSamplingStatus(&status)) {
-      status.enabled = req.enable;
+
+      // If passive request is not supported by this SEE sensor, it won't be
+      // dynamically enabled/disabled and its status stays the same as set here.
+      if (!mPassiveSupported) {
+        status.enabled = req.enable;
+      }
       status.latency = req.batchPeriodUs * kOneMicrosecondInNanoseconds;
       setSamplingStatus(status);
     }
@@ -587,6 +607,7 @@ PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
 
   mLastEventValid = other.mLastEventValid;
   mSamplingStatus = other.mSamplingStatus;
+  mPassiveSupported = other.mPassiveSupported;
 
   return *this;
 }
@@ -609,7 +630,7 @@ bool PlatformSensor::getSamplingStatus(
 
 void PlatformSensorBase::initBase(
     SensorType sensorType,uint64_t minInterval, const char *sensorName,
-    ChreSensorData *lastEvent, size_t lastEventSize) {
+    ChreSensorData *lastEvent, size_t lastEventSize, bool passiveSupported) {
   mSensorType = sensorType;
   mMinInterval = minInterval;
   memcpy(mSensorName, sensorName, kSensorNameMaxLen);
@@ -619,6 +640,8 @@ void PlatformSensorBase::initBase(
   mSamplingStatus.enabled = false;
   mSamplingStatus.interval = CHRE_SENSOR_INTERVAL_DEFAULT;
   mSamplingStatus.latency = CHRE_SENSOR_LATENCY_DEFAULT;
+
+  mPassiveSupported = passiveSupported;
 }
 
 void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
