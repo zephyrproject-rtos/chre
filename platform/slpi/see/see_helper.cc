@@ -48,6 +48,9 @@
 namespace chre {
 namespace {
 
+//! Operating mode indicating sensor is disabled.
+const char *kOpModeOff = "OFF";
+
 //! Interval between SUID request retry.
 constexpr Milliseconds kSuidReqIntervalMsec = Milliseconds(500);
 
@@ -390,7 +393,7 @@ bool sendQmiReq(qmi_client_type qmiHandle, const sns_client_req_msg_v01& reqMsg,
  */
 bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
                       uint32_t msgId, void *payload, size_t payloadLen,
-                      bool batchValid, uint32_t batchPeriodUs,
+                      bool batchValid, uint32_t batchPeriodUs, bool passive,
                       Nanoseconds timeoutResp) {
   CHRE_ASSERT(payload || payloadLen == 0);
   bool success = false;
@@ -409,6 +412,8 @@ bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
     .request.batching.batch_period = batchPeriodUs,
     .request.payload.funcs.encode = copyPayload,
     .request.payload.arg = &data,
+    .request.has_is_passive = true,
+    .request.is_passive = passive,
   };
 
   auto qmiReq = MakeUnique<sns_client_req_msg_v01>();
@@ -479,11 +484,6 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
   if (!success) {
     LOGE("Error decoding sns_suid_event: %s", PB_GET_ERROR(stream));
   } else {
-    // TODO: remove dataType once initial development is complete.
-    char dataType[data.bufLen + 1];
-    memcpy(dataType, data.buf, data.bufLen);
-    dataType[data.bufLen] = '\0';
-
     // If syncData == nullptr, this indication is received outside of a sync
     // call. If the decoded data type doesn't match the one we are waiting
     // for, this indication is from a previous call (may be findSuidSync)
@@ -494,7 +494,8 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
     // but findSuidSync populate mWaitingDataType and can lead to a data
     // type match.
     if (info->sync->syncData == nullptr
-        || strncmp(info->sync->syncDataType, dataType,
+        || strncmp(info->sync->syncDataType,
+                   static_cast<const char *>(data.buf),
                    std::min(data.bufLen, kSeeAttrStrValLen)) != 0) {
       LOGW("Received late SNS_SUID_MSGID_SNS_SUID_EVENT indication");
     } else {
@@ -584,6 +585,10 @@ const char *getAttrNameFromAttrId(int32_t id) {
       return "SELECTED_RESOLUTION";
     case SNS_STD_SENSOR_ATTRID_SELECTED_RANGE:
       return "SELECTED_RANGE";
+    case SNS_STD_SENSOR_ATTRID_ADDITIONAL_LOW_LATENCY_RATES:
+      return "LOW_LATENCY_RATES";
+    case SNS_STD_SENSOR_ATTRID_PASSIVE_REQUEST:
+      return "PASSIVE_REQUEST";
     default:
       return "UNKNOWN ATTRIBUTE";
   }
@@ -667,6 +672,8 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
       attrData->streamType = attrArg.int64;
     } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_HW_ID) {
       attrData->hwId = attrArg.int64;
+    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_PASSIVE_REQUEST) {
+      attrData->passiveRequest = attrArg.boolVal;
     }
   }
   return success;
@@ -674,7 +681,7 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStdAttrEvent(pb_istream_t *stream, const pb_field_t *field,
                            void **arg) {
-  SeeAttributes attr;
+  SeeAttributes attr = {};
   sns_std_attr_event event = {
     .attributes.funcs.decode = decodeSnsStrAttr,
     .attributes.arg = &attr,
@@ -863,16 +870,23 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
     } else {
       struct chreSensorSamplingStatus *status = &statusData->status;
 
-      // TODO: check .enabled and .latency when available.
-      bool hasSamplingStatus = false;
       if (event.has_sample_rate) {
-        hasSamplingStatus = true;
+        statusData->intervalValid = true;
         status->interval = static_cast<uint64_t>(
             ceilf(Seconds(1).toRawNanoseconds() / event.sample_rate));
         LOGD("sample rate: %f", event.sample_rate);
       }
 
-      if (hasSamplingStatus) {
+      // If operation_mode is populated, decoded string length will be > 0.
+      if (data.bufLen > 0) {
+        statusData->enabledValid = true;
+        status->enabled =
+            (strncmp(static_cast<const char *>(data.buf), kOpModeOff,
+                     std::min(data.bufLen, sizeof(kOpModeOff))) != 0);
+        LOGD("enabled: %d", status->enabled);
+      }
+
+      if (event.has_sample_rate || data.bufLen > 0) {
         auto *info = static_cast<SeeInfoArg *>(*arg);
         statusData->sensorType = info->data->sensorType;
         info->data->status = std::move(statusData);
@@ -1388,7 +1402,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
                           suids, dataType,
                           SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                           false /* batchValid */, 0 /* batchPeriodUs */,
-                          true /* waitForIndication */);
+                          false /* passive */, true /* waitForIndication */);
       } while (suids->empty() && trialCount < kSuidReqMaxTrialCount);
       if (trialCount > 1) {
         LOGD("%" PRIu32 " trials took %" PRIu32 " msec", trialCount,
@@ -1417,7 +1431,7 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
                         attr, nullptr /* syncDataType */,
                         SNS_STD_MSGID_SNS_STD_ATTR_REQ, msg.get(), msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
-                        true /* waitForIndication */);
+                        false /* passive */, true /* waitForIndication */);
     }
   }
   return success;
@@ -1466,7 +1480,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
-                        false /* waitForIndication */);
+                        request.passive, false /* waitForIndication */);
     }
   }
   return success;
@@ -1502,7 +1516,7 @@ bool SeeHelper::sendReq(
     const qmi_client_type& qmiHandle, const sns_std_suid& suid,
     void *syncData, const char *syncDataType,
     uint32_t msgId, void *payload, size_t payloadLen,
-    bool batchValid, uint32_t batchPeriodUs,
+    bool batchValid, uint32_t batchPeriodUs, bool passive,
     bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
   CHRE_ASSERT(payload || payloadLen == 0);
   bool success = false;
@@ -1512,7 +1526,7 @@ bool SeeHelper::sendReq(
 
   if (!waitForIndication) {
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
-                               batchValid, batchPeriodUs, timeoutResp);
+                               batchValid, batchPeriodUs, passive, timeoutResp);
   } else {
     {
       LockGuard<Mutex> lock(mMutex);
@@ -1526,7 +1540,7 @@ bool SeeHelper::sendReq(
     }
 
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
-                               batchValid, batchPeriodUs, timeoutResp);
+                               batchValid, batchPeriodUs, passive, timeoutResp);
 
     {
       LockGuard<Mutex> lock(mMutex);
@@ -1693,7 +1707,7 @@ bool SeeHelper::initCalSensors() {
                      SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG,
                      nullptr /* msg */, 0 /* msgLen */,
                      false /* batchValid */, 0 /* batchPeriodUs */,
-                     false /* waitForIndication */)) {
+                     false /* passive */, false /* waitForIndication */)) {
           success = false;
           LOGE("Failed to request '%s' data", calType);
         }
@@ -1726,7 +1740,7 @@ bool SeeHelper::initRemoteProcSensor() {
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msgBuffer, msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
-                        false /* waitForIndication */);
+                        false /* passive */, false /* waitForIndication */);
       if (!success) {
         LOGE("Failed to request '%s' config", kRemoteProcType);
       }

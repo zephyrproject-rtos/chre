@@ -41,6 +41,9 @@ class SeeHelperCallbackInterface {
   struct SamplingStatusData {
     SensorType sensorType;
     struct chreSensorSamplingStatus status;
+    bool enabledValid;
+    bool intervalValid;
+    bool latencyValid;
   };
 
   virtual ~SeeHelperCallbackInterface() {}
@@ -80,6 +83,7 @@ struct SeeAttributes {
   int64_t hwId;
   float maxSampleRate;
   uint8_t streamType;
+  bool passiveRequest;
 };
 
 //! A struct to store a sensor's calibration data
@@ -97,6 +101,7 @@ struct SeeCalData {
 struct SeeSensorRequest {
   SensorType sensorType;
   bool enable;
+  bool passive;
   float samplingRateHz;
   uint32_t batchPeriodUs;
 };
@@ -213,14 +218,14 @@ class SeeHelper : public NonCopyable {
       const sns_std_suid& suid,
       void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
-      bool batchValid, uint32_t batchPeriodUs,
+      bool batchValid, uint32_t batchPeriodUs, bool passive,
       bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout) {
     return sendReq(mQmiHandles[0], suid,
                    syncData, syncDataType,
                    msgId, payload, payloadLen,
-                   batchValid, batchPeriodUs,
+                   batchValid, batchPeriodUs, passive,
                    waitForIndication,
                    timeoutResp, timeoutInd);
   }
@@ -286,6 +291,7 @@ class SeeHelper : public NonCopyable {
    * @param batchValid Whether batchPeriodUs is valid and applicable to this
    *                   request
    * @param batchPeriodUs The batch period in microseconds
+   * @param passive Whether this is a passive request
    * @param waitForIndication Whether to wait for the indication of the
    *                          specified SUID or not.
    * @param timeoutRresp How long to wait for the response before abandoning it
@@ -298,7 +304,7 @@ class SeeHelper : public NonCopyable {
       const qmi_client_type& qmiHandle, const sns_std_suid& suid,
       void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
-      bool batchValid, uint32_t batchPeriodUs,
+      bool batchValid, uint32_t batchPeriodUs, bool passive,
       bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout);

@@ -34,7 +34,7 @@ class PlatformSensorBase {
    */
   void initBase(
       SensorType sensorType, uint64_t mMinInterval, const char *sensorName,
-      ChreSensorData *lastEvent, size_t lastEventSize);
+      ChreSensorData *lastEvent, size_t lastEventSize, bool passiveSupported);
 
   /**
    * Copies the supplied event to the sensor's last event and marks last event
@@ -72,6 +72,9 @@ class PlatformSensorBase {
   //! Set to true only when this is an on-change sensor that is currently active
   //! and we have a copy of the most recent event in lastEvent.
   bool mLastEventValid = false;
+
+  //! Whether this sensor supports passive sensor requests.
+  bool mPassiveSupported = false;
 
   //! Stores the sampling status for all CHRE clients of this sensor.
   struct chreSensorSamplingStatus mSamplingStatus;
