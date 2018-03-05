@@ -109,7 +109,8 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
   static void encodeLoadNanoappRequest(
       flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
       uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
-      const std::vector<uint8_t>& nanoappBinary);
+      const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
+      size_t appTotalSizeBytes);
 
   /**
    * Encodes a message requesting the list of loaded nanoapps from CHRE
