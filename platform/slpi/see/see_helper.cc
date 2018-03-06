@@ -874,7 +874,6 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
         statusData->intervalValid = true;
         status->interval = static_cast<uint64_t>(
             ceilf(Seconds(1).toRawNanoseconds() / event.sample_rate));
-        LOGD("sample rate: %f", event.sample_rate);
       }
 
       // If operation_mode is populated, decoded string length will be > 0.
@@ -883,7 +882,6 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
         status->enabled =
             (strncmp(static_cast<const char *>(data.buf), kOpModeOff,
                      std::min(data.bufLen, sizeof(kOpModeOff))) != 0);
-        LOGD("enabled: %d", status->enabled);
       }
 
       if (event.has_sample_rate || data.bufLen > 0) {
