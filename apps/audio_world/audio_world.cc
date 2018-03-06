@@ -31,6 +31,9 @@ namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
+using chre::Milliseconds;
+using chre::Nanoseconds;
+
 //! The number of frequencies to generate an FFT over.
 constexpr size_t kNumFrequencies = 128;
 
@@ -38,7 +41,7 @@ constexpr size_t kNumFrequencies = 128;
 uint8_t gKissFftBuffer[4096];
 kiss_fftr_cfg gKissFftConfig;
 kiss_fft_cpx gKissFftOutput[(kNumFrequencies / 2) + 1];
-chre::Milliseconds gFirstAudioEventTimestamp = chre::Milliseconds(0);
+Milliseconds gFirstAudioEventTimestamp = Milliseconds(0);
 
 /**
  * Returns a graphical representation of a uint16_t value.
@@ -109,7 +112,7 @@ bool nanoappStart() {
   for (uint32_t i = 0; chreAudioGetSource(i, &audioSource); i++) {
     LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data",
          audioSource.name, audioSource.sampleRate,
-         getChreAudioFormatString(audioSource.format));
+         chre::getChreAudioFormatString(audioSource.format));
     LOGI("  buffer duration: [%" PRIu64 "ns, %" PRIu64 "ns]",
         audioSource.minBufferDuration, audioSource.maxBufferDuration);
 

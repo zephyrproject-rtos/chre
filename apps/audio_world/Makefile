@@ -26,14 +26,18 @@ NANOAPP_NAME_STRING = \"Audio\ World\"
 
 # Include paths.
 COMMON_CFLAGS += -I.
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/external/kiss_fft
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/util/include
 
 # Defines.
 COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
+COMMON_CFLAGS += -DFIXED_POINT
 
 # Common Source Files ##########################################################
 
 COMMON_SRCS += audio_world.cc
+COMMON_SRCS += $(CHRE_PREFIX)/external/kiss_fft/kiss_fft.c
+COMMON_SRCS += $(CHRE_PREFIX)/external/kiss_fft/kiss_fftr.c
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/audio.cc
 
 # Makefile Includes ############################################################
