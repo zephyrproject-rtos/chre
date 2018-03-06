@@ -103,6 +103,8 @@ SLPI_SRCS += platform/slpi/system_timer.cc
 
 # Optional audio support.
 ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/wcd_spi/api
+
 SLPI_SRCS += platform/slpi/platform_audio.cc
 endif
 
