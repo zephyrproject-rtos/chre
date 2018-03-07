@@ -404,8 +404,6 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
     }
 
     for (const auto& suid : suids) {
-      LOGD("0x%" PRIx64 " %" PRIx64, suid.suid_high, suid.suid_low);
-
       SeeAttributes attr;
       if (!getSeeHelper()->getAttributesSync(suid, &attr)) {
         success = false;
@@ -515,8 +513,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
               SeeAttributes tempAttr = tempSensor.attr;
 
               if (vendorAndHwIdMatch(attr, tempAttr)) {
-                LOGD("Found temperature sensor SUID 0x%" PRIx64 " %" PRIx64,
-                     tempSuid.suid_high, tempSuid.suid_low);
+                LOGD("Found matching temperature sensor type");
                 tempFound = true;
                 addSensor(temperatureType, tempSuid, tempAttr, sensors);
                 break;
@@ -620,12 +617,8 @@ bool PlatformSensor::getSamplingStatus(
     struct chreSensorSamplingStatus *status) const {
   CHRE_ASSERT(status);
 
-  bool success = false;
-  if (status != nullptr) {
-    success = true;
-    memcpy(status, &mSamplingStatus, sizeof(*status));
-  }
-  return success;
+  memcpy(status, &mSamplingStatus, sizeof(*status));
+  return true;
 }
 
 void PlatformSensorBase::initBase(

@@ -1551,12 +1551,8 @@ bool PlatformSensor::getSamplingStatus(
     struct chreSensorSamplingStatus *status) const {
   CHRE_ASSERT(status);
 
-  bool success = false;
-  if (status != nullptr) {
-    success = true;
-    memcpy(status, &samplingStatus, sizeof(*status));
-  }
-  return success;
+  memcpy(status, &samplingStatus, sizeof(*status));
+  return true;
 }
 
 void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
