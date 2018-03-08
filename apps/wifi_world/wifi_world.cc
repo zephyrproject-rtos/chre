@@ -90,14 +90,14 @@ void logChreWifiResult(const chreWifiScanResult& result) {
     ssidStr = ssidBuffer;
   }
 
+  LOGI("Found network with SSID: %s", ssidStr);
+#ifdef WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
   const char *bssidStr = "<non-printable>";
   char bssidBuffer[chre::kBssidStrLen];
   if (chre::parseBssidToStr(result.bssid, bssidBuffer, sizeof(bssidBuffer))) {
     bssidStr = bssidBuffer;
   }
 
-  LOGI("Found network with SSID: %s", ssidStr);
-#ifdef WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
   LOGI("  age (ms): %" PRIu32, result.ageMs);
   LOGI("  capability info: %" PRIx16, result.capabilityInfo);
   LOGI("  bssid: %s", bssidStr);
