@@ -86,7 +86,7 @@ table NanoappListResponse {
 /// The loading may optionally be fragmented into multiple sequential requests,
 /// which will follow the following steps:
 /// 1. The loader sends a LoadNanoappRequest message to CHRE. If the request
-///    is fragmented, then the fields fragment_count and total_app_size must
+///    is fragmented, then the fields fragment_id and total_app_size must
 ///    be defined. Parallel loading for the different clients is supported.
 ///    If there is already a pending request for the client, the pending request
 ///    will abort and fail, and the new request will be started.
@@ -96,7 +96,7 @@ table NanoappListResponse {
 ///    multiple LoadNanoappRequest with incremental nanoapp binary fragments.
 ///    CHRE will respond with LoadNanoappResponse for each request. For
 ///    requests starting from the second fragment, all fields except
-///    fragment_count and app_binary should be ignored by CHRE.
+///    fragment_id and app_binary should be ignored by CHRE.
 ///
 ///    Once the LoadNanoappRepsonse for the last fragment is received
 ///    by the HAL, the HAL client will receive a callback indicating the
@@ -118,7 +118,7 @@ table LoadNanoappRequest {
   /// The framgent count starts at 1 and should end at the total number of
   /// fragments. For clients that do not support fragmented loading, the
   /// default behavior should be to assume one fragment.
-  fragment_count:uint = 0;
+  fragment_id:uint = 0;
   total_app_size:uint;
 }
 
@@ -131,7 +131,7 @@ table LoadNanoappResponse {
   success:bool;
 
   /// The fragment count of the load reponse is for.
-  fragment_count:uint = 0;
+  fragment_id:uint = 0;
 
   // TODO: detailed error code?
 }
