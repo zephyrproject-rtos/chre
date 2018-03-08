@@ -15,8 +15,8 @@ endif
 # Cortex-M Tools ###############################################################
 
 TARGET_AR = $(CORTEXM_TOOLS_PREFIX)/bin/arm-none-eabi-ar
-TARGET_CC = $(CORTEXM_TOOLS_PREFIX)/bin/arm-none-eabi-gcc
-TARGET_LD = $(CORTEXM_TOOLS_PREFIX)/bin/arm-none-eabi-ld
+TARGET_CC = $(CORTEXM_TOOLS_PREFIX)/bin/arm-none-eabi-g++
+TARGET_LD = $(CORTEXM_TOOLS_PREFIX)/bin/arm-none-eabi-g++
 
 # Cortex-M Compiler Flags ######################################################
 
