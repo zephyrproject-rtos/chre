@@ -32,6 +32,10 @@ TARGET_CFLAGS += -mno-thumb-interwork
 TARGET_CFLAGS += -ffast-math
 TARGET_CFLAGS += -fsingle-precision-constant
 
+# Sadly we must disable double promotion warnings due to logging macros. There
+# is a bug for this here: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53431
+TARGET_CFLAGS += -Wno-double-promotion
+
 # Cortex-M Shared Object Linker Flags ##########################################
 
 TARGET_SO_LDFLAGS += -shared
