@@ -17,14 +17,13 @@
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/memory.h"
 
+#include <cstdlib>
+
 extern "C" {
 
-#if CHRE_SLPI_SMGR
-#include "qurt.h"
+#if defined(CHRE_SLPI_SMGR) || defined (CHRE_SLPI_SEE)
 #include "sns_memmgr.h"
-#else
-#include <cstdlib>
-#endif  // CHRE_SLPI_SMGR
+#endif
 
 } // extern "C"
 
@@ -32,11 +31,12 @@ namespace chre {
 
 void *memoryAlloc(size_t size) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  #if CHRE_SLPI_SMGR
+  #if defined(CHRE_SLPI_SMGR)
     return SNS_OS_U_MALLOC(SNS_CHRE, size);
+  #elif defined(CHRE_SLPI_SEE)
+    return sns_malloc(SNS_HEAP_ISLAND, size);
   #else
-    // TODO(P2-32b2a4): Allocate from uImage memory
-    #error SLPI_SEE UIMG memory allocation not supported
+    #error SLPI UIMG memory allocation not supported
   #endif
 #else
   return malloc(size);
@@ -53,11 +53,12 @@ void *palSystemApiMemoryAlloc(size_t size) {
 
 void memoryFree(void *pointer) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  #if CHRE_SLPI_SMGR
+  #if defined(CHRE_SLPI_SMGR)
     SNS_OS_FREE(pointer);
+  #elif defined(CHRE_SLPI_SEE)
+    sns_free(pointer);
   #else
-    // TODO(P2-32b2a4): Release uImage memory
-    #error SLPI_SEE UIMG memory free not supported
+    #error SLPI UIMG memory free not supported
   #endif
 #else
   free(pointer);

@@ -60,6 +60,7 @@ SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/qmimsgs/common/api
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/framework/cm/inc
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/api
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/internal
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/utils/nanopb
 
 SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
@@ -67,6 +68,7 @@ SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
 
 SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
+SLPI_SEE_CFLAGS += -DSSC_TARGET_HEXAGON
 
 # SLPI-specific Source Files ###################################################
 
