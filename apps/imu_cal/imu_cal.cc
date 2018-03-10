@@ -30,6 +30,9 @@ namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
+using chre::Milliseconds;
+using chre::Seconds;
+
 namespace {
 
 struct SensorState {
