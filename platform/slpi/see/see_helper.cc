@@ -961,28 +961,20 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
       //     info->suid.suid_high, info->suid.suid_low);
     } else {
       SeeCalData *cal = &gCalInfo[calIndex].cal;
-      LOGD("Cal sensor %zu: status %" PRIu8,
-           calIndex, static_cast<uint8_t>(event.status));
 
       cal->hasBias = (offset.index == 3);
       if (cal->hasBias) {
         memcpy(cal->bias, offset.val, sizeof(cal->bias));
-        LOGD("  Bias: %f %f %f", offset.val[0], offset.val[1], offset.val[2]);
       }
 
       cal->hasScale = (scale.index == 3);
       if (cal->hasScale) {
         memcpy(cal->scale, scale.val, sizeof(cal->scale));
-        LOGD("  Scale: %f %f %f", scale.val[0], scale.val[1], scale.val[2]);
       }
 
       cal->hasMatrix = (matrix.index == 9);
       if (cal->hasScale) {
         memcpy(cal->matrix, matrix.val, sizeof(cal->matrix));
-        LOGD("  Matrix: %f %f %f, %f %f %f, %f %f %f",
-             matrix.val[0], matrix.val[1], matrix.val[2],
-             matrix.val[3], matrix.val[4], matrix.val[5],
-             matrix.val[6], matrix.val[7], matrix.val[8]);
       }
 
       cal->accuracy = static_cast<uint8_t>(event.status);
@@ -1675,9 +1667,8 @@ bool SeeHelper::initCalSensors() {
   // Zero out gCalInfo to avoid accidental suid and data match.
   memset(gCalInfo, 0, sizeof(gCalInfo));
 
-  // TODO: uncomment accel_cal when it's enabled in SEE.
   const char *kCalTypes[] = {
-    // "accel_cal",
+    "accel_cal",
     "gyro_cal",
     "mag_cal",
   };
