@@ -35,6 +35,13 @@
 #include "chre/extensions/platform/slpi/see/vendor_data_types.h"
 #endif  // CHREX_SENSOR_SUPPORT
 
+#ifndef CHRE_SEE_NUM_TEMP_SENSORS
+// There are usually more than one 'sensor_temperature' sensors in SEE.
+// Define this in the variant-specific makefile to avoid missing sensors in
+// sensor discovery.
+#error "CHRE_SEE_NUM_TEMP_SENSORS is not defined"
+#endif
+
 namespace chre {
 namespace {
 
@@ -391,9 +398,10 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
  * Obtains the list of SUIDs and their attributes that support the specified
  * data type.
  */
-bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs) {
+bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
+                     uint8_t minNumSuids) {
   DynamicVector<sns_std_suid> suids;
-  bool success = getSeeHelper()->findSuidSync(dataType, &suids);
+  bool success = getSeeHelper()->findSuidSync(dataType, &suids, minNumSuids);
   if (!success) {
     LOGE("Failed to find sensor '%s'", dataType);
   } else {
@@ -463,7 +471,8 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
   DynamicVector<SuidAttr> tempSensors;
-  if (!getSuidAndAttrs("sensor_temperature", &tempSensors)) {
+  if (!getSuidAndAttrs("sensor_temperature", &tempSensors,
+                       CHRE_SEE_NUM_TEMP_SENSORS)) {
       FATAL_ERROR("Failed to get temperature sensor UID and attributes");
   }
 
@@ -484,7 +493,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
     }
 
     DynamicVector<SuidAttr> primarySensors;
-    if (!getSuidAndAttrs(dataType, &primarySensors)) {
+    if (!getSuidAndAttrs(dataType, &primarySensors, 1 /* minNumSuids */)) {
       FATAL_ERROR("Failed to get primary sensor UID and attributes");
     } else {
       for (const auto& primarySensor : primarySensors) {

@@ -1359,15 +1359,14 @@ void SeeHelper::handleSnsClientEventMsg(
 }
 
 bool SeeHelper::findSuidSync(const char *dataType,
-                             DynamicVector<sns_std_suid> *suids) {
-  CHRE_ASSERT(suids);
+                             DynamicVector<sns_std_suid> *suids,
+                             uint8_t minNumSuids) {
+  CHRE_ASSERT(suids && minNumSuids > 0);
   bool success = false;
 
   if (mQmiHandles.empty()) {
     LOGE("Sensor client service QMI client wasn't initialized");
   } else {
-    suids->clear();
-
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
     success = encodeSnsSuidReq(dataType, &msg, &msgLen);
@@ -1385,6 +1384,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
 
       uint32_t trialCount = 0;
       do {
+        suids->clear();
         if (++trialCount > 1) {
           timer_sleep(kSuidReqIntervalUsec, T_USEC, true /* non_deferrable */);
         }
@@ -1393,7 +1393,8 @@ bool SeeHelper::findSuidSync(const char *dataType,
                           SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                           false /* batchValid */, 0 /* batchPeriodUs */,
                           false /* passive */, true /* waitForIndication */);
-      } while (suids->empty() && trialCount < kSuidReqMaxTrialCount);
+      } while (suids->size() < minNumSuids
+               && trialCount < kSuidReqMaxTrialCount);
       if (trialCount > 1) {
         LOGD("%" PRIu32 " trials took %" PRIu32 " msec", trialCount,
              static_cast<uint32_t>(
