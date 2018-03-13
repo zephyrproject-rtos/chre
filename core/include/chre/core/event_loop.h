@@ -30,6 +30,15 @@
 #include "chre/util/unique_ptr.h"
 #include "chre_api/chre/event.h"
 
+// These default values can be overridden in the variant-specific makefile.
+#ifndef CHRE_MAX_EVENT_COUNT
+#define CHRE_MAX_EVENT_COUNT 96
+#endif
+
+#ifndef CHRE_MAX_UNSCHEDULED_EVENT_COUNT
+#define CHRE_MAX_UNSCHEDULED_EVENT_COUNT 96
+#endif
+
 namespace chre {
 
 /**
@@ -250,7 +259,7 @@ class EventLoop : public NonCopyable {
 
  private:
   //! The maximum number of events that can be active in the system.
-  static constexpr size_t kMaxEventCount = 96;
+  static constexpr size_t kMaxEventCount = CHRE_MAX_EVENT_COUNT;
 
   //! The minimum number of events to reserve in the event pool for system
   //! events.
@@ -258,7 +267,8 @@ class EventLoop : public NonCopyable {
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.
-  static constexpr size_t kMaxUnscheduledEventCount = 96;
+  static constexpr size_t kMaxUnscheduledEventCount =
+      CHRE_MAX_UNSCHEDULED_EVENT_COUNT;
 
   //! The memory pool to allocate incoming events from.
   SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;

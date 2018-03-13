@@ -131,10 +131,14 @@ class SeeHelper : public NonCopyable {
    * @param dataType A data type string, "accel" for example.
    * @param suids A non-null pointer to a list of sensor UIDs that support the
    *              specified data type.
+   * @param minNumSuids The minimum number of SUIDs it needs to find before
+   *                    returning true. Otherwise, it'll re-try internally
+   *                    until it times out. It's illegal to set it to 0.
    *
    * @return true if sensor discovery succeeded even if no SUID was found.
    */
-  bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids);
+  bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids,
+                    uint8_t minNumSuids = 1);
 
   /**
    * A synchronous call to obtain the attributes of the specified SUID.

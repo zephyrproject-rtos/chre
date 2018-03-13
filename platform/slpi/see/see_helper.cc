@@ -956,9 +956,8 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     auto *info = static_cast<SeeInfoArg *>(*arg);
     size_t calIndex = getCalIndexFromSuid(info->suid);
     if (calIndex >= static_cast<size_t>(SeeCalSensor::NumCalSensors)) {
-      // TODO: uncomment when driver stops delivering cal events.
-      //LOGW("Cal sensor index out of bounds 0x%" PRIx64 " %" PRIx64",
-      //     info->suid.suid_high, info->suid.suid_low);
+      LOGW("Cal sensor index out of bounds 0x%" PRIx64 " %" PRIx64,
+           info->suid.suid_high, info->suid.suid_low);
     } else {
       SeeCalData *cal = &gCalInfo[calIndex].cal;
 
@@ -1359,20 +1358,18 @@ void SeeHelper::handleSnsClientEventMsg(
 }
 
 bool SeeHelper::findSuidSync(const char *dataType,
-                             DynamicVector<sns_std_suid> *suids) {
-  CHRE_ASSERT(suids);
+                             DynamicVector<sns_std_suid> *suids,
+                             uint8_t minNumSuids) {
+  CHRE_ASSERT(suids && minNumSuids > 0);
   bool success = false;
 
   if (mQmiHandles.empty()) {
     LOGE("Sensor client service QMI client wasn't initialized");
   } else {
-    suids->clear();
-
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
     success = encodeSnsSuidReq(dataType, &msg, &msgLen);
     if (success) {
-      // TODO: modify retry implementation  when b/69066253 is resolved.
       // Sensor client QMI service may come up before SEE sensors are
       // enumerated. A max dwell time is set and retries are performed as
       // currently there's no message indicating that SEE intialization is
@@ -1385,6 +1382,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
 
       uint32_t trialCount = 0;
       do {
+        suids->clear();
         if (++trialCount > 1) {
           timer_sleep(kSuidReqIntervalUsec, T_USEC, true /* non_deferrable */);
         }
@@ -1393,7 +1391,8 @@ bool SeeHelper::findSuidSync(const char *dataType,
                           SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                           false /* batchValid */, 0 /* batchPeriodUs */,
                           false /* passive */, true /* waitForIndication */);
-      } while (suids->empty() && trialCount < kSuidReqMaxTrialCount);
+      } while (suids->size() < minNumSuids
+               && trialCount < kSuidReqMaxTrialCount);
       if (trialCount > 1) {
         LOGD("%" PRIu32 " trials took %" PRIu32 " msec", trialCount,
              static_cast<uint32_t>(
@@ -1511,8 +1510,8 @@ bool SeeHelper::sendReq(
   CHRE_ASSERT(payload || payloadLen == 0);
   bool success = false;
 
-  // TODO: when adding uImage support, may need to force big image here if still
-  // using QMI directly
+  // TODO: when enabling uImage support, need to force big image here if still
+  // using QMI directly.
 
   if (!waitForIndication) {
     success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
