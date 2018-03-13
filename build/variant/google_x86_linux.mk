@@ -38,7 +38,7 @@ TARGET_CFLAGS += $(shell pkg-config --cflags sndfile)
 
 # Link in libraries for the final executable and export symbols to dynamically
 # loaded objects.
-TARGET_BIN_LDFLAGS += -lrt -ldl -Wl,--export-dynamic
+TARGET_BIN_LDFLAGS += -lpthread -lrt -ldl -Wl,--export-dynamic
 TARGET_BIN_LDFLAGS += $(shell pkg-config --libs sndfile)
 endif
 
