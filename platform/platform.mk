@@ -11,6 +11,10 @@ COMMON_CFLAGS += -Iplatform/include
 
 # Common Compiler Flags ########################################################
 
+# Common Source Files ##########################################################
+
+COMMON_SRCS += platform/shared/platform_sensor_util.cc
+
 # SLPI-specific Compiler Flags #################################################
 
 # Define CUST_H to allow including the customer header file.

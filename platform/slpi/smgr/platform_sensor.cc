@@ -35,11 +35,12 @@ extern "C" {
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
-#include "chre/platform/system_time.h"
+#include "chre/platform/shared/platform_sensor_util.h"
 #include "chre/platform/slpi/uimg_util.h"
 #include "chre/platform/slpi/smgr/platform_sensor_util.h"
 #include "chre/platform/slpi/smgr/smgr_client.h"
 #include "chre/platform/slpi/smgr/smr_helper.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/macros.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
@@ -534,56 +535,6 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
   if (sensorTypeIsOneShot(sensorType)) {
     EventLoopManagerSingleton::get()->getSensorRequestManager()
         .removeAllRequests(sensorType);
-  }
-}
-
-/**
- * A helper function that updates the last event of a sensor in the main thread.
- * Platform should call this function only for an on-change sensor.
- *
- * @param sensorType The SensorType of the sensor.
- * @param eventData A non-null pointer to the sensor's CHRE event data.
- */
-void updateLastEvent(SensorType sensorType, const void *eventData) {
-  CHRE_ASSERT(eventData);
-
-  auto *header = static_cast<const chreSensorDataHeader *>(eventData);
-  if (header->readingCount != 1) {
-    // TODO: better error handling when SMGR behavior changes.
-    // SMGR delivers one sample per report for on-change sensors.
-    LOGE("%" PRIu16 " samples in an event for on-change sensor %d",
-         header->readingCount, static_cast<int>(sensorType));
-  } else {
-    struct CallbackData {
-      SensorType sensorType;
-      const ChreSensorData *event;
-    };
-    auto *callbackData = memoryAlloc<CallbackData>();
-    if (callbackData == nullptr) {
-      LOGE("Failed to allocate deferred callback memory");
-    } else {
-      callbackData->sensorType = sensorType;
-      callbackData->event = static_cast<const ChreSensorData *>(eventData);
-
-      auto callback = [](uint16_t /* type */, void *data) {
-        auto *cbData = static_cast<CallbackData *>(data);
-
-        Sensor *sensor = EventLoopManagerSingleton::get()
-            ->getSensorRequestManager().getSensor(cbData->sensorType);
-
-        // Mark last event as valid only if the sensor is enabled. Event data
-        // may arrive after sensor is disabled.
-        if (sensor != nullptr
-            && sensor->getRequest().getMode() != SensorMode::Off) {
-          sensor->setLastEvent(cbData->event);
-        }
-        memoryFree(cbData);
-      };
-
-      // Schedule a deferred callback.
-      EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorLastEventUpdate, callbackData, callback);
-    }
   }
 }
 
