@@ -130,7 +130,8 @@ void populateCalRequest(uint8_t sensorType, const ashCalInfo *calInfo,
 
 }  // namespace
 
-bool ashSetCalibration(uint8_t sensorType, const struct ashCalInfo *calInfo) {
+DLL_EXPORT bool ashSetCalibration(uint8_t sensorType,
+                                  const struct ashCalInfo *calInfo) {
   bool success = false;
   if (!isCalibrationSupported(sensorType)) {
     LOGE("Attempting to set calibration of sensor %" PRIu8, sensorType);
