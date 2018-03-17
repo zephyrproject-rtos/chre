@@ -436,10 +436,12 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
   return success;
 }
 
-// When HW ID is absent, it's default to 0 and won't be a factor.
-bool vendorAndHwIdMatch(const SeeAttributes& attr0,
-                        const SeeAttributes& attr1) {
+// Check whether two sensors with the specified attrtibutes belong to the same
+// sensor hardware module.
+bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
+  // When HW ID is absent, it's default to 0 and won't be a factor.
   return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0)
+          && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0)
           && (attr0.hwId == attr1.hwId));
 }
 
@@ -521,7 +523,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
               sns_std_suid tempSuid = tempSensor.suid;
               SeeAttributes tempAttr = tempSensor.attr;
 
-              if (vendorAndHwIdMatch(attr, tempAttr)) {
+              if (sensorHwMatch(attr, tempAttr)) {
                 LOGD("Found matching temperature sensor type");
                 tempFound = true;
                 addSensor(temperatureType, tempSuid, tempAttr, sensors);
