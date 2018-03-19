@@ -37,6 +37,19 @@ bool FixedSizeBlockingQueue<ElementType, kSize>::push(
 }
 
 template<typename ElementType, size_t kSize>
+bool FixedSizeBlockingQueue<ElementType, kSize>::push(ElementType&& element) {
+  bool success;
+  {
+    LockGuard<Mutex> lock(mMutex);
+    success = mQueue.push(std::move(element));
+  }
+  if (success) {
+    mConditionVariable.notify_one();
+  }
+  return success;
+}
+
+template<typename ElementType, size_t kSize>
 ElementType FixedSizeBlockingQueue<ElementType, kSize>::pop() {
   LockGuard<Mutex> lock(mMutex);
   while (mQueue.empty()) {
