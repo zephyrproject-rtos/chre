@@ -293,15 +293,10 @@ void addSensor(SensorType sensorType, const sns_std_suid& suid,
   strlcat(sensorName, " ", sizeof(sensorName));
   strlcat(sensorName, attr.name, sizeof(sensorName));
 
-  // TODO: remove when b/69719653 is resolved.
-  // Populate on-change sensor's max sample rate to 25Hz.
-  float maxSampleRate = sensorTypeIsOnChange(sensorType)
-      ? 25.0f : attr.maxSampleRate;
-
   // Override one-shot sensor's minInterval to default
   uint64_t minInterval = sensorTypeIsOneShot(sensorType) ?
       CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          ceilf(Seconds(1).toRawNanoseconds() / maxSampleRate));
+          ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
 
   // Allocates memory for on-change sensor's last event.
   size_t lastEventSize;
