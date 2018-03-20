@@ -819,9 +819,11 @@ void populateEventSample(SeeDataArg *data, const float *val) {
       *timestampDelta = 0;
     } else {
       uint64_t delta = data->timeNs - data->prevTimeNs;
-      CHRE_ASSERT_LOG(delta <= UINT32_MAX,
-                      "timestampDelta overflow: prev %" PRIu64 " curr %" PRIu64,
-                      data->prevTimeNs, data->timeNs);
+      if (delta > UINT32_MAX) {
+        LOGE("timestampDelta overflow: prev %" PRIu64 " curr %" PRIu64,
+             data->prevTimeNs, data->timeNs);
+        delta = UINT32_MAX;
+      }
       *timestampDelta = static_cast<uint32_t>(delta);
     }
     data->prevTimeNs = data->timeNs;
