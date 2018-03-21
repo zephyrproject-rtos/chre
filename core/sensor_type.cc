@@ -54,6 +54,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Uncal Geomagnetic Field";
     case SensorType::VendorType0:
       return "Vendor Type 0";
+    case SensorType::VendorType1:
+      return "Vendor Type 1";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -104,6 +106,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::UncalibratedGeomagneticField;
     case (CHRE_SENSOR_TYPE_VENDOR_START + 0):
       return SensorType::VendorType0;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 1):
+      return SensorType::VendorType1;
     default:
       return SensorType::Unknown;
   }
@@ -141,6 +145,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
     case SensorType::VendorType0:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 0);
+    case SensorType::VendorType1:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 1);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -187,6 +193,8 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Byte;
     case SensorType::VendorType0:
       return SensorSampleType::Vendor0;
+    case SensorType::VendorType1:
+      return SensorSampleType::Vendor1;
     default:
       CHRE_ASSERT(false);
       return SensorSampleType::Unknown;
