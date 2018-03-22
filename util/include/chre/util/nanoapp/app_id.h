@@ -79,8 +79,6 @@ constexpr uint64_t kAshWorldAppId       = makeExampleNanoappId(11);
 constexpr uint64_t kAudioWorldAppId     = makeExampleNanoappId(12);
 constexpr uint64_t kHostAwakeWorldAppId = makeExampleNanoappId(13);
 
-constexpr uint64_t kImuCalAppId         = makeGoogleNanoappId(0x16);
-
 }  // namespace chre
 
 #endif  // CHRE_UTIL_NANOAPP_APP_ID_H_
