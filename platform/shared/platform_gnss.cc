@@ -93,14 +93,14 @@ void PlatformGnssBase::requestStateResyncCallback() {
 
 void PlatformGnssBase::locationStatusChangeCallback(bool enabled,
                                                     uint8_t errorCode) {
-  EventLoopManagerSingleton::get()->getGnssRequestManager()
-      .handleLocationSessionStatusChange(enabled, errorCode);
+  EventLoopManagerSingleton::get()->getGnssManager().getLocationSession()
+      .handleStatusChange(enabled, errorCode);
 }
 
 void PlatformGnssBase::locationEventCallback(
     struct chreGnssLocationEvent *event) {
-  EventLoopManagerSingleton::get()->getGnssRequestManager()
-      .handleLocationEvent(event);
+  EventLoopManagerSingleton::get()->getGnssManager().getLocationSession()
+      .handleReportEvent(event);
 }
 
 void PlatformGnssBase::measurementStatusChangeCallback(bool enabled,

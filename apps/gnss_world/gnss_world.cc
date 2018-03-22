@@ -99,8 +99,7 @@ void handleGnssAsyncResult(const chreAsyncResult *result) {
       LOGI("Successfully requested a GNSS location session");
       gAsyncResultReceived = true;
     } else {
-      LOGE("Error requesting GNSS scan monitoring with %" PRIu8,
-           result->errorCode);
+      LOGE("Error starting GNSS location with %" PRIu8, result->errorCode);
     }
 
     if (result->cookie != &kLocationSessionCookie) {
@@ -112,8 +111,7 @@ void handleGnssAsyncResult(const chreAsyncResult *result) {
       LOGI("Successfully stopped a GNSS location session");
       gAsyncResultReceived = true;
     } else {
-      LOGE("Error stoppinging GNSS scan monitoring with %" PRIu8,
-           result->errorCode);
+      LOGE("Error stoppinging GNSS location with %" PRIu8, result->errorCode);
     }
 
     if (result->cookie != &kLocationSessionCookie) {

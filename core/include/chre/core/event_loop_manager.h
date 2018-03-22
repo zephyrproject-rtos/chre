@@ -19,7 +19,7 @@
 
 #include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
-#include "chre/core/gnss_request_manager.h"
+#include "chre/core/gnss_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/core/sensor_request_manager.h"
 #include "chre/core/wifi_request_manager.h"
@@ -51,7 +51,7 @@ enum class SystemCallbackType : uint16_t {
   FinishLoadingNanoapp,
   WwanHandleCellInfoResult,
   HandleUnloadNanoapp,
-  GnssLocationSessionStatusChange,
+  GnssSessionStatusChange,
   SensorStatusUpdate,
   PerformDebugDump,
   TimerPoolTick,
@@ -156,8 +156,8 @@ class EventLoopManager : public NonCopyable {
    *         with the platform GNSS subsystem and manages requests from various
    *         nanoapps.
    */
-  GnssRequestManager& getGnssRequestManager() {
-    return mGnssRequestManager;
+  GnssManager& getGnssManager() {
+    return mGnssManager;
   }
 
   /**
@@ -223,9 +223,9 @@ class EventLoopManager : public NonCopyable {
   //! The event loop managed by this event loop manager.
   EventLoop mEventLoop;
 
-  //! The GnssRequestManager that handles requests for all nanoapps. This
-  //! manages the state of the GNSS subsystem that the runtime subscribes to.
-  GnssRequestManager mGnssRequestManager;
+  //! The GnssManager that handles requests for all nanoapps. This manages the
+  //! state of the GNSS subsystem that the runtime subscribes to.
+  GnssManager mGnssManager;
 
   //! Handles communications with the host processor.
   HostCommsManager mHostCommsManager;
