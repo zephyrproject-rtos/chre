@@ -18,6 +18,7 @@
 #define CHRE_UTIL_ARRAY_QUEUE_H_
 
 #include <cstddef>
+#include <iterator>
 #include <type_traits>
 
 #include "chre/util/non_copyable.h"
@@ -150,15 +151,22 @@ class ArrayQueue : public NonCopyable {
   template<typename ValueType>
   class ArrayQueueIterator {
    public:
+    typedef ValueType value_type;
+    typedef ValueType& reference;
+    typedef ValueType* pointer;
+    typedef std::ptrdiff_t difference_type;
+    typedef std::forward_iterator_tag iterator_category;
+
+    ArrayQueueIterator() = default;
     ArrayQueueIterator(
         ValueType *pointer, ValueType *base, size_t tail)
         : mPointer(pointer), mBase(base), mTail(tail) {}
 
-    bool operator==(const ArrayQueueIterator& right) {
+    bool operator==(const ArrayQueueIterator& right) const {
       return (mPointer == right.mPointer);
     }
 
-    bool operator!=(const ArrayQueueIterator& right) {
+    bool operator!=(const ArrayQueueIterator& right) const {
       return (mPointer != right.mPointer);
     }
 

@@ -1,6 +1,10 @@
 #include "gtest/gtest.h"
 #include "chre/util/array_queue.h"
 
+#include <algorithm>
+#include <type_traits>
+#include <vector>
+
 using chre::ArrayQueue;
 
 namespace {
@@ -268,9 +272,14 @@ TEST(ArrayQueueTest, SimpleIterator) {
   for (size_t i = 0; i < 3; ++i) {
     q.push(i);
   }
+  EXPECT_NE(q.begin(), q.end());
 
   size_t index = 0;
   for (ArrayQueue<int, 4>::iterator it = q.begin(); it != q.end(); ++it) {
+    EXPECT_EQ(q[index++], *it);
+  }
+  index = 0;
+  for (ArrayQueue<int, 4>::iterator it = q.begin(); it != q.end(); it++) {
     EXPECT_EQ(q[index++], *it);
   }
 
@@ -290,6 +299,26 @@ TEST(ArrayQueueTest, SimpleIterator) {
   while (it != q.end()) {
     EXPECT_EQ(q[index++], *it++);
   }
+
+  // Iterator concept checks: default constructible, copy assignable, copy
+  // constructible
+  ArrayQueue<int, 4>::iterator it2;
+  it2 = it;
+  EXPECT_EQ(it, it2);
+
+  ArrayQueue<int, 4>::iterator it3(it);
+  EXPECT_EQ(it, it3);
+}
+
+TEST(ArrayQueueTest, IteratorSwap) {
+  ArrayQueue<int, 2> q;
+  q.push(1);
+  q.push(2);
+
+  auto it1 = q.begin(), it2 = q.end();
+  std::swap(it1, it2);
+  EXPECT_EQ(it1, q.end());
+  EXPECT_EQ(it2, q.begin());
 }
 
 TEST(ArrayQueueTest, IteratorAndPush) {
@@ -389,4 +418,51 @@ TEST(ArrayQueueTest, Full) {
   }
 
   EXPECT_TRUE(q.full());
+}
+
+TEST(ArrayQueueTest, ArrayCopy) {
+  constexpr size_t kSize = 8;
+  ArrayQueue<size_t, kSize> q;
+  std::vector<size_t> v;
+  v.resize(kSize);
+
+  for (size_t i = 0; i < kSize; i++) {
+    q.push(i);
+
+    v.assign(kSize, 0xdeadbeef);
+    std::copy(q.begin(), q.end(), v.begin());
+
+    for (size_t j = 0; j < i; j++) {
+      EXPECT_EQ(q[j], v[j]);
+      EXPECT_EQ(*std::next(q.begin(), j), v[j]);
+    }
+  }
+}
+
+TEST(ArrayQueueTest, IteratorTraits) {
+  ArrayQueue<int, 2> q;
+  q.push(1234);
+  q.push(5678);
+
+  using traits = std::iterator_traits<decltype(q)::iterator>;
+  typename traits::difference_type diff = std::distance(q.begin(), q.end());
+  EXPECT_EQ(diff, q.size());
+
+  typename traits::value_type v = *q.begin();
+  EXPECT_EQ(v, q[0]);
+
+  typename traits::reference r = *q.begin();
+  r = 999;
+  EXPECT_EQ(r, q[0]);
+
+  typename traits::pointer p = &r;
+  EXPECT_EQ(*p, q[0]);
+
+
+  // Note: if the implementation is upgraded to another category like random
+  // access, then this static assert should be updated. It exists primarily to
+  // confirm that we are declaring an iterator_category
+  static_assert(
+      std::is_same<traits::iterator_category, std::forward_iterator_tag>::value,
+      "ArrayQueueIterator should be a forward iterator");
 }
