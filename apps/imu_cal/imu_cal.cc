@@ -25,11 +25,6 @@
 
 #define LOG_TAG "[ImuCal]"
 
-#ifdef CHRE_NANOAPP_INTERNAL
-namespace chre {
-namespace {
-#endif  // CHRE_NANOAPP_INTERNAL
-
 using chre::Milliseconds;
 using chre::Seconds;
 
@@ -218,13 +213,3 @@ void nanoappEnd() {
   // TODO: Unsubscribe to sensors
   LOGI("Stopped");
 }
-
-#ifdef CHRE_NANOAPP_INTERNAL
-}  // anonymous namespace
-}  // namespace chre
-
-#include "chre/platform/static_nanoapp_init.h"
-#include "chre/util/nanoapp/app_id.h"
-
-CHRE_STATIC_NANOAPP_INIT(ImuCal, chre::kImuCalAppId, 0);
-#endif  // CHRE_NANOAPP_INTERNAL
