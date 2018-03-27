@@ -29,4 +29,3 @@ COMMON_SRCS += variant/simulator/static_nanoapps.cc
 # Makefile Includes ############################################################
 
 include apps/ash_world/ash_world.mk
-include apps/imu_cal/imu_cal.mk
