@@ -17,6 +17,12 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 #define CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 
+extern "C" {
+
+#include "sns_island_util.h"
+
+} // extern "C"
+
 namespace chre {
 
 class PowerControlManagerBase {
@@ -43,6 +49,9 @@ class PowerControlManagerBase {
   void onHostWakeSuspendEvent(bool awake);
 
  protected:
+  //! Client handle for the island aggregator registration.
+  sns_island_client_handle mClientHandle = nullptr;
+
   //! Set to true if the host is awake, false if suspended.
   bool mHostIsAwake = true;
 };
