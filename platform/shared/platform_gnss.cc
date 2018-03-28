@@ -50,6 +50,8 @@ void PlatformGnss::init() {
     if (!mGnssApi->open(&gChrePalSystemApi, &mGnssCallbacks)) {
       LOGE("GNSS PAL open returned false");
       mGnssApi = nullptr;
+    } else {
+      LOGD("Opened GNSS PAL version 0x%08" PRIx32, mGnssApi->moduleVersion);
     }
   } else {
     LOGW("Requested GNSS PAL (version %08" PRIx32 ") not found",
