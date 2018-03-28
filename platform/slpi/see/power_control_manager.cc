@@ -22,20 +22,33 @@ namespace chre {
 
 PowerControlManagerBase::PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  // TODO(P2-51d645): Initialize PM client
+  const char kClientName[] = "CHRE";
+  mClientHandle = sns_island_aggregator_register_client(kClientName);
+  if (mClientHandle == nullptr) {
+    FATAL_ERROR("Island aggregator client register failed");
+  }
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
 PowerControlManagerBase::~PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  // TODO(P2-51d645): Release PM client
+  // TODO: (b/74524281) unregister island aggregator client
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
 bool PowerControlManagerBase::voteBigImage(bool bigImage) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  // TODO(P2-51d645): Implement this
-  #error SLPI/SEE voteBigImage not supported
+  sns_rc rc = bigImage
+      ? sns_island_block(mClientHandle) : sns_island_unblock(mClientHandle);
+
+  // TODO: (b/74524281) define success = (rc == SNS_RC_SUCCESS).
+  bool success = (rc != SNS_RC_FAILED);
+  if (!success) {
+    // Note that FATAL_ERROR must not be used here, because this can be called
+    // from preFatalError() (not that we should use it here regardless)
+    LOGE("Failed to vote for bigImage %d with result %d", bigImage, rc);
+  }
+  return success;
 #else
   return true;
 #endif // CHRE_SLPI_UIMG_ENABLED
