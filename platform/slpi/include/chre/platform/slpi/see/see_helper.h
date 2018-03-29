@@ -18,11 +18,11 @@
 #define CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 
 #include "qmi_client.h"
-#include "sns_suid.pb.h"
 
 #include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/slpi/see/see_helper_internal.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
@@ -84,17 +84,6 @@ struct SeeAttributes {
   float maxSampleRate;
   uint8_t streamType;
   bool passiveRequest;
-};
-
-//! A struct to store a sensor's calibration data
-struct SeeCalData {
-  float bias[3];
-  float scale[3];
-  float matrix[9];
-  bool hasBias;
-  bool hasScale;
-  bool hasMatrix;
-  uint8_t accuracy;
 };
 
 //! A struct to facilitate making sensor request
@@ -265,6 +254,12 @@ class SeeHelper : public NonCopyable {
   //! true if we are waiting on an indication for a sync call.
   bool mWaiting = false;
 
+  //! The SUID for the remote_proc sensor.
+  Optional<sns_std_suid> mRemoteProcSuid;
+
+  //! Cal info of all the cal sensors.
+  SeeCalInfo mCalInfo[kNumSeeCalSensors];
+
   /**
    * Initializes SEE calibration sensors and makes data request.
    *
@@ -343,6 +338,11 @@ class SeeHelper : public NonCopyable {
    */
   bool waitForService(qmi_client_type *qmiHandle,
                       Microseconds timeout = kDefaultSeeWaitTimeout);
+
+  /**
+   * Obtains the pointer to cal data by SUID.
+   */
+  SeeCalData *getCalDataFromSuid(const sns_std_suid& suid);
 };
 
 }  // namespace chre
