@@ -114,6 +114,11 @@ class SeeHelper : public NonCopyable {
   };
 
   /**
+   * Deinits QMI clients before destructing this object.
+   */
+  ~SeeHelper();
+
+  /**
    * A synchronous call to discover SUID(s) that supports the specified data
    * type. This API will clear the provided dynamic vector before populating it.
    *
@@ -142,14 +147,16 @@ class SeeHelper : public NonCopyable {
 
   /**
    * Initializes and waits for the sensor client QMI service to become
-   * available. This function must be called first to initialize the object.
+   * available, and obtains remote_proc and cal sensors' info for future
+   * operations. This function must be called first to initialize the object and
+   * be called only once.
    *
    * @param cbIf A pointer to the callback interface that will be invoked to
    *             handle all async requests with callback data type defined in
    *             the interface.
    * @param timeout The wait timeout in microseconds.
    *
-   * @return true if the qmi client was successfully initialized.
+   * @return true if all initialization steps succeeded.
    */
   bool init(SeeHelperCallbackInterface *cbIf,
             Microseconds timeout = kDefaultSeeWaitTimeout);
@@ -162,12 +169,6 @@ class SeeHelper : public NonCopyable {
    * @return true if the QMI request has been successfully made.
    */
   bool makeRequest(const SeeSensorRequest& request);
-
-  /**
-   * Wrapper to call qmi_client_release() and clear the registered SUIDs. After
-   * this is called, the object is deinitialized until init is called again.
-   */
-  bool deinit();
 
   /**
    * Register a SensorType with the SUID of the SEE sensor/driver.
