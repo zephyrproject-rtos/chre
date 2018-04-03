@@ -17,11 +17,16 @@
 #include <cinttypes>
 
 #include <chre.h>
+
+#include "calibration/nano_calibration/aosp_nano_cal_parameters.h"
+#include "calibration/nano_calibration/nano_calibration.h"
+#include "calibration/online_calibration/accelerometer/accel_offset_cal/accel_offset_cal.h"
+#include "calibration/online_calibration/gyroscope/gyro_offset_over_temp_cal/gyro_offset_over_temp_cal.h"
+#include "calibration/online_calibration/magnetometer/mag_diverse_cal/mag_diverse_cal.h"
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/nanoapp/sensor.h"
 #include "chre/util/time.h"
-#include "nano_calibration.h"
 
 #define LOG_TAG "[ImuCal]"
 
@@ -58,40 +63,52 @@ enum SensorIndex {
   SENSOR_INDEX_MAG = 3,
 };
 
-SensorState sensors[] = {
-  [SENSOR_INDEX_TEMP] = {
-    .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
-    .enable = true,
-    .interval = Milliseconds(500).toRawNanoseconds(),
-    .highPerformanceLatency = 0,
-    // TODO(b/63908396): this sensor should be disabled in stand-by mode
-    .standByLatency = Seconds(60).toRawNanoseconds(),
-  },
-  [SENSOR_INDEX_ACCEL] = {
-    .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
-    .enable = true,
-    .interval = Milliseconds(10).toRawNanoseconds(),
-    .highPerformanceLatency = kDefaultHighPerformanceLatency,
-    .standByLatency = kDefaultStandByLatency,
-  },
-  [SENSOR_INDEX_GYRO] = {
-    .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
-    .enable = true,
-    .interval = Milliseconds(10).toRawNanoseconds(),
-    .highPerformanceLatency = kDefaultHighPerformanceLatency,
-    .standByLatency = kDefaultHighPerformanceLatency,
-  },
-  [SENSOR_INDEX_MAG] = {
-    .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
-    .enable = true,
-    .interval = Milliseconds(20).toRawNanoseconds(),
-    .highPerformanceLatency = kDefaultHighPerformanceLatency,
-    .standByLatency = kDefaultStandByLatency,
-  },
+SensorState gSensor[] = {
+    [SENSOR_INDEX_TEMP] =
+        {
+            .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
+            .enable = true,
+            .interval = Milliseconds(500).toRawNanoseconds(),
+            .highPerformanceLatency = 0,
+            // TODO(b/63908396): this sensor should be disabled in stand-by mode
+            .standByLatency = Seconds(60).toRawNanoseconds(),
+        },
+    [SENSOR_INDEX_ACCEL] =
+        {
+            .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
+            .enable = true,
+            .interval = Milliseconds(10).toRawNanoseconds(),
+            .highPerformanceLatency = kDefaultHighPerformanceLatency,
+            .standByLatency = kDefaultStandByLatency,
+        },
+    [SENSOR_INDEX_GYRO] =
+        {
+            .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
+            .enable = true,
+            .interval = Milliseconds(10).toRawNanoseconds(),
+            .highPerformanceLatency = kDefaultHighPerformanceLatency,
+            .standByLatency = kDefaultHighPerformanceLatency,
+        },
+    [SENSOR_INDEX_MAG] =
+        {
+            .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
+            .enable = true,
+            .interval = Milliseconds(20).toRawNanoseconds(),
+            .highPerformanceLatency = kDefaultHighPerformanceLatency,
+            .standByLatency = kDefaultStandByLatency,
+        },
 };
 
 // Container for all runtime calibration algorithms.
-nano_calibration::NanoSensorCal nanoCal;
+nano_calibration::NanoSensorCal gNanoCal;
+
+// Runtime calibration algorithm objects used in gNanoCal.
+online_calibration::AccelOffsetCal gAccelCal;
+online_calibration::GyroOffsetOtcCal gGyroCal;
+online_calibration::MagDiverseCal gMagCal;
+
+// Runtime calibration initialization state.
+bool gNanoCalInitialized = false;
 
 // Configures the Nanoapp's sensors with special adjustment of accel/gyro/mag
 // sensor latency based on whether high-performance mode is requested.
@@ -100,16 +117,16 @@ void nanoappDynamicConfigure(bool highPerformance) {
        (highPerformance) ? "high-performance" : "stand-by");
 
   // Configures all sensors.
-  for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
-    SensorState &sensor = sensors[i];
-    if (!sensor.enable) {
+  for (size_t i = 0; i < ARRAY_SIZE(gSensor); i++) {
+    SensorState &sensor = gSensor[i];
+    if (!sensor.enable || !sensor.isInitialized) {
       // Only configure enabled sensors.
       continue;
     }
 
     // Update the requested latency according to the requested mode.
-    uint64_t latency = (highPerformance)
-        ? sensor.highPerformanceLatency : sensor.standByLatency;
+    uint64_t latency = (highPerformance) ? sensor.highPerformanceLatency
+                                         : sensor.standByLatency;
 
     bool configStatus = chreSensorConfigure(
         sensor.handle, CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS,
@@ -126,10 +143,11 @@ void nanoappDynamicConfigure(bool highPerformance) {
 
 bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
+  gNanoCalInitialized = false;
 
   // Initialize all sensors to populate their handles.
-  for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
-    SensorState &sensor = sensors[i];
+  for (size_t i = 0; i < ARRAY_SIZE(gSensor); i++) {
+    SensorState &sensor = gSensor[i];
     sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
 
     // TODO: Handle error condition.
@@ -140,7 +158,7 @@ bool nanoappStart() {
 
   // Determine initial gyro state
   struct chreSensorSamplingStatus status;
-  if (chreGetSensorSamplingStatus(sensors[SENSOR_INDEX_GYRO].handle, &status)) {
+  if (chreGetSensorSamplingStatus(gSensor[SENSOR_INDEX_GYRO].handle, &status)) {
     gGyroEnabled = status.enabled;
   } else {
     LOGE("Failed to get gyro sampling status.");
@@ -150,10 +168,10 @@ bool nanoappStart() {
   nanoappDynamicConfigure(gGyroEnabled);
 
   // Checks to see if the accelerometer and magnetometer were initialized.
-  bool accelIsInitialized = sensors[SENSOR_INDEX_ACCEL].isInitialized;
-  bool magIsInitialized = sensors[SENSOR_INDEX_MAG].isInitialized;
+  bool accelIsInitialized = gSensor[SENSOR_INDEX_ACCEL].isInitialized;
+  bool magIsInitialized = gSensor[SENSOR_INDEX_MAG].isInitialized;
 
-  // Checks for the minimimal conditions for a nanoCal to have an active
+  // Checks for the minimimal conditions for a gNanoCal to have an active
   // calibration algorithm running.
   //  Sensor Requirements:
   //  - GyroCal:  accelerometer, gyroscope, magnetometer [optional]
@@ -161,7 +179,18 @@ bool nanoappStart() {
   //  - AccelCal: accelerometer
   //  - MagCal:   magnetometer
   if (accelIsInitialized || magIsInitialized) {
-    nanoCal.Initialize();
+    // Initializes the calibration algorithms with their respective tuning
+    // parameters.
+    gAccelCal.Initialize(nano_calibration::kAccelCalParameters);
+    gGyroCal.Initialize(nano_calibration::kGyroCalParameters,
+                        nano_calibration::kGyroOtcParameters);
+    gMagCal.Initialize(nano_calibration::kMagCalParameters,
+                       nano_calibration::kMagDiversityParameters);
+
+    // Initializes the NanoSensorCal wrapper.
+    gNanoCal.Initialize(&gAccelCal, &gGyroCal, &gMagCal);
+    gNanoCalInitialized = true;
+    LOGI("Runtime calibration algorithms initialized.");
   } else {
     LOGE(
         "None of the required sensors to enable a runtime calibration were "
@@ -173,17 +202,21 @@ bool nanoappStart() {
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  if (!gNanoCalInitialized) {
+    return;
+  }
+
   switch (eventType) {
     case CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA:
     case CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA: {
-      nanoCal.HandleSensorSamples(
+      gNanoCal.HandleSensorSamples(
           eventType, static_cast<const chreSensorThreeAxisData *>(eventData));
       break;
     }
 
     case CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA: {
-      nanoCal.HandleTemperatureSamples(
+      gNanoCal.HandleTemperatureSamples(
           eventType, static_cast<const chreSensorFloatData *>(eventData));
       break;
     }
@@ -193,8 +226,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
           static_cast<const chreSensorSamplingStatusEvent *>(eventData);
 
       // Is this the gyro? Check the handle.
-      if (sensors[SENSOR_INDEX_GYRO].isInitialized &&
-          ev->sensorHandle == sensors[SENSOR_INDEX_GYRO].handle &&
+      if (gSensor[SENSOR_INDEX_GYRO].isInitialized &&
+          ev->sensorHandle == gSensor[SENSOR_INDEX_GYRO].handle &&
           ev->status.enabled != gGyroEnabled) {
         // Modify sensor latency based on whether Gyro is enabled.
         gGyroEnabled = ev->status.enabled;
