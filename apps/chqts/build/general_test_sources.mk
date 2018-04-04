@@ -3,6 +3,7 @@
 
 GENERAL_TEST_SRC_FILES = \
     app.cc \
+    basic_audio_test.cc \
     basic_sensor_test_base.cc \
     basic_sensor_tests.cc \
     cell_info_base.cc \
