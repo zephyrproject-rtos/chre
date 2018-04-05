@@ -18,6 +18,10 @@
 
 #include "chre/platform/assert.h"
 
+#ifdef CHREX_SENSOR_SUPPORT
+#include "chre/extensions/platform/vendor_sensor_types.h"
+#endif  // CHREX_SENSOR_SUPPORT
+
 namespace chre {
 
 const char *getSensorTypeName(SensorType sensorType) {
@@ -220,18 +224,26 @@ SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
 }
 
 bool sensorTypeIsOneShot(SensorType sensorType) {
-  return (sensorType == SensorType::InstantMotion ||
-          sensorType == SensorType::StationaryDetect);
+  return (sensorType == SensorType::InstantMotion
+          || sensorType == SensorType::StationaryDetect
+#ifdef CHREX_SENSOR_SUPPORT
+          || extension::vendorSensorTypeIsOneShot(sensorType)
+#endif
+         );
 }
 
 bool sensorTypeIsOnChange(SensorType sensorType) {
-  return (sensorType == SensorType::Light ||
-          sensorType == SensorType::Proximity);
+  return (sensorType == SensorType::Light
+          || sensorType == SensorType::Proximity
+#ifdef CHREX_SENSOR_SUPPORT
+          || extension::vendorSensorTypeIsOnChange(sensorType)
+#endif
+         );
 }
 
 bool sensorTypeIsContinuous(SensorType sensorType) {
-  return (!sensorTypeIsOneShot(sensorType) &&
-          !sensorTypeIsOnChange(sensorType));
+  return (!sensorTypeIsOneShot(sensorType)
+          && !sensorTypeIsOnChange(sensorType));
 }
 
 }  // namespace chre
