@@ -27,7 +27,6 @@ UniquePtr<Nanoapp> initializeStaticNanoappAudioWorld();
 UniquePtr<Nanoapp> initializeStaticNanoappGnssWorld();
 UniquePtr<Nanoapp> initializeStaticNanoappHelloWorld();
 UniquePtr<Nanoapp> initializeStaticNanoappHostAwakeWorld();
-UniquePtr<Nanoapp> initializeStaticNanoappImuCal();
 UniquePtr<Nanoapp> initializeStaticNanoappMessageWorld();
 UniquePtr<Nanoapp> initializeStaticNanoappSensorWorld();
 UniquePtr<Nanoapp> initializeStaticNanoappSpammer();
