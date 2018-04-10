@@ -1273,6 +1273,15 @@ bool getSensorInfo(SensorType sensorType,
 
 }  // anonymous namespace
 
+SeeHelper::~SeeHelper() {
+  for (const auto& handle : mQmiHandles) {
+    qmi_client_error_type status = qmi_client_release(handle);
+    if (status != QMI_NO_ERR) {
+      LOGE("Failed to release sensor client service QMI client: %d", status);
+    }
+  }
+}
+
 void SeeHelper::handleSnsClientEventMsg(
     qmi_client_type qmiHandle, const void *payload, size_t payloadLen) {
   CHRE_ASSERT(payload);
@@ -1466,20 +1475,6 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
                         request.passive, false /* waitForIndication */);
     }
   }
-  return success;
-}
-
-bool SeeHelper::deinit() {
-  bool success = true;
-  for (const auto& handle : mQmiHandles) {
-    qmi_client_error_type status = qmi_client_release(handle);
-    if (status != QMI_NO_ERR) {
-      success = false;
-      LOGE("Failed to release sensor client service QMI client: %d", status);
-    }
-  }
-  mQmiHandles.clear();
-  mSensorInfos.clear();
   return success;
 }
 
