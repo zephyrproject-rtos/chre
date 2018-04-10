@@ -411,7 +411,6 @@ void PlatformSensor::init() {
 }
 
 void PlatformSensor::deinit() {
-  getSeeHelper()->deinit();
   SeeHelperSingleton::deinit();
 }
 
