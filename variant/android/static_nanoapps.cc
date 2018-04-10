@@ -25,7 +25,6 @@ const StaticNanoappInitFunction kStaticNanoappList[] = {
 //  initializeStaticNanoappAudioWorld,
 //  initializeStaticNanoappGnssWorld,
 //  initializeStaticNanoappHelloWorld,
-//  initializeStaticNanoappImuCal,
 //  initializeStaticNanoappMessageWorld,
 //  initializeStaticNanoappSensorWorld,
 //  initializeStaticNanoappSpammer,
