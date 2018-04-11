@@ -229,9 +229,13 @@ Return<Result> GenericContextHub::loadNanoApp(
     FlatBufferBuilder builder(128 + appBinary.customBinary.size());
     uint32_t targetApiVersion = (appBinary.targetChreApiMajorVersion << 24) |
                                 (appBinary.targetChreApiMinorVersion << 16);
+
+    // TODO: Add logic to fragment nanoapp
     HostProtocolHost::encodeLoadNanoappRequest(
         builder, transactionId, appBinary.appId, appBinary.appVersion,
-        targetApiVersion, appBinary.customBinary);
+        targetApiVersion, appBinary.customBinary, 0 /* fragmentId */,
+        appBinary.customBinary.size());
+
     if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
       result = Result::UNKNOWN_FAILURE;
     } else {
