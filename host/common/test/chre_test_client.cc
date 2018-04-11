@@ -170,9 +170,13 @@ void sendLoadNanoappRequest(SocketClient& client, const char *filename) {
     return;
   }
 
+  // The last 2 parameters were added for a request supporting fragmented load.
+  // Use the legacy behavior (fragmentId == 0) for this test.
+  // TODO: Test using new fragmented loading.
   FlatBufferBuilder builder(size + 128);
   HostProtocolHost::encodeLoadNanoappRequest(
-      builder, 1, 0x476f6f676c00100b, 0, 0x01000000, buffer);
+      builder, 1, 0x476f6f676c00100b, 0, 0x01000000, buffer,
+      0 /* fragmentId */, 0 /* appTotalSizeBytes */);
 
   LOGI("Sending load nanoapp request (%" PRIu32 " bytes total w/%zu bytes of "
        "payload)", builder.GetSize(), buffer.size());

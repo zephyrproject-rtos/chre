@@ -262,7 +262,7 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
 
     HostProtocolChre::encodeLoadNanoappResponse(
         builder, cbData->hostClientId, cbData->transactionId,
-        startedSuccessfully);
+        startedSuccessfully, 0 /* fragmentId */);
   };
 
   // Re-wrap the callback data struct, so it is destructed and freed, ensuring
@@ -633,13 +633,13 @@ void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
 
 void HostMessageHandlers::handleLoadNanoappRequest(
     uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t targetApiVersion, const void *appBinary,
-    size_t appBinaryLen) {
+    uint32_t appVersion, uint32_t targetApiVersion, const void *buffer,
+    size_t bufferLen, uint32_t fragmentId, size_t appBinaryLen) {
   auto cbData = MakeUnique<LoadNanoappCallbackData>();
 
   LOGD("Got load nanoapp request (txnId %" PRIu32 ") for appId 0x%016" PRIx64
        " version 0x%" PRIx32 " target API version 0x%08" PRIx32 " size %zu",
-       transactionId, appId, appVersion, targetApiVersion, appBinaryLen);
+       transactionId, appId, appVersion, targetApiVersion, bufferLen);
   if (cbData.isNull() || cbData->nanoapp.isNull()) {
     LOGE("Couldn't allocate load nanoapp callback data");
   } else {
@@ -649,7 +649,7 @@ void HostMessageHandlers::handleLoadNanoappRequest(
 
     // Note that if this fails, we'll generate the error response in
     // the normal deferred callback
-    cbData->nanoapp->loadFromBuffer(appId, appVersion, appBinary, appBinaryLen);
+    cbData->nanoapp->loadFromBuffer(appId, appVersion, buffer, bufferLen);
     EventLoopManagerSingleton::get()->deferCallback(
         SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
         finishLoadingNanoappCallback);

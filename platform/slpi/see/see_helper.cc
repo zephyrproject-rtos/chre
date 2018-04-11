@@ -39,7 +39,6 @@
 #include "chre/platform/slpi/system_time_util.h"
 #include "chre/util/lock_guard.h"
 #include "chre/util/macros.h"
-#include "chre/util/optional.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/vendor_sensor_types.h"
@@ -59,25 +58,6 @@ constexpr Seconds kSuidReqMaxDwellSec = Seconds(10);
 
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
-
-//! The SUID for the remote_proc sensor.
-Optional<sns_std_suid> gRemoteProcSuid;
-
-//! The list of SEE cal sensors.
-enum class SeeCalSensor {
-  AccelCal,
-  GyroCal,
-  MagCal,
-  NumCalSensors,
-};
-
-//! A struct to store a cal sensor's UID and its cal data.
-struct SeeCalInfo {
-  Optional<sns_std_suid> suid;
-  SeeCalData cal;
-};
-
-SeeCalInfo gCalInfo[static_cast<size_t>(SeeCalSensor::NumCalSensors)];
 
 //! A struct to facilitate pb encode/decode
 struct SeeBufArg {
@@ -124,6 +104,8 @@ struct SeeInfoArg {
   SeeSyncArg *sync;
   SeeDataArg *data;
   bool decodeMsgIdOnly;
+  Optional<sns_std_suid> *remoteProcSuid;
+  SeeCalInfo *calInfo;
 };
 
 //! A struct to facilitate decoding sensor attributes.
@@ -170,26 +152,16 @@ size_t getCalIndexFromDataType(const char *dataType) {
   return getCalIndexFromSensorType(sensorType);
 }
 
-size_t getCalIndexFromSuid(const sns_std_suid& suid) {
+size_t getCalIndexFromSuid(const sns_std_suid& suid,
+                           const SeeCalInfo *calInfo) {
   size_t i = 0;
-  for (; i < static_cast<size_t>(SeeCalSensor::NumCalSensors); i++) {
-    if (gCalInfo[i].suid.has_value()
-        && suidsMatch(suid, gCalInfo[i].suid.value())) {
+  for (; i < kNumSeeCalSensors; i++) {
+    if (calInfo[i].suid.has_value()
+        && suidsMatch(suid, calInfo[i].suid.value())) {
       break;
     }
   }
   return i;
-}
-
-SeeCalData *getCalDataFromSuid(const sns_std_suid& suid) {
-  for (size_t i = 0;
-       i < static_cast<size_t>(SeeCalSensor::NumCalSensors); i++) {
-    if (gCalInfo[i].suid.has_value()
-        && suidsMatch(suid, gCalInfo[i].suid.value())) {
-      return &gCalInfo[i].cal;
-    }
-  }
-  return nullptr;
 }
 
 /**
@@ -969,12 +941,13 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     LOGE("Error decoding sns_cal_event: %s", PB_GET_ERROR(stream));
   } else {
     auto *info = static_cast<SeeInfoArg *>(*arg);
-    size_t calIndex = getCalIndexFromSuid(info->suid);
-    if (calIndex >= static_cast<size_t>(SeeCalSensor::NumCalSensors)) {
+    SeeCalInfo *calInfo = info->calInfo;
+    size_t calIndex = getCalIndexFromSuid(info->suid, calInfo);
+    if (calIndex >= kNumSeeCalSensors) {
       LOGW("Cal sensor index out of bounds 0x%" PRIx64 " %" PRIx64,
            info->suid.suid_high, info->suid.suid_low);
     } else {
-      SeeCalData *cal = &gCalInfo[calIndex].cal;
+      SeeCalData *cal = &calInfo[calIndex].cal;
 
       cal->hasBias = (offset.index == 3);
       if (cal->hasBias) {
@@ -1090,8 +1063,8 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
   payload->arg = const_cast<SeeInfoArg *>(info);
 
-  if (gRemoteProcSuid.has_value()
-      && suidsMatch(info->suid, gRemoteProcSuid.value())) {
+  if (info->remoteProcSuid->has_value()
+      && suidsMatch(info->suid, info->remoteProcSuid->value())) {
     payload->funcs.decode = decodeSnsRemoteProcProtoEvent;
   } else if (suidsMatch(info->suid, kSuidLookup)) {
     payload->funcs.decode = decodeSnsSuidProtoEvent;
@@ -1300,6 +1273,15 @@ bool getSensorInfo(SensorType sensorType,
 
 }  // anonymous namespace
 
+SeeHelper::~SeeHelper() {
+  for (const auto& handle : mQmiHandles) {
+    qmi_client_error_type status = qmi_client_release(handle);
+    if (status != QMI_NO_ERR) {
+      LOGE("Failed to release sensor client service QMI client: %d", status);
+    }
+  }
+}
+
 void SeeHelper::handleSnsClientEventMsg(
     qmi_client_type qmiHandle, const void *payload, size_t payloadLen) {
   CHRE_ASSERT(payload);
@@ -1320,6 +1302,8 @@ void SeeHelper::handleSnsClientEventMsg(
     .sync = &syncArg,
     .data = &dataArg,
     .decodeMsgIdOnly = true,
+    .remoteProcSuid = &mRemoteProcSuid,
+    .calInfo = &mCalInfo[0],
   };
   sns_client_event_msg event = {
     .events.funcs.decode = decodeSnsClientEventMsg,
@@ -1494,28 +1478,13 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
   return success;
 }
 
-bool SeeHelper::deinit() {
-  bool success = true;
-  for (const auto& handle : mQmiHandles) {
-    qmi_client_error_type status = qmi_client_release(handle);
-    if (status != QMI_NO_ERR) {
-      success = false;
-      LOGE("Failed to release sensor client service QMI client: %d", status);
-    }
-  }
-  mQmiHandles.clear();
-  mSensorInfos.clear();
-  return success;
-}
-
 const sns_std_suid& SeeHelper::getCalSuidFromSensorType(
     SensorType sensorType) const {
   static sns_std_suid suid = sns_suid_sensor_init_zero;
 
   size_t calIndex = getCalIndexFromSensorType(sensorType);
-  if (calIndex < static_cast<size_t>(SeeCalSensor::NumCalSensors)
-      && gCalInfo[calIndex].suid.has_value()) {
-    suid = gCalInfo[calIndex].suid.value();
+  if (calIndex < kNumSeeCalSensors && mCalInfo[calIndex].suid.has_value()) {
+    suid = mCalInfo[calIndex].suid.value();
   }
   return suid;
 }
@@ -1682,8 +1651,8 @@ bool SeeHelper::waitForService(qmi_client_type *qmiHandle,
 bool SeeHelper::initCalSensors() {
   bool success = true;
 
-  // Zero out gCalInfo to avoid accidental suid and data match.
-  memset(gCalInfo, 0, sizeof(gCalInfo));
+  // Zero out mCalInfo to avoid accidental suid and data match.
+  memset(mCalInfo, 0, sizeof(mCalInfo));
 
   const char *kCalTypes[] = {
     "accel_cal",
@@ -1691,7 +1660,7 @@ bool SeeHelper::initCalSensors() {
     "mag_cal",
   };
 
-  // Find the cal sensor's SUID, assign it to gCalInfo, and make cal sensor data
+  // Find the cal sensor's SUID, assign it to mCalInfo, and make cal sensor data
   // request.
   DynamicVector<sns_std_suid> suids;
   for (size_t i = 0; i < ARRAY_SIZE(kCalTypes); i++) {
@@ -1703,11 +1672,11 @@ bool SeeHelper::initCalSensors() {
       LOGE("No '%s' sensor found", calType);
     } else {
       size_t index = getCalIndexFromDataType(calType);
-      if (index >= static_cast<size_t>(SeeCalSensor::NumCalSensors)) {
+      if (index >= kNumSeeCalSensors) {
         success = false;
         LOGE("Cal sensor '%s' index out of bounds", calType);
       } else {
-        gCalInfo[index].suid = suids[0];
+        mCalInfo[index].suid = suids[0];
 
         if (!sendReq(mQmiHandles[0], suids[0],
                      nullptr /* syncData */, nullptr /* syncDataType */,
@@ -1735,7 +1704,7 @@ bool SeeHelper::initRemoteProcSensor() {
     LOGE("Invalid number of remote '%s' sensor found: %zu",
          kRemoteProcType, suids.size());
   } else {
-    gRemoteProcSuid = suids[0];
+    mRemoteProcSuid = suids[0];
 
     uint32_t msgId = SNS_REMOTE_PROC_STATE_MSGID_SNS_REMOTE_PROC_STATE_CONFIG;
     constexpr size_t kBufferSize = sns_remote_proc_state_config_size;
@@ -1743,7 +1712,7 @@ bool SeeHelper::initRemoteProcSensor() {
     size_t msgLen;
     if (encodeSnsRemoteProcSensorConfig(msgBuffer, kBufferSize, &msgLen,
                                         SNS_STD_CLIENT_PROCESSOR_APSS)) {
-      success = sendReq(mQmiHandles[0], gRemoteProcSuid.value(),
+      success = sendReq(mQmiHandles[0], mRemoteProcSuid.value(),
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msgBuffer, msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
@@ -1755,6 +1724,11 @@ bool SeeHelper::initRemoteProcSensor() {
   }
 
   return success;
+}
+
+SeeCalData *SeeHelper::getCalDataFromSuid(const sns_std_suid& suid) {
+  size_t calIndex = getCalIndexFromSuid(suid, mCalInfo);
+  return (calIndex < kNumSeeCalSensors) ? &mCalInfo[calIndex].cal : nullptr;
 }
 
 }  // namespace chre

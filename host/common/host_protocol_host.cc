@@ -98,10 +98,12 @@ void HostProtocolHost::encodeHubInfoRequest(FlatBufferBuilder& builder) {
 void HostProtocolHost::encodeLoadNanoappRequest(
     FlatBufferBuilder& builder, uint32_t transactionId, uint64_t appId,
     uint32_t appVersion, uint32_t targetApiVersion,
-    const std::vector<uint8_t>& nanoappBinary) {
+    const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
+    size_t appTotalSizeBytes) {
   auto appBinary = builder.CreateVector(nanoappBinary);
   auto request = fbs::CreateLoadNanoappRequest(
-      builder, transactionId, appId, appVersion, targetApiVersion, appBinary);
+      builder, transactionId, appId, appVersion, targetApiVersion, appBinary,
+      fragmentId, appTotalSizeBytes);
   finalize(builder, fbs::ChreMessage::LoadNanoappRequest, request.Union());
 }
 

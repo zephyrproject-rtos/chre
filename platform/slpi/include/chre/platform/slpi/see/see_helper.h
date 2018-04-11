@@ -18,11 +18,11 @@
 #define CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 
 #include "qmi_client.h"
-#include "sns_suid.pb.h"
 
 #include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/slpi/see/see_helper_internal.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
@@ -86,17 +86,6 @@ struct SeeAttributes {
   bool passiveRequest;
 };
 
-//! A struct to store a sensor's calibration data
-struct SeeCalData {
-  float bias[3];
-  float scale[3];
-  float matrix[9];
-  bool hasBias;
-  bool hasScale;
-  bool hasMatrix;
-  uint8_t accuracy;
-};
-
 //! A struct to facilitate making sensor request
 struct SeeSensorRequest {
   SensorType sensorType;
@@ -123,6 +112,11 @@ class SeeHelper : public NonCopyable {
     SensorType sensorType;
     qmi_client_type qmiHandle;
   };
+
+  /**
+   * Deinits QMI clients before destructing this object.
+   */
+  ~SeeHelper();
 
   /**
    * A synchronous call to discover SUID(s) that supports the specified data
@@ -153,14 +147,16 @@ class SeeHelper : public NonCopyable {
 
   /**
    * Initializes and waits for the sensor client QMI service to become
-   * available. This function must be called first to initialize the object.
+   * available, and obtains remote_proc and cal sensors' info for future
+   * operations. This function must be called first to initialize the object and
+   * be called only once.
    *
    * @param cbIf A pointer to the callback interface that will be invoked to
    *             handle all async requests with callback data type defined in
    *             the interface.
    * @param timeout The wait timeout in microseconds.
    *
-   * @return true if the qmi client was successfully initialized.
+   * @return true if all initialization steps succeeded.
    */
   bool init(SeeHelperCallbackInterface *cbIf,
             Microseconds timeout = kDefaultSeeWaitTimeout);
@@ -173,12 +169,6 @@ class SeeHelper : public NonCopyable {
    * @return true if the QMI request has been successfully made.
    */
   bool makeRequest(const SeeSensorRequest& request);
-
-  /**
-   * Wrapper to call qmi_client_release() and clear the registered SUIDs. After
-   * this is called, the object is deinitialized until init is called again.
-   */
-  bool deinit();
 
   /**
    * Register a SensorType with the SUID of the SEE sensor/driver.
@@ -265,6 +255,12 @@ class SeeHelper : public NonCopyable {
   //! true if we are waiting on an indication for a sync call.
   bool mWaiting = false;
 
+  //! The SUID for the remote_proc sensor.
+  Optional<sns_std_suid> mRemoteProcSuid;
+
+  //! Cal info of all the cal sensors.
+  SeeCalInfo mCalInfo[kNumSeeCalSensors];
+
   /**
    * Initializes SEE calibration sensors and makes data request.
    *
@@ -343,6 +339,11 @@ class SeeHelper : public NonCopyable {
    */
   bool waitForService(qmi_client_type *qmiHandle,
                       Microseconds timeout = kDefaultSeeWaitTimeout);
+
+  /**
+   * Obtains the pointer to cal data by SUID.
+   */
+  SeeCalData *getCalDataFromSuid(const sns_std_suid& suid);
 };
 
 }  // namespace chre
