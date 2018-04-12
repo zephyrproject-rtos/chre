@@ -60,7 +60,6 @@ COMMON_SRCS += $(ALGOS_DIR)/calibration/online_calibration/accelerometer/accel_o
 COMMON_SRCS += $(ALGOS_DIR)/calibration/online_calibration/common_data/calibration_data.cc
 COMMON_SRCS += $(ALGOS_DIR)/calibration/online_calibration/gyroscope/gyro_offset_over_temp_cal/gyro_offset_over_temp_cal.cc
 COMMON_SRCS += $(ALGOS_DIR)/calibration/online_calibration/magnetometer/mag_diverse_cal/mag_diverse_cal.cc
-COMMON_SRCS += $(ALGOS_DIR)/calibration/synchronizer/synchronizer.cc
 
 # C Source Code
 COMMON_SRCS += $(ALGOS_DIR)/calibration/accelerometer/accel_cal.c
@@ -68,7 +67,6 @@ COMMON_SRCS += $(ALGOS_DIR)/calibration/diversity_checker/diversity_checker.c
 COMMON_SRCS += $(ALGOS_DIR)/calibration/gyroscope/gyro_cal.c
 COMMON_SRCS += $(ALGOS_DIR)/calibration/gyroscope/gyro_stillness_detect.c
 COMMON_SRCS += $(ALGOS_DIR)/calibration/magnetometer/mag_cal.c
-COMMON_SRCS += $(ALGOS_DIR)/calibration/magnetometer/mag_gyro_cal.c
 COMMON_SRCS += $(ALGOS_DIR)/calibration/over_temp/over_temp_cal.c
 COMMON_SRCS += $(ALGOS_DIR)/calibration/sample_rate_estimator/sample_rate_estimator.c
 COMMON_SRCS += $(ALGOS_DIR)/common/math/kasa.c
