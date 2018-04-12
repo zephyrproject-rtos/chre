@@ -32,7 +32,7 @@ PowerControlManagerBase::PowerControlManagerBase() {
 
 PowerControlManagerBase::~PowerControlManagerBase() {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  // TODO: (b/74524281) unregister island aggregator client
+  sns_island_aggregator_deregister_client(mClientHandle);
 #endif // CHRE_SLPI_UIMG_ENABLED
 }
 
