@@ -20,6 +20,7 @@
 
 #include <chre.h>
 
+#include <general_test/basic_audio_test.h>
 #include <general_test/basic_sensor_tests.h>
 #include <general_test/estimated_host_time_test.h>
 #include <general_test/event_between_apps_test.h>
@@ -224,6 +225,7 @@ void App::createTest(const void *eventData) {
     CASE(kNanoappInfoByInstanceId, NanoappInfoByInstanceIdTest);
     CASE(kNanoAppInfoEventsPerformer, NanoAppInfoEventsTestPerformer);
     CASE(kNanoAppInfoEventsObserver, NanoAppInfoEventsTestObserver);
+    CASE(kBasicAudioTest, BasicAudioTest);
 
 #undef CASE
 
