@@ -81,6 +81,16 @@ class AudioRequestManager : public NonCopyable {
   void handleAudioDataEvent(const struct chreAudioDataEvent *event);
 
   /**
+   * Handles events from the platform related to whether or not audio is
+   * available.
+   *
+   * @param handle The handle for which audio data availability has changed.
+   * @param available true if requests for audio data will be processed and
+   *        data events posted, false otherwise.
+   */
+  void handleAudioAvailability(uint32_t handle, bool available);
+
+  /**
    * A convenience function to convert sample count and sample rate into a time
    * duration. It is illegal to call this function with a rate of zero.
    *
@@ -209,6 +219,13 @@ class AudioRequestManager : public NonCopyable {
    * @param event The event to provide to nanoapps containg audio data.
    */
   void handleAudioDataEventSync(struct chreAudioDataEvent *event);
+
+  /**
+   * Handles audio availability from the platform synchronously. This is
+   * invoked on the CHRE thread through a deferred callback. Refer to
+   * handleAudioAvailability for details on these supplied parameters.
+   */
+  void handleAudioAvailabilitySync(uint32_t handle, bool available);
 
   /**
    * Iterates the list of outstanding requests for the provided handle and
