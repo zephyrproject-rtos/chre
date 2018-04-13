@@ -109,6 +109,31 @@ void AudioRequestManager::handleAudioDataEvent(
       const_cast<struct chreAudioDataEvent *>(audioDataEvent), callback);
 }
 
+void AudioRequestManager::handleAudioAvailability(uint32_t handle, bool available) {
+  struct CallbackState {
+    uint32_t handle;
+    bool available;
+  };
+
+  auto *cbState = memoryAlloc<CallbackState>();
+  if (cbState == nullptr) {
+    LOG_OOM();
+  } else {
+    cbState->handle = handle;
+    cbState->available = available;
+
+    auto callback = [](uint16_t /* eventType */, void *eventData) {
+      auto *state = static_cast<CallbackState *>(eventData);
+      EventLoopManagerSingleton::get()->getAudioRequestManager()
+          .handleAudioAvailabilitySync(state->handle, state->available);
+      memoryFree(state);
+    };
+
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::AudioAvailabilityChange, cbState, callback);
+  }
+}
+
 bool AudioRequestManager::validateConfigureSourceArguments(
     uint32_t handle, bool enable, uint64_t bufferDuration,
     uint64_t deliveryInterval, uint32_t *numSamples) {
@@ -174,19 +199,36 @@ AudioRequestManager::AudioRequest *AudioRequestManager::findNextAudioRequest(
 void AudioRequestManager::handleAudioDataEventSync(
     struct chreAudioDataEvent *event) {
   uint32_t handle = event->handle;
-  auto& reqList = mAudioRequestLists[handle];
-  AudioRequest *nextAudioRequest = reqList.nextAudioRequest;
+  if (handle < mAudioRequestLists.size()) {
+    auto& reqList = mAudioRequestLists[handle];
+    AudioRequest *nextAudioRequest = reqList.nextAudioRequest;
 
-  if (reqList.nextAudioRequest != nullptr) {
-    postAudioDataEventFatal(event, nextAudioRequest->instanceId);
-    nextAudioRequest->nextEventTimestamp = SystemTime::getMonotonicTime()
-        + nextAudioRequest->deliveryInterval;
-    reqList.nextAudioRequest = nullptr;
+    if (reqList.nextAudioRequest != nullptr) {
+      postAudioDataEventFatal(event, nextAudioRequest->instanceId);
+      nextAudioRequest->nextEventTimestamp = SystemTime::getMonotonicTime()
+          + nextAudioRequest->deliveryInterval;
+      reqList.nextAudioRequest = nullptr;
+    } else {
+      LOGW("Received audio data event with no pending audio request");
+    }
+
+    scheduleNextAudioDataEvent(handle);
   } else {
-    LOGW("Received audio data event with no pending audio request");
+    LOGE("Audio data event handle out of range: %" PRIu32, handle);
   }
+}
 
-  scheduleNextAudioDataEvent(handle);
+void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
+                                                      bool available) {
+  if (handle < mAudioRequestLists.size()) {
+    if (available) {
+      // TODO: Post an event to the nanoapps, schedule next request.
+    } else {
+      // TODO: Post an event to the nanoapps, suspend the last request.
+    }
+  } else {
+    LOGE("Audio availability handle out of range: %" PRIu32, handle);
+  }
 }
 
 void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
