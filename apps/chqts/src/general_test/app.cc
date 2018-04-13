@@ -29,6 +29,7 @@
 #include <general_test/heap_alloc_stress_test.h>
 #include <general_test/heap_exhaustion_stability_test.h>
 #include <general_test/hello_world_test.h>
+#include <general_test/host_awake_suspend_test.h>
 #include <general_test/logging_sanity_test.h>
 #include <general_test/nanoapp_info_by_app_id_test.h>
 #include <general_test/nanoapp_info_by_instance_id_test.h>
@@ -226,6 +227,7 @@ void App::createTest(const void *eventData) {
     CASE(kNanoAppInfoEventsPerformer, NanoAppInfoEventsTestPerformer);
     CASE(kNanoAppInfoEventsObserver, NanoAppInfoEventsTestObserver);
     CASE(kBasicAudioTest, BasicAudioTest);
+    CASE(kHostAwakeSuspend, HostAwakeSuspendTest);
 
 #undef CASE
 
