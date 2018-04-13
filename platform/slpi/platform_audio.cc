@@ -73,10 +73,17 @@ void handleWcdSpiAudioDataEvent(const wcd_spi_audio_data_event_s *event) {
   }
 }
 
+void handleWcdSpiAudioAvailability(uint32_t handle, bool available) {
+  LOGD("WCD SPI audio handle %" PRIu32 " available: %d", handle, available);
+  EventLoopManagerSingleton::get()->getAudioRequestManager()
+      .handleAudioAvailability(handle, available);
+}
+
 }  // anonymous namespace
 
 PlatformAudio::PlatformAudio() {
-  wcd_spi_client_init(handleWcdSpiAudioDataEvent);
+  wcd_spi_client_init(handleWcdSpiAudioDataEvent,
+                      handleWcdSpiAudioAvailability);
 }
 
 PlatformAudio::~PlatformAudio() {
