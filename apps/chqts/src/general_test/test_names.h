@@ -212,6 +212,16 @@ enum class TestNames : uint32_t {
    * Test: HostAwakeSuspendTest
    */
   kHostAwakeSuspend = 0x0423,
+
+  /**
+   * Test: BasicGnssTest
+   */
+  kBasicGnssTest = 0x0424,
+
+  /**
+   * Test: BasicWifiTest
+   */
+  kBasicWifiTest = 0x0425,
 };
 
 }  // namespace general_test

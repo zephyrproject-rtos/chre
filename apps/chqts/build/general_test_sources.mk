@@ -4,8 +4,10 @@
 GENERAL_TEST_SRC_FILES = \
     app.cc \
     basic_audio_test.cc \
+    basic_gnss_test.cc \
     basic_sensor_test_base.cc \
     basic_sensor_tests.cc \
+    basic_wifi_test.cc \
     cell_info_base.cc \
     cell_info_cdma.cc \
     cell_info_gsm.cc \
