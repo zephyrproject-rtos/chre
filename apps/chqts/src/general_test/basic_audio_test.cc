@@ -142,33 +142,38 @@ bool validateMinimumAudioSource(const struct chreAudioSource& source) {
  * invalid.
  */
 void validateAudioSources() {
+  uint32_t validHandleCount = 0;
   bool previousSourceFound = true;
   bool minimumRequirementMet = false;
-  uint32_t handle = 0;
-  for (; handle < kMaxAudioSources; handle++) {
+  for (uint32_t handle = 0; handle < kMaxAudioSources; handle++) {
     struct chreAudioSource audioSource;
     bool sourceFound = chreAudioGetSource(handle, &audioSource);
-    if (!previousSourceFound && sourceFound) {
-      sendFatalFailureToHost(
-          "Gap detected in audio handles at ", &handle);
-    } else {
-      bool valid = validateAudioSource(handle, audioSource);
-      if (valid && !minimumRequirementMet) {
-        minimumRequirementMet = validateMinimumAudioSource(audioSource);
+    if (sourceFound) {
+      validHandleCount++;
+      if (!previousSourceFound) {
+        sendFatalFailureToHost(
+            "Gap detected in audio handles at ", &handle);
+      } else {
+        bool valid = validateAudioSource(handle, audioSource);
+        if (valid && !minimumRequirementMet) {
+          minimumRequirementMet = validateMinimumAudioSource(audioSource);
+        }
       }
     }
 
     previousSourceFound = sourceFound;
   }
 
-  if (!minimumRequirementMet) {
-    sendFatalFailureToHost(
-        "Failed to meet minimum audio source requirements");
-  }
+  if (validHandleCount > 0) {
+    if (!minimumRequirementMet) {
+      sendFatalFailureToHost(
+          "Failed to meet minimum audio source requirements");
+    }
 
-  if (handle == kMaxAudioSources) {
-    sendFatalFailureToHost(
-        "System is reporting too many audio sources");
+    if (validHandleCount == kMaxAudioSources) {
+      sendFatalFailureToHost(
+          "System is reporting too many audio sources");
+    }
   }
 }
 
