@@ -338,8 +338,7 @@ bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
   Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
       .findNanoappByInstanceId(instanceId);
   if (nanoapp == nullptr) {
-    CHRE_ASSERT_LOG(false, "Failed to update scan monitoring list for "
-                    "non-existent nanoapp");
+    LOGW("Failed to update scan monitoring list for non-existent nanoapp");
   } else {
     size_t nanoappIndex;
     bool hasExistingRequest = nanoappHasScanMonitorRequest(instanceId,
@@ -533,8 +532,7 @@ void WifiRequestManager::handleScanResponseSync(bool pending,
       Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
           .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
       if (nanoapp == nullptr) {
-        CHRE_ASSERT_LOG(false, "Received WiFi scan response for unknown "
-                        "nanoapp");
+        LOGW("Received WiFi scan response for unknown nanoapp");
       } else {
         nanoapp->registerForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
       }
@@ -629,8 +627,7 @@ void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
       Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
           .findNanoappByInstanceId(*mScanRequestingNanoappInstanceId);
       if (nanoapp == nullptr) {
-        CHRE_ASSERT_LOG(false, "Attempted to unsubscribe unknown nanoapp from "
-                        "WiFi scan events");
+        LOGW("Attempted to unsubscribe unknown nanoapp from WiFi scan events");
       } else if (!nanoappHasScanMonitorRequest(
           *mScanRequestingNanoappInstanceId)) {
         nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);

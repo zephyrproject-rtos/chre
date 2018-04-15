@@ -246,8 +246,8 @@ bool GnssRequestManager::updateLocationSessionRequests(
   Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
       .findNanoappByInstanceId(instanceId);
   if (nanoapp == nullptr) {
-    CHRE_ASSERT_LOG(false, "Failed to update location session request list for "
-                    "non-existent nanoapp");
+    LOGW("Failed to update location session request list for non-existent"
+         " nanoapp");
   } else {
     size_t requestIndex;
     bool hasExistingRequest = nanoappHasLocationSessionRequest(instanceId,
