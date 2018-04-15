@@ -21,7 +21,9 @@
 #include <chre.h>
 
 #include <general_test/basic_audio_test.h>
+#include <general_test/basic_gnss_test.h>
 #include <general_test/basic_sensor_tests.h>
+#include <general_test/basic_wifi_test.h>
 #include <general_test/estimated_host_time_test.h>
 #include <general_test/event_between_apps_test.h>
 #include <general_test/get_time_test.h>
@@ -228,6 +230,8 @@ void App::createTest(const void *eventData) {
     CASE(kNanoAppInfoEventsObserver, NanoAppInfoEventsTestObserver);
     CASE(kBasicAudioTest, BasicAudioTest);
     CASE(kHostAwakeSuspend, HostAwakeSuspendTest);
+    CASE(kBasicGnssTest, BasicGnssTest);
+    CASE(kBasicWifiTest, BasicWifiTest);
 
 #undef CASE
 
