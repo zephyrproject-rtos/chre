@@ -388,7 +388,7 @@ bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
     .request.is_passive = passive,
   };
 
-  auto qmiReq = MakeUnique<sns_client_req_msg_v01>();
+  auto qmiReq = MakeUniqueZeroFill<sns_client_req_msg_v01>();
   if (qmiReq.isNull()) {
     LOG_OOM();
   } else {
@@ -573,43 +573,52 @@ const char *getAttrNameFromAttrId(int32_t id) {
  */
 bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
                            void **arg) {
-  SeeBufArg strData = {};
-  SeeAttrArg subtypeAttrArg;
-  sns_std_attr_value_data value = {
-    .str.funcs.decode = decodeStringField,
-    .str.arg = &strData,
-    .subtype.values.funcs.decode = decodeSnsStdAttrValue,
-    .subtype.values.arg = &subtypeAttrArg,
-  };
+  bool success = false;
 
-  bool success = pb_decode(stream, sns_std_attr_value_data_fields, &value);
-  if (!success) {
-    LOGE("Error decoding sns_std_attr_value_data: %s", PB_GET_ERROR(stream));
+  struct DecodeData {
+    SeeBufArg strData;
+    SeeAttrArg subtypeAttrArg;
+    sns_std_attr_value_data value;
+  };
+  auto data = MakeUniqueZeroFill<DecodeData>();
+
+  if (data.isNull()) {
+    LOG_OOM();
   } else {
-    auto *attrVal = static_cast<SeeAttrArg *>(*arg);
-    if (value.has_flt) {
-      // If this is a float (repeated) field, initialize the union as floats
-      // to store the maximum and minmum values of the repeated fields.
-      if (!attrVal->initialized) {
-        attrVal->initialized = true;
-        attrVal->fltMin = FLT_MAX;
-        attrVal->fltMax = FLT_MIN;
+    data->value.str.funcs.decode = decodeStringField;
+    data->value.str.arg = &data->strData;
+    data->value.subtype.values.funcs.decode = decodeSnsStdAttrValue;
+    data->value.subtype.values.arg = &data->subtypeAttrArg;
+
+    success = pb_decode(stream, sns_std_attr_value_data_fields, &data->value);
+    if (!success) {
+      LOGE("Error decoding sns_std_attr_value_data: %s", PB_GET_ERROR(stream));
+    } else {
+      auto *attrVal = static_cast<SeeAttrArg *>(*arg);
+      if (data->value.has_flt) {
+        // If this is a float (repeated) field, initialize the union as floats
+        // to store the maximum and minmum values of the repeated fields.
+        if (!attrVal->initialized) {
+          attrVal->initialized = true;
+          attrVal->fltMin = FLT_MAX;
+          attrVal->fltMax = FLT_MIN;
+        }
+        if (data->value.flt < attrVal->fltMin) {
+          attrVal->fltMin = data->value.flt;
+        }
+        if (data->value.flt > attrVal->fltMax) {
+          attrVal->fltMax = data->value.flt;
+        }
+      } else if (data->value.has_sint) {
+        attrVal->int64 = data->value.sint;
+      } else if (data->value.has_boolean) {
+        attrVal->boolVal = data->value.boolean;
+      } else if (data->strData.buf != nullptr) {
+        strlcpy(attrVal->strVal, static_cast<const char *>(data->strData.buf),
+                sizeof(attrVal->strVal));
+      } else if (!data->value.has_subtype) {
+        LOGW("Unknown attr type");
       }
-      if (value.flt < attrVal->fltMin) {
-        attrVal->fltMin = value.flt;
-      }
-      if (value.flt > attrVal->fltMax) {
-        attrVal->fltMax = value.flt;
-      }
-    } else if (value.has_sint) {
-      attrVal->int64 = value.sint;
-    } else if (value.has_boolean) {
-      attrVal->boolVal = value.boolean;
-    } else if (strData.buf != nullptr) {
-      strlcpy(attrVal->strVal, static_cast<const char *>(strData.buf),
-              sizeof(attrVal->strVal));
-    } else if (!value.has_subtype) {
-      LOGW("Unknown attr type");
     }
   }
   return success;
@@ -617,35 +626,57 @@ bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
                       void **arg) {
-  SeeAttrArg attrArg = {};
-  sns_std_attr attr = {
-    .value.values.funcs.decode = decodeSnsStdAttrValue,
-    .value.values.arg = &attrArg,
-  };
+  bool success = false;
 
-  bool success = pb_decode(stream, sns_std_attr_fields, &attr);
-  if (!success) {
-    LOGE("Error decoding sns_std_attr: %s", PB_GET_ERROR(stream));
+  struct Decodedata {
+    SeeAttrArg attrArg;
+    sns_std_attr attr;
+  };
+  auto data = MakeUniqueZeroFill<Decodedata>();
+
+  if (data.isNull()) {
+    LOG_OOM();
   } else {
-    auto *attrData = static_cast<SeeAttributes *>(*arg);
-    if (attr.attr_id == SNS_STD_SENSOR_ATTRID_NAME) {
-      strlcpy(attrData->name, attrArg.strVal, sizeof(attrData->name));
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_VENDOR) {
-      strlcpy(attrData->vendor, attrArg.strVal, sizeof(attrData->vendor));
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_TYPE) {
-      strlcpy(attrData->type, attrArg.strVal, sizeof(attrData->type));
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_AVAILABLE) {
-      if (!attrArg.boolVal) {
-        LOGW("%s: %d", getAttrNameFromAttrId(attr.attr_id), attrArg.boolVal);
+    data->attr.value.values.funcs.decode = decodeSnsStdAttrValue;
+    data->attr.value.values.arg = &data->attrArg;
+
+    success = pb_decode(stream, sns_std_attr_fields, &data->attr);
+    if (!success) {
+      LOGE("Error decoding sns_std_attr: %s", PB_GET_ERROR(stream));
+    } else {
+      auto *attrData = static_cast<SeeAttributes *>(*arg);
+      switch (data->attr.attr_id) {
+        case SNS_STD_SENSOR_ATTRID_NAME:
+          strlcpy(attrData->name, data->attrArg.strVal, sizeof(attrData->name));
+          break;
+        case SNS_STD_SENSOR_ATTRID_VENDOR:
+          strlcpy(attrData->vendor, data->attrArg.strVal,
+                  sizeof(attrData->vendor));
+          break;
+        case SNS_STD_SENSOR_ATTRID_TYPE:
+          strlcpy(attrData->type, data->attrArg.strVal, sizeof(attrData->type));
+          break;
+        case SNS_STD_SENSOR_ATTRID_AVAILABLE:
+          if (!data->attrArg.boolVal) {
+            LOGW("%s: %d", getAttrNameFromAttrId(data->attr.attr_id),
+                 data->attrArg.boolVal);
+          }
+          break;
+        case SNS_STD_SENSOR_ATTRID_RATES:
+          attrData->maxSampleRate = data->attrArg.fltMax;
+          break;
+        case SNS_STD_SENSOR_ATTRID_STREAM_TYPE:
+          attrData->streamType = data->attrArg.int64;
+          break;
+        case SNS_STD_SENSOR_ATTRID_HW_ID:
+          attrData->hwId = data->attrArg.int64;
+          break;
+        case SNS_STD_SENSOR_ATTRID_PASSIVE_REQUEST:
+          attrData->passiveRequest = data->attrArg.boolVal;
+          break;
+        default:
+          break;
       }
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_RATES) {
-      attrData->maxSampleRate = attrArg.fltMax;
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_STREAM_TYPE) {
-      attrData->streamType = attrArg.int64;
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_HW_ID) {
-      attrData->hwId = attrArg.int64;
-    } else if (attr.attr_id == SNS_STD_SENSOR_ATTRID_PASSIVE_REQUEST) {
-      attrData->passiveRequest = attrArg.boolVal;
     }
   }
   return success;
@@ -653,30 +684,39 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
 
 bool decodeSnsStdAttrEvent(pb_istream_t *stream, const pb_field_t *field,
                            void **arg) {
-  SeeAttributes attr = {};
-  sns_std_attr_event event = {
-    .attributes.funcs.decode = decodeSnsStrAttr,
-    .attributes.arg = &attr,
+  bool success = false;
+
+  struct DecodeData {
+    SeeAttributes attr;
+    sns_std_attr_event event;
   };
+  auto data = MakeUniqueZeroFill<DecodeData>();
 
-  bool success = pb_decode(stream, sns_std_attr_event_fields, &event);
-  if (!success) {
-    LOGE("Error decoding sns_std_attr_event: %s", PB_GET_ERROR(stream));
+  if (data.isNull()) {
+    LOG_OOM();
   } else {
-    auto *info = static_cast<SeeInfoArg *>(*arg);
+    data->event.attributes.funcs.decode = decodeSnsStrAttr;
+    data->event.attributes.arg = &data->attr;
 
-    // If syncData == nullptr, this indication is received outside of a sync
-    // call. If the decoded SUID doesn't match the one we are waiting for,
-    // this indication is from a previous getAttributes call and happens to
-    // arrive between a later findAttributesSync req/ind pair.
-    // Note that req/ind misalignment can still happen if getAttributesSync is
-    // called again with the same SUID.
-    if (info->sync->syncData == nullptr
-        || !suidsMatch(info->suid, info->sync->syncSuid)) {
-      LOGW("Received late SNS_STD_MSGID_SNS_STD_ATTR_EVENT indication");
+    success = pb_decode(stream, sns_std_attr_event_fields, &data->event);
+    if (!success) {
+      LOGE("Error decoding sns_std_attr_event: %s", PB_GET_ERROR(stream));
     } else {
-      info->sync->syncIndFound = true;
-      memcpy(info->sync->syncData, &attr, sizeof(attr));
+      auto *info = static_cast<SeeInfoArg *>(*arg);
+
+      // If syncData == nullptr, this indication is received outside of a sync
+      // call. If the decoded SUID doesn't match the one we are waiting for,
+      // this indication is from a previous getAttributes call and happens to
+      // arrive between a later findAttributesSync req/ind pair.
+      // Note that req/ind misalignment can still happen if getAttributesSync is
+      // called again with the same SUID.
+      if (info->sync->syncData == nullptr
+          || !suidsMatch(info->suid, info->sync->syncSuid)) {
+        LOGW("Received late SNS_STD_MSGID_SNS_STD_ATTR_EVENT indication");
+      } else {
+        info->sync->syncIndFound = true;
+        memcpy(info->sync->syncData, &data->attr, sizeof(data->attr));
+      }
     }
   }
   return success;
@@ -851,7 +891,7 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
          PB_GET_ERROR(stream));
   } else {
     auto statusData =
-        MakeUnique<SeeHelperCallbackInterface::SamplingStatusData>();
+        MakeUniqueZeroFill<SeeHelperCallbackInterface::SamplingStatusData>();
     if (statusData.isNull()) {
       LOG_OOM();
     } else {
@@ -1292,70 +1332,73 @@ void SeeHelper::handleSnsClientEventMsg(
   // Make a copy of the stream for sensor data decoding.
   pb_istream_t streamCpy = stream;
 
-  // Only initialize fields that are not accessed in the main CHRE thread.
-  SeeSyncArg syncArg = {};
-  SeeDataArg dataArg = {
-    .isHostWakeSuspendEvent = false,
+  struct DecodeData {
+    SeeSyncArg syncArg = {};
+    SeeDataArg dataArg = {};
+    SeeInfoArg info = {};
+    sns_client_event_msg event = {};
   };
-  SeeInfoArg info = {
-    .qmiHandle = qmiHandle,
-    .sync = &syncArg,
-    .data = &dataArg,
-    .decodeMsgIdOnly = true,
-    .remoteProcSuid = &mRemoteProcSuid,
-    .calInfo = &mCalInfo[0],
-  };
-  sns_client_event_msg event = {
-    .events.funcs.decode = decodeSnsClientEventMsg,
-    .events.arg = &info,
-  };
+  auto data = MakeUnique<DecodeData>();
 
-  // Decode only SUID and MSG ID to help further decode.
-  bool success = pb_decode(&stream, sns_client_event_msg_fields, &event);
-  if (success) {
-    info.suid = event.suid;
-    info.decodeMsgIdOnly = false;
-    info.data->cal = getCalDataFromSuid(info.suid);
-    info.data->sensorType = getSensorTypeFromSensorInfo(
-        info.qmiHandle, info.suid, mSensorInfos);
+  if (data.isNull()) {
+    LOG_OOM();
+  } else {
+    // Only initialize fields that are not accessed in the main CHRE thread.
+    data->info.qmiHandle = qmiHandle;
+    data->info.sync = &data->syncArg;
+    data->info.data = &data->dataArg;
+    data->info.decodeMsgIdOnly = true;
+    data->info.remoteProcSuid = &mRemoteProcSuid;
+    data->info.calInfo = &mCalInfo[0];
+    data->event.events.funcs.decode = decodeSnsClientEventMsg;
+    data->event.events.arg = &data->info;
 
-    mMutex.lock();
-    bool synchronizedDecode = mWaiting;
-    if (!synchronizedDecode) {
-      // Early unlock, we're not going to use anything from the main thread.
-      mMutex.unlock();
-    } else {
-      // Populate fields set by the main thread.
-      info.sync->syncData = mSyncData;
-      info.sync->syncDataType = mSyncDataType;
-      info.sync->syncSuid = mSyncSuid;
-    }
+    // Decode only SUID and MSG ID to help further decode.
+    if (pb_decode(&stream, sns_client_event_msg_fields, &data->event)) {
+      data->info.suid = data->event.suid;
+      data->info.decodeMsgIdOnly = false;
+      data->info.data->cal = getCalDataFromSuid(data->info.suid);
+      data->info.data->sensorType = getSensorTypeFromSensorInfo(
+          data->info.qmiHandle, data->info.suid, mSensorInfos);
 
-    if (info.data->sampleIndex > 0 && !prepareSensorEvent(info)) {
-      LOGE("Failed to prepare sensor event");
-    }
-
-    success = pb_decode(&streamCpy, sns_client_event_msg_fields, &event);
-    if (!success) {
-      LOGE("Error decoding sns_client_event_msg: %s", PB_GET_ERROR(&streamCpy));
-    } else if (synchronizedDecode && info.sync->syncIndFound) {
-      mWaiting = false;
-      mCond.notify_one();
-    } else {
-      if (info.data->isHostWakeSuspendEvent) {
-        mCbIf->onHostWakeSuspendEvent(info.data->isHostAwake);
+      mMutex.lock();
+      bool synchronizedDecode = mWaiting;
+      if (!synchronizedDecode) {
+        // Early unlock, we're not going to use anything from the main thread.
+        mMutex.unlock();
+      } else {
+        // Populate fields set by the main thread.
+        data->info.sync->syncData = mSyncData;
+        data->info.sync->syncDataType = mSyncDataType;
+        data->info.sync->syncSuid = mSyncSuid;
       }
-      if (!info.data->event.isNull()) {
-        mCbIf->onSensorDataEvent(
-            info.data->sensorType, std::move(info.data->event));
-      }
-      if (!info.data->status.isNull()) {
-        mCbIf->onSamplingStatusUpdate(std::move(info.data->status));
-      }
-    }
 
-    if (synchronizedDecode) {
-      mMutex.unlock();
+      if (data->info.data->sampleIndex > 0 && !prepareSensorEvent(data->info)) {
+        LOGE("Failed to prepare sensor event");
+      }
+
+      if (!pb_decode(&streamCpy, sns_client_event_msg_fields, &data->event)) {
+        LOGE("Error decoding sns_client_event_msg: %s",
+             PB_GET_ERROR(&streamCpy));
+      } else if (synchronizedDecode && data->info.sync->syncIndFound) {
+        mWaiting = false;
+        mCond.notify_one();
+      } else {
+        if (data->info.data->isHostWakeSuspendEvent) {
+          mCbIf->onHostWakeSuspendEvent(data->info.data->isHostAwake);
+        }
+        if (!data->info.data->event.isNull()) {
+          mCbIf->onSensorDataEvent(
+              data->info.data->sensorType, std::move(data->info.data->event));
+        }
+        if (!data->info.data->status.isNull()) {
+          mCbIf->onSamplingStatusUpdate(std::move(data->info.data->status));
+        }
+      }
+
+      if (synchronizedDecode) {
+        mMutex.unlock();
+      }
     }
   }
 }
@@ -1552,7 +1595,7 @@ void SeeHelper::handleInd(qmi_client_type clientHandle, unsigned int msgId,
   switch (msgId) {
     case SNS_CLIENT_REPORT_IND_V01: {
       // Decode sns_client_report_ind_msg_v01 to extract pb-encoded payload.
-      auto ind = MakeUnique<sns_client_report_ind_msg_v01>();
+      auto ind = MakeUniqueZeroFill<sns_client_report_ind_msg_v01>();
 
       if (ind.isNull()) {
         LOG_OOM();
