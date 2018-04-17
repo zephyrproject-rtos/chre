@@ -826,6 +826,15 @@ void populateEventSample(SeeDataArg *data, const float *val) {
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
+
+      case SensorSampleType::Vendor2: {
+        auto *event = reinterpret_cast<chrexSensorVendor2Data *>(
+            data->event.get());
+        memcpy(event->readings[index].value, val,
+               sizeof(event->readings[index].value));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
 #endif  // CHREX_SENSOR_SUPPORT
 
       default:
@@ -1243,6 +1252,10 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 
     case SensorSampleType::Vendor1:
       sampleSize = sizeof(chrexSensorVendor1SampleData);
+      break;
+
+    case SensorSampleType::Vendor2:
+      sampleSize = sizeof(chrexSensorVendor2SampleData);
       break;
 #endif  // CHREX_SENSOR_SUPPORT
 
