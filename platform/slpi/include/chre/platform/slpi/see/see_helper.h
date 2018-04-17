@@ -128,11 +128,15 @@ class SeeHelper : public NonCopyable {
    * @param minNumSuids The minimum number of SUIDs it needs to find before
    *                    returning true. Otherwise, it'll re-try internally
    *                    until it times out. It's illegal to set it to 0.
+   * @param maxRetries Maximum amount of times to retry looking up the SUID
+   *                   until giving up.
+   * @param retryDelay Time delay between retry attempts (msec).
    *
-   * @return true if sensor discovery succeeded even if no SUID was found.
+   * @return true if at least minNumSuids were successfully found
    */
   bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids,
-                    uint8_t minNumSuids = 1);
+                    uint8_t minNumSuids = 1, uint32_t maxRetries = 20,
+                    Milliseconds retryDelay = Milliseconds(500));
 
   /**
    * A synchronous call to obtain the attributes of the specified SUID.
@@ -190,6 +194,16 @@ class SeeHelper : public NonCopyable {
   bool registerSensor(SensorType sensorType, const sns_std_suid& suid,
                       bool *prevRegistered);
 
+  /**
+   * Checks whether the given SensorType has been successfully registered
+   * already via registerSensor().
+   *
+   * @param sensorType The SensorType to check.
+   *
+   * @return true if the given sensor type has been registered, false otherwise
+   */
+  bool sensorIsRegistered(SensorType sensorType) const;
+
  protected:
   /**
    * Get the cached SUID of a calibration sensor that corresponds to the
@@ -208,7 +222,7 @@ class SeeHelper : public NonCopyable {
    *
    * @see sendReq
    */
-  inline bool sendReq(
+  bool sendReq(
       const sns_std_suid& suid,
       void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
@@ -344,6 +358,12 @@ class SeeHelper : public NonCopyable {
    * Obtains the pointer to cal data by SUID.
    */
   SeeCalData *getCalDataFromSuid(const sns_std_suid& suid);
+
+  /**
+   * @return SensorInfo instance found in mSensorInfos with the given
+   *         SensorType, or nullptr if not found
+   */
+  const SensorInfo *getSensorInfo(SensorType sensorType) const;
 };
 
 }  // namespace chre
