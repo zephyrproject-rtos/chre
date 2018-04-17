@@ -235,6 +235,7 @@ bool encodeSnsSuidReq(const char *dataType,
                       UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
   CHRE_ASSERT(msg);
   CHRE_ASSERT(msgLen);
+  bool success = false;
 
   // Initialize the pb message
   SeeBufArg data = {
@@ -246,8 +247,7 @@ bool encodeSnsSuidReq(const char *dataType,
     .data_type.arg = &data,
   };
 
-  bool success = pb_get_encoded_size(msgLen, sns_suid_req_fields, &req);
-  if (!success) {
+  if (!pb_get_encoded_size(msgLen, sns_suid_req_fields, &req)) {
     LOGE("pb_get_encoded_size failed for sns_suid_req: %s", dataType);
   } else if (*msgLen == 0) {
     LOGE("Invalid pb encoded size for sns_suid_req");
@@ -282,15 +282,14 @@ bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
                               UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
   CHRE_ASSERT(msg);
   CHRE_ASSERT(msgLen);
+  bool success = false;
 
   // Initialize the pb message
   sns_std_sensor_config req = {
     .sample_rate = request.samplingRateHz,
   };
 
-  bool success = pb_get_encoded_size(msgLen, sns_std_sensor_config_fields,
-                                     &req);
-  if (!success) {
+  if (!pb_get_encoded_size(msgLen, sns_std_sensor_config_fields, &req)) {
     LOGE("pb_get_encoded_size failed for sns_std_sensor_config");
   } else if (*msgLen == 0) {
     LOGE("Invalid pb encoded size for sns_std_sensor_config");
@@ -1491,7 +1490,8 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
   qmi_client_type qmiHandle;
   sns_std_suid suid;
   if (!getSensorInfo(request.sensorType, mSensorInfos, &qmiHandle, &suid)) {
-    LOGE("SensorType hasn't been registered");
+    LOGE("SensorType %" PRIu8 " hasn't been registered",
+         static_cast<uint8_t>(request.sensorType));
   } else {
     uint32_t msgId;
     UniquePtr<pb_byte_t> msg;
