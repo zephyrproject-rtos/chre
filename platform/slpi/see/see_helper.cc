@@ -50,12 +50,6 @@ namespace {
 //! Operating mode indicating sensor is disabled.
 const char *kOpModeOff = "OFF";
 
-//! Interval between SUID request retry.
-constexpr Milliseconds kSuidReqIntervalMsec = Milliseconds(500);
-
-//! Maximum dwell time to try a data type's SUID request.
-constexpr Seconds kSuidReqMaxDwellSec = Seconds(10);
-
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
 
@@ -1301,28 +1295,6 @@ bool prepareSensorEvent(SeeInfoArg& info) {
   return success;
 }
 
-/**
- * Obtains the QMI handle and SUID of the specified SensorType.
- */
-bool getSensorInfo(SensorType sensorType,
-                   const DynamicVector<SeeHelper::SensorInfo>& sensorInfos,
-                   qmi_client_type *qmiHandle,
-                   sns_std_suid *suid) {
-  CHRE_ASSERT(qmiHandle);
-  CHRE_ASSERT(suid);
-  bool success = false;
-
-  for (const auto& sensorInfo : sensorInfos) {
-    if (sensorInfo.sensorType == sensorType) {
-      success = true;
-      *qmiHandle = sensorInfo.qmiHandle;
-      *suid = sensorInfo.suid;
-      break;
-    }
-  }
-  return success;
-}
-
 }  // anonymous namespace
 
 SeeHelper::~SeeHelper() {
@@ -1417,47 +1389,46 @@ void SeeHelper::handleSnsClientEventMsg(
 
 bool SeeHelper::findSuidSync(const char *dataType,
                              DynamicVector<sns_std_suid> *suids,
-                             uint8_t minNumSuids) {
-  CHRE_ASSERT(suids && minNumSuids > 0);
-  bool success = false;
+                             uint8_t minNumSuids, uint32_t maxRetries,
+                             Milliseconds retryDelay) {
+  CHRE_ASSERT(suids != nullptr);
+  CHRE_ASSERT(minNumSuids > 0);
 
+  bool success = false;
   if (mQmiHandles.empty()) {
     LOGE("Sensor client service QMI client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
-    success = encodeSnsSuidReq(dataType, &msg, &msgLen);
-    if (success) {
+    if (encodeSnsSuidReq(dataType, &msg, &msgLen)) {
       // Sensor client QMI service may come up before SEE sensors are
       // enumerated. A max dwell time is set and retries are performed as
       // currently there's no message indicating that SEE intialization is
       // complete.
-      constexpr time_timetick_type kSuidReqIntervalUsec =
-          kSuidReqIntervalMsec.getMicroseconds();
-      constexpr uint32_t kSuidReqMaxTrialCount =
-          kSuidReqMaxDwellSec.toRawNanoseconds()
-          / kSuidReqIntervalMsec.toRawNanoseconds();
-
       uint32_t trialCount = 0;
       do {
         suids->clear();
         if (++trialCount > 1) {
-          timer_sleep(kSuidReqIntervalUsec, T_USEC, true /* non_deferrable */);
+          timer_sleep(retryDelay.getMilliseconds(), T_MSEC,
+                      true /* non_deferrable */);
         }
-        success = sendReq(mQmiHandles[0], sns_suid_sensor_init_default,
-                          suids, dataType,
-                          SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
-                          false /* batchValid */, 0 /* batchPeriodUs */,
-                          false /* passive */, true /* waitForIndication */);
-      } while (suids->size() < minNumSuids
-               && trialCount < kSuidReqMaxTrialCount);
+        // Ignore failures from sendReq, we'll retry anyways (up to maxRetries)
+        sendReq(mQmiHandles[0], sns_suid_sensor_init_default,
+                suids, dataType,
+                SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
+                false /* batchValid */, 0 /* batchPeriodUs */,
+                false /* passive */, true /* waitForIndication */);
+      } while (suids->size() < minNumSuids && trialCount < maxRetries);
+
+      success = (suids->size() >= minNumSuids);
       if (trialCount > 1) {
-        LOGD("%" PRIu32 " trials took %" PRIu32 " msec", trialCount,
-             static_cast<uint32_t>(
-                 trialCount * kSuidReqIntervalMsec.getMilliseconds()));
+        LOGD("Waited %" PRIu32 " ms for %s (found: %d)",
+             static_cast<uint32_t>(trialCount * retryDelay.getMilliseconds()),
+             dataType, success);
       }
     }
   }
+
   return success;
 }
 
@@ -1499,10 +1470,8 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
 
 bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
   bool success = false;
-
-  qmi_client_type qmiHandle;
-  sns_std_suid suid;
-  if (!getSensorInfo(request.sensorType, mSensorInfos, &qmiHandle, &suid)) {
+  const SensorInfo *sensorInfo = getSensorInfo(request.sensorType);
+  if (sensorInfo == nullptr) {
     LOGE("SensorType %" PRIu8 " hasn't been registered",
          static_cast<uint8_t>(request.sensorType));
   } else {
@@ -1524,7 +1493,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     }
 
     if (success) {
-      success = sendReq(qmiHandle, suid,
+      success = sendReq(sensorInfo->qmiHandle, sensorInfo->suid,
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
@@ -1641,7 +1610,7 @@ void SeeHelper::qmiIndCb(qmi_client_type clientHandle, unsigned int msgId,
 bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
                                bool *prevRegistered) {
   CHRE_ASSERT(sensorType != SensorType::Unknown);
-  CHRE_ASSERT(prevRegistered);
+  CHRE_ASSERT(prevRegistered != nullptr);
   bool success = false;
 
   // Check whether the SUID/SensorType pair has been previously registered.
@@ -1678,6 +1647,10 @@ bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
     success = mSensorInfos.push_back(sensorInfo);
   }
   return success;
+}
+
+bool SeeHelper::sensorIsRegistered(SensorType sensorType) const {
+  return (getSensorInfo(sensorType) != nullptr);
 }
 
 bool SeeHelper::waitForService(qmi_client_type *qmiHandle,
@@ -1724,8 +1697,6 @@ bool SeeHelper::initCalSensors() {
     if (!findSuidSync(calType, &suids)) {
       success = false;
       LOGE("Failed to find sensor '%s'", calType);
-    } else if (suids.empty()) {
-      LOGE("No '%s' sensor found", calType);
     } else {
       size_t index = getCalIndexFromDataType(calType);
       if (index >= kNumSeeCalSensors) {
@@ -1746,6 +1717,7 @@ bool SeeHelper::initCalSensors() {
       }
     }
   }
+
   return success;
 }
 
@@ -1756,9 +1728,6 @@ bool SeeHelper::initRemoteProcSensor() {
   DynamicVector<sns_std_suid> suids;
   if (!findSuidSync(kRemoteProcType, &suids)) {
     LOGE("Failed to find sensor '%s'", kRemoteProcType);
-  } else if (suids.size() != 1) {
-    LOGE("Invalid number of remote '%s' sensor found: %zu",
-         kRemoteProcType, suids.size());
   } else {
     mRemoteProcSuid = suids[0];
 
@@ -1785,6 +1754,16 @@ bool SeeHelper::initRemoteProcSensor() {
 SeeCalData *SeeHelper::getCalDataFromSuid(const sns_std_suid& suid) {
   size_t calIndex = getCalIndexFromSuid(suid, mCalInfo);
   return (calIndex < kNumSeeCalSensors) ? &mCalInfo[calIndex].cal : nullptr;
+}
+
+const SeeHelper::SensorInfo *SeeHelper::getSensorInfo(
+    SensorType sensorType) const {
+  for (const auto& sensorInfo : mSensorInfos) {
+    if (sensorInfo.sensorType == sensorType) {
+      return &sensorInfo;
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace chre

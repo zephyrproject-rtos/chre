@@ -351,11 +351,7 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
   if (!success) {
     LOGE("Failed to find sensor '%s'", dataType);
   } else {
-    if (suids.empty()) {
-      LOGW("No SUID found for '%s'", dataType);
-    } else {
-      LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
-    }
+    LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
 
     for (const auto& suid : suids) {
       SeeAttributes attr;
