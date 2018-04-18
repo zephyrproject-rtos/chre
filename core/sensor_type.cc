@@ -60,6 +60,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Vendor Type 0";
     case SensorType::VendorType1:
       return "Vendor Type 1";
+    case SensorType::VendorType2:
+      return "Vendor Type 2";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -112,6 +114,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::VendorType0;
     case (CHRE_SENSOR_TYPE_VENDOR_START + 1):
       return SensorType::VendorType1;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 2):
+      return SensorType::VendorType2;
     default:
       return SensorType::Unknown;
   }
@@ -151,6 +155,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return (CHRE_SENSOR_TYPE_VENDOR_START + 0);
     case SensorType::VendorType1:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 1);
+    case SensorType::VendorType2:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 2);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -199,6 +205,8 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Vendor0;
     case SensorType::VendorType1:
       return SensorSampleType::Vendor1;
+    case SensorType::VendorType2:
+      return SensorSampleType::Vendor2;
     default:
       CHRE_ASSERT(false);
       return SensorSampleType::Unknown;
