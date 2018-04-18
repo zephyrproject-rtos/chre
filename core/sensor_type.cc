@@ -155,7 +155,7 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return (CHRE_SENSOR_TYPE_VENDOR_START + 0);
     case SensorType::VendorType1:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 1);
-    case Sensortype::VendorType2:
+    case SensorType::VendorType2:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 2);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
