@@ -824,8 +824,7 @@ void populateEventSample(SeeDataArg *data, const float *val) {
       case SensorSampleType::Vendor2: {
         auto *event = reinterpret_cast<chrexSensorVendor2Data *>(
             data->event.get());
-        memcpy(event->readings[index].value, val,
-               sizeof(event->readings[index].value));
+        event->readings[index].value = *val;
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
