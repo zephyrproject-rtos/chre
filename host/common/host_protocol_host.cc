@@ -107,6 +107,15 @@ void HostProtocolHost::encodeLoadNanoappRequest(
   finalize(builder, fbs::ChreMessage::LoadNanoappRequest, request.Union());
 }
 
+void HostProtocolHost::encodeFragmentedLoadNanoappRequest(
+    flatbuffers::FlatBufferBuilder& builder,
+    const FragmentedLoadRequest& request) {
+  encodeLoadNanoappRequest(
+      builder, request.transactionId, request.appId, request.appVersion,
+      request.targetApiVersion, request.binary, request.fragmentId,
+      request.appTotalSizeBytes);
+}
+
 void HostProtocolHost::encodeNanoappListRequest(FlatBufferBuilder& builder) {
   auto request = fbs::CreateNanoappListRequest(builder);
   finalize(builder, fbs::ChreMessage::NanoappListRequest, request.Union());
