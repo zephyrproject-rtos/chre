@@ -226,26 +226,48 @@ Return<Result> GenericContextHub::loadNanoApp(
   if (hubId != kDefaultHubId) {
     result = Result::BAD_PARAMS;
   } else {
-    FlatBufferBuilder builder(128 + appBinary.customBinary.size());
+    std::lock_guard<std::mutex> lock(mPendingLoadTransactionMutex);
+
+    if (mPendingLoadTransaction.has_value()) {
+      ALOGE("Pending load transaction exists. Overriding pending request");
+    }
+
     uint32_t targetApiVersion = (appBinary.targetChreApiMajorVersion << 24) |
                                 (appBinary.targetChreApiMinorVersion << 16);
+    mPendingLoadTransaction = FragmentedLoadTransaction(
+        transactionId, appBinary.appId, appBinary.appVersion, targetApiVersion,
+        appBinary.customBinary, kLoadFragmentSizeBytes);
 
-    // TODO: Add logic to fragment nanoapp
-    HostProtocolHost::encodeLoadNanoappRequest(
-        builder, transactionId, appBinary.appId, appBinary.appVersion,
-        targetApiVersion, appBinary.customBinary, 0 /* fragmentId */,
-        appBinary.customBinary.size());
-
-    if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
-      result = Result::UNKNOWN_FAILURE;
-    } else {
-      result = Result::OK;
+    result = sendFragmentedLoadNanoAppRequest(
+        mPendingLoadTransaction.value());
+    if (result != Result::OK) {
+      mPendingLoadTransaction.reset();
     }
   }
 
   ALOGD("Attempted to send load nanoapp request for app of size %zu with ID "
         "0x%016" PRIx64 " as transaction ID %" PRIu32 ": result %" PRIu32,
         appBinary.customBinary.size(), appBinary.appId, transactionId, result);
+
+  return result;
+}
+
+Result GenericContextHub::sendFragmentedLoadNanoAppRequest(
+    FragmentedLoadTransaction& transaction) {
+  Result result;
+  const FragmentedLoadRequest& request = transaction.getNextRequest();
+
+  FlatBufferBuilder builder(128 + request.binary.size());
+  HostProtocolHost::encodeFragmentedLoadNanoappRequest(builder, request);
+
+  if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    ALOGE("Failed to send load request message (fragment ID = %zu)",
+          request.fragmentId);
+    result = Result::UNKNOWN_FAILURE;
+  } else {
+    mCurrentFragmentId = request.fragmentId;
+    result = Result::OK;
+  }
 
   return result;
 }
@@ -414,14 +436,58 @@ void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
 
 void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
     const ::chre::fbs::LoadNanoappResponseT& response) {
-  ALOGV("Got load nanoapp response for transaction %" PRIu32 " with result %d",
-        response.transaction_id, response.success);
+  ALOGV("Got load nanoapp response for transaction %" PRIu32 " fragment %"
+        PRIu32 " with result %d", response.transaction_id, response.fragment_id,
+        response.success);
+  std::unique_lock<std::mutex> lock(mParent.mPendingLoadTransactionMutex);
 
-  invokeClientCallback([&]() {
-    TransactionResult result = (response.success) ?
-        TransactionResult::SUCCESS : TransactionResult::FAILURE;
-    mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
-  });
+  // TODO: Handle timeout in receiving load response
+  if (!mParent.mPendingLoadTransaction.has_value()) {
+    ALOGE("Dropping unexpected load response (no pending transaction exists)");
+  } else {
+    FragmentedLoadTransaction& transaction =
+        mParent.mPendingLoadTransaction.value();
+
+    if (!mParent.isExpectedLoadResponseLocked(response)) {
+      ALOGE("Dropping unexpected load response, expected transaction %"
+            PRIu32 " fragment %" PRIu32 ", received transaction %" PRIu32
+            " fragment %" PRIu32, transaction.getTransactionId(),
+            mParent.mCurrentFragmentId, response.transaction_id,
+            response.fragment_id);
+    } else {
+      TransactionResult result;
+      bool continueLoadRequest = false;
+      if (response.success && !transaction.isComplete()) {
+        if (mParent.sendFragmentedLoadNanoAppRequest(transaction)
+            == Result::OK) {
+          continueLoadRequest = true;
+          result = TransactionResult::SUCCESS;
+        } else {
+          result = TransactionResult::FAILURE;
+        }
+      } else {
+        result = (response.success) ?
+            TransactionResult::SUCCESS : TransactionResult::FAILURE;
+      }
+
+      if (!continueLoadRequest) {
+        mParent.mPendingLoadTransaction.reset();
+        lock.unlock();
+        invokeClientCallback([&]() {
+          mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
+        });
+      }
+    }
+  }
+}
+
+bool GenericContextHub::isExpectedLoadResponseLocked(
+    const ::chre::fbs::LoadNanoappResponseT& response) {
+  return mPendingLoadTransaction.has_value()
+      && (mPendingLoadTransaction->getTransactionId()
+          == response.transaction_id)
+      && (response.fragment_id == 0
+          || mCurrentFragmentId == response.fragment_id);
 }
 
 void GenericContextHub::SocketCallbacks::handleUnloadNanoappResponse(
