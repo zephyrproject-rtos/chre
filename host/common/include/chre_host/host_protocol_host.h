@@ -102,21 +102,6 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
 
   /**
    * Encodes a message requesting to load a nanoapp specified by the included
-   * binary payload and metadata.
-   *
-   * @param builder A newly constructed FlatBufferBuilder that will be used to
-   *        construct the message
-   *
-   * @note Use encodeFragmentedLoadNanoappRequest instead.
-   */
-  static void encodeLoadNanoappRequest(
-      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
-      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
-      const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
-      size_t appTotalSizeBytes);
-
-  /**
-   * Encodes a message requesting to load a nanoapp specified by the included
    * (possibly fragmented) binary payload and metadata.
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
@@ -198,6 +183,20 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    */
   static bool mutateHostClientId(void *message, size_t messageLen,
                                  uint16_t hostClientId);
+
+ private:
+  /**
+   * Encodes a message requesting to load a nanoapp specified by the included
+   * binary payload and metadata.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeLoadNanoappRequest(
+      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
+      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
+      const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
+      size_t appTotalSizeBytes);
 };
 
 }  // namespace chre
