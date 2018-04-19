@@ -37,6 +37,7 @@
 
 using android::sp;
 using android::chre::getStringFromByteVector;
+using android::chre::FragmentedLoadTransaction;
 using android::chre::HostProtocolHost;
 using android::chre::IChreMessageHandlers;
 using android::chre::SocketClient;
@@ -170,13 +171,14 @@ void sendLoadNanoappRequest(SocketClient& client, const char *filename) {
     return;
   }
 
-  // The last 2 parameters were added for a request supporting fragmented load.
-  // Use the legacy behavior (fragmentId == 0) for this test.
-  // TODO: Test using new fragmented loading.
+  // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
-  HostProtocolHost::encodeLoadNanoappRequest(
-      builder, 1, 0x476f6f676c00100b, 0, 0x01000000, buffer,
-      0 /* fragmentId */, 0 /* appTotalSizeBytes */);
+  FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
+      1 /* transactionId */, 0x476f6f676c00100b /* appId */, 0 /* appVersion */,
+      0x01000000 /* targetApiVersion */, buffer,
+      buffer.size() /* fragmentSize */);
+  HostProtocolHost::encodeFragmentedLoadNanoappRequest(
+      builder, transaction.getNextRequest());
 
   LOGI("Sending load nanoapp request (%" PRIu32 " bytes total w/%zu bytes of "
        "payload)", builder.GetSize(), buffer.size());

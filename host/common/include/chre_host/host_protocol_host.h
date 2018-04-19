@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "chre/platform/shared/host_protocol_common.h"
+#include "chre_host/fragmented_load_transaction.h"
 #include "chre_host/host_messages_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -101,16 +102,16 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
 
   /**
    * Encodes a message requesting to load a nanoapp specified by the included
-   * binary payload and metadata.
+   * (possibly fragmented) binary payload and metadata.
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
    *        construct the message
+   * @param request The FragmentedLoadRequest object with the binary and the
+   *        metadata
    */
-  static void encodeLoadNanoappRequest(
-      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
-      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
-      const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
-      size_t appTotalSizeBytes);
+  static void encodeFragmentedLoadNanoappRequest(
+      flatbuffers::FlatBufferBuilder& builder,
+      const FragmentedLoadRequest& request);
 
   /**
    * Encodes a message requesting the list of loaded nanoapps from CHRE
@@ -182,6 +183,20 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    */
   static bool mutateHostClientId(void *message, size_t messageLen,
                                  uint16_t hostClientId);
+
+ private:
+  /**
+   * Encodes a message requesting to load a nanoapp specified by the included
+   * binary payload and metadata.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeLoadNanoappRequest(
+      flatbuffers::FlatBufferBuilder& builder, uint32_t transactionId,
+      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
+      const std::vector<uint8_t>& nanoappBinary, uint32_t fragmentId,
+      size_t appTotalSizeBytes);
 };
 
 }  // namespace chre
