@@ -159,6 +159,9 @@ class AudioRequestManager : public NonCopyable {
    * disabled it is removed from this list.
    */
   struct AudioRequestList {
+    //! Whether or not the source is available. It is unavailable by default.
+    bool available = false;
+
     //! The request to post the next event to.
     AudioRequest *nextAudioRequest = nullptr;
 
