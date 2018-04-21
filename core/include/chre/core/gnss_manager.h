@@ -155,8 +155,8 @@ class GnssSession {
    * Constructs a GnssSesson.
    *
    * @param reportEventType The report event type of this GNSS session.
-   *        Currently, only CHRE_EVENT_GNSS_LOCATION for a location session is
-   *        supported.
+   *        Currently, only CHRE_EVENT_GNSS_LOCATION for a location session and
+   *        CHRE_EVENT_GNSS_LOCATION for a measurement session are supported.
    */
   GnssSession(uint16_t reportEventType);
 
@@ -332,6 +332,10 @@ class GnssManager : public NonCopyable {
     return mLocationSession;
   };
 
+  GnssSession& getMeasurementSession() {
+    return mMeasurementSession;
+  };
+
   /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
@@ -354,6 +358,9 @@ class GnssManager : public NonCopyable {
 
   //! The instance of location session.
   GnssSession mLocationSession;
+
+  //! The instance of measurement session.
+  GnssSession mMeasurementSession;
 };
 
 }  // namespace chre

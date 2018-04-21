@@ -44,3 +44,18 @@ DLL_EXPORT bool chreGnssLocationSessionStopAsync(const void *cookie) {
   return chre::EventLoopManagerSingleton::get()->getGnssManager()
       .getLocationSession().removeRequest(nanoapp, cookie);
 }
+
+DLL_EXPORT bool chreGnssMeasurementSessionStartAsync(uint32_t minIntervalMs,
+                                                     const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::EventLoopManagerSingleton::get()->getGnssManager()
+      .getMeasurementSession().addRequest(
+          nanoapp, Milliseconds(minIntervalMs),
+          Milliseconds(0) /* minTimeToNext */, cookie);
+}
+
+DLL_EXPORT bool chreGnssMeasurementSessionStopAsync(const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::EventLoopManagerSingleton::get()->getGnssManager()
+      .getMeasurementSession().removeRequest(nanoapp, cookie);
+}

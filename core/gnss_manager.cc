@@ -24,7 +24,8 @@
 namespace chre {
 
 GnssManager::GnssManager()
-    : mLocationSession(CHRE_EVENT_GNSS_LOCATION) {
+    : mLocationSession(CHRE_EVENT_GNSS_LOCATION),
+      mMeasurementSession(CHRE_EVENT_GNSS_DATA) {
 }
 
 void GnssManager::init() {
@@ -39,6 +40,8 @@ bool GnssManager::logStateToBuffer(
     char *buffer, size_t *bufferPos, size_t bufferSize) const {
   bool success = debugDumpPrint(buffer, bufferPos, bufferSize,"\nGNSS:");
   success &= mLocationSession.logStateToBuffer(buffer, bufferPos, bufferSize);
+  success &= mMeasurementSession
+      .logStateToBuffer(buffer, bufferPos, bufferSize);
   return success;
 }
 
@@ -49,6 +52,12 @@ GnssSession::GnssSession(uint16_t reportEventType)
       mStartRequestType = CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START;
       mStopRequestType = CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP;
       mName = "Location";
+      break;
+
+    case CHRE_EVENT_GNSS_DATA:
+      mStartRequestType = CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START;
+      mStopRequestType = CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP;
+      mName = "Measurement";
       break;
 
     default:
@@ -389,6 +398,12 @@ void GnssSession::freeReportEventCallback(uint16_t eventType, void *eventData) {
               static_cast<chreGnssLocationEvent *>(eventData));
       break;
 
+    case CHRE_EVENT_GNSS_DATA:
+      EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
+          .releaseMeasurementDataEvent(
+              static_cast<chreGnssDataEvent *>(eventData));
+      break;
+
     default:
       CHRE_ASSERT_LOG(false, "Unhandled event type %" PRIu16, eventType);
   }
@@ -404,6 +419,11 @@ bool GnssSession::controlPlatform(
       // to the platform as zero.
       success = EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
           .controlLocationSession(enable, minInterval, Milliseconds(0));
+      break;
+
+    case CHRE_EVENT_GNSS_DATA:
+      success = EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
+          .controlMeasurementSession(enable, minInterval);
       break;
 
     default:

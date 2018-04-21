@@ -103,14 +103,34 @@ void PlatformGnssBase::locationEventCallback(
       .handleReportEvent(event);
 }
 
+bool PlatformGnss::controlMeasurementSession(bool enable,
+                                             Milliseconds minInterval) {
+  if (mGnssApi != nullptr) {
+    prePalApiCall();
+    return mGnssApi->controlMeasurementSession(enable,
+        static_cast<uint32_t>(minInterval.getMilliseconds()));
+  } else {
+    return false;
+  }
+}
+
+void PlatformGnss::releaseMeasurementDataEvent(chreGnssDataEvent *event) {
+  if (mGnssApi != nullptr) {
+    prePalApiCall();
+    mGnssApi->releaseMeasurementDataEvent(event);
+  }
+}
+
 void PlatformGnssBase::measurementStatusChangeCallback(bool enabled,
                                                        uint8_t errorCode) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getGnssManager().getMeasurementSession()
+      .handleStatusChange(enabled, errorCode);
 }
 
 void PlatformGnssBase::measurementEventCallback(
     struct chreGnssDataEvent *event) {
-  // TODO: Implement this.
+  EventLoopManagerSingleton::get()->getGnssManager().getMeasurementSession()
+      .handleReportEvent(event);
 }
 
 }  // namespace chre
