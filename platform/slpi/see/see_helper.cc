@@ -1455,7 +1455,7 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
 }
 
 bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
-  ASSERT(cbIf);
+  CHRE_ASSERT(cbIf);
 
   mCbIf = cbIf;
   qmi_client_type qmiHandle;
