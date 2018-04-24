@@ -221,11 +221,14 @@ void AudioRequestManager::handleAudioDataEventSync(
 void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
                                                       bool available) {
   if (handle < mAudioRequestLists.size()) {
+    mAudioRequestLists[handle].available = available;
     if (available) {
-      // TODO: Post an event to the nanoapps, schedule next request.
+      // TODO: Post an event to the nanoapps.
     } else {
-      // TODO: Post an event to the nanoapps, suspend the last request.
+      // TODO: Post an event to the nanoapps.
     }
+
+    scheduleNextAudioDataEvent(handle);
   } else {
     LOGE("Audio availability handle out of range: %" PRIu32, handle);
   }
@@ -235,7 +238,7 @@ void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
   auto& reqList = mAudioRequestLists[handle];
   AudioRequest *nextRequest = findNextAudioRequest(handle);
 
-  if (nextRequest != nullptr) {
+  if (reqList.available && nextRequest != nullptr) {
     Nanoseconds curTime = SystemTime::getMonotonicTime();
     Nanoseconds eventDelay = Nanoseconds(0);
     if (nextRequest->nextEventTimestamp > curTime) {
