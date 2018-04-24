@@ -50,11 +50,18 @@ Milliseconds gFirstAudioEventTimestamp = Milliseconds(0);
  * @return a character that visually represents the value.
  */
 char getFftCharForValue(uint16_t value) {
-  if (value < 2048) {
+  constexpr uint16_t kFftLowLimit = 128;
+  constexpr uint16_t kFftMedLimit = 256;
+  constexpr uint16_t kFftHighLimit = 512;  // Texas Hold'em ༼⁰o⁰；༽
+  constexpr uint16_t kFftVeryHighLimit = 1024;
+
+  if (value < kFftLowLimit) {
+    return ' ';
+  } else if (value >= kFftLowLimit && value < kFftMedLimit) {
     return '_';
-  } else if (value >= 2048 && value < 4096) {
+  } else if (value >= kFftMedLimit && value < kFftHighLimit) {
     return '.';
-  } else if (value >= 4096 && value < 8192) {
+  } else if (value >= kFftHighLimit && value < kFftVeryHighLimit) {
     return 'x';
   } else {
     return 'X';
