@@ -29,5 +29,13 @@ include $(CHRE_PREFIX)/build/nanoapp/google_slpi.mk
 endif
 
 include $(CHRE_PREFIX)/build/arch/hexagon.mk
+
+# remove any CUST_H definitions by common code for this variant
+TARGET_CFLAGS := $(filter-out -DCUST_H%, $(TARGET_CFLAGS))
+# add our private definition, only if requested by variant config
+ifdef TARGET_V55_CUST_H
+TARGET_CFLAGS += -DCUST_H=\"$(TARGET_V55_CUST_H)\"
+endif
+
 include $(CHRE_PREFIX)/build/build_template.mk
 endif
