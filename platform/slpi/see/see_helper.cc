@@ -842,7 +842,8 @@ void populateEventSample(SeeDataArg *data, const float *val) {
     } else {
       uint64_t delta = data->timeNs - data->prevTimeNs;
       if (delta > UINT32_MAX) {
-        LOGE("timestampDelta overflow: prev %" PRIu64 " curr %" PRIu64,
+        LOGE("Sensor %" PRIu8 " timestampDelta overflow: prev %" PRIu64
+             " curr %" PRIu64, static_cast<uint8_t>(data->sensorType),
              data->prevTimeNs, data->timeNs);
         delta = UINT32_MAX;
       }
