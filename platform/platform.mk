@@ -17,9 +17,6 @@ COMMON_SRCS += platform/shared/platform_sensor_util.cc
 
 # SLPI-specific Compiler Flags #################################################
 
-# Define CUST_H to allow including the customer header file.
-SLPI_CFLAGS += -DCUST_H
-
 # Include paths.
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/ms
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/build/cust
