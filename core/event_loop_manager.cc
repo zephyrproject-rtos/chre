@@ -48,9 +48,9 @@ UniquePtr<char> EventLoopManager::debugDump() {
     } else if (!mSensorRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                        kDebugStringSize)) {
       LOGE("Sensor request manager debug dump failed.");
-    } else if (!mGnssRequestManager.logStateToBuffer(debugStr, &debugStrPos,
-                                                     kDebugStringSize)) {
-      LOGE("GNSS request manager debug dump failed.");
+    } else if (!mGnssManager.logStateToBuffer(debugStr, &debugStrPos,
+                                              kDebugStringSize)) {
+      LOGE("GNSS manager debug dump failed.");
     } else if (!mWifiRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                      kDebugStringSize)) {
       LOGE("Wifi request manager debug dump failed.");
@@ -80,7 +80,7 @@ uint32_t EventLoopManager::getNextInstanceId() {
 }
 
 void EventLoopManager::lateInit() {
-  mGnssRequestManager.init();
+  mGnssManager.init();
   mWifiRequestManager.init();
   mWwanRequestManager.init();
 }
