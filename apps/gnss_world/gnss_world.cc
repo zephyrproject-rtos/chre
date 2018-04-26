@@ -197,9 +197,9 @@ void handleGnssAsyncResult(const chreAsyncResult *result) {
   }
 
   if (validResult) {
+    *received = true;
     if (result->success) {
       LOGI("GNSS %s %s success", name, action);
-      *received = true;
     } else {
       LOGE("GNSS %s %s failure: %" PRIu8, name, action, result->errorCode);
     }
