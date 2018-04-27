@@ -240,7 +240,7 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
   const EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   size_t expectedNanoappCount = eventLoop.getNanoappCount();
   if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
-    LOGE("Couldn't reserve space for list of nanoapp offsets");
+    LOG_OOM();
   } else {
     constexpr size_t kFixedOverhead  = 48;
     constexpr size_t kPerNanoappSize = 32;
