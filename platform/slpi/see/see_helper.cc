@@ -44,6 +44,9 @@
 #include "chre/extensions/platform/vendor_sensor_types.h"
 #endif  // CHREX_SENSOR_SUPPORT
 
+#define LOG_NANOPB_ERROR(stream) \
+    LOGE("Nanopb error: %s:%d", PB_GET_ERROR(stream), __LINE__)
+
 namespace chre {
 namespace {
 
@@ -167,10 +170,10 @@ bool copyPayload(pb_ostream_t *stream, const pb_field_t *field,
 
   auto *data = static_cast<const SeeBufArg *>(*arg);
   if (!pb_encode_tag_for_field(stream, field)) {
-    LOGE("Failed encoding pb tag");
+    LOG_NANOPB_ERROR(stream);
   } else if (!pb_encode_string(
       stream, static_cast<const pb_byte_t *>(data->buf), data->bufLen)) {
-    LOGE("Failed encoding pb string");
+    LOG_NANOPB_ERROR(stream);
   } else {
     success = true;
   }
@@ -208,7 +211,7 @@ bool encodeSnsStdAttrReq(UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
 
       success = pb_encode(&stream, sns_std_attr_req_fields, &req);
       if (!success) {
-        LOGE("Error encoding sns_std_attr_req: %s", PB_GET_ERROR(&stream));
+        LOG_NANOPB_ERROR(&stream);
       }
     }
   }
@@ -255,7 +258,7 @@ bool encodeSnsSuidReq(const char *dataType,
 
       success = pb_encode(&stream, sns_suid_req_fields, &req);
       if (!success) {
-        LOGE("Error encoding sns_suid_req: %s", PB_GET_ERROR(&stream));
+        LOG_NANOPB_ERROR(&stream);
       }
     }
   }
@@ -297,7 +300,7 @@ bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
 
       success = pb_encode(&stream, sns_std_sensor_config_fields, &req);
       if (!success) {
-        LOGE("Error encoding sns_std_sensor_config: %s", PB_GET_ERROR(&stream));
+        LOG_NANOPB_ERROR(&stream);
       }
     }
   }
@@ -318,8 +321,7 @@ bool encodeSnsRemoteProcSensorConfig(pb_byte_t *msgBuffer, size_t msgBufferSize,
   bool success = pb_encode(
       &stream, sns_remote_proc_state_config_fields, &request);
   if (!success) {
-    LOGE("Error encoding sns_remote_proc_state_config: %s",
-         PB_GET_ERROR(&stream));
+    LOG_NANOPB_ERROR(&stream);
   } else {
     *msgLen = stream.bytes_written;
   }
@@ -391,7 +393,7 @@ bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
 
     // Encode pb message
     if (!pb_encode(&stream, sns_client_request_msg_fields, &req)) {
-      LOGE("Error Encoding request: %s", PB_GET_ERROR(&stream));
+      LOG_NANOPB_ERROR(&stream);
     } else {
       qmiReq->payload_len = stream.bytes_written;
       success = sendQmiReq(qmiHandle, *qmiReq, timeoutResp);
@@ -420,7 +422,7 @@ bool decodeSnsSuidEventSuid(pb_istream_t *stream, const pb_field_t *field,
   sns_std_suid suid = {};
   bool success = pb_decode(stream, sns_std_suid_fields, &suid);
   if (!success) {
-    LOGE("Error decoding sns_std_suid: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     auto *suids = static_cast<DynamicVector<sns_std_suid> *>(*arg);
     suids->push_back(suid);
@@ -447,7 +449,7 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
 
   bool success = pb_decode(stream, sns_suid_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding sns_suid_event: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     // If syncData == nullptr, this indication is received outside of a sync
     // call. If the decoded data type doesn't match the one we are waiting
@@ -585,7 +587,7 @@ bool decodeSnsStdAttrValue(pb_istream_t *stream, const pb_field_t *field,
 
     success = pb_decode(stream, sns_std_attr_value_data_fields, &data->value);
     if (!success) {
-      LOGE("Error decoding sns_std_attr_value_data: %s", PB_GET_ERROR(stream));
+      LOG_NANOPB_ERROR(stream);
     } else {
       auto *attrVal = static_cast<SeeAttrArg *>(*arg);
       if (data->value.has_flt) {
@@ -635,7 +637,7 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
 
     success = pb_decode(stream, sns_std_attr_fields, &data->attr);
     if (!success) {
-      LOGE("Error decoding sns_std_attr: %s", PB_GET_ERROR(stream));
+      LOG_NANOPB_ERROR(stream);
     } else {
       auto *attrData = static_cast<SeeAttributes *>(*arg);
       switch (data->attr.attr_id) {
@@ -693,7 +695,7 @@ bool decodeSnsStdAttrEvent(pb_istream_t *stream, const pb_field_t *field,
 
     success = pb_decode(stream, sns_std_attr_event_fields, &data->event);
     if (!success) {
-      LOGE("Error decoding sns_std_attr_event: %s", PB_GET_ERROR(stream));
+      LOG_NANOPB_ERROR(stream);
     } else {
       auto *info = static_cast<SeeInfoArg *>(*arg);
 
@@ -737,7 +739,7 @@ bool decodeSnsStdProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       sns_std_error_event event = {};
       success = pb_decode(stream, sns_std_error_event_fields, &event);
       if (!success) {
-        LOGE("Error decoding sns_std_error_event: %s", PB_GET_ERROR(stream));
+        LOG_NANOPB_ERROR(stream);
       } else {
         LOGW("SNS_STD_MSGID_SNS_STD_ERROR_EVENT: %d", event.error);
       }
@@ -873,7 +875,7 @@ bool decodeFloatData(pb_istream_t *stream, const pb_field_t *field,
 
   bool success = pb_decode_fixed32(stream, fltPtr);
   if (!success) {
-    LOGE("Error decoding float data: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   }
   return success;
 }
@@ -889,8 +891,7 @@ bool decodeSnsStdSensorPhysicalConfigEvent(
   bool success = pb_decode(stream, sns_std_sensor_physical_config_event_fields,
                            &event);
   if (!success) {
-    LOGE("Error decoding sns_std_sensor_physical_config_event: %s",
-         PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     auto statusData =
         MakeUniqueZeroFill<SeeHelperCallbackInterface::SamplingStatusData>();
@@ -933,7 +934,7 @@ bool decodeSnsStdSensorEvent(pb_istream_t *stream, const pb_field_t *field,
 
   bool success = pb_decode(stream, sns_std_sensor_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding sns_std_sensor_event: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     auto *info = static_cast<SeeInfoArg *>(*arg);
     populateEventSample(info->data, sample.val);
@@ -980,7 +981,7 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
 
   bool success = pb_decode(stream, sns_cal_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding sns_cal_event: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     auto *info = static_cast<SeeInfoArg *>(*arg);
     SeeCalInfo *calInfo = info->calInfo;
@@ -1037,7 +1038,7 @@ bool decodeSnsProximityEvent(pb_istream_t *stream, const pb_field_t *field,
 
   bool success = pb_decode(stream, sns_proximity_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding sns_proximity_event: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     float value = static_cast<float>(event.proximity_event_type);
     auto *info = static_cast<SeeInfoArg *>(*arg);
@@ -1070,8 +1071,7 @@ bool decodeSnsRemoteProcStateEvent(
   sns_remote_proc_state_event event = sns_remote_proc_state_event_init_default;
   bool success = pb_decode(stream, sns_remote_proc_state_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding sns_remote_proc_state_event: %s",
-         PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else if (event.proc_type == SNS_STD_CLIENT_PROCESSOR_APSS) {
     auto *info = static_cast<SeeInfoArg *>(*arg);
     info->data->isHostWakeSuspendEvent = true;
@@ -1151,7 +1151,7 @@ bool decodeMsgIdAndTime(pb_istream_t *stream, uint32_t *msgId,
   bool success = pb_decode(
       stream, sns_client_event_msg_sns_client_event_fields, &event);
   if (!success) {
-    LOGE("Error decoding msg ID and timestamp: %s", PB_GET_ERROR(stream));
+    LOG_NANOPB_ERROR(stream);
   } else {
     *msgId = event.msg_id;
     *timeNs = getNanosecondsFromQTimerTicks(event.timestamp);
@@ -1182,8 +1182,7 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
       success = pb_decode(&streamCpy,
                           sns_client_event_msg_sns_client_event_fields, &event);
       if (!success) {
-        LOGE("Error decoding sns_client_event_msg_sns_client_event: %s",
-             PB_GET_ERROR(&streamCpy));
+        LOG_NANOPB_ERROR(&streamCpy);
       }
     }
   }
@@ -1362,8 +1361,7 @@ void SeeHelper::handleSnsClientEventMsg(
       }
 
       if (!pb_decode(&streamCpy, sns_client_event_msg_fields, &data->event)) {
-        LOGE("Error decoding sns_client_event_msg: %s",
-             PB_GET_ERROR(&streamCpy));
+        LOG_NANOPB_ERROR(&streamCpy);
       } else if (synchronizedDecode && data->info.sync->syncIndFound) {
         mWaiting = false;
         mCond.notify_one();
