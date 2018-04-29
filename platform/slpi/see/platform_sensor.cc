@@ -370,7 +370,7 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
         };
         if (!suidAttrs->push_back(sensor)) {
           success = false;
-          LOGE("Failed to add SuidAttr");
+          LOG_OOM();
         }
       }
     }
