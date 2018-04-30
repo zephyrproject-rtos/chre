@@ -98,11 +98,11 @@ bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
 }
 
 void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
-  // TODO(P1-f3f9a0): Implement this.
+  wcd_spi_client_cancel_audio_data_event(handle);
 }
 
 void PlatformAudio::releaseAudioDataEvent(struct chreAudioDataEvent *event) {
-  // TODO: Notify the platform of this event.
+  wcd_spi_client_release_audio_data_event(event->handle);
   memoryFree(event);
 }
 
