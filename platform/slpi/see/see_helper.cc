@@ -1253,13 +1253,18 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 #endif  // CHREX_SENSOR_SUPPORT
 
     default:
-      LOGW("Unhandled SensorSampleType %" PRIu8,
-           static_cast<uint8_t>(sampleType));
+      LOGW("Unhandled SensorSampleType for SensorType %" PRIu8,
+           static_cast<uint8_t>(sensorType));
   }
 
   size_t memorySize = (sampleType == SensorSampleType::Unknown)
       ? 0 : (sizeof(chreSensorDataHeader) + numSamples * sampleSize);
-  return memoryAlloc(memorySize);
+  void *event = (memorySize == 0) ? nullptr : memoryAlloc(memorySize);
+
+  if (event == nullptr && memorySize != 0) {
+    LOG_OOM();
+  }
+  return event;
 }
 
 // Allocates the sensor event memory and partially populates the header.
@@ -1270,9 +1275,7 @@ bool prepareSensorEvent(SeeInfoArg& info) {
       allocateEvent(info.data->sensorType, info.data->sampleIndex)));
   info.data->event = std::move(buf);
 
-  if (info.data->event.isNull()) {
-    LOG_OOM();
-  } else {
+  if (!info.data->event.isNull()) {
     success = true;
 
     info.data->prevTimeNs = 0;
