@@ -28,7 +28,6 @@
 #include "chre/platform/log.h"
 #include "chre/platform/system_time.h"
 #include "chre/platform/shared/host_protocol_chre.h"
-#include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/system_time.h"
@@ -72,7 +71,6 @@ struct NanoappListData {
 enum class PendingMessageType {
   Shutdown,
   NanoappMessageToHost,
-  LogMessage,
   HubInfoResponse,
   NanoappListResponse,
   LoadNanoappResponse,
@@ -318,19 +316,6 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
   return result;
 }
 
-int generateLogMessage(unsigned char *buffer, size_t bufferSize,
-                       unsigned int *messageLen) {
-  FlatBufferBuilder builder;
-  PlatformLogSingleton::get()->flushLogBuffer([](const char *logBuffer,
-                                                 size_t size,
-                                                 void *context) {
-    auto *contextBuilder = static_cast<FlatBufferBuilder *>(context);
-    HostProtocolChre::encodeLogMessages(*contextBuilder, logBuffer, size);
-  }, &builder);
-
-  return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
-}
-
 int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
                             size_t bufferSize, unsigned int *messageLen) {
   constexpr size_t kInitialBufferSize = 192;
@@ -462,10 +447,6 @@ extern "C" int chre_slpi_get_message_to_host(
                                        bufferSize, messageLen);
         break;
 
-      case PendingMessageType::LogMessage:
-        result = generateLogMessage(buffer, bufferSize, messageLen);
-        break;
-
       case PendingMessageType::HubInfoResponse:
         result = generateHubInfoResponse(pendingMsg.data.hostClientId, buffer,
                                          bufferSize, messageLen);
@@ -592,14 +573,6 @@ void sendTimeSyncRequest() {
   buildAndEnqueueMessage(PendingMessageType::TimeSyncRequest, kInitialSize,
                          msgBuilder, nullptr);
   updateLastTimeSyncRequest();
-}
-
-void requestHostLinkLogBufferFlush() {
-  if (!enqueueMessage(PendingMessage(PendingMessageType::LogMessage))) {
-    // Use FARF as there is a problem sending logs to the host.
-    FARF(ERROR, "Failed to enqueue log flush");
-    CHRE_ASSERT(false);
-  }
 }
 
 void HostMessageHandlers::handleNanoappMessage(

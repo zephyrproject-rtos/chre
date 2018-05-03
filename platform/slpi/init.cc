@@ -34,7 +34,6 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
-#include "chre/platform/shared/platform_log.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/preloaded_nanoapps.h"
 #include "chre/platform/slpi/uimg_util.h"
@@ -91,18 +90,6 @@ bool gThreadRunning;
 //! destructor callback for the host FastRPC thread.
 int gTlsKey;
 bool gTlsKeyValid;
-
-__attribute__((constructor))
-void onLoad(void) {
-  // Initialize the platform logging as early as possible.
-  chre::PlatformLogSingleton::init();
-}
-
-__attribute__((destructor))
-void onUnload(void) {
-  // Defer platform logging deinitialization to as late as possible.
-  chre::PlatformLogSingleton::deinit();
-}
 
 void performDebugDumpCallback(uint16_t /*eventType*/, void *data) {
   auto *handle = static_cast<const uint32_t *>(data);
