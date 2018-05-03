@@ -99,7 +99,6 @@ SLPI_SRCS += platform/slpi/host_link.cc
 SLPI_SRCS += platform/slpi/init.cc
 SLPI_SRCS += platform/slpi/memory.cc
 SLPI_SRCS += platform/slpi/memory_manager.cc
-SLPI_SRCS += platform/slpi/platform_log.cc
 SLPI_SRCS += platform/slpi/platform_nanoapp.cc
 SLPI_SRCS += platform/slpi/platform_pal.cc
 SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
