@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "chre/platform/assert.h"
 #include "chre/util/memory.h"
 
 namespace chre {
@@ -70,6 +71,14 @@ ObjectType *UniquePtr<ObjectType>::release() {
   ObjectType *obj = mObject;
   mObject = nullptr;
   return obj;
+}
+
+template<typename ObjectType>
+void UniquePtr<ObjectType>::reset(ObjectType *object) {
+  CHRE_ASSERT(object == nullptr || mObject != object);
+
+  this->~UniquePtr<ObjectType>();
+  mObject = object;
 }
 
 template<typename ObjectType>
