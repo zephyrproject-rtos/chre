@@ -23,7 +23,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "chre/platform/assert.h"
+#include "chre/util/container_support.h"
 #include "chre/util/memory.h"
 
 namespace chre {
