@@ -143,8 +143,8 @@ class GenericContextHub : public IContexthub {
   std::optional<FragmentedLoadTransaction> mPendingLoadTransaction;
   std::mutex mPendingLoadTransactionMutex;
 
-  // TODO: Reduce this size once response is implemented
-  static constexpr size_t kLoadFragmentSizeBytes = SIZE_MAX;
+  // Use 30KB fragment size to fit within 32KB memory fragments at the kernel
+  static constexpr size_t kLoadFragmentSizeBytes = 30 * 1024;
 
   // Write a string to mDebugFd
   void writeToDebugFile(const char *str);

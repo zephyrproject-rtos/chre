@@ -30,6 +30,7 @@
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
+#include "chre/platform/slpi/nanoapp_load_manager.h"
 #include "chre/platform/slpi/system_time.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
@@ -59,7 +60,8 @@ struct LoadNanoappCallbackData {
   uint64_t appId;
   uint32_t transactionId;
   uint16_t hostClientId;
-  UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();
+  UniquePtr<Nanoapp> nanoapp;
+  uint32_t fragmentId;
 };
 
 struct NanoappListData {
@@ -254,13 +256,14 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
 void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
   auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
     auto *cbData = static_cast<LoadNanoappCallbackData *>(cookie);
+
     EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-    bool startedSuccessfully = (cbData->nanoapp->isLoaded()) ?
-        eventLoop.startNanoapp(cbData->nanoapp) : false;
+    bool success =
+        cbData->nanoapp->isLoaded() && eventLoop.startNanoapp(cbData->nanoapp);
 
     HostProtocolChre::encodeLoadNanoappResponse(
         builder, cbData->hostClientId, cbData->transactionId,
-        startedSuccessfully, 0 /* fragmentId */);
+        success, cbData->fragmentId);
   };
 
   // Re-wrap the callback data struct, so it is destructed and freed, ensuring
@@ -409,6 +412,34 @@ void onDebugDumpDataReady(void *cookie, const char *debugStr,
     // This needs to persist across multiple calls
     memoryFree(cbData);
   }
+}
+
+void sendFragmentResponse(
+    uint16_t hostClientId, uint32_t transactionId, uint32_t fragmentId,
+    bool success) {
+  struct FragmentedLoadInfoResponse {
+    uint16_t hostClientId;
+    uint32_t transactionId;
+    uint32_t fragmentId;
+    bool success;
+  };
+
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    auto *cbData = static_cast<FragmentedLoadInfoResponse *>(cookie);
+    HostProtocolChre::encodeLoadNanoappResponse(
+        builder, cbData->hostClientId, cbData->transactionId,
+        cbData->success, cbData->fragmentId);
+  };
+
+  FragmentedLoadInfoResponse response = {
+    .hostClientId = hostClientId,
+    .transactionId = transactionId,
+    .fragmentId = fragmentId,
+    .success = success,
+  };
+  constexpr size_t kInitialBufferSize = 48;
+  buildAndEnqueueMessage(PendingMessageType::LoadNanoappResponse,
+                         kInitialBufferSize, msgBuilder, &response);
 }
 
 /**
@@ -608,24 +639,52 @@ void HostMessageHandlers::handleLoadNanoappRequest(
     uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
     uint32_t appVersion, uint32_t targetApiVersion, const void *buffer,
     size_t bufferLen, uint32_t fragmentId, size_t appBinaryLen) {
-  auto cbData = MakeUnique<LoadNanoappCallbackData>();
+  static NanoappLoadManager sLoadManager;
 
-  LOGD("Got load nanoapp request (txnId %" PRIu32 ") for appId 0x%016" PRIx64
-       " version 0x%" PRIx32 " target API version 0x%08" PRIx32 " size %zu",
-       transactionId, appId, appVersion, targetApiVersion, bufferLen);
-  if (cbData.isNull() || cbData->nanoapp.isNull()) {
-    LOGE("Couldn't allocate load nanoapp callback data");
+  LOGD("Got load nanoapp request (client %" PRIu16 " txnId %" PRIu32
+       " fragment %" PRIu32 ") for appId 0x%016" PRIx64 " version 0x%"
+       PRIx32 " target API version 0x%08" PRIx32 " size %zu",
+       hostClientId, transactionId, fragmentId, appId, appVersion,
+       targetApiVersion, bufferLen);
+
+  bool success = true;
+  if (fragmentId == 0 || fragmentId == 1) { // first fragment
+    if (sLoadManager.hasPendingLoadTransaction()) {
+      FragmentedLoadInfo info = sLoadManager.getTransactionInfo();
+      sendFragmentResponse(
+          info.hostClientId, info.transactionId, 0 /* fragmentId */,
+          false /* success */);
+      sLoadManager.markFailure();
+    }
+
+    size_t totalAppBinaryLen = (fragmentId == 0) ? bufferLen : appBinaryLen;
+    success = sLoadManager.prepareForLoad(
+        hostClientId, transactionId, appId, appVersion, totalAppBinaryLen);
+  }
+  success &= sLoadManager.copyNanoappFragment(
+      hostClientId, transactionId, (fragmentId == 0) ? 1 : fragmentId, buffer,
+      bufferLen);
+
+  if (!sLoadManager.isLoadComplete()) {
+    sendFragmentResponse(hostClientId, transactionId, fragmentId, success);
   } else {
-    cbData->transactionId = transactionId;
-    cbData->hostClientId  = hostClientId;
-    cbData->appId = appId;
+    UniquePtr<Nanoapp> nanoapp = sLoadManager.releaseNanoapp();
+    auto cbData = MakeUnique<LoadNanoappCallbackData>();
+    if (cbData.isNull()) {
+      LOG_OOM();
+    } else {
+      cbData->transactionId = transactionId;
+      cbData->hostClientId  = hostClientId;
+      cbData->appId = appId;
+      cbData->fragmentId = fragmentId;
+      cbData->nanoapp = std::move(nanoapp);
 
-    // Note that if this fails, we'll generate the error response in
-    // the normal deferred callback
-    cbData->nanoapp->loadFromBuffer(appId, appVersion, buffer, bufferLen);
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
-        finishLoadingNanoappCallback);
+      // Note that if this fails, we'll generate the error response in
+      // the normal deferred callback
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
+          finishLoadingNanoappCallback);
+    }
   }
 }
 
