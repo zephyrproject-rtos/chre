@@ -239,6 +239,27 @@ class AudioRequestManager : public NonCopyable {
   void scheduleNextAudioDataEvent(uint32_t handle);
 
   /**
+   * Posts CHRE_EVENT_AUDIO_SAMPLING_CHANGE events to all nanoapps subscribed to
+   * the supplied handle.
+   *
+   * @param handle The handle for the audio source that is changing.
+   * @param available true if audio is available for the supplied handle, false
+   *        otherwise.
+   */
+  void postAudioSamplingChangeEvents(uint32_t handle, bool available);
+
+  /**
+   * Posts a CHRE_EVENT_AUDIO_SAMPLING_CHANGE event to the specified nanoapp.
+   *
+   * @param instanceId The instance ID of the nanoapp to post to.
+   * @param handle The handle for the audio source that is changing.
+   * @param available true if audio is available for the supplied handle, false
+   *        otherwise.
+   */
+  void postAudioSamplingChangeEvent(uint32_t instanceId, uint32_t handle,
+                                    bool available);
+
+  /**
    * Posts the provided audio data event to a nanoapp with the given instance ID
    * and fails fatally if the event is not posted. Fatal error is an acceptable
    * error handling mechanism here because there is no way to satisfy the
