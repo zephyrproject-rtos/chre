@@ -24,7 +24,10 @@ namespace chre {
  * functionality from.
  */
 class PlatformAudioBase {
- public:
+ protected:
+  //! The number of open audio clients. This is incremented/decremented by the
+  //! setHandleEnabled platform API.
+  uint32_t mNumAudioClients = 0;
 };
 
 }  // namespace chre
