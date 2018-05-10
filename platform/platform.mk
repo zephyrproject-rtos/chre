@@ -105,7 +105,7 @@ SLPI_SRCS += platform/slpi/system_time_util.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
 
 # Optional audio support.
-ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/wcd_spi/api
 
 SLPI_SRCS += platform/slpi/platform_audio.cc
@@ -226,7 +226,7 @@ GOOGLE_ARM64_ANDROID_SRCS += host/common/host_protocol_host.cc
 GOOGLE_ARM64_ANDROID_SRCS += host/common/socket_server.cc
 
 # Optional audio support.
-ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 GOOGLE_ARM64_ANDROID_SRCS += platform/android/platform_audio.cc
 endif
 

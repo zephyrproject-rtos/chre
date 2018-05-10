@@ -28,7 +28,7 @@ COMMON_SRCS += core/wifi_scan_request.cc
 COMMON_SRCS += core/wwan_request_manager.cc
 
 # Optional audio support.
-ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED),)
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/audio_request_manager.cc
 endif
 
