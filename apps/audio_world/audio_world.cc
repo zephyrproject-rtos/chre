@@ -90,7 +90,7 @@ void initKissFft() {
  *
  * @param event the audio data event to log.
  */
-void logAudioDataEvent(const struct chreAudioDataEvent *event) {
+void handleAudioDataEvent(const struct chreAudioDataEvent *event) {
   kiss_fftr(gKissFftConfig, event->samplesS16, gKissFftOutput);
 
   char fftStr[ARRAY_SIZE(gKissFftOutput) + 1];
@@ -110,6 +110,12 @@ void logAudioDataEvent(const struct chreAudioDataEvent *event) {
   Milliseconds adjustedTimestamp = timestamp - gFirstAudioEventTimestamp;
   LOGD("Audio data - FFT [%s] at %" PRIu64 "ms with %" PRIu32 " samples",
        fftStr, adjustedTimestamp.getMilliseconds(), event->sampleCount);
+}
+
+void handleAudioSamplingChangeEvent(
+    const struct chreAudioSourceStatusEvent *event) {
+  LOGD("Audio sampling status event for handle %" PRIu32 ", suspended: %d",
+       event->handle, event->status.suspended);
 }
 
 bool nanoappStart() {
@@ -142,12 +148,14 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
-    case CHRE_EVENT_AUDIO_DATA: {
-      const auto *event = static_cast<const struct chreAudioDataEvent *>(
-          eventData);
-      logAudioDataEvent(event);
+    case CHRE_EVENT_AUDIO_DATA:
+      handleAudioDataEvent(
+          static_cast<const struct chreAudioDataEvent *>(eventData));
       break;
-    }
+    case CHRE_EVENT_AUDIO_SAMPLING_CHANGE:
+      handleAudioSamplingChangeEvent(
+          static_cast<const struct chreAudioSourceStatusEvent *>(eventData));
+      break;
     default:
       LOGW("Unknown event received");
       break;
