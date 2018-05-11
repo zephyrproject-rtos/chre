@@ -49,6 +49,10 @@ AudioRequestManager::AudioRequestManager() {
   }
 }
 
+void AudioRequestManager::init() {
+  mPlatformAudio.init();
+}
+
 bool AudioRequestManager::configureSource(const Nanoapp *nanoapp,
                                           uint32_t handle,
                                           bool enable,

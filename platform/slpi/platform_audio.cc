@@ -81,13 +81,15 @@ void handleWcdSpiAudioAvailability(uint32_t handle, bool available) {
 
 }  // anonymous namespace
 
-PlatformAudio::PlatformAudio() {
-  wcd_spi_client_init(handleWcdSpiAudioDataEvent,
-                      handleWcdSpiAudioAvailability);
-}
+PlatformAudio::PlatformAudio() {}
 
 PlatformAudio::~PlatformAudio() {
   wcd_spi_client_deinit();
+}
+
+void PlatformAudio::init() {
+  wcd_spi_client_init(handleWcdSpiAudioDataEvent,
+                      handleWcdSpiAudioAvailability);
 }
 
 void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
