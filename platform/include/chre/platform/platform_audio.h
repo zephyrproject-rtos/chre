@@ -43,6 +43,18 @@ class PlatformAudio : public PlatformAudioBase,
   ~PlatformAudio();
 
   /**
+   * Allows the CHRE common code to notify the platform that the enabled state
+   * of a given audio handle has changed. This will only be invoked with true
+   * when the number of clients for the handle is greater than zero or false
+   * when it is equal to zero.
+   *
+   * @param handle The handle for which audio enabled state is changing.
+   * @param enabled true if an active request is open for this handle, false
+   *        otherwise.
+   */
+  void setHandleEnabled(uint32_t handle, bool enabled);
+
+  /**
    * Requests an audio data event from the platform for the provided handle. A
    * call to this method must cancel any previous request.
    *

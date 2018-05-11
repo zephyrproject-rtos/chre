@@ -63,6 +63,7 @@ bool AudioRequestManager::configureSource(const Nanoapp *nanoapp,
                                           &requestIndex);
     Nanoseconds nextEventTimestamp = SystemTime::getMonotonicTime()
         + Nanoseconds(deliveryInterval);
+    size_t lastNumRequests = mAudioRequestLists[handle].requests.size();
     if (audioRequest == nullptr) {
       // The nanoapp is making a new request for audio data.
       if (enable) {
@@ -89,6 +90,13 @@ bool AudioRequestManager::configureSource(const Nanoapp *nanoapp,
       // necessary. The expectation is that the platform will gracefully handle
       // rescheduling the same request.
       scheduleNextAudioDataEvent(handle);
+    }
+
+    size_t numRequests = mAudioRequestLists[handle].requests.size();
+    if (lastNumRequests == 0 && numRequests > 0) {
+      mPlatformAudio.setHandleEnabled(handle, true);
+    } else if (lastNumRequests > 0 && numRequests == 0) {
+      mPlatformAudio.setHandleEnabled(handle, false);
     }
   }
 
