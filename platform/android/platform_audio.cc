@@ -129,6 +129,10 @@ PlatformAudio::~PlatformAudio() {
   AAudioStreamBuilder_delete(mStreamBuilder);
 }
 
+void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
+  // TODO: Implement this.
+}
+
 bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
                                           uint32_t numSamples,
                                           Nanoseconds eventDelay) {
