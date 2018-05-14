@@ -43,6 +43,14 @@ class PlatformAudio : public PlatformAudioBase,
   ~PlatformAudio();
 
   /**
+   * Initializes the platform-specific audio implementation. This is potentially
+   * called at a later stage of initialization than the constructor to allow the
+   * rest of CHRE to initialize. This permits use of deferCallback. This method
+   * must be invoked before methods of this class can be invoked.
+   */
+  void init();
+
+  /*
    * Allows the CHRE common code to notify the platform that the enabled state
    * of a given audio handle has changed. This will only be invoked with true
    * when the number of clients for the handle is greater than zero or false
