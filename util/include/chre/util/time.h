@@ -21,6 +21,12 @@
 
 namespace chre {
 
+//! The number of milliseconds in one min.
+constexpr uint64_t kOneMinuteInMillisecods(60000);
+
+//! The number of milliseconds in one second.
+constexpr uint64_t kOneSecondInMillisecods(1000);
+
 //! The number of nanoseconds in one second.
 constexpr uint64_t kOneSecondInNanoseconds(1000000000);
 
