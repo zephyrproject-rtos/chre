@@ -41,6 +41,12 @@ class AudioRequestManager : public NonCopyable {
   AudioRequestManager();
 
   /**
+   * Initializes the platform-specific audio module. Must be called prior to
+   * invoking any other methods in this class.
+   */
+  void init();
+
+  /**
    * Obtains an audio source from the platform audio implementation.
    *
    * @param handle The audio source to query for.

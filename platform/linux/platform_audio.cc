@@ -36,6 +36,10 @@ PlatformAudio::PlatformAudio() {}
 
 PlatformAudio::~PlatformAudio() {}
 
+void PlatformAudio::init() {
+  // TODO: Implement this.
+}
+
 void audioSourceCallback(void *cookie) {
   auto *audioSource = static_cast<AudioSource *>(cookie);
 

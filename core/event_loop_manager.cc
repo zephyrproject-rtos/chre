@@ -83,6 +83,10 @@ void EventLoopManager::lateInit() {
   mGnssManager.init();
   mWifiRequestManager.init();
   mWwanRequestManager.init();
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+  mAudioRequestManager.init();
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 }
 
 // Explicitly instantiate the EventLoopManagerSingleton to reduce codesize.
