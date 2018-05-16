@@ -53,6 +53,16 @@ void requestHostLinkLogBufferFlush();
  */
 void sendTimeSyncRequest();
 
+/**
+ * Sends a request to the host to enable the audio feature.
+ */
+void sendAudioRequest();
+
+/**
+ * Sends a request to the host to disable the audio feature.
+ */
+void sendAudioRelease();
+
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_HOST_LINK_BASE_H_

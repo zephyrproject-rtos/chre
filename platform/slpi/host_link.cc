@@ -80,6 +80,8 @@ enum class PendingMessageType {
   DebugDumpData,
   DebugDumpResponse,
   TimeSyncRequest,
+  LowPowerMicAccessRequest,
+  LowPowerMicAccessRelease,
 };
 
 struct PendingMessage {
@@ -489,6 +491,8 @@ extern "C" int chre_slpi_get_message_to_host(
       case PendingMessageType::DebugDumpData:
       case PendingMessageType::DebugDumpResponse:
       case PendingMessageType::TimeSyncRequest:
+      case PendingMessageType::LowPowerMicAccessRequest:
+      case PendingMessageType::LowPowerMicAccessRelease:
         result = generateMessageFromBuilder(pendingMsg.data.builder,
                                             buffer, bufferSize, messageLen);
         break;
@@ -604,6 +608,26 @@ void sendTimeSyncRequest() {
   buildAndEnqueueMessage(PendingMessageType::TimeSyncRequest, kInitialSize,
                          msgBuilder, nullptr);
   updateLastTimeSyncRequest();
+}
+
+void sendAudioRequest() {
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    HostProtocolChre::encodeLowPowerMicAccessRequest(builder);
+  };
+
+  constexpr size_t kInitialSize = 32;
+  buildAndEnqueueMessage(PendingMessageType::LowPowerMicAccessRequest,
+                         kInitialSize, msgBuilder, nullptr);
+}
+
+void sendAudioRelease() {
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    HostProtocolChre::encodeLowPowerMicAccessRelease(builder);
+  };
+
+  constexpr size_t kInitialSize = 32;
+  buildAndEnqueueMessage(PendingMessageType::LowPowerMicAccessRelease,
+                         kInitialSize, msgBuilder, nullptr);
 }
 
 void HostMessageHandlers::handleNanoappMessage(
