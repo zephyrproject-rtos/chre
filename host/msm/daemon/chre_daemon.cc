@@ -64,6 +64,16 @@
 //! The format string to use for logs from the CHRE implementation.
 #define HUB_LOG_FORMAT_STR "Hub (t=%.6f): %s"
 
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+#include <android/hardware/soundtrigger/2.0/ISoundTriggerHw.h>
+
+using android::sp;
+using android::hardware::Return;
+using android::hardware::soundtrigger::V2_0::ISoundTriggerHw;
+using android::hardware::soundtrigger::V2_0::SoundModelHandle;
+using android::hardware::soundtrigger::V2_0::SoundModelType;
+#endif  // CHRE_DAEMON_LPMA_ENABLED
+
 using android::chre::HostProtocolHost;
 using android::elapsedRealtimeNano;
 
@@ -244,6 +254,89 @@ static void sendTimeSyncMessage() {
   }
 }
 
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+
+/**
+ * Enables the LPMA use case via the SoundTrigger HAL HIDL service.
+ *
+ * @param lpmaHandle The handle that was generated as a result of enabling
+ *        the LPMA use case successfully.
+ * @return true if LPMA was enabled successfully, false otherwise.
+ */
+static bool setLpmaEnabled(SoundModelHandle *lpmaHandle) {
+  ISoundTriggerHw::SoundModel soundModel;
+  soundModel.type = SoundModelType::GENERIC;
+  soundModel.vendorUuid.timeLow = 0x57CADDB1;
+  soundModel.vendorUuid.timeMid = 0xACDB;
+  soundModel.vendorUuid.versionAndTimeHigh = 0x4DCE;
+  soundModel.vendorUuid.variantAndClockSeqHigh = 0x8CB0;
+
+  const uint8_t uuid_node[6] = { 0x2E, 0x95, 0xA2, 0x31, 0x3A, 0xEE };
+  memcpy(&soundModel.vendorUuid.node[0], uuid_node, sizeof(uuid_node));
+  soundModel.data.resize(1);  // Insert a dummy byte to bypass HAL NULL checks.
+
+  bool loaded = false;
+  sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
+  if (stHal == nullptr) {
+    LOGE("Failed to get ST HAL service for LPMA load");
+  } else {
+    int32_t loadResult;
+    Return<void> hidlResult = stHal->loadSoundModel(soundModel, NULL, 0,
+        [&](int32_t retval, SoundModelHandle handle) {
+            loadResult = retval;
+            *lpmaHandle = handle;
+        });
+
+    if (hidlResult.isOk()) {
+      if (loadResult == 0) {
+        LOGI("Loaded LPMA");
+        loaded = true;
+      } else {
+        LOGE("Failed to load LPMA with %" PRId32, loadResult);
+      }
+    } else {
+      LOGE("Failed to load LPMA due to hidl error %s",
+           hidlResult.description().c_str());
+    }
+  }
+
+  return loaded;
+}
+
+/**
+ * Disables the LPMA use case via the SoundTrigger HAL HIDL service.
+ *
+ * @param lpmaHandle A handle that was previously produced by the setLpmaEnabled
+ *        function. This is the handle that is unloaded from the ST HAL to
+ *        disable LPMA.
+ * @return true if LPMA was disabled successfully, false otherwise.
+ */
+static bool setLpmaDisabled(SoundModelHandle lpmaHandle) {
+  bool unloaded = false;
+  sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
+  if (stHal == nullptr) {
+    LOGE("Failed to get ST HAL service for LPMA unload");
+  } else {
+    Return<int32_t> hidlResult = stHal->unloadSoundModel(lpmaHandle);
+
+    if (hidlResult.isOk()) {
+      if (hidlResult == 0) {
+        LOGI("Unloaded LPMA");
+        unloaded = true;
+      } else {
+        LOGE("Failed to unload LPMA with %" PRId32, int32_t(hidlResult));
+      }
+    } else {
+      LOGE("Failed to unload LPMA due to hidl error %s",
+           hidlResult.description().c_str());
+    }
+  }
+
+  return unloaded;
+}
+
+#endif  // CHRE_DAEMON_LPMA_ENABLED
+
 /**
  * Entry point for the thread that receives messages sent by CHRE.
  *
@@ -254,6 +347,11 @@ static void *chre_message_to_host_thread(void *arg) {
   unsigned int messageLen;
   int result = 0;
   auto *server = static_cast<::android::chre::SocketServer *>(arg);
+
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+  bool lpmaEnabled = false;
+  SoundModelHandle lpmaHandle;
+#endif  // CHRE_DAEMON_LPMA_ENABLED
 
   while (true) {
     messageLen = 0;
@@ -280,12 +378,20 @@ static void *chre_message_to_host_thread(void *arg) {
         parseAndEmitLogMessages(messageBuffer);
       } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
         sendTimeSyncMessage();
-      } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest
-                 || messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
-        // TODO: notify STHAL
-        LOGD("Got LPMA %s notification",
-             (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) ?
-                 "request" : "release");
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+      } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {
+        if (!lpmaEnabled) {
+          lpmaEnabled = setLpmaEnabled(&lpmaHandle);
+        } else {
+          LOGW("Requested to enable LPMA when already enabled");
+        }
+      } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
+        if (lpmaEnabled) {
+          lpmaEnabled = !setLpmaDisabled(lpmaHandle);
+        } else {
+          LOGW("Requested to disable LPMA when already disabled");
+        }
+#endif  // CHRE_DAEMON_LPMA_ENABLED
       } else if (hostClientId == chre::kHostClientIdUnspecified) {
         server->sendToAllClients(messageBuffer,
                                  static_cast<size_t>(messageLen));
