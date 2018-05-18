@@ -17,9 +17,15 @@
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/memory.h"
 
+#include "chre/core/event_loop_manager.h"
+
 #include <cstdlib>
 
 extern "C" {
+
+#ifdef CHRE_SLPI_SEE
+#include "sns_island_util.h"
+#endif  // CHRE_SLPI_SEE
 
 #if defined(CHRE_SLPI_SMGR) || defined (CHRE_SLPI_SEE)
 #include "sns_memmgr.h"
@@ -34,7 +40,26 @@ void *memoryAlloc(size_t size) {
   #if defined(CHRE_SLPI_SMGR)
     return SNS_OS_U_MALLOC(SNS_CHRE, size);
   #elif defined(CHRE_SLPI_SEE)
-    return sns_malloc(SNS_HEAP_ISLAND, size);
+    void *ptr = sns_malloc(SNS_HEAP_CHRE_ISLAND, size);
+
+    // Fall back to big image memory when uimg memory is exhausted.
+    // Must exclude size 0 as clients may not explicitly free memory of size 0,
+    // which may mistakenly hold the system in big image.
+    if (ptr == nullptr && size != 0) {
+      // Increment big image ref count to prevent system from entering uimg
+      // while big image memory is in use.
+      EventLoopManagerSingleton::get()->getEventLoop().
+            getPowerControlManager().incrementBigImageRefCount();
+      ptr = memoryAllocBigImage(size);
+
+      // Big image allocation failed too.
+      if (ptr == nullptr) {
+        EventLoopManagerSingleton::get()->getEventLoop().
+            getPowerControlManager().decrementBigImageRefCount();
+      }
+    }
+
+    return ptr;
   #else
     #error SLPI UIMG memory allocation not supported
   #endif
@@ -56,7 +81,20 @@ void memoryFree(void *pointer) {
   #if defined(CHRE_SLPI_SMGR)
     SNS_OS_FREE(pointer);
   #elif defined(CHRE_SLPI_SEE)
-    sns_free(pointer);
+    if (sns_island_is_island_ptr(reinterpret_cast<intptr_t>(pointer))) {
+      sns_free(pointer);
+    } else {
+      memoryFreeBigImage(pointer);
+
+      // Must exclude nullptr as it's excluded in memoryAlloc() as well.
+      // Note currently sns_island_is_island_ptr returns true for nullptr,
+      // so this mainly serves as a protection in case the implementation of
+      // sns_island_is_island_ptr changes in the future.
+      if (pointer != nullptr) {
+        EventLoopManagerSingleton::get()->getEventLoop().
+            getPowerControlManager().decrementBigImageRefCount();
+      }
+    }
   #else
     #error SLPI UIMG memory free not supported
   #endif
