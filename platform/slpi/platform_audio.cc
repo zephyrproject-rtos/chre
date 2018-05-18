@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/host_link.h"
 #include "chre/platform/log.h"
 #include "chre/util/memory.h"
 #include "wcd_spi.h"
@@ -105,10 +106,10 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
 
   if (lastNumAudioClients == 0 && mNumAudioClients > 0) {
     LOGD("Enabling WCD SLPI");
-    // TODO: Notify the host that audio is enabled.
+    sendAudioRequest();
   } else if (lastNumAudioClients > 0 && mNumAudioClients == 0) {
     LOGD("Disabling WCD SLPI");
-    // TODO: Notify the host that audio is disabled.
+    sendAudioRelease();
   }
 }
 
