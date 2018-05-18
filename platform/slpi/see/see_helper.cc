@@ -1173,11 +1173,31 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
 SensorType getSensorTypeFromSensorInfo(
     sns_client *client, const sns_std_suid& suid,
     const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
+  bool suidFound = false;
+  SensorType otherType;
   for (const auto& sensorInfo : sensorInfos) {
-    if (suidsMatch(sensorInfo.suid, suid)
-        && sensorInfo.client == client) {
+    if (suidsMatch(sensorInfo.suid, suid)) {
+      suidFound = true;
+      if (sensorInfo.client == client) {
         return sensorInfo.sensorType;
+      }
+      otherType = sensorInfo.sensorType;
     }
+  }
+
+  if (suidFound) {
+    LOGE("Unmatched client: %p, SUID 0x%016" PRIx64 " %016" PRIx64,
+             client, suid.suid_high, suid.suid_low);
+    // TODO: remove after b/79993302 is resolved.
+    for (const auto& sensorInfo : sensorInfos) {
+      LOGE("  %p, 0x%016" PRIx64 " %016" PRIx64,
+           sensorInfo.client,
+           sensorInfo.suid.suid_high, sensorInfo.suid.suid_low);
+    }
+
+    // Return SensorType in the other sns_client that matches the SUID as a
+    // backup plan.
+    return otherType;
   }
   return SensorType::Unknown;
 }
@@ -1224,7 +1244,7 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 #endif  // CHREX_SENSOR_SUPPORT
 
     default:
-      LOGW("Unhandled SensorSampleType for SensorType %" PRIu8,
+      LOGE("Unhandled SensorSampleType for SensorType %" PRIu8,
            static_cast<uint8_t>(sensorType));
   }
 
