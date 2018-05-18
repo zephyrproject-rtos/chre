@@ -196,7 +196,18 @@ table DebugDumpResponse {
 }
 
 /// A request from CHRE for host to initiate a time sync message
+/// (system feature, platform-specific - not all platforms necessarily use this)
 table TimeSyncRequest {}
+
+/// Request from CHRE to enable direct access to data from the low-power
+/// microphone. On some systems, coordination via the AP (e.g. with
+/// SoundTrigger HAL) is needed to ensure this capability is powered up when
+/// CHRE needs it. The host does not send a response.
+table LowPowerMicAccessRequest {}
+
+/// Notification from CHRE that it no longer needs direct access to low-power
+/// microphone data.
+table LowPowerMicAccessRelease {}
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
@@ -224,6 +235,9 @@ union ChreMessage {
   DebugDumpResponse,
 
   TimeSyncRequest,
+
+  LowPowerMicAccessRequest,
+  LowPowerMicAccessRelease,
 }
 
 struct HostAddress {

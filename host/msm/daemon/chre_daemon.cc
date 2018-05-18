@@ -280,6 +280,12 @@ static void *chre_message_to_host_thread(void *arg) {
         parseAndEmitLogMessages(messageBuffer);
       } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
         sendTimeSyncMessage();
+      } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest
+                 || messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
+        // TODO: notify STHAL
+        LOGD("Got LPMA %s notification",
+             (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) ?
+                 "request" : "release");
       } else if (hostClientId == chre::kHostClientIdUnspecified) {
         server->sendToAllClients(messageBuffer,
                                  static_cast<size_t>(messageLen));
