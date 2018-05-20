@@ -192,4 +192,18 @@ void HostProtocolChre::encodeTimeSyncRequest(
   finalize(builder, fbs::ChreMessage::TimeSyncRequest, request.Union());
 }
 
+void HostProtocolChre::encodeLowPowerMicAccessRequest(
+    flatbuffers::FlatBufferBuilder& builder) {
+  auto request = fbs::CreateLowPowerMicAccessRequest(builder);
+  finalize(builder, fbs::ChreMessage::LowPowerMicAccessRequest,
+           request.Union());
+}
+
+void HostProtocolChre::encodeLowPowerMicAccessRelease(
+    flatbuffers::FlatBufferBuilder& builder) {
+  auto request = fbs::CreateLowPowerMicAccessRelease(builder);
+  finalize(builder, fbs::ChreMessage::LowPowerMicAccessRelease,
+           request.Union());
+}
+
 }  // namespace chre

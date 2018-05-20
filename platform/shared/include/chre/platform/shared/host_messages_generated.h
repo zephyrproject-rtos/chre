@@ -41,6 +41,10 @@ struct DebugDumpResponse;
 
 struct TimeSyncRequest;
 
+struct LowPowerMicAccessRequest;
+
+struct LowPowerMicAccessRelease;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -64,8 +68,10 @@ enum class ChreMessage : uint8_t {
   DebugDumpData = 13,
   DebugDumpResponse = 14,
   TimeSyncRequest = 15,
+  LowPowerMicAccessRequest = 16,
+  LowPowerMicAccessRelease = 17,
   MIN = NONE,
-  MAX = TimeSyncRequest
+  MAX = LowPowerMicAccessRelease
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -86,6 +92,8 @@ inline const char **EnumNamesChreMessage() {
     "DebugDumpData",
     "DebugDumpResponse",
     "TimeSyncRequest",
+    "LowPowerMicAccessRequest",
+    "LowPowerMicAccessRelease",
     nullptr
   };
   return names;
@@ -158,6 +166,14 @@ template<> struct ChreMessageTraits<DebugDumpResponse> {
 
 template<> struct ChreMessageTraits<TimeSyncRequest> {
   static const ChreMessage enum_value = ChreMessage::TimeSyncRequest;
+};
+
+template<> struct ChreMessageTraits<LowPowerMicAccessRequest> {
+  static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRequest;
+};
+
+template<> struct ChreMessageTraits<LowPowerMicAccessRelease> {
+  static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRelease;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -1214,6 +1230,7 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(
 }
 
 /// A request from CHRE for host to initiate a time sync message
+/// (system feature, platform-specific - not all platforms necessarily use this)
 struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1239,6 +1256,68 @@ struct TimeSyncRequestBuilder {
 inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(
     flatbuffers::FlatBufferBuilder &_fbb) {
   TimeSyncRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+/// Request from CHRE to enable direct access to data from the low-power
+/// microphone. On some systems, coordination via the AP (e.g. with
+/// SoundTrigger HAL) is needed to ensure this capability is powered up when
+/// CHRE needs it. The host does not send a response.
+struct LowPowerMicAccessRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+};
+
+struct LowPowerMicAccessRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  LowPowerMicAccessRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LowPowerMicAccessRequestBuilder &operator=(const LowPowerMicAccessRequestBuilder &);
+  flatbuffers::Offset<LowPowerMicAccessRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<LowPowerMicAccessRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  LowPowerMicAccessRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+/// Notification from CHRE that it no longer needs direct access to low-power
+/// microphone data.
+struct LowPowerMicAccessRelease FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+};
+
+struct LowPowerMicAccessReleaseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  LowPowerMicAccessReleaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LowPowerMicAccessReleaseBuilder &operator=(const LowPowerMicAccessReleaseBuilder &);
+  flatbuffers::Offset<LowPowerMicAccessRelease> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<LowPowerMicAccessRelease>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  LowPowerMicAccessReleaseBuilder builder_(_fbb);
   return builder_.Finish();
 }
 
@@ -1377,6 +1456,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::TimeSyncRequest: {
       auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LowPowerMicAccessRequest: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LowPowerMicAccessRelease: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

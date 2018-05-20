@@ -168,6 +168,20 @@ class HostProtocolChre : public HostProtocolCommon {
    * Encodes a message requesting time sync from host.
    */
   static void encodeTimeSyncRequest(flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Encodes a message notifying the host that audio has been requested by a
+   * nanoapp, so the low-power microphone needs to be powered on.
+   */
+  static void encodeLowPowerMicAccessRequest(
+      flatbuffers::FlatBufferBuilder& builder);
+
+  /**
+   * Encodes a message notifying the host that no nanoapps are requesting audio
+   * anymore, so the low-power microphone may be powered off.
+   */
+  static void encodeLowPowerMicAccessRelease(
+      flatbuffers::FlatBufferBuilder& builder);
 };
 
 }  // namespace chre

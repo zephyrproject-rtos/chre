@@ -57,6 +57,12 @@ struct DebugDumpResponseT;
 struct TimeSyncRequest;
 struct TimeSyncRequestT;
 
+struct LowPowerMicAccessRequest;
+struct LowPowerMicAccessRequestT;
+
+struct LowPowerMicAccessRelease;
+struct LowPowerMicAccessReleaseT;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -81,8 +87,10 @@ enum class ChreMessage : uint8_t {
   DebugDumpData = 13,
   DebugDumpResponse = 14,
   TimeSyncRequest = 15,
+  LowPowerMicAccessRequest = 16,
+  LowPowerMicAccessRelease = 17,
   MIN = NONE,
-  MAX = TimeSyncRequest
+  MAX = LowPowerMicAccessRelease
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -103,6 +111,8 @@ inline const char **EnumNamesChreMessage() {
     "DebugDumpData",
     "DebugDumpResponse",
     "TimeSyncRequest",
+    "LowPowerMicAccessRequest",
+    "LowPowerMicAccessRelease",
     nullptr
   };
   return names;
@@ -175,6 +185,14 @@ template<> struct ChreMessageTraits<DebugDumpResponse> {
 
 template<> struct ChreMessageTraits<TimeSyncRequest> {
   static const ChreMessage enum_value = ChreMessage::TimeSyncRequest;
+};
+
+template<> struct ChreMessageTraits<LowPowerMicAccessRequest> {
+  static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRequest;
+};
+
+template<> struct ChreMessageTraits<LowPowerMicAccessRelease> {
+  static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRelease;
 };
 
 struct ChreMessageUnion {
@@ -261,6 +279,14 @@ struct ChreMessageUnion {
   TimeSyncRequestT *AsTimeSyncRequest() {
     return type == ChreMessage::TimeSyncRequest ?
       reinterpret_cast<TimeSyncRequestT *>(table) : nullptr;
+  }
+  LowPowerMicAccessRequestT *AsLowPowerMicAccessRequest() {
+    return type == ChreMessage::LowPowerMicAccessRequest ?
+      reinterpret_cast<LowPowerMicAccessRequestT *>(table) : nullptr;
+  }
+  LowPowerMicAccessReleaseT *AsLowPowerMicAccessRelease() {
+    return type == ChreMessage::LowPowerMicAccessRelease ?
+      reinterpret_cast<LowPowerMicAccessReleaseT *>(table) : nullptr;
   }
 };
 
@@ -1704,6 +1730,7 @@ struct TimeSyncRequestT : public flatbuffers::NativeTable {
 };
 
 /// A request from CHRE for host to initiate a time sync message
+/// (system feature, platform-specific - not all platforms necessarily use this)
 struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TimeSyncRequestT NativeTableType;
   bool Verify(flatbuffers::Verifier &verifier) const {
@@ -1737,6 +1764,92 @@ inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(
 }
 
 flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::FlatBufferBuilder &_fbb, const TimeSyncRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct LowPowerMicAccessRequestT : public flatbuffers::NativeTable {
+  typedef LowPowerMicAccessRequest TableType;
+  LowPowerMicAccessRequestT() {
+  }
+};
+
+/// Request from CHRE to enable direct access to data from the low-power
+/// microphone. On some systems, coordination via the AP (e.g. with
+/// SoundTrigger HAL) is needed to ensure this capability is powered up when
+/// CHRE needs it. The host does not send a response.
+struct LowPowerMicAccessRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LowPowerMicAccessRequestT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  LowPowerMicAccessRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LowPowerMicAccessRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LowPowerMicAccessRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LowPowerMicAccessRequestBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  LowPowerMicAccessRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LowPowerMicAccessRequestBuilder &operator=(const LowPowerMicAccessRequestBuilder &);
+  flatbuffers::Offset<LowPowerMicAccessRequest> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<LowPowerMicAccessRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  LowPowerMicAccessRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequest(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct LowPowerMicAccessReleaseT : public flatbuffers::NativeTable {
+  typedef LowPowerMicAccessRelease TableType;
+  LowPowerMicAccessReleaseT() {
+  }
+};
+
+/// Notification from CHRE that it no longer needs direct access to low-power
+/// microphone data.
+struct LowPowerMicAccessRelease FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LowPowerMicAccessReleaseT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  LowPowerMicAccessReleaseT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LowPowerMicAccessReleaseT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LowPowerMicAccessRelease> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessReleaseT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LowPowerMicAccessReleaseBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  LowPowerMicAccessReleaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LowPowerMicAccessReleaseBuilder &operator=(const LowPowerMicAccessReleaseBuilder &);
+  flatbuffers::Offset<LowPowerMicAccessRelease> Finish() {
+    const auto end = fbb_.EndTable(start_, 0);
+    auto o = flatbuffers::Offset<LowPowerMicAccessRelease>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  LowPowerMicAccessReleaseBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessReleaseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
@@ -2308,6 +2421,50 @@ inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::F
       _fbb);
 }
 
+inline LowPowerMicAccessRequestT *LowPowerMicAccessRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new LowPowerMicAccessRequestT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void LowPowerMicAccessRequest::UnPackTo(LowPowerMicAccessRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<LowPowerMicAccessRequest> LowPowerMicAccessRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLowPowerMicAccessRequest(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequest(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  return chre::fbs::CreateLowPowerMicAccessRequest(
+      _fbb);
+}
+
+inline LowPowerMicAccessReleaseT *LowPowerMicAccessRelease::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new LowPowerMicAccessReleaseT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void LowPowerMicAccessRelease::UnPackTo(LowPowerMicAccessReleaseT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<LowPowerMicAccessRelease> LowPowerMicAccessRelease::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessReleaseT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLowPowerMicAccessRelease(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessReleaseT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  return chre::fbs::CreateLowPowerMicAccessRelease(
+      _fbb);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -2404,6 +2561,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::LowPowerMicAccessRequest: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::LowPowerMicAccessRelease: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -2481,6 +2646,14 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::LowPowerMicAccessRequest: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRequest *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::LowPowerMicAccessRelease: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -2546,6 +2719,14 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::TimeSyncRequest: {
       auto ptr = reinterpret_cast<const TimeSyncRequestT *>(table);
       return CreateTimeSyncRequest(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::LowPowerMicAccessRequest: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessRequestT *>(table);
+      return CreateLowPowerMicAccessRequest(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::LowPowerMicAccessRelease: {
+      auto ptr = reinterpret_cast<const LowPowerMicAccessReleaseT *>(table);
+      return CreateLowPowerMicAccessRelease(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -2625,6 +2806,16 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::TimeSyncRequest: {
       auto ptr = reinterpret_cast<TimeSyncRequestT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::LowPowerMicAccessRequest: {
+      auto ptr = reinterpret_cast<LowPowerMicAccessRequestT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::LowPowerMicAccessRelease: {
+      auto ptr = reinterpret_cast<LowPowerMicAccessReleaseT *>(table);
       delete ptr;
       break;
     }
