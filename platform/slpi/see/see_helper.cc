@@ -1350,8 +1350,14 @@ void SeeHelper::handleSnsClientEventMsg(
         data->info.sync->syncSuid = mSyncSuid;
       }
 
-      if (data->info.data->sampleIndex > 0 && !prepareSensorEvent(data->info)) {
-        LOGE("Failed to prepare sensor event");
+      if (data->info.data->sampleIndex > 0) {
+        if (data->info.data->sensorType == SensorType::Unknown) {
+          // TODO: uncomment after resolving b/78906489.
+          //LOGE("Unhandled sensor data SUID 0x%016" PRIx64 " %016" PRIx64,
+          //     data->info.suid.suid_high, data->info.suid.suid_low);
+        } else if (!prepareSensorEvent(data->info)) {
+          LOGE("Failed to prepare sensor event");
+        }
       }
 
       if (!pb_decode(&streamCpy, sns_client_event_msg_fields, &data->event)) {
@@ -1368,7 +1374,13 @@ void SeeHelper::handleSnsClientEventMsg(
               data->info.data->sensorType, std::move(data->info.data->event));
         }
         if (!data->info.data->status.isNull()) {
-          mCbIf->onSamplingStatusUpdate(std::move(data->info.data->status));
+          if (data->info.data->sensorType == SensorType::Unknown) {
+            // TODO: uncomment after resolving b/78906489.
+            //LOGE("Unhandled sensor status SUID 0x%016" PRIx64 " %016" PRIx64,
+            //     data->info.suid.suid_high, data->info.suid.suid_low);
+          } else {
+            mCbIf->onSamplingStatusUpdate(std::move(data->info.data->status));
+          }
         }
       }
 
