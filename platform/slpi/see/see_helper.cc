@@ -382,7 +382,11 @@ bool decodeStringField(pb_istream_t *stream, const pb_field_t *field,
   data->bufLen = stream->bytes_left;
   data->buf = stream->state;
 
-  return pb_read(stream, nullptr /* buf */, stream->bytes_left);
+  bool success = pb_read(stream, nullptr /* buf */, stream->bytes_left);
+  if (!success) {
+    LOG_NANOPB_ERROR(stream);
+  }
+  return success;
 }
 
 /**
@@ -1141,7 +1145,7 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
   auto *info = static_cast<SeeInfoArg *>(*arg);
   bool success = decodeMsgIdAndTime(stream, &info->msgId, &info->data->timeNs);
 
-  if (!info->decodeMsgIdOnly) {
+  if (success && !info->decodeMsgIdOnly) {
     sns_client_event_msg_sns_client_event event = {};
 
     // Payload callback must be assigned if and only if we want to decode beyond
@@ -1331,7 +1335,9 @@ void SeeHelper::handleSnsClientEventMsg(
     data->event.events.arg = &data->info;
 
     // Decode only SUID and MSG ID to help further decode.
-    if (pb_decode(&stream, sns_client_event_msg_fields, &data->event)) {
+    if (!pb_decode(&stream, sns_client_event_msg_fields, &data->event)) {
+      LOG_NANOPB_ERROR(&stream);
+    } else {
       data->info.suid = data->event.suid;
       data->info.decodeMsgIdOnly = false;
       data->info.data->cal = getCalDataFromSuid(data->info.suid);
