@@ -207,7 +207,10 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Vendor1;
     case SensorType::VendorType2:
       return SensorSampleType::Vendor2;
+    case SensorType::Unknown:
+      return SensorSampleType::Unknown;
     default:
+      // Update implementation to prevent undefined from being used.
       CHRE_ASSERT(false);
       return SensorSampleType::Unknown;
   }
