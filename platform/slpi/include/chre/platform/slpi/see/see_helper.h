@@ -17,7 +17,11 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 #define CHRE_PLATFORM_SLPI_SEE_SEE_HELPER_H_
 
-#include "qmi_client.h"
+extern "C" {
+
+#include "sns_client.h"
+
+} // extern "C"
 
 #include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
@@ -95,26 +99,25 @@ struct SeeSensorRequest {
   uint32_t batchPeriodUs;
 };
 
-// TODO(P2-aa0089): Replace QMI with an interface that doesn't introduce big
-// image wakeups.
-
 /**
  * A helper class for making requests to Qualcomm's Sensors Execution
- * Environment (SEE) via QMI and waiting for the corresponding indication
- * message if applicable. Not safe to use from multiple threads.
- * Only one synchronous request can be made at a time.
+ * Environment (SEE) via Qsocket and waiting for the response and the
+ * corresponding indication message if applicable.
+ * Not safe to use from multiple threads. Only one synchronous request can be
+ * made at a time.
  */
 class SeeHelper : public NonCopyable {
  public:
-  //! A struct to facilitate mapping between 'SUID + qmiHandle' and SensorType.
+  //! A struct to facilitate mapping between 'SUID + Qsocket client' and
+  //! SensorType.
   struct SensorInfo {
     sns_std_suid suid;
     SensorType sensorType;
-    qmi_client_type qmiHandle;
+    sns_client *client;
   };
 
   /**
-   * Deinits QMI clients before destructing this object.
+   * Deinits Qsocket clients before destructing this object.
    */
   ~SeeHelper();
 
@@ -150,7 +153,7 @@ class SeeHelper : public NonCopyable {
   bool getAttributesSync(const sns_std_suid& suid, SeeAttributes *attr);
 
   /**
-   * Initializes and waits for the sensor client QMI service to become
+   * Initializes and waits for the sensor client Qsocket service to become
    * available, and obtains remote_proc and cal sensors' info for future
    * operations. This function must be called first to initialize the object and
    * be called only once.
@@ -170,7 +173,7 @@ class SeeHelper : public NonCopyable {
    *
    * @param request The sensor request to make.
    *
-   * @return true if the QMI request has been successfully made.
+   * @return true if the Qsocket request has been successfully made.
    */
   bool makeRequest(const SeeSensorRequest& request);
 
@@ -181,8 +184,8 @@ class SeeHelper : public NonCopyable {
    * with populated CHRE sensor events. Each SUID/SensorType pair can only be
    * registered once. It's illegal to register SensorType::Unknown.
    *
-   * If an SUID is registered with a second SensorType, another QMI client may
-   * be created to disambiguate the SUID representation.
+   * If an SUID is registered with a second SensorType, another Qsocket client
+   * may be created to disambiguate the SUID representation.
    *
    * @param sensorType The SensorType to register.
    * @param suid The SUID of the sensor.
@@ -217,8 +220,9 @@ class SeeHelper : public NonCopyable {
   const sns_std_suid& getCalSuidFromSensorType(SensorType sensorType) const;
 
   /**
-   * A convenience method to send a QMI request and wait for the indication if
-   * it's a synchronous one using the default QMI handle obtained in init().
+   * A convenience method to send a Qsocket request and wait for the indication
+   * if it's a synchronous one using the default Qsocket client obtained in
+   * init().
    *
    * @see sendReq
    */
@@ -230,7 +234,7 @@ class SeeHelper : public NonCopyable {
       bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout) {
-    return sendReq(mQmiHandles[0], suid,
+    return sendReq(mQsocketClients[0], suid,
                    syncData, syncDataType,
                    msgId, payload, payloadLen,
                    batchValid, batchPeriodUs, passive,
@@ -239,7 +243,7 @@ class SeeHelper : public NonCopyable {
   }
 
  private:
-  //! Used to synchronize indications.
+  //! Used to synchronize responses and indications.
   ConditionVariable mCond;
 
   //! Used with mCond, and to protect access to member variables from other
@@ -249,11 +253,11 @@ class SeeHelper : public NonCopyable {
   //! Callback interface for sensor events.
   SeeHelperCallbackInterface *mCbIf = nullptr;
 
-  //! The list of QMI handles initiated by SeeHelper.
-  DynamicVector<qmi_client_type> mQmiHandles;
+  //! The list of Qsocket clients initiated by SeeHelper.
+  DynamicVector<sns_client *> mQsocketClients;
 
   //! The list of SensorTypes registered and their corresponding SUID and
-  //! QMI handle.
+  //! Qsocket client.
   DynamicVector<SensorInfo> mSensorInfos;
 
   //! Data struct to store sync APIs data.
@@ -267,7 +271,16 @@ class SeeHelper : public NonCopyable {
   sns_std_suid mSyncSuid = sns_suid_sensor_init_zero;
 
   //! true if we are waiting on an indication for a sync call.
-  bool mWaiting = false;
+  bool mWaitingOnInd = false;
+
+  //! true if we are waiting on a response of a Qsocket request.
+  bool mWaitingOnResp = false;
+
+  //! The Qsocket response error of the request we just made.
+  sns_std_error mRespError;
+
+  //! A transaction ID that increments for each Qsocket request.
+  uint32_t mCurrentTxnId = 0;
 
   //! The SUID for the remote_proc sensor.
   Optional<sns_std_suid> mRemoteProcSuid;
@@ -290,12 +303,25 @@ class SeeHelper : public NonCopyable {
   bool initRemoteProcSensor();
 
   /**
-   * Wrapper to send a QMI request and wait for the indication if it's a
+   * Sends a QSocket request and waits for the response.
+   *
+   * @param client The pointer to Qsocket client to make request with.
+   * @param req A pointer to the sns_client_request_msg to be sent.
+   * @param timeoutResp How long to wait for the response before abandoning it.
+   *
+   * @return true if the request was sent and the response was received
+   *         successfully.
+   */
+  bool sendQsocketReqSync(sns_client *client, sns_client_request_msg *req,
+                          Nanoseconds timeoutResp);
+
+  /**
+   * Wrapper to send a Qsocket request and wait for the indication if it's a
    * synchronous one.
    *
    * Only one request can be pending at a time per instance of SeeHelper.
    *
-   * @param qmiHandle The QMI Handle to make QMI requests with.
+   * @param client The pointer to Qsocket client to make requests with.
    * @param suid The SUID of the sensor the request is sent to
    * @param syncData The data struct or container to receive a sync call's data
    * @param syncDataType The data type we are waiting for.
@@ -308,14 +334,14 @@ class SeeHelper : public NonCopyable {
    * @param passive Whether this is a passive request
    * @param waitForIndication Whether to wait for the indication of the
    *                          specified SUID or not.
-   * @param timeoutRresp How long to wait for the response before abandoning it
+   * @param timeoutResp How long to wait for the response before abandoning it
    * @param timeoutInd How long to wait for the indication before abandoning it
    *
    * @return true if the request has been sent and the response/indication it's
    *         waiting for has been successfully received
    */
   bool sendReq(
-      const qmi_client_type& qmiHandle, const sns_std_suid& suid,
+      sns_client *client, const sns_std_suid& suid,
       void *syncData, const char *syncDataType,
       uint32_t msgId, void *payload, size_t payloadLen,
       bool batchValid, uint32_t batchPeriodUs, bool passive,
@@ -324,34 +350,55 @@ class SeeHelper : public NonCopyable {
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout);
 
   /**
-   * Handles the payload of a sns_client_report_ind_msg_v01 message.
+   * A helper function that prepares SeeHelper to wait for an indication.
+   *
+   * @see sendReq
+   */
+  void prepareWaitForInd(const sns_std_suid& suid, void *syncData,
+                         const char *syncDataType);
+
+  /**
+   * A helper function that waits for the indication.
+   *
+   * @return true if the inication is received  before timeout.
+   *
+   * @see sendReq
+   */
+  bool waitForInd(bool reqSent, Nanoseconds timeoutInd);
+
+  /**
+   * Handles the payload of a sns_client_event_msg.
    */
   void handleSnsClientEventMsg(
-      qmi_client_type clientHandle, const void *payload, size_t payloadLen);
+      sns_client *client, const void *payload, size_t payloadLen);
 
   /**
-   * Processes a QMI indication callback
-   *
-   * @see qmi_client_ind_cb
+   * Handles a Qsocket response for request with specified transaction ID.
    */
-  void handleInd(qmi_client_type client_handle, unsigned int msg_id,
-                 const void *ind_buf, unsigned int ind_buf_len);
+  void handleQsocketResp(uint32_t txnId, sns_std_error error);
 
   /**
-   * Extracts "this" from ind_cb_data and calls through to handleInd()
+   * Extracts "this" from cbData and calls through to handleSnsClientEventMsg()
    *
-   * @see qmi_client_ind_cb
+   * @see sns_client_ind
    */
-  static void qmiIndCb(qmi_client_type client_handle, unsigned int msg_id,
-                       void *ind_buf, unsigned int ind_buf_len,
-                       void *ind_cb_data);
+  static void qsocketIndCb(sns_client *client, void *msg,
+                           uint32_t msgLen, void *cbData);
 
   /**
-   * A wrapper to initialize a QMI client.
+   * Extracts "this" from cbData and calls through to handleQsocketResp()
    *
-   * @ see qmi_client_init_instance
+   * @see sns_client_resp
    */
-  bool waitForService(qmi_client_type *qmiHandle,
+  static void qsocketRespCb(sns_client *client, sns_std_error error,
+                            void *cbData);
+
+  /**
+   * A wrapper to initialize a Qsocket client.
+   *
+   * @see sns_client_init
+   */
+  bool waitForService(sns_client **client,
                       Microseconds timeout = kDefaultSeeWaitTimeout);
 
   /**

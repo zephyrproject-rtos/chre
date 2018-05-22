@@ -56,6 +56,12 @@ const char *kOpModeOff = "OFF";
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
 
+//! A struct to facilitate qsocket response handling
+struct QsocketRespCbData {
+  SeeHelper *seeHelper;
+  uint32_t txnId;
+};
+
 //! A struct to facilitate pb encode/decode
 struct SeeBufArg {
   const void *buf;
@@ -95,7 +101,7 @@ struct SeeDataArg {
 
 //! A struct to facilitate pb decode
 struct SeeInfoArg {
-  qmi_client_type qmiHandle;
+  sns_client *client;
   sns_std_suid suid;
   uint32_t msgId;
   SeeSyncArg *sync;
@@ -330,74 +336,39 @@ bool encodeSnsRemoteProcSensorConfig(pb_byte_t *msgBuffer, size_t msgBufferSize,
 }
 
 /**
- * Sends a sync request to QMI.
+ * Prepares a sns_client_req message with provided payload.
  */
-bool sendQmiReq(qmi_client_type qmiHandle, const sns_client_req_msg_v01& reqMsg,
-                Nanoseconds timeoutResp) {
-  bool success = false;
-
-  sns_client_resp_msg_v01 resp;
-  qmi_client_error_type status = qmi_client_send_msg_sync(
-      qmiHandle, SNS_CLIENT_REQ_V01,
-      const_cast<sns_client_req_msg_v01 *>(&reqMsg), sizeof(reqMsg),
-      &resp, sizeof(resp), Milliseconds(timeoutResp).getMilliseconds());
-
-  if (status != QMI_NO_ERR) {
-    LOGE("Error sending QMI message %d", status);
-  } else if (resp.resp.result != QMI_RESULT_SUCCESS_V01) {
-    LOGE("QMI failed with error %d", resp.resp.error);
-  } else if (!resp.result_valid || resp.result != SNS_RC_SUCCESS) {
-    LOGE("Client request failed with result %" PRIu8,
-         static_cast<uint8_t>(resp.result));
-  } else {
-    success = true;
-  }
-  return success;
-}
-
-/**
- * Sends a sns_client_req message with provided payload.
- */
-bool sendSnsClientReq(qmi_client_type qmiHandle, sns_std_suid suid,
-                      uint32_t msgId, void *payload, size_t payloadLen,
+bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId,
+                      void *payload, size_t payloadLen,
                       bool batchValid, uint32_t batchPeriodUs, bool passive,
-                      Nanoseconds timeoutResp) {
+                      UniquePtr<sns_client_request_msg> *msg, SeeBufArg *data) {
   CHRE_ASSERT(payload || payloadLen == 0);
+  CHRE_ASSERT(msg);
+  CHRE_ASSERT(data);
   bool success = false;
 
-  // Initialize pb message to be encoded
-  SeeBufArg data = {
-    .buf = payload,
-    .bufLen = payloadLen,
-  };
-  sns_client_request_msg req = {
-    .suid = suid,
-    .msg_id = msgId,
-    .susp_config.client_proc_type = SNS_STD_CLIENT_PROCESSOR_SSC,
-    .susp_config.delivery_type = SNS_CLIENT_DELIVERY_WAKEUP,
-    .request.has_batching = batchValid,
-    .request.batching.batch_period = batchPeriodUs,
-    .request.payload.funcs.encode = copyPayload,
-    .request.payload.arg = &data,
-    .request.has_is_passive = true,
-    .request.is_passive = passive,
-  };
-
-  auto qmiReq = MakeUniqueZeroFill<sns_client_req_msg_v01>();
-  if (qmiReq.isNull()) {
+  auto req = MakeUniqueZeroFill<sns_client_request_msg>();
+  if (req.isNull()) {
     LOG_OOM();
   } else {
-    // Create pb stream
-    pb_ostream_t stream = pb_ostream_from_buffer(
-        qmiReq->payload, SNS_CLIENT_REQ_LEN_MAX_V01);
+    success = true;
 
-    // Encode pb message
-    if (!pb_encode(&stream, sns_client_request_msg_fields, &req)) {
-      LOG_NANOPB_ERROR(&stream);
-    } else {
-      qmiReq->payload_len = stream.bytes_written;
-      success = sendQmiReq(qmiHandle, *qmiReq, timeoutResp);
-    }
+    // Initialize sns_client_request_msg to be sent
+    data->buf = payload,
+    data->bufLen = payloadLen,
+
+    req->suid = suid;
+    req->msg_id = msgId;
+    req->susp_config.client_proc_type = SNS_STD_CLIENT_PROCESSOR_SSC;
+    req->susp_config.delivery_type = SNS_CLIENT_DELIVERY_WAKEUP;
+    req->request.has_batching = batchValid;
+    req->request.batching.batch_period = batchPeriodUs;
+    req->request.payload.funcs.encode = copyPayload;
+    req->request.payload.arg = data;
+    req->request.has_is_passive = true,
+    req->request.is_passive = passive,
+
+    *msg = std::move(req);
   }
   return success;
 }
@@ -1200,13 +1171,33 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
  * Obtain the SensorType from the list of registered SensorInfos.
  */
 SensorType getSensorTypeFromSensorInfo(
-    qmi_client_type qmiHandle, const sns_std_suid& suid,
+    sns_client *client, const sns_std_suid& suid,
     const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
+  bool suidFound = false;
+  SensorType otherType;
   for (const auto& sensorInfo : sensorInfos) {
-    if (suidsMatch(sensorInfo.suid, suid)
-        && sensorInfo.qmiHandle == qmiHandle) {
+    if (suidsMatch(sensorInfo.suid, suid)) {
+      suidFound = true;
+      if (sensorInfo.client == client) {
         return sensorInfo.sensorType;
+      }
+      otherType = sensorInfo.sensorType;
     }
+  }
+
+  if (suidFound) {
+    LOGE("Unmatched client: %p, SUID 0x%016" PRIx64 " %016" PRIx64,
+             client, suid.suid_high, suid.suid_low);
+    // TODO: remove after b/79993302 is resolved.
+    for (const auto& sensorInfo : sensorInfos) {
+      LOGE("  %p, 0x%016" PRIx64 " %016" PRIx64,
+           sensorInfo.client,
+           sensorInfo.suid.suid_high, sensorInfo.suid.suid_low);
+    }
+
+    // Return SensorType in the other sns_client that matches the SUID as a
+    // backup plan.
+    return otherType;
   }
   return SensorType::Unknown;
 }
@@ -1253,7 +1244,7 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 #endif  // CHREX_SENSOR_SUPPORT
 
     default:
-      LOGW("Unhandled SensorSampleType for SensorType %" PRIu8,
+      LOGE("Unhandled SensorSampleType for SensorType %" PRIu8,
            static_cast<uint8_t>(sensorType));
   }
 
@@ -1300,16 +1291,16 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 }  // anonymous namespace
 
 SeeHelper::~SeeHelper() {
-  for (const auto& handle : mQmiHandles) {
-    qmi_client_error_type status = qmi_client_release(handle);
-    if (status != QMI_NO_ERR) {
-      LOGE("Failed to release sensor client service QMI client: %d", status);
+  for (auto *client : mQsocketClients) {
+    int status = sns_client_deinit(client);
+    if (status != 0) {
+      LOGE("Failed to release sensor Qsocket client: %d", status);
     }
   }
 }
 
 void SeeHelper::handleSnsClientEventMsg(
-    qmi_client_type qmiHandle, const void *payload, size_t payloadLen) {
+    sns_client *client, const void *payload, size_t payloadLen) {
   CHRE_ASSERT(payload);
 
   pb_istream_t stream = pb_istream_from_buffer(
@@ -1330,7 +1321,7 @@ void SeeHelper::handleSnsClientEventMsg(
     LOG_OOM();
   } else {
     // Only initialize fields that are not accessed in the main CHRE thread.
-    data->info.qmiHandle = qmiHandle;
+    data->info.client = client;
     data->info.sync = &data->syncArg;
     data->info.data = &data->dataArg;
     data->info.decodeMsgIdOnly = true;
@@ -1345,10 +1336,10 @@ void SeeHelper::handleSnsClientEventMsg(
       data->info.decodeMsgIdOnly = false;
       data->info.data->cal = getCalDataFromSuid(data->info.suid);
       data->info.data->sensorType = getSensorTypeFromSensorInfo(
-          data->info.qmiHandle, data->info.suid, mSensorInfos);
+          data->info.client, data->info.suid, mSensorInfos);
 
       mMutex.lock();
-      bool synchronizedDecode = mWaiting;
+      bool synchronizedDecode = mWaitingOnInd;
       if (!synchronizedDecode) {
         // Early unlock, we're not going to use anything from the main thread.
         mMutex.unlock();
@@ -1366,7 +1357,7 @@ void SeeHelper::handleSnsClientEventMsg(
       if (!pb_decode(&streamCpy, sns_client_event_msg_fields, &data->event)) {
         LOG_NANOPB_ERROR(&streamCpy);
       } else if (synchronizedDecode && data->info.sync->syncIndFound) {
-        mWaiting = false;
+        mWaitingOnInd = false;
         mCond.notify_one();
       } else {
         if (data->info.data->isHostWakeSuspendEvent) {
@@ -1388,6 +1379,15 @@ void SeeHelper::handleSnsClientEventMsg(
   }
 }
 
+void SeeHelper::handleQsocketResp(uint32_t txnId, sns_std_error error) {
+  LockGuard<Mutex> lock(mMutex);
+  if (mWaitingOnResp && txnId == mCurrentTxnId) {
+    mRespError = error;
+    mWaitingOnResp = false;
+    mCond.notify_one();
+  }
+}
+
 bool SeeHelper::findSuidSync(const char *dataType,
                              DynamicVector<sns_std_suid> *suids,
                              uint8_t minNumSuids, uint32_t maxRetries,
@@ -1396,13 +1396,13 @@ bool SeeHelper::findSuidSync(const char *dataType,
   CHRE_ASSERT(minNumSuids > 0);
 
   bool success = false;
-  if (mQmiHandles.empty()) {
-    LOGE("Sensor client service QMI client wasn't initialized");
+  if (mQsocketClients.empty()) {
+    LOGE("Sensor Qsocket client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
     if (encodeSnsSuidReq(dataType, &msg, &msgLen)) {
-      // Sensor client QMI service may come up before SEE sensors are
+      // Sensor client Qsocket service may come up before SEE sensors are
       // enumerated. A max dwell time is set and retries are performed as
       // currently there's no message indicating that SEE intialization is
       // complete.
@@ -1413,8 +1413,9 @@ bool SeeHelper::findSuidSync(const char *dataType,
           timer_sleep(retryDelay.getMilliseconds(), T_MSEC,
                       true /* non_deferrable */);
         }
+
         // Ignore failures from sendReq, we'll retry anyways (up to maxRetries)
-        sendReq(mQmiHandles[0], sns_suid_sensor_init_default,
+        sendReq(sns_suid_sensor_init_default,
                 suids, dataType,
                 SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                 false /* batchValid */, 0 /* batchPeriodUs */,
@@ -1438,16 +1439,15 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
   CHRE_ASSERT(attr);
   bool success = false;
 
-  if (mQmiHandles.empty()) {
-    LOGE("Sensor client service QMI client wasn't initialized");
+  if (mQsocketClients.empty()) {
+    LOGE("Sensor Qsocket client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
     success = encodeSnsStdAttrReq(&msg, &msgLen);
 
     if (success) {
-      success = sendReq(mQmiHandles[0], suid,
-                        attr, nullptr /* syncDataType */,
+      success = sendReq(suid, attr, nullptr /* syncDataType */,
                         SNS_STD_MSGID_SNS_STD_ATTR_REQ, msg.get(), msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
                         false /* passive */, true /* waitForIndication */);
@@ -1460,17 +1460,18 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
   CHRE_ASSERT(cbIf);
 
   mCbIf = cbIf;
-  qmi_client_type qmiHandle;
+  sns_client *client;
 
   // Initialize cal/remote_proc_state sensors before making sensor data request.
-  return (waitForService(&qmiHandle, timeout)
-          && mQmiHandles.push_back(qmiHandle)
+  return (waitForService(&client, timeout)
+          && mQsocketClients.push_back(client)
           && initCalSensors()
           && initRemoteProcSensor());
 }
 
 bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
   bool success = false;
+
   const SensorInfo *sensorInfo = getSensorInfo(request.sensorType);
   if (sensorInfo == nullptr) {
     LOGE("SensorType %" PRIu8 " hasn't been registered",
@@ -1494,7 +1495,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     }
 
     if (success) {
-      success = sendReq(sensorInfo->qmiHandle, sensorInfo->suid,
+      success = sendReq(sensorInfo->client, sensorInfo->suid,
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
@@ -1515,97 +1516,138 @@ const sns_std_suid& SeeHelper::getCalSuidFromSensorType(
   return suid;
 }
 
-bool SeeHelper::sendReq(
-    const qmi_client_type& qmiHandle, const sns_std_suid& suid,
-    void *syncData, const char *syncDataType,
-    uint32_t msgId, void *payload, size_t payloadLen,
-    bool batchValid, uint32_t batchPeriodUs, bool passive,
-    bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
-  CHRE_ASSERT(payload || payloadLen == 0);
+/**
+ * Sends a request to Qsocket and waits for the response.
+ */
+bool SeeHelper::sendQsocketReqSync(sns_client *client,
+                                   sns_client_request_msg *req,
+                                   Nanoseconds timeoutResp) {
+  CHRE_ASSERT(client);
+  CHRE_ASSERT(req);
   bool success = false;
 
-  // TODO: when enabling uImage support, need to force big image here if still
-  // using QMI directly.
-
-  if (!waitForIndication) {
-    success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
-                               batchValid, batchPeriodUs, passive, timeoutResp);
+  auto *cbData = memoryAlloc<QsocketRespCbData>();
+  if (cbData == nullptr) {
+    LOG_OOM();
   } else {
+    cbData->seeHelper = this;
+
     {
       LockGuard<Mutex> lock(mMutex);
-      CHRE_ASSERT(!mWaiting);
-      mWaiting = true;
-
-      // Specify members needed for a sync call.
-      mSyncSuid = suid;
-      mSyncData = syncData;
-      mSyncDataType = syncDataType;
+      CHRE_ASSERT(!mWaitingOnResp);
+      mWaitingOnResp = true;
+      cbData->txnId = ++mCurrentTxnId;
     }
 
-    success = sendSnsClientReq(qmiHandle, suid, msgId, payload, payloadLen,
-                               batchValid, batchPeriodUs, passive, timeoutResp);
+    int status = sns_client_send(client, req, SeeHelper::qsocketRespCb, cbData);
+
+    if (status != 0) {
+      LOGE("Error sending Qsocket request %d", status);
+      memoryFree(cbData);
+    }
 
     {
       LockGuard<Mutex> lock(mMutex);
-      if (success) {
+
+      if (status == 0) {
         bool waitSuccess = true;
 
-        while (mWaiting && waitSuccess) {
-          waitSuccess = mCond.wait_for(mMutex, timeoutInd);
+        while (mWaitingOnResp && waitSuccess) {
+          waitSuccess = mCond.wait_for(mMutex, timeoutResp);
         }
 
         if (!waitSuccess) {
-          LOGE("QMI indication timed out after %" PRIu64 " ms",
-               Milliseconds(timeoutInd).getMilliseconds());
-          success = false;
+          LOGE("Qsocket resp timed out after %" PRIu64 " ms",
+               Milliseconds(timeoutResp).getMilliseconds());
+        } else if (mRespError != SNS_STD_ERROR_NO_ERROR) {
+          LOGE("Qsocket txn ID %" PRIu32 " failed with error %d",
+               mCurrentTxnId, mRespError);
+        } else {
+          success = true;
         }
       }
-      mWaiting = false;
-
-      // Reset members needed for a sync call.
-      mSyncSuid = sns_suid_sensor_init_zero;
-      mSyncData = nullptr;
-      mSyncDataType = nullptr;
+      mWaitingOnResp = false;
     }
   }
   return success;
 }
 
-void SeeHelper::handleInd(qmi_client_type clientHandle, unsigned int msgId,
-                          const void *indBuf, unsigned int indBufLen) {
-  CHRE_ASSERT(indBuf || indBufLen == 0);
+bool SeeHelper::sendReq(
+    sns_client *client, const sns_std_suid& suid,
+    void *syncData, const char *syncDataType,
+    uint32_t msgId, void *payload, size_t payloadLen,
+    bool batchValid, uint32_t batchPeriodUs, bool passive,
+    bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
+  UniquePtr<sns_client_request_msg> msg;
+  SeeBufArg data;
+  bool success = false;
 
-  switch (msgId) {
-    case SNS_CLIENT_REPORT_IND_V01: {
-      // Decode sns_client_report_ind_msg_v01 to extract pb-encoded payload.
-      auto ind = MakeUniqueZeroFill<sns_client_report_ind_msg_v01>();
-
-      if (ind.isNull()) {
-        LOG_OOM();
-      } else {
-        int status = qmi_client_message_decode(
-            clientHandle, QMI_IDL_INDICATION, SNS_CLIENT_REPORT_IND_V01,
-            indBuf, indBufLen, ind.get(), sizeof(*ind));
-        if (status != QMI_NO_ERR) {
-          LOGE("Error parsing SNS_CLIENT_REPORT_IND_V01: %d", status);
-        } else {
-          handleSnsClientEventMsg(clientHandle, ind->payload, ind->payload_len);
-        }
-      }
-      break;
+  if (prepSnsClientReq(suid, msgId, payload, payloadLen, batchValid,
+                       batchPeriodUs, passive, &msg, &data)) {
+    if (waitForIndication) {
+      prepareWaitForInd(suid, syncData, syncDataType);
     }
 
-    default:
-      // TODO: handle sns_client_jumbo_report_ind_msg_v01.
-      LOGW("Unhandled sns_client_api_v01 msg ID %u", msgId);
+    success = sendQsocketReqSync(client, msg.get(), timeoutResp);
+
+    if (waitForIndication) {
+      success = waitForInd(success, timeoutInd);
+    }
   }
+  return success;
 }
 
-void SeeHelper::qmiIndCb(qmi_client_type clientHandle, unsigned int msgId,
-                         void *indBuf, unsigned int indBufLen,
-                         void *indCbData) {
-  auto *obj = static_cast<SeeHelper *>(indCbData);
-  obj->handleInd(clientHandle, msgId, indBuf, indBufLen);
+void SeeHelper::prepareWaitForInd(const sns_std_suid& suid, void *syncData,
+                                  const char *syncDataType) {
+  LockGuard<Mutex> lock(mMutex);
+  CHRE_ASSERT(!mWaitingOnInd);
+  mWaitingOnInd = true;
+
+  // Specify members needed for a sync call.
+  mSyncSuid = suid;
+  mSyncData = syncData;
+  mSyncDataType = syncDataType;
+}
+
+bool SeeHelper::waitForInd(bool reqSent, Nanoseconds timeoutInd) {
+  bool success = reqSent;
+
+  LockGuard<Mutex> lock(mMutex);
+  CHRE_ASSERT(!mWaitingOnResp);
+  if (reqSent) {
+    bool waitSuccess = true;
+
+    while (mWaitingOnInd && waitSuccess) {
+      waitSuccess = mCond.wait_for(mMutex, timeoutInd);
+    }
+
+    if (!waitSuccess) {
+      LOGE("QSocket indication timed out after %" PRIu64 " ms",
+           Milliseconds(timeoutInd).getMilliseconds());
+      success = false;
+    }
+  }
+  mWaitingOnInd = false;
+
+  // Reset members needed for a sync call.
+  mSyncSuid = sns_suid_sensor_init_zero;
+  mSyncData = nullptr;
+  mSyncDataType = nullptr;
+
+  return success;
+}
+
+void SeeHelper::qsocketIndCb(sns_client *client, void *msg,
+                             uint32_t msgLen, void *cbData) {
+  auto *obj = static_cast<SeeHelper *>(cbData);
+  obj->handleSnsClientEventMsg(client, msg, msgLen);
+}
+
+void SeeHelper::qsocketRespCb(sns_client *client, sns_std_error error,
+                              void *cbData) {
+  auto *respCbData = static_cast<QsocketRespCbData *>(cbData);
+  respCbData->seeHelper->handleQsocketResp(respCbData->txnId, error);
+  memoryFree(cbData);
 }
 
 bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
@@ -1627,23 +1669,24 @@ bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
     }
   }
 
-  // Initialize another QMI client if the SUID has been previously registered
-  // with more SensorTypes than the number of QMI clients can disambiguate.
-  bool qmiClientAvailable = true;
-  if (mQmiHandles.size() <= suidRegCount) {
-    qmi_client_type qmiHandle;
-    qmiClientAvailable = waitForService(&qmiHandle);
-    if (qmiClientAvailable) {
-      qmiClientAvailable = mQmiHandles.push_back(qmiHandle);
+  // Initialize another Qsocket client if the SUID has been previously
+  // registered with more SensorTypes than the number of Qsocket clients can
+  // disambiguate.
+  bool clientAvailable = true;
+  if (mQsocketClients.size() <= suidRegCount) {
+    sns_client *client;
+    clientAvailable = waitForService(&client);
+    if (clientAvailable) {
+      clientAvailable = mQsocketClients.push_back(client);
     }
   }
 
   // Add a new entry only if this SUID/SensorType pair hasn't been registered.
-  if (!*prevRegistered && qmiClientAvailable) {
+  if (!*prevRegistered && clientAvailable) {
     SensorInfo sensorInfo = {
       .suid = suid,
       .sensorType = sensorType,
-      .qmiHandle = mQmiHandles[suidRegCount],
+      .client = mQsocketClients[suidRegCount],
     };
     success = mSensorInfos.push_back(sensorInfo);
   }
@@ -1654,26 +1697,19 @@ bool SeeHelper::sensorIsRegistered(SensorType sensorType) const {
   return (getSensorInfo(sensorType) != nullptr);
 }
 
-bool SeeHelper::waitForService(qmi_client_type *qmiHandle,
+bool SeeHelper::waitForService(sns_client **client,
                                Microseconds timeout) {
-  CHRE_ASSERT(qmiHandle);
-  bool success = false;
+  CHRE_ASSERT(client);
 
-  qmi_idl_service_object_type snsSvcObj =
-      SNS_CLIENT_SVC_get_service_object_v01();
-  if (snsSvcObj == nullptr) {
-    LOGE("Failed to obtain the sensor client service instance");
-  } else {
-    qmi_client_os_params sensorContextOsParams;
-    qmi_client_error_type status = qmi_client_init_instance(
-        snsSvcObj, QMI_CLIENT_INSTANCE_ANY, SeeHelper::qmiIndCb, this,
-        &sensorContextOsParams, timeout.getMicroseconds(), qmiHandle);
+  // TODO: add error_cb and error_cb_data.
+  int status = sns_client_init(
+      client, timeout.getMilliseconds(),
+      SeeHelper::qsocketIndCb, this /* ind_cb_data */,
+      nullptr /* error_cb */, nullptr /* error_cb_data */);
 
-    success = (status == QMI_NO_ERR);
-    if (!success) {
-      LOGE("Failed to initialize the sensor client service QMI client: %d",
-           status);
-    }
+  bool success = (status == 0);
+  if (!success) {
+    LOGE("Failed to initialize the sensor Qsocket client: %d", status);
   }
   return success;
 }
@@ -1706,8 +1742,8 @@ bool SeeHelper::initCalSensors() {
       } else {
         mCalInfo[index].suid = suids[0];
 
-        if (!sendReq(mQmiHandles[0], suids[0],
-                     nullptr /* syncData */, nullptr /* syncDataType */,
+        if (!sendReq(suids[0], nullptr /* syncData */,
+                     nullptr /* syncDataType */,
                      SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG,
                      nullptr /* msg */, 0 /* msgLen */,
                      false /* batchValid */, 0 /* batchPeriodUs */,
@@ -1738,7 +1774,7 @@ bool SeeHelper::initRemoteProcSensor() {
     size_t msgLen;
     if (encodeSnsRemoteProcSensorConfig(msgBuffer, kBufferSize, &msgLen,
                                         SNS_STD_CLIENT_PROCESSOR_APSS)) {
-      success = sendReq(mQmiHandles[0], mRemoteProcSuid.value(),
+      success = sendReq(mRemoteProcSuid.value(),
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msgBuffer, msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,

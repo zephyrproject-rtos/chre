@@ -59,6 +59,7 @@ SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 # SLPI/SEE-specific Compiler Flags #############################################
 
 # Include paths.
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/libstd/stringl
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/qmimsgs/common/api
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/framework/cm/inc
@@ -73,6 +74,7 @@ SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
 
 SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
 SLPI_SEE_CFLAGS += -DSSC_TARGET_HEXAGON
+SLPI_SEE_CFLAGS += -DSNS_ISLAND_INCLUDE_QCM
 
 # SLPI-specific Source Files ###################################################
 
@@ -134,6 +136,7 @@ SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/qcm/pb/sns_client_qsocket.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_cal.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_physical_sensor_test.pb.c
@@ -142,6 +145,9 @@ SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_remote_proc_state.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c
+
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_osa.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qsocket_client.c
 
 # Simulator-specific Compiler Flags ############################################
 
