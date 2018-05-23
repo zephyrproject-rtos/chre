@@ -382,7 +382,11 @@ bool decodeStringField(pb_istream_t *stream, const pb_field_t *field,
   data->bufLen = stream->bytes_left;
   data->buf = stream->state;
 
-  return pb_read(stream, nullptr /* buf */, stream->bytes_left);
+  bool success = pb_read(stream, nullptr /* buf */, stream->bytes_left);
+  if (!success) {
+    LOG_NANOPB_ERROR(stream);
+  }
+  return success;
 }
 
 /**
@@ -1141,7 +1145,7 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
   auto *info = static_cast<SeeInfoArg *>(*arg);
   bool success = decodeMsgIdAndTime(stream, &info->msgId, &info->data->timeNs);
 
-  if (!info->decodeMsgIdOnly) {
+  if (success && !info->decodeMsgIdOnly) {
     sns_client_event_msg_sns_client_event event = {};
 
     // Payload callback must be assigned if and only if we want to decode beyond
@@ -1331,7 +1335,9 @@ void SeeHelper::handleSnsClientEventMsg(
     data->event.events.arg = &data->info;
 
     // Decode only SUID and MSG ID to help further decode.
-    if (pb_decode(&stream, sns_client_event_msg_fields, &data->event)) {
+    if (!pb_decode(&stream, sns_client_event_msg_fields, &data->event)) {
+      LOG_NANOPB_ERROR(&stream);
+    } else {
       data->info.suid = data->event.suid;
       data->info.decodeMsgIdOnly = false;
       data->info.data->cal = getCalDataFromSuid(data->info.suid);
@@ -1350,8 +1356,14 @@ void SeeHelper::handleSnsClientEventMsg(
         data->info.sync->syncSuid = mSyncSuid;
       }
 
-      if (data->info.data->sampleIndex > 0 && !prepareSensorEvent(data->info)) {
-        LOGE("Failed to prepare sensor event");
+      if (data->info.data->sampleIndex > 0) {
+        if (data->info.data->sensorType == SensorType::Unknown) {
+          // TODO: uncomment after resolving b/78906489.
+          //LOGE("Unhandled sensor data SUID 0x%016" PRIx64 " %016" PRIx64,
+          //     data->info.suid.suid_high, data->info.suid.suid_low);
+        } else if (!prepareSensorEvent(data->info)) {
+          LOGE("Failed to prepare sensor event");
+        }
       }
 
       if (!pb_decode(&streamCpy, sns_client_event_msg_fields, &data->event)) {
@@ -1368,7 +1380,13 @@ void SeeHelper::handleSnsClientEventMsg(
               data->info.data->sensorType, std::move(data->info.data->event));
         }
         if (!data->info.data->status.isNull()) {
-          mCbIf->onSamplingStatusUpdate(std::move(data->info.data->status));
+          if (data->info.data->sensorType == SensorType::Unknown) {
+            // TODO: uncomment after resolving b/78906489.
+            //LOGE("Unhandled sensor status SUID 0x%016" PRIx64 " %016" PRIx64,
+            //     data->info.suid.suid_high, data->info.suid.suid_low);
+          } else {
+            mCbIf->onSamplingStatusUpdate(std::move(data->info.data->status));
+          }
         }
       }
 
