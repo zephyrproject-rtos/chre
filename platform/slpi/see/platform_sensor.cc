@@ -402,7 +402,7 @@ void PlatformSensor::init() {
 
   static SeeHelperCallback seeHelperCallback;
   if (!getSeeHelper()->init(&seeHelperCallback)) {
-    LOGE("Failed to initialize SEE helper");
+    FATAL_ERROR("Failed to initialize SEE helper");
   }
 }
 
@@ -416,7 +416,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   DynamicVector<SuidAttr> tempSensors;
   if (!getSuidAndAttrs("sensor_temperature", &tempSensors,
                        CHRE_SEE_NUM_TEMP_SENSORS)) {
-      LOGE("Failed to get temperature sensor UID and attributes");
+      FATAL_ERROR("Failed to get temperature sensor UID and attributes");
   }
 
 #ifndef CHREX_SENSOR_SUPPORT
@@ -437,7 +437,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
 
     DynamicVector<SuidAttr> primarySensors;
     if (!getSuidAndAttrs(dataType, &primarySensors, 1 /* minNumSuids */)) {
-      LOGE("Failed to get primary sensor UID and attributes");
+      FATAL_ERROR("Failed to get primary sensor UID and attributes");
     } else {
       for (const auto& primarySensor : primarySensors) {
         sns_std_suid suid = primarySensor.suid;
