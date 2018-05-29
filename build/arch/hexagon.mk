@@ -28,6 +28,9 @@ TARGET_LD = $(HEXAGON_TOOLS_PREFIX)/Tools/bin/hexagon-link
 
 # Hexagon Compiler Flags #######################################################
 
+# Define CUST_H to allow including the customer header file.
+TARGET_CFLAGS += -DCUST_H
+
 # Add Hexagon compiler flags
 TARGET_CFLAGS += $(HEXAGON_CFLAGS)
 
@@ -71,7 +74,7 @@ TARGET_SO_LATE_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/finiS.o
 
 # Supported Hexagon Architectures ##############################################
 
-HEXAGON_SUPPORTED_ARCHS = v60 v62 v65
+HEXAGON_SUPPORTED_ARCHS = v55 v60 v62 v65
 
 # Environment Checks ###########################################################
 

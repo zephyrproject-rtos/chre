@@ -22,7 +22,9 @@ TARGET_VARIANT_SRCS += $(SLPI_SRCS)
 
 # Add SLPI/SEE-specific compiler flags and source files
 TARGET_CFLAGS += $(SLPI_SEE_CFLAGS)
+TARGET_CFLAGS += $(SLPI_SEE_QSK_CFLAGS)
 TARGET_VARIANT_SRCS += $(SLPI_SEE_SRCS)
+TARGET_VARIANT_SRCS += $(SLPI_SEE_QSK_SRCS)
 
 # Enable uImage support.
 TARGET_VARIANT_SRCS += $(SYS_SUPPORT_PATH)/qcom/uimg_dl_ver.c
