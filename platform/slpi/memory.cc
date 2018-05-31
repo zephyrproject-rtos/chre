@@ -17,7 +17,9 @@
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/memory.h"
 
-#include "chre/core/event_loop_manager.h"
+#ifdef CHRE_SLPI_SEE
+#include "chre/platform/slpi/see/island_vote_client.h"
+#endif
 
 #include <cstdlib>
 
@@ -48,14 +50,12 @@ void *memoryAlloc(size_t size) {
     if (ptr == nullptr && size != 0) {
       // Increment big image ref count to prevent system from entering uimg
       // while big image memory is in use.
-      EventLoopManagerSingleton::get()->getEventLoop().
-            getPowerControlManager().incrementBigImageRefCount();
+      IslandVoteClientSingleton::get()->incrementBigImageRefCount();
       ptr = memoryAllocBigImage(size);
 
       // Big image allocation failed too.
       if (ptr == nullptr) {
-        EventLoopManagerSingleton::get()->getEventLoop().
-            getPowerControlManager().decrementBigImageRefCount();
+        IslandVoteClientSingleton::get()->decrementBigImageRefCount();
       }
     }
 
@@ -91,8 +91,7 @@ void memoryFree(void *pointer) {
       // so this mainly serves as a protection in case the implementation of
       // sns_island_is_island_ptr changes in the future.
       if (pointer != nullptr) {
-        EventLoopManagerSingleton::get()->getEventLoop().
-            getPowerControlManager().decrementBigImageRefCount();
+        IslandVoteClientSingleton::get()->decrementBigImageRefCount();
       }
     }
   #else

@@ -128,6 +128,7 @@ SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_common.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_decode.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_encode.c
 
+SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
