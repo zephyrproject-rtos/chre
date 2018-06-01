@@ -49,11 +49,6 @@ class HostLinkBase {
 void requestHostLinkLogBufferFlush();
 
 /**
- * Sends a request to the host for a time sync message.
- */
-void sendTimeSyncRequest();
-
-/**
  * Sends a request to the host to enable the audio feature.
  */
 void sendAudioRequest();
