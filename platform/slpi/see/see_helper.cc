@@ -1439,6 +1439,9 @@ bool SeeHelper::findSuidSync(const char *dataType,
       } while (suids->size() < minNumSuids && trialCount < maxRetries);
 
       success = (suids->size() >= minNumSuids);
+      if (!success) {
+        mHaveTimedOutOnSuidLookup = true;
+      }
       if (trialCount > 1) {
         LOGD("Waited %" PRIu32 " ms for %s (found: %d)",
              static_cast<uint32_t>(trialCount * retryDelay.getMilliseconds()),
