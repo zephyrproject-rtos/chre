@@ -21,6 +21,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/host_link.h"
 #include "chre/platform/log.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/util/memory.h"
 #include "wcd_spi.h"
 
@@ -116,11 +117,13 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
 bool PlatformAudio::requestAudioDataEvent(uint32_t handle,
                                           uint32_t numSamples,
                                           Nanoseconds eventDelay) {
+  slpiForceBigImage();
   return wcd_spi_client_request_audio_data_event(handle, numSamples,
                                                  eventDelay.toRawNanoseconds());
 }
 
 void PlatformAudio::cancelAudioDataEventRequest(uint32_t handle) {
+  slpiForceBigImage();
   wcd_spi_client_cancel_audio_data_event(handle);
 }
 
@@ -130,11 +133,13 @@ void PlatformAudio::releaseAudioDataEvent(struct chreAudioDataEvent *event) {
 }
 
 size_t PlatformAudio::getSourceCount() {
+  slpiForceBigImage();
   return wcd_spi_client_get_source_count();
 }
 
 bool PlatformAudio::getAudioSource(uint32_t handle,
                                    chreAudioSource *source) {
+  slpiForceBigImage();
   wcd_spi_audio_source_s wcd_spi_audio_source;
   bool result = wcd_spi_client_get_source(handle, &wcd_spi_audio_source);
   if (result) {
