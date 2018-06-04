@@ -39,6 +39,10 @@ extern "C" {
 #include "chre/platform/slpi/uimg_util.h"
 #include "chre/util/lock_guard.h"
 
+#ifdef CHRE_SLPI_SEE
+#include "chre/platform/slpi/see/island_vote_client.h"
+#endif
+
 using chre::EventLoop;
 using chre::EventLoopManagerSingleton;
 using chre::LockGuard;
@@ -120,6 +124,9 @@ void chreThreadEntry(void * /*data*/) {
 
   ashUnregisterDebugDumpCallback(onDebugDumpRequested);
   chre::deinit();
+#ifdef CHRE_SLPI_SEE
+  chre::IslandVoteClientSingleton::deinit();
+#endif
   gThreadRunning = false;
   LOGD("CHRE thread exiting");
 }
@@ -152,6 +159,10 @@ extern "C" int chre_slpi_start_thread(void) {
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
   } else {
+#ifdef CHRE_SLPI_SEE
+    chre::IslandVoteClientSingleton::init("CHRE" /* clientName */);
+#endif
+
     // This must complete before we can receive messages that might result in
     // posting an event
     chre::init();
