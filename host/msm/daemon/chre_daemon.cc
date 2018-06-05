@@ -98,17 +98,6 @@ static bool start_thread(pthread_t *thread_handle,
                          void *arg);
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
-//! The name of the wakelock to use for the CHRE daemon.
-static const char kWakeLockName[] = "chre_daemon";
-#endif  // CHRE_DAEMON_LPMA_ENABLED
-
-//! The file descriptor to wake lock.
-static int gWakeLockFd = -1;
-
-//! The file descriptor to wake unlock.
-static int gWakeUnlockFd = -1;
-
-#ifdef CHRE_DAEMON_LPMA_ENABLED
 struct LpmaEnableThreadData {
   pthread_t thread;
   pthread_mutex_t mutex;
@@ -277,50 +266,7 @@ static void sendTimeSyncMessage() {
   }
 }
 
-/**
- * Initializes the wakelock file descriptors used to acquire/release wakelocks
- * for CHRE.
- *
- * @return true if the wakelock file descriptors were initialized, false
- *         otherwise.
- */
-static bool initWakeLockFds() {
-  const char kWakeLockPath[] = "/sys/power/wake_lock";
-  const char kWakeUnlockPath[] = "/sys/power/wake_unlock";
-
-  bool success = false;
-  if ((gWakeLockFd = open(kWakeLockPath, O_RDWR | O_CLOEXEC)) < 0) {
-    LOGE("Failed to open wake lock file with %s", strerror(errno));
-  } else if ((gWakeUnlockFd = open(kWakeUnlockPath, O_RDWR | O_CLOEXEC)) < 0) {
-    LOGE("Failed to open wake unlock file with %s", strerror(errno));
-  } else {
-    success = true;
-  }
-
-  return success;
-}
-
 #ifdef CHRE_DAEMON_LPMA_ENABLED
-
-static void acquireWakeLock() {
-  const size_t len = strlen(kWakeLockName);
-  ssize_t result = write(gWakeLockFd, kWakeLockName, len);
-  if (result < 0) {
-    LOGE("Failed to acquire wakelock with error %s", strerror(errno));
-  } else if (result != static_cast<ssize_t>(len)) {
-    LOGE("Wrote incomplete id to wakelock file descriptor");
-  }
-}
-
-static void releaseWakeLock() {
-  const size_t len = strlen(kWakeLockName);
-  ssize_t result = write(gWakeLockFd, kWakeLockName, len);
-  if (result < 0) {
-    LOGE("Failed to release wakelock with error %s", strerror(errno));
-  } else if (result != static_cast<ssize_t>(len)) {
-    LOGE("Wrote incomplete id to wakeunlock file descriptor");
-  }
-}
 
 /**
  * Sets the target state for LPMA to be enabled. This triggers another thread to
@@ -424,7 +370,6 @@ static void *chreLpmaEnableThread(void *arg) {
   const useconds_t kInitialRetryDelayUs = 500000;
   const int kRetryGrowthFactor = 2;
   const int kRetryGrowthLimit = 5;  // Terminates at 8s retry interval.
-  const int kRetryWakeLockLimit = 10;  // Retry with a wakelock 10 times.
 
   int retryCount = 0;
   useconds_t retryDelay = 0;
@@ -435,9 +380,7 @@ static void *chreLpmaEnableThread(void *arg) {
     if (state->currentLpmaEnabled == state->targetLpmaEnabled) {
       retryCount = 0;
       retryDelay = 0;
-      releaseWakeLock();  // Allow the system to suspend while waiting.
       pthread_cond_wait(&state->cond, &state->mutex);
-      acquireWakeLock();  // Ensure the system stays up while retrying.
     } else if ((state->targetLpmaEnabled && loadLpma(&lpmaHandle))
                || (!state->targetLpmaEnabled && unloadLpma(lpmaHandle))) {
       state->currentLpmaEnabled = state->targetLpmaEnabled;
@@ -454,12 +397,7 @@ static void *chreLpmaEnableThread(void *arg) {
 
       LOGD("Delaying retry %d for %uus", retryCount, retryDelay);
       usleep(retryDelay);
-
       retryCount++;
-      if (retryCount > kRetryWakeLockLimit) {
-        releaseWakeLock();
-      }
-
       pthread_mutex_lock(&state->mutex);
     }
 
@@ -684,9 +622,7 @@ int main() {
   struct reverse_monitor_thread_data reverse_monitor;
   ::android::chre::SocketServer server;
 
-  if (!initWakeLockFds()) {
-    LOGE("Couldn't initialize wakelock file descriptors");
-  } else if (!init_reverse_monitor(&reverse_monitor)) {
+  if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
 #ifdef CHRE_DAEMON_LPMA_ENABLED
   } else if (!initLpmaEnableThread(&lpmaEnableThread)) {
