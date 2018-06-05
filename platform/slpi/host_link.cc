@@ -24,9 +24,11 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
-#include "chre/platform/memory.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
+#include "chre/platform/system_timer.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
@@ -47,6 +49,10 @@ namespace chre {
 namespace {
 
 constexpr size_t kOutboundQueueSize = 32;
+
+//! The last time a time sync request message has been sent.
+//! TODO: Make this a member of HostLinkBase
+Nanoseconds gLastTimeSyncRequestNanos(0);
 
 //! Used to pass the client ID through the user data pointer in deferCallback
 union HostClientIdCallbackData {
@@ -445,6 +451,45 @@ void sendFragmentResponse(
 }
 
 /**
+ * Sends a request to the host for a time sync message.
+ */
+void sendTimeSyncRequest() {
+  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+    HostProtocolChre::encodeTimeSyncRequest(builder);
+  };
+
+  constexpr size_t kInitialSize = 52;
+  buildAndEnqueueMessage(PendingMessageType::TimeSyncRequest, kInitialSize,
+                         msgBuilder, nullptr);
+
+  gLastTimeSyncRequestNanos = SystemTime::getMonotonicTime();
+}
+
+void setTimeSyncRequestTimer(Nanoseconds delay) {
+  static SystemTimer sTimeSyncRequestTimer;
+  static bool sTimeSyncRequestTimerInitialized = false;
+
+  // Check for timer init since this method might be called before CHRE
+  // init is called.
+  if (!sTimeSyncRequestTimerInitialized) {
+    if (!sTimeSyncRequestTimer.init()) {
+      FATAL_ERROR("Failed to initialize time sync request timer.");
+    } else {
+      sTimeSyncRequestTimerInitialized = true;
+    }
+  }
+  if (sTimeSyncRequestTimer.isActive()) {
+    sTimeSyncRequestTimer.cancel();
+  }
+  auto callback = [](void* /* data */) {
+    sendTimeSyncRequest();
+  };
+  if (!sTimeSyncRequestTimer.set(callback, nullptr /* data */, delay)) {
+    LOGE("Failed to set time sync request timer.");
+  }
+}
+
+/**
  * FastRPC method invoked by the host to block on messages
  *
  * @param buffer Output buffer to populate with message data
@@ -502,8 +547,12 @@ extern "C" int chre_slpi_get_message_to_host(
     }
   }
 
-  // Opportunistically send a time sync message
-  requestTimeSyncIfStale();
+  // Opportunistically send a time sync message (1 hour period threshold)
+  constexpr Seconds kOpportunisticTimeSyncPeriod = Seconds(60 * 60 * 1);
+  if (SystemTime::getMonotonicTime() >
+      gLastTimeSyncRequestNanos + kOpportunisticTimeSyncPeriod) {
+    sendTimeSyncRequest();
+  }
 
   return result;
 }
@@ -597,17 +646,6 @@ void HostLinkBase::shutdown() {
       FARF(MEDIUM, "Finished draining queue");
     }
   }
-}
-
-void sendTimeSyncRequest() {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
-    HostProtocolChre::encodeTimeSyncRequest(builder);
-  };
-
-  constexpr size_t kInitialSize = 52;
-  buildAndEnqueueMessage(PendingMessageType::TimeSyncRequest, kInitialSize,
-                         msgBuilder, nullptr);
-  updateLastTimeSyncRequest();
 }
 
 void sendAudioRequest() {
@@ -734,6 +772,10 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
 
 void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
   setEstimatedHostTimeOffset(offset);
+
+  // Schedule a time sync request since offset may drift
+  constexpr Seconds kClockDriftTimeSyncPeriod = Seconds(60 * 60 * 6); // 6 hours
+  setTimeSyncRequestTimer(kClockDriftTimeSyncPeriod);
 }
 
 void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
