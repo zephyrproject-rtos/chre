@@ -97,6 +97,29 @@ static bool start_thread(pthread_t *thread_handle,
                          thread_entry_point_f *thread_entry,
                          void *arg);
 
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+//! The name of the wakelock to use for the CHRE daemon.
+static const char kWakeLockName[] = "chre_daemon";
+#endif  // CHRE_DAEMON_LPMA_ENABLED
+
+//! The file descriptor to wake lock.
+static int gWakeLockFd = -1;
+
+//! The file descriptor to wake unlock.
+static int gWakeUnlockFd = -1;
+
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+struct LpmaEnableThreadData {
+  pthread_t thread;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  bool currentLpmaEnabled;
+  bool targetLpmaEnabled;
+};
+
+static LpmaEnableThreadData lpmaEnableThread;
+#endif  // CHRE_DAEMON_LPMA_ENABLED
+
 //! Set to true when we request a graceful shutdown of CHRE
 static volatile bool chre_shutdown_requested = false;
 
@@ -254,16 +277,74 @@ static void sendTimeSyncMessage() {
   }
 }
 
+/**
+ * Initializes the wakelock file descriptors used to acquire/release wakelocks
+ * for CHRE.
+ *
+ * @return true if the wakelock file descriptors were initialized, false
+ *         otherwise.
+ */
+static bool initWakeLockFds() {
+  const char kWakeLockPath[] = "/sys/power/wake_lock";
+  const char kWakeUnlockPath[] = "/sys/power/wake_unlock";
+
+  bool success = false;
+  if ((gWakeLockFd = open(kWakeLockPath, O_RDWR | O_CLOEXEC)) < 0) {
+    LOGE("Failed to open wake lock file with %s", strerror(errno));
+  } else if ((gWakeUnlockFd = open(kWakeUnlockPath, O_RDWR | O_CLOEXEC)) < 0) {
+    LOGE("Failed to open wake unlock file with %s", strerror(errno));
+  } else {
+    success = true;
+  }
+
+  return success;
+}
+
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 
+static void acquireWakeLock() {
+  const size_t len = strlen(kWakeLockName);
+  ssize_t result = write(gWakeLockFd, kWakeLockName, len);
+  if (result < 0) {
+    LOGE("Failed to acquire wakelock with error %s", strerror(errno));
+  } else if (result != static_cast<ssize_t>(len)) {
+    LOGE("Wrote incomplete id to wakelock file descriptor");
+  }
+}
+
+static void releaseWakeLock() {
+  const size_t len = strlen(kWakeLockName);
+  ssize_t result = write(gWakeLockFd, kWakeLockName, len);
+  if (result < 0) {
+    LOGE("Failed to release wakelock with error %s", strerror(errno));
+  } else if (result != static_cast<ssize_t>(len)) {
+    LOGE("Wrote incomplete id to wakeunlock file descriptor");
+  }
+}
+
 /**
- * Enables the LPMA use case via the SoundTrigger HAL HIDL service.
+ * Sets the target state for LPMA to be enabled. This triggers another thread to
+ * perform the async operation of enabling or disabling the LPMA use case.
+ *
+ * @param enabled Whether LPMA is to be enabled or disabled.
+ */
+static void setLpmaState(bool enabled) {
+  pthread_mutex_lock(&lpmaEnableThread.mutex);
+  lpmaEnableThread.targetLpmaEnabled = enabled;
+  pthread_mutex_unlock(&lpmaEnableThread.mutex);
+  pthread_cond_signal(&lpmaEnableThread.cond);
+}
+
+/**
+ * Loads the LPMA use case via the SoundTrigger HAL HIDL service.
  *
  * @param lpmaHandle The handle that was generated as a result of enabling
  *        the LPMA use case successfully.
  * @return true if LPMA was enabled successfully, false otherwise.
  */
-static bool setLpmaEnabled(SoundModelHandle *lpmaHandle) {
+static bool loadLpma(SoundModelHandle *lpmaHandle) {
+  LOGD("Loading LMPA");
+
   ISoundTriggerHw::SoundModel soundModel;
   soundModel.type = SoundModelType::GENERIC;
   soundModel.vendorUuid.timeLow = 0x57CADDB1;
@@ -271,8 +352,8 @@ static bool setLpmaEnabled(SoundModelHandle *lpmaHandle) {
   soundModel.vendorUuid.versionAndTimeHigh = 0x4DCE;
   soundModel.vendorUuid.variantAndClockSeqHigh = 0x8CB0;
 
-  const uint8_t uuid_node[6] = { 0x2E, 0x95, 0xA2, 0x31, 0x3A, 0xEE };
-  memcpy(&soundModel.vendorUuid.node[0], uuid_node, sizeof(uuid_node));
+  const uint8_t uuidNode[6] = { 0x2E, 0x95, 0xA2, 0x31, 0x3A, 0xEE };
+  memcpy(&soundModel.vendorUuid.node[0], uuidNode, sizeof(uuidNode));
   soundModel.data.resize(1);  // Insert a dummy byte to bypass HAL NULL checks.
 
   bool loaded = false;
@@ -304,14 +385,16 @@ static bool setLpmaEnabled(SoundModelHandle *lpmaHandle) {
 }
 
 /**
- * Disables the LPMA use case via the SoundTrigger HAL HIDL service.
+ * Unloads the LPMA use case via the SoundTrigger HAL HIDL service.
  *
  * @param lpmaHandle A handle that was previously produced by the setLpmaEnabled
  *        function. This is the handle that is unloaded from the ST HAL to
  *        disable LPMA.
  * @return true if LPMA was disabled successfully, false otherwise.
  */
-static bool setLpmaDisabled(SoundModelHandle lpmaHandle) {
+static bool unloadLpma(SoundModelHandle lpmaHandle) {
+  LOGD("Unloading LPMA");
+
   bool unloaded = false;
   sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
   if (stHal == nullptr) {
@@ -335,6 +418,85 @@ static bool setLpmaDisabled(SoundModelHandle lpmaHandle) {
   return unloaded;
 }
 
+static void *chreLpmaEnableThread(void *arg) {
+  auto *state = static_cast<LpmaEnableThreadData *>(arg);
+
+  const useconds_t kInitialRetryDelayUs = 500000;
+  const int kRetryGrowthFactor = 2;
+  const int kRetryGrowthLimit = 5;  // Terminates at 8s retry interval.
+  const int kRetryWakeLockLimit = 10;  // Retry with a wakelock 10 times.
+
+  int retryCount = 0;
+  useconds_t retryDelay = 0;
+  SoundModelHandle lpmaHandle;
+
+  while (true) {
+    pthread_mutex_lock(&state->mutex);
+    if (state->currentLpmaEnabled == state->targetLpmaEnabled) {
+      retryCount = 0;
+      retryDelay = 0;
+      releaseWakeLock();  // Allow the system to suspend while waiting.
+      pthread_cond_wait(&state->cond, &state->mutex);
+      acquireWakeLock();  // Ensure the system stays up while retrying.
+    } else if ((state->targetLpmaEnabled && loadLpma(&lpmaHandle))
+               || (!state->targetLpmaEnabled && unloadLpma(lpmaHandle))) {
+      state->currentLpmaEnabled = state->targetLpmaEnabled;
+    } else {
+      // Unlock while delaying to avoid blocking the client thread. No shared
+      // state is modified here.
+      pthread_mutex_unlock(&state->mutex);
+
+      if (retryDelay == 0) {
+        retryDelay = kInitialRetryDelayUs;
+      } else if (retryCount < kRetryGrowthLimit) {
+        retryDelay *= kRetryGrowthFactor;
+      }
+
+      LOGD("Delaying retry %d for %uus", retryCount, retryDelay);
+      usleep(retryDelay);
+
+      retryCount++;
+      if (retryCount > kRetryWakeLockLimit) {
+        releaseWakeLock();
+      }
+
+      pthread_mutex_lock(&state->mutex);
+    }
+
+    pthread_mutex_unlock(&state->mutex);
+  }
+
+  LOGV("LPMA enable thread exited");
+  return NULL;
+}
+
+/**
+ * Initializes the data shared with the LPMA enable thread and starts the
+ * thread.
+ *
+ * @param data Pointer to structure containing the (uninitialized) condition
+ *        variable and associated data passed to the LPMA enable thread.
+ * @return true on success, false otherwise.
+ */
+static bool initLpmaEnableThread(LpmaEnableThreadData *data) {
+  bool success = false;
+  int ret;
+
+  if ((ret = pthread_mutex_init(&data->mutex, NULL)) != 0) {
+    LOG_ERROR("Failed to initialize lpma enable mutex", ret);
+  } else if ((ret = pthread_cond_init(&data->cond, NULL)) != 0) {
+    LOG_ERROR("Failed to initialize lpma enable condition variable", ret);
+  } else if (!start_thread(&data->thread, chreLpmaEnableThread, data)) {
+    LOGE("Couldn't start lpma enable thread");
+  } else {
+    data->currentLpmaEnabled = false;
+    data->targetLpmaEnabled = false;
+    success = true;
+  }
+
+  return success;
+}
+
 #endif  // CHRE_DAEMON_LPMA_ENABLED
 
 /**
@@ -347,11 +509,6 @@ static void *chre_message_to_host_thread(void *arg) {
   unsigned int messageLen;
   int result = 0;
   auto *server = static_cast<::android::chre::SocketServer *>(arg);
-
-#ifdef CHRE_DAEMON_LPMA_ENABLED
-  bool lpmaEnabled = false;
-  SoundModelHandle lpmaHandle;
-#endif  // CHRE_DAEMON_LPMA_ENABLED
 
   while (true) {
     messageLen = 0;
@@ -380,17 +537,9 @@ static void *chre_message_to_host_thread(void *arg) {
         sendTimeSyncMessage();
 #ifdef CHRE_DAEMON_LPMA_ENABLED
       } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {
-        if (!lpmaEnabled) {
-          lpmaEnabled = setLpmaEnabled(&lpmaHandle);
-        } else {
-          LOGW("Requested to enable LPMA when already enabled");
-        }
+        setLpmaState(true);
       } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
-        if (lpmaEnabled) {
-          lpmaEnabled = !setLpmaDisabled(lpmaHandle);
-        } else {
-          LOGW("Requested to disable LPMA when already disabled");
-        }
+        setLpmaState(false);
 #endif  // CHRE_DAEMON_LPMA_ENABLED
       } else if (hostClientId == chre::kHostClientIdUnspecified) {
         server->sendToAllClients(messageBuffer,
@@ -531,11 +680,18 @@ int main() {
   int ret = -1;
   pthread_t monitor_thread;
   pthread_t msg_to_host_thread;
+
   struct reverse_monitor_thread_data reverse_monitor;
   ::android::chre::SocketServer server;
 
-  if (!init_reverse_monitor(&reverse_monitor)) {
+  if (!initWakeLockFds()) {
+    LOGE("Couldn't initialize wakelock file descriptors");
+  } else if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
+#ifdef CHRE_DAEMON_LPMA_ENABLED
+  } else if (!initLpmaEnableThread(&lpmaEnableThread)) {
+    LOGE("Couldn't initialize LPMA enable thread");
+#endif  // CHRE_DAEMON_LPMA_ENABLED
   } else {
     // Send time offset message before nanoapps start
     sendTimeSyncMessage();
