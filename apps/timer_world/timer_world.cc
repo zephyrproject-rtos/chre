@@ -17,6 +17,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/nanoapp/audio.h"
 #include "chre/util/nanoapp/log.h"
 
 #define LOG_TAG "[TimerWorld]"
@@ -40,6 +41,26 @@ bool nanoappStart() {
       &gCyclicTimerHandle /* data */,
       false /* oneShot */);
   gCyclicTimerCount = 0;
+
+  struct chreAudioSource audioSource;
+  for (uint32_t i = 0; chreAudioGetSource(i, &audioSource); i++) {
+    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data",
+         audioSource.name, audioSource.sampleRate,
+         chre::getChreAudioFormatString(audioSource.format));
+    LOGI("  buffer duration: [%" PRIu64 "ns, %" PRIu64 "ns]",
+        audioSource.minBufferDuration, audioSource.maxBufferDuration);
+
+    if (i == 0) {
+      // Only request audio data from the first source, but continue discovery.
+      if (chreAudioConfigureSource(i, true,
+          audioSource.minBufferDuration, audioSource.minBufferDuration)) {
+        LOGI("Requested audio from handle %" PRIu32 " successfully", i);
+      } else {
+        LOGE("Failed to request audio from handle %" PRIu32, i);
+      }
+    }
+  }
+
   return true;
 }
 

@@ -57,6 +57,11 @@ UniquePtr<char> EventLoopManager::debugDump() {
     } else if (!mWwanRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                      kDebugStringSize)) {
       LOG_OOM();
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+    } else if (!mAudioRequestManager.logStateToBuffer(debugStr, &debugStrPos,
+                                                      kDebugStringSize)) {
+      LOG_OOM();
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
     }
     LOGD("Debug dump used %zu bytes of log buffer", debugStrPos);
   }

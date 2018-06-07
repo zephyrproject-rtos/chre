@@ -19,6 +19,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/system_time.h"
+#include "chre/util/system/debug_dump.h"
 
 /*
  * TODO(P1-62e045): Evict pending audio events from the event queue as needed.
@@ -104,6 +105,35 @@ void AudioRequestManager::handleAudioAvailability(uint32_t handle, bool availabl
     EventLoopManagerSingleton::get()->deferCallback(
         SystemCallbackType::AudioAvailabilityChange, cbState, callback);
   }
+}
+
+bool AudioRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                           size_t bufferSize) const {
+  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nAudio:\n");
+  for (size_t i = 0; i < mAudioRequestLists.size(); i++) {
+    uint32_t handle = static_cast<uint32_t>(i);
+    struct chreAudioSource source;
+    mPlatformAudio.getAudioSource(handle, &source);
+    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+        " handle=%" PRIu32 ", name=\"%s\", sampleRate=%" PRIu32
+        ", buffer(ms)=[%" PRIu64 ",%" PRIu64 "], format=%" PRIu8 "\n",
+        handle, source.name, source.sampleRate,
+        Milliseconds(Nanoseconds(source.minBufferDuration)).getMilliseconds(),
+        Milliseconds(Nanoseconds(source.maxBufferDuration)).getMilliseconds(),
+        source.format);
+
+    for (const auto& request : mAudioRequestLists[i].requests) {
+      for (const auto& instanceId : request.instanceIds) {
+        success &= debugDumpPrint(buffer, bufferPos, bufferSize,
+            "  nanoappId=%" PRIu32 ", numSamples=%" PRIu32
+            ", interval(ms)=%" PRIu64 "\n", instanceId, request.numSamples,
+            Milliseconds(Nanoseconds(request.deliveryInterval))
+                .getMilliseconds());
+      }
+    }
+  }
+
+  return success;
 }
 
 bool AudioRequestManager::validateConfigureSourceArguments(
