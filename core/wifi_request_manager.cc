@@ -109,7 +109,7 @@ bool WifiRequestManager::requestRanging(
       success = req.targetList.copy_array(params->targetList,
                                           params->targetListLen);
       if (!success) {
-        LOGE("Couldn't make copy of target list");
+        LOG_OOM();
         mPendingRangingRequests.pop_back();
       }
     }
@@ -168,7 +168,7 @@ void WifiRequestManager::handleScanMonitorStateChange(bool enabled,
 
   auto *cbState = memoryAlloc<CallbackState>();
   if (cbState == nullptr) {
-    LOGE("Failed to allocate callback state for scan monitor state change");
+    LOG_OOM();
   } else {
     cbState->enabled = enabled;
     cbState->errorCode = errorCode;
@@ -194,7 +194,7 @@ void WifiRequestManager::handleScanResponse(bool pending,
 
   auto *cbState = memoryAlloc<CallbackState>();
   if (cbState == nullptr) {
-    LOGE("Failed to allocate callback state for wifi scan response");
+    LOG_OOM();
   } else {
     cbState->pending = pending;
     cbState->errorCode = errorCode;
@@ -350,8 +350,7 @@ bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
         // nanoapps.
         success = mScanMonitorNanoapps.push_back(instanceId);
         if (!success) {
-          LOGE("Failed to add nanoapp to the list of scan monitoring "
-               "nanoapps");
+          LOG_OOM();
         } else {
           nanoapp->registerForBroadcastEvent(CHRE_EVENT_WIFI_SCAN_RESULT);
         }
@@ -380,7 +379,7 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
   if (!success || updateNanoappScanMonitoringList(enable, nanoappInstanceId)) {
     chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
     if (event == nullptr) {
-      LOGE("Failed to allocate wifi scan monitor async result event");
+      LOG_OOM();
     } else {
       event->requestType = CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR;
       event->success = success;
@@ -416,7 +415,7 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
   bool eventPosted = false;
   chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
   if (event == nullptr) {
-    LOGE("Failed to allocate wifi scan request async result event");
+    LOG_OOM();
   } else {
     event->requestType = CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN;
     event->success = success;
@@ -553,7 +552,7 @@ bool WifiRequestManager::postRangingAsyncResult(uint8_t errorCode) {
   } else {
     auto *event = memoryAlloc<struct chreAsyncResult>();
     if (event == nullptr) {
-      LOGE("Couldn't allocate ranging async result");
+      LOG_OOM();
     } else {
       const PendingRangingRequest& req = mPendingRangingRequests.front();
 
