@@ -314,7 +314,7 @@ static void acquireWakeLock() {
 
 static void releaseWakeLock() {
   const size_t len = strlen(kWakeLockName);
-  ssize_t result = write(gWakeLockFd, kWakeLockName, len);
+  ssize_t result = write(gWakeUnlockFd, kWakeLockName, len);
   if (result < 0) {
     LOGE("Failed to release wakelock with error %s", strerror(errno));
   } else if (result != static_cast<ssize_t>(len)) {
