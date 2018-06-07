@@ -138,8 +138,20 @@ class SeeHelper : public NonCopyable {
    * @return true if at least minNumSuids were successfully found
    */
   bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids,
-                    uint8_t minNumSuids = 1, uint32_t maxRetries = 20,
-                    Milliseconds retryDelay = Milliseconds(500));
+                    uint8_t minNumSuids, uint32_t maxRetries,
+                    Milliseconds retryDelay);
+
+  /**
+   * Version of findSuidSync providing default timeout/retry behavior.
+   *
+   * @see findSuidSync
+   */
+  bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids,
+                    uint8_t minNumSuids = 1) {
+    uint32_t maxRetries = (mHaveTimedOutOnSuidLookup) ? 0 : 40;
+    return findSuidSync(dataType, suids, minNumSuids, maxRetries,
+                        Milliseconds(250) /* retryDelay */);
+  }
 
   /**
    * A synchronous call to obtain the attributes of the specified SUID.
@@ -275,6 +287,9 @@ class SeeHelper : public NonCopyable {
 
   //! true if we are waiting on a response of a Qsocket request.
   bool mWaitingOnResp = false;
+
+  //! true if we've timed out in findSuidSync at least once
+  bool mHaveTimedOutOnSuidLookup = false;
 
   //! The Qsocket response error of the request we just made.
   sns_std_error mRespError;
