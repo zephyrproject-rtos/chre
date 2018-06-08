@@ -56,8 +56,8 @@ const char *kOpModeOff = "OFF";
 //! The SUID of the look up sensor.
 const sns_std_suid kSuidLookup = sns_suid_sensor_init_default;
 
-//! A struct to facilitate qsocket response handling
-struct QsocketRespCbData {
+//! A struct to facilitate SEE response handling
+struct SeeRespCbData {
   SeeHelper *seeHelper;
   uint32_t txnId;
 };
@@ -1294,11 +1294,17 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 
 }  // anonymous namespace
 
+const SeeHelper::SnsClientApi SeeHelper::kDefaultApi = {
+  .sns_client_init   = sns_client_init,
+  .sns_client_deinit = sns_client_deinit,
+  .sns_client_send   = sns_client_send,
+};
+
 SeeHelper::~SeeHelper() {
-  for (auto *client : mQsocketClients) {
-    int status = sns_client_deinit(client);
+  for (auto *client : mSeeClients) {
+    int status = mSnsClientApi->sns_client_deinit(client);
     if (status != 0) {
-      LOGE("Failed to release sensor Qsocket client: %d", status);
+      LOGE("Failed to release sensor client: %d", status);
     }
   }
 }
@@ -1395,7 +1401,7 @@ void SeeHelper::handleSnsClientEventMsg(
   }
 }
 
-void SeeHelper::handleQsocketResp(uint32_t txnId, sns_std_error error) {
+void SeeHelper::handleSeeResp(uint32_t txnId, sns_std_error error) {
   LockGuard<Mutex> lock(mMutex);
   if (mWaitingOnResp && txnId == mCurrentTxnId) {
     mRespError = error;
@@ -1412,16 +1418,15 @@ bool SeeHelper::findSuidSync(const char *dataType,
   CHRE_ASSERT(minNumSuids > 0);
 
   bool success = false;
-  if (mQsocketClients.empty()) {
-    LOGE("Sensor Qsocket client wasn't initialized");
+  if (mSeeClients.empty()) {
+    LOGE("Sensor client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
     if (encodeSnsSuidReq(dataType, &msg, &msgLen)) {
-      // Sensor client Qsocket service may come up before SEE sensors are
-      // enumerated. A max dwell time is set and retries are performed as
-      // currently there's no message indicating that SEE intialization is
-      // complete.
+      // Sensor client service may come up before SEE sensors are enumerated. A
+      // max dwell time is set and retries are performed as currently there's no
+      // message indicating that SEE intialization is complete.
       uint32_t trialCount = 0;
       do {
         suids->clear();
@@ -1458,8 +1463,8 @@ bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
   CHRE_ASSERT(attr);
   bool success = false;
 
-  if (mQsocketClients.empty()) {
-    LOGE("Sensor Qsocket client wasn't initialized");
+  if (mSeeClients.empty()) {
+    LOGE("Sensor client wasn't initialized");
   } else {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen;
@@ -1483,7 +1488,7 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout) {
 
   // Initialize cal/remote_proc_state sensors before making sensor data request.
   return (waitForService(&client, timeout)
-          && mQsocketClients.push_back(client)
+          && mSeeClients.push_back(client)
           && initCalSensors()
           && initRemoteProcSensor());
 }
@@ -1536,16 +1541,15 @@ const sns_std_suid& SeeHelper::getCalSuidFromSensorType(
 }
 
 /**
- * Sends a request to Qsocket and waits for the response.
+ * Sends a request to SEE and waits for the response.
  */
-bool SeeHelper::sendQsocketReqSync(sns_client *client,
-                                   sns_client_request_msg *req,
-                                   Nanoseconds timeoutResp) {
+bool SeeHelper::sendSeeReqSync(
+    sns_client *client, sns_client_request_msg *req, Nanoseconds timeoutResp) {
   CHRE_ASSERT(client);
   CHRE_ASSERT(req);
   bool success = false;
 
-  auto *cbData = memoryAlloc<QsocketRespCbData>();
+  auto *cbData = memoryAlloc<SeeRespCbData>();
   if (cbData == nullptr) {
     LOG_OOM();
   } else {
@@ -1558,10 +1562,10 @@ bool SeeHelper::sendQsocketReqSync(sns_client *client,
       cbData->txnId = ++mCurrentTxnId;
     }
 
-    int status = sns_client_send(client, req, SeeHelper::qsocketRespCb, cbData);
-
+    int status = mSnsClientApi->sns_client_send(
+        client, req, SeeHelper::seeRespCb, cbData);
     if (status != 0) {
-      LOGE("Error sending Qsocket request %d", status);
+      LOGE("Error sending SEE request %d", status);
       memoryFree(cbData);
     }
 
@@ -1576,10 +1580,10 @@ bool SeeHelper::sendQsocketReqSync(sns_client *client,
         }
 
         if (!waitSuccess) {
-          LOGE("Qsocket resp timed out after %" PRIu64 " ms",
+          LOGE("SEE resp timed out after %" PRIu64 " ms",
                Milliseconds(timeoutResp).getMilliseconds());
         } else if (mRespError != SNS_STD_ERROR_NO_ERROR) {
-          LOGE("Qsocket txn ID %" PRIu32 " failed with error %d",
+          LOGE("SEE txn ID %" PRIu32 " failed with error %d",
                mCurrentTxnId, mRespError);
         } else {
           success = true;
@@ -1607,7 +1611,7 @@ bool SeeHelper::sendReq(
       prepareWaitForInd(suid, syncData, syncDataType);
     }
 
-    success = sendQsocketReqSync(client, msg.get(), timeoutResp);
+    success = sendSeeReqSync(client, msg.get(), timeoutResp);
 
     if (waitForIndication) {
       success = waitForInd(success, timeoutInd);
@@ -1641,7 +1645,7 @@ bool SeeHelper::waitForInd(bool reqSent, Nanoseconds timeoutInd) {
     }
 
     if (!waitSuccess) {
-      LOGE("QSocket indication timed out after %" PRIu64 " ms",
+      LOGE("SEE indication timed out after %" PRIu64 " ms",
            Milliseconds(timeoutInd).getMilliseconds());
       success = false;
     }
@@ -1656,21 +1660,21 @@ bool SeeHelper::waitForInd(bool reqSent, Nanoseconds timeoutInd) {
   return success;
 }
 
-void SeeHelper::qsocketIndCb(sns_client *client, void *msg,
-                             uint32_t msgLen, void *cbData) {
+void SeeHelper::seeIndCb(
+    sns_client *client, void *msg, uint32_t msgLen, void *cbData) {
   auto *obj = static_cast<SeeHelper *>(cbData);
   obj->handleSnsClientEventMsg(client, msg, msgLen);
 }
 
-void SeeHelper::qsocketRespCb(sns_client *client, sns_std_error error,
+void SeeHelper::seeRespCb(sns_client *client, sns_std_error error,
                               void *cbData) {
-  auto *respCbData = static_cast<QsocketRespCbData *>(cbData);
-  respCbData->seeHelper->handleQsocketResp(respCbData->txnId, error);
+  auto *respCbData = static_cast<SeeRespCbData *>(cbData);
+  respCbData->seeHelper->handleSeeResp(respCbData->txnId, error);
   memoryFree(cbData);
 }
 
-bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
-                               bool *prevRegistered) {
+bool SeeHelper::registerSensor(
+    SensorType sensorType, const sns_std_suid& suid, bool *prevRegistered) {
   CHRE_ASSERT(sensorType != SensorType::Unknown);
   CHRE_ASSERT(prevRegistered != nullptr);
   bool success = false;
@@ -1688,15 +1692,15 @@ bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
     }
   }
 
-  // Initialize another Qsocket client if the SUID has been previously
-  // registered with more SensorTypes than the number of Qsocket clients can
+  // Initialize another SEE client if the SUID has been previously
+  // registered with more SensorTypes than the number of SEE clients can
   // disambiguate.
   bool clientAvailable = true;
-  if (mQsocketClients.size() <= suidRegCount) {
+  if (mSeeClients.size() <= suidRegCount) {
     sns_client *client;
     clientAvailable = waitForService(&client);
     if (clientAvailable) {
-      clientAvailable = mQsocketClients.push_back(client);
+      clientAvailable = mSeeClients.push_back(client);
     }
   }
 
@@ -1705,7 +1709,7 @@ bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid& suid,
     SensorInfo sensorInfo = {
       .suid = suid,
       .sensorType = sensorType,
-      .client = mQsocketClients[suidRegCount],
+      .client = mSeeClients[suidRegCount],
     };
     success = mSensorInfos.push_back(sensorInfo);
   }
@@ -1721,14 +1725,14 @@ bool SeeHelper::waitForService(sns_client **client,
   CHRE_ASSERT(client);
 
   // TODO: add error_cb and error_cb_data.
-  int status = sns_client_init(
+  int status = mSnsClientApi->sns_client_init(
       client, timeout.getMilliseconds(),
-      SeeHelper::qsocketIndCb, this /* ind_cb_data */,
+      SeeHelper::seeIndCb, this /* ind_cb_data */,
       nullptr /* error_cb */, nullptr /* error_cb_data */);
 
   bool success = (status == 0);
   if (!success) {
-    LOGE("Failed to initialize the sensor Qsocket client: %d", status);
+    LOGE("Failed to initialize the sensor client: %d", status);
   }
   return success;
 }
