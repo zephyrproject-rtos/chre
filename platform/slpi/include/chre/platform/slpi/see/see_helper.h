@@ -101,14 +101,14 @@ struct SeeSensorRequest {
 
 /**
  * A helper class for making requests to Qualcomm's Sensors Execution
- * Environment (SEE) via Qsocket and waiting for the response and the
+ * Environment (SEE) via the sns_client API and waiting for the response and the
  * corresponding indication message if applicable.
  * Not safe to use from multiple threads. Only one synchronous request can be
  * made at a time.
  */
 class SeeHelper : public NonCopyable {
  public:
-  //! A struct to facilitate mapping between 'SUID + Qsocket client' and
+  //! A struct to facilitate mapping between 'SUID + sns_client' and
   //! SensorType.
   struct SensorInfo {
     sns_std_suid suid;
@@ -117,7 +117,7 @@ class SeeHelper : public NonCopyable {
   };
 
   /**
-   * Deinits Qsocket clients before destructing this object.
+   * Deinits clients before destructing this object.
    */
   ~SeeHelper();
 
@@ -165,10 +165,10 @@ class SeeHelper : public NonCopyable {
   bool getAttributesSync(const sns_std_suid& suid, SeeAttributes *attr);
 
   /**
-   * Initializes and waits for the sensor client Qsocket service to become
-   * available, and obtains remote_proc and cal sensors' info for future
-   * operations. This function must be called first to initialize the object and
-   * be called only once.
+   * Initializes and waits for the sensor client service to become available,
+   * and obtains remote_proc and cal sensors' info for future operations. This
+   * function must be called first to initialize the object and be called only
+   * once.
    *
    * @param cbIf A pointer to the callback interface that will be invoked to
    *             handle all async requests with callback data type defined in
@@ -185,7 +185,7 @@ class SeeHelper : public NonCopyable {
    *
    * @param request The sensor request to make.
    *
-   * @return true if the Qsocket request has been successfully made.
+   * @return true if the request has been successfully made.
    */
   bool makeRequest(const SeeSensorRequest& request);
 
@@ -196,8 +196,8 @@ class SeeHelper : public NonCopyable {
    * with populated CHRE sensor events. Each SUID/SensorType pair can only be
    * registered once. It's illegal to register SensorType::Unknown.
    *
-   * If an SUID is registered with a second SensorType, another Qsocket client
-   * may be created to disambiguate the SUID representation.
+   * If an SUID is registered with a second SensorType, another client may be
+   * created to disambiguate the SUID representation.
    *
    * @param sensorType The SensorType to register.
    * @param suid The SUID of the sensor.
@@ -220,6 +220,12 @@ class SeeHelper : public NonCopyable {
   bool sensorIsRegistered(SensorType sensorType) const;
 
  protected:
+  struct SnsClientApi {
+    decltype(sns_client_init)   *sns_client_init;
+    decltype(sns_client_deinit) *sns_client_deinit;
+    decltype(sns_client_send)   *sns_client_send;
+  };
+
   /**
    * Get the cached SUID of a calibration sensor that corresponds to the
    * specified sensorType.
@@ -232,9 +238,8 @@ class SeeHelper : public NonCopyable {
   const sns_std_suid& getCalSuidFromSensorType(SensorType sensorType) const;
 
   /**
-   * A convenience method to send a Qsocket request and wait for the indication
-   * if it's a synchronous one using the default Qsocket client obtained in
-   * init().
+   * A convenience method to send a request and wait for the indication if it's
+   * a synchronous one using the default client obtained in init().
    *
    * @see sendReq
    */
@@ -246,7 +251,7 @@ class SeeHelper : public NonCopyable {
       bool waitForIndication,
       Nanoseconds timeoutResp = kDefaultSeeRespTimeout,
       Nanoseconds timeoutInd = kDefaultSeeIndTimeout) {
-    return sendReq(mQsocketClients[0], suid,
+    return sendReq(mSeeClients[0], suid,
                    syncData, syncDataType,
                    msgId, payload, payloadLen,
                    batchValid, batchPeriodUs, passive,
@@ -254,7 +259,13 @@ class SeeHelper : public NonCopyable {
                    timeoutResp, timeoutInd);
   }
 
+  void setSnsClientApi(const SnsClientApi *api) {
+    mSnsClientApi = api;
+  }
+
  private:
+  static const SnsClientApi kDefaultApi;
+
   //! Used to synchronize responses and indications.
   ConditionVariable mCond;
 
@@ -265,11 +276,11 @@ class SeeHelper : public NonCopyable {
   //! Callback interface for sensor events.
   SeeHelperCallbackInterface *mCbIf = nullptr;
 
-  //! The list of Qsocket clients initiated by SeeHelper.
-  DynamicVector<sns_client *> mQsocketClients;
+  //! The list of SEE clients initiated by SeeHelper.
+  DynamicVector<sns_client *> mSeeClients;
 
   //! The list of SensorTypes registered and their corresponding SUID and
-  //! Qsocket client.
+  //! client.
   DynamicVector<SensorInfo> mSensorInfos;
 
   //! Data struct to store sync APIs data.
@@ -285,16 +296,16 @@ class SeeHelper : public NonCopyable {
   //! true if we are waiting on an indication for a sync call.
   bool mWaitingOnInd = false;
 
-  //! true if we are waiting on a response of a Qsocket request.
+  //! true if we are waiting on a response of a request.
   bool mWaitingOnResp = false;
 
   //! true if we've timed out in findSuidSync at least once
   bool mHaveTimedOutOnSuidLookup = false;
 
-  //! The Qsocket response error of the request we just made.
+  //! The response error of the request we just made.
   sns_std_error mRespError;
 
-  //! A transaction ID that increments for each Qsocket request.
+  //! A transaction ID that increments for each request.
   uint32_t mCurrentTxnId = 0;
 
   //! The SUID for the remote_proc sensor.
@@ -302,6 +313,9 @@ class SeeHelper : public NonCopyable {
 
   //! Cal info of all the cal sensors.
   SeeCalInfo mCalInfo[kNumSeeCalSensors];
+
+  //! Contains the API this SeeHelper instance uses to interact with SEE
+  const SnsClientApi *mSnsClientApi = &kDefaultApi;
 
   /**
    * Initializes SEE calibration sensors and makes data request.
@@ -318,25 +332,25 @@ class SeeHelper : public NonCopyable {
   bool initRemoteProcSensor();
 
   /**
-   * Sends a QSocket request and waits for the response.
+   * Sends a request to SEE and waits for the response.
    *
-   * @param client The pointer to Qsocket client to make request with.
+   * @param client The pointer to sns_client to make the request with.
    * @param req A pointer to the sns_client_request_msg to be sent.
    * @param timeoutResp How long to wait for the response before abandoning it.
    *
    * @return true if the request was sent and the response was received
    *         successfully.
    */
-  bool sendQsocketReqSync(sns_client *client, sns_client_request_msg *req,
-                          Nanoseconds timeoutResp);
+  bool sendSeeReqSync(sns_client *client, sns_client_request_msg *req,
+                      Nanoseconds timeoutResp);
 
   /**
-   * Wrapper to send a Qsocket request and wait for the indication if it's a
+   * Wrapper to send a SEE request and wait for the indication if it's a
    * synchronous one.
    *
    * Only one request can be pending at a time per instance of SeeHelper.
    *
-   * @param client The pointer to Qsocket client to make requests with.
+   * @param client The pointer to sns_client to make requests with.
    * @param suid The SUID of the sensor the request is sent to
    * @param syncData The data struct or container to receive a sync call's data
    * @param syncDataType The data type we are waiting for.
@@ -388,28 +402,28 @@ class SeeHelper : public NonCopyable {
       sns_client *client, const void *payload, size_t payloadLen);
 
   /**
-   * Handles a Qsocket response for request with specified transaction ID.
+   * Handles a response from SEE for a request sent with the specified
+   * transaction ID.
    */
-  void handleQsocketResp(uint32_t txnId, sns_std_error error);
+  void handleSeeResp(uint32_t txnId, sns_std_error error);
 
   /**
    * Extracts "this" from cbData and calls through to handleSnsClientEventMsg()
    *
    * @see sns_client_ind
    */
-  static void qsocketIndCb(sns_client *client, void *msg,
-                           uint32_t msgLen, void *cbData);
+  static void seeIndCb(sns_client *client, void *msg, uint32_t msgLen,
+                       void *cbData);
 
   /**
-   * Extracts "this" from cbData and calls through to handleQsocketResp()
+   * Extracts "this" from cbData and calls through to handleSeeResp()
    *
    * @see sns_client_resp
    */
-  static void qsocketRespCb(sns_client *client, sns_std_error error,
-                            void *cbData);
+  static void seeRespCb(sns_client *client, sns_std_error error, void *cbData);
 
   /**
-   * A wrapper to initialize a Qsocket client.
+   * A wrapper to initialize a sns_client.
    *
    * @see sns_client_init
    */
