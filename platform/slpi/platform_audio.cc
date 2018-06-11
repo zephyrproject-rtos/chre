@@ -138,7 +138,7 @@ size_t PlatformAudio::getSourceCount() {
 }
 
 bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
+                                   chreAudioSource *source) const {
   slpiForceBigImage();
   wcd_spi_audio_source_s wcd_spi_audio_source;
   bool result = wcd_spi_client_get_source(handle, &wcd_spi_audio_source);
