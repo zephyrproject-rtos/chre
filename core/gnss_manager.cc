@@ -91,7 +91,7 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 
   auto *cbState = memoryAlloc<CallbackState>();
   if (cbState == nullptr) {
-    LOGE("Failed to allocate callback state for GNSS session state change");
+    LOG_OOM();
   } else {
     cbState->enabled = enabled;
     cbState->errorCode = errorCode;
@@ -280,7 +280,7 @@ bool GnssSession::updateRequests(
         request.minInterval = minInterval;
         success = mRequests.push_back(request);
         if (!success) {
-          LOGE("Failed to add nanoapp to the list of GNSS session nanoapps");
+          LOG_OOM();
         } else {
           nanoapp->registerForBroadcastEvent(mReportEventType);
         }
@@ -308,7 +308,7 @@ bool GnssSession::postAsyncResultEvent(
   if (!success || updateRequests(enable, minInterval, instanceId)) {
     chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
     if (event == nullptr) {
-      LOGE("Failed to allocate GNSS session async result event");
+      LOG_OOM();
     } else {
       event->requestType = enable ? mStartRequestType : mStopRequestType;
       event->success = success;
