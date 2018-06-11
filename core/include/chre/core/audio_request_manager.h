@@ -357,13 +357,11 @@ class AudioRequestManager : public NonCopyable {
 
   /**
    * Posts CHRE_EVENT_AUDIO_SAMPLING_CHANGE events to all nanoapps subscribed to
-   * the supplied handle.
+   * the supplied handle with the current availability of the source.
    *
    * @param handle The handle for the audio source that is changing.
-   * @param available true if audio is available for the supplied handle, false
-   *        otherwise.
    */
-  void postAudioSamplingChangeEvents(uint32_t handle, bool available);
+  void postAudioSamplingChangeEvents(uint32_t handle);
 
   /**
    * Posts a CHRE_EVENT_AUDIO_SAMPLING_CHANGE event to the specified nanoapp.
