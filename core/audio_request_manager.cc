@@ -337,8 +337,11 @@ void AudioRequestManager::handleAudioDataEventSync(
 void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
                                                       bool available) {
   if (handle < mAudioRequestLists.size()) {
-    mAudioRequestLists[handle].available = available;
-    postAudioSamplingChangeEvents(handle, available);
+    if (mAudioRequestLists[handle].available != available) {
+      mAudioRequestLists[handle].available = available;
+      postAudioSamplingChangeEvents(handle);
+    }
+
     scheduleNextAudioDataEvent(handle);
   } else {
     LOGE("Audio availability handle out of range: %" PRIu32, handle);
@@ -363,11 +366,11 @@ void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
   }
 }
 
-void AudioRequestManager::postAudioSamplingChangeEvents(uint32_t handle,
-                                                        bool available) {
-  for (const auto& request : mAudioRequestLists[handle].requests) {
+void AudioRequestManager::postAudioSamplingChangeEvents(uint32_t handle) {
+  const auto& requestList = mAudioRequestLists[handle];
+  for (const auto& request : requestList.requests) {
     for (const auto& instanceId : request.instanceIds) {
-      postAudioSamplingChangeEvent(instanceId, handle, available);
+      postAudioSamplingChangeEvent(instanceId, handle, requestList.available);
     }
   }
 }
