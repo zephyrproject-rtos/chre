@@ -1346,9 +1346,10 @@ void SeeHelper::handleSnsClientEventMsg(
     } else {
       data->info.suid = data->event.suid;
       data->info.decodeMsgIdOnly = false;
-      data->info.data->cal = getCalDataFromSuid(data->info.suid);
       data->info.data->sensorType = getSensorTypeFromSensorInfo(
           data->info.client, data->info.suid, mSensorInfos);
+      data->info.data->cal = getCalDataFromSensorType(
+          data->info.data->sensorType);
 
       mMutex.lock();
       bool synchronizedDecode = mWaitingOnInd;
@@ -1811,8 +1812,8 @@ bool SeeHelper::initRemoteProcSensor() {
   return success;
 }
 
-SeeCalData *SeeHelper::getCalDataFromSuid(const sns_std_suid& suid) {
-  size_t calIndex = getCalIndexFromSuid(suid, mCalInfo);
+SeeCalData *SeeHelper::getCalDataFromSensorType(SensorType sensorType) {
+  size_t calIndex = getCalIndexFromSensorType(sensorType);
   return (calIndex < kNumSeeCalSensors) ? &mCalInfo[calIndex].cal : nullptr;
 }
 
