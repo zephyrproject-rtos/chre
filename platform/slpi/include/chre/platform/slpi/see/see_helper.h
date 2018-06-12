@@ -431,9 +431,9 @@ class SeeHelper : public NonCopyable {
                       Microseconds timeout = kDefaultSeeWaitTimeout);
 
   /**
-   * Obtains the pointer to cal data by SUID.
+   * Obtains the pointer to cal data by SensorType
    */
-  SeeCalData *getCalDataFromSuid(const sns_std_suid& suid);
+  SeeCalData *getCalDataFromSensorType(SensorType sensorType);
 
   /**
    * @return SensorInfo instance found in mSensorInfos with the given
