@@ -62,6 +62,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Vendor Type 1";
     case SensorType::VendorType2:
       return "Vendor Type 2";
+    case SensorType::VendorType3:
+      return "Vendor Type 3";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -116,6 +118,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::VendorType1;
     case (CHRE_SENSOR_TYPE_VENDOR_START + 2):
       return SensorType::VendorType2;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 3):
+      return SensorType::VendorType3;
     default:
       return SensorType::Unknown;
   }
@@ -157,6 +161,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return (CHRE_SENSOR_TYPE_VENDOR_START + 1);
     case SensorType::VendorType2:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 2);
+    case SensorType::VendorType3:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 3);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -201,12 +207,16 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Occurrence;
     case SensorType::Proximity:
       return SensorSampleType::Byte;
+#ifdef CHREX_SENSOR_SUPPORT
     case SensorType::VendorType0:
       return SensorSampleType::Vendor0;
     case SensorType::VendorType1:
       return SensorSampleType::Vendor1;
     case SensorType::VendorType2:
       return SensorSampleType::Vendor2;
+    case SensorType::VendorType3:
+      return SensorSampleType::Vendor3;
+#endif  // CHREX_SENSOR_SUPPORT
     case SensorType::Unknown:
       return SensorSampleType::Unknown;
     default:
