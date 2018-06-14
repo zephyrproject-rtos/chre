@@ -55,6 +55,21 @@ void PlatformNanoapp::handleEvent(uint32_t senderInstanceId,
                                   const void *eventData) {
   if (!isUimgApp()) {
     slpiForceBigImage();
+
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+    // HACK: as SEE does not support software batching in uimg via
+    // QCM/uQSockets, we rewrite requests for accel from big image nanoapps to
+    // vendor type 3 in chreSensorFindDefault(), which is implemented as accel
+    // routed through CM/QMI and supports batching. Rewrite sensor data arriving
+    // on this event type to the vanilla accel event type so that this appears
+    // transparent to the nanoapp.
+    // TODO(P2-5673a9): work with QC to determine a better long-term solution
+    constexpr uint16_t kAccelBigImageEventType =
+        (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 3);
+    if (eventType == kAccelBigImageEventType) {
+      eventType = CHRE_EVENT_SENSOR_ACCELEROMETER_DATA;
+    }
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   }
 
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
