@@ -506,8 +506,9 @@ void PlatformSensor::init() {
   }
 
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  BigImageSeeHelperSingleton::init();
-  if (!getBigImageSeeHelper()->init(&seeHelperCallback)) {
+  BigImageSeeHelperSingleton::init(getSeeHelper()->getCalHelper());
+  if (!getBigImageSeeHelper()->init(&seeHelperCallback, kDefaultSeeWaitTimeout,
+                                    true /* skipDefaultSensorInit */)) {
     FATAL_ERROR("Failed to init bimg SEE helper");
   }
 #endif  // CHRE_SLPI_UIMG_ENABLED
