@@ -20,6 +20,7 @@
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/see/see_helper.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/macros.h"
 
 namespace chre {
 
