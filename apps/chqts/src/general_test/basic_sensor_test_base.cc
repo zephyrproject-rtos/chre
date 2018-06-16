@@ -255,11 +255,14 @@ void BasicSensorTestBase::finishTest() {
     if (status.enabled != mOriginalStatus.enabled) {
       sendFatalFailureToHost("SensorInfo.enabled not back to original");
     }
-    if (status.interval != mOriginalStatus.interval) {
-      sendFatalFailureToHost("SensorInfo.interval not back to original");
-    }
-    if (status.latency != mOriginalStatus.latency) {
-      sendFatalFailureToHost("SensorInfo.latency not back to original");
+    // Interval and latency values are only relevent if the sensor is enabled.
+    if (status.enabled) {
+      if (status.interval != mOriginalStatus.interval) {
+        sendFatalFailureToHost("SensorInfo.interval not back to original");
+      }
+      if (status.latency != mOriginalStatus.latency) {
+        sendFatalFailureToHost("SensorInfo.latency not back to original");
+      }
     }
   }
   mState = State::kFinished;
