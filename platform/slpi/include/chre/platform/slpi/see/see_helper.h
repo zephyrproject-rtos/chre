@@ -21,7 +21,7 @@ extern "C" {
 
 #include "sns_client.h"
 
-} // extern "C"
+}  // extern "C"
 
 #include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
@@ -226,6 +226,9 @@ class SeeHelper : public NonCopyable {
     decltype(sns_client_send)   *sns_client_send;
   };
 
+  //! Contains the API this SeeHelper instance uses to interact with SEE
+  const SnsClientApi *mSnsClientApi = &kDefaultApi;
+
   /**
    * Get the cached SUID of a calibration sensor that corresponds to the
    * specified sensorType.
@@ -257,10 +260,6 @@ class SeeHelper : public NonCopyable {
                    batchValid, batchPeriodUs, passive,
                    waitForIndication,
                    timeoutResp, timeoutInd);
-  }
-
-  void setSnsClientApi(const SnsClientApi *api) {
-    mSnsClientApi = api;
   }
 
  private:
@@ -313,9 +312,6 @@ class SeeHelper : public NonCopyable {
 
   //! Cal info of all the cal sensors.
   SeeCalInfo mCalInfo[kNumSeeCalSensors];
-
-  //! Contains the API this SeeHelper instance uses to interact with SEE
-  const SnsClientApi *mSnsClientApi = &kDefaultApi;
 
   /**
    * Initializes SEE calibration sensors and makes data request.
@@ -441,6 +437,25 @@ class SeeHelper : public NonCopyable {
    */
   const SensorInfo *getSensorInfo(SensorType sensorType) const;
 };
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+/**
+ * A version of SeeHelper that explicitly uses the QMI API on the bottom edge
+ * and therefore only works in big image (but goes through CM instead of QCM
+ * within SEE).
+ *
+ * @see SeeHelper
+ */
+class BigImageSeeHelper : public SeeHelper {
+ public:
+  BigImageSeeHelper() {
+    mSnsClientApi = &kQmiApi;
+  }
+
+ private:
+  static const SnsClientApi kQmiApi;
+};
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
 }  // namespace chre
 

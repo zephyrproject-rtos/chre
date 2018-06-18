@@ -29,6 +29,10 @@
 #include "stringl.h"
 #include "timer.h"
 
+#ifdef CHRE_SLPI_UIMG_ENABLED
+#include "sns_qmi_client.h"
+#endif
+
 #include <algorithm>
 #include <cfloat>
 #include <cinttypes>
@@ -128,6 +132,7 @@ struct SeeAttrArg {
 size_t getCalIndexFromSensorType(SensorType sensorType) {
   SeeCalSensor index;
   switch (sensorType) {
+    case SensorType::VendorType3:
     case SensorType::Accelerometer:
       index = SeeCalSensor::AccelCal;
       break;
@@ -1312,6 +1317,14 @@ const SeeHelper::SnsClientApi SeeHelper::kDefaultApi = {
   .sns_client_deinit = sns_client_deinit,
   .sns_client_send   = sns_client_send,
 };
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+const SeeHelper::SnsClientApi BigImageSeeHelper::kQmiApi = {
+  .sns_client_init   = sns_qmi_client_init,
+  .sns_client_deinit = sns_qmi_client_deinit,
+  .sns_client_send   = sns_qmi_client_send,
+};
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
 SeeHelper::~SeeHelper() {
   for (auto *client : mSeeClients) {
