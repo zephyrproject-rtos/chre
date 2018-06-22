@@ -30,6 +30,13 @@ using chre::SensorType;
 using chre::getSensorModeFromEnum;
 using chre::getSensorTypeFromUnsignedInt;
 
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+namespace {
+constexpr uint8_t kBigImageAccelSensorType =
+    (CHRE_SENSOR_TYPE_VENDOR_START + 3);
+} //  anonymous namespace
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+
 DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   // HACK: as SEE does not support software batching in uimg via QCM/uQSockets,
@@ -39,8 +46,6 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
   // go to a separate sensor implementation that supports uimg batching via
   // CM/QMI.
   // TODO(P2-5673a9): work with QC to determine a better long-term solution
-  constexpr uint8_t kBigImageAccelSensorType =
-      (CHRE_SENSOR_TYPE_VENDOR_START + 3);
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   if (!nanoapp->isUimgApp()) {
     if (sensorType == CHRE_SENSOR_TYPE_ACCELEROMETER) {
@@ -70,6 +75,15 @@ DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
   if (info != nullptr) {
     success = EventLoopManagerSingleton::get()->getSensorRequestManager().
         getSensorInfo(sensorHandle, *nanoapp, info);
+
+    // The distinction between big/uimg accel should be abstracted away from
+    // big image nanoapps, so overwrite any platform implementation here.
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+    if (!nanoapp->isUimgApp() && info->sensorType == kBigImageAccelSensorType) {
+      info->sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
+    }
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+
   }
   return success;
 }
