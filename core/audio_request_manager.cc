@@ -391,15 +391,20 @@ void AudioRequestManager::postAudioSamplingChangeEvent(uint32_t instanceId,
 void AudioRequestManager::postAudioDataEventFatal(
     struct chreAudioDataEvent *event,
     const DynamicVector<uint32_t>& instanceIds) {
-  for (const auto& instanceId : instanceIds) {
-    EventLoopManagerSingleton::get()->getEventLoop()
-        .postEvent(CHRE_EVENT_AUDIO_DATA, event,
-                   freeAudioDataEventCallback,
-                   kSystemInstanceId, instanceId);
-  }
+  if (instanceIds.empty()) {
+    LOGW("Received audio data event for no clients");
+    mPlatformAudio.releaseAudioDataEvent(event);
+  } else {
+    for (const auto& instanceId : instanceIds) {
+      EventLoopManagerSingleton::get()->getEventLoop()
+          .postEvent(CHRE_EVENT_AUDIO_DATA, event,
+                     freeAudioDataEventCallback,
+                     kSystemInstanceId, instanceId);
+    }
 
-  mAudioDataEventRefCounts.emplace_back(
-      event, static_cast<uint32_t>(instanceIds.size()));
+    mAudioDataEventRefCounts.emplace_back(
+        event, static_cast<uint32_t>(instanceIds.size()));
+  }
 }
 
 void AudioRequestManager::handleFreeAudioDataEvent(
