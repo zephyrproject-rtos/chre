@@ -147,6 +147,14 @@ class AudioRequestManager : public NonCopyable {
         / kOneSecondInNanoseconds);
   }
 
+  /**
+   * @return the instance of platform audio to allow platform-specific
+   * funtionality to call it. Example: handling host awake events.
+   */
+  PlatformAudio& getPlatformAudio() {
+    return mPlatformAudio;
+  }
+
  private:
   /**
    * One instance of an audio request from a nanoapp.
