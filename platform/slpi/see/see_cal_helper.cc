@@ -26,6 +26,7 @@ namespace chre {
 
 void SeeCalHelper::applyCalibration(SensorType sensorType, const float input[3],
                                     float output[3]) const {
+  bool applied = false;
   size_t index = getCalIndexFromSensorType(sensorType);
   if (index < ARRAY_SIZE(mCalInfo)) {
     LockGuard<Mutex> lock(mMutex);
@@ -35,6 +36,13 @@ void SeeCalHelper::applyCalibration(SensorType sensorType, const float input[3],
       for (size_t i = 0; i < 3; i++) {
         output[i] = input[i] - mCalInfo[index].cal.bias[i];
       }
+      applied = true;
+    }
+  }
+
+  if (!applied) {
+    for (size_t i = 0; i < 3; i++) {
+      output[i] = input[i];
     }
   }
 }
