@@ -1136,12 +1136,6 @@ SensorType getSensorTypeFromSensorInfo(
   if (suidFound) {
     LOGE("Unmatched client: %p, SUID 0x%016" PRIx64 " %016" PRIx64,
              client, suid.suid_high, suid.suid_low);
-    // TODO: remove after b/79993302 is resolved.
-    for (const auto& sensorInfo : sensorInfos) {
-      LOGE("  %p, 0x%016" PRIx64 " %016" PRIx64,
-           sensorInfo.client,
-           sensorInfo.suid.suid_high, sensorInfo.suid.suid_low);
-    }
 
     // Return SensorType in the other sns_client that matches the SUID as a
     // backup plan.
