@@ -34,6 +34,20 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
     EventLoopManagerSingleton::get()->getEventLoop().postEvent(
         mHostIsAwake ? CHRE_EVENT_HOST_AWAKE : CHRE_EVENT_HOST_ASLEEP,
         nullptr /* eventData */, nullptr /* freeCallback */);
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+    if (awake) {
+      auto callback = [](uint16_t /* eventType */, void * /* eventData*/) {
+        auto platformAudioBase = static_cast<PlatformAudioBase&>(
+            EventLoopManagerSingleton::get()->getAudioRequestManager()
+                .getPlatformAudio());
+        platformAudioBase.onHostAwake();
+      };
+
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::AudioHandleHostAwake, nullptr, callback);
+    }
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
   }
 }
 

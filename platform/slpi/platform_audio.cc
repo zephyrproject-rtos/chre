@@ -106,11 +106,21 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
   }
 
   if (lastNumAudioClients == 0 && mNumAudioClients > 0) {
+    // When enabling, request audio immediately.
     LOGD("Enabling WCD SLPI");
-    sendAudioRequest();
+    targetAudioEnabled = true;
+    if (!currentAudioEnabled) {
+      currentAudioEnabled = true;
+      sendAudioRequest();
+    }
   } else if (lastNumAudioClients > 0 && mNumAudioClients == 0) {
-    LOGD("Disabling WCD SLPI");
-    sendAudioRelease();
+    targetAudioEnabled = false;
+    if (EventLoopManagerSingleton::get()->getEventLoop()
+            .getPowerControlManager().hostIsAwake()) {
+      onHostAwake();
+    } else {
+      LOGD("Deferring disable WCD SLPI");
+    }
   }
 }
 
@@ -149,6 +159,14 @@ bool PlatformAudio::getAudioSource(uint32_t handle,
   }
 
   return result;
+}
+
+void PlatformAudioBase::onHostAwake() {
+  if (currentAudioEnabled && !targetAudioEnabled) {
+    LOGD("Disabling WCD SPI");
+    currentAudioEnabled = targetAudioEnabled;
+    sendAudioRelease();
+  }
 }
 
 }  // namespace chre
