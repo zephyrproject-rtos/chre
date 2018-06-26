@@ -587,9 +587,13 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
 #endif
   bool success = seeHelper->makeRequest(req);
 
-  // TODO: remove setSamplingStatus when .latency is available in status update
-  // from SEE.
   if (success) {
+    if (request.getMode() == SensorMode::Off) {
+      mLastEventValid = false;
+    }
+
+    // TODO: remove setSamplingStatus when .latency is available in status
+    // update from SEE.
     struct chreSensorSamplingStatus status;
     if (getSamplingStatus(&status)) {
 
