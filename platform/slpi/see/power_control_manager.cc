@@ -38,10 +38,8 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
     if (awake) {
       auto callback = [](uint16_t /* eventType */, void * /* eventData*/) {
-        auto platformAudioBase = static_cast<PlatformAudioBase&>(
-            EventLoopManagerSingleton::get()->getAudioRequestManager()
-                .getPlatformAudio());
-        platformAudioBase.onHostAwake();
+        EventLoopManagerSingleton::get()->getAudioRequestManager()
+            .getPlatformAudio().onHostAwake();
       };
 
       EventLoopManagerSingleton::get()->deferCallback(
