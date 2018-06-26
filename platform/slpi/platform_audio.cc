@@ -106,10 +106,9 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
   }
 
   if (lastNumAudioClients == 0 && mNumAudioClients > 0) {
-    // When enabling, request audio immediately.
-    LOGD("Enabling WCD SLPI");
     mTargetAudioEnabled = true;
     if (!mCurrentAudioEnabled) {
+      LOGD("Enabling WCD SLPI");
       mCurrentAudioEnabled = true;
       sendAudioRequest();
     }
