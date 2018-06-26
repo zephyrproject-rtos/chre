@@ -37,11 +37,11 @@ class PlatformAudioBase {
   uint32_t mNumAudioClients = 0;
 
   //! The current state of the audio feature enabled on the host.
-  bool currentAudioEnabled = false;
+  bool mCurrentAudioEnabled = false;
 
   //! The target state of the audio feature enabled on the host. This is used to
   //! support deferred disabling when the next AP wake occurs.
-  bool targetAudioEnabled = false;
+  bool mTargetAudioEnabled = false;
 };
 
 }  // namespace chre
