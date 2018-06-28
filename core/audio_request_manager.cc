@@ -318,14 +318,13 @@ void AudioRequestManager::handleAudioDataEventSync(
   if (handle < mAudioRequestLists.size()) {
     auto& reqList = mAudioRequestLists[handle];
     AudioRequest *nextAudioRequest = reqList.nextAudioRequest;
-
-    if (reqList.nextAudioRequest != nullptr) {
+    if (nextAudioRequest != nullptr) {
       postAudioDataEventFatal(event, nextAudioRequest->instanceIds);
       nextAudioRequest->nextEventTimestamp = SystemTime::getMonotonicTime()
           + nextAudioRequest->deliveryInterval;
-      reqList.nextAudioRequest = nullptr;
     } else {
       LOGW("Received audio data event with no pending audio request");
+      mPlatformAudio.releaseAudioDataEvent(event);
     }
 
     scheduleNextAudioDataEvent(handle);
@@ -352,6 +351,8 @@ void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
   auto& reqList = mAudioRequestLists[handle];
   AudioRequest *nextRequest = findNextAudioRequest(handle);
 
+  // Clear the next request and it will be reset below if needed.
+  reqList.nextAudioRequest = nullptr;
   if (reqList.available && nextRequest != nullptr) {
     Nanoseconds curTime = SystemTime::getMonotonicTime();
     Nanoseconds eventDelay = Nanoseconds(0);
