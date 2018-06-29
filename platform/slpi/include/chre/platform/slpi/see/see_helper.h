@@ -117,6 +117,9 @@ class SeeHelper : public NonCopyable {
     sns_std_suid suid;
     SensorType sensorType;
     sns_client *client;
+    //! The SUID of the underlying physical sensor, different from suid if
+    //! resampler is used.
+    sns_std_suid physicalSuid;
   };
 
   /**
@@ -241,13 +244,14 @@ class SeeHelper : public NonCopyable {
    *
    * @param sensorType The SensorType to register.
    * @param suid The SUID of the sensor.
+   * @param resample Whether to resample this sensorType.
    * @param prevRegistered A non-null pointer to a boolean that indicates
    *        whether the SUID/SensorType pair has been previously registered.
    *
    * @return true if the SUID/SensorType pair was successfully registered.
    */
   bool registerSensor(SensorType sensorType, const sns_std_suid& suid,
-                      bool *prevRegistered);
+                      bool resample, bool *prevRegistered);
 
   /**
    * Checks whether the given SensorType has been successfully registered
@@ -352,6 +356,9 @@ class SeeHelper : public NonCopyable {
   //! The SUID for the remote_proc sensor.
   Optional<sns_std_suid> mRemoteProcSuid;
 
+  //! The SUID for the resampler sensor.
+  Optional<sns_std_suid> mResamplerSuid;
+
   //! Handles sensor calibration data
   SeeCalHelper *mCalHelper;
 
@@ -364,6 +371,13 @@ class SeeHelper : public NonCopyable {
    * @return true if the remote proc sensor was successfully initialized.
    */
   bool initRemoteProcSensor();
+
+  /**
+   * Initializes the SEE resampler sensor.
+   *
+   * @return true if the resampler sensor was successfully initialized.
+   */
+  bool initResamplerSensor();
 
   /**
    * Sends a request to SEE and waits for the response.
