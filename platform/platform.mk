@@ -139,6 +139,7 @@ SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_cal.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_physical_sensor_test.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_proximity.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_remote_proc_state.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_resampler.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c

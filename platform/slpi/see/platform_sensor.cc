@@ -325,9 +325,11 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
 
+  // Resample big image accel to reduce system load during sw flush.
+  bool resample = (sensorType == kAccelBigImageSensorType);
   bool prevRegistered;
   bool registered = seeHelper.registerSensor(
-      sensorType, suid, &prevRegistered);
+      sensorType, suid, resample, &prevRegistered);
   if (!registered && prevRegistered) {
     LOGW("SUID has been previously registered");
   } else if (!registered) {
