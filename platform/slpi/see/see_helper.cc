@@ -24,6 +24,7 @@
 #include "sns_proximity.pb.h"
 #include "sns_rc.h"
 #include "sns_remote_proc_state.pb.h"
+#include "sns_resampler.pb.h"
 #include "sns_std.pb.h"
 #include "sns_std_sensor.pb.h"
 #include "stringl.h"
@@ -224,6 +225,55 @@ bool encodeSnsSuidReq(const char *dataType,
       pb_ostream_t stream = pb_ostream_from_buffer(msg->get(), *msgLen);
 
       success = pb_encode(&stream, sns_suid_req_fields, &req);
+      if (!success) {
+        LOG_NANOPB_ERROR(&stream);
+      }
+    }
+  }
+  return success;
+}
+
+/**
+ * Encodes sns_resampler_config pb message.
+ *
+ * @param request The request to be encoded.
+ * @param suid The SUID of the physical sensor to be resampled.
+ * @param msg A non-null pointer to the pb message unique pointer whose object
+ *            will be assigned here.
+ * @param msgLen A non-null pointer to the size of the encoded pb message.
+ *
+ * @return true if the pb message and length were obtained.
+ */
+bool encodeSnsResamplerConfig(const SeeSensorRequest& request,
+                              const sns_std_suid& suid,
+                              UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
+  CHRE_ASSERT(msg);
+  CHRE_ASSERT(msgLen);
+  bool success = false;
+
+  // Initialize the pb message
+  sns_resampler_config req = {
+    .sensor_uid = suid,
+    .resampled_rate = request.samplingRateHz,
+    .rate_type = SNS_RESAMPLER_RATE_FIXED,
+    .filter = true,
+    .has_axis_cnt = true,
+    .axis_cnt = 3,  // TODO: set this properly.
+  };
+
+  if (!pb_get_encoded_size(msgLen, sns_resampler_config_fields, &req)) {
+    LOGE("pb_get_encoded_size failed for sns_resampler_config");
+  } else if (*msgLen == 0) {
+    LOGE("Invalid pb encoded size for sns_resampler_config");
+  } else {
+    UniquePtr<pb_byte_t> buf(static_cast<pb_byte_t *>(memoryAlloc(*msgLen)));
+    *msg = std::move(buf);
+    if (msg->isNull()) {
+      LOG_OOM();
+    } else {
+      pb_ostream_t stream = pb_ostream_from_buffer(msg->get(), *msgLen);
+
+      success = pb_encode(&stream, sns_resampler_config_fields, &req);
       if (!success) {
         LOG_NANOPB_ERROR(&stream);
       }
@@ -985,6 +1035,41 @@ bool decodeSnsProximityProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
+bool decodeSnsResamplerConfigEvent(pb_istream_t *stream,
+                                   const pb_field_t *field, void **arg) {
+  sns_resampler_config_event event = {};
+
+  bool success = pb_decode(stream, sns_resampler_config_event_fields, &event);
+  if (!success) {
+    LOG_NANOPB_ERROR(stream);
+  } else {
+    auto *info = static_cast<SeeInfoArg *>(*arg);
+    LOGD("SensorType %" PRIu8 " resampler quality %" PRIu8,
+         static_cast<uint8_t>(info->data->sensorType),
+         static_cast<uint8_t>(event.quality));
+  }
+  return success;
+}
+
+/**
+ * Decode messages defined in sns_resampler.proto
+ */
+bool decodeSnsResamplerProtoEvent(pb_istream_t *stream, const pb_field_t *field,
+                                  void **arg) {
+  bool success = false;
+
+  auto *info = static_cast<SeeInfoArg *>(*arg);
+  switch (info->msgId) {
+    case SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG_EVENT:
+      success = decodeSnsResamplerConfigEvent(stream, field, arg);
+      break;
+
+    default:
+      LOGW("Unhandled sns_resampler.proto msg ID %" PRIu32, info->msgId);
+  }
+  return success;
+}
+
 bool decodeSnsRemoteProcStateEvent(
     pb_istream_t *stream, const pb_field_t *field, void **arg) {
   sns_remote_proc_state_event event = sns_remote_proc_state_event_init_default;
@@ -1049,6 +1134,10 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
       case SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT:
         payload->funcs.decode = decodeSnsProximityProtoEvent;
+        break;
+
+      case SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG_EVENT:
+        payload->funcs.decode = decodeSnsResamplerProtoEvent;
         break;
 
       default:
@@ -1455,6 +1544,7 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout,
   // Initialize cal/remote_proc_state sensors before making sensor data request.
   return (waitForService(&client, timeout)
           && mSeeClients.push_back(client)
+          && initResamplerSensor()
           && (skipDefaultSensorInit
               || (mCalHelper->registerForCalibrationUpdates(*this)
                   && initRemoteProcSensor())));
@@ -1477,8 +1567,14 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
       msgId = SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
       success = true;
     } else if (sensorTypeIsContinuous(request.sensorType)) {
-      msgId = SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_CONFIG;
-      success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
+      if (suidsMatch(sensorInfo->suid, mResamplerSuid.value())) {
+        msgId = SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG;
+        success = encodeSnsResamplerConfig(
+            request, sensorInfo->physicalSuid, &msg, &msgLen);
+      } else {
+        msgId = SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_CONFIG;
+        success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
+      }
     } else {
       msgId = SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG;
       // No sample rate needed to configure on-change or one-shot sensors.
@@ -1641,44 +1737,54 @@ void SeeHelper::seeRespCb(sns_client *client, sns_std_error error,
 }
 
 bool SeeHelper::registerSensor(
-    SensorType sensorType, const sns_std_suid& suid, bool *prevRegistered) {
+    SensorType sensorType, const sns_std_suid& suid, bool resample,
+    bool *prevRegistered) {
   CHRE_ASSERT(sensorType != SensorType::Unknown);
   CHRE_ASSERT(prevRegistered != nullptr);
   bool success = false;
 
-  // Check whether the SUID/SensorType pair has been previously registered.
-  // Also count how many other SensorTypes the SUID has been registered with.
-  *prevRegistered = false;
-  size_t suidRegCount = 0;
-  for (const auto& sensorInfo : mSensorInfos) {
-    if (suidsMatch(suid, sensorInfo.suid)) {
-      suidRegCount++;
-      if (sensorInfo.sensorType == sensorType) {
-        *prevRegistered = true;
+  bool doResample = resample && sensorTypeIsContinuous(sensorType);
+  if (doResample && !mResamplerSuid.has_value()) {
+    LOGE("Unable to use resampler without its SUID");
+  } else {
+    // The SUID to make request to.
+    const sns_std_suid& reqSuid = doResample ? mResamplerSuid.value() : suid;
+
+    // Check whether the SUID/SensorType pair has been previously registered.
+    // Also count how many other SensorTypes the SUID has been registered with.
+    *prevRegistered = false;
+    size_t suidRegCount = 0;
+    for (const auto& sensorInfo : mSensorInfos) {
+      if (suidsMatch(reqSuid, sensorInfo.suid)) {
+        suidRegCount++;
+        if (sensorInfo.sensorType == sensorType) {
+          *prevRegistered = true;
+        }
       }
     }
-  }
 
-  // Initialize another SEE client if the SUID has been previously
-  // registered with more SensorTypes than the number of SEE clients can
-  // disambiguate.
-  bool clientAvailable = true;
-  if (mSeeClients.size() <= suidRegCount) {
-    sns_client *client;
-    clientAvailable = waitForService(&client);
-    if (clientAvailable) {
-      clientAvailable = mSeeClients.push_back(client);
+    // Initialize another SEE client if the SUID has been previously
+    // registered with more SensorTypes than the number of SEE clients can
+    // disambiguate.
+    bool clientAvailable = true;
+    if (mSeeClients.size() <= suidRegCount) {
+      sns_client *client;
+      clientAvailable = waitForService(&client);
+      if (clientAvailable) {
+        clientAvailable = mSeeClients.push_back(client);
+      }
     }
-  }
 
-  // Add a new entry only if this SUID/SensorType pair hasn't been registered.
-  if (!*prevRegistered && clientAvailable) {
-    SensorInfo sensorInfo = {
-      .suid = suid,
-      .sensorType = sensorType,
-      .client = mSeeClients[suidRegCount],
-    };
-    success = mSensorInfos.push_back(sensorInfo);
+    // Add a new entry only if this SUID/SensorType pair hasn't been registered.
+    if (!*prevRegistered && clientAvailable) {
+      SensorInfo sensorInfo = {
+        .suid = reqSuid,
+        .sensorType = sensorType,
+        .client = mSeeClients[suidRegCount],
+        .physicalSuid = suid,
+      };
+      success = mSensorInfos.push_back(sensorInfo);
+    }
   }
   return success;
 }
@@ -1731,6 +1837,20 @@ bool SeeHelper::initRemoteProcSensor() {
     }
   }
 
+  return success;
+}
+
+bool SeeHelper::initResamplerSensor() {
+  bool success = false;
+
+  const char *kResamplerType = "resampler";
+  DynamicVector<sns_std_suid> suids;
+  if (!findSuidSync(kResamplerType, &suids)) {
+    LOGE("Failed to find sensor '%s'", kResamplerType);
+  } else {
+    mResamplerSuid = suids[0];
+    success = true;
+  }
   return success;
 }
 
