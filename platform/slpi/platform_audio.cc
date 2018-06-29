@@ -58,6 +58,7 @@ void handleWcdSpiAudioDataEvent(const wcd_spi_audio_data_event_s *event) {
   auto *dataEvent = memoryAlloc<struct chreAudioDataEvent>();
   if (dataEvent == nullptr) {
     LOGE("Failed to allocate data event");
+    wcd_spi_client_release_audio_data_event(event->handle);
   } else {
     dataEvent->handle = event->handle;
     dataEvent->timestamp = event->timestamp_ns;
