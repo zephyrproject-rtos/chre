@@ -324,6 +324,9 @@ bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId,
     req->susp_config.delivery_type = SNS_CLIENT_DELIVERY_WAKEUP;
     req->request.has_batching = batchValid;
     req->request.batching.batch_period = batchPeriodUs;
+    // TODO: remove flush_period setting after resolving b/110823194.
+    req->request.batching.has_flush_period = true;
+    req->request.batching.flush_period = batchPeriodUs + 3000000;
     req->request.payload.funcs.encode = copyPayload;
     req->request.payload.arg = data;
     req->request.has_is_passive = true,
