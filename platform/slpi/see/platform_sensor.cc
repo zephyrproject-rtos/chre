@@ -326,7 +326,11 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
   }
 
   // Resample big image accel to reduce system load during sw flush.
+#ifdef CHRE_SLPI_UIMG_ENABLED
   bool resample = (sensorType == kAccelBigImageSensorType);
+#else
+  bool resample = false;
+#endif
   bool prevRegistered;
   bool registered = seeHelper.registerSensor(
       sensorType, suid, resample, &prevRegistered);
