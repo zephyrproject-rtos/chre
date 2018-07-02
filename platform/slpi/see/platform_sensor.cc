@@ -591,7 +591,21 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     slpiForceBigImage();
   }
 #endif
+
+  bool wasInUImage = slpiInUImage();
   bool success = seeHelper->makeRequest(req);
+
+  // If we dropped into micro-image during that blocking call to SEE, go back to
+  // big image. This won't happen if the calling nanoapp is a big image one, but
+  // other code paths currently assume that we will only transition from big
+  // image to micro-image from CHRE's perspective while it's waiting for an
+  // event to arrive in its empty queue.
+  // TODO: transition back to big image only when needed, at the point of
+  // invoking a nanoapp's free event/message callback
+  if (!wasInUImage && slpiInUImage()) {
+    LOGD("Restoring big image operating mode");
+    slpiForceBigImage();
+  }
 
   if (success) {
     if (request.getMode() == SensorMode::Off) {
