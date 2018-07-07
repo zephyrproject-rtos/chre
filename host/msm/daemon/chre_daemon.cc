@@ -392,17 +392,19 @@ static bool loadLpma(SoundModelHandle *lpmaHandle) {
 }
 
 /**
- * Unloads the LPMA use case via the SoundTrigger HAL HIDL service.
+ * Unloads the LPMA use case via the SoundTrigger HAL HIDL service. This
+ * function does not indicate success/failure as it is expected that even in the
+ * event of a failure to unload, the use case will be unloaded. As long as the
+ * sound trigger HAL received the request we can be assured that the use case
+ * will be unloaded (even if it means reseting the codec or otherwise).
  *
  * @param lpmaHandle A handle that was previously produced by the setLpmaEnabled
  *        function. This is the handle that is unloaded from the ST HAL to
  *        disable LPMA.
- * @return true if LPMA was disabled successfully, false otherwise.
  */
-static bool unloadLpma(SoundModelHandle lpmaHandle) {
+static void unloadLpma(SoundModelHandle lpmaHandle) {
   LOGD("Unloading LPMA");
 
-  bool unloaded = false;
   sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
   if (stHal == nullptr) {
     LOGE("Failed to get ST HAL service for LPMA unload");
@@ -412,7 +414,6 @@ static bool unloadLpma(SoundModelHandle lpmaHandle) {
     if (hidlResult.isOk()) {
       if (hidlResult == 0) {
         LOGI("Unloaded LPMA");
-        unloaded = true;
       } else {
         LOGE("Failed to unload LPMA with %" PRId32, int32_t(hidlResult));
       }
@@ -421,8 +422,6 @@ static bool unloadLpma(SoundModelHandle lpmaHandle) {
            hidlResult.description().c_str());
     }
   }
-
-  return unloaded;
 }
 
 static void *chreLpmaEnableThread(void *arg) {
@@ -445,8 +444,14 @@ static void *chreLpmaEnableThread(void *arg) {
       releaseWakeLock();  // Allow the system to suspend while waiting.
       pthread_cond_wait(&state->cond, &state->mutex);
       acquireWakeLock();  // Ensure the system stays up while retrying.
-    } else if ((state->targetLpmaEnabled && loadLpma(&lpmaHandle))
-               || (!state->targetLpmaEnabled && unloadLpma(lpmaHandle))) {
+    } else if (state->targetLpmaEnabled && loadLpma(&lpmaHandle)) {
+      state->currentLpmaEnabled = state->targetLpmaEnabled;
+    } else if (!state->targetLpmaEnabled) {
+      // Regardless of whether the use case fails to unload, set the
+      // currentLpmaEnabled to the targetLpmaEnabled. This will allow the next
+      // enable request to proceed. After a failure to unload occurs, the
+      // supplied handle is invalid and should not be unloaded again.
+      unloadLpma(lpmaHandle);
       state->currentLpmaEnabled = state->targetLpmaEnabled;
     } else {
       // Unlock while delaying to avoid blocking the client thread. No shared
