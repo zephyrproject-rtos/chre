@@ -23,6 +23,14 @@
 
 namespace chre {
 
+PowerControlManagerBase::PowerControlManagerBase() {
+  sns_client_create_thread_utilization_client(&mThreadUtilClient);
+}
+
+PowerControlManagerBase::~PowerControlManagerBase() {
+  sns_client_remove_thread_utilization_client(mThreadUtilClient);
+}
+
 bool PowerControlManagerBase::voteBigImage(bool bigImage) {
   return IslandVoteClientSingleton::get()->voteBigImage(bigImage);
 }
@@ -50,6 +58,23 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
 }
 
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
+  // Although this execution point does not actually represent the start
+  // of the CHRE thread's activity, we only care about cases where the
+  // CHRE's event queue is highly backlogged for voting higher clock rates.
+  if (mIsThreadIdle && numPendingEvents != 0) {
+    sns_client_thread_utilization_start(mThreadUtilClient);
+    mIsThreadIdle = false;
+  } else if (!mIsThreadIdle) {
+    // Update the time profile as frequently as possible so that clock updates
+    // are not deferred until all events are processed.
+    sns_client_thread_utilization_stop(mThreadUtilClient);
+    if (numPendingEvents != 0) {
+      sns_client_thread_utilization_start(mThreadUtilClient);
+    } else {
+      mIsThreadIdle = true;
+    }
+  }
+
   if (numPendingEvents == 0 && !slpiInUImage()) {
     voteBigImage(false /* bigImage */);
   }
