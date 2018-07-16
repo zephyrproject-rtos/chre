@@ -79,6 +79,9 @@ constexpr Nanoseconds kDefaultSeeRespTimeout = Seconds(1);
 //! Default timeout for sendReq indication
 constexpr Nanoseconds kDefaultSeeIndTimeout = Seconds(2);
 
+//! Allowed number of consecutive missing responses.
+constexpr uint32_t kSeeNumMissingResp = 5;
+
 //! Length of the char array to store sensor string attributes.
 constexpr size_t kSeeAttrStrValLen = 64;
 
@@ -352,6 +355,9 @@ class SeeHelper : public NonCopyable {
 
   //! A transaction ID that increments for each request.
   uint32_t mCurrentTxnId = 0;
+
+  //! The number of consecutive missing responses.
+  uint32_t mNumMissingResp = 0;
 
   //! The SUID for the remote_proc sensor.
   Optional<sns_std_suid> mRemoteProcSuid;

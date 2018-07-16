@@ -1648,11 +1648,19 @@ bool SeeHelper::sendSeeReqSync(
         if (!waitSuccess) {
           LOGE("SEE resp timed out after %" PRIu64 " ms",
                Milliseconds(timeoutResp).getMilliseconds());
-        } else if (mRespError != SNS_STD_ERROR_NO_ERROR) {
-          LOGE("SEE txn ID %" PRIu32 " failed with error %d",
-               mCurrentTxnId, mRespError);
+
+          if (++mNumMissingResp >= kSeeNumMissingResp) {
+            FATAL_ERROR("%" PRIu32 " consecutive missing responses",
+                        mNumMissingResp);
+          }
         } else {
-          success = true;
+          mNumMissingResp = 0;
+          if (mRespError != SNS_STD_ERROR_NO_ERROR) {
+            LOGE("SEE txn ID %" PRIu32 " failed with error %d",
+                 mCurrentTxnId, mRespError);
+          } else {
+            success = true;
+          }
         }
       }
       mWaitingOnResp = false;
