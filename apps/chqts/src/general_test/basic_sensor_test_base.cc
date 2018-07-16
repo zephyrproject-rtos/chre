@@ -20,10 +20,13 @@
 #include <cstddef>
 
 #include <shared/send_message.h>
+#include <shared/time_util.h>
 
 #include <chre.h>
 
 using nanoapp_testing::MessageType;
+using nanoapp_testing::kOneMillisecondInNanoseconds;
+using nanoapp_testing::kOneSecondInNanoseconds;
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendInternalFailureToHost;
 using nanoapp_testing::sendStringToHost;
@@ -53,8 +56,7 @@ namespace general_test {
 namespace {
 constexpr uint16_t kStartEvent = CHRE_EVENT_FIRST_USER_VALUE;
 constexpr uint16_t kPassiveCompleteEvent = CHRE_EVENT_FIRST_USER_VALUE + 1;
-constexpr uint64_t kNanosecondsPerSecond = 1000000000;
-constexpr uint64_t kEventLoopSlack = 100000000;  // 100 msec
+constexpr uint64_t kEventLoopSlack = 100 * kOneMillisecondInNanoseconds;
 
 uint64_t getEventDuration(const chreSensorThreeAxisData *event) {
   uint64_t duration = 0;
@@ -121,19 +123,19 @@ void BasicSensorTestBase::checkPassiveConfigure() {
   } else {
     if (!chreSensorConfigure(mSensorHandle, mode,
                              CHRE_SENSOR_INTERVAL_DEFAULT,
-                             kNanosecondsPerSecond)) {
+                             kOneSecondInNanoseconds)) {
       sendFatalFailureToHost("chreSensorConfigure() failed passive with "
                              "default interval and non-default latency");
     }
     if (!isOneShotSensor() && !chreSensorConfigure(
-        mSensorHandle, mode, kNanosecondsPerSecond,
+        mSensorHandle, mode, kOneSecondInNanoseconds,
         CHRE_SENSOR_LATENCY_DEFAULT)) {
       sendFatalFailureToHost("chreSensorConfigure() failed passive with "
                              "non-default interval and default latency");
     }
     if (!isOneShotSensor() && !chreSensorConfigure(
-        mSensorHandle, mode, kNanosecondsPerSecond,
-        kNanosecondsPerSecond)) {
+        mSensorHandle, mode, kOneSecondInNanoseconds,
+        kOneSecondInNanoseconds)) {
       sendFatalFailureToHost("chreSensorConfigure() failed passive with "
                              "non-default interval and latency");
     }
@@ -211,7 +213,7 @@ void BasicSensorTestBase::startTest() {
     //     from what it currently is for the sensor, and confirm it
     //     changes back when we're DONE.  But that's beyond the current
     //     scope of this 'basic' test.
-    kNanosecondsPerSecond, /* interval */
+    kOneSecondInNanoseconds, /* interval */
     // We want the test to run as quickly as possible.
     // TODO: Similar to the interval, we could try to test changes in
     //     this value, but it's beyond our 'basic' scope for now.
