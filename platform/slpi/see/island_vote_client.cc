@@ -26,7 +26,9 @@
 
 namespace chre {
 
+#ifdef CHRE_SLPI_UIMG_ENABLED
 constexpr Seconds IslandVoteClient::kSeeMaxBigImageDuration;
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
 IslandVoteClient::IslandVoteClient(const char *clientName) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
