@@ -55,7 +55,6 @@ namespace general_test {
 
 namespace {
 constexpr uint16_t kStartEvent = CHRE_EVENT_FIRST_USER_VALUE;
-constexpr uint16_t kPassiveCompleteEvent = CHRE_EVENT_FIRST_USER_VALUE + 1;
 constexpr uint64_t kEventLoopSlack = 100 * kOneMillisecondInNanoseconds;
 
 uint64_t getEventDuration(const chreSensorThreeAxisData *event) {
@@ -72,7 +71,6 @@ BasicSensorTestBase::BasicSensorTestBase()
   : Test(CHRE_API_VERSION_1_0),
     mInMethod(true),
     mExternalSamplingStatusChange(false),
-    mDoneWithPassiveConfigure(false),
     mState(State::kPreStart),
     mInstanceId(chreGetInstanceId())
     /* All other members initialized later */ {
@@ -178,14 +176,8 @@ void BasicSensorTestBase::startTest() {
     sendFatalFailureToHost("chreGetSensorSamplingStatus() failed");
   }
 
-  // Nanoapp may start getting events with a passive request. Set the base
-  // timestamp to compare against before configuring the sensor.
+  // Set the base timestamp to compare against before configuring the sensor.
   mPreTimestamp = chreGetTime();
-
-  checkPassiveConfigure();
-  if (!chreSendEvent(kPassiveCompleteEvent, nullptr, nullptr, mInstanceId)) {
-    sendFatalFailureToHost("Failed chreSendEvent to complete passive test");
-  }
 
   // Default interval/latency must be accepted by all sensors.
   mNewStatus = {
@@ -243,6 +235,8 @@ void BasicSensorTestBase::startTest() {
 }
 
 void BasicSensorTestBase::finishTest() {
+  checkPassiveConfigure();
+
   if (!chreSensorConfigureModeOnly(mSensorHandle,
                                    CHRE_SENSOR_CONFIGURE_MODE_DONE)) {
     sendFatalFailureToHost("Unable to configure sensor mode to DONE");
@@ -367,7 +361,7 @@ void BasicSensorTestBase::handleSamplingChangeEvent(
   }
   // Passive sensor requests do not guarantee sensors will always be enabled.
   // Bypass 'enabled' check for passive configurations.
-  if (mDoneWithPassiveConfigure && !eventData->status.enabled) {
+  if (!eventData->status.enabled) {
     sendFatalFailureToHost("SamplingChangeEvent disabled the sensor.");
   }
 
@@ -417,10 +411,7 @@ void BasicSensorTestBase::handleEvent(
   if (senderInstanceId == mInstanceId) {
     if ((eventType == kStartEvent) && (mState == State::kPreStart)) {
       startTest();
-    } else if (eventType == kPassiveCompleteEvent) {
-      mDoneWithPassiveConfigure = true;
     }
-
   } else if ((mState == State::kPreStart) ||
              (mState == State::kPreConfigure)) {
     unexpectedEvent(eventType);
