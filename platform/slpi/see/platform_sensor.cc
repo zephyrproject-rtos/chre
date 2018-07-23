@@ -190,9 +190,9 @@ void updateSamplingStatus(
       newStatus.latency = update.status.latency;
     }
 
-    if (newStatus.enabled != prevStatus.enabled
-        || newStatus.interval != prevStatus.interval
-        || newStatus.latency != prevStatus.latency) {
+    if (newStatus.enabled != prevStatus.enabled ||
+        (newStatus.enabled && (newStatus.interval != prevStatus.interval
+                               || newStatus.latency != prevStatus.latency))) {
       sensor->setSamplingStatus(newStatus);
 
       // Only post to Nanoapps with an open request.
