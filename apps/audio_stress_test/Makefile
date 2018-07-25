@@ -18,7 +18,7 @@ endif
 
 NANOAPP_NAME_STRING = \"Audio\ Stress\ Test\"
 NANOAPP_NAME = audio_stress_test
-NANOAPP_ID = 0x476f6f676c002007
+NANOAPP_ID = 0x012345678900000e
 NANOAPP_VERSION = 0x00000001
 
 # Common Compiler Flags ########################################################
