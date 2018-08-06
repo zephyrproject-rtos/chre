@@ -23,8 +23,9 @@ cc_library_static {
         "util/include",
     ],
     srcs: [
-        "host/common/socket_client.cc",
+        "host/common/fragmented_load_transaction.cc",
         "host/common/host_protocol_host.cc",
+        "host/common/socket_client.cc",
         "platform/shared/host_protocol_common.cc",
     ],
     header_libs: ["chre_flatbuffers"],
@@ -65,6 +66,7 @@ cc_library_shared {
         "host/hal_generic/generic_context_hub.cc",
     ],
     cflags: ["-Wall", "-Werror"],
+    cpp_std: "c++17",
     shared_libs: [
         "libcutils",
         "liblog",
