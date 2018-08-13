@@ -28,6 +28,7 @@
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/platform_sensor_util.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/see/see_client.h"
 #include "chre/platform/slpi/see/see_helper.h"
 #include "chre/platform/system_time.h"
@@ -45,6 +46,17 @@
 
 namespace chre {
 namespace {
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+#ifndef CHREX_SENSOR_SUPPORT
+// The current implementation uses vendor sensor type 3 to remap into accel,
+// with requests made through QMI instead of QSockets, as SEE does not support
+// micro-image batching in QCM.
+#error "CHRE extensions are required for micro-image SEE support"
+#endif  // CHREX_SENSOR_SUPPORT
+
+constexpr SensorType kAccelBigImageSensorType = SensorType::VendorType3;
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
 //! A class that implements SeeHelperCallbackInterface.
 class SeeHelperCallback : public SeeHelperCallbackInterface {
@@ -178,9 +190,9 @@ void updateSamplingStatus(
       newStatus.latency = update.status.latency;
     }
 
-    if (newStatus.enabled != prevStatus.enabled
-        || newStatus.interval != prevStatus.interval
-        || newStatus.latency != prevStatus.latency) {
+    if (newStatus.enabled != prevStatus.enabled ||
+        (newStatus.enabled && (newStatus.interval != prevStatus.interval
+                               || newStatus.latency != prevStatus.latency))) {
       sensor->setSamplingStatus(newStatus);
 
       // Only post to Nanoapps with an open request.
@@ -279,14 +291,16 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
 /**
  * Constructs and initializes a sensor, and adds it to the sensor list.
  *
+ * @param seeHelper SeeHelper instance to register sensor with
  * @param suid The SUID of the sensor as provided by SEE.
  * @param sensorType The sensor type of the sensor.
  * @param calibrated Whether the sensor is runtime-calibrated or not.
  * @param attr A reference to SeeAttrbutes.
  * @param sensor The sensor list.
  */
-void addSensor(SensorType sensorType, const sns_std_suid& suid,
-               const SeeAttributes& attr, DynamicVector<Sensor> *sensors) {
+void addSensor(SeeHelper& seeHelper, SensorType sensorType,
+               const sns_std_suid& suid, const SeeAttributes& attr,
+               DynamicVector<Sensor> *sensors) {
   // Concatenate vendor and name with a space in between.
   char sensorName[kSensorNameMaxLen];
   strlcpy(sensorName, attr.vendor, sizeof(sensorName));
@@ -311,9 +325,15 @@ void addSensor(SensorType sensorType, const sns_std_suid& suid,
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
 
+  // Resample big image accel to reduce system load during sw flush.
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  bool resample = (sensorType == kAccelBigImageSensorType);
+#else
+  bool resample = false;
+#endif
   bool prevRegistered;
-  bool registered = getSeeHelper()->registerSensor(
-      sensorType, suid, &prevRegistered);
+  bool registered = seeHelper.registerSensor(
+      sensorType, suid, resample, &prevRegistered);
   if (!registered && prevRegistered) {
     LOGW("SUID has been previously registered");
   } else if (!registered) {
@@ -344,10 +364,10 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
  * Obtains the list of SUIDs and their attributes that support the specified
  * data type.
  */
-bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
-                     uint8_t minNumSuids) {
+bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
+                     DynamicVector<SuidAttr> *suidAttrs, uint8_t minNumSuids) {
   DynamicVector<sns_std_suid> suids;
-  bool success = getSeeHelper()->findSuidSync(dataType, &suids, minNumSuids);
+  bool success = seeHelper.findSuidSync(dataType, &suids, minNumSuids);
   if (!success) {
     LOGE("Failed to find sensor '%s'", dataType);
   } else {
@@ -355,7 +375,7 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
 
     for (const auto& suid : suids) {
       SeeAttributes attr;
-      if (!getSeeHelper()->getAttributesSync(suid, &attr)) {
+      if (!seeHelper.getAttributesSync(suid, &attr)) {
         success = false;
         LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
              suid.suid_high, suid.suid_low);
@@ -378,14 +398,100 @@ bool getSuidAndAttrs(const char *dataType, DynamicVector<SuidAttr> *suidAttrs,
   return success;
 }
 
-// Check whether two sensors with the specified attrtibutes belong to the same
-// sensor hardware module.
+//! Check whether two sensors with the specified attrtibutes belong to the same
+//! sensor hardware module.
 bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
   // When HW ID is absent, it's default to 0 and won't be a factor.
   return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0)
           && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0)
           && (attr0.hwId == attr1.hwId));
 }
+
+/**
+ * Looks up SUID(s) associated with a given sensor data type string and sensor
+ * type enum, registers them with SeeHelper, and adds a Sensor instance to the
+ * supplied vector for use in CHRE. When given an uncalibrated sensor type, will
+ * also look for and add the calibrated sensor type.
+ *
+ * @param seeHelper SeeHelper instance to use for lookup/registration
+ * @param temperatureSensors List of previously discovered temperature sensor
+ *        info to use for adding temp sensors associated with this sensor type
+ * @param dataType SEE data type string
+ * @param sensorType CHRE sensor type enum associated with dataType
+ * @param skipAdditionalTypes if true, don't attempt to add
+ *        calibrated/temperature sensor types associated with this sensorType
+ * @param sensors Vector to append found sensor(s) to
+ */
+void findAndAddSensorsForType(
+    SeeHelper& seeHelper, const DynamicVector<SuidAttr>& temperatureSensors,
+    const char *dataType, SensorType sensorType, bool skipAdditionalTypes,
+    DynamicVector<Sensor> *sensors) {
+  DynamicVector<SuidAttr> primarySensors;
+  if (!getSuidAndAttrs(seeHelper, dataType, &primarySensors,
+                       1 /* minNumSuids */)) {
+    FATAL_ERROR("Failed to get primary sensor UID and attributes");
+  }
+
+  for (const auto& primarySensor : primarySensors) {
+    sns_std_suid suid = primarySensor.suid;
+    SeeAttributes attr = primarySensor.attr;
+
+    // Some sensors support both continuous and on-change streams.
+    // If there are more than one SUIDs that support the data type,
+    // choose the first one that has the expected stream type.
+    if (isStreamTypeCorrect(sensorType, attr.streamType)) {
+      addSensor(seeHelper, sensorType, suid, attr, sensors);
+
+      if (!skipAdditionalTypes) {
+        // Check if this sensor has a runtime-calibrated version.
+        SensorType calibratedType = getSensorTypeFromDataType(
+            dataType, true /* calibrated */);
+        if (calibratedType != sensorType) {
+          addSensor(seeHelper, calibratedType, suid, attr, sensors);
+        }
+
+        // Check if this sensor has a secondary temperature sensor.
+        SensorType temperatureType = getTempSensorType(sensorType);
+        if (temperatureType != SensorType::Unknown) {
+          bool tempFound = false;
+          for (const auto& tempSensor : temperatureSensors) {
+            sns_std_suid tempSuid = tempSensor.suid;
+            SeeAttributes tempAttr = tempSensor.attr;
+
+            if (sensorHwMatch(attr, tempAttr)) {
+              LOGD("Found matching temperature sensor type");
+              tempFound = true;
+              addSensor(seeHelper, temperatureType, tempSuid, tempAttr,
+                        sensors);
+              break;
+            }
+          }
+          if (!tempFound) {
+            LOGW("Temperature sensor type %" PRIu8 " not found!",
+                 static_cast<uint8_t>(temperatureType));
+          }
+        }
+      }
+      break;
+    }
+  }
+}
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+/**
+ * Registers alternate sensor(s) to be used separately by big image nanoapps.
+ */
+void getBigImageSensors(DynamicVector<Sensor> *sensors) {
+  // Currently, just adding calibrated accel, as it's the one we know that big
+  // image nanoapps will need at a different batching rate compared to uimg
+  SeeHelper& seeHelper = *getBigImageSeeHelper();
+  const char *kAccelDataType = "accel";
+  DynamicVector<SuidAttr> nullTemperatureSensorList;
+  findAndAddSensorsForType(
+      seeHelper, nullTemperatureSensorList, kAccelDataType,
+      kAccelBigImageSensorType, true /* skipAdditionalTypes */, sensors);
+}
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
 }  // anonymous namespace
 
@@ -404,17 +510,30 @@ void PlatformSensor::init() {
   if (!getSeeHelper()->init(&seeHelperCallback)) {
     FATAL_ERROR("Failed to initialize SEE helper");
   }
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  BigImageSeeHelperSingleton::init(getSeeHelper()->getCalHelper());
+  if (!getBigImageSeeHelper()->init(&seeHelperCallback, kDefaultSeeWaitTimeout,
+                                    true /* skipDefaultSensorInit */)) {
+    FATAL_ERROR("Failed to init bimg SEE helper");
+  }
+#endif  // CHRE_SLPI_UIMG_ENABLED
 }
 
 void PlatformSensor::deinit() {
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  BigImageSeeHelperSingleton::deinit();
+#endif
+
   SeeHelperSingleton::deinit();
 }
 
 bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
+  SeeHelper& seeHelper = *getSeeHelper();
   DynamicVector<SuidAttr> tempSensors;
-  if (!getSuidAndAttrs("sensor_temperature", &tempSensors,
+  if (!getSuidAndAttrs(seeHelper, "sensor_temperature", &tempSensors,
                        CHRE_SEE_NUM_TEMP_SENSORS)) {
       FATAL_ERROR("Failed to get temperature sensor UID and attributes");
   }
@@ -435,52 +554,14 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
       continue;
     }
 
-    DynamicVector<SuidAttr> primarySensors;
-    if (!getSuidAndAttrs(dataType, &primarySensors, 1 /* minNumSuids */)) {
-      FATAL_ERROR("Failed to get primary sensor UID and attributes");
-    } else {
-      for (const auto& primarySensor : primarySensors) {
-        sns_std_suid suid = primarySensor.suid;
-        SeeAttributes attr = primarySensor.attr;
-
-        // Some sensors support both continuous and on-change streams.
-        // If there are more than one SUIDs that support the data type,
-        // choose the first one that has the expected stream type.
-        if (isStreamTypeCorrect(sensorType, attr.streamType)) {
-          addSensor(sensorType, suid, attr, sensors);
-
-          // Check if this sensor has a runtime-calibrated version.
-          SensorType calibratedType = getSensorTypeFromDataType(
-              dataType, true /* calibrated */);
-          if (calibratedType != sensorType) {
-            addSensor(calibratedType, suid, attr, sensors);
-          }
-
-          // Check if this sensor has a secondary temperature sensor.
-          SensorType temperatureType = getTempSensorType(sensorType);
-          if (temperatureType != SensorType::Unknown) {
-            bool tempFound = false;
-            for (const auto& tempSensor : tempSensors) {
-              sns_std_suid tempSuid = tempSensor.suid;
-              SeeAttributes tempAttr = tempSensor.attr;
-
-              if (sensorHwMatch(attr, tempAttr)) {
-                LOGD("Found matching temperature sensor type");
-                tempFound = true;
-                addSensor(temperatureType, tempSuid, tempAttr, sensors);
-                break;
-              }
-            }
-            if (!tempFound) {
-              LOGW("Temperature sensor type %" PRIu8 " not found!",
-                   static_cast<uint8_t>(temperatureType));
-            }
-          }
-          break;
-        }
-      }
-    }
+    findAndAddSensorsForType(seeHelper, tempSensors, dataType, sensorType,
+                             false /* skipAdditionalTypes */, sensors);
   }
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  getBigImageSensors(sensors);
+#endif
+
   return true;
 }
 
@@ -503,11 +584,36 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
          static_cast<uint8_t>(getSensorType()));
   }
 
-  bool success = SeeHelperSingleton::get()->makeRequest(req);
+  SeeHelper *seeHelper = getSeeHelper();
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  if (getSensorType() == kAccelBigImageSensorType) {
+    seeHelper = getBigImageSeeHelper();
+    slpiForceBigImage();
+  }
+#endif
 
-  // TODO: remove setSamplingStatus when .latency is available in status update
-  // from SEE.
+  bool wasInUImage = slpiInUImage();
+  bool success = seeHelper->makeRequest(req);
+
+  // If we dropped into micro-image during that blocking call to SEE, go back to
+  // big image. This won't happen if the calling nanoapp is a big image one, but
+  // other code paths currently assume that we will only transition from big
+  // image to micro-image from CHRE's perspective while it's waiting for an
+  // event to arrive in its empty queue.
+  // TODO: transition back to big image only when needed, at the point of
+  // invoking a nanoapp's free event/message callback
+  if (!wasInUImage && slpiInUImage()) {
+    LOGD("Restoring big image operating mode");
+    slpiForceBigImage();
+  }
+
   if (success) {
+    if (request.getMode() == SensorMode::Off) {
+      mLastEventValid = false;
+    }
+
+    // TODO: remove setSamplingStatus when .latency is available in status
+    // update from SEE.
     struct chreSensorSamplingStatus status;
     if (getSamplingStatus(&status)) {
 

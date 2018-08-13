@@ -30,7 +30,35 @@ using chre::SensorType;
 using chre::getSensorModeFromEnum;
 using chre::getSensorTypeFromUnsignedInt;
 
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+namespace {
+constexpr uint8_t kBigImageAccelSensorType =
+    (CHRE_SENSOR_TYPE_VENDOR_START + 3);
+} //  anonymous namespace
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+
 DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+  // HACK: as SEE does not support software batching in uimg via QCM/uQSockets,
+  // reroute requests for accelerometer from a big image nanoapp to a separate
+  // sensor type internally. Accel is the only always-on sensor used today by
+  // big image nanoapps, and this change allows these requests to transparently
+  // go to a separate sensor implementation that supports uimg batching via
+  // CM/QMI.
+  // TODO(P2-5673a9): work with QC to determine a better long-term solution
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  if (!nanoapp->isUimgApp()) {
+    if (sensorType == CHRE_SENSOR_TYPE_ACCELEROMETER) {
+      sensorType = kBigImageAccelSensorType;
+    } else if (sensorType == kBigImageAccelSensorType) {
+      // Since we have an accompanying hack in PlatformNanoapp::handleEvent(),
+      // hide the vendor sensor type from big image nanoapps as we're unable to
+      // deliver events for it
+      return false;
+    }
+  }
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+
   SensorType validatedSensorType = getSensorTypeFromUnsignedInt(sensorType);
   return (validatedSensorType != SensorType::Unknown
       && EventLoopManagerSingleton::get()->getSensorRequestManager()
@@ -47,6 +75,15 @@ DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
   if (info != nullptr) {
     success = EventLoopManagerSingleton::get()->getSensorRequestManager().
         getSensorInfo(sensorHandle, *nanoapp, info);
+
+    // The distinction between big/uimg accel should be abstracted away from
+    // big image nanoapps, so overwrite any platform implementation here.
+#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+    if (!nanoapp->isUimgApp() && info->sensorType == kBigImageAccelSensorType) {
+      info->sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
+    }
+#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
+
   }
   return success;
 }
