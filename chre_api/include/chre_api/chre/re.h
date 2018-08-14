@@ -108,6 +108,13 @@ uint32_t chreGetInstanceId(void);
 /**
  * A method for logging information about the system.
  *
+ * The chreLog logging activity alone must not cause host wake-ups. For
+ * example, logs could be buffered in internal memory when the host is asleep,
+ * and delivered when appropriate (e.g. the host wakes up). If done this way,
+ * the internal buffer is recommended to be large enough (at least a few KB), so
+ * that multiple messages can be buffered. When these logs are sent to the host,
+ * they should be visible under the tag 'CHRE' in logcat.
+ *
  * A log entry can have a variety of levels (@see LogLevel).  This function
  * allows a variable number of arguments, in a printf-style format.
  *
@@ -148,7 +155,6 @@ uint32_t chreGetInstanceId(void);
  * CHRE implementation.  A CHRE implementation is allowed to support this
  * (for example, when using shared code which already supports this), but
  * nanoapp authors need to avoid these.
- *
  *
  * Unless specifically noted as OPTIONAL or NOT_SUPPORTED, format
  * (sub-)specifiers listed below are required.
