@@ -108,7 +108,7 @@ class GenericContextHub : public IContexthub {
      * Acquires mParent.mCallbacksLock and invokes the synchronous callback
      * argument if mParent.mCallbacks is not null.
      */
-    void invokeClientCallback(std::function<void()> callback);
+    void invokeClientCallback(std::function<Return<void>()> callback);
   };
 
   class DeathRecipient : public hidl_death_recipient {
