@@ -19,6 +19,10 @@ TARGET_CFLAGS += -DGTEST
 # (typically, unsigned value vs. implicitly signed literal)
 TARGET_CFLAGS += -Wno-sign-compare
 
+# Ignore missing field initializers as googletest will not compile with this
+# warning enabled.
+TARGET_CFLAGS += -Wno-missing-field-initializers
+
 TARGET_SO_LATE_LIBS = $(GOOGLE_X86_GOOGLETEST_LATE_LIBS)
 
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
