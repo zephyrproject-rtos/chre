@@ -29,7 +29,7 @@ TARGET_LD = $(HEXAGON_TOOLS_PREFIX)/Tools/bin/hexagon-link
 # Hexagon Compiler Flags #######################################################
 
 # Define CUST_H to allow including the customer header file.
-TARGET_CFLAGS += -DCUST_H
+TARGET_CFLAGS += -DCUST_H='"custaaaaaaaaq.h"'
 
 # Add Hexagon compiler flags
 TARGET_CFLAGS += $(HEXAGON_CFLAGS)
