@@ -214,32 +214,6 @@ class DynamicVector : public NonCopyable {
   bool insert(size_type index, ElementType&& element);
 
   /**
-   * Similar to wrap(), except makes a copy of the supplied C-style array,
-   * maintaining ownership of the buffer within the DynamicVector container. The
-   * vector's capacity is increased if necessary to fit the given array, though
-   * note that this function will not cause the capacity to shrink. Upon
-   * successful reservation of necessary capacity, any pre-existing items in the
-   * vector are removed (via clear()), the supplied array is copied, and the
-   * vector's size is set to elementCount. All iterators and references are
-   * invalidated unless the container did not resize.
-   *
-   * This is essentially equivalent to calling these functions from std::vector:
-   *   vector.clear();
-   *   vector.insert(vector.begin(), array, &array[elementCount]);
-   *
-   * This function is not valid to call on a vector where owns_data() is false.
-   * Use unwrap() first in that case.
-   *
-   * @param array Pointer to the start of an array
-   * @param elementCount Number of elements in the supplied array to copy
-   *
-   * @return true if capacity was reserved to fit the supplied array (or the
-   *         vector already had sufficient capacity), and the supplied array was
-   *         copied into the vector. If false, the vector is not modified.
-   */
-  bool copy_array(const ElementType *array, size_type elementCount);
-
-  /**
    * Removes an element from the vector given an index. All elements after the
    * indexed one are moved forward one position. The destructor is invoked on
    * on the invalid item left at the end of the vector. The index passed in
@@ -271,42 +245,6 @@ class DynamicVector : public NonCopyable {
    */
   void swap(size_type index0, size_type index1);
 
-  /**
-   * Wraps an existing C-style array so it can be used as a DynamicVector. A
-   * reference to the supplied array is kept, as opposed to making a copy. The
-   * caller retains ownership of the memory. Calling code must therefore ensure
-   * that the lifetime of the supplied array is at least as long as that of this
-   * vector, and that the memory is released after this vector is destructed, as
-   * the vector will not attempt to free the memory itself.
-   *
-   * Once a vector wraps another buffer, it cannot be resized except through
-   * another call to wrap(). However, elements can be erased to make room for
-   * adding new elements.
-   *
-   * Destruction of elements within a wrapped array remains the responsibility
-   * of the calling code. While the vector may invoke the element destructor as
-   * a result of explicit calls to functions like erase() or clear(), it will
-   * not destruct elements remaining in the array when the vector is destructed.
-   * Therefore, special care must be taken when wrapping an array of elements
-   * that have a non-trivial destructor.
-   *
-   * @param array Pointer to a pre-allocated array
-   * @param elementCount Number of elements in the array (NOT the array's size
-   *        in bytes); will become the vector's size() and capacity()
-   */
-  void wrap(ElementType *array, size_type elementCount);
-
-
-  /**
-   * Returns a vector that is wrapping an array to the newly-constructed state,
-   * with capacity equal to 0, and owns_data() is true.
-   */
-  void unwrap();
-
-  /**
-   * @return false if this vector is wrapping an array passed in via wrap()
-   */
-  bool owns_data() const;
 
   /**
    * Returns a reference to the first element in the vector. It is illegal to
@@ -373,9 +311,6 @@ class DynamicVector : public NonCopyable {
   //! The current capacity of the vector, as in the maximum number of elements
   //! that can be stored.
   size_t mCapacity = 0;
-
-  //! Set to true when the buffer (mData) was supplied via wrap()
-  bool mDataIsWrapped = false;
 
   /**
    * Prepares the vector for insertion - upon successful return, the memory at
