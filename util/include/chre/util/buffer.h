@@ -17,46 +17,36 @@
 #ifndef CHRE_UTIL_BUFFER_H_
 #define CHRE_UTIL_BUFFER_H_
 
-#include <cstddef>
-#include <cstdint>
-
-#include "chre/util/non_copyable.h"
-
-#include "chre/util/memory.h"
+#include "chre/util/buffer_base.h"
 
 namespace chre {
 
 /**
  * Manages a buffer of objects. This buffer may be allocated by this object or
- * wrapped into this object. Usage of this template is restricted to POD types.
+ * wrapped into this object. Usage of this template is restricted to trivial
+ * types.
  *
  * The intent of this container is to group a pointer with the number of
  * elements in that pointer. This allows passing a pointer from one place to
  * another with an optional memory release when the copy_array API below is
  * used. Destructors are not called on the memory owned here, hence the
- * restriction to POD types. This is the C-equivalent to wrapping a void pointer
- * and size into a simple struct, but with the added benefit of type safety.
+ * restriction to trivial types. This is the C-equivalent to wrapping a void
+ * pointer and size into a simple struct, but with the added benefit of type
+ * safety.
  */
 template<typename ElementType>
-class Buffer : public NonCopyable {
+class Buffer : private BufferBase {
  public:
-  static_assert(std::is_pod<ElementType>::value, "ElementType must be POD");
-
-  /**
-   * Cleans up for the buffer. If the buffer is currently owned by this object,
-   * it is released.
-   */
-  ~Buffer() {
-    if (mBufferRequiresFree) {
-      memoryFree(mBuffer);
-    }
-  }
+  static_assert(std::is_trivial<ElementType>::value,
+                "ElementType must be trivial");
+  static_assert(std::is_trivially_destructible<ElementType>::value,
+                "ElementType must be trivially destructible");
 
   /**
    * @return the data buffered here.
    */
   ElementType *data() const {
-    return mBuffer;
+    return static_cast<ElementType *>(mBuffer);
   }
 
   /**
@@ -78,12 +68,7 @@ class Buffer : public NonCopyable {
    * @param size The number of elements in the array.
    */
   void wrap(ElementType *buffer, size_t size) {
-    // If buffer is nullptr, size must also be 0.
-    CHRE_ASSERT(buffer != nullptr || size == 0);
-    this->~Buffer();
-    mBufferRequiresFree = false;
-    mBuffer = buffer;
-    mSize = size;
+    BufferBase::wrap(buffer, size);
   }
 
   /**
@@ -100,32 +85,8 @@ class Buffer : public NonCopyable {
    *         false otherwise.
    */
   bool copy_array(const ElementType *buffer, size_t size) {
-    // If buffer is nullptr, size must also be 0.
-    CHRE_ASSERT(buffer != nullptr || size == 0);
-
-    bool success = false;
-    this->~Buffer();
-    mBufferRequiresFree = true;
-    size_t copyBytes = size * sizeof(ElementType);
-    mBuffer = static_cast<ElementType *>(memoryAlloc(copyBytes));
-    if (mBuffer != nullptr) {
-      memcpy(mBuffer, buffer, copyBytes);
-      mSize = size;
-      success = true;
-    }
-
-    return success;
+    return BufferBase::copy_array(buffer, size, sizeof(ElementType));
   }
-
- private:
-  //! The buffer to manage.
-  ElementType *mBuffer = nullptr;
-
-  //! The number of elements in the buffer.
-  size_t mSize = 0;
-
-  //! Set to true when mBuffer needs to be released by the destructor.
-  bool mBufferRequiresFree = false;
 };
 
 }  // namespace chre
