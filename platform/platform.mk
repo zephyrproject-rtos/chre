@@ -200,9 +200,13 @@ GOOGLE_X86_LINUX_CFLAGS += -Iplatform/linux/include
 
 # Linux-specific Source Files ##################################################
 
+GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+
+# Optional audio support.
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 GOOGLE_X86_LINUX_SRCS += platform/linux/audio_source.cc
 GOOGLE_X86_LINUX_SRCS += platform/linux/platform_audio.cc
-GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+endif
 
 # Android-specific Compiler Flags ##############################################
 
@@ -241,7 +245,7 @@ GOOGLE_ARM64_ANDROID_SRCS += host/common/host_protocol_host.cc
 GOOGLE_ARM64_ANDROID_SRCS += host/common/socket_server.cc
 
 # Optional audio support.
-ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 GOOGLE_ARM64_ANDROID_SRCS += platform/android/platform_audio.cc
 endif
 
