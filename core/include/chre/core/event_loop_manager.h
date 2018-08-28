@@ -180,6 +180,7 @@ class EventLoopManager : public NonCopyable {
     return mSensorRequestManager;
   }
 
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
   /**
    * @return Returns a reference to the wifi request manager. This allows
    *         interacting with the platform wifi subsystem and manages the
@@ -188,6 +189,7 @@ class EventLoopManager : public NonCopyable {
   WifiRequestManager& getWifiRequestManager() {
     return mWifiRequestManager;
   }
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
 
   /**
    * @return A reference to the WWAN request manager. This allows interacting
@@ -239,9 +241,11 @@ class EventLoopManager : public NonCopyable {
   //! manages the state of all sensors that runtime subscribes to.
   SensorRequestManager mSensorRequestManager;
 
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
   //! The WifiRequestManager that handles requests for nanoapps. This manages
   //! the state of the wifi subsystem that the runtime subscribes to.
   WifiRequestManager mWifiRequestManager;
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
 
   //! The WwanRequestManager that handles requests for nanoapps. This manages
   //! the state of the WWAN subsystem that the runtime subscribes to.

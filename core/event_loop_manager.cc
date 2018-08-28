@@ -53,9 +53,11 @@ UniquePtr<char> EventLoopManager::debugDump() {
                                               kDebugStringSize)) {
       LOG_OOM();
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
     } else if (!mWifiRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                      kDebugStringSize)) {
       LOG_OOM();
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
     } else if (!mWwanRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                                      kDebugStringSize)) {
       LOG_OOM();
@@ -91,7 +93,10 @@ void EventLoopManager::lateInit() {
   mGnssManager.init();
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
 
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
   mWifiRequestManager.init();
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
+
   mWwanRequestManager.init();
 
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
