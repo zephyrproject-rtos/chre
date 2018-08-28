@@ -152,6 +152,7 @@ class EventLoopManager : public NonCopyable {
     return mEventLoop;
   }
 
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
   /**
    * @return A reference to the GNSS request manager. This allows interacting
    *         with the platform GNSS subsystem and manages requests from various
@@ -160,6 +161,7 @@ class EventLoopManager : public NonCopyable {
   GnssManager& getGnssManager() {
     return mGnssManager;
   }
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
 
   /**
    * @return A reference to the host communications manager that enables
@@ -224,9 +226,11 @@ class EventLoopManager : public NonCopyable {
   //! The event loop managed by this event loop manager.
   EventLoop mEventLoop;
 
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
   //! The GnssManager that handles requests for all nanoapps. This manages the
   //! state of the GNSS subsystem that the runtime subscribes to.
   GnssManager mGnssManager;
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
 
   //! Handles communications with the host processor.
   HostCommsManager mHostCommsManager;

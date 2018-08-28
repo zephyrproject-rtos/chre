@@ -93,7 +93,6 @@ SLPI_SRCS += platform/shared/host_protocol_common.cc
 SLPI_SRCS += platform/shared/memory_manager.cc
 SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
 SLPI_SRCS += platform/shared/pal_system_api.cc
-SLPI_SRCS += platform/shared/platform_gnss.cc
 SLPI_SRCS += platform/shared/platform_wifi.cc
 SLPI_SRCS += platform/shared/platform_wwan.cc
 SLPI_SRCS += platform/shared/system_time.cc
@@ -116,6 +115,11 @@ ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/wcd_spi/api
 
 SLPI_SRCS += platform/slpi/platform_audio.cc
+endif
+
+# Optional GNSS support.
+ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
+SLPI_SRCS += platform/shared/platform_gnss.cc
 endif
 
 # SLPI/SMGR-specific Source Files ##############################################
@@ -177,14 +181,18 @@ SIM_SRCS += platform/shared/chre_api_wifi.cc
 SIM_SRCS += platform/shared/chre_api_wwan.cc
 SIM_SRCS += platform/shared/memory_manager.cc
 SIM_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
-SIM_SRCS += platform/shared/pal_gnss_stub.cc
 SIM_SRCS += platform/shared/pal_wifi_stub.cc
 SIM_SRCS += platform/shared/pal_wwan_stub.cc
 SIM_SRCS += platform/shared/pal_system_api.cc
-SIM_SRCS += platform/shared/platform_gnss.cc
 SIM_SRCS += platform/shared/platform_wifi.cc
 SIM_SRCS += platform/shared/platform_wwan.cc
 SIM_SRCS += platform/shared/system_time.cc
+
+# Optional GNSS support.
+ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/shared/pal_gnss_stub.cc
+SIM_SRCS += platform/shared/platform_gnss.cc
+endif
 
 # Linux-specific Compiler Flags ################################################
 
