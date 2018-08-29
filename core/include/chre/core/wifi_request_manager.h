@@ -19,6 +19,7 @@
 
 #include "chre/core/nanoapp.h"
 #include "chre/platform/platform_wifi.h"
+#include "chre/util/buffer.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/time.h"
 #include "chre_api/chre/wifi.h"
@@ -168,7 +169,7 @@ class WifiRequestManager : public NonCopyable {
   struct PendingRangingRequest : public PendingRequestBase {
     //! If the request was queued, a variable-length list of devices to
     //! perform ranging against (used to reconstruct chreWifiRangingParams)
-    DynamicVector<struct chreWifiRangingTarget> targetList;
+    Buffer<struct chreWifiRangingTarget> targetList;
   };
 
   struct PendingScanMonitorRequest : public PendingRequestBase {
