@@ -22,7 +22,6 @@ COMMON_SRCS += core/sensor_request_manager.cc
 COMMON_SRCS += core/sensor_type.cc
 COMMON_SRCS += core/static_nanoapps.cc
 COMMON_SRCS += core/timer_pool.cc
-COMMON_SRCS += core/wwan_request_manager.cc
 
 # Optional audio support.
 ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
@@ -38,6 +37,11 @@ endif
 ifeq ($(CHRE_WIFI_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/wifi_request_manager.cc
 COMMON_SRCS += core/wifi_scan_request.cc
+endif
+
+# Optional WWAN support.
+ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
+COMMON_SRCS += core/wwan_request_manager.cc
 endif
 
 # GoogleTest Source Files ######################################################

@@ -191,6 +191,7 @@ class EventLoopManager : public NonCopyable {
   }
 #endif  // CHRE_WIFI_SUPPORT_ENABLED
 
+#ifdef CHRE_WWAN_SUPPORT_ENABLED
   /**
    * @return A reference to the WWAN request manager. This allows interacting
    *         with the platform WWAN subsystem and manages requests from various
@@ -199,6 +200,7 @@ class EventLoopManager : public NonCopyable {
   WwanRequestManager& getWwanRequestManager() {
     return mWwanRequestManager;
   }
+#endif  // CHRE_WWAN_SUPPORT_ENABLED
 
   /**
    * @return A reference to the memory manager. This allows central control of
@@ -247,9 +249,11 @@ class EventLoopManager : public NonCopyable {
   WifiRequestManager mWifiRequestManager;
 #endif  // CHRE_WIFI_SUPPORT_ENABLED
 
+#ifdef CHRE_WWAN_SUPPORT_ENABLED
   //! The WwanRequestManager that handles requests for nanoapps. This manages
   //! the state of the WWAN subsystem that the runtime subscribes to.
   WwanRequestManager mWwanRequestManager;
+#endif  // CHRE_WWAN_SUPPORT_ENABLED
 
   //! The MemoryManager that handles malloc/free call from nanoapps and also
   //! controls upper limits on the heap allocation amount.
