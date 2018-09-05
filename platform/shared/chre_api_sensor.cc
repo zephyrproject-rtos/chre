@@ -105,8 +105,8 @@ DLL_EXPORT bool chreSensorConfigure(uint32_t sensorHandle,
                                     uint64_t interval, uint64_t latency) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   SensorMode sensorMode = getSensorModeFromEnum(mode);
-  SensorRequest sensorRequest(nanoapp, sensorMode, Nanoseconds(interval),
-                              Nanoseconds(latency));
+  SensorRequest sensorRequest(nanoapp->getInstanceId(), sensorMode,
+                              Nanoseconds(interval), Nanoseconds(latency));
   return EventLoopManagerSingleton::get()->getSensorRequestManager()
       .setSensorRequest(nanoapp, sensorHandle, sensorRequest);
 }
