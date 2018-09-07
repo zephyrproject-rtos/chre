@@ -61,6 +61,12 @@
 
 #include <utils/SystemClock.h>
 
+#ifdef ADSPRPC
+#include "remote.h"
+
+#define ITRANSPORT_PREFIX "'\":;./\\"
+#endif  // ADSPRPC
+
 //! The format string to use for logs from the CHRE implementation.
 #define HUB_LOG_FORMAT_STR "Hub (t=%.6f): %s"
 
@@ -695,6 +701,17 @@ int main() {
 
   struct reverse_monitor_thread_data reverse_monitor;
   ::android::chre::SocketServer server;
+
+#ifdef ADSPRPC
+  remote_handle remote_handle_fd = 0xFFFFFFFF;
+  LOGD("Attaching to ADSP sensors PD");
+  if (remote_handle_open(ITRANSPORT_PREFIX "createstaticpd:sensorspd",
+                         &remote_handle_fd)) {
+    LOGE("Failed to open remote handle for sensorspd");
+  } else {
+    LOGV("Successfully opened remote handle for sensorspd");
+  }
+#endif  // ADSPRPC
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
   initWakeLockFds();
