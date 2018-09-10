@@ -20,7 +20,6 @@
 
 #include <cstdint>
 
-#include <chre.h>
 #include <shared/test_success_marker.h>
 
 #include "chre/util/optional.h"
@@ -71,13 +70,13 @@ class BasicWifiTest : public Test {
    *
    * @param eventData received WiFi async result data.
    */
-  void handleChreWifiAsyncEvent(const void *eventData);
+  void handleChreWifiAsyncEvent(const chreAsyncResult *result);
 
   /**
    * @param eventData received WiFi scan event data.
    * @return true if scanType is CHRE_WIFI_SCAN_TYPE_ACTIVE, false otherwise.
    */
-  bool isActiveWifiScanType(const void *eventData);
+  bool isActiveWifiScanType(const chreWifiScanEvent *eventData);
 
   /**
    * Makes an API call, if corresponding WiFi ability exists;
@@ -94,8 +93,28 @@ class BasicWifiTest : public Test {
    * @param timeoutNs expected maximum elapse to receive chre WiFi result.
    */
   void resetCurrentWifiRequest(const void *cookie,
-                               uint8_t requstType,
+                               uint8_t requestType,
                                uint64_t timeoutNs);
+
+  /**
+   * Validates a WiFi scan event, including event version, event order,
+   * and WiFi scan results. Sends fatal failure to host if event data is
+   * invalid, otherwise calls API chreWifiRequestRangingAsync.
+   *
+   * @param eventData received WiFi scan event data.
+   */
+  void validateWifiScanEvent(const chreWifiScanEvent *eventData);
+
+  /**
+   * Validates ssidLen, band, RSSI, primaryChannel and centerFreqSecondary
+   * of all WiFi scan results. Sends fatal failure to host
+   * if there are invalid fields.
+   *
+   * @param count the size of results.
+   * @param results a pointer to the structure containing the results.
+   */
+  void validateWifiScanResult(uint8_t count,
+                              const chreWifiScanResult *results);
 
   /**
    * Basic WiFi test stages and total number of stages.
@@ -115,6 +134,17 @@ class BasicWifiTest : public Test {
 
   //! Used to indicate if a chreAsyncResult is being expected.
   chre::Optional<chreAsyncRequest> mCurrentWifiRequest;
+
+  //! Start timestamp used to timing an event.
+  uint64_t mStartTimestampNs = 0;
+
+  //! Expected sequence number for an event within a series of events
+  //! comprising a complete scan result.
+  uint32_t mNextExpectedIndex = 0;
+
+  //! The remaining results of WiFi scan.
+  //! Used to identify when all events have been received.
+  uint32_t mWiFiScanResultRemaining = 0;
 };
 
 } // namespace general_test
