@@ -222,8 +222,8 @@ class AudioRequestManager : public NonCopyable {
      * @return true if the supplied AudioDataEventRefCount is tracking the same
      *         published event as current object.
      */
-    bool operator==(const AudioDataEventRefCount& audioDataEventRefCount) {
-      return (event == audioDataEventRefCount.event);
+    bool operator==(const AudioDataEventRefCount& other) const {
+      return (event == other.event);
     }
 
     //! The event that is ref counted here.
