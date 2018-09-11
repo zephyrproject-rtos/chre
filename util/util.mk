@@ -10,6 +10,7 @@ COMMON_CFLAGS += -Iutil/include
 # Common Source Files ##########################################################
 
 COMMON_SRCS += util/buffer_base.cc
+COMMON_SRCS += util/dynamic_vector_base.cc
 COMMON_SRCS += util/nanoapp/audio.cc
 COMMON_SRCS += util/nanoapp/debug.cc
 COMMON_SRCS += util/nanoapp/sensor.cc
