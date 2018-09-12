@@ -16,6 +16,10 @@
 
 #include "chre/util/dynamic_vector_base.h"
 
+#include <cstring>
+
+#include "chre/util/container_support.h"
+
 namespace chre {
 
 DynamicVectorBase::DynamicVectorBase(DynamicVectorBase&& other)
@@ -25,6 +29,22 @@ DynamicVectorBase::DynamicVectorBase(DynamicVectorBase&& other)
   other.mData = nullptr;
   other.mSize = 0;
   other.mCapacity = 0;
+}
+
+bool DynamicVectorBase::doReserve(size_t newCapacity, size_t elementSize) {
+  bool success = (newCapacity <= mCapacity);
+  if (!success) {
+    void *newData = memoryAlloc(newCapacity * elementSize);
+    if (newData != nullptr) {
+      memcpy(newData, mData, mSize * elementSize);
+      memoryFree(mData);
+      mData = newData;
+      mCapacity = newCapacity;
+      success = true;
+    }
+  }
+
+  return success;
 }
 
 }  // namespace chre

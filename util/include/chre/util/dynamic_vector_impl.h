@@ -25,6 +25,7 @@
 
 #include "chre/util/container_support.h"
 #include "chre/util/memory.h"
+#include "chre/util/type_traits.h"
 
 namespace chre {
 
@@ -159,6 +160,18 @@ bool DynamicVector<ElementType>::operator==(const DynamicVector<ElementType>& ot
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::reserve(size_type newCapacity) {
+  return doReserve(newCapacity, typename std::is_trivial<ElementType>::type());
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::doReserve(size_type newCapacity,
+                                           std::true_type) {
+  return DynamicVectorBase::doReserve(newCapacity, sizeof(ElementType));
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::doReserve(size_type newCapacity,
+                                           std::false_type) {
   bool success = (newCapacity <= mCapacity);
   if (!success) {
     ElementType *newData = static_cast<ElementType *>(

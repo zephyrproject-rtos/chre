@@ -35,6 +35,15 @@ class DynamicVectorBase : public NonCopyable {
    */
   DynamicVectorBase(DynamicVectorBase&& other);
 
+  /**
+   * Performs a reserve operation for DynamicVector when the underlying type is
+   * trivial. See {@link DynamicVector::reserve} for further details.
+   *
+   * @param elementSize The size of the element used to determine the effective
+   *        size of the underlying data.
+   */
+  bool doReserve(size_t newCapacity, size_t elementSize);
+
   //! A pointer to the underlying data buffer.
   void *mData = nullptr;
 
