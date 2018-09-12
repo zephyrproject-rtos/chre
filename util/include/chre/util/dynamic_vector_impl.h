@@ -99,6 +99,19 @@ void DynamicVector<ElementType>::pop_back() {
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::push_back(const ElementType& element) {
+  return doPushBack(element, typename std::is_trivial<ElementType>::type());
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::doPushBack(const ElementType& element,
+                                            std::true_type) {
+  return DynamicVectorBase::doPushBack(static_cast<const void *>(&element),
+                                       sizeof(ElementType));
+}
+
+template<typename ElementType>
+bool DynamicVector<ElementType>::doPushBack(const ElementType& element,
+                                            std::false_type) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
     new (&data()[mSize++]) ElementType(element);

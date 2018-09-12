@@ -72,4 +72,15 @@ void DynamicVectorBase::doErase(size_t index, size_t elementSize) {
           moveAmount);
 }
 
+bool DynamicVectorBase::doPushBack(const void *element, size_t elementSize) {
+  bool spaceAvailable = doPrepareForPush(elementSize);
+  if (spaceAvailable) {
+    memcpy(static_cast<uint8_t *>(mData) + (mSize * elementSize),
+           element, elementSize);
+    mSize++;
+  }
+
+  return spaceAvailable;
+}
+
 }  // namespace chre

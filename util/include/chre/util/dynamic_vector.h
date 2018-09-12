@@ -351,6 +351,19 @@ class DynamicVector : private DynamicVectorBase {
    * details.
    */
   void doErase(size_type index, std::false_type);
+
+  /**
+   * Performs the push back operation for DynamicVector when ElementType is a
+   * trivial type. See {@link DynamicVector::push_back} for the rest of the details.
+   */
+  bool doPushBack(const ElementType& element, std::true_type);
+
+  /**
+   * Performs the push back operation for DynamicVector when ElementType is a
+   * non-trivial type. See {@link DynamicVector::push_back} for the rest of the
+   * details.
+   */
+  bool doPushBack(const ElementType& element, std::false_type);
 };
 
 }  // namespace chre
