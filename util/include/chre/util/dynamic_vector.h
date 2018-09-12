@@ -17,9 +17,7 @@
 #ifndef CHRE_UTIL_DYNAMIC_VECTOR_H_
 #define CHRE_UTIL_DYNAMIC_VECTOR_H_
 
-#include <cstddef>
-
-#include "chre/util/non_copyable.h"
+#include "chre/util/dynamic_vector_base.h"
 
 namespace chre {
 
@@ -28,7 +26,7 @@ namespace chre {
  * resizes dynamically using heap allocations.
  */
 template<typename ElementType>
-class DynamicVector : public NonCopyable {
+class DynamicVector : private DynamicVectorBase {
  public:
   /**
    * Random-access iterator that points to some element in the container.
@@ -302,16 +300,6 @@ class DynamicVector : public NonCopyable {
   typename DynamicVector<ElementType>::const_iterator cend() const;
 
  private:
-  //! A pointer to the underlying data buffer.
-  ElementType *mData = nullptr;
-
-  //! The current size of the vector, as in the number of elements stored.
-  size_t mSize = 0;
-
-  //! The current capacity of the vector, as in the maximum number of elements
-  //! that can be stored.
-  size_t mCapacity = 0;
-
   /**
    * Prepares the vector for insertion - upon successful return, the memory at
    * the given index will be allocated but uninitialized
