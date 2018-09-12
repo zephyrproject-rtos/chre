@@ -324,6 +324,20 @@ class DynamicVector : private DynamicVectorBase {
    * details.
    */
   bool doReserve(size_type newCapacity, std::false_type);
+
+  /**
+   * Performs the prepare for push operation for DynamicVector when ElementType
+   * is a trivial type. See {@link DynamicVector::prepareForPush} for the rest
+   * of the details.
+   */
+  bool doPrepareForPush(std::true_type);
+
+  /**
+   * Performs the prepare for push operation for DynamicVector when ElementType
+   * is a non-trivial type. See {@link DynamicVector::prepareForPush} for the
+   * rest of the details.
+   */
+  bool doPrepareForPush(std::false_type);
 };
 
 }  // namespace chre

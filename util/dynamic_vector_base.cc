@@ -47,4 +47,21 @@ bool DynamicVectorBase::doReserve(size_t newCapacity, size_t elementSize) {
   return success;
 }
 
+bool DynamicVectorBase::doPrepareForPush(size_t elementSize) {
+  return doReserve(getNextGrowthCapacity(), elementSize);
+}
+
+size_t DynamicVectorBase::getNextGrowthCapacity() const {
+  size_t newCapacity;
+  if (mCapacity == 0) {
+    newCapacity = 1;
+  } else if (mSize == mCapacity) {
+    newCapacity = mCapacity * 2;
+  } else {
+    newCapacity = mCapacity;
+  }
+
+  return newCapacity;
+}
+
 }  // namespace chre

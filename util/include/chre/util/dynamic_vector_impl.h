@@ -314,19 +314,17 @@ const ElementType& DynamicVector<ElementType>::back() const {
 
 template<typename ElementType>
 bool DynamicVector<ElementType>::prepareForPush() {
-  bool spaceAvailable = true;
-  if (mSize == mCapacity) {
-    size_type newCapacity = mCapacity * 2;
-    if (newCapacity == 0) {
-      newCapacity = 1;
-    }
+  return doPrepareForPush(typename std::is_trivial<ElementType>::type());
+}
 
-    if (!reserve(newCapacity)) {
-      spaceAvailable = false;
-    }
-  }
+template<typename ElementType>
+bool DynamicVector<ElementType>::doPrepareForPush(std::true_type) {
+  return DynamicVectorBase::doPrepareForPush(sizeof(ElementType));
+}
 
-  return spaceAvailable;
+template<typename ElementType>
+bool DynamicVector<ElementType>::doPrepareForPush(std::false_type) {
+  return reserve(getNextGrowthCapacity());
 }
 
 template<typename ElementType>

@@ -44,6 +44,23 @@ class DynamicVectorBase : public NonCopyable {
    */
   bool doReserve(size_t newCapacity, size_t elementSize);
 
+  /**
+   * Performs a prepare for push operation for DynamicVector when the underlying
+   * type is trivial. See {@link DynamicVector::prepareForPush} for further
+   * details.
+   *
+   * @param elementSize The size of the element used to determine the effective
+   *        size of the underlying data.
+   */
+  bool doPrepareForPush(size_t elementSize);
+
+  /**
+   * @return the next size of allocation to perform when growing the size of
+   *         this vector. If no growth is required (mSize is less than
+   *         mCapacity), the current capacity is returned.
+   */
+  size_t getNextGrowthCapacity() const;
+
   //! A pointer to the underlying data buffer.
   void *mData = nullptr;
 
