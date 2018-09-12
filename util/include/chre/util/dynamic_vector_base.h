@@ -61,6 +61,15 @@ class DynamicVectorBase : public NonCopyable {
    */
   size_t getNextGrowthCapacity() const;
 
+  /*
+   * Performs an erase operation for DynamicVector when the underlying type is
+   * trivial. See {@link DynamicVector::erase} for further details.
+   *
+   * @param elementSize The size of the element used to determine the effective
+   *        size of the underlying data.
+   */
+  void doErase(size_t index, size_t elementSize);
+
   //! A pointer to the underlying data buffer.
   void *mData = nullptr;
 

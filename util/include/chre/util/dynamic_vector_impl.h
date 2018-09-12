@@ -253,6 +253,16 @@ bool DynamicVector<ElementType>::prepareInsert(size_type index) {
 template<typename ElementType>
 void DynamicVector<ElementType>::erase(size_type index) {
   CHRE_ASSERT(index < mSize);
+  doErase(index, typename std::is_trivial<ElementType>::type());
+}
+
+template<typename ElementType>
+void DynamicVector<ElementType>::doErase(size_type index, std::true_type) {
+  DynamicVectorBase::doErase(index, sizeof(ElementType));
+}
+
+template<typename ElementType>
+void DynamicVector<ElementType>::doErase(size_type index, std::false_type) {
   mSize--;
   for (size_type i = index; i < mSize; i++) {
     moveOrCopyAssign(data()[i], data()[i + 1]);

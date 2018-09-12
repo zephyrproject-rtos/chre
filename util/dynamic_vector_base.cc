@@ -64,4 +64,12 @@ size_t DynamicVectorBase::getNextGrowthCapacity() const {
   return newCapacity;
 }
 
+void DynamicVectorBase::doErase(size_t index, size_t elementSize) {
+  mSize--;
+  size_t moveAmount = (mSize - index) * elementSize;
+  memmove(static_cast<uint8_t *>(mData) + (index * elementSize),
+          static_cast<uint8_t *>(mData) + ((index + 1) * elementSize),
+          moveAmount);
+}
+
 }  // namespace chre

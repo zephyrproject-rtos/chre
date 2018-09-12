@@ -338,6 +338,19 @@ class DynamicVector : private DynamicVectorBase {
    * rest of the details.
    */
   bool doPrepareForPush(std::false_type);
+
+  /**
+   * Performs the erase operation for DynamicVector when ElementType is a
+   * trivial type. See {@link DynamicVector::erase} for the rest of the details.
+   */
+  void doErase(size_type index, std::true_type);
+
+  /**
+   * Performs the erase operation for DynamicVector when ElementType is a
+   * non-trivial type. See {@link DynamicVector::erase} for the rest of the
+   * details.
+   */
+  void doErase(size_type index, std::false_type);
 };
 
 }  // namespace chre
