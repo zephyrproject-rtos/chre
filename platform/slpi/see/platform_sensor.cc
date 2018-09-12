@@ -37,6 +37,10 @@
 #include "chre/extensions/platform/slpi/see/vendor_data_types.h"
 #endif  // CHREX_SENSOR_SUPPORT
 
+#ifdef CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
+#include "see_sensors.h"
+#endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
+
 #ifndef CHRE_SEE_NUM_TEMP_SENSORS
 // There are usually more than one 'sensor_temperature' sensors in SEE.
 // Define this in the variant-specific makefile to avoid missing sensors in
@@ -76,6 +80,8 @@ struct SuidAttr {
   SeeAttributes attr;
 };
 
+#ifndef CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
+
 //! The list of SEE platform sensor data types that CHRE intends to support.
 //! The standardized strings are defined in sns_xxx.proto.
 const char *kSeeDataTypes[] = {
@@ -88,6 +94,8 @@ const char *kSeeDataTypes[] = {
   "motion_detect",
   "stationary_detect",
 };
+
+#endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
 
 /**
  * Obtains the sensor type given the specified data type and whether the sensor
