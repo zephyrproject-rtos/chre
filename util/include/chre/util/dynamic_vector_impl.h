@@ -25,7 +25,6 @@
 
 #include "chre/util/container_support.h"
 #include "chre/util/memory.h"
-#include "chre/util/type_traits.h"
 
 namespace chre {
 
