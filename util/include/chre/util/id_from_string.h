@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_ID_FROM_STRING_H_
 #define CHRE_UTIL_ID_FROM_STRING_H_
 
+#include <cinttypes>
+
 namespace chre {
 
 /**

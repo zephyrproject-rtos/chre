@@ -20,7 +20,9 @@
 #include "chre/core/init.h"
 #include "chre/core/nanoapp.h"
 #include "chre/core/static_nanoapps.h"
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
 #include "chre/platform/platform_audio.h"
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"

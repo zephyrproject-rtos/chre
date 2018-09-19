@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_
 #define CHRE_UTIL_FIXED_SIZE_VECTOR_IMPL_H_
 
+#include "chre/util/fixed_size_vector.h"
+
 #include <new>
 
 #include "chre/util/container_support.h"
