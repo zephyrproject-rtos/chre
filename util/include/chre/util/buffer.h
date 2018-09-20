@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_BUFFER_H_
 #define CHRE_UTIL_BUFFER_H_
 
+#include <type_traits>
+
 #include "chre/util/buffer_base.h"
 
 namespace chre {

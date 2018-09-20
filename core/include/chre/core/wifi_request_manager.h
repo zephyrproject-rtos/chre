@@ -21,6 +21,7 @@
 #include "chre/platform/platform_wifi.h"
 #include "chre/util/buffer.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/optional.h"
 #include "chre/util/time.h"
 #include "chre_api/chre/wifi.h"
 
