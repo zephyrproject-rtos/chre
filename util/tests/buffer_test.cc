@@ -28,30 +28,59 @@ void fillBufferWithSequentialValues(float *buffer, size_t size) {
 }
 
 TEST(Buffer, EmptyByDefault) {
-  Buffer<float> byteBuffer;
-  EXPECT_EQ(byteBuffer.data(), nullptr);
-  EXPECT_EQ(byteBuffer.size(), 0);
+  Buffer<float> buffer;
+  EXPECT_EQ(buffer.data(), nullptr);
+  EXPECT_EQ(buffer.size(), 0);
 }
 
 TEST(Buffer, Wrap) {
-  float buffer[128];
-  fillBufferWithSequentialValues(buffer, ARRAY_SIZE(buffer));
+  float buf[128];
+  fillBufferWithSequentialValues(buf, ARRAY_SIZE(buf));
 
-  Buffer<float> byteBuffer;
-  byteBuffer.wrap(buffer, ARRAY_SIZE(buffer));
-  EXPECT_EQ(byteBuffer.data(), buffer);
-  EXPECT_EQ(byteBuffer.size(), ARRAY_SIZE(buffer));
+  Buffer<float> buffer;
+  buffer.wrap(buf, ARRAY_SIZE(buf));
+  EXPECT_EQ(buffer.data(), buf);
+  EXPECT_EQ(buffer.size(), ARRAY_SIZE(buf));
 }
 
-TEST(Buffer, CopyBuffer) {
-  float buffer[128];
-  fillBufferWithSequentialValues(buffer, ARRAY_SIZE(buffer));
+TEST(Buffer, CopyArray) {
+  float buf[128];
+  fillBufferWithSequentialValues(buf, ARRAY_SIZE(buf));
 
-  Buffer<float> byteBuffer;
-  EXPECT_TRUE(byteBuffer.copy_array(buffer, ARRAY_SIZE(buffer)));
-  EXPECT_EQ(byteBuffer.size(), ARRAY_SIZE(buffer));
+  Buffer<float> buffer;
+  EXPECT_TRUE(buffer.copy_array(buf, ARRAY_SIZE(buf)));
+  EXPECT_EQ(buffer.size(), ARRAY_SIZE(buf));
 
-  for (size_t i = 0; i < ARRAY_SIZE(buffer); i++) {
-    EXPECT_EQ(byteBuffer.data()[i], static_cast<float>(i));
+  for (size_t i = 0; i < ARRAY_SIZE(buf); i++) {
+    EXPECT_EQ(buffer.data()[i], static_cast<float>(i));
   }
+}
+
+TEST(Buffer, CopyArrayEmpty) {
+  Buffer<float> buffer;
+  EXPECT_TRUE(buffer.copy_array(nullptr, 0));
+  EXPECT_EQ(buffer.data(), nullptr);
+  EXPECT_EQ(buffer.size(), 0);
+}
+
+TEST(Buffer, CopyArrayEmptyAfterWrap) {
+  float buf[128];
+  fillBufferWithSequentialValues(buf, ARRAY_SIZE(buf));
+
+  Buffer<float> buffer;
+  buffer.wrap(buf, ARRAY_SIZE(buf));
+  EXPECT_TRUE(buffer.copy_array(nullptr, 0));
+  EXPECT_EQ(buffer.data(), nullptr);
+  EXPECT_EQ(buffer.size(), 0);
+}
+
+TEST(Buffer, CopyArrayEmptyAfterCopy) {
+  float buf[128];
+  fillBufferWithSequentialValues(buf, ARRAY_SIZE(buf));
+
+  Buffer<float> buffer;
+  EXPECT_TRUE(buffer.copy_array(buf, ARRAY_SIZE(buf)));
+  EXPECT_TRUE(buffer.copy_array(nullptr, 0));
+  EXPECT_EQ(buffer.data(), nullptr);
+  EXPECT_EQ(buffer.size(), 0);
 }
