@@ -78,13 +78,15 @@ class Buffer : private BufferBase {
    * interest of simplicity and codesize, the underlying buffer is always
    * reallocated. The expected use of this object is to copy just once. This
    * also avoids the issue of copying a very large buffer, then copying a
-   * smaller buffer and being left with a very large outstanding allocation.
+   * smaller buffer and being left with a very large outstanding allocation. If
+   * an empty input is supplied (size zero), the buffer is cleared and true is
+   * returned.
    *
    * @param buffer A pointer to an array to copy.
    * @param size The number of elements in the array.
    * @return true if capacity was reserved to fit the supplied buffer and the
    *         supplied buffer was copied into the internal buffer of this object,
-   *         false otherwise.
+   *         or if the supplied input is empty, false otherwise.
    */
   bool copy_array(const ElementType *buffer, size_t size) {
     return BufferBase::copy_array(buffer, size, sizeof(ElementType));

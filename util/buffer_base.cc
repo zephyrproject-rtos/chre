@@ -24,15 +24,18 @@ namespace chre {
 
 BufferBase::~BufferBase() {
   if (mBufferRequiresFree) {
+    mBufferRequiresFree = false;
     memoryFree(mBuffer);
   }
+
+  mBuffer = nullptr;
+  mSize = 0;
 }
 
 void BufferBase::wrap(void *buffer, size_t size) {
   // If buffer is nullptr, size must also be 0.
   CHRE_ASSERT(buffer != nullptr || size == 0);
   this->~BufferBase();
-  mBufferRequiresFree = false;
   mBuffer = buffer;
   mSize = size;
 }
@@ -42,15 +45,17 @@ bool BufferBase::copy_array(const void *buffer, size_t size,
   // If buffer is nullptr, size must also be 0.
   CHRE_ASSERT(buffer != nullptr || size == 0);
 
-  bool success = false;
   this->~BufferBase();
-  mBufferRequiresFree = true;
-  size_t copyBytes = size * elementSize;
-  mBuffer = memoryAlloc(copyBytes);
-  if (mBuffer != nullptr) {
-    memcpy(mBuffer, buffer, copyBytes);
-    mSize = size;
-    success = true;
+  bool success = (size == 0);
+  if (!success) {
+    size_t copyBytes = size * elementSize;
+    mBuffer = memoryAlloc(copyBytes);
+    if (mBuffer != nullptr) {
+      mBufferRequiresFree = true;
+      memcpy(mBuffer, buffer, copyBytes);
+      mSize = size;
+      success = true;
+    }
   }
 
   return success;
