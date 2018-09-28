@@ -156,47 +156,57 @@ void handleTimerEvent(const void *eventData) {
   }
 }
 
+const char *getNameStringFromRequestType(uint8_t requestType) {
+  switch (requestType) {
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START:
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP:
+      return "location";
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START:
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP:
+      return "measurement";
+    default:
+      return nullptr;
+  }
+}
+
+const char *getActionStringFromRequestType(uint8_t requestType) {
+  switch (requestType) {
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START:
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START:
+      return "start";
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP:
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP:
+      return "stop";
+    default:
+      return nullptr;
+  }
+}
+
 void handleGnssAsyncResult(const chreAsyncResult *result) {
-  bool validResult = true;
-  const char *action = nullptr;
-  const char *name;
-  bool *received;
+  const char *name = getNameStringFromRequestType(result->requestType);
+  const char *action = getActionStringFromRequestType(result->requestType);
+  bool *received = nullptr;
   const uint32_t *cookie;
 
   switch (result->requestType) {
     case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START:
-      action = "start";
-      // fall through to CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP
-
     case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP:
-      if (action == nullptr) {
-        action = "stop";
-      }
-      name = "location";
       received = &gLocationAsyncResultReceived;
       cookie = &kLocationSessionCookie;
       break;
 
     case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START:
-      action = "start";
-      // fall through to CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP
-
     case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP:
-      if (action == nullptr) {
-        action = "stop";
-      }
-      name = "measurement";
       received = &gMeasurementAsyncResultReceived;
       cookie = &kMeasurementSessionCookie;
       break;
 
     default:
       LOGE("Received invalid async result %" PRIu8, result->requestType);
-      validResult = false;
       break;
   }
 
-  if (validResult) {
+  if (received != nullptr) {
     *received = true;
     if (result->success) {
       LOGI("GNSS %s %s success", name, action);
