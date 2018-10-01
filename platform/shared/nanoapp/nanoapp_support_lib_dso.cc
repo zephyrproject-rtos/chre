@@ -17,7 +17,6 @@
 #include "chre/platform/shared/nanoapp_support_lib_dso.h"
 
 #include <chre.h>
-#include <dlfcn.h>
 
 #include "chre/util/macros.h"
 
@@ -67,6 +66,8 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
 // implementations.
 
 #ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
+
+#include <dlfcn.h>
 
 /**
  * Lazily calls dlsym to find the function pointer for a given function
