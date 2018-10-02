@@ -88,6 +88,8 @@ DSO_SUPPORT_LIB_SRCS = $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.cc
 GOOGLE_HEXAGONV60_SLPI_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV62_SLPI_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV62_SLPI-UIMG_SRCS += $(DSO_SUPPORT_LIB_SRCS)
+GOOGLE_HEXAGONV65_ADSP-SEE_SRCS += $(DSO_SUPPORT_LIB_SRCS)
+GOOGLE_HEXAGONV65_ADSP-SEE-UIMG_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV65_SLPI-SEE_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV65_SLPI-SEE-UIMG_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_ARM64_ANDROID_SRCS += $(DSO_SUPPORT_LIB_SRCS)
@@ -111,6 +113,8 @@ include $(CHRE_PREFIX)/build/variant/google_hexagonv55_slpi-see.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv65_adsp-see.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv65_adsp-see-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv65_slpi-see.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv65_slpi-see-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
