@@ -434,7 +434,11 @@ void findAndAddSensorsForType(
   DynamicVector<SuidAttr> primarySensors;
   if (!getSuidAndAttrs(seeHelper, dataType, &primarySensors,
                        1 /* minNumSuids */)) {
+#ifdef CHRE_LOG_ONLY_NO_SENSOR
+    LOGE("Failed to get primary sensor UID and attributes");
+#else
     FATAL_ERROR("Failed to get primary sensor UID and attributes");
+#endif
   }
 
   for (const auto& primarySensor : primarySensors) {
@@ -540,7 +544,11 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   DynamicVector<SuidAttr> tempSensors;
   if (!getSuidAndAttrs(seeHelper, "sensor_temperature", &tempSensors,
                        CHRE_SEE_NUM_TEMP_SENSORS)) {
-      FATAL_ERROR("Failed to get temperature sensor UID and attributes");
+#ifdef CHRE_LOG_ONLY_NO_SENSOR
+     LOGE("Failed to get temperature sensor UID and attributes");
+#else
+     FATAL_ERROR("Failed to get temperature sensor UID and attributes");
+#endif
   }
 
 #ifndef CHREX_SENSOR_SUPPORT

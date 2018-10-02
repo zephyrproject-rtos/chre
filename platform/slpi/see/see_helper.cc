@@ -1505,9 +1505,9 @@ bool SeeHelper::findSuidSync(const char *dataType,
         mHaveTimedOutOnSuidLookup = true;
       }
       if (trialCount > 1) {
-        LOGD("Waited %" PRIu32 " ms for %s (found: %d)",
+        LOGD("Waited %" PRIu32 " ms for %s (found %zu, required %" PRIu8 ")",
              static_cast<uint32_t>(trialCount * retryDelay.getMilliseconds()),
-             dataType, success);
+             dataType, suids->size(), minNumSuids);
       }
     }
   }
