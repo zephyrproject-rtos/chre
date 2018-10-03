@@ -16,17 +16,18 @@
 
 /**
  * @file
- * The daemon that hosts CHRE on the SLPI via FastRPC.
+ * The daemon that hosts CHRE on a hexagon DSP via FastRPC. This is typically
+ * the SLPI but could be the ADSP or another DSP that supports FastRPC.
  *
  * Several threads are required for this functionality:
  *   - Main thread: blocked waiting on SIGINT/SIGTERM, and requests graceful
  *     shutdown of CHRE when caught
- *   - Monitor thread: persistently blocked in a FastRPC call to the SLPI that
- *     only returns when CHRE exits or the SLPI crashes
+ *   - Monitor thread: persistently blocked in a FastRPC call to the DSP that
+ *     only returns when CHRE exits or the DSP crashes
  *     - TODO: see whether we can merge this with the RX thread
- *   - Reverse monitor thread: after initializing the SLPI-side monitor for this
+ *   - Reverse monitor thread: after initializing the DSP-side monitor for this
  *     process, blocks on a condition variable. If this thread exits, CHRE on
- *     the SLPI side will be notified and shut down (this is only possible if
+ *     the DSP side will be notified and shut down (this is only possible if
  *     this thread is not blocked in a FastRPC call).
  *     - TODO: confirm this and see whether we can merge this responsibility
  *       into the TX thread
@@ -582,7 +583,7 @@ static void *chre_message_to_host_thread(void *arg) {
 
 /**
  * Entry point for the thread that blocks in a FastRPC call to monitor for
- * abnormal exit of CHRE or reboot of the SLPI.
+ * abnormal exit of CHRE or reboot of the DSP.
  *
  * @return always returns NULL
  */
@@ -601,7 +602,7 @@ static void *chre_monitor_thread(void *arg) {
 /**
  * Entry point for the "reverse" monitor thread, which invokes a FastRPC method
  * to register a thread destructor, and blocks waiting on a condition variable.
- * This allows for the code running in the SLPI to detect abnormal shutdown of
+ * This allows for the code running in the DSP to detect abnormal shutdown of
  * the host-side binary and perform graceful cleanup.
  *
  * @return always returns NULL
@@ -612,7 +613,7 @@ static void *chre_reverse_monitor_thread(void *arg) {
 
   int ret = chre_slpi_initialize_reverse_monitor();
   if (ret != CHRE_FASTRPC_SUCCESS) {
-    LOGE("Failed to initialize reverse monitor on SLPI: %d", ret);
+    LOGE("Failed to initialize reverse monitor: %d", ret);
   } else {
     // Block here on the condition variable until the main thread notifies
     // us to exit
@@ -674,11 +675,10 @@ void onMessageReceivedFromClient(uint16_t clientId, void *data, size_t length) {
   // This limitation is due to FastRPC, but there's no case where we should come
   // close to this limit...
   static_assert(kMaxPayloadSize <= INT32_MAX,
-                "SLPI uses 32-bit signed integers to represent message size");
+                "DSP uses 32-bit signed integers to represent message size");
 
   if (length > kMaxPayloadSize) {
-    LOGE("Message too large to pass to SLPI (got %zu, max %zu bytes)", length,
-         kMaxPayloadSize);
+    LOGE("Message too large (got %zu, max %zu bytes)", length, kMaxPayloadSize);
   } else if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
     LOGE("Couldn't set host client ID in message container!");
   } else {
@@ -727,7 +727,7 @@ int main() {
     // Send time offset message before nanoapps start
     sendTimeSyncMessage();
     if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
-      LOGE("Failed to start CHRE on SLPI: %d", ret);
+      LOGE("Failed to start CHRE: %d", ret);
     } else {
       if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
         LOGE("Couldn't start monitor thread");
@@ -735,7 +735,7 @@ int main() {
                                &server)) {
         LOGE("Couldn't start CHRE->Host message thread");
       } else {
-        LOGI("CHRE on SLPI started");
+        LOGI("CHRE started");
         // TODO: take 2nd argument as command-line parameter
         server.run("chre", true, onMessageReceivedFromClient);
       }
@@ -743,7 +743,7 @@ int main() {
       chre_shutdown_requested = true;
       ret = chre_slpi_stop_thread();
       if (ret != CHRE_FASTRPC_SUCCESS) {
-        LOGE("Failed to stop CHRE on SLPI: %d", ret);
+        LOGE("Failed to stop CHRE: %d", ret);
       } else {
         // TODO: don't call pthread_join if the thread failed to start
         LOGV("Joining monitor thread");
