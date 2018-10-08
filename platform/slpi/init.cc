@@ -133,7 +133,9 @@ void chreThreadEntry(void * /*data*/) {
 
 void onHostProcessTerminated(void * /*data*/) {
   LOGW("Host process died, exiting CHRE (running %d)", gThreadRunning);
-  chre_slpi_stop_thread();
+  if (gThreadRunning) {
+    EventLoopManagerSingleton::get()->getEventLoop().stop();
+  }
 }
 
 }  // anonymous namespace
