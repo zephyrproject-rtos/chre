@@ -65,7 +65,9 @@ $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
 	  $<
 
 $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
+                                                     $(NANOPB_OPTIONS) \
                                                      $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
-	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS)\
-	  --nanopb_out="$(NANOPB_GEN_PATH)" $<
+	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
+	  --nanopb_out="--options-file=$(NANOPB_OPTIONS):$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
+	  $<
