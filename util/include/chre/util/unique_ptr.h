@@ -102,6 +102,12 @@ class UniquePtr : public NonCopyable {
   void reset(ObjectType *object);
 
   /**
+   * Destroys the object owned by the UniquePtr. Also calls the destructor and
+   * releases the associated memory of the previously owned object.
+   */
+  void reset();
+
+  /**
    * @return A pointer to the underlying object.
    */
   ObjectType *operator->() const;
@@ -125,6 +131,26 @@ class UniquePtr : public NonCopyable {
    * @return A reference to the newly moved object.
    */
   UniquePtr<ObjectType>& operator=(UniquePtr<ObjectType>&& other);
+
+  /**
+   * Two unique_ptr compare equal (==) if their stored pointers compare equal,
+   * and not equal (!=) otherwise.
+   *
+   * @param other The other object being compared.
+   * @return True if the other's pointer is same as the underlying pointer,
+   * otherwise flase.
+   */
+  bool operator==(const UniquePtr<ObjectType> &other) const;
+
+  /**
+   * Two unique_ptr compare equal (==) if their stored pointers compare equal,
+   * and not equal (!=) otherwise.
+   *
+   * @param other The other object being compared.
+   * @return True if the other's pointer is different than the underlying
+   * pointer, otherwise false.
+   */
+  bool operator!=(const UniquePtr<ObjectType> &other) const;
 
  private:
   // Befriend this class to itself to allow the templated conversion constructor

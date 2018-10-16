@@ -82,6 +82,11 @@ void UniquePtr<ObjectType>::reset(ObjectType *object) {
 }
 
 template<typename ObjectType>
+void UniquePtr<ObjectType>::reset()  {
+  this->~UniquePtr<ObjectType>();
+}
+
+template<typename ObjectType>
 ObjectType *UniquePtr<ObjectType>::operator->() const {
   return get();
 }
@@ -94,6 +99,18 @@ ObjectType& UniquePtr<ObjectType>::operator*() const {
 template<typename ObjectType>
 ObjectType& UniquePtr<ObjectType>::operator[](size_t index) const {
   return get()[index];
+}
+
+template<typename ObjectType>
+bool UniquePtr<ObjectType>::operator==(
+    const UniquePtr<ObjectType> &other) const {
+  return mObject == other.get();
+}
+
+template<typename ObjectType>
+bool UniquePtr<ObjectType>::operator!=(
+    const UniquePtr<ObjectType> &other) const {
+  return !(*this == other);
 }
 
 template<typename ObjectType>
