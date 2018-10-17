@@ -127,8 +127,13 @@ void chreThreadEntry(void * /*data*/) {
 #ifdef CHRE_SLPI_SEE
   chre::IslandVoteClientSingleton::deinit();
 #endif
+  // Perform this as late as possible - if we are shutting down because we
+  // detected exit of the host process, FastRPC will unload us once all our
+  // FastRPC calls have returned. Doing this late helps ensure that the call
+  // to chre_slpi_get_message_to_host() stays open until we're done with
+  // cleanup.
+  chre::HostLinkBase::shutdown();
   gThreadRunning = false;
-  LOGD("CHRE thread exiting");
 }
 
 void onHostProcessTerminated(void * /*data*/) {
@@ -254,13 +259,6 @@ extern "C" int chre_slpi_stop_thread(void) {
                   true /* non_deferrable */);
     }
     gThreadHandle = 0;
-
-    // Perform this as late as possible - if we are shutting down because we
-    // detected exit of the host process, FastRPC will unload us once all our
-    // FastRPC calls have returned. Doing this late helps ensure that the call
-    // to chre_slpi_get_message_to_host() stays open until we're done with
-    // cleanup.
-    chre::HostLinkBase::shutdown();
   }
 
   return CHRE_FASTRPC_SUCCESS;
