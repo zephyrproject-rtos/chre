@@ -444,16 +444,17 @@ void EventLoop::notifyAppStatusChange(uint16_t eventType,
 void EventLoop::unloadNanoappAtIndex(size_t index) {
   const UniquePtr<Nanoapp>& nanoapp = mNanoapps[index];
 
+  // Lock here to prevent the nanoapp instance from being accessed between the
+  // time it is ended and fully erased
+  LockGuard<Mutex> lock(mNanoappsLock);
+
   // Let the app know it's going away
   mCurrentApp = nanoapp.get();
   nanoapp->end();
   mCurrentApp = nullptr;
 
   // Destroy the Nanoapp instance
-  {
-    LockGuard<Mutex> lock(mNanoappsLock);
-    mNanoapps.erase(index);
-  }
+  mNanoapps.erase(index);
 }
 
 }  // namespace chre

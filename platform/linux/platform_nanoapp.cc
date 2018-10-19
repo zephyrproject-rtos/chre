@@ -127,6 +127,7 @@ bool PlatformNanoappBase::openNanoappFromFile() {
 
 void PlatformNanoappBase::closeNanoapp() {
   if (mDsoHandle != nullptr) {
+    mAppInfo = nullptr;
     if (dlclose(mDsoHandle) != 0) {
       LOGE("dlclose failed: %s", dlerror());
     }
