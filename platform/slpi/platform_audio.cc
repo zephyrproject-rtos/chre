@@ -58,6 +58,7 @@ void handleWcdSpiAudioDataEvent(const wcd_spi_audio_data_event_s *event) {
   auto *dataEvent = memoryAlloc<struct chreAudioDataEvent>();
   if (dataEvent == nullptr) {
     LOGE("Failed to allocate data event");
+    wcd_spi_client_release_audio_data_event(event->handle);
   } else {
     dataEvent->handle = event->handle;
     dataEvent->timestamp = event->timestamp_ns;
@@ -106,11 +107,20 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
   }
 
   if (lastNumAudioClients == 0 && mNumAudioClients > 0) {
-    LOGD("Enabling WCD SLPI");
-    sendAudioRequest();
+    mTargetAudioEnabled = true;
+    if (!mCurrentAudioEnabled) {
+      LOGD("Enabling WCD SLPI");
+      mCurrentAudioEnabled = true;
+      sendAudioRequest();
+    }
   } else if (lastNumAudioClients > 0 && mNumAudioClients == 0) {
-    LOGD("Disabling WCD SLPI");
-    sendAudioRelease();
+    mTargetAudioEnabled = false;
+    if (EventLoopManagerSingleton::get()->getEventLoop()
+            .getPowerControlManager().hostIsAwake()) {
+      onHostAwake();
+    } else {
+      LOGD("Deferring disable WCD SLPI");
+    }
   }
 }
 
@@ -138,7 +148,7 @@ size_t PlatformAudio::getSourceCount() {
 }
 
 bool PlatformAudio::getAudioSource(uint32_t handle,
-                                   chreAudioSource *source) {
+                                   chreAudioSource *source) const {
   slpiForceBigImage();
   wcd_spi_audio_source_s wcd_spi_audio_source;
   bool result = wcd_spi_client_get_source(handle, &wcd_spi_audio_source);
@@ -149,6 +159,14 @@ bool PlatformAudio::getAudioSource(uint32_t handle,
   }
 
   return result;
+}
+
+void PlatformAudioBase::onHostAwake() {
+  if (mCurrentAudioEnabled && !mTargetAudioEnabled) {
+    LOGD("Disabling WCD SPI");
+    mCurrentAudioEnabled = mTargetAudioEnabled;
+    sendAudioRelease();
+  }
 }
 
 }  // namespace chre

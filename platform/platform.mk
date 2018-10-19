@@ -70,8 +70,13 @@ SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
 
 SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
+
+# Needed to define __SIZEOF_ATTR_THREAD in sns_osa_thread.h, included in
+# sns_memmgr.h.
 SLPI_SEE_CFLAGS += -DSSC_TARGET_HEXAGON
-SLPI_SEE_CFLAGS += -DSNS_ISLAND_INCLUDE_QCM
+
+# Defined in slpi_proc/ssc/build/ssc.scons
+SLPI_SEE_CFLAGS += -DPB_FIELD_16BIT
 
 # SLPI-specific Source Files ###################################################
 
@@ -122,30 +127,24 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # SLPI/SEE-specific Source Files ###############################################
 
-# TODO(P2-c001d8): (b/68860346) replace pb-related source files with exported
-# symbols.
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_common.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_decode.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/utils/nanopb/src/pb_encode.c
-
 SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
+SLPI_SEE_SRCS += platform/slpi/see/see_cal_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
-SLPI_SEE_QSK_SRCS += $(SLPI_PREFIX)/ssc/framework/qcm/pb/sns_client_qsocket.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_cal.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_physical_sensor_test.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_proximity.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_remote_proc_state.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_resampler.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c
 
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_osa.c
-SLPI_SEE_QSK_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qsocket_client.c
+SLPI_SEE_QSK_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qmi_client_alt.c
 SLPI_SEE_QMI_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qmi_client.c
 
 # Simulator-specific Compiler Flags ############################################

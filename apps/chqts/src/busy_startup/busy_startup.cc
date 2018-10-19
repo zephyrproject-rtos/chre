@@ -47,12 +47,12 @@
 #include <chre.h>
 
 #include <shared/send_message.h>
+#include <shared/time_util.h>
 
 using nanoapp_testing::MessageType;
 using nanoapp_testing::sendMessageToHost;
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendSuccessToHost;
-
 
 static bool gInMethod = false;
 static uint32_t gInstanceId;
@@ -198,9 +198,12 @@ extern "C" bool nanoappStart(void) {
     chreLog(CHRE_LOG_ERROR, "Failed sensorFindDefault in start");
     return false;
   }
+
+  // Configure accel request at 50 Hz (reasonable rate, e.g. for AR)
+  // TODO: Add a way to find the range of possible sample rates
   if (!chreSensorConfigure(gSensorHandle,
                            CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
-                           CHRE_SENSOR_INTERVAL_DEFAULT,
+                           20 * nanoapp_testing::kOneMillisecondInNanoseconds,
                            CHRE_SENSOR_LATENCY_ASAP)) {
     chreLog(CHRE_LOG_ERROR, "Failed sensorConfigure in start");
     return false;
