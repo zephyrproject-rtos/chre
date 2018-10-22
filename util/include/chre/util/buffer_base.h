@@ -52,6 +52,13 @@ class BufferBase : public NonCopyable {
    *        to determine the effective size of the buffer to copy.
    */
   bool copy_array(const void *buffer, size_t size, size_t elementSize);
+
+ private:
+  /**
+   * Cleans up the buffer so a new one can be wrapped or copied. If the current
+   * buffer is owned by this object, it is released.
+   */
+  void reset();
 };
 
 }  // namespace chre
