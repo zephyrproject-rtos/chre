@@ -35,14 +35,11 @@ namespace chre {
 class AudioRequestManager : public NonCopyable {
  public:
   /**
-   * Sets up the initial condition for the audio request manager including
-   * initial allocation of requests managers.
-   */
-  AudioRequestManager();
-
-  /**
    * Initializes the platform-specific audio module. Must be called prior to
    * invoking any other methods in this class.
+   *
+   * Sets up the initial condition for the audio request manager including
+   * initial allocation of requests managers.
    */
   void init();
 

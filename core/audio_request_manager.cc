@@ -39,7 +39,9 @@
 
 namespace chre {
 
-AudioRequestManager::AudioRequestManager() {
+void AudioRequestManager::init() {
+  mPlatformAudio.init();
+
   size_t sourceCount = mPlatformAudio.getSourceCount();
   if (!mAudioRequestLists.reserve(sourceCount)) {
     FATAL_ERROR_OOM();
@@ -48,10 +50,6 @@ AudioRequestManager::AudioRequestManager() {
   for (size_t i = 0; i < sourceCount; i++) {
     mAudioRequestLists.emplace_back();
   }
-}
-
-void AudioRequestManager::init() {
-  mPlatformAudio.init();
 }
 
 bool AudioRequestManager::configureSource(const Nanoapp *nanoapp,
