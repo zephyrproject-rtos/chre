@@ -50,14 +50,6 @@ bool Nanoapp::unregisterForBroadcastEvent(uint16_t eventId) {
   return true;
 }
 
-void Nanoapp::postEvent(Event *event) {
-  mEventQueue.push(event);
-}
-
-bool Nanoapp::hasPendingEvent() {
-  return !mEventQueue.empty();
-}
-
 void Nanoapp::configureNanoappInfoEvents(bool enable) {
   if (enable) {
     registerForBroadcastEvent(CHRE_EVENT_NANOAPP_STARTED);

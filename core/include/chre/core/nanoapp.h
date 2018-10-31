@@ -78,17 +78,19 @@ class Nanoapp : public PlatformNanoapp {
 
   /**
    * Adds an event to this nanoapp's queue of pending events.
-   *
-   * @param event
    */
-  void postEvent(Event *event);
+  void postEvent(Event *event) {
+    mEventQueue.push(event);
+  }
 
   /**
    * Indicates whether there are any pending events in this apps queue.
    *
    * @return true if there are events waiting to be processed
    */
-  bool hasPendingEvent();
+  bool hasPendingEvent() {
+    return !mEventQueue.empty();
+  }
 
   /**
    * Configures whether nanoapp info events will be sent to the nanoapp.
