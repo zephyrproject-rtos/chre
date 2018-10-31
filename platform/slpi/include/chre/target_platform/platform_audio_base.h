@@ -35,12 +35,12 @@ class PlatformAudioBase : public PlatformPal {
   void onHostAwake();
 
  protected:
+  //! The instance of callbacks that are provided to the CHRE PAL.
+  static const chrePalAudioCallbacks sAudioCallbacks;
+
   //! The instance of the CHRE PAL API for audio. This will be set to nullptr
   //! if the platform does not supply an implementation.
   const chrePalAudioApi *mAudioApi;
-
-  //! The instance of callbacks that are provided to the CHRE PAL.
-  chrePalAudioCallbacks mAudioCallbacks;
 
   //! The number of open audio clients. This is incremented/decremented by the
   //! setHandleEnabled platform API.

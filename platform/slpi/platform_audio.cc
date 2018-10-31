@@ -41,6 +41,11 @@ void handleAudioAvailability(uint32_t handle, bool available) {
 
 }  // anonymous namespace
 
+const chrePalAudioCallbacks PlatformAudioBase::sAudioCallbacks = {
+  handleAudioDataEvent,
+  handleAudioAvailability,
+};
+
 PlatformAudio::PlatformAudio() {}
 
 PlatformAudio::~PlatformAudio() {
@@ -56,9 +61,7 @@ void PlatformAudio::init() {
   prePalApiCall();
   mAudioApi = chrePalAudioGetApi(CHRE_PAL_AUDIO_API_CURRENT_VERSION);
   if (mAudioApi != nullptr) {
-    mAudioCallbacks.audioDataEventCallback = handleAudioDataEvent;
-    mAudioCallbacks.audioAvailabilityCallback = handleAudioAvailability;
-    if (!mAudioApi->open(&gChrePalSystemApi, &mAudioCallbacks)) {
+    if (!mAudioApi->open(&gChrePalSystemApi, &sAudioCallbacks)) {
       LOGD("Audio PAL open returned false");
       mAudioApi = nullptr;
     } else {

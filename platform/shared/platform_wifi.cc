@@ -24,6 +24,13 @@
 
 namespace chre {
 
+const chrePalWifiCallbacks PlatformWifiBase::sWifiCallbacks = {
+  PlatformWifi::scanMonitorStatusChangeCallback,
+  PlatformWifiBase::scanResponseCallback,
+  PlatformWifiBase::scanEventCallback,
+  PlatformWifiBase::rangingEventCallback,
+};
+
 PlatformWifi::~PlatformWifi() {
   if (mWifiApi != nullptr) {
     LOGD("Platform WiFi closing");
@@ -37,15 +44,7 @@ void PlatformWifi::init() {
   prePalApiCall();
   mWifiApi = chrePalWifiGetApi(CHRE_PAL_WIFI_API_CURRENT_VERSION);
   if (mWifiApi != nullptr) {
-    mWifiCallbacks.scanMonitorStatusChangeCallback =
-        PlatformWifi::scanMonitorStatusChangeCallback;
-    mWifiCallbacks.scanResponseCallback =
-        PlatformWifiBase::scanResponseCallback;
-    mWifiCallbacks.scanEventCallback =
-        PlatformWifiBase::scanEventCallback;
-    mWifiCallbacks.rangingEventCallback =
-        PlatformWifiBase::rangingEventCallback;
-    if (!mWifiApi->open(&gChrePalSystemApi, &mWifiCallbacks)) {
+    if (!mWifiApi->open(&gChrePalSystemApi, &sWifiCallbacks)) {
       LOGE("WiFi PAL open returned false");
       mWifiApi = nullptr;
     } else {
