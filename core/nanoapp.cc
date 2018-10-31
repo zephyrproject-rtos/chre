@@ -34,7 +34,7 @@ bool Nanoapp::registerForBroadcastEvent(uint16_t eventId) {
   }
 
   if (!mRegisteredEvents.push_back(eventId)) {
-    FATAL_ERROR("App failed to register for event: out of memory");
+    FATAL_ERROR_OOM();
   }
 
   return true;
