@@ -63,11 +63,11 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
   }
 }
 
-bool MemoryManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+void MemoryManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                      size_t bufferSize) const {
-  return debugDumpPrint(buffer, bufferPos, bufferSize,
-                        "\nNanoapp heap usage: %zu bytes allocated, count %zu\n",
-                        getTotalAllocatedBytes(), getAllocationCount());
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 "\nNanoapp heap usage: %zu bytes allocated, count %zu\n",
+                 getTotalAllocatedBytes(), getAllocationCount());
 }
 
 }  // namespace chre

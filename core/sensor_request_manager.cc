@@ -293,26 +293,24 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
   return mSensorRequests[sensorIndex].multiplexer.getRequests();
 }
 
-bool SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
+void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                             size_t bufferSize) const {
-  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");
+  debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");
   for (uint8_t i = 0; i < static_cast<uint8_t>(SensorType::SENSOR_TYPE_COUNT);
        i++) {
     SensorType sensor = static_cast<SensorType>(i);
     if (sensor != SensorType::Unknown) {
       for (const auto& request : getRequests(sensor)) {
-        success &= debugDumpPrint(buffer, bufferPos, bufferSize, " %s: mode=%d"
-                                  " interval(ns)=%" PRIu64 " latency(ns)=%"
-                                  PRIu64 " nanoappId=%" PRIu32 "\n",
-                                  getSensorTypeName(sensor), request.getMode(),
-                                  request.getInterval().toRawNanoseconds(),
-                                  request.getLatency().toRawNanoseconds(),
-                                  request.getInstanceId());
+        debugDumpPrint(buffer, bufferPos, bufferSize, " %s: mode=%d"
+                       " interval(ns)=%" PRIu64 " latency(ns)=%"
+                       PRIu64 " nanoappId=%" PRIu32 "\n",
+                       getSensorTypeName(sensor), request.getMode(),
+                       request.getInterval().toRawNanoseconds(),
+                       request.getLatency().toRawNanoseconds(),
+                       request.getInstanceId());
       }
     }
   }
-
-  return success;
 }
 
 const SensorRequest *SensorRequestManager::SensorRequests::find(

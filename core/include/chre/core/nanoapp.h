@@ -123,10 +123,8 @@ class Nanoapp : public PlatformNanoapp {
    * @param buffer Pointer to the start of the buffer.
    * @param bufferPos Pointer to buffer position to start the print (in-out).
    * @param size Size of the buffer in bytes.
-   *
-   * @return true if entire log printed, false if overflow or error.
    */
-  bool logStateToBuffer(char *buffer, size_t *bufferPos,
+  void logStateToBuffer(char *buffer, size_t *bufferPos,
                         size_t bufferSize) const;
 
  private:

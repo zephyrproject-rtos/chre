@@ -272,14 +272,12 @@ bool PlatformNanoapp::isSystemNanoapp() const {
   return (mAppInfo != nullptr) ? mAppInfo->isSystemNanoapp : false;
 }
 
-bool PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
+void PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
                                        size_t bufferSize) const {
-  bool success = true;
   if (mAppInfo != nullptr) {
-    success &= debugDumpPrint(buffer, bufferPos, bufferSize, " %s: vendor=\"%s\"",
-                              mAppInfo->name, mAppInfo->vendor);
+    debugDumpPrint(buffer, bufferPos, bufferSize, " %s: vendor=\"%s\"",
+                   mAppInfo->name, mAppInfo->vendor);
   }
-  return success;
 }
 
 }  // namespace chre

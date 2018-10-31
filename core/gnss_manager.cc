@@ -36,13 +36,11 @@ uint32_t GnssManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
 }
 
-bool GnssManager::logStateToBuffer(
+void GnssManager::logStateToBuffer(
     char *buffer, size_t *bufferPos, size_t bufferSize) const {
-  bool success = debugDumpPrint(buffer, bufferPos, bufferSize,"\nGNSS:");
-  success &= mLocationSession.logStateToBuffer(buffer, bufferPos, bufferSize);
-  success &= mMeasurementSession
-      .logStateToBuffer(buffer, bufferPos, bufferSize);
-  return success;
+  debugDumpPrint(buffer, bufferPos, bufferSize,"\nGNSS:");
+  mLocationSession.logStateToBuffer(buffer, bufferPos, bufferSize);
+  mMeasurementSession.logStateToBuffer(buffer, bufferPos, bufferSize);
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
@@ -113,32 +111,28 @@ void GnssSession::handleReportEvent(void *event) {
       .postEvent(mReportEventType, event, freeReportEventCallback);
 }
 
-bool GnssSession::logStateToBuffer(
+void GnssSession::logStateToBuffer(
     char *buffer, size_t *bufferPos, size_t bufferSize) const {
-  bool success = debugDumpPrint(buffer, bufferPos, bufferSize,
-                                "\n %s: Current interval(ms)=%" PRIu64 "\n",
-                                mName, mCurrentInterval.getMilliseconds());
-
-  success &= debugDumpPrint(buffer, bufferPos, bufferSize, "  Requests:\n");
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 "\n %s: Current interval(ms)=%" PRIu64 "\n",
+                 mName, mCurrentInterval.getMilliseconds());
+  debugDumpPrint(buffer, bufferPos, bufferSize, "  Requests:\n");
   for (const auto& request : mRequests) {
-    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
-                              "   minInterval(ms)=%" PRIu64 " nanoappId=%"
-                              PRIu32 "\n",
-                              request.minInterval.getMilliseconds(),
-                              request.nanoappInstanceId);
+    debugDumpPrint(buffer, bufferPos, bufferSize,
+                   "   minInterval(ms)=%" PRIu64 " nanoappId=%"
+                   PRIu32 "\n",
+                   request.minInterval.getMilliseconds(),
+                   request.nanoappInstanceId);
   }
 
-  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
-                            "  Transition queue:\n");
+  debugDumpPrint(buffer, bufferPos, bufferSize, "  Transition queue:\n");
   for (const auto& transition : mStateTransitions) {
-    success &= debugDumpPrint(buffer, bufferPos, bufferSize,
-                              "   minInterval(ms)=%" PRIu64 " enable=%d"
-                              " nanoappId=%" PRIu32 "\n",
-                              transition.minInterval.getMilliseconds(),
-                              transition.enable, transition.nanoappInstanceId);
+    debugDumpPrint(buffer, bufferPos, bufferSize,
+                   "   minInterval(ms)=%" PRIu64 " enable=%d"
+                   " nanoappId=%" PRIu32 "\n",
+                   transition.minInterval.getMilliseconds(),
+                   transition.enable, transition.nanoappInstanceId);
   }
-
-  return success;
 }
 
 bool GnssSession::configure(

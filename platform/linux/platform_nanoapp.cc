@@ -61,10 +61,8 @@ bool PlatformNanoapp::isSystemNanoapp() const {
   return (mAppInfo != nullptr && mAppInfo->isSystemNanoapp);
 }
 
-bool PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                       size_t bufferSize) const {
-  return true;
-}
+void PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
+                                       size_t bufferSize) const {}
 
 void PlatformNanoappBase::loadFromFile(const std::string& filename) {
   CHRE_ASSERT(!isLoaded());

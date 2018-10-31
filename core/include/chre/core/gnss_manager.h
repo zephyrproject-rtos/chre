@@ -88,7 +88,7 @@ class GnssSession {
    *
    * @see GnssManager::logStateToBuffer
    */
-  bool logStateToBuffer(char *buffer, size_t *bufferPos, size_t bufferSize)
+  void logStateToBuffer(char *buffer, size_t *bufferPos, size_t bufferSize)
       const;
 
  private:
@@ -346,7 +346,7 @@ class GnssManager : public NonCopyable {
    *
    * @return true if entire log printed, false if overflow or error.
    */
-  bool logStateToBuffer(char *buffer, size_t *bufferPos,
+  void logStateToBuffer(char *buffer, size_t *bufferPos,
                         size_t bufferSize) const;
 
  private:

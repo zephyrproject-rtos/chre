@@ -309,19 +309,17 @@ bool EventLoop::currentNanoappIsStopping() const {
   return (mCurrentApp == mStoppingNanoapp || !mRunning);
 }
 
-bool EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
+void EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
                                  size_t bufferSize) const {
-  bool success = debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
+  debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
-    success &= app->logStateToBuffer(buffer, bufferPos, bufferSize);
+    app->logStateToBuffer(buffer, bufferPos, bufferSize);
   }
 
-  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
-                            "\nEvent Loop:\n");
-  success &= debugDumpPrint(buffer, bufferPos, bufferSize,
-                            "  Max event pool usage: %zu/%zu\n",
-                            mMaxEventPoolUsage, kMaxEventCount);
-  return success;
+  debugDumpPrint(buffer, bufferPos, bufferSize, "\nEvent Loop:\n");
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 "  Max event pool usage: %zu/%zu\n",
+                 mMaxEventPoolUsage, kMaxEventCount);
 }
 
 bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
