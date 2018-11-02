@@ -132,11 +132,18 @@ extern "C" {
 
 // Flags to indicate which values are valid in a GpsLocation
 // (ref: GpsLocationFlags)
-#define CHRE_GPS_LOCATION_HAS_LAT_LONG  UINT16_C(1 << 0)
-#define CHRE_GPS_LOCATION_HAS_ALTITUDE  UINT16_C(1 << 1)
-#define CHRE_GPS_LOCATION_HAS_SPEED     UINT16_C(1 << 2)
-#define CHRE_GPS_LOCATION_HAS_BEARING   UINT16_C(1 << 3)
-#define CHRE_GPS_LOCATION_HAS_ACCURACY  UINT16_C(1 << 4)
+#define CHRE_GPS_LOCATION_HAS_LAT_LONG           UINT16_C(1 << 0)
+#define CHRE_GPS_LOCATION_HAS_ALTITUDE           UINT16_C(1 << 1)
+#define CHRE_GPS_LOCATION_HAS_SPEED              UINT16_C(1 << 2)
+#define CHRE_GPS_LOCATION_HAS_BEARING            UINT16_C(1 << 3)
+#define CHRE_GPS_LOCATION_HAS_ACCURACY           UINT16_C(1 << 4)
+
+//! @since v1.3
+#define CHRE_GPS_LOCATION_HAS_ALTITUDE_ACCURACY  UINT16_C(1 << 5)
+//! @since v1.3
+#define CHRE_GPS_LOCATION_HAS_SPEED_ACCURACY     UINT16_C(1 << 6)
+//! @since v1.3
+#define CHRE_GPS_LOCATION_HAS_BEARING_ACCURACY   UINT16_C(1 << 7)
 
 /**
  * The maximum number of instances of struct chreGnssMeasurement that may be
@@ -348,6 +355,28 @@ struct chreGnssLocationEvent {
     //! must be initialized to 0.
     //! @see #GpsLocationFlags
     uint16_t flags;
+
+    //! Reserved for future use; set to 0
+    //! @since v1.3
+    uint8_t reserved[2];
+
+    //! Expected vertical accuracy in meters such that a range of
+    //! 2 * altitude_accuracy centered around altitude has a 68% probability of
+    //! including the true altitude.
+    //! @since v1.3
+    float altitude_accuracy;
+
+    //! Expected speed accuracy in meters per second such that a range of
+    //! 2 * speed_accuracy centered around speed has a 68% probability of
+    //! including the true speed.
+    //! @since v1.3
+    float speed_accuracy;
+
+    //! Expected bearing accuracy in degrees such that a range of
+    //! 2 * bearing_accuracy centered around bearing has a 68% probability of
+    //! including the true bearing.
+    //! @since v1.3
+    float bearing_accuracy;
 };
 
 
