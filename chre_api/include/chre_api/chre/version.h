@@ -66,9 +66,6 @@ extern "C" {
  * The version of the CHRE API shipped with the Android P release. It adds
  * initial support for the new audio module.
  *
- * @note This version of the CHRE API has not been finalized yet, and is
- * currently considered a preview that is subject to change.
- *
  * @see CHRE_API_VERSION
  */
 #define CHRE_API_VERSION_1_2  UINT32_C(0x01020000)
