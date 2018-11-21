@@ -39,6 +39,20 @@ TEST(Optional, NonDefaultMovedValueByDefault) {
   EXPECT_EQ(*myInt, 0x1337);
 }
 
+TEST(Optional, CopyConstruct) {
+  Optional<int> myInt(0x1337);
+  Optional<int> myNewInt(myInt);
+  EXPECT_TRUE(myNewInt.has_value());
+  EXPECT_EQ(*myNewInt, 0x1337);
+}
+
+TEST(Optional, CopyConstructConst) {
+  const Optional<int> myInt(0x1337);
+  Optional<int> myNewInt(myInt);
+  EXPECT_TRUE(myNewInt.has_value());
+  EXPECT_EQ(*myNewInt, 0x1337);
+}
+
 TEST(Optional, CopyAssignAndRead) {
   Optional<int> myInt;
   EXPECT_FALSE(myInt.has_value());
