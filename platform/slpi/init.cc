@@ -35,7 +35,6 @@ extern "C" {
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
 #include "chre/platform/slpi/fastrpc.h"
-#include "chre/platform/slpi/preloaded_nanoapps.h"
 #include "chre/platform/slpi/uimg_util.h"
 #include "chre/util/lock_guard.h"
 
@@ -118,7 +117,6 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
 void chreThreadEntry(void * /*data*/) {
   EventLoopManagerSingleton::get()->lateInit();
   chre::loadStaticNanoapps();
-  chre::loadPreloadedNanoapps();
   ashRegisterDebugDumpCallback("CHRE", onDebugDumpRequested, nullptr);
   EventLoopManagerSingleton::get()->getEventLoop().run();
 
