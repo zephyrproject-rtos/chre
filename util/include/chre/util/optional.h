@@ -39,6 +39,20 @@ class Optional {
   Optional() = default;
 
   /**
+   * Default copy constructor.
+   *
+   * @param object The object to copy construct from.
+   */
+  Optional(const Optional<ObjectType>& object) = default;
+
+  /**
+   * Default copy constructor.
+   *
+   * @param object The object to copy construct from.
+   */
+  Optional(Optional<ObjectType>& object) = default;
+
+  /**
    * Constructs an optional instance with an initial value.
    *
    * @param object The initial value of the object.
