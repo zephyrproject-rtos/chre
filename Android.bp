@@ -59,6 +59,26 @@ cc_test {
     gtest: false,
 }
 
+cc_test {
+    name: "audio_stress_test",
+    vendor: true,
+    local_include_dirs: [
+        "chre_api/include/chre_api",
+        "util/include",
+    ],
+    srcs: [
+        "host/common/audio_stress_test/audio_stress_test.cc",
+    ],
+    cflags: ["-Wall", "-Werror"],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libutils",
+    ],
+    static_libs: ["chre_client"],
+    gtest: false,
+}
+
 cc_library_shared {
     name: "android.hardware.contexthub@1.0-impl.generic",
     vendor: true,

@@ -24,10 +24,24 @@ namespace chre {
  * functionality from.
  */
 class PlatformAudioBase {
+ public:
+  /**
+   * Invoked whenever the host goes awake. This is used to implement the
+   * deferred audio disable operation. This is called on the CHRE thread.
+   */
+  void onHostAwake();
+
  protected:
   //! The number of open audio clients. This is incremented/decremented by the
   //! setHandleEnabled platform API.
   uint32_t mNumAudioClients = 0;
+
+  //! The current state of the audio feature enabled on the host.
+  bool mCurrentAudioEnabled = false;
+
+  //! The target state of the audio feature enabled on the host. This is used to
+  //! support deferred disabling when the next AP wake occurs.
+  bool mTargetAudioEnabled = false;
 };
 
 }  // namespace chre

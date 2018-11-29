@@ -27,9 +27,7 @@ namespace chre {
 
 template<typename ElementType, size_t kCapacity>
 ArrayQueue<ElementType, kCapacity>::~ArrayQueue() {
-  while (!empty()) {
-    pop();
-  }
+  clear();
 }
 
 template<typename ElementType, size_t kCapacity>
@@ -163,6 +161,19 @@ bool ArrayQueue<ElementType, kCapacity>::emplace(Args&&... args) {
     new (&data()[mTail]) ElementType(std::forward<Args>(args)...);
   }
   return success;
+}
+
+template<typename ElementType, size_t kCapacity>
+void ArrayQueue<ElementType, kCapacity>::clear() {
+  if (!std::is_trivially_destructible<ElementType>::value) {
+    while (!empty()) {
+      pop();
+    }
+  } else {
+    mSize = 0;
+    mHead = 0;
+    mTail = kCapacity - 1;
+  }
 }
 
 template<typename ElementType, size_t kCapacity>
