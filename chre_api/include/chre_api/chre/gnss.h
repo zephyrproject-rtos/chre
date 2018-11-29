@@ -340,11 +340,12 @@ struct chreGnssLocationEvent {
 
     //! Expected horizontal accuracy in meters such that a circle with a radius
     //! of length 'accuracy' from the latitude and longitude has a 68%
-    //! probability of including the true location. Use 0.0 if there is no
-    //! accuracy.
+    //! probability of including the true location.
     float accuracy;
 
-    //! A set of flags indicating which fields in this structure are valid
+    //! A set of flags indicating which fields in this structure are valid.
+    //! If any fields are not available, the flag must not be set and the field
+    //! must be initialized to 0.
     //! @see #GpsLocationFlags
     uint16_t flags;
 };
