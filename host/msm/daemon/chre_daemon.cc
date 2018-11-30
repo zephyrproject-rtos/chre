@@ -615,7 +615,10 @@ static bool sendFragmentedNanoappLoad(
     } else {
       struct timespec timeout;
       int ret = clock_gettime(CLOCK_REALTIME, &timeout);
-      timeout.tv_sec += 10;  // 10s timeout for fragments.
+
+      // 60s timeout for fragments. Set high for busy first bootups where the
+      // PALs can block CHRE initialization while other subsystems come up.
+      timeout.tv_sec += 60;
       if (ret != 0) {
         LOG_ERROR("Nanoapp fragment get time failed", ret);
         success = false;
