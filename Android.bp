@@ -86,7 +86,6 @@ cc_library_shared {
         "host/hal_generic/generic_context_hub.cc",
     ],
     cflags: ["-Wall", "-Werror"],
-    cpp_std: "c++17",
     shared_libs: [
         "libcutils",
         "liblog",
