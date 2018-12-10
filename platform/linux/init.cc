@@ -97,6 +97,8 @@ int main(int argc, char **argv) {
 
     // Load any static nanoapps and start the event loop.
     std::thread chreThread([&]() {
+      EventLoopManagerSingleton::get()->lateInit();
+
       // Load static nanoapps unless they are disabled by a command-line flag.
       if (!noStaticNanoappsArg.getValue()) {
         chre::loadStaticNanoapps();
