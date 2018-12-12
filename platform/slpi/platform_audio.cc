@@ -34,7 +34,7 @@ void handleAudioDataEvent(struct chreAudioDataEvent *event) {
 }
 
 void handleAudioAvailability(uint32_t handle, bool available) {
-  LOGD("WCD SPI audio handle %" PRIu32 " available: %d", handle, available);
+  LOGD("SPI audio handle %" PRIu32 " available: %d", handle, available);
   EventLoopManagerSingleton::get()->getAudioRequestManager()
       .handleAudioAvailability(handle, available);
 }
@@ -87,7 +87,7 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
   if (lastNumAudioClients == 0 && mNumAudioClients > 0) {
     mTargetAudioEnabled = true;
     if (!mCurrentAudioEnabled) {
-      LOGD("Enabling WCD SLPI");
+      LOGD("Enabling audio");
       mCurrentAudioEnabled = true;
       sendAudioRequest();
     }
@@ -97,7 +97,7 @@ void PlatformAudio::setHandleEnabled(uint32_t handle, bool enabled) {
             .getPowerControlManager().hostIsAwake()) {
       onHostAwake();
     } else {
-      LOGD("Deferring disable WCD SLPI");
+      LOGD("Deferring disable audio");
     }
   }
 }
@@ -152,7 +152,7 @@ bool PlatformAudio::getAudioSource(uint32_t handle,
 
 void PlatformAudioBase::onHostAwake() {
   if (mCurrentAudioEnabled && !mTargetAudioEnabled) {
-    LOGD("Disabling WCD SPI");
+    LOGD("Disabling audio");
     mCurrentAudioEnabled = mTargetAudioEnabled;
     sendAudioRelease();
   }
