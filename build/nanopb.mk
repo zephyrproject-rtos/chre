@@ -42,7 +42,9 @@ endif
 # NanoPB Compiler Flags ########################################################
 
 ifneq ($(NANOPB_GEN_SRCS),)
+ifneq ($(NANOPB_INCLUDE_LIBRARY),false)
 COMMON_CFLAGS += -DPB_NO_PACKED_STRUCTS=1
+endif
 endif
 
 # NanoPB Generator Setup #######################################################
