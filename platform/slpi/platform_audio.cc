@@ -28,7 +28,6 @@ namespace chre {
 namespace {
 
 void handleAudioDataEvent(struct chreAudioDataEvent *event) {
-  LOGD("Audio data callback");
   EventLoopManagerSingleton::get()->getAudioRequestManager()
       .handleAudioDataEvent(event);
 }
