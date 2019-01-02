@@ -173,7 +173,7 @@ typedef std::unique_ptr<uint8_t, std::function<void(uint8_t * /* unused */)>>
 template<typename T> struct Offset {
   uoffset_t o;
   Offset() : o(0) {}
-  Offset(uoffset_t _o) : o(_o) {}
+  Offset(uoffset_t _o) : o(_o) {} // NOLINT(google-explicit-constructor)
   Offset<void> Union() const { return Offset<void>(o); }
 };
 
@@ -1240,7 +1240,7 @@ FLATBUFFERS_FINAL_CLASS
   /// @cond FLATBUFFERS_INTERNAL
   template<typename T>
   struct TableKeyComparator {
-  TableKeyComparator(vector_downward& buf) : buf_(buf) {}
+  explicit TableKeyComparator(vector_downward& buf) : buf_(buf) {}
     bool operator()(const Offset<T> &a, const Offset<T> &b) const {
       auto table_a = reinterpret_cast<T *>(buf_.data_at(a.o));
       auto table_b = reinterpret_cast<T *>(buf_.data_at(b.o));
@@ -1397,7 +1397,7 @@ FLATBUFFERS_FINAL_CLASS
 
   #ifndef FLATBUFFERS_CHRE
   struct StringOffsetCompare {
-    StringOffsetCompare(const vector_downward &buf) : buf_(&buf) {}
+    explicit StringOffsetCompare(const vector_downward &buf) : buf_(&buf) {}
     bool operator() (const Offset<String> &a, const Offset<String> &b) const {
       auto stra = reinterpret_cast<const String *>(buf_->data_at(a.o));
       auto strb = reinterpret_cast<const String *>(buf_->data_at(b.o));

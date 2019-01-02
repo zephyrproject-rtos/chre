@@ -74,7 +74,7 @@ class GenericContextHub : public IContexthub {
   class SocketCallbacks : public ::android::chre::SocketClient::ICallbacks,
                           public ::android::chre::IChreMessageHandlers {
    public:
-    SocketCallbacks(GenericContextHub& parent);
+    explicit SocketCallbacks(GenericContextHub& parent);
     void onMessageReceived(const void *data, size_t length) override;
     void onConnected() override;
     void onDisconnected() override;
@@ -113,7 +113,7 @@ class GenericContextHub : public IContexthub {
 
   class DeathRecipient : public hidl_death_recipient {
    public:
-    DeathRecipient(const sp<GenericContextHub> contexthub);
+    explicit DeathRecipient(const sp<GenericContextHub> contexthub);
     void serviceDied(uint64_t cookie,
                      const wp<::android::hidl::base::V1_0::IBase>& who)
         override;
