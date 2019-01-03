@@ -304,7 +304,7 @@ MANUALLY_ALIGNED_STRUCT(2) HostAddress FLATBUFFERS_FINAL_CLASS {
   HostAddress(const HostAddress &_o) {
     memcpy(this, &_o, sizeof(HostAddress));
   }
-  HostAddress(uint16_t _client_id)
+  explicit HostAddress(uint16_t _client_id)
       : client_id_(flatbuffers::EndianScalar(_client_id)) {
   }
   uint16_t client_id() const {
@@ -395,7 +395,7 @@ struct NanoappMessageBuilder {
   void add_message(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> message) {
     fbb_.AddOffset(NanoappMessage::VT_MESSAGE, message);
   }
-  NanoappMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit NanoappMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -458,7 +458,7 @@ struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct HubInfoRequestBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  HubInfoRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit HubInfoRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -666,7 +666,7 @@ struct HubInfoResponseBuilder {
   void add_chre_platform_version(uint32_t chre_platform_version) {
     fbb_.AddElement<uint32_t>(HubInfoResponse::VT_CHRE_PLATFORM_VERSION, chre_platform_version, 0);
   }
-  HubInfoResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit HubInfoResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -760,7 +760,7 @@ struct NanoappListRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct NanoappListRequestBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  NanoappListRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit NanoappListRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -858,7 +858,7 @@ struct NanoappListEntryBuilder {
   void add_is_system(bool is_system) {
     fbb_.AddElement<uint8_t>(NanoappListEntry::VT_IS_SYSTEM, static_cast<uint8_t>(is_system), 0);
   }
-  NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -922,7 +922,7 @@ struct NanoappListResponseBuilder {
   void add_nanoapps(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>>> nanoapps) {
     fbb_.AddOffset(NanoappListResponse::VT_NANOAPPS, nanoapps);
   }
-  NanoappListResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit NanoappListResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1093,7 +1093,7 @@ struct LoadNanoappRequestBuilder {
   void add_total_app_size(uint32_t total_app_size) {
     fbb_.AddElement<uint32_t>(LoadNanoappRequest::VT_TOTAL_APP_SIZE, total_app_size, 0);
   }
-  LoadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit LoadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1213,7 +1213,7 @@ struct LoadNanoappResponseBuilder {
   void add_fragment_id(uint32_t fragment_id) {
     fbb_.AddElement<uint32_t>(LoadNanoappResponse::VT_FRAGMENT_ID, fragment_id, 0);
   }
-  LoadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit LoadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1302,7 +1302,7 @@ struct UnloadNanoappRequestBuilder {
   void add_allow_system_nanoapp_unload(bool allow_system_nanoapp_unload) {
     fbb_.AddElement<uint8_t>(UnloadNanoappRequest::VT_ALLOW_SYSTEM_NANOAPP_UNLOAD, static_cast<uint8_t>(allow_system_nanoapp_unload), 0);
   }
-  UnloadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit UnloadNanoappRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1376,7 +1376,7 @@ struct UnloadNanoappResponseBuilder {
   void add_success(bool success) {
     fbb_.AddElement<uint8_t>(UnloadNanoappResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
   }
-  UnloadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit UnloadNanoappResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1449,7 +1449,7 @@ struct LogMessageBuilder {
   void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
     fbb_.AddOffset(LogMessage::VT_BUFFER, buffer);
   }
-  LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit LogMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1516,7 +1516,7 @@ struct TimeSyncMessageBuilder {
   void add_offset(int64_t offset) {
     fbb_.AddElement<int64_t>(TimeSyncMessage::VT_OFFSET, offset, 0);
   }
-  TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TimeSyncMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1562,7 +1562,7 @@ struct DebugDumpRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct DebugDumpRequestBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  DebugDumpRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit DebugDumpRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1618,7 +1618,7 @@ struct DebugDumpDataBuilder {
   void add_debug_str(flatbuffers::Offset<flatbuffers::Vector<int8_t>> debug_str) {
     fbb_.AddOffset(DebugDumpData::VT_DEBUG_STR, debug_str);
   }
-  DebugDumpDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit DebugDumpDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1699,7 +1699,7 @@ struct DebugDumpResponseBuilder {
   void add_data_count(uint32_t data_count) {
     fbb_.AddElement<uint32_t>(DebugDumpResponse::VT_DATA_COUNT, data_count, 0);
   }
-  DebugDumpResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit DebugDumpResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1745,7 +1745,7 @@ struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TimeSyncRequestBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  TimeSyncRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TimeSyncRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1789,7 +1789,7 @@ struct LowPowerMicAccessRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::T
 struct LowPowerMicAccessRequestBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  LowPowerMicAccessRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit LowPowerMicAccessRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1831,7 +1831,7 @@ struct LowPowerMicAccessRelease FLATBUFFERS_FINAL_CLASS : private flatbuffers::T
 struct LowPowerMicAccessReleaseBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  LowPowerMicAccessReleaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit LowPowerMicAccessReleaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
@@ -1918,7 +1918,7 @@ struct MessageContainerBuilder {
   void add_host_addr(const HostAddress *host_addr) {
     fbb_.AddStruct(MessageContainer::VT_HOST_ADDR, host_addr);
   }
-  MessageContainerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit MessageContainerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
