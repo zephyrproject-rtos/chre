@@ -52,6 +52,9 @@
 #define LOG_NANOPB_ERROR(stream) \
     LOGE("Nanopb error: %s:%d", PB_GET_ERROR(stream), __LINE__)
 
+#define LOG_UNHANDLED_MSG(message) \
+    LOGW("Unhandled msg ID %" PRIu32 ": line %d", message, __LINE__)
+
 namespace chre {
 namespace {
 
@@ -480,7 +483,7 @@ bool decodeSnsSuidProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_suid.proto msg ID: %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
       break;
   }
   return success;
@@ -736,7 +739,7 @@ bool decodeSnsStdProtoEvent(pb_istream_t *stream, const pb_field_t *field,
     }
 
     default:
-      LOGW("Unhandled sns_std.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -964,7 +967,7 @@ bool decodeSnsStdSensorProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_std_sensor.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1016,7 +1019,7 @@ bool decodeSnsCalProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_cal.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1050,7 +1053,7 @@ bool decodeSnsProximityProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_proximity.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1085,7 +1088,7 @@ bool decodeSnsResamplerProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_resampler.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1118,8 +1121,7 @@ bool decodeSnsRemoteProcProtoEvent(
       break;
 
     default:
-      LOGW("Unhandled sns_remote_proc_state.proto msg ID %" PRIu32,
-           info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1162,7 +1164,7 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
       default:
         success = false;
-        LOGW("Unhandled msg ID %" PRIu32, info->msgId);
+        LOG_UNHANDLED_MSG(info->msgId);
     }
   }
   return success;
