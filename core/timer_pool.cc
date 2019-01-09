@@ -143,7 +143,7 @@ bool TimerPool::insertTimerRequest(const TimerRequest& timerRequest) {
   bool success = (mTimerRequests.size() < kMaxTimerRequests) &&
       mTimerRequests.push(timerRequest);
   if (!success) {
-    LOGE("Failed to insert a timer request: out of memory");
+    LOG_OOM();
   }
 
   return success;
