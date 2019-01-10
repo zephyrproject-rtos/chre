@@ -367,10 +367,11 @@ void populateSensorDataHeader(
   while (slpiTime > baseTime + kTickRolloverOffset / 2) {
     baseTime += kTickRolloverOffset;
   }
-  memset(header->reserved, 0, sizeof(header->reserved));
+  header->reserved = 0;
   header->baseTimestamp = baseTime;
   header->sensorHandle = getSensorHandleFromSensorType(sensorType);
   header->readingCount = sensorIndex.SampleCount;
+  header->accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
 }
 
 void populateThreeAxisEvent(

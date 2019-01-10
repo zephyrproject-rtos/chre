@@ -1338,10 +1338,11 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 
     auto *header = reinterpret_cast<chreSensorDataHeader *>(
         info.data->event.get());
-    memset(header->reserved, 0, sizeof(header->reserved));
+    header->reserved = 0;
     header->sensorHandle = getSensorHandleFromSensorType(
         info.data->sensorType);
     header->readingCount = info.data->sampleIndex;
+    header->accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
 
     // Protect against out of bounds access in data decoding.
     info.data->totalSamples = info.data->sampleIndex;
