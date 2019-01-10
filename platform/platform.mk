@@ -139,8 +139,10 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
+ifneq ($(IMPORT_CHRE_UTILS), true)
 SLPI_SEE_SRCS += platform/slpi/see/see_cal_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
+endif
 
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
