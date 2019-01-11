@@ -19,6 +19,10 @@ $(error "NANOPB_SRCS is non-empty. You must supply a NANOPB_PREFIX environment \
 endif
 endif
 
+ifeq ($(PROTOC),)
+PROTOC=protoc
+endif
+
 # Generated Source Files #######################################################
 
 NANOPB_GEN_PATH = $(OUT)/nanopb_gen
@@ -65,7 +69,7 @@ $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
                                                      %.options \
                                                      $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
-	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
+	$(PROTOC) --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
 	  --nanopb_out="--options-file=$(basename $<).options:$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
 	  $<
 
@@ -73,6 +77,6 @@ $(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
                                                      $(NANOPB_OPTIONS) \
                                                      $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
-	protoc --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
+	$(PROTOC) --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
 	  --nanopb_out="--options-file=$(NANOPB_OPTIONS):$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
 	  $<
