@@ -101,6 +101,7 @@ struct SeeDataArg {
   size_t totalSamples;
   UniquePtr<uint8_t> event;
   UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> status;
+  UniquePtr<struct chreSensorThreeAxisData> bias;
   SensorType sensorType;
   bool isHostWakeSuspendEvent;
   bool isHostAwake;
@@ -1028,6 +1029,14 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     calHelper->updateCalibration(
         info->suid, hasBias, offset.val, hasScale, scale.val,
         hasMatrix, matrix.val, accuracy, info->data->timeNs);
+
+    SensorType sensorType = calHelper->getSensorTypeFromSuid(info->suid);
+    auto biasData = MakeUniqueZeroFill<struct chreSensorThreeAxisData>();
+    if (biasData.isNull()) {
+      LOG_OOM();
+    } else if (calHelper->getBias(sensorType, biasData.get())) {
+      info->data->bias = std::move(biasData);
+    }
   }
   return success;
 }
@@ -1510,6 +1519,9 @@ void SeeHelper::handleSnsClientEventMsg(
         if (!data->info.data->event.isNull()) {
           mCbIf->onSensorDataEvent(
               data->info.data->sensorType, std::move(data->info.data->event));
+        }
+        if (!data->info.data->bias.isNull()) {
+          mCbIf->onSensorBiasEvent(std::move(data->info.data->bias));
         }
         if (!data->info.data->status.isNull()) {
           if (data->info.data->sensorType == SensorType::Unknown) {
