@@ -53,6 +53,12 @@ class SeeHelperCallbackInterface {
     bool latencyValid;
   };
 
+  struct SensorBiasData {
+    //! The sensor type of the calibrated sensor, e.g. SensorType::Accelerometer
+    SensorType sensorType;
+    struct chreSensorThreeAxisData bias;
+  };
+
   virtual ~SeeHelperCallbackInterface() {}
 
   //! Invoked by the SEE thread to update sampling status.
@@ -67,6 +73,9 @@ class SeeHelperCallbackInterface {
 
   //! Invoked by the SEE thread to update the AP wake/suspend status.
   virtual void onHostWakeSuspendEvent(bool apAwake) = 0;
+
+  //! Invoked by the SEE thread to provide the sensor bias event.
+  virtual void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) = 0;
 };
 
 //! Default timeout for waitForService. Have a longer timeout since there may be

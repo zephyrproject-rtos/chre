@@ -72,6 +72,9 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
       SensorType sensorType, UniquePtr<uint8_t>&& eventData) override;
 
   void onHostWakeSuspendEvent(bool awake) override;
+
+  // TODO: Implement this
+  void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) override {}
 };
 
 //! A struct to facilitate sensor discovery
