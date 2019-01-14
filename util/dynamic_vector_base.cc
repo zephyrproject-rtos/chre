@@ -16,6 +16,7 @@
 
 #include "chre/util/dynamic_vector_base.h"
 
+#include <cstdint>
 #include <cstring>
 
 #include "chre/util/container_support.h"
