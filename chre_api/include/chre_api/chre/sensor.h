@@ -247,8 +247,20 @@ extern "C" {
 #define CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO \
     (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 2)
 
+/**
+ * nanoappHandleEvent argument: struct chreSensorFlushCompleteEvent
+ *
+ * An event indicating that a flush request made by chreSensorFlushAsync has
+ * completed.
+ *
+ * @see chreSensorFlushAsync
+ *
+ * @since v1.3
+ */
+#define CHRE_EVENT_SENSOR_FLUSH_COMPLETE \
+    (CHRE_EVENT_SENSOR_OTHER_EVENTS_BASE + 4)
 
-#if CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO > CHRE_EVENT_SENSOR_LAST_EVENT
+#if CHRE_EVENT_SENSOR_FLUSH_COMPLETE > CHRE_EVENT_SENSOR_LAST_EVENT
 #error Too many sensor events.
 #endif
 
@@ -295,6 +307,12 @@ extern "C" {
 // This is used to define elements of enum chreSensorConfigureMode.
 #define CHRE_SENSOR_CONFIGURE_RAW_REPORT_ONE_SHOT    (2 << 1)
 
+/**
+ * The maximum amount of time allowed to elapse between the call to
+ * chreSensorFlushAsync() and when CHRE_EVENT_SENSOR_FLUSH_COMPLETE is delivered
+ * to the nanoapp on a successful flush.
+ */
+#define CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS  (5 * CHRE_NSEC_PER_SEC)
 
 /**
  * Modes we can configure a sensor to use.
@@ -486,6 +504,35 @@ struct chreSensorSamplingStatusEvent {
     struct chreSensorSamplingStatus status;
 };
 
+/**
+ * The nanoappHandleEvent argument for CHRE_EVENT_SENSOR_FLUSH_COMPLETE.
+ *
+ * @see chreSensorFlushAsync
+ *
+ * @since v1.3
+ */
+struct chreSensorFlushCompleteEvent {
+    /**
+     * The handle of the sensor which a flush was completed.
+     */
+    uint32_t sensorHandle;
+
+    /**
+     * Populated with a value from enum {@link #chreError}, indicating whether
+     * the flush failed, and if so, provides the cause of the failure.
+     */
+    uint8_t errorCode;
+
+    /**
+     * Reserved for future use. Set to 0.
+     */
+    uint8_t reserved[3];
+
+    /**
+     * Set to the cookie parameter given to chreSensorFlushAsync.
+     */
+    const void *cookie;
+};
 
 /**
  * Find the default sensor for a given sensor type.
@@ -697,6 +744,43 @@ static inline bool chreSensorConfigureWithBatchInterval(
 
     return result;
 }
+
+/**
+ * Makes a request to flush all samples stored for batching. The nanoapp must be
+ * registered to the sensor through chreSensorConfigure, and the sensor must be
+ * powered on. If the request is accepted, all batched samples of the sensor
+ * are sent to nanoapps registered to the sensor. During a flush, it is treated
+ * as though the latency as given in chreSensorConfigure has expired. When all
+ * batched samples have been flushed (or the flush fails), the nanoapp will
+ * receive a unicast CHRE_EVENT_SENSOR_FLUSH_COMPLETE event. The time to deliver
+ * this event must not exceed CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS after this
+ * method is invoked. If there are no samples in the batch buffer (either in
+ * hardware FIFO or software), then this method will return true and a
+ * CHRE_EVENT_SENSOR_FLUSH_COMPLETE event is delivered immediately.
+ *
+ * If a flush request is invalid (e.g. the sensor refers to a one-shot sensor,
+ * or the sensor was not enabled), and this API will return false and no
+ * CHRE_EVENT_SENSOR_FLUSH_COMPLETE event will be delivered.
+ *
+ * If multiple flush requests are made for a sensor prior to flush completion,
+ * then the requesting nanoapp will receive all batched samples existing at the
+ * time of the latest flush request. In this case, the number of
+ * CHRE_EVENT_SENSOR_FLUSH_COMPLETE events received must equal the number of
+ * flush requests made.
+ *
+ * Starting with CHRE API v1.3, implementations must support this capability
+ * across all exposed sensor types.
+ *
+ * @param sensorHandle  The handle to the sensor, as obtained from
+ *     chreSensorFindDefault().
+ * @param cookie  An opaque value that will be included in the
+ *     chreSensorFlushCompleteEvent sent in relation to this request.
+ *
+ * @return true if the request was accepted for processing, false otherwise
+ *
+ * @since v1.3
+ */
+bool chreSensorFlushAsync(uint32_t sensorHandle, const void *cookie);
 
 #ifdef __cplusplus
 }
