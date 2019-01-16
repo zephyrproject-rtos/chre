@@ -1027,7 +1027,7 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
 
     calHelper->updateCalibration(
         info->suid, hasBias, offset.val, hasScale, scale.val,
-        hasMatrix, matrix.val, accuracy);
+        hasMatrix, matrix.val, accuracy, info->data->timeNs);
   }
   return success;
 }
