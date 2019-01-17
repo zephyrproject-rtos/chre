@@ -48,6 +48,7 @@ enum class SensorType {
   Pressure,
   Light,
   Proximity,
+  StepDetect,
   AccelerometerTemperature,
   GyroscopeTemperature,
   GeomagneticFieldTemperature,

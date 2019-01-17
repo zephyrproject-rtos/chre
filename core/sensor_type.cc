@@ -44,6 +44,8 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Light";
     case SensorType::Proximity:
       return "Proximity";
+    case SensorType::StepDetect:
+      return "Step Detect";
     case SensorType::AccelerometerTemperature:
       return "Accelerometer Temp";
     case SensorType::GyroscopeTemperature:
@@ -104,6 +106,8 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::Light;
     case CHRE_SENSOR_TYPE_PROXIMITY:
       return SensorType::Proximity;
+    case CHRE_SENSOR_TYPE_STEP_DETECT:
+      return SensorType::StepDetect;
     case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
       return SensorType::AccelerometerTemperature;
     case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
@@ -151,6 +155,8 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return CHRE_SENSOR_TYPE_LIGHT;
     case SensorType::Proximity:
       return CHRE_SENSOR_TYPE_PROXIMITY;
+    case SensorType::StepDetect:
+      return CHRE_SENSOR_TYPE_STEP_DETECT;
     case SensorType::AccelerometerTemperature:
       return CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE;
     case SensorType::GyroscopeTemperature:
@@ -216,6 +222,7 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Float;
     case SensorType::InstantMotion:
     case SensorType::StationaryDetect:
+    case SensorType::StepDetect:
       return SensorSampleType::Occurrence;
     case SensorType::Proximity:
       return SensorSampleType::Byte;

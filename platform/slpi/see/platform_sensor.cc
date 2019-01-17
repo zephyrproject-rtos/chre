@@ -134,6 +134,8 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     sensorType = SensorType::InstantMotion;
   } else if (strcmp(dataType, "stationary_detect") == 0) {
     sensorType = SensorType::StationaryDetect;
+  } else if (strcmp(dataType, "step_detect") == 0) {
+    sensorType = SensorType::StepDetect;
 #ifdef CHREX_SENSOR_SUPPORT
   } else if (strcmp(dataType, kVendorDataTypes[0]) == 0) {
     sensorType = SensorType::VendorType0;
