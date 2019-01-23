@@ -22,6 +22,14 @@ $(error "The NANOAPP_VERSION variable must be set to the version of the nanoapp.
          This should be assigned by the Makefile that includes app.mk.")
 endif
 
+NANOAPP_VERSION := $(strip $(NANOAPP_VERSION))
+MATCHED_NANOAPP_VERSION := $(shell echo $(NANOAPP_VERSION) \
+                                 | grep "^0x[0-9a-fA-F]\{8\}")
+ifneq ($(MATCHED_NANOAPP_VERSION), $(NANOAPP_VERSION))
+$(error "The NANOAPP_VERSION must be a 4-byte hex-formatted integer. Example: \
+         0x00000101")
+endif
+
 ifeq ($(NANOAPP_NAME_STRING),)
 $(error "The NANOAPP_NAME_STRING variable must be set to the friendly name of \
          the nanoapp. This should be assigned by the Makefile that includes \
