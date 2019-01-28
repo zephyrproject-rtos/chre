@@ -716,10 +716,7 @@ TEST(DynamicVector, PrepareForPush) {
   EXPECT_EQ(vector.capacity(), 2);
 }
 
-TEST(DynamicVector, RidiculouslyHugeReserveFails) {
-  DynamicVector<int> vector;
-  ASSERT_FALSE(vector.reserve(SIZE_MAX));
-}
+// TODO: Add a test for when memory allocation returns nullptr.
 
 TEST(DynamicVector, PopBack) {
   DynamicVector<int> vector;
