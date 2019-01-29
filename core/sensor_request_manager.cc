@@ -295,6 +295,12 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
   return mSensorRequests[sensorIndex].multiplexer.getRequests();
 }
 
+bool SensorRequestManager::flushAsync(
+    Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie) {
+  // TODO: Implement this
+  return false;
+}
+
 void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                             size_t bufferSize) const {
   debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");

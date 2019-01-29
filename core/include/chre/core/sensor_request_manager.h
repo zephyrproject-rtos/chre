@@ -116,6 +116,19 @@ class SensorRequestManager : public NonCopyable {
   const DynamicVector<SensorRequest>& getRequests(SensorType sensorType) const;
 
   /**
+   * Makes a sensor flush request for a nanoapp asynchronously.
+   *
+   * @param nanoapp A non-null pointer to the nanoapp requesting this change.
+   * @param sensorHandle The sensor handle for which this sensor request is
+   *        directed at.
+   * @param cookie An opaque pointer to data that will be used in the
+   *        chreSensorFlushCompleteEvent.
+   *
+   * @return true if the request was accepted, false otherwise
+   */
+  bool flushAsync(Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
