@@ -73,6 +73,14 @@ class PlatformNanoappBase {
    */
   bool isUimgApp() const;
 
+  /**
+   * Retrieves the nanoapp's version string. This is intended to be a human
+   * readable version string to aid in debugging (ie: commit hash). This must
+   * always return a valid string so if none is available it is recommended to
+   * return "<undefined>" or similar.
+   */
+  const char *getAppVersionString() const;
+
  protected:
   //! The app ID we received in the metadata alongside the nanoapp binary. This
   //! is also included in (and checked against) mAppInfo.

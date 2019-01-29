@@ -87,6 +87,13 @@ COMMON_CFLAGS += -DNANOAPP_VENDOR_STRING=$(NANOAPP_VENDOR_STRING)
 COMMON_CFLAGS += -DNANOAPP_NAME_STRING=$(NANOAPP_NAME_STRING)
 COMMON_CFLAGS += -DNANOAPP_IS_SYSTEM_NANOAPP=$(NANOAPP_IS_SYSTEM_NANOAPP)
 
+# Version String ###############################################################
+
+COMMIT_HASH_DIRTY_SUFFIX = $(shell git diff --quiet || echo -dirty)
+COMMIT_HASH = $(shell git log -1 --pretty="format:%h" .)$(COMMIT_HASH_DIRTY_SUFFIX)
+NANOAPP_VERSION_STRING = "nanoapp=$(NANOAPP_NAME)@$(COMMIT_HASH)"
+COMMON_CFLAGS += -DNANOAPP_VERSION_STRING="\"$(NANOAPP_VERSION_STRING)\""
+
 # Variant-specific Nanoapp Support Source Files ################################
 
 APP_SUPPORT_PATH = $(CHRE_PREFIX)/build/app_support

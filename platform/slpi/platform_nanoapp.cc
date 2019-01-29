@@ -197,9 +197,9 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
         mAppInfo = nullptr;
       } else {
         LOGI("Successfully loaded nanoapp: %s (0x%016" PRIx64 ") version 0x%"
-             PRIx32 " uimg %d system %d", mAppInfo->name, mAppInfo->appId,
-             mAppInfo->appVersion, mAppInfo->isTcmNanoapp,
-             mAppInfo->isSystemNanoapp);
+             PRIx32 " (%s) uimg %d system %d", mAppInfo->name, mAppInfo->appId,
+             mAppInfo->appVersion, getAppVersionString(),
+             mAppInfo->isTcmNanoapp, mAppInfo->isSystemNanoapp);
         memoryFreeBigImage(mAppBinary);
         mAppBinary = nullptr;
       }
@@ -207,6 +207,27 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
   }
 
   return success;
+}
+
+const char *PlatformNanoappBase::getAppVersionString() const {
+  const char *versionString = "<undefined>";
+  if (mAppInfo != nullptr && mAppInfo->structMinorVersion >= 2) {
+    size_t appVersionStringLength = strlen(mAppInfo->appVersionString);
+
+    size_t offset = 0;
+    for (size_t i = 0; i < appVersionStringLength; i++) {
+      size_t newOffset = i + 1;
+      if (mAppInfo->appVersionString[i] == '@'
+          && newOffset < appVersionStringLength) {
+        offset = newOffset;
+        break;
+      }
+    }
+
+    versionString = &mAppInfo->appVersionString[offset];
+  }
+
+  return versionString;
 }
 
 uint64_t PlatformNanoapp::getAppId() const {
@@ -233,8 +254,9 @@ bool PlatformNanoapp::isSystemNanoapp() const {
 void PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
                                        size_t bufferSize) const {
   if (mAppInfo != nullptr) {
-    debugDumpPrint(buffer, bufferPos, bufferSize, " %s: vendor=\"%s\"",
-                   mAppInfo->name, mAppInfo->vendor);
+    debugDumpPrint(buffer, bufferPos, bufferSize,
+                   " %s: vendor=\"%s\" commit=\"%s\"",
+                   mAppInfo->name, mAppInfo->vendor, getAppVersionString());
   }
 }
 
