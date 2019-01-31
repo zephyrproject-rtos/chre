@@ -54,6 +54,7 @@ using nanoapp_testing::MessageType;
 using nanoapp_testing::TestSuccessMarker;
 using nanoapp_testing::sendMessageToHost;
 using nanoapp_testing::sendFatalFailureToHost;
+using nanoapp_testing::sendFatalFailureToHostUint8;
 using nanoapp_testing::sendSuccessToHost;
 
 static bool gInMethod = false;
@@ -114,9 +115,19 @@ static void checkSensorEvent(const void *eventData) {
   if (header->readingCount == 0) {
     sendFatalFailureToHost("sensorEvent has readingCount of 0");
   }
-  if ((header->reserved[0] != 0) || (header->reserved[1] != 0)) {
-    sendFatalFailureToHost("sensorEvent has non-zero reserved bytes");
+  if (header->reserved != 0) {
+    sendFatalFailureToHost("sensorEvent has non-zero reserved field");
   }
+
+  if (chreGetApiVersion() < CHRE_API_VERSION_1_3) {
+    if (header->accuracy != 0) {
+      sendFatalFailureToHost("sensorEvent has non-zero reserved field");
+    }
+  } else if (header->accuracy > CHRE_SENSOR_ACCURACY_HIGH) {
+    sendFatalFailureToHostUint8("Sensor accuracy is not within valid range: ",
+                                header->accuracy);
+  }
+
   gTestSuccessMarker.markStageAndSuccessOnFinish(BUSY_STARTUP_STAGE_SENSOR);
 }
 
