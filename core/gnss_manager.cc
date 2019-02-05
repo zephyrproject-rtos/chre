@@ -279,17 +279,12 @@ bool GnssSession::updateRequests(
           nanoapp->registerForBroadcastEvent(mReportEventType);
         }
       }
-    } else {
-      if (!hasExistingRequest) {
-        success = false;
-        LOGE("Received a GNSS session state change for a non-existent nanoapp");
-      } else {
-        // The session was successfully disabled for a previously enabled
-        // nanoapp. Remove it from the list of requests.
-        mRequests.erase(requestIndex);
-        nanoapp->unregisterForBroadcastEvent(mReportEventType);
-      }
-    }
+    } else if (hasExistingRequest) {
+      // The session was successfully disabled for a previously enabled
+      // nanoapp. Remove it from the list of requests.
+      mRequests.erase(requestIndex);
+      nanoapp->unregisterForBroadcastEvent(mReportEventType);
+    } // else disabling an inactive request, treat as success per CHRE API
   }
 
   return success;
@@ -378,7 +373,7 @@ void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
       postAsyncResultEventFatal(
           stateTransition.nanoappInstanceId, true /* success */,
           stateTransition.enable, stateTransition.minInterval,
-          errorCode, stateTransition.cookie);
+          CHRE_ERROR_NONE, stateTransition.cookie);
       mStateTransitions.pop();
     }
   }
