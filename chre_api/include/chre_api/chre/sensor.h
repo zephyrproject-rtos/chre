@@ -141,7 +141,7 @@ extern "C" {
     (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_PROXIMITY)
 
 /**
- * nanoappHandleEvent argument: struct chreSensorOccurenceData
+ * nanoappHandleEvent argument: struct chreSensorOccurrenceData
  *
  * This data is generated every time a step is taken by the user.
  *
