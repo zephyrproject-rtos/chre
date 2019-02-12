@@ -144,10 +144,6 @@ bool GnssSession::configure(
   bool hasRequest = nanoappHasRequest(instanceId, &requestIndex);
   if (!mStateTransitions.empty()) {
     success = addRequestToQueue(instanceId, enable, minInterval, cookie);
-  } else if (isInRequestedState(enable, minInterval, hasRequest)) {
-    success = postAsyncResultEvent(
-        instanceId, true /* success */, enable, minInterval, CHRE_ERROR_NONE,
-        cookie);
   } else if (stateTransitionIsRequired(enable, minInterval, hasRequest,
                                        requestIndex)) {
     success = addRequestToQueue(instanceId, enable, minInterval, cookie);
@@ -160,7 +156,9 @@ bool GnssSession::configure(
       }
     }
   } else {
-    CHRE_ASSERT_LOG(false, "Invalid GNSS session configuration");
+    success = postAsyncResultEvent(
+        instanceId, true /* success */, enable, minInterval, CHRE_ERROR_NONE,
+        cookie);
   }
 
   return success;
@@ -202,16 +200,6 @@ bool GnssSession::addRequestToQueue(
 
 bool GnssSession::isEnabled() const {
   return !mRequests.empty();
-}
-
-bool GnssSession::isInRequestedState(
-    bool requestedState, Milliseconds minInterval, bool nanoappHasRequest)
-    const {
-  bool inTargetState = (requestedState == isEnabled());
-  bool meetsMinInterval = (minInterval >= mCurrentInterval);
-  bool hasMoreThanOneRequest = (mRequests.size() > 1);
-  return ((inTargetState && (!requestedState || meetsMinInterval))
-      || (!requestedState && (!nanoappHasRequest || hasMoreThanOneRequest)));
 }
 
 bool GnssSession::stateTransitionIsRequired(
