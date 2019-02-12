@@ -1,18 +1,18 @@
 #
-# Google CHRE Reference Implementation for Hexagon v65 Architecture on SLPI
+# Google CHRE Reference Implementation for Hexagon v65 Architecture on ADSP
 #
 
 include $(CHRE_PREFIX)/build/clean_build_template_args.mk
 
-TARGET_NAME = google_hexagonv65_slpi-see
+TARGET_NAME = google_hexagonv65_adsp-see
 # Sized based on the buffer allocated in the host daemon (4096 bytes), minus
 # FlatBuffer overhead (max 80 bytes), minus some extra space to make a nice
 # round number and allow for addition of new fields to the FlatBuffer
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4000
-TARGET_CFLAGS += $(GOOGLE_HEXAGONV65_SLPI-SEE_CFLAGS)
-TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV65_SLPI-SEE_SRCS)
-TARGET_SO_LATE_LIBS = $(GOOGLE_HEXAGONV65_SLPI-SEE_LATE_LIBS)
-TARGET_PLATFORM_ID = 0x476f6f676c000003
+TARGET_CFLAGS += $(GOOGLE_HEXAGONV65_ADSP-SEE_CFLAGS)
+TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV65_ADSP-SEE_SRCS)
+TARGET_SO_LATE_LIBS = $(GOOGLE_HEXAGONV65_ADSP-SEE_LATE_LIBS)
+TARGET_PLATFORM_ID = 0x476f6f676c000006
 HEXAGON_ARCH = v65
 
 TARGET_CFLAGS += $(SLPI_CFLAGS)
