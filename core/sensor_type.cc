@@ -70,6 +70,12 @@ const char *getSensorTypeName(SensorType sensorType) {
       return "Vendor Type 4";
     case SensorType::VendorType5:
       return "Vendor Type 5";
+    case SensorType::VendorType6:
+      return "Vendor Type 6";
+    case SensorType::VendorType7:
+      return "Vendor Type 7";
+    case SensorType::VendorType8:
+      return "Vendor Type 8";
     default:
       CHRE_ASSERT(false);
       return "";
@@ -132,6 +138,12 @@ SensorType getSensorTypeFromUnsignedInt(uint8_t sensorType) {
       return SensorType::VendorType4;
     case (CHRE_SENSOR_TYPE_VENDOR_START + 5):
       return SensorType::VendorType5;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 6):
+      return SensorType::VendorType6;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 7):
+      return SensorType::VendorType7;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 8):
+      return SensorType::VendorType8;
     default:
       return SensorType::Unknown;
   }
@@ -181,6 +193,12 @@ uint8_t getUnsignedIntFromSensorType(SensorType sensorType) {
       return (CHRE_SENSOR_TYPE_VENDOR_START + 4);
     case SensorType::VendorType5:
       return (CHRE_SENSOR_TYPE_VENDOR_START + 5);
+    case SensorType::VendorType6:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 6);
+    case SensorType::VendorType7:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 7);
+    case SensorType::VendorType8:
+      return (CHRE_SENSOR_TYPE_VENDOR_START + 8);
     default:
       // Update implementation to prevent undefined or SensorType::Unknown from
       // being used.
@@ -239,6 +257,12 @@ SensorSampleType getSensorSampleTypeFromSensorType(SensorType sensorType) {
       return SensorSampleType::Vendor4;
     case SensorType::VendorType5:
       return SensorSampleType::Vendor5;
+    case SensorType::VendorType6:
+      return SensorSampleType::Vendor6;
+    case SensorType::VendorType7:
+      return SensorSampleType::Vendor7;
+    case SensorType::VendorType8:
+      return SensorSampleType::Vendor8;
 #endif  // CHREX_SENSOR_SUPPORT
     case SensorType::Unknown:
       return SensorSampleType::Unknown;

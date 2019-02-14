@@ -59,7 +59,33 @@ namespace {
 #error "CHRE extensions are required for micro-image SEE support"
 #endif  // CHREX_SENSOR_SUPPORT
 
-constexpr SensorType kAccelBigImageSensorType = SensorType::VendorType3;
+bool isBigImageSensorType(SensorType sensorType) {
+  return (sensorType == SensorType::VendorType3       // accel
+          || sensorType == SensorType::VendorType6    // uncal accel
+          || sensorType == SensorType::VendorType7    // uncal mag
+          || sensorType == SensorType::VendorType8);  // uncal gyro
+}
+
+/**
+ * Obtains the big-image sensor type given the specified data type and whether
+ * the sensor is runtime-calibrated or not.
+ */
+SensorType getBigImageSensorTypeFromDataType(const char *dataType,
+                                             bool calibrated) {
+  SensorType sensorType = SensorType::Unknown;
+  if (strcmp(dataType, "accel") == 0) {
+    if (calibrated) {
+      sensorType = SensorType::VendorType3;
+    } else {
+      sensorType = SensorType::VendorType6;
+    }
+  } else if (strcmp(dataType, "gyro") == 0 && !calibrated) {
+    sensorType = SensorType::VendorType7;
+  } else if (strcmp(dataType, "mag") == 0 && !calibrated) {
+    sensorType = SensorType::VendorType8;
+  }
+  return sensorType;
+}
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
 //! A class that implements SeeHelperCallbackInterface.
@@ -351,9 +377,9 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
   }
 
-  // Resample big image accel to reduce system load during sw flush.
+  // Resample big image sensors to reduce system load during sw flush.
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  bool resample = (sensorType == kAccelBigImageSensorType);
+  bool resample = isBigImageSensorType(sensorType);
 #else
   bool resample = false;
 #endif
@@ -508,14 +534,33 @@ void findAndAddSensorsForType(
  * Registers alternate sensor(s) to be used separately by big image nanoapps.
  */
 void getBigImageSensors(DynamicVector<Sensor> *sensors) {
-  // Currently, just adding calibrated accel, as it's the one we know that big
-  // image nanoapps will need at a different batching rate compared to uimg
+  CHRE_ASSERT(sensors);
+
+  // Currently, just adding calibrated accel and uncal accel/gyro/mag as they
+  // are the ones we know that big image nanoapps will need at a different
+  // batching rate compared to uimg.
+  const char *kBigImageDataTypes[] = {
+    "accel",
+    "gyro",
+    "mag",
+  };
+
   SeeHelper& seeHelper = *getBigImageSeeHelper();
-  const char *kAccelDataType = "accel";
   DynamicVector<SuidAttr> nullTemperatureSensorList;
-  findAndAddSensorsForType(
-      seeHelper, nullTemperatureSensorList, kAccelDataType,
-      kAccelBigImageSensorType, true /* skipAdditionalTypes */, sensors);
+
+  for (size_t i = 0; i < ARRAY_SIZE(kBigImageDataTypes); i++) {
+    const char *dataType = kBigImageDataTypes[i];
+    // Loop through potential cal/uncal sensors.
+    for (size_t j = 0; j < 2; j++) {
+      SensorType sensorType = getBigImageSensorTypeFromDataType(
+          dataType, (j == 0) /* calibrated */);
+      if (sensorType != SensorType::Unknown) {
+        findAndAddSensorsForType(
+            seeHelper, nullTemperatureSensorList, dataType, sensorType,
+            true /* skipAdditionalTypes */, sensors);
+      }
+    }
+  }
 }
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
@@ -612,7 +657,7 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
 
   SeeHelper *seeHelper = getSeeHelper();
 #ifdef CHRE_SLPI_UIMG_ENABLED
-  if (getSensorType() == kAccelBigImageSensorType) {
+  if (isBigImageSensorType(getSensorType())) {
     seeHelper = getBigImageSeeHelper();
     slpiForceBigImage();
   }
