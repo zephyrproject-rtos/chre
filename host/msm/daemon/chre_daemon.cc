@@ -346,17 +346,25 @@ static void acquireWakeLock() {
 }
 
 static void releaseWakeLock() {
+  static bool initialRelease = true;
+
   if (gWakeUnlockFd < 0) {
     LOGW("Failed to release wakelock due to invalid file descriptor");
   } else {
     const size_t len = strlen(kWakeLockName);
     ssize_t result = write(gWakeUnlockFd, kWakeLockName, len);
     if (result < 0) {
-      LOGE("Failed to release wakelock with error %s", strerror(errno));
+      // It's expected to get an error when we first try to release the wakelock
+      // as it won't exist unless it was leaked previously - don't output a
+      // false warning for this case
+      if (!initialRelease) {
+        LOGE("Failed to release wakelock with error %s", strerror(errno));
+      }
     } else if (result != static_cast<ssize_t>(len)) {
       LOGE("Wrote incomplete id to wakeunlock file descriptor");
     }
   }
+  initialRelease = false;
 }
 
 /**
