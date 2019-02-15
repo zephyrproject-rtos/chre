@@ -100,6 +100,22 @@ const char *kSeeDataTypes[] = {
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
 
+void handleMissingSensor() {
+  // Try rebooting if a sensor is missing, which might help recover from a
+  // transient failure/race condition at startup. But to avoid endless crashes,
+  // only do this within the first 45 seconds after boot - we rely on knowledge
+  // that getMonotonicTime() maps into QTimer here, and QTimer only resets when
+  // the entire system is rebooted (it continues increasing after SLPI SSR).
+#ifndef CHRE_LOG_ONLY_NO_SENSOR
+  if (SystemTime::getMonotonicTime() < Seconds(45)) {
+    FATAL_ERROR("Missing required sensor(s)");
+  } else
+#endif
+  {
+    LOGE("Missing required sensor(s)");
+  }
+}
+
 /**
  * Obtains the sensor type given the specified data type and whether the sensor
  * is runtime-calibrated or not.
@@ -439,11 +455,7 @@ void findAndAddSensorsForType(
   DynamicVector<SuidAttr> primarySensors;
   if (!getSuidAndAttrs(seeHelper, dataType, &primarySensors,
                        1 /* minNumSuids */)) {
-#ifdef CHRE_LOG_ONLY_NO_SENSOR
-    LOGE("Failed to get primary sensor UID and attributes");
-#else
-    FATAL_ERROR("Failed to get primary sensor UID and attributes");
-#endif
+    handleMissingSensor();
   }
 
   for (const auto& primarySensor : primarySensors) {
@@ -549,11 +561,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   DynamicVector<SuidAttr> tempSensors;
   if (!getSuidAndAttrs(seeHelper, "sensor_temperature", &tempSensors,
                        CHRE_SEE_NUM_TEMP_SENSORS)) {
-#ifdef CHRE_LOG_ONLY_NO_SENSOR
-     LOGE("Failed to get temperature sensor UID and attributes");
-#else
-     FATAL_ERROR("Failed to get temperature sensor UID and attributes");
-#endif
+    handleMissingSensor();
   }
 
 #ifndef CHREX_SENSOR_SUPPORT
