@@ -62,6 +62,9 @@ enum class SensorType {
   VendorType3,
   VendorType4,
   VendorType5,
+  VendorType6,
+  VendorType7,
+  VendorType8,
 
   // Note to future developers: don't forget to update the implementation of
   // 1) getSensorTypeName,
@@ -92,6 +95,9 @@ enum class SensorSampleType {
   Vendor3,
   Vendor4,
   Vendor5,
+  Vendor6,
+  Vendor7,
+  Vendor8,
   Unknown,
 };
 
