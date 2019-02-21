@@ -1501,6 +1501,9 @@ void SeeHelper::handleSnsClientEventMsg(
         mWaitingOnInd = false;
         mCond.notify_one();
       } else {
+        if (data->info.msgId == SNS_STD_MSGID_SNS_STD_FLUSH_EVENT) {
+          mCbIf->onFlushCompleteEvent(data->info.data->sensorType);
+        }
         if (data->info.data->isHostWakeSuspendEvent) {
           mCbIf->onHostWakeSuspendEvent(data->info.data->isHostAwake);
         }
@@ -1632,32 +1635,49 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen = 0;
 
+    bool encodeSuccess = true;
     if (!request.enable) {
       // An empty message
       msgId = SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
-      success = true;
     } else if (sensorTypeIsContinuous(request.sensorType)) {
       if (suidsMatch(sensorInfo->suid, mResamplerSuid.value())) {
         msgId = SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG;
-        success = encodeSnsResamplerConfig(
+        encodeSuccess = encodeSnsResamplerConfig(
             request, sensorInfo->physicalSuid, &msg, &msgLen);
       } else {
         msgId = SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_CONFIG;
-        success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
+        encodeSuccess = encodeSnsStdSensorConfig(request, &msg, &msgLen);
       }
     } else {
       msgId = SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG;
       // No sample rate needed to configure on-change or one-shot sensors.
-      success = true;
     }
 
-    if (success) {
+    if (encodeSuccess) {
       success = sendReq(sensorInfo->client, sensorInfo->suid,
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
                         request.passive, false /* waitForIndication */);
     }
+  }
+  return success;
+}
+
+bool SeeHelper::flush(SensorType sensorType) {
+  bool success = false;
+
+  const SensorInfo *sensorInfo = getSensorInfo(sensorType);
+  if (sensorInfo == nullptr) {
+    LOGE("SensorType %" PRIu8 " hasn't been registered",
+         static_cast<uint8_t>(sensorType));
+  } else {
+    uint32_t msgId = SNS_STD_MSGID_SNS_STD_FLUSH_REQ;
+    success = sendReq(sensorInfo->client, sensorInfo->suid,
+                      nullptr /* syncData */, nullptr /* syncDataType */,
+                      msgId, nullptr /* msg */, 0 /* msgLen */,
+                      false /* batchValid */, 0 /* batchPeriodUs */,
+                      false /* passive */, false /* waitForIndication */);
   }
   return success;
 }
