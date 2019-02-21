@@ -50,6 +50,11 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
   return false;
 }
 
+bool PlatformSensor::flushAsync() {
+  // TODO: Implement this
+  return false;
+}
+
 SensorType PlatformSensor::getSensorType() const {
   // TODO: Implement this.
   return SensorType::Unknown;
