@@ -229,6 +229,9 @@ void handleGnssLocationEvent(const chreGnssLocationEvent *event) {
   LOGI("  bearing (deg): %f", event->bearing);
   LOGI("  accuracy: %f", event->accuracy);
   LOGI("  flags: %" PRIx16, event->flags);
+  LOGI("  altitude_accuracy: %f", event->altitude_accuracy);
+  LOGI("  speed_accuracy: %f", event->speed_accuracy);
+  LOGI("  bearing_accuracy: %f", event->bearing_accuracy);
 }
 
 void handleGnssDataEvent(const chreGnssDataEvent *event) {
