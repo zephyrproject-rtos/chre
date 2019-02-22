@@ -52,7 +52,7 @@ void PlatformGnss::init() {
       LOGD("Opened GNSS PAL version 0x%08" PRIx32, mGnssApi->moduleVersion);
     }
   } else {
-    LOGW("Requested GNSS PAL (version %08" PRIx32 ") not found",
+    LOGW("Requested GNSS PAL (version 0x%08" PRIx32 ") not found",
          CHRE_PAL_GNSS_API_CURRENT_VERSION);
   }
 }

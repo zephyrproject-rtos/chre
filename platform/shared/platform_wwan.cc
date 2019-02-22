@@ -44,9 +44,11 @@ void PlatformWwan::init() {
     if (!mWwanApi->open(&gChrePalSystemApi, &sWwanCallbacks)) {
       LOGE("WWAN PAL open returned false");
       mWwanApi = nullptr;
+    }  else {
+      LOGD("Opened WWAN PAL version 0x%08" PRIx32, mWwanApi->moduleVersion);
     }
   } else {
-    LOGW("Requested WWAN PAL (version %08" PRIx32 ") not found",
+    LOGW("Requested WWAN PAL (version 0x%08" PRIx32 ") not found",
          CHRE_PAL_WWAN_API_CURRENT_VERSION);
   }
 }

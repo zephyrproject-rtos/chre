@@ -51,7 +51,7 @@ void PlatformWifi::init() {
       LOGD("Opened WiFi PAL version 0x%08" PRIx32, mWifiApi->moduleVersion);
     }
   } else {
-    LOGW("Requested Wifi PAL (version %08" PRIx32 ") not found",
+    LOGW("Requested Wifi PAL (version 0x%08" PRIx32 ") not found",
          CHRE_PAL_WIFI_API_CURRENT_VERSION);
   }
 }
