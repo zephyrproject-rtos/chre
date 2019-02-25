@@ -157,3 +157,10 @@ DLL_EXPORT bool chreSensorConfigure(uint32_t sensorHandle,
   return EventLoopManagerSingleton::get()->getSensorRequestManager()
       .setSensorRequest(nanoapp, sensorHandle, sensorRequest);
 }
+
+DLL_EXPORT bool chreSensorFlushAsync(uint32_t sensorHandle,
+                                     const void *cookie) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .flushAsync(nanoapp, sensorHandle, cookie);
+}

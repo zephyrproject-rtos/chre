@@ -57,13 +57,13 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
 };
 
 // The code section below provides default implementations for new symbols
-// introduced in CHRE API v1.2 to provide binary compatibility with previous
+// introduced in CHRE API v1.2+ to provide binary compatibility with previous
 // CHRE implementations. Note that we don't presently include symbols for v1.1,
 // as the current known set of CHRE platforms that use this NSL implementation
 // are all v1.1+.
-// If a nanoapp knows that it is only targeting v1.2+ platforms, it can define
-// the CHRE_NANOAPP_DISABLE_BACKCOMPAT flag, so this indirection will be avoided
-// at the expense of a nanoapp not being able to load at all on prior
+// If a nanoapp knows that it is only targeting the latest platform version, it
+// can define the CHRE_NANOAPP_DISABLE_BACKCOMPAT flag, so this indirection will
+// be avoided at the expense of a nanoapp not being able to load at all on prior
 // implementations.
 
 #ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
@@ -131,6 +131,25 @@ bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
                                  const void *cookie) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreWifiRequestRangingAsync);
   return (fptr != nullptr) ? fptr(params, cookie) : false;
+}
+
+WEAK_SYMBOL
+bool chreSensorConfigureBiasEvents(uint32_t sensorHandle, bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreSensorConfigureBiasEvents);
+  return (fptr != nullptr) ? fptr(sensorHandle, enable) : false;
+}
+
+WEAK_SYMBOL
+bool chreSensorGetThreeAxisBias(uint32_t sensorHandle,
+                                struct chreSensorThreeAxisData *bias) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreSensorGetThreeAxisBias);
+  return (fptr != nullptr) ? fptr(sensorHandle, bias) : false;
+}
+
+WEAK_SYMBOL
+bool chreSensorFlushAsync(uint32_t sensorHandle, const void *cookie) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreSensorFlushAsync);
+  return (fptr != nullptr) ? fptr(sensorHandle, cookie) : false;
 }
 
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT
