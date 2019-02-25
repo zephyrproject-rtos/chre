@@ -28,11 +28,51 @@
  * implement cross-version compatibility features as needed.
  */
 
+namespace {
+
 #ifdef CHRE_SLPI_UIMG_ENABLED
 constexpr int kIsTcmNanoapp = 1;
 #else
 constexpr int kIsTcmNanoapp = 0;
 #endif  // CHRE_SLPI_UIMG_ENABLED
+
+#ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
+// Return a v1.3+ GnssLocationEvent for the nanoapp when running on a v1.2-
+// platform.
+chreGnssLocationEvent translateLegacyGnssLocation(
+    const chreGnssLocationEvent& legacyEvent) {
+  // Copy v1.2- fields over to a v1.3+ event.
+  chreGnssLocationEvent newEvent = {};
+  newEvent.timestamp = legacyEvent.timestamp;
+  newEvent.latitude_deg_e7 = legacyEvent.latitude_deg_e7;
+  newEvent.longitude_deg_e7 = legacyEvent.longitude_deg_e7;
+  newEvent.altitude = legacyEvent.altitude;
+  newEvent.speed = legacyEvent.speed;
+  newEvent.bearing = legacyEvent.bearing;
+  newEvent.accuracy = legacyEvent.accuracy;
+  newEvent.flags = legacyEvent.flags;
+
+  // Unset flags that are defined in v1.3+ but not in v1.2-.
+  newEvent.flags &= ~(CHRE_GPS_LOCATION_HAS_ALTITUDE_ACCURACY
+                      | CHRE_GPS_LOCATION_HAS_SPEED_ACCURACY
+                      | CHRE_GPS_LOCATION_HAS_BEARING_ACCURACY);
+  return newEvent;
+}
+
+void nanoappHandleEventCompat(uint32_t senderInstanceId, uint16_t eventType,
+                              const void *eventData) {
+  if (eventType == CHRE_EVENT_GNSS_LOCATION
+      && chreGetApiVersion() < CHRE_API_VERSION_1_3) {
+    chreGnssLocationEvent event = translateLegacyGnssLocation(
+        *static_cast<const chreGnssLocationEvent *>(eventData));
+    nanoappHandleEvent(senderInstanceId, eventType, &event);
+  } else {
+    nanoappHandleEvent(senderInstanceId, eventType, eventData);
+  }
+}
+#endif
+
+}  // anonymous namespace
 
 DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
   /* magic */ CHRE_NSL_NANOAPP_INFO_MAGIC,
@@ -50,7 +90,11 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
   /* appVersion */ NANOAPP_VERSION,
   /* entryPoints */ {
     /* start */ nanoappStart,
+#ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
+    /* handleEvent */ nanoappHandleEventCompat,
+#else
     /* handleEvent */ nanoappHandleEvent,
+#endif
     /* end */ nanoappEnd,
   },
   /* appVersionString */ NANOAPP_VERSION_STRING,
