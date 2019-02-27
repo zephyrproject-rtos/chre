@@ -109,7 +109,10 @@ bool PlatformNanoappBase::openNanoappFromFile() {
       LOGE("Failed to find app info symbol in %s: %s",
            mFilename.c_str(), dlerror());
     } else {
-      success = validateAppInfo(0 /* skip ID validation */, 0, mAppInfo);
+      // TODO(b/120778991): reenable this check after adding support for passing
+      // in the .napp_header to the simulator
+      //success = validateAppInfo(0 /* skip ID validation */, 0, mAppInfo);
+      success = true;
       if (!success) {
         mAppInfo = nullptr;
       } else {
