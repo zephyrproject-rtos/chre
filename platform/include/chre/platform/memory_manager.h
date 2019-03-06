@@ -23,6 +23,11 @@
 #include "chre/core/nanoapp.h"
 #include "chre/util/non_copyable.h"
 
+// This default value can be overridden in the variant-specific makefile.
+#ifndef CHRE_MAX_ALLOCATION_BYTES
+#define CHRE_MAX_ALLOCATION_BYTES 262144  // 256 * 1024
+#endif
+
 namespace chre {
 
 /**
@@ -114,7 +119,7 @@ class MemoryManager : public NonCopyable {
   size_t mAllocationCount = 0;
 
   //! The maximum allowable total allocated memory in bytes for all nanoapps.
-  static constexpr size_t kMaxAllocationBytes = (128 * 1024);
+  static constexpr size_t kMaxAllocationBytes = CHRE_MAX_ALLOCATION_BYTES;
 
   //! The maximum allowable count of memory allocations for all nanoapps.
   static constexpr size_t kMaxAllocationCount = (8 * 1024);
