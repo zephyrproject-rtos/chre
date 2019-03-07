@@ -72,7 +72,7 @@ SensorRequestManager::SensorRequestManager() {
       } else if (sensors[i].getMinInterval() == 0) {
         LOGE("Invalid sensor minInterval: %s", getSensorTypeName(sensorType));
       } else {
-        mSensorRequests[sensorIndex].sensor = std::move(sensors[i]);
+        mSensorRequests[sensorIndex].setSensor(std::move(sensors[i]));
         LOGD("Found sensor: %s", getSensorTypeName(sensorType));
       }
     }
@@ -80,11 +80,10 @@ SensorRequestManager::SensorRequestManager() {
 }
 
 SensorRequestManager::~SensorRequestManager() {
-  SensorRequest nullRequest = SensorRequest();
   for (size_t i = 0; i < mSensorRequests.size(); i++) {
     // Disable sensors that have been enabled previously.
-    if (mSensorRequests[i].sensor.has_value()) {
-      mSensorRequests[i].sensor->setRequest(nullRequest);
+    if (mSensorRequests[i].isSensorSupported()) {
+      mSensorRequests[i].removeAll();
     }
   }
 }
@@ -98,7 +97,7 @@ bool SensorRequestManager::getSensorHandle(SensorType sensorType,
     LOGW("Querying for unknown sensor type");
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
-    sensorHandleIsValid = mSensorRequests[sensorIndex].sensor.has_value();
+    sensorHandleIsValid = mSensorRequests[sensorIndex].isSensorSupported();
     if (sensorHandleIsValid) {
       *sensorHandle = getSensorHandleFromSensorType(sensorType);
     }
@@ -121,12 +120,12 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
   // Ensure that the runtime is aware of this sensor type.
   size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
   SensorRequests& requests = mSensorRequests[sensorIndex];
-  if (!requests.sensor.has_value()) {
+  if (!requests.isSensorSupported()) {
     LOGW("Attempting to configure non-existent sensor");
     return false;
   }
 
-  const Sensor& sensor = requests.sensor.value();
+  const Sensor& sensor = requests.getSensor();
   if (!isSensorRequestValid(sensor, sensorRequest)) {
     return false;
   }
@@ -199,7 +198,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
          sensorHandle);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
-    if (!mSensorRequests[sensorIndex].sensor.has_value()) {
+    if (!mSensorRequests[sensorIndex].isSensorSupported()) {
       LOGW("Attempting to get sensor info for unsupported sensor handle %"
            PRIu32, sensorHandle);
     } else {
@@ -212,7 +211,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
       info->unusedFlags = 0;
 
       // Platform-specific properties.
-      const Sensor& sensor = mSensorRequests[sensorIndex].sensor.value();
+      const Sensor& sensor = mSensorRequests[sensorIndex].getSensor();
       info->sensorName = sensor.getSensorName();
 
       // minInterval was added in CHRE API v1.1 - do not attempt to populate for
@@ -237,7 +236,7 @@ bool SensorRequestManager::removeAllRequests(SensorType sensorType) {
     SensorRequests& requests = mSensorRequests[sensorIndex];
     uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
 
-    for (const SensorRequest& request : requests.multiplexer.getRequests()) {
+    for (const SensorRequest& request : requests.getRequests()) {
       Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
           .findNanoappByInstanceId(request.getInstanceId());
       if (nanoapp != nullptr) {
@@ -258,8 +257,8 @@ Sensor *SensorRequestManager::getSensor(SensorType sensorType) {
          static_cast<int>(sensorType));
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
-    if (mSensorRequests[sensorIndex].sensor.has_value()) {
-      sensorPtr = &mSensorRequests[sensorIndex].sensor.value();
+    if (mSensorRequests[sensorIndex].isSensorSupported()) {
+      sensorPtr = &mSensorRequests[sensorIndex].getSensor();
     }
   }
   return sensorPtr;
@@ -276,8 +275,8 @@ bool SensorRequestManager::getSensorSamplingStatus(
          sensorHandle);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
-    if (mSensorRequests[sensorIndex].sensor.has_value()) {
-      success = mSensorRequests[sensorIndex].sensor->getSamplingStatus(status);
+    if (mSensorRequests[sensorIndex].isSensorSupported()) {
+      success = mSensorRequests[sensorIndex].getSamplingStatus(status);
     }
   }
   return success;
@@ -292,7 +291,7 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
   } else {
     sensorIndex = getSensorTypeArrayIndex(sensorType);
   }
-  return mSensorRequests[sensorIndex].multiplexer.getRequests();
+  return mSensorRequests[sensorIndex].getRequests();
 }
 
 bool SensorRequestManager::flushAsync(
@@ -325,7 +324,7 @@ const SensorRequest *SensorRequestManager::SensorRequests::find(
     uint32_t instanceId, size_t *index) const {
   CHRE_ASSERT(index);
 
-  const auto& requests = multiplexer.getRequests();
+  const auto& requests = mMultiplexer.getRequests();
   for (size_t i = 0; i < requests.size(); i++) {
     const SensorRequest& sensorRequest = requests[i];
     if (sensorRequest.getInstanceId() == instanceId) {
@@ -340,21 +339,21 @@ const SensorRequest *SensorRequestManager::SensorRequests::find(
 bool SensorRequestManager::SensorRequests::add(const SensorRequest& request,
                                                bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
-  CHRE_ASSERT(sensor.has_value());
+  CHRE_ASSERT(isSensorSupported());
 
   size_t addIndex;
   bool success = true;
-  if (!multiplexer.addRequest(request, &addIndex, requestChanged)) {
+  if (!mMultiplexer.addRequest(request, &addIndex, requestChanged)) {
     *requestChanged = false;
     success = false;
     LOG_OOM();
   } else if (*requestChanged) {
-    success = sensor->setRequest(multiplexer.getCurrentMaximalRequest());
+    success = mSensor->setRequest(mMultiplexer.getCurrentMaximalRequest());
     if (!success) {
       // Remove the newly added request since the platform failed to handle it.
       // The sensor is expected to maintain the existing request so there is no
       // need to reset the platform to the last maximal request.
-      multiplexer.removeRequest(addIndex, requestChanged);
+      mMultiplexer.removeRequest(addIndex, requestChanged);
 
       // This is a roll-back operation so the maximal change in the multiplexer
       // must not have changed. The request changed state is forced to false.
@@ -368,12 +367,12 @@ bool SensorRequestManager::SensorRequests::add(const SensorRequest& request,
 bool SensorRequestManager::SensorRequests::remove(size_t removeIndex,
                                                   bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
-  CHRE_ASSERT(sensor.has_value());
+  CHRE_ASSERT(isSensorSupported());
 
   bool success = true;
-  multiplexer.removeRequest(removeIndex, requestChanged);
+  mMultiplexer.removeRequest(removeIndex, requestChanged);
   if (*requestChanged) {
-    success = sensor->setRequest(multiplexer.getCurrentMaximalRequest());
+    success = mSensor->setRequest(mMultiplexer.getCurrentMaximalRequest());
     if (!success) {
       LOGE("SensorRequestManager failed to remove a request");
 
@@ -396,19 +395,19 @@ bool SensorRequestManager::SensorRequests::update(size_t updateIndex,
                                                   const SensorRequest& request,
                                                   bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
-  CHRE_ASSERT(sensor.has_value());
+  CHRE_ASSERT(isSensorSupported());
 
   bool success = true;
-  SensorRequest previousRequest = multiplexer.getRequests()[updateIndex];
-  multiplexer.updateRequest(updateIndex, request, requestChanged);
+  SensorRequest previousRequest = mMultiplexer.getRequests()[updateIndex];
+  mMultiplexer.updateRequest(updateIndex, request, requestChanged);
   if (*requestChanged) {
-    success = sensor->setRequest(multiplexer.getCurrentMaximalRequest());
+    success = mSensor->setRequest(mMultiplexer.getCurrentMaximalRequest());
     if (!success) {
       // Roll back the request since sending it to the sensor failed. The
       // request will roll back to the previous maximal. The sensor is
       // expected to maintain the existing request if a request fails so there
       // is no need to reset the platform to the last maximal request.
-      multiplexer.updateRequest(updateIndex, previousRequest, requestChanged);
+      mMultiplexer.updateRequest(updateIndex, previousRequest, requestChanged);
 
       // This is a roll-back operation so the maximal change in the multiplexer
       // must not have changed. The request changed state is forced to false.
@@ -420,15 +419,15 @@ bool SensorRequestManager::SensorRequests::update(size_t updateIndex,
 }
 
 bool SensorRequestManager::SensorRequests::removeAll() {
-  CHRE_ASSERT(sensor.has_value());
+  CHRE_ASSERT(isSensorSupported());
 
   bool requestChanged;
-  multiplexer.removeAllRequests(&requestChanged);
+  mMultiplexer.removeAllRequests(&requestChanged);
 
   bool success = true;
   if (requestChanged) {
-    SensorRequest maximalRequest = multiplexer.getCurrentMaximalRequest();
-    success = sensor->setRequest(maximalRequest);
+    SensorRequest maximalRequest = mMultiplexer.getCurrentMaximalRequest();
+    success = mSensor->setRequest(maximalRequest);
     if (!success) {
       LOGE("SensorRequestManager failed to remove all request");
 

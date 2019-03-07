@@ -144,14 +144,62 @@ class SensorRequestManager : public NonCopyable {
    * This allows tracking the state of a sensor with the various requests for it
    * and can trigger a change in mode/rate/latency when required.
    */
-  struct SensorRequests {
-    //! The sensor associated with this request multiplexer. If this Optional
-    //! container does not have a value, then the platform does not support this
-    //! type of sensor.
-    Optional<Sensor> sensor;
+  class SensorRequests {
+   public:
+     /**
+      * Initializes the sensor object. This method must only be invoked once
+      * when the SensorRequestManager initializes.
+      *
+      * @param sensor The sensor object to initialize with.
+      */
+    void setSensor(Sensor&& sensor) {
+      CHRE_ASSERT(!mSensor.has_value());
+      mSensor = std::move(sensor);
+    }
 
-    //! The request multiplexer for this sensor.
-    RequestMultiplexer<SensorRequest> multiplexer;
+    /**
+     * @return true if the sensor is supported by the platform.
+     */
+    bool isSensorSupported() const {
+      return mSensor.has_value();
+    }
+
+    /**
+     * @return The set of active requests for this sensor.
+     */
+    const DynamicVector<SensorRequest>& getRequests() const {
+      return mMultiplexer.getRequests();
+    }
+
+    /**
+     * @return A constant reference to the sensor object. This method has an
+     * undefined behavior if isSensorSupported() is false.
+     */
+    const Sensor& getSensor() const {
+      return mSensor.value();
+    }
+
+    /**
+     * @return A reference to the sensor object. This method has an undefined
+     * behavior if isSensorSupported() is false.
+     */
+    Sensor& getSensor() {
+      return mSensor.value();
+    }
+
+    /**
+     * Gets the sensor's sampling status. The caller must ensure that
+     * isSensorSupported() is true before invoking this method.
+     *
+     * @param status A non-null pointer where the sampling status will be
+     * stored, if successful.
+     *
+     * @return true if getting the sampling status succeeded.
+     */
+    bool getSamplingStatus(struct chreSensorSamplingStatus *status) const {
+      CHRE_ASSERT(isSensorSupported());
+      return mSensor->getSamplingStatus(status);
+    }
 
     /**
      * Searches through the list of sensor requests for a request owned by the
@@ -160,10 +208,10 @@ class SensorRequestManager : public NonCopyable {
      *
      * @param instanceId The instance ID of the nanoapp whose request is being
      *        searched for.
-     * @param index A non-null pointer to an index that is populated if a request
-     *        for this nanoapp is found.
-     * @return A pointer to a SensorRequest that is owned by the provided nanoapp
-     *         if one is found otherwise nullptr.
+     * @param index A non-null pointer to an index that is populated if a
+     *        request for this nanoapp is found.
+     * @return A pointer to a SensorRequest that is owned by the provided
+     *         nanoapp if one is found otherwise nullptr.
      */
     const SensorRequest *find(uint32_t instanceId, size_t *index) const;
 
@@ -212,6 +260,15 @@ class SensorRequestManager : public NonCopyable {
      *         configuration successfully updated.
      */
     bool removeAll();
+
+   private:
+    //! The sensor associated with this request multiplexer. If this Optional
+    //! container does not have a value, then the platform does not support this
+    //! type of sensor.
+    Optional<Sensor> mSensor;
+
+    //! The request multiplexer for this sensor.
+    RequestMultiplexer<SensorRequest> mMultiplexer;
   };
 
   //! The list of sensor requests
