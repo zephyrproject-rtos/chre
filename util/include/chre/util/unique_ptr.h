@@ -137,8 +137,8 @@ class UniquePtr : public NonCopyable {
    * and not equal (!=) otherwise.
    *
    * @param other The other object being compared.
-   * @return True if the other's pointer is same as the underlying pointer,
-   * otherwise flase.
+   * @return true if the other's pointer is same as the underlying pointer,
+   * otherwise false.
    */
   bool operator==(const UniquePtr<ObjectType> &other) const;
 
@@ -147,7 +147,7 @@ class UniquePtr : public NonCopyable {
    * and not equal (!=) otherwise.
    *
    * @param other The other object being compared.
-   * @return True if the other's pointer is different than the underlying
+   * @return true if the other's pointer is different than the underlying
    * pointer, otherwise false.
    */
   bool operator!=(const UniquePtr<ObjectType> &other) const;
