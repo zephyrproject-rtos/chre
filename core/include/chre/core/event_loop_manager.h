@@ -19,6 +19,7 @@
 
 #include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/core/event_loop_common.h"
 #include "chre/core/gnss_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/core/sensor_request_manager.h"
@@ -36,42 +37,6 @@
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
 namespace chre {
-
-//! An identifier for a system callback, which is mapped into a CHRE event type
-//! in the user-defined range.
-enum class SystemCallbackType : uint16_t {
-  FirstCallbackType = CHRE_EVENT_FIRST_USER_VALUE,
-
-  MessageToHostComplete,
-  WifiScanMonitorStateChange,
-  WifiRequestScanResponse,
-  WifiHandleScanEvent,
-  NanoappListResponse,
-  SensorLastEventUpdate,
-  FinishLoadingNanoapp,
-  WwanHandleCellInfoResult,
-  HandleUnloadNanoapp,
-  GnssSessionStatusChange,
-  SensorStatusUpdate,
-  PerformDebugDump,
-  TimerPoolTick,
-  AudioHandleDataEvent,
-  WifiHandleFailedRanging,
-  WifiHandleRangingEvent,
-  AudioAvailabilityChange,
-  AudioHandleHostAwake,
-};
-
-//! The function signature of a system callback mirrors the CHRE event free
-//! callback to allow it to use the same event infrastructure.
-typedef chreEventCompleteFunction SystemCallbackFunction;
-
-/**
- * Generic event free callback that can be used by any event where the event
- * data is allocated via memoryAlloc, and no special processing is needed in the
- * event complete callback other than freeing the event data.
- */
-void freeEventDataCallback(uint16_t eventType, void *eventData);
 
 /**
  * A class that keeps track of all event loops in the system. This class
@@ -118,12 +83,48 @@ class EventLoopManager : public NonCopyable {
    * @param type An identifier for the callback, which is passed through to the
    *        callback as a uint16_t, and can also be useful for debugging
    * @param data Arbitrary data to provide to the callback
-   * @param callback Function to invoke from within the
+   * @param callback Function to invoke from within the main CHRE event loop
    */
   void deferCallback(SystemCallbackType type, void *data,
                      SystemCallbackFunction *callback) {
     mEventLoop.postEvent(static_cast<uint16_t>(type), data, callback,
                          kSystemInstanceId, kSystemInstanceId);
+  }
+
+  /**
+   * Schedules a CHRE system callback to be invoked at some point in the future
+   * after a specified amount of time, in the context of the "main" CHRE
+   * EventLoop.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param type An identifier for the callback, which is passed through to the
+   *        callback as a uint16_t, and can also be useful for debugging
+   * @param data Arbitrary data to provide to the callback
+   * @param callback Function to invoke from within the main CHRE event loop
+   * @param delay The delay to postpone posting the event
+   * @return TimerHandle of the requested timer.
+   *
+   * @see deferCallback
+   */
+  TimerHandle setDelayedCallback(SystemCallbackType type, void *data,
+                                 SystemCallbackFunction *callback,
+                                 Nanoseconds delay) {
+    return mEventLoop.getTimerPool().setSystemTimer(
+        delay, callback, type, data);
+  }
+
+  /**
+   * Cancels a delayed callback previously scheduled by setDelayedCallback.
+   *
+   * This function is safe to call from any thread.
+   *
+   * @param timerHandle The TimerHandle returned by setDelayedCallback
+   *
+   * @return true if the callback was successfully cancelled
+   */
+  bool cancelDelayedCallback(TimerHandle timerHandle) {
+    return mEventLoop.getTimerPool().cancelSystemTimer(timerHandle);
   }
 
   /**
