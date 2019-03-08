@@ -32,6 +32,11 @@ template<typename ObjectType>
 class UniquePtr : public NonCopyable {
  public:
   /**
+   * Pointer type of ObjectType.
+   */
+  typedef ObjectType* pointer;
+
+  /**
    * Construct a UniquePtr instance that does not own any object.
    */
   UniquePtr();
