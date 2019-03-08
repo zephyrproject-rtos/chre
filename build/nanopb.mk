@@ -1,9 +1,11 @@
 #
 # Nanoapp NanoPB Makefile
 #
-# Include this file in your nanoapp Makefile to produce pb.c and pb.h for .proto
-# files specified in the NANOPB_SRCS variable. The produced pb.c files are
-# automatically be added to the COMMON_SRCS variable for the nanoapp build.
+# Include this file in your nanoapp Makefile to produce pb.c and pb.h (or
+# $NANOPB_EXTENSION.c and $NANOPB_EXTENSION.h if $NANOPB_EXTENSION is defined)
+# for .proto files specified in the NANOPB_SRCS variable. The produced pb.c or
+# $NANOPB_EXTENSION.c files are automatically added to the COMMON_SRCS variable
+# for the nanoapp build.
 #
 # NANOPB_FLAGS can be used to supply additional command line arguments to the
 # nanopb compiler. Note that this is global and applies to all protobuf
@@ -27,7 +29,14 @@ endif
 
 NANOPB_GEN_PATH = $(OUT)/nanopb_gen
 
-NANOPB_GEN_SRCS += $(patsubst %.proto, $(NANOPB_GEN_PATH)/%.pb.c, \
+ifeq ($(NANOPB_EXTENSION),)
+NANOPB_EXTENSION = pb
+else
+NANOPB_GENERATOR_FLAGS = --extension=.$(NANOPB_EXTENSION)
+endif
+
+NANOPB_GEN_SRCS += $(patsubst %.proto, \
+                              $(NANOPB_GEN_PATH)/%.$(NANOPB_EXTENSION).c, \
                               $(NANOPB_SRCS))
 
 ifneq ($(NANOPB_GEN_SRCS),)
@@ -65,18 +74,20 @@ COMMON_SRCS += $(NANOPB_GEN_SRCS)
 
 NANOPB_PROTOC = $(NANOPB_PREFIX)/generator/protoc-gen-nanopb
 
-$(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
-                                                     %.options \
-                                                     $(NANOPB_GENERATOR_SRCS)
+$(NANOPB_GEN_PATH)/%.$(NANOPB_EXTENSION).c \
+        $(NANOPB_GEN_PATH)/%.$(NANOPB_EXTENSION).h: %.proto \
+                                                    %.options \
+                                                    $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
 	$(PROTOC) --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
-	  --nanopb_out="--options-file=$(basename $<).options:$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
+	  --nanopb_out="$(NANOPB_GENERATOR_FLAGS) --options-file=$(basename $<).options:$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
 	  $<
 
-$(NANOPB_GEN_PATH)/%.pb.c $(NANOPB_GEN_PATH)/%.pb.h: %.proto \
-                                                     $(NANOPB_OPTIONS) \
-                                                     $(NANOPB_GENERATOR_SRCS)
+$(NANOPB_GEN_PATH)/%.$(NANOPB_EXTENSION).c \
+        $(NANOPB_GEN_PATH)/%.$(NANOPB_EXTENSION).h: %.proto \
+                                                    $(NANOPB_OPTIONS) \
+                                                    $(NANOPB_GENERATOR_SRCS)
 	mkdir -p $(dir $@)
 	$(PROTOC) --plugin=protoc-gen-nanopb=$(NANOPB_PROTOC) $(NANOPB_FLAGS) \
-	  --nanopb_out="--options-file=$(NANOPB_OPTIONS):$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
+	  --nanopb_out="$(NANOPB_GENERATOR_FLAGS) --options-file=$(NANOPB_OPTIONS):$(NANOPB_GEN_PATH)/$(NANOPB_PROTO_PATH)" \
 	  $<
