@@ -77,6 +77,10 @@ SLPI_SEE_CFLAGS += -DSSC_TARGET_HEXAGON
 # Defined in slpi_proc/ssc/build/ssc.scons
 SLPI_SEE_CFLAGS += -DPB_FIELD_16BIT
 
+ifeq ($(IMPORT_CHRE_UTILS), true)
+SLPI_SEE_CFLAGS += -DIMPORT_CHRE_UTILS
+endif
+
 # SLPI-specific Source Files ###################################################
 
 SLPI_SRCS += platform/shared/chre_api_audio.cc
@@ -135,10 +139,11 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # SLPI/SEE-specific Source Files ###############################################
 
-SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
+
 ifneq ($(IMPORT_CHRE_UTILS), true)
+SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_cal_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 endif

@@ -122,7 +122,7 @@ void chreThreadEntry(void * /*data*/) {
 
   ashUnregisterDebugDumpCallback(onDebugDumpRequested);
   chre::deinit();
-#ifdef CHRE_SLPI_SEE
+#if defined(CHRE_SLPI_SEE) && !defined(IMPORT_CHRE_UTILS)
   chre::IslandVoteClientSingleton::deinit();
 #endif
   // Perform this as late as possible - if we are shutting down because we
@@ -164,7 +164,7 @@ extern "C" int chre_slpi_start_thread(void) {
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
   } else {
-#ifdef CHRE_SLPI_SEE
+#if defined(CHRE_SLPI_SEE) && !defined(IMPORT_CHRE_UTILS)
     chre::IslandVoteClientSingleton::init("CHRE" /* clientName */);
 #endif
 
