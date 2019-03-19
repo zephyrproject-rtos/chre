@@ -67,6 +67,12 @@ class Optional {
   Optional(ObjectType&& object);
 
   /**
+   * Destructs the object. Calls through reset() to destroy the contained
+   * object before destructing this container.
+   */
+  ~Optional();
+
+  /**
    * @return Returns true if this container holds an object
    */
   bool has_value() const;

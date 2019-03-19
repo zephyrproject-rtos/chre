@@ -22,6 +22,31 @@
 
 using chre::Optional;
 
+class DestructorTestingObject {
+ public:
+  ~DestructorTestingObject() {
+    if (valueToFlipWhenDestruct != nullptr) {
+      *valueToFlipWhenDestruct = !*valueToFlipWhenDestruct;
+    }
+  }
+
+  void setValueToFlipWhenDestruct(bool *value) {
+    valueToFlipWhenDestruct = value;
+  }
+
+ private:
+  bool *valueToFlipWhenDestruct = nullptr;
+};
+
+TEST(Optional, ShouldDestructContainedObject) {
+  bool destructed = false;
+  {
+    Optional<DestructorTestingObject> object(DestructorTestingObject{});
+    object.value().setValueToFlipWhenDestruct(&destructed);
+  }
+  EXPECT_TRUE(destructed);
+}
+
 TEST(Optional, NoValueByDefault) {
   Optional<int> myInt;
   EXPECT_FALSE(myInt.has_value());
