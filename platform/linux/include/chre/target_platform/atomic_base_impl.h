@@ -29,6 +29,10 @@ inline bool AtomicBool::load() {
   return mAtomic.load();
 }
 
+inline void AtomicBool::store(bool desired) {
+  mAtomic.store(desired);
+}
+
 inline bool AtomicBool::exchange(bool desired) {
   return mAtomic.exchange(desired);
 }
@@ -39,6 +43,10 @@ inline AtomicUint32::AtomicUint32(uint32_t startingValue) {
 
 inline uint32_t AtomicUint32::load() {
   return mAtomic.load();
+}
+
+inline void AtomicUint32::store(uint32_t desired) {
+  mAtomic.store(desired);
 }
 
 inline uint32_t AtomicUint32::exchange(uint32_t desired) {
