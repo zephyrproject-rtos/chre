@@ -53,6 +53,14 @@ inline uint32_t AtomicUint32::fetch_increment() {
   return mAtomic.fetch_add(1);
 }
 
+inline uint32_t AtomicUint32::fetch_sub(uint32_t arg) {
+  return mAtomic.fetch_sub(arg);
+}
+
+inline uint32_t AtomicUint32::fetch_decrement() {
+  return mAtomic.fetch_sub(1);
+}
+
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_LINUX_ATOMIC_BASE_IMPL_H_
