@@ -357,4 +357,20 @@ bool sensorTypeIsCalibrated(SensorType sensorType) {
           || sensorType == SensorType::GeomagneticField);
 }
 
+SensorType toCalibratedSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::UncalibratedAccelerometer:
+      return SensorType::Accelerometer;
+    case SensorType::UncalibratedGyroscope:
+      return SensorType::Gyroscope;
+    case SensorType::UncalibratedGeomagneticField:
+      return SensorType::GeomagneticField;
+    default:
+      /* empty */
+      break;
+  }
+
+  return sensorType;
+}
+
 }  // namespace chre
