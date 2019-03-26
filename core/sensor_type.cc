@@ -351,4 +351,10 @@ bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType) {
   return success;
 }
 
+bool sensorTypeIsCalibrated(SensorType sensorType) {
+  return (sensorType == SensorType::Accelerometer
+          || sensorType == SensorType::Gyroscope
+          || sensorType == SensorType::GeomagneticField);
+}
+
 }  // namespace chre

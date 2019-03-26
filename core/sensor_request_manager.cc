@@ -152,6 +152,13 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
       success = requests.remove(requestIndex, &requestChanged);
       if (success) {
         nanoapp->unregisterForBroadcastEvent(eventType);
+
+        uint16_t biasEventType;
+        if (getSensorBiasEventType(sensorType, &biasEventType)) {
+          // Per API requirements, turn off bias reporting when unsubscribing
+          // from the sensor.
+          nanoapp->unregisterForBroadcastEvent(biasEventType);
+        }
       }
     } else {
       // The sensor is being configured to Off, but is already Off (there is no
@@ -168,6 +175,14 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
     success = requests.add(sensorRequest, &requestChanged);
     if (success) {
       nanoapp->registerForBroadcastEvent(eventType);
+
+      // Per API requirements, turn on bias reporting for calibrated sensors
+      // by default when subscribed.
+      uint16_t biasEventType;
+      if (getSensorBiasEventType(sensorType, &biasEventType)
+          && sensorTypeIsCalibrated(sensorType)) {
+        nanoapp->registerForBroadcastEvent(biasEventType);
+      }
 
       // Deliver last valid event to new clients of on-change sensors
       if (sensorTypeIsOnChange(sensor.getSensorType())
@@ -302,8 +317,15 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
 
 bool SensorRequestManager::configureBiasEvents(
       Nanoapp *nanoapp, uint32_t sensorHandle, bool enable) {
-  // TODO: Implement this
-  return false;
+  bool success = false;
+  uint16_t eventType;
+  SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
+  if (getSensorBiasEventType(sensorType, &eventType)) {
+    success = enable ? nanoapp->registerForBroadcastEvent(eventType)
+        : nanoapp->unregisterForBroadcastEvent(eventType);
+  }
+
+  return success;
 }
 
 bool SensorRequestManager::getThreeAxisBias(
