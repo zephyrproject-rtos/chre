@@ -287,6 +287,22 @@ bool sensorTypeIsOnChange(SensorType sensorType);
  */
 bool sensorTypeIsContinuous(SensorType sensorType);
 
+/**
+ * Indicates whether the sensor type reports bias events.
+ *
+ * @param sensorType The sensor type of the sensor.
+ * @return true if the sensor reports bias events.
+ */
+bool sensorTypeReportsBias(SensorType sensorType);
+
+/**
+ * @param sensorType The sensor type.
+ * @param eventType A non-null pointer to where the event type is stored.
+ *
+ * @return true if the sensor type reports bias events.
+ */
+bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType);
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_SENSOR_TYPE_H_

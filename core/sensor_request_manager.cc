@@ -213,8 +213,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
       info->sensorType = getUnsignedIntFromSensorType(sensorType);
       info->isOnChange = sensorTypeIsOnChange(sensorType);
       info->isOneShot  = sensorTypeIsOneShot(sensorType);
-      // TODO: Populate reportsBiasEvents
-      info->reportsBiasEvents = 0;
+      info->reportsBiasEvents = sensorTypeReportsBias(sensorType);
       info->unusedFlags = 0;
 
       // Platform-specific properties.

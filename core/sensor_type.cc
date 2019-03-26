@@ -314,4 +314,41 @@ bool sensorTypeIsContinuous(SensorType sensorType) {
           && !sensorTypeIsOnChange(sensorType));
 }
 
+bool sensorTypeReportsBias(SensorType sensorType) {
+  uint16_t eventType;
+  return getSensorBiasEventType(sensorType, &eventType);
+}
+
+bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType) {
+  CHRE_ASSERT(eventType != nullptr);
+  bool success = false;
+  if (eventType != nullptr) {
+    success = true;
+    switch (sensorType) {
+      case SensorType::Accelerometer:
+        *eventType = CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedAccelerometer:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_BIAS_INFO;
+        break;
+      case SensorType::Gyroscope:
+        *eventType = CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedGyroscope:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_BIAS_INFO;
+        break;
+      case SensorType::GeomagneticField:
+        *eventType = CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedGeomagneticField:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_BIAS_INFO;
+        break;
+      default:
+        success = false;
+    }
+  }
+
+  return success;
+}
+
 }  // namespace chre
