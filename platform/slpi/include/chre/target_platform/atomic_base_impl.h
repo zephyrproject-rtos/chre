@@ -84,6 +84,16 @@ inline uint32_t AtomicUint32::fetch_increment() {
   return qurt_atomic_add_return(&mValue, 1);
 }
 
+inline uint32_t AtomicUint32::fetch_sub(uint32_t arg) {
+  qurt_atomic_barrier();
+  return qurt_atomic_sub_return(&mValue, arg);
+}
+
+inline uint32_t AtomicUint32::fetch_decrement() {
+  qurt_atomic_barrier();
+  return qurt_atomic_sub_return(&mValue, 1);
+}
+
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_ATOMIC_BASE_IMPL_H_

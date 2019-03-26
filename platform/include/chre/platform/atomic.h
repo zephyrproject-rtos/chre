@@ -132,6 +132,22 @@ class AtomicUint32 : public AtomicUint32Base,
    * @return The previous value of the object.
    */
   uint32_t fetch_increment();
+
+  /**
+   * Atomically subtracts the argument from the current value of the object.
+   *
+   * @param The amount which the object should be decreased by.
+   *
+   * @return The previous value of the object.
+   */
+  uint32_t fetch_sub(uint32_t arg);
+
+  /**
+   * Atomically decrements the value stored in the atomic object by 1.
+   *
+   * @return The previous value of the object.
+   */
+  uint32_t fetch_decrement();
 };
 
 }  // namespace chre
