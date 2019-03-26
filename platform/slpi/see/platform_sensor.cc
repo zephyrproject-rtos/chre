@@ -776,6 +776,12 @@ bool PlatformSensor::getSamplingStatus(
   return true;
 }
 
+bool PlatformSensor::getThreeAxisBias(
+    struct chreSensorThreeAxisData *bias) const {
+  // TODO: Implement this.
+  return false;
+}
+
 void PlatformSensorBase::initBase(
     SensorType sensorType,uint64_t minInterval, const char *sensorName,
     ChreSensorData *lastEvent, size_t lastEventSize, bool passiveSupported) {

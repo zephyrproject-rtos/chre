@@ -158,6 +158,19 @@ DLL_EXPORT bool chreSensorConfigure(uint32_t sensorHandle,
       .setSensorRequest(nanoapp, sensorHandle, sensorRequest);
 }
 
+DLL_EXPORT bool chreSensorConfigureBiasEvents(uint32_t sensorHandle,
+                                              bool enable) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .configureBiasEvents(nanoapp, sensorHandle, enable);
+}
+
+DLL_EXPORT bool chreSensorGetThreeAxisBias(
+    uint32_t sensorHandle, struct chreSensorThreeAxisData *bias) {
+  return EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .getThreeAxisBias(sensorHandle, bias);
+}
+
 DLL_EXPORT bool chreSensorFlushAsync(uint32_t sensorHandle,
                                      const void *cookie) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);

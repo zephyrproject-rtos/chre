@@ -99,6 +99,17 @@ class PlatformSensor : public PlatformSensorBase,
   bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
 
   /**
+   * Synchronously retrieves the current bias for a sensor that supports
+   * data in the chreSensorThreeAxisData format.
+   *
+   * @param bias A non-null pointer to store the current bias data.
+   *
+   * @return false if sensor does not report bias data in the
+   *     chreSensorThreeAxisData format.
+   */
+  bool getThreeAxisBias(struct chreSensorThreeAxisData *bias) const;
+
+  /**
    * Makes a sensor flush request for a nanoapp asynchronously. When a flush
    * request made by this method is completed (i.e. all pending samples are
    * posted to the CHRE event queue), PlatformSensor should invoke

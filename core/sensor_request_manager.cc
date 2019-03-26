@@ -300,6 +300,33 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
   return mSensorRequests[sensorIndex].getRequests();
 }
 
+bool SensorRequestManager::configureBiasEvents(
+      Nanoapp *nanoapp, uint32_t sensorHandle, bool enable) {
+  // TODO: Implement this
+  return false;
+}
+
+bool SensorRequestManager::getThreeAxisBias(
+    uint32_t sensorHandle, struct chreSensorThreeAxisData *bias) const {
+  CHRE_ASSERT(bias != nullptr);
+
+  bool success = false;
+  if (bias != nullptr) {
+    SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
+    if (sensorType == SensorType::Unknown) {
+      LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
+           sensorHandle);
+    } else {
+      size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+      if (mSensorRequests[sensorIndex].isSensorSupported()) {
+        success = mSensorRequests[sensorIndex].getThreeAxisBias(bias);
+      }
+    }
+  }
+
+  return success;
+}
+
 bool SensorRequestManager::flushAsync(
     Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie) {
   bool success = false;
