@@ -805,7 +805,7 @@ void onStatusChange(uint8_t sensorId) {
   Sensor *sensor = getFirstValidSensor(sensorId);
   // Invalidate timer first so a status update isn't potentially
   // missed.
-  sensor->timerHandle.store(CHRE_TIMER_INVALID);
+  sensor->timerHandle = CHRE_TIMER_INVALID;
 
   size_t index = getSensorMonitorIndex(sensorId);
   if (index == gSensorMonitors.size()) {
@@ -959,7 +959,7 @@ void handleSensorStatusMonitorIndication(
         nestedId.eventData,
         callback,
         kStatusDelayIntervalNanos);
-    sensor->timerHandle.store(timer);
+    sensor->timerHandle = timer;
   }
 }
 

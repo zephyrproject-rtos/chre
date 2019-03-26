@@ -31,6 +31,11 @@ inline AtomicBool::AtomicBool(bool startingValue) {
   mValue = startingValue;
 }
 
+inline bool AtomicBool::operator=(bool desired) {
+  store(desired);
+  return desired;
+}
+
 inline bool AtomicBool::load() {
   qurt_atomic_barrier();
   return mValue;
@@ -48,6 +53,11 @@ inline bool AtomicBool::exchange(bool desired) {
 
 inline AtomicUint32::AtomicUint32(uint32_t startingValue) {
   mValue = startingValue;
+}
+
+inline uint32_t AtomicUint32::operator=(uint32_t desired) {
+  store(desired);
+  return desired;
 }
 
 inline uint32_t AtomicUint32::load() {

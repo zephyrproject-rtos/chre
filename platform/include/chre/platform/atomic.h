@@ -37,6 +37,16 @@ class AtomicBool : public AtomicBoolBase,
   AtomicBool(bool startingValue);
 
   /**
+   * Atomically assigns the desired value to the atomic object. Equivalent to
+   * store().
+   *
+   * @param The value the object will be replaced with.
+   *
+   * @return The desired value.
+   */
+  bool operator=(bool desired);
+
+  /**
    * Atomically loads the current value of the atomic object.
    *
    * @return The current value of the object.
@@ -73,6 +83,16 @@ class AtomicUint32 : public AtomicUint32Base,
    * @param The starting value for the object.
    */
   AtomicUint32(uint32_t startingValue);
+
+  /**
+   * Atomically assigns the desired value to the atomic object. Equivalent to
+   * store().
+   *
+   * @param The value the object will be replaced with.
+   *
+   * @return The desired value.
+   */
+  uint32_t operator=(uint32_t desired);
 
   /**
    * Atomically loads the current value of the atomic object.

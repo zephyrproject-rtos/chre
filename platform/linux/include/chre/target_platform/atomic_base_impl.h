@@ -25,6 +25,10 @@ inline AtomicBool::AtomicBool(bool startingValue) {
   std::atomic_init(&mAtomic, startingValue);
 }
 
+inline bool AtomicBool::operator=(bool desired) {
+  return mAtomic = desired;
+}
+
 inline bool AtomicBool::load() {
   return mAtomic.load();
 }
@@ -39,6 +43,10 @@ inline bool AtomicBool::exchange(bool desired) {
 
 inline AtomicUint32::AtomicUint32(uint32_t startingValue) {
   std::atomic_init(&mAtomic, startingValue);
+}
+
+inline uint32_t AtomicUint32::operator=(uint32_t desired) {
+  return mAtomic = desired;
 }
 
 inline uint32_t AtomicUint32::load() {
