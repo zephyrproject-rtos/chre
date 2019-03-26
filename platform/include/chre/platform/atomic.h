@@ -44,6 +44,13 @@ class AtomicBool : public AtomicBoolBase,
   bool load();
 
   /**
+   * Atomically replaces the current value of the atomic object.
+   *
+   * @param The value the object will be replaced with.
+   */
+  void store(bool desired);
+
+  /**
    * Atomically replaces the value of the atomic object.
    *
    * @param The value the object should have when the method returns.
@@ -73,6 +80,13 @@ class AtomicUint32 : public AtomicUint32Base,
    * @return The current value of the object.
    */
   uint32_t load();
+
+  /**
+   * Atomically replaces the current value of the atomic object.
+   *
+   * @param The value the object will be replaced with.
+   */
+  void store(uint32_t desired);
 
   /**
    * Atomically replaces the value of the atomic object.

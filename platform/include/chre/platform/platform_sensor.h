@@ -53,6 +53,9 @@ class PlatformSensor : public PlatformSensorBase,
    * and puts them in the supplied DynamicVector, which should be empty when
    * passed in. If this method returns false the vector may be partially filled.
    *
+   * NOTE: Some platform implementations depend on this list only being
+   * constructed during initialization so it must remain fixed afterwards.
+   *
    * @param sensors A non-null pointer to a DynamicVector to populate with the
    *                list of sensors.
    * @return true if the query was successful.

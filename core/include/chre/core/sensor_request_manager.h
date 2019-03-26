@@ -93,6 +93,10 @@ class SensorRequestManager : public NonCopyable {
   /**
    * Obtains a pointer to the Sensor of the specified sensorType.
    *
+   * NOTE: Some platform implementations invoke this method from different
+   * threads assuming the underlying list of sensors doesn't change after
+   * initialization.
+   *
    * @param sensorType The SensorType of the sensor.
    * @return A pointer to the Sensor of sensorType, or nullptr if sensorType is
    *         invalid or the requested SensorType is not supported on the current
