@@ -17,6 +17,10 @@
 #ifndef CHRE_CORE_EVENT_LOOP_COMMON_H_
 #define CHRE_CORE_EVENT_LOOP_COMMON_H_
 
+#include "chre_api/chre/event.h"
+
+#include <cstdint>
+
 namespace chre {
 
 //! An identifier for a system callback, which is mapped into a CHRE event type
