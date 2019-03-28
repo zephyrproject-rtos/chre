@@ -69,6 +69,9 @@ class SeeHelperCallbackInterface {
   virtual void onHostWakeSuspendEvent(bool apAwake) = 0;
 
   //! Invoked by the SEE thread to provide the sensor bias event.
+  //! The bias is generated with the sensorHandle field set to that of
+  //! runtime-calibrated sensors, regardless of whether the runtime-calibrated
+  //! or uncalibrated versions of the sensor is enabled.
   virtual void onSensorBiasEvent(
       UniquePtr<struct chreSensorThreeAxisData>&& biasData) = 0;
 

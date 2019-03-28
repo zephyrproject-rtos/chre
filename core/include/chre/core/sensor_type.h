@@ -318,6 +318,14 @@ bool sensorTypeIsCalibrated(SensorType sensorType);
  */
 SensorType toCalibratedSensorType(SensorType sensorType);
 
+/**
+ * @param sensorType The sensor type.
+ *
+ * @return The corresponding uncalibrated sensor type. If the sensor does not
+ *     have one, then the input sensorType is returned.
+ */
+SensorType toUncalibratedSensorType(SensorType sensorType);
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_SENSOR_TYPE_H_

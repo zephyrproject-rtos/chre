@@ -373,4 +373,20 @@ SensorType toCalibratedSensorType(SensorType sensorType) {
   return sensorType;
 }
 
+SensorType toUncalibratedSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+      return SensorType::UncalibratedAccelerometer;
+    case SensorType::Gyroscope:
+      return SensorType::UncalibratedGyroscope;
+    case SensorType::GeomagneticField:
+      return SensorType::UncalibratedGeomagneticField;
+    default:
+      /* empty */
+      break;
+  }
+
+  return sensorType;
+}
+
 }  // namespace chre

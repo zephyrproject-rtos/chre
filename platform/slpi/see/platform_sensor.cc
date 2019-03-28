@@ -99,9 +99,8 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
 
   void onHostWakeSuspendEvent(bool awake) override;
 
-  // TODO: Implement this
   void onSensorBiasEvent(UniquePtr<struct chreSensorThreeAxisData>&& biasData)
-      override {}
+      override;
 
   void onFlushCompleteEvent(SensorType sensorType) override;
 };
@@ -226,6 +225,28 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
 }
 
 /**
+ * Helper function to post a bias event given the bias data.
+ *
+ * @param sensorType The sensor type to post the event for.
+ * @param bias The bias data.
+ */
+void postSensorBiasEvent(SensorType sensorType,
+                         const chreSensorThreeAxisData& bias) {
+  uint16_t eventType;
+  if (getSensorBiasEventType(sensorType, &eventType)) {
+    auto *event = memoryAlloc<struct chreSensorThreeAxisData>();
+    if (event == nullptr) {
+      LOG_OOM();
+    } else {
+      *event = bias;
+      event->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+          eventType, event, freeEventDataCallback);
+    }
+  }
+}
+
+/**
  * Updates the sampling status.
  */
 void updateSamplingStatus(
@@ -297,6 +318,24 @@ void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
   if (EventLoopManagerSingleton::isInitialized()) {
     EventLoopManagerSingleton::get()->getEventLoop()
         .getPowerControlManager().onHostWakeSuspendEvent(awake);
+  }
+}
+
+void SeeHelperCallback::onSensorBiasEvent(
+    UniquePtr<struct chreSensorThreeAxisData>&& biasData) {
+  SensorType sensorType = getSensorTypeFromSensorHandle(
+      biasData->header.sensorHandle);
+
+  uint16_t eventType;
+  if (!sensorTypeIsCalibrated(sensorType) ||
+      !getSensorBiasEventType(sensorType, &eventType)) {
+    LOGE("Received bias event for unsupported sensor type %" PRIu8, sensorType);
+  } else {
+    // Posts a newly allocated event for the uncalibrated type
+    postSensorBiasEvent(toUncalibratedSensorType(sensorType), *biasData.get());
+
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+        eventType, biasData.release(), freeEventDataCallback);
   }
 }
 
