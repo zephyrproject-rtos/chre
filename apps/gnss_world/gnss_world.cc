@@ -37,7 +37,7 @@ const uint32_t kLocationSessionCookie = 0x1337;
 const uint32_t kMeasurementSessionCookie = 0xdaad;
 
 //! The minimum time to the next fix for a location.
-constexpr Milliseconds kLocationMinTimeToNextFix(0);
+constexpr chre::Milliseconds kLocationMinTimeToNextFix(0);
 
 //! The interval in seconds between updates.
 const uint32_t kReportIntervals[] = {
