@@ -100,7 +100,8 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
   void onHostWakeSuspendEvent(bool awake) override;
 
   // TODO: Implement this
-  void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) override {}
+  void onSensorBiasEvent(UniquePtr<struct chreSensorThreeAxisData>&& biasData)
+      override {}
 
   void onFlushCompleteEvent(SensorType sensorType) override;
 };
