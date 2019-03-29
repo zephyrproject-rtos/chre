@@ -95,6 +95,16 @@ class PlatformSensor : public PlatformSensorBase,
    */
   bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
 
+  /**
+   * Makes a sensor flush request for a nanoapp asynchronously. When a flush
+   * request made by this method is completed (i.e. all pending samples are
+   * posted to the CHRE event queue), PlatformSensor should invoke
+   * SensorRequestManager::handleFlushCompleteEvent().
+   *
+   * @return true if the request was accepted.
+   */
+  bool flushAsync();
+
  protected:
   /**
    * Default constructor that puts this instance in an unspecified state.

@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <chre/common.h>
 #include <chre/event.h>
 #include <chre/sensor_types.h>
 

@@ -1451,6 +1451,11 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
   return success;
 }
 
+bool PlatformSensor::flushAsync() {
+  // TODO: Implement this
+  return false;
+}
+
 SensorType PlatformSensor::getSensorType() const {
   return getSensorTypeFromSensorId(this->sensorId, this->dataType,
                                    this->calType);

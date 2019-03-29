@@ -101,6 +101,8 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
 
   // TODO: Implement this
   void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) override {}
+
+  void onFlushCompleteEvent(SensorType sensorType) override;
 };
 
 //! A struct to facilitate sensor discovery
@@ -294,6 +296,13 @@ void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
   if (EventLoopManagerSingleton::isInitialized()) {
     EventLoopManagerSingleton::get()->getEventLoop()
         .getPowerControlManager().onHostWakeSuspendEvent(awake);
+  }
+}
+
+void SeeHelperCallback::onFlushCompleteEvent(SensorType sensorType) {
+  if (EventLoopManagerSingleton::isInitialized()) {
+    EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .handleFlushCompleteEvent(CHRE_ERROR_NONE, sensorType);
   }
 }
 
@@ -564,6 +573,24 @@ void getBigImageSensors(DynamicVector<Sensor> *sensors) {
 }
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
+/**
+ * Helper function to retrieve the SeeHelper for a given sensor type.
+ * @param sensorType the sensor type
+ * @return the appropriate (bimg or uimg) SeeHelper
+ */
+SeeHelper *getSeeHelperForSensorType(SensorType sensorType) {
+  SeeHelper *seeHelper = getSeeHelper();
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  if (isBigImageSensorType(sensorType)) {
+    seeHelper = getBigImageSeeHelper();
+    slpiForceBigImage();
+  }
+#endif
+
+  return seeHelper;
+}
+
+
 }  // anonymous namespace
 
 PlatformSensor::~PlatformSensor() {
@@ -655,14 +682,7 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
          static_cast<uint8_t>(getSensorType()));
   }
 
-  SeeHelper *seeHelper = getSeeHelper();
-#ifdef CHRE_SLPI_UIMG_ENABLED
-  if (isBigImageSensorType(getSensorType())) {
-    seeHelper = getBigImageSeeHelper();
-    slpiForceBigImage();
-  }
-#endif
-
+  SeeHelper *seeHelper = getSeeHelperForSensorType(getSensorType());
   bool wasInUImage = slpiInUImage();
   bool success = seeHelper->makeRequest(req);
 
@@ -698,6 +718,11 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     }
   }
   return success;
+}
+
+bool PlatformSensor::flushAsync() {
+  SensorType sensorType = getSensorType();
+  return getSeeHelperForSensorType(sensorType)->flush(sensorType);
 }
 
 SensorType PlatformSensor::getSensorType() const {

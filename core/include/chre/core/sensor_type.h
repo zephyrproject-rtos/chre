@@ -38,7 +38,7 @@ union ChreSensorData {
  * specification. The details of these sensors are left to the CHRE API
  * sensor definitions.
  */
-enum class SensorType {
+enum class SensorType : uint8_t {
   Unknown,
   Accelerometer,
   InstantMotion,

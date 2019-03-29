@@ -609,7 +609,6 @@ bool HostLink::sendMessage(const MessageToHost *message) {
 }
 
 bool HostLinkBase::flushOutboundQueue() {
-  // This function is used in preFatalError() so it must never call FATAL_ERROR
   int waitCount = 5;
 
   FARF(MEDIUM, "Draining message queue");

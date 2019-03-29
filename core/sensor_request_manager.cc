@@ -16,9 +16,9 @@
 
 #include "chre/core/sensor_request_manager.h"
 
+#include "chre_api/chre/version.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
-#include "chre_api/chre/version.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -49,6 +49,13 @@ bool isSensorRequestValid(const Sensor& sensor,
     }
   }
   return success;
+}
+
+void flushTimerCallback(uint16_t /* eventType */, void * /* data */) {
+  // TODO: Fatal error here since some platforms may not be able to handle
+  //       timeouts gracefully. Modify this implementation to drop flush
+  //       requests and handle stale responses in the future appropriately.
+  FATAL_ERROR("Flush request timed out");
 }
 
 }  // namespace
@@ -296,8 +303,58 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
 
 bool SensorRequestManager::flushAsync(
     Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie) {
-  // TODO: Implement this
-  return false;
+  bool success = false;
+
+  uint32_t nanoappInstanceId = nanoapp->getInstanceId();
+  SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
+  // NOTE: One-shot sensors do not support flush per API
+  if (sensorType == SensorType::Unknown || sensorTypeIsOneShot(sensorType)) {
+    LOGE("Cannot flush for sensor type %" PRIu32,
+         static_cast<uint32_t>(sensorType));
+  } else if (mFlushRequestQueue.full()) {
+    LOG_OOM();
+  } else {
+    mFlushRequestQueue.emplace_back(sensorType, nanoappInstanceId, cookie);
+    size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+    success = (mSensorRequests[sensorIndex].makeFlushRequest(
+        mFlushRequestQueue.back()) == CHRE_ERROR_NONE);
+    if (!success) {
+      mFlushRequestQueue.pop_back();
+    }
+  }
+
+  return success;
+}
+
+void SensorRequestManager::handleFlushCompleteEvent(
+    uint8_t errorCode, SensorType sensorType) {
+  struct CallbackState {
+    uint8_t errorCode;
+    SensorType sensorType;
+  };
+
+  // Enables passing data through void pointer to avoid allocation.
+  union NestedCallbackState {
+    void *eventData;
+    CallbackState callbackState;
+  };
+  static_assert(sizeof(NestedCallbackState) == sizeof(void *),
+                "Size of NestedCallbackState must equal that of void *");
+
+  NestedCallbackState state = {};
+  state.callbackState.errorCode = errorCode;
+  state.callbackState.sensorType = sensorType;
+
+  auto callback = [](uint16_t /* eventType */, void *eventData) {
+    NestedCallbackState state;
+    state.eventData = eventData;
+    EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .handleFlushCompleteEventSync(state.callbackState.errorCode,
+                                      state.callbackState.sensorType);
+  };
+
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::SensorFlushComplete, state.eventData, callback);
 }
 
 void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
@@ -316,6 +373,61 @@ void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                        request.getLatency().toRawNanoseconds(),
                        request.getInstanceId());
       }
+    }
+  }
+}
+
+void SensorRequestManager::postFlushCompleteEvent(
+    uint32_t sensorHandle, uint8_t errorCode, const FlushRequest& request) {
+  auto *event = memoryAlloc<chreSensorFlushCompleteEvent>();
+  if (event == nullptr) {
+    LOG_OOM();
+  } else {
+    event->sensorHandle = sensorHandle;
+    event->errorCode = errorCode;
+    event->cookie = request.cookie;
+    memset(event->reserved, 0, sizeof(event->reserved));
+
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+        CHRE_EVENT_SENSOR_FLUSH_COMPLETE, event, freeEventDataCallback,
+        kSystemInstanceId, request.nanoappInstanceId);
+  }
+}
+
+void SensorRequestManager::dispatchNextFlushRequest(
+    uint32_t sensorHandle, SensorType sensorType) {
+  SensorRequests& requests = getSensorRequests(sensorType);
+
+  for (size_t i = 0; i < mFlushRequestQueue.size(); i++) {
+    const FlushRequest& request = mFlushRequestQueue[i];
+    if (request.sensorType == sensorType) {
+      uint8_t newRequestErrorCode = requests.makeFlushRequest(request);
+      if (newRequestErrorCode == CHRE_ERROR_NONE) {
+        break;
+      } else {
+        postFlushCompleteEvent(sensorHandle, newRequestErrorCode, request);
+        mFlushRequestQueue.erase(i);
+        i--;
+      }
+    }
+  }
+}
+
+void SensorRequestManager::handleFlushCompleteEventSync(
+    uint8_t errorCode, SensorType sensorType) {
+  for (size_t i = 0; i < mFlushRequestQueue.size(); i++) {
+    const FlushRequest& request = mFlushRequestQueue[i];
+    if (request.sensorType == sensorType) {
+      uint32_t sensorHandle;
+      if (getSensorHandle(sensorType, &sensorHandle)) {
+        SensorRequests& requests = getSensorRequests(sensorType);
+        requests.cancelFlushTimer();
+
+        postFlushCompleteEvent(sensorHandle, errorCode, request);
+        mFlushRequestQueue.erase(i);
+        dispatchNextFlushRequest(sensorHandle, sensorType);
+      }
+      break;
     }
   }
 }
@@ -439,6 +551,45 @@ bool SensorRequestManager::SensorRequests::removeAll() {
     }
   }
   return success;
+}
+
+uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
+    const FlushRequest& request) {
+  uint8_t errorCode = CHRE_ERROR;
+  if (!isSensorSupported()) {
+    LOGE("Cannot flush on unsupported sensor");
+  } else if (mMultiplexer.getRequests().size() == 0) {
+    LOGE("Cannot flush on disabled sensor");
+  } else if (!isFlushRequestPending()) {
+    Nanoseconds now = SystemTime::getMonotonicTime();
+    Nanoseconds deadline = request.deadlineTimestamp;
+    if (now >= deadline) {
+      LOGE("Flush sensor %" PRIu32 " failed for nanoapp ID %" PRIu32
+           ": deadline exceeded", static_cast<uint32_t>(request.sensorType),
+           request.nanoappInstanceId);
+      errorCode = CHRE_ERROR_TIMEOUT;
+    } else if (mSensor->flushAsync()) {
+      errorCode = CHRE_ERROR_NONE;
+      Nanoseconds delay = deadline - now;
+      mFlushRequestTimerHandle =
+          EventLoopManagerSingleton::get()->setDelayedCallback(
+              SystemCallbackType::SensorFlushTimeout, nullptr /* data */,
+              flushTimerCallback, delay);
+    }
+  } else {
+    // Flush request will be made once the pending request is completed.
+    // Return true so that the nanoapp can wait for a result through the
+    // CHRE_EVENT_SENSOR_FLUSH_COMPLETE event.
+    errorCode = CHRE_ERROR_NONE;
+  }
+
+  return errorCode;
+}
+
+void SensorRequestManager::SensorRequests::cancelFlushTimer() {
+  EventLoopManagerSingleton::get()->cancelDelayedCallback(
+      mFlushRequestTimerHandle);
+  mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
 }
 
 }  // namespace chre
