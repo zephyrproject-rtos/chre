@@ -1544,8 +1544,24 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
 }
 
 bool PlatformSensor::flushAsync() {
-  // TODO: Implement this
-  return false;
+  // NOTE: SMGR framework flushes all pending data when a new request comes in
+  //       (ref sns_rh_sol_schedule_existing_report() in sns_rh_sol.c).
+  //       In this implementation of flushAsync, we make a request identical to
+  //       the existing sensor request, blocking on an asynchronous response,
+  //       and assume that the flush request has completed when this identical
+  //       sensor request is successfully handled and executed. This
+  //       implementation mirrors the sensors HAL implementation of flush.
+  bool success = false;
+  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .getSensor(getSensorType());
+  if (sensor != nullptr) {
+    success = applyRequest(sensor->getRequest());
+    if (success) {
+      EventLoopManagerSingleton::get()->getSensorRequestManager()
+          .handleFlushCompleteEvent(CHRE_ERROR_NONE, getSensorType());
+    }
+  }
+  return success;
 }
 
 SensorType PlatformSensor::getSensorType() const {
