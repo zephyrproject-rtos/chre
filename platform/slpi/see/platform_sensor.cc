@@ -99,8 +99,10 @@ class SeeHelperCallback : public SeeHelperCallbackInterface {
 
   void onHostWakeSuspendEvent(bool awake) override;
 
-  // TODO: Implement this
-  void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) override {}
+  void onSensorBiasEvent(UniquePtr<struct chreSensorThreeAxisData>&& biasData)
+      override;
+
+  void onFlushCompleteEvent(SensorType sensorType) override;
 };
 
 //! A struct to facilitate sensor discovery
@@ -223,6 +225,28 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
 }
 
 /**
+ * Helper function to post a bias event given the bias data.
+ *
+ * @param sensorType The sensor type to post the event for.
+ * @param bias The bias data.
+ */
+void postSensorBiasEvent(SensorType sensorType,
+                         const chreSensorThreeAxisData& bias) {
+  uint16_t eventType;
+  if (getSensorBiasEventType(sensorType, &eventType)) {
+    auto *event = memoryAlloc<struct chreSensorThreeAxisData>();
+    if (event == nullptr) {
+      LOG_OOM();
+    } else {
+      *event = bias;
+      event->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+          eventType, event, freeEventDataCallback);
+    }
+  }
+}
+
+/**
  * Updates the sampling status.
  */
 void updateSamplingStatus(
@@ -294,6 +318,31 @@ void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
   if (EventLoopManagerSingleton::isInitialized()) {
     EventLoopManagerSingleton::get()->getEventLoop()
         .getPowerControlManager().onHostWakeSuspendEvent(awake);
+  }
+}
+
+void SeeHelperCallback::onSensorBiasEvent(
+    UniquePtr<struct chreSensorThreeAxisData>&& biasData) {
+  SensorType sensorType = getSensorTypeFromSensorHandle(
+      biasData->header.sensorHandle);
+
+  uint16_t eventType;
+  if (!sensorTypeIsCalibrated(sensorType) ||
+      !getSensorBiasEventType(sensorType, &eventType)) {
+    LOGE("Received bias event for unsupported sensor type %" PRIu8, sensorType);
+  } else {
+    // Posts a newly allocated event for the uncalibrated type
+    postSensorBiasEvent(toUncalibratedSensorType(sensorType), *biasData.get());
+
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+        eventType, biasData.release(), freeEventDataCallback);
+  }
+}
+
+void SeeHelperCallback::onFlushCompleteEvent(SensorType sensorType) {
+  if (EventLoopManagerSingleton::isInitialized()) {
+    EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .handleFlushCompleteEvent(CHRE_ERROR_NONE, sensorType);
   }
 }
 
@@ -564,6 +613,24 @@ void getBigImageSensors(DynamicVector<Sensor> *sensors) {
 }
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
+/**
+ * Helper function to retrieve the SeeHelper for a given sensor type.
+ * @param sensorType the sensor type
+ * @return the appropriate (bimg or uimg) SeeHelper
+ */
+SeeHelper *getSeeHelperForSensorType(SensorType sensorType) {
+  SeeHelper *seeHelper = getSeeHelper();
+#ifdef CHRE_SLPI_UIMG_ENABLED
+  if (isBigImageSensorType(sensorType)) {
+    seeHelper = getBigImageSeeHelper();
+    slpiForceBigImage();
+  }
+#endif
+
+  return seeHelper;
+}
+
+
 }  // anonymous namespace
 
 PlatformSensor::~PlatformSensor() {
@@ -655,14 +722,7 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
          static_cast<uint8_t>(getSensorType()));
   }
 
-  SeeHelper *seeHelper = getSeeHelper();
-#ifdef CHRE_SLPI_UIMG_ENABLED
-  if (isBigImageSensorType(getSensorType())) {
-    seeHelper = getBigImageSeeHelper();
-    slpiForceBigImage();
-  }
-#endif
-
+  SeeHelper *seeHelper = getSeeHelperForSensorType(getSensorType());
   bool wasInUImage = slpiInUImage();
   bool success = seeHelper->makeRequest(req);
 
@@ -698,6 +758,11 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     }
   }
   return success;
+}
+
+bool PlatformSensor::flushAsync() {
+  SensorType sensorType = getSensorType();
+  return getSeeHelperForSensorType(sensorType)->flush(sensorType);
 }
 
 SensorType PlatformSensor::getSensorType() const {
@@ -748,6 +813,31 @@ bool PlatformSensor::getSamplingStatus(
 
   memcpy(status, &mSamplingStatus, sizeof(*status));
   return true;
+}
+
+bool PlatformSensor::getThreeAxisBias(
+    struct chreSensorThreeAxisData *bias) const {
+  SensorType sensorType = getSensorType();
+  SeeCalHelper *calHelper =
+      getSeeHelperForSensorType(sensorType)->getCalHelper();
+
+  bool success = sensorTypeReportsBias(sensorType);
+  if (success) {
+    // We use the runtime-calibrated sensor type here, per documentation
+    // of SeeCalHelper::getBias(), but overwrite the sensorHandle to that of
+    // the curent sensor, because the calibration data itself is equivalent
+    // for both calibrated/uncalibrated sensor types.
+    SensorType calSensorType = toCalibratedSensorType(sensorType);
+    if (calHelper->getBias(calSensorType, bias)) {
+      bias->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
+    } else {
+      // Set to zero value + unknown accuracy per CHRE API requirements.
+      memset(bias, 0, sizeof(chreSensorThreeAxisData));
+      bias->header.accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
+    }
+  }
+
+  return success;
 }
 
 void PlatformSensorBase::initBase(

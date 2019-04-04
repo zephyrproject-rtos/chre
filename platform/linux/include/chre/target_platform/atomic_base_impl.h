@@ -25,8 +25,16 @@ inline AtomicBool::AtomicBool(bool startingValue) {
   std::atomic_init(&mAtomic, startingValue);
 }
 
+inline bool AtomicBool::operator=(bool desired) {
+  return mAtomic = desired;
+}
+
 inline bool AtomicBool::load() {
   return mAtomic.load();
+}
+
+inline void AtomicBool::store(bool desired) {
+  mAtomic.store(desired);
 }
 
 inline bool AtomicBool::exchange(bool desired) {
@@ -37,8 +45,16 @@ inline AtomicUint32::AtomicUint32(uint32_t startingValue) {
   std::atomic_init(&mAtomic, startingValue);
 }
 
+inline uint32_t AtomicUint32::operator=(uint32_t desired) {
+  return mAtomic = desired;
+}
+
 inline uint32_t AtomicUint32::load() {
   return mAtomic.load();
+}
+
+inline void AtomicUint32::store(uint32_t desired) {
+  mAtomic.store(desired);
 }
 
 inline uint32_t AtomicUint32::exchange(uint32_t desired) {
@@ -51,6 +67,14 @@ inline uint32_t AtomicUint32::fetch_add(uint32_t arg) {
 
 inline uint32_t AtomicUint32::fetch_increment() {
   return mAtomic.fetch_add(1);
+}
+
+inline uint32_t AtomicUint32::fetch_sub(uint32_t arg) {
+  return mAtomic.fetch_sub(arg);
+}
+
+inline uint32_t AtomicUint32::fetch_decrement() {
+  return mAtomic.fetch_sub(1);
 }
 
 }  // namespace chre

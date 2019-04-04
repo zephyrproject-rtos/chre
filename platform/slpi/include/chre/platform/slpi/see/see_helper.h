@@ -53,12 +53,6 @@ class SeeHelperCallbackInterface {
     bool latencyValid;
   };
 
-  struct SensorBiasData {
-    //! The sensor type of the calibrated sensor, e.g. SensorType::Accelerometer
-    SensorType sensorType;
-    struct chreSensorThreeAxisData bias;
-  };
-
   virtual ~SeeHelperCallbackInterface() {}
 
   //! Invoked by the SEE thread to update sampling status.
@@ -75,7 +69,14 @@ class SeeHelperCallbackInterface {
   virtual void onHostWakeSuspendEvent(bool apAwake) = 0;
 
   //! Invoked by the SEE thread to provide the sensor bias event.
-  virtual void onSensorBiasEvent(UniquePtr<SensorBiasData>&& biasData) = 0;
+  //! The bias is generated with the sensorHandle field set to that of
+  //! runtime-calibrated sensors, regardless of whether the runtime-calibrated
+  //! or uncalibrated versions of the sensor is enabled.
+  virtual void onSensorBiasEvent(
+      UniquePtr<struct chreSensorThreeAxisData>&& biasData) = 0;
+
+  //! Invoked by the SEE thread to notify a flush complete
+  virtual void onFlushCompleteEvent(SensorType sensorType) = 0;
 };
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
@@ -236,13 +237,22 @@ class SeeHelper : public NonCopyable {
             bool skipDefaultSensorInit = false);
 
   /**
-   * Makes a sensor request to SEE.
+   * Makes a sensor configuration request to SEE.
    *
    * @param request The sensor request to make.
    *
    * @return true if the request has been successfully made.
    */
   bool makeRequest(const SeeSensorRequest& request);
+
+  /**
+   * Makes a sensor flush request to SEE.
+   *
+   * @param sensorType The type of sensor to request the flush.
+   *
+   * @return true if the request has been successfully made.
+   */
+  bool flush(SensorType sensorType);
 
   /**
    * Register a SensorType with the SUID of the SEE sensor/driver.

@@ -110,6 +110,13 @@ class FixedSizeVector : public NonCopyable {
   void emplace_back(Args&&... args);
 
   /**
+   * Erases the last element in the vector. Invalid to call on an empty vector.
+   *
+   * Invalidates any references to back() and end()/cend().
+   */
+  void pop_back();
+
+  /**
    * Obtains an element of the vector given an index. It is illegal to index
    * this vector out of bounds and the user of the API must check the size()
    * function prior to indexing this vector to ensure that they will not read

@@ -37,11 +37,28 @@ class AtomicBool : public AtomicBoolBase,
   AtomicBool(bool startingValue);
 
   /**
+   * Atomically assigns the desired value to the atomic object. Equivalent to
+   * store().
+   *
+   * @param The value the object will be replaced with.
+   *
+   * @return The desired value.
+   */
+  bool operator=(bool desired);
+
+  /**
    * Atomically loads the current value of the atomic object.
    *
    * @return The current value of the object.
    */
   bool load();
+
+  /**
+   * Atomically replaces the current value of the atomic object.
+   *
+   * @param The value the object will be replaced with.
+   */
+  void store(bool desired);
 
   /**
    * Atomically replaces the value of the atomic object.
@@ -68,11 +85,28 @@ class AtomicUint32 : public AtomicUint32Base,
   AtomicUint32(uint32_t startingValue);
 
   /**
+   * Atomically assigns the desired value to the atomic object. Equivalent to
+   * store().
+   *
+   * @param The value the object will be replaced with.
+   *
+   * @return The desired value.
+   */
+  uint32_t operator=(uint32_t desired);
+
+  /**
    * Atomically loads the current value of the atomic object.
    *
    * @return The current value of the object.
    */
   uint32_t load();
+
+  /**
+   * Atomically replaces the current value of the atomic object.
+   *
+   * @param The value the object will be replaced with.
+   */
+  void store(uint32_t desired);
 
   /**
    * Atomically replaces the value of the atomic object.
@@ -98,6 +132,22 @@ class AtomicUint32 : public AtomicUint32Base,
    * @return The previous value of the object.
    */
   uint32_t fetch_increment();
+
+  /**
+   * Atomically subtracts the argument from the current value of the object.
+   *
+   * @param The amount which the object should be decreased by.
+   *
+   * @return The previous value of the object.
+   */
+  uint32_t fetch_sub(uint32_t arg);
+
+  /**
+   * Atomically decrements the value stored in the atomic object by 1.
+   *
+   * @return The previous value of the object.
+   */
+  uint32_t fetch_decrement();
 };
 
 }  // namespace chre

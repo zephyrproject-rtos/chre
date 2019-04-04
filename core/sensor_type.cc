@@ -314,4 +314,79 @@ bool sensorTypeIsContinuous(SensorType sensorType) {
           && !sensorTypeIsOnChange(sensorType));
 }
 
+bool sensorTypeReportsBias(SensorType sensorType) {
+  uint16_t eventType;
+  return getSensorBiasEventType(sensorType, &eventType);
+}
+
+bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType) {
+  CHRE_ASSERT(eventType != nullptr);
+  bool success = false;
+  if (eventType != nullptr) {
+    success = true;
+    switch (sensorType) {
+      case SensorType::Accelerometer:
+        *eventType = CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedAccelerometer:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_BIAS_INFO;
+        break;
+      case SensorType::Gyroscope:
+        *eventType = CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedGyroscope:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_BIAS_INFO;
+        break;
+      case SensorType::GeomagneticField:
+        *eventType = CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO;
+        break;
+      case SensorType::UncalibratedGeomagneticField:
+        *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_BIAS_INFO;
+        break;
+      default:
+        success = false;
+    }
+  }
+
+  return success;
+}
+
+bool sensorTypeIsCalibrated(SensorType sensorType) {
+  return (sensorType == SensorType::Accelerometer
+          || sensorType == SensorType::Gyroscope
+          || sensorType == SensorType::GeomagneticField);
+}
+
+SensorType toCalibratedSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::UncalibratedAccelerometer:
+      return SensorType::Accelerometer;
+    case SensorType::UncalibratedGyroscope:
+      return SensorType::Gyroscope;
+    case SensorType::UncalibratedGeomagneticField:
+      return SensorType::GeomagneticField;
+    default:
+      /* empty */
+      break;
+  }
+
+  return sensorType;
+}
+
+SensorType toUncalibratedSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::Accelerometer:
+      return SensorType::UncalibratedAccelerometer;
+    case SensorType::Gyroscope:
+      return SensorType::UncalibratedGyroscope;
+    case SensorType::GeomagneticField:
+      return SensorType::UncalibratedGeomagneticField;
+    default:
+      /* empty */
+      break;
+  }
+
+  return sensorType;
+}
+
 }  // namespace chre

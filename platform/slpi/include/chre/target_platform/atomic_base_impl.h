@@ -31,9 +31,18 @@ inline AtomicBool::AtomicBool(bool startingValue) {
   mValue = startingValue;
 }
 
+inline bool AtomicBool::operator=(bool desired) {
+  store(desired);
+  return desired;
+}
+
 inline bool AtomicBool::load() {
   qurt_atomic_barrier();
   return mValue;
+}
+
+inline void AtomicBool::store(bool desired) {
+  exchange(desired);
 }
 
 inline bool AtomicBool::exchange(bool desired) {
@@ -46,9 +55,18 @@ inline AtomicUint32::AtomicUint32(uint32_t startingValue) {
   mValue = startingValue;
 }
 
+inline uint32_t AtomicUint32::operator=(uint32_t desired) {
+  store(desired);
+  return desired;
+}
+
 inline uint32_t AtomicUint32::load() {
   qurt_atomic_barrier();
   return mValue;
+}
+
+inline void AtomicUint32::store(uint32_t desired) {
+  exchange(desired);
 }
 
 inline uint32_t AtomicUint32::exchange(uint32_t desired) {
@@ -64,6 +82,16 @@ inline uint32_t AtomicUint32::fetch_add(uint32_t arg) {
 inline uint32_t AtomicUint32::fetch_increment() {
   qurt_atomic_barrier();
   return qurt_atomic_add_return(&mValue, 1);
+}
+
+inline uint32_t AtomicUint32::fetch_sub(uint32_t arg) {
+  qurt_atomic_barrier();
+  return qurt_atomic_sub_return(&mValue, arg);
+}
+
+inline uint32_t AtomicUint32::fetch_decrement() {
+  qurt_atomic_barrier();
+  return qurt_atomic_sub_return(&mValue, 1);
 }
 
 }  // namespace chre

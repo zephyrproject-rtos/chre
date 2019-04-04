@@ -104,6 +104,12 @@ void FixedSizeVector<ElementType, kCapacity>::emplace_back(Args&&... args) {
 }
 
 template<typename ElementType, size_t kCapacity>
+void FixedSizeVector<ElementType, kCapacity>::pop_back() {
+  CHRE_ASSERT(!empty());
+  erase(mSize - 1);
+}
+
+template<typename ElementType, size_t kCapacity>
 ElementType& FixedSizeVector<ElementType, kCapacity>::operator[](
     size_t index) {
   CHRE_ASSERT(index < mSize);

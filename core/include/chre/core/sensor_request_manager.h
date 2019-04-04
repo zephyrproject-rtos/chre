@@ -20,6 +20,9 @@
 #include "chre/core/request_multiplexer.h"
 #include "chre/core/sensor.h"
 #include "chre/core/sensor_request.h"
+#include "chre/core/timer_pool.h"
+#include "chre/platform/system_time.h"
+#include "chre/platform/system_timer.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
@@ -90,6 +93,10 @@ class SensorRequestManager : public NonCopyable {
   /**
    * Obtains a pointer to the Sensor of the specified sensorType.
    *
+   * NOTE: Some platform implementations invoke this method from different
+   * threads assuming the underlying list of sensors doesn't change after
+   * initialization.
+   *
    * @param sensorType The SensorType of the sensor.
    * @return A pointer to the Sensor of sensorType, or nullptr if sensorType is
    *         invalid or the requested SensorType is not supported on the current
@@ -116,6 +123,31 @@ class SensorRequestManager : public NonCopyable {
   const DynamicVector<SensorRequest>& getRequests(SensorType sensorType) const;
 
   /**
+   * Configures a nanoapp to receive bias events.
+   *
+   * @param nanoapp A non-null pointer to the nanoapp making this request.
+   * @param sensorHandle The handle of the sensor to receive bias events for.
+   * @param enable true to enable bias event reporting.
+   *
+   * @return true if the configuration was successful.
+   */
+  bool configureBiasEvents(
+      Nanoapp *nanoapp, uint32_t sensorHandle, bool enable);
+
+  /**
+   * Synchronously retrieves the current bias for a sensor that supports
+   * data in the chreSensorThreeAxisData format.
+   *
+   * @param sensorHandle The handle of the sensor to retrieve bias data for.
+   * @param bias A non-null pointer to store the current bias data.
+   *
+   * @return false if the sensor handle was invalid or the sensor does not
+   *     report bias data in the chreSensorThreeAxisData format.
+   */
+  bool getThreeAxisBias(
+      uint32_t sensorHandle, struct chreSensorThreeAxisData *bias) const;
+
+  /**
    * Makes a sensor flush request for a nanoapp asynchronously.
    *
    * @param nanoapp A non-null pointer to the nanoapp requesting this change.
@@ -129,6 +161,17 @@ class SensorRequestManager : public NonCopyable {
   bool flushAsync(Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie);
 
   /**
+   * Invoked by the PlatformSensor when a flush complete event is received for a
+   * given sensor for a request done through flushAsync(). This method can be
+   * invoked from any thread, and defers processing the event to the main CHRE
+   * event loop.
+   *
+   * @param errorCode An error code from enum chreError
+   * @param sensorType The SensorType of sensor that has completed the flush.
+   */
+  void handleFlushCompleteEvent(uint8_t errorCode, SensorType sensorType);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
@@ -140,6 +183,25 @@ class SensorRequestManager : public NonCopyable {
                         size_t bufferSize) const;
 
  private:
+  //! An internal structure to store incoming sensor flush requests
+  struct FlushRequest {
+    FlushRequest(SensorType type, uint32_t id, const void *cookiePtr) {
+      sensorType = type;
+      nanoappInstanceId = id;
+      cookie = cookiePtr;
+    }
+
+    //! The sensor type the flush request is for.
+    SensorType sensorType;
+    //! The ID of the nanoapp that requested the flush.
+    uint32_t nanoappInstanceId;
+    //! The opaque pointer provided in flushAsync().
+    const void *cookie;
+    //! The timestamp at which this request should complete.
+    Nanoseconds deadlineTimestamp = SystemTime::getMonotonicTime() +
+        Nanoseconds(CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS);
+  };
+
   /**
    * This allows tracking the state of a sensor with the various requests for it
    * and can trigger a change in mode/rate/latency when required.
@@ -198,7 +260,22 @@ class SensorRequestManager : public NonCopyable {
      */
     bool getSamplingStatus(struct chreSensorSamplingStatus *status) const {
       CHRE_ASSERT(isSensorSupported());
-      return mSensor->getSamplingStatus(status);
+      return isSensorSupported() ? mSensor->getSamplingStatus(status) : false;
+    }
+
+    /**
+     * Synchronously retrieves the current bias for a sensor that supports
+     * data in the chreSensorThreeAxisData format. The caller must ensure that
+     * isSensorSupported() is true before invoking this method.
+     *
+     * @param bias A non-null pointer to store the current bias data.
+     *
+     * @return false if sensor does not report bias data in the
+     *     chreSensorThreeAxisData format.
+     */
+    bool getThreeAxisBias(struct chreSensorThreeAxisData *bias) const {
+      CHRE_ASSERT(isSensorSupported());
+      return isSensorSupported() ? mSensor->getThreeAxisBias(bias) : false;
     }
 
     /**
@@ -261,6 +338,22 @@ class SensorRequestManager : public NonCopyable {
      */
     bool removeAll();
 
+    /**
+     * Makes a specified flush request for this sensor, and sets the timeout
+     * timer appropriately. If there already is a pending flush request, then
+     * this method does nothing.
+     *
+     * @param request the request to make
+     *
+     * @return An error code from enum chreError
+     */
+    uint8_t makeFlushRequest(const FlushRequest& request);
+
+    /**
+     * Cancels a timeout timer for a pending flush request.
+     */
+    void cancelFlushTimer();
+
    private:
     //! The sensor associated with this request multiplexer. If this Optional
     //! container does not have a value, then the platform does not support this
@@ -269,10 +362,61 @@ class SensorRequestManager : public NonCopyable {
 
     //! The request multiplexer for this sensor.
     RequestMultiplexer<SensorRequest> mMultiplexer;
+
+    //! The timeout timer handle for the current flush request.
+    TimerHandle mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+
+    /**
+     * @return true if a flush through makeFlushRequest is pending.
+     */
+    inline bool isFlushRequestPending() const {
+      return mFlushRequestTimerHandle != CHRE_TIMER_INVALID;
+    }
   };
 
-  //! The list of sensor requests
+  //! The list of sensor requests.
   FixedSizeVector<SensorRequests, getSensorTypeCount()> mSensorRequests;
+
+  //! A queue of flush requests made by nanoapps.
+  static constexpr size_t kMaxFlushRequests = 16;
+  FixedSizeVector<FlushRequest, kMaxFlushRequests> mFlushRequestQueue;
+
+  /**
+   * Helper function to convert SensorType to SensorRequests.
+   */
+  SensorRequests& getSensorRequests(SensorType sensorType) {
+    size_t index = getSensorTypeArrayIndex(sensorType);
+    return mSensorRequests[index];
+  }
+
+  /**
+   * Posts an event to a nanoapp indicating the completion of a flush request.
+   *
+   * @param sensorHandle The handle of the sensor for this event.
+   * @param errorCode An error code from enum chreError
+   * @param request The corresponding FlushRequest.
+   */
+  void postFlushCompleteEvent(
+    uint32_t sensorHandle, uint8_t errorCode, const FlushRequest& request);
+
+  /**
+   * Dispatches the next flush request for the given sensor. If there are no
+   * more pending flush requests, this method does nothing.
+   *
+   * @param sensorHandle The handle of the sensor to apply a request for.
+   * @param sensorType The corresponding sensor type.
+   */
+  void dispatchNextFlushRequest(uint32_t sensorHandle, SensorType sensorType);
+
+  /**
+   * Handles a complete event for a sensor flush requested through flushAsync.
+   * See handleFlushCompleteEvent which may be called from any thread. This
+   * method is intended to be invoked on the CHRE event loop thread.
+   *
+   * @param errorCode An error code from enum chreError
+   * @param sensorType The SensorType of sensor that has completed the flush.
+   */
+  void handleFlushCompleteEventSync(uint8_t errorCode, SensorType sensorType);
 };
 
 }  // namespace chre
