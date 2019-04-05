@@ -1000,6 +1000,31 @@ bool decodeSnsStdSensorProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
+/**
+ * Helper function to convert sns_std_sensor_sample_status to
+ * CHRE_SENSOR_ACCURACY_* values.
+ *
+ * @param status the SEE sensor sample status
+ *
+ * @return the corresponding CHRE_SENSOR_ACCURACY_* value,
+ * CHRE_SENSOR_ACCURACY_UNKNOWN if invalid
+ */
+uint8_t getChreSensorAccuracyFromSeeSampleStatus(
+    sns_std_sensor_sample_status status) {
+  switch (status) {
+    case SNS_STD_SENSOR_SAMPLE_STATUS_UNRELIABLE:
+      return CHRE_SENSOR_ACCURACY_UNRELIABLE;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_LOW:
+      return CHRE_SENSOR_ACCURACY_LOW;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_MEDIUM:
+      return CHRE_SENSOR_ACCURACY_MEDIUM;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_HIGH:
+      return CHRE_SENSOR_ACCURACY_HIGH;
+    default:
+      return CHRE_SENSOR_ACCURACY_UNKNOWN;
+  }
+}
+
 bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
                        void **arg) {
   SeeFloatArg offset = {};
@@ -1024,7 +1049,7 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     bool hasBias = (offset.index == 3);
     bool hasScale = (scale.index == 3);
     bool hasMatrix = (matrix.index == 9);
-    uint8_t accuracy = static_cast<uint8_t>(event.status);
+    uint8_t accuracy = getChreSensorAccuracyFromSeeSampleStatus(event.status);
 
     calHelper->updateCalibration(
         info->suid, hasBias, offset.val, hasScale, scale.val,
