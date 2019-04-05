@@ -34,6 +34,7 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
           doAlloc(app, sizeof(AllocHeader) + bytes));
 
       if (header != nullptr) {
+        app->setTotalAllocatedBytes(app->getTotalAllocatedBytes() + bytes);
         mTotalAllocatedBytes += bytes;
         mAllocationCount++;
         header->data.bytes = bytes;
@@ -49,6 +50,22 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
   if (ptr != nullptr) {
     AllocHeader *header = static_cast<AllocHeader*>(ptr);
     header--;
+
+    // TODO: Clean up API contract of chreSendEvent to specify nanoapps can't
+    // release ownership of data to other nanoapps so a CHRE_ASSERT_LOG can be
+    // used below and the code can return.
+    if (app->getInstanceId() != header->data.instanceId) {
+      LOGW("Nanoapp ID=%" PRIu32 " tried to free data from nanoapp ID=%" PRIu32,
+          app->getInstanceId(), header->data.instanceId);
+    }
+
+    size_t nanoAppTotalAllocatedBytes = app->getTotalAllocatedBytes();
+    if (nanoAppTotalAllocatedBytes >= header->data.bytes) {
+      app->setTotalAllocatedBytes(
+          nanoAppTotalAllocatedBytes - header->data.bytes);
+    } else {
+      app->setTotalAllocatedBytes(0);
+    }
 
     if (mTotalAllocatedBytes >= header->data.bytes) {
       mTotalAllocatedBytes -= header->data.bytes;
@@ -66,8 +83,9 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
 void MemoryManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                      size_t bufferSize) const {
   debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\nNanoapp heap usage: %zu bytes allocated, count %zu\n",
-                 getTotalAllocatedBytes(), getAllocationCount());
+                 "\nNanoapp heap usage: %zu bytes allocated, %zu peak bytes"
+                 " allocated, count %zu\n", getTotalAllocatedBytes(),
+                 getPeakAllocatedBytes(), getAllocationCount());
 }
 
 }  // namespace chre
