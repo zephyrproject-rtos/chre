@@ -101,9 +101,11 @@ class SeeCalHelper : public NonCopyable {
    * @param scale 3-axis scale factor; only valid if hasScale is true
    * @param hasMatrix true if matrix was decoded from the proto
    * @param matrix 3x3 compensation matrix; only valid if hasMatrix is true
-   * @param accuracy Android accuracy rating of the calibration quality (see
-   *                 sns_std_sensor_sample_status)
+   * @param accuracy CHRE accuracy rating of the calibration quality (see
+   *     CHRE_SENSOR_ACCURACY)
    * @param timestamp The timestamp of the calibration event
+   *
+   * @see CHRE_SENSOR_ACCURACY
    */
   void updateCalibration(const sns_std_suid& suid, bool hasBias, float bias[3],
                          bool hasScale, float scale[3], bool hasMatrix,
