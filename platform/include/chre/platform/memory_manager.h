@@ -63,6 +63,13 @@ class MemoryManager : public NonCopyable {
   }
 
   /**
+   * @return peak total allocated memory in bytes.
+   */
+  size_t getPeakAllocatedBytes() const {
+    return mPeakAllocatedBytes;
+  }
+
+  /**
    * @return current count of allocated memory spaces.
    */
   size_t getAllocationCount() const {
@@ -112,8 +119,11 @@ class MemoryManager : public NonCopyable {
     max_align_t aligner;
   };
 
-  //! Stores total allocated memory in bytes (not including header).
+  //! The total allocated memory in bytes (not including header).
   size_t mTotalAllocatedBytes = 0;
+
+  //! The peak allocated memory in bytes (not including header).
+  size_t mPeakAllocatedBytes = 0;
 
   //! Stores total number of allocated memory spaces.
   size_t mAllocationCount = 0;

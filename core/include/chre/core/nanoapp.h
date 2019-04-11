@@ -39,6 +39,8 @@ namespace chre {
  */
 class Nanoapp : public PlatformNanoapp {
  public:
+  ~Nanoapp();
+
   /**
    * @return The unique identifier for this Nanoapp instance
    */
@@ -52,6 +54,34 @@ class Nanoapp : public PlatformNanoapp {
    */
   void setInstanceId(uint32_t instanceId) {
     mInstanceId = instanceId;
+  }
+
+  /**
+   * @return The current total number of bytes the nanoapp has allocated.
+   */
+  size_t getTotalAllocatedBytes() const {
+    return mTotalAllocatedBytes;
+  }
+
+  /**
+   * @return The peak total number of bytes the nanoapp has allocated.
+   */
+  size_t getPeakAllocatedBytes() const {
+    return mPeakAllocatedBytes;
+  }
+
+
+  /**
+   * Sets the total number of bytes the nanoapp has allocated. Also, modifies
+   * the peak allocated bytes if the current total is higher than the peak.
+   *
+   * @param The total number of bytes the nanoapp has allocated.
+   */
+  void setTotalAllocatedBytes(size_t totalAllocatedBytes) {
+    mTotalAllocatedBytes = totalAllocatedBytes;
+    if (mTotalAllocatedBytes > mPeakAllocatedBytes) {
+      mPeakAllocatedBytes = mTotalAllocatedBytes;
+    }
   }
 
   /**
@@ -129,6 +159,12 @@ class Nanoapp : public PlatformNanoapp {
 
  private:
   uint32_t mInstanceId = kInvalidInstanceId;
+
+  //! The total memory allocated by the nanoapp in bytes.
+  size_t mTotalAllocatedBytes = 0;
+
+  //! The peak total number of bytes allocated by the nanoapp.
+  size_t mPeakAllocatedBytes = 0;
 
   //! The set of broadcast events that this app is registered for.
   // TODO: Implement a set container and replace DynamicVector here. There may
