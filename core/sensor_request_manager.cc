@@ -321,8 +321,13 @@ bool SensorRequestManager::configureBiasEvents(
   uint16_t eventType;
   SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
   if (getSensorBiasEventType(sensorType, &eventType)) {
-    success = enable ? nanoapp->registerForBroadcastEvent(eventType)
-        : nanoapp->unregisterForBroadcastEvent(eventType);
+    if (enable) {
+      nanoapp->registerForBroadcastEvent(eventType);
+    } else {
+      nanoapp->unregisterForBroadcastEvent(eventType);
+    }
+
+    success = true;
   }
 
   return success;
