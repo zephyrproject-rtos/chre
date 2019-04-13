@@ -24,6 +24,12 @@
 
 namespace chre {
 
+Nanoapp::~Nanoapp() {
+  CHRE_ASSERT_LOG(getTotalAllocatedBytes() == 0,
+      "Nanoapp ID=0x%016" PRIx64 " still has %zu allocated bytes!", getAppId(),
+      getTotalAllocatedBytes());
+}
+
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {
   return (mRegisteredEvents.find(eventType) != mRegisteredEvents.size());
 }
@@ -87,8 +93,10 @@ void Nanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
   debugDumpPrint(
       buffer, bufferPos, bufferSize,
       " Id=%" PRIu32 " AppId=0x%016" PRIx64
-      " ver=0x%" PRIx32 " targetAPI=0x%" PRIx32 "\n",
-      getInstanceId(), getAppId(), getAppVersion(), getTargetApiVersion());
+      " ver=0x%" PRIx32 " targetAPI=0x%" PRIx32
+      " currentAllocatedBytes=%zu peakAllocatedBytes=%zu\n",
+      getInstanceId(), getAppId(), getAppVersion(), getTargetApiVersion(),
+      getTotalAllocatedBytes(), getPeakAllocatedBytes());
 }
 
 }  // namespace chre
