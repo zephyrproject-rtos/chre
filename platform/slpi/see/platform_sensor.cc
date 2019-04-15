@@ -62,8 +62,8 @@ namespace {
 bool isBigImageSensorType(SensorType sensorType) {
   return (sensorType == SensorType::VendorType3       // accel
           || sensorType == SensorType::VendorType6    // uncal accel
-          || sensorType == SensorType::VendorType7    // uncal mag
-          || sensorType == SensorType::VendorType8);  // uncal gyro
+          || sensorType == SensorType::VendorType7    // uncal gyro
+          || sensorType == SensorType::VendorType8);  // uncal mag
 }
 
 /**
@@ -85,6 +85,28 @@ SensorType getBigImageSensorTypeFromDataType(const char *dataType,
     sensorType = SensorType::VendorType8;
   }
   return sensorType;
+}
+
+/**
+ * Obtains the micro-image sensor type given the specified sensor type.
+ *
+ * @param sensorType The sensor type to convert from.
+ * @return The associated micro-image sensor type, or the input sensor type
+ *     if not associated with one
+ */
+SensorType getUimgSensorType(SensorType sensorType) {
+  switch (sensorType) {
+    case SensorType::VendorType3:
+      return SensorType::Accelerometer;
+    case SensorType::VendorType6:
+      return SensorType::UncalibratedAccelerometer;
+    case SensorType::VendorType7:
+      return SensorType::UncalibratedGyroscope;
+    case SensorType::VendorType8:
+      return SensorType::UncalibratedGeomagneticField;
+    default:
+      return sensorType;
+  }
 }
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
@@ -827,7 +849,14 @@ bool PlatformSensor::getThreeAxisBias(
     // of SeeCalHelper::getBias(), but overwrite the sensorHandle to that of
     // the curent sensor, because the calibration data itself is equivalent
     // for both calibrated/uncalibrated sensor types.
+#ifdef CHRE_SLPI_UIMG_ENABLED
+    // Use the uimg runtime-calibrated sensor type to get the calibration
+    // bias, since SeeCalHelper is unaware of the bimg/uimg differentiation.
+    SensorType calSensorType =
+        toCalibratedSensorType(getUimgSensorType(sensorType));
+#else
     SensorType calSensorType = toCalibratedSensorType(sensorType);
+#endif
     if (calHelper->getBias(calSensorType, bias)) {
       bias->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
     } else {
