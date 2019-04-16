@@ -344,7 +344,12 @@ bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType) {
         *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_BIAS_INFO;
         break;
       default:
+#ifdef CHREX_SENSOR_SUPPORT
+        success =
+            extension::vendorGetSensorBiasEventType(sensorType, eventType);
+#else
         success = false;
+#endif
     }
   }
 
