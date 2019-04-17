@@ -36,7 +36,7 @@ inline bool AtomicBool::operator=(bool desired) {
   return desired;
 }
 
-inline bool AtomicBool::load() {
+inline bool AtomicBool::load() const {
   qurt_atomic_barrier();
   return mValue;
 }
@@ -60,7 +60,7 @@ inline uint32_t AtomicUint32::operator=(uint32_t desired) {
   return desired;
 }
 
-inline uint32_t AtomicUint32::load() {
+inline uint32_t AtomicUint32::load() const {
   qurt_atomic_barrier();
   return mValue;
 }
