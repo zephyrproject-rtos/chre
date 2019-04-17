@@ -29,7 +29,7 @@ inline bool AtomicBool::operator=(bool desired) {
   return mAtomic = desired;
 }
 
-inline bool AtomicBool::load() {
+inline bool AtomicBool::load() const {
   return mAtomic.load();
 }
 
@@ -49,7 +49,7 @@ inline uint32_t AtomicUint32::operator=(uint32_t desired) {
   return mAtomic = desired;
 }
 
-inline uint32_t AtomicUint32::load() {
+inline uint32_t AtomicUint32::load() const {
   return mAtomic.load();
 }
 
