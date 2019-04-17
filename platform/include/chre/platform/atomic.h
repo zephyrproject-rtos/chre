@@ -47,11 +47,21 @@ class AtomicBool : public AtomicBoolBase,
   bool operator=(bool desired);
 
   /**
+   * Atomically loads the current value of the atomic object. Equivalent to
+   * load().
+   *
+   * @return The current value of the object.
+   */
+  operator bool() const {
+    return load();
+  };
+
+  /**
    * Atomically loads the current value of the atomic object.
    *
    * @return The current value of the object.
    */
-  bool load();
+  bool load() const;
 
   /**
    * Atomically replaces the current value of the atomic object.
@@ -95,11 +105,21 @@ class AtomicUint32 : public AtomicUint32Base,
   uint32_t operator=(uint32_t desired);
 
   /**
+   * Atomically loads the current value of the atomic object. Equivalent to
+   * load().
+   *
+   * @return The current value of the object.
+   */
+  operator uint32_t() const {
+    return load();
+  }
+
+  /**
    * Atomically loads the current value of the atomic object.
    *
    * @return The current value of the object.
    */
-  uint32_t load();
+  uint32_t load() const;
 
   /**
    * Atomically replaces the current value of the atomic object.

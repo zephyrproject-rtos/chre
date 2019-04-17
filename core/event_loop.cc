@@ -281,8 +281,15 @@ bool EventLoop::postEventOrFree(uint16_t eventType, void *eventData,
 }
 
 void EventLoop::stop() {
-  postEvent(0, nullptr, nullptr, kSystemInstanceId, kSystemInstanceId);
-  // Stop accepting new events and tell the main loop to finish
+  auto callback = [](uint16_t /* type */, void * /* data */) {
+    EventLoopManagerSingleton::get()->getEventLoop().onStopComplete();
+  };
+
+  // Stop accepting new events and tell the main loop to finish.
+  postEvent(0, nullptr, callback, kSystemInstanceId, kSystemInstanceId);
+}
+
+void EventLoop::onStopComplete() {
   mRunning = false;
 }
 
