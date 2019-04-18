@@ -77,6 +77,7 @@
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 #include <android/hardware/soundtrigger/2.0/ISoundTriggerHw.h>
+#include <hardware_legacy/power.h>
 
 using android::sp;
 using android::hardware::Return;
@@ -112,12 +113,6 @@ static bool start_thread(pthread_t *thread_handle,
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 //! The name of the wakelock to use for the CHRE daemon.
 static const char kWakeLockName[] = "chre_daemon";
-
-//! The file descriptor to wake lock.
-static int gWakeLockFd = -1;
-
-//! The file descriptor to wake unlock.
-static int gWakeUnlockFd = -1;
 
 struct LpmaEnableThreadData {
   pthread_t thread;
@@ -307,63 +302,22 @@ static void sendTimeSyncMessage() {
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 
-/**
- * Initializes the wakelock file descriptors used to acquire/release wakelocks
- * for CHRE.
- */
-static void initWakeLockFds() {
-  const char kWakeLockPath[] = "/sys/power/wake_lock";
-  const char kWakeUnlockPath[] = "/sys/power/wake_unlock";
-
-  bool success = false;
-  if ((gWakeLockFd = open(kWakeLockPath, O_RDWR | O_CLOEXEC)) < 0) {
-    LOGE("Failed to open wake lock file with %s", strerror(errno));
-  } else if ((gWakeUnlockFd = open(kWakeUnlockPath, O_RDWR | O_CLOEXEC)) < 0) {
-    close(gWakeLockFd);
-    LOGE("Failed to open wake unlock file with %s", strerror(errno));
-  } else {
-    success = true;
-  }
-
-  if (!success) {
-    gWakeLockFd = -1;
-    gWakeUnlockFd = -1;
-  }
-}
-
 static void acquireWakeLock() {
-  if (gWakeLockFd < 0) {
-    LOGW("Failing to acquire wakelock due to invalid file descriptor");
-  } else {
-    const size_t len = strlen(kWakeLockName);
-    ssize_t result = write(gWakeLockFd, kWakeLockName, len);
-    if (result < 0) {
-      LOGE("Failed to acquire wakelock with error %s", strerror(errno));
-    } else if (result != static_cast<ssize_t>(len)) {
-      LOGE("Wrote incomplete id to wakelock file descriptor");
-    }
+  if (acquire_wake_lock(PARTIAL_WAKE_LOCK, kWakeLockName) != 0) {
+    LOGE("Failed to acquire wakelock");
   }
 }
 
 static void releaseWakeLock() {
   static bool initialRelease = true;
 
-  if (gWakeUnlockFd < 0) {
-    LOGW("Failed to release wakelock due to invalid file descriptor");
-  } else {
-    const size_t len = strlen(kWakeLockName);
-    ssize_t result = write(gWakeUnlockFd, kWakeLockName, len);
-    if (result < 0) {
-      // It's expected to get an error when we first try to release the wakelock
-      // as it won't exist unless it was leaked previously - don't output a
-      // false warning for this case
-      if (!initialRelease) {
-        LOGE("Failed to release wakelock with error %s", strerror(errno));
-      }
-    } else if (result != static_cast<ssize_t>(len)) {
-      LOGE("Wrote incomplete id to wakeunlock file descriptor");
-    }
+  // It's expected to get an error when we first try to release the wakelock
+  // as it won't exist unless it was leaked previously - don't output a
+  // false warning for this case
+  if (release_wake_lock(kWakeLockName) != 0 && !initialRelease) {
+    LOGE("Failed to release wakelock");
   }
+
   initialRelease = false;
 }
 
@@ -989,10 +943,6 @@ int main() {
     LOGV("Successfully opened remote handle for sensorspd");
   }
 #endif  // ADSPRPC
-
-#ifdef CHRE_DAEMON_LPMA_ENABLED
-  initWakeLockFds();
-#endif  // CHRE_DAEMON_LPMA_ENABLED
 
   if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
