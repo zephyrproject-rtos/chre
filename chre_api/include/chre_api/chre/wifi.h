@@ -763,7 +763,11 @@ uint32_t chreWifiGetCapabilities(void);
  * not result in duplicate delivery of scan results generated from
  * chreWifiRequestScanAsync().
  *
- * This result of this request is delivered asynchronously via an event of type
+ * If no monitor subscription is active at the time of a request with
+ * enable=false, it is treated as if an active subscription was successfully
+ * ended.
+ *
+ * The result of this request is delivered asynchronously via an event of type
  * CHRE_EVENT_WIFI_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
  * for more details.
  *
