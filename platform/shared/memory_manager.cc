@@ -36,6 +36,9 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
       if (header != nullptr) {
         app->setTotalAllocatedBytes(app->getTotalAllocatedBytes() + bytes);
         mTotalAllocatedBytes += bytes;
+        if (mTotalAllocatedBytes > mPeakAllocatedBytes) {
+          mPeakAllocatedBytes = mTotalAllocatedBytes;
+        }
         mAllocationCount++;
         header->data.bytes = bytes;
         header->data.instanceId = app->getInstanceId();
