@@ -18,7 +18,6 @@
 #define FARF_MEDIUM 1
 #endif
 
-#include "ash/debug.h"
 #include "HAP_farf.h"
 #include "timer.h"
 
@@ -30,6 +29,7 @@
 #include "chre/platform/system_time.h"
 #include "chre/platform/system_timer.h"
 #include "chre/platform/shared/host_protocol_chre.h"
+#include "chre/platform/slpi/debug_dump.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/nanoapp_load_manager.h"
@@ -404,7 +404,7 @@ void sendDebugDumpResponse(DebugDumpCallbackData *data) {
 }
 
 /**
- * @see ashDebugDumpReadyCbFunc
+ * @see debugDumpReadyCbFunc
  */
 void onDebugDumpDataReady(void *cookie, const char *debugStr,
                           size_t debugStrSize, bool complete) {
@@ -783,7 +783,7 @@ void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
   } else {
     cbData->hostClientId = hostClientId;
     cbData->dataCount = 0;
-    cbData->success = ashTriggerDebugDump(onDebugDumpDataReady, cbData);
+    cbData->success = chre::triggerDebugDump(onDebugDumpDataReady, cbData);
 
     if (!cbData->success) {
       LOGE("Couldn't post callback to complete debug dump");
