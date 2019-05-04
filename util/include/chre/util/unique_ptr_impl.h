@@ -49,11 +49,7 @@ UniquePtr<ObjectType>::UniquePtr(UniquePtr<OtherObjectType>&& other) {
 
 template<typename ObjectType>
 UniquePtr<ObjectType>::~UniquePtr() {
-  if (mObject != nullptr) {
-    mObject->~ObjectType();
-    memoryFree(mObject);
-    mObject = nullptr;
-  }
+  reset();
 }
 
 template<typename ObjectType>
@@ -77,13 +73,17 @@ template<typename ObjectType>
 void UniquePtr<ObjectType>::reset(ObjectType *object) {
   CHRE_ASSERT(object == nullptr || mObject != object);
 
-  this->~UniquePtr<ObjectType>();
+  reset();
   mObject = object;
 }
 
 template<typename ObjectType>
 void UniquePtr<ObjectType>::reset()  {
-  this->~UniquePtr<ObjectType>();
+  if (mObject != nullptr) {
+    mObject->~ObjectType();
+    memoryFree(mObject);
+    mObject = nullptr;
+  }
 }
 
 template<typename ObjectType>
@@ -116,7 +116,7 @@ bool UniquePtr<ObjectType>::operator!=(
 template<typename ObjectType>
 UniquePtr<ObjectType>& UniquePtr<ObjectType>::operator=(
     UniquePtr<ObjectType>&& other) {
-  this->~UniquePtr<ObjectType>();
+  reset();
   mObject = other.mObject;
   other.mObject = nullptr;
   return *this;
