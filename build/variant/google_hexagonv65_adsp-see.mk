@@ -9,6 +9,7 @@ TARGET_NAME = google_hexagonv65_adsp-see
 # FlatBuffer overhead (max 80 bytes), minus some extra space to make a nice
 # round number and allow for addition of new fields to the FlatBuffer
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4000
+TARGET_CFLAGS += -DCHRE_THREAD_UTIL_ENABLED
 TARGET_CFLAGS += $(GOOGLE_HEXAGONV65_ADSP-SEE_CFLAGS)
 TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV65_ADSP-SEE_SRCS)
 TARGET_SO_LATE_LIBS = $(GOOGLE_HEXAGONV65_ADSP-SEE_LATE_LIBS)
