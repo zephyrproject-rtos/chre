@@ -9,6 +9,7 @@ TARGET_NAME = google_hexagonv66_slpi-see
 # FlatBuffer overhead (max 80 bytes), minus some extra space to make a nice
 # round number and allow for addition of new fields to the FlatBuffer
 TARGET_CFLAGS = -DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4000
+TARGET_CFLAGS += -DCHRE_THREAD_UTIL_ENABLED
 TARGET_CFLAGS += $(GOOGLE_HEXAGONV66_SLPI-SEE_CFLAGS)
 TARGET_VARIANT_SRCS = $(GOOGLE_HEXAGONV66_SLPI-SEE_SRCS)
 TARGET_SO_LATE_LIBS = $(GOOGLE_HEXAGONV66_SLPI-SEE_LATE_LIBS)

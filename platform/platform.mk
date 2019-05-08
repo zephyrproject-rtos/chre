@@ -98,6 +98,7 @@ SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
 SLPI_SRCS += platform/shared/pal_system_api.cc
 SLPI_SRCS += platform/shared/system_time.cc
 SLPI_SRCS += platform/slpi/chre_api_re.cc
+SLPI_SRCS += platform/slpi/debug_dump.cc
 SLPI_SRCS += platform/slpi/host_link.cc
 SLPI_SRCS += platform/slpi/init.cc
 SLPI_SRCS += platform/slpi/memory.cc
