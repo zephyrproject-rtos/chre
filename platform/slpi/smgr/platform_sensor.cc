@@ -104,7 +104,7 @@ constexpr uint64_t kTickRolloverOffset =
 
 //! The delay in nanoseconds between receiving a sensor status change
 //! and updating the sensor status.
-constexpr Nanoseconds kStatusDelayIntervalNanos = Milliseconds(10);
+constexpr Nanoseconds kStatusDelayIntervalNanos = Milliseconds(20);
 
 smr_client_hndl gPlatformSensorServiceSmrClientHandle;
 smr_client_hndl gPlatformSensorInternalServiceSmrClientHandle;
