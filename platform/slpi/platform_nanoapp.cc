@@ -170,6 +170,25 @@ void PlatformNanoapp::end() {
   closeNanoapp();
 }
 
+bool PlatformNanoappBase::setAppInfo(
+    uint64_t appId, uint32_t appVersion, const char *appFilename) {
+  CHRE_ASSERT(!isLoaded());
+  mExpectedAppId = appId;
+  mExpectedAppVersion = appVersion;
+  size_t appFilenameLen = strlen(appFilename) + 1;
+  mAppFilename = static_cast<char *>(memoryAllocBigImage(appFilenameLen));
+
+  bool success = false;
+  if (mAppFilename == nullptr) {
+    LOG_OOM();
+  } else {
+    memcpy(static_cast<void *>(mAppFilename), appFilename, appFilenameLen);
+    success = true;
+  }
+
+  return success;
+}
+
 bool PlatformNanoappBase::reserveBuffer(
     uint64_t appId, uint32_t appVersion, size_t appBinaryLen) {
   CHRE_ASSERT(!isLoaded());
@@ -220,7 +239,7 @@ void PlatformNanoappBase::loadStatic(const struct chreNslNanoappInfo *appInfo) {
 
 bool PlatformNanoappBase::isLoaded() const {
   return (mIsStatic || (mAppBinary != nullptr && mBytesLoaded == mAppBinaryLen)
-          || mDsoHandle != nullptr);
+          || mDsoHandle != nullptr || mAppFilename != nullptr);
 }
 
 bool PlatformNanoappBase::isUimgApp() const {
@@ -244,8 +263,15 @@ bool PlatformNanoappBase::openNanoapp() {
     success = true;
   } else if (mAppBinary != nullptr) {
     success = openNanoappFromBuffer();
+  } else if (mAppFilename != nullptr) {
+    success = openNanoappFromFile();
   } else {
     CHRE_ASSERT(false);
+  }
+
+  // Ensure any allocated memory hanging around is properly cleaned up.
+  if (!success) {
+    closeNanoapp();
   }
 
   // Save this flag locally since it may be referenced while the system is in
@@ -260,7 +286,6 @@ bool PlatformNanoappBase::openNanoapp() {
 bool PlatformNanoappBase::openNanoappFromBuffer() {
   CHRE_ASSERT(mAppBinary != nullptr);
   CHRE_ASSERT_LOG(mDsoHandle == nullptr, "Re-opening nanoapp");
-  bool success = false;
 
   // Populate a filename string (just a requirement of the dlopenbuf API)
   constexpr size_t kMaxFilenameLen = 17;
@@ -270,8 +295,28 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
   mDsoHandle = dlopenbuf(
       filename, static_cast<const char *>(mAppBinary),
       static_cast<int>(mAppBinaryLen), RTLD_NOW);
+  memoryFreeBigImage(mAppBinary);
+  mAppBinary = nullptr;
+
+  return verifyNanoappInfo();
+}
+
+bool PlatformNanoappBase::openNanoappFromFile() {
+  CHRE_ASSERT(mAppFilename != nullptr);
+  CHRE_ASSERT_LOG(mDsoHandle == nullptr, "Re-opening nanoapp");
+
+  mDsoHandle = dlopen(mAppFilename, RTLD_NOW);
+  memoryFreeBigImage(mAppFilename);
+  mAppFilename = nullptr;
+
+  return verifyNanoappInfo();
+}
+
+bool PlatformNanoappBase::verifyNanoappInfo() {
+  bool success = false;
+
   if (mDsoHandle == nullptr) {
-    LOGE("Failed to load nanoapp: %s", dlerror());
+    LOGE("No nanoapp info to verify: %s", dlerror());
   } else {
     mAppInfo = static_cast<const struct chreNslNanoappInfo *>(
         dlsym(mDsoHandle, CHRE_NSL_DSO_NANOAPP_INFO_SYMBOL_NAME));
@@ -286,8 +331,6 @@ bool PlatformNanoappBase::openNanoappFromBuffer() {
              PRIx32 " (%s) uimg %d system %d", mAppInfo->name, mAppInfo->appId,
              mAppInfo->appVersion, getAppVersionString(),
              mAppInfo->isTcmNanoapp, mAppInfo->isSystemNanoapp);
-        memoryFreeBigImage(mAppBinary);
-        mAppBinary = nullptr;
       }
     }
   }
