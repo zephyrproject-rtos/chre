@@ -79,6 +79,7 @@ constexpr uint64_t kAshWorldAppId         = makeExampleNanoappId(11);
 constexpr uint64_t kAudioWorldAppId       = makeExampleNanoappId(12);
 constexpr uint64_t kHostAwakeWorldAppId   = makeExampleNanoappId(13);
 constexpr uint64_t kAudioStressTestAppId  = makeExampleNanoappId(14);
+constexpr uint64_t kPowerTestAppId        = makeExampleNanoappId(15);
 
 }  // namespace chre
 
