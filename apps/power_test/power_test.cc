@@ -18,20 +18,29 @@
 #include <cinttypes>
 
 #include "chre/util/nanoapp/log.h"
-
-#ifdef CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest_TCM]"
-#else  // CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest]"
-#endif  // CHRE_TCM_BUILD
+#include "common.h"
+#include "request_manager.h"
 
 #ifdef CHRE_NANOAPP_INTERNAL
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
+/**
+ * Responds to a host request indicating whether the request was successfully
+ * executed.
+ *
+ * @param success whether the nanoapp successfully fullfilled a request
+ * @param hostEndpoint the host endpoint that sent the request to the nanoapp
+ */
+void sendResponseMessageToHost(bool success, uint16_t hostEndpoint) {
+  // TODO: Implement a response message to the host.
+}
+
 bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
+
+  RequestManagerSingleton::init();
 
   return true;
 }
@@ -39,10 +48,25 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  LOGI("HandleEvent");
+  // TODO: Print all events corresponding to what the nanoapp can request.
+  switch (eventType) {
+    case CHRE_EVENT_MESSAGE_FROM_HOST: {
+      auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
+      bool success = RequestManagerSingleton::get()
+          ->handleMessageFromHost(*msg);
+      sendResponseMessageToHost(success, msg->hostEndpoint);
+      break;
+    }
+    case CHRE_EVENT_TIMER:
+      RequestManagerSingleton::get()->handleTimerEvent(eventData);
+      break;
+    default:
+      LOGD("Received unknown event %" PRIu16, eventType);
+  }
 }
 
 void nanoappEnd() {
+  RequestManagerSingleton::deinit();
   LOGI("Stopped");
 }
 
