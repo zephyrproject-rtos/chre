@@ -83,6 +83,8 @@ uint32_t EventLoopManager::getNextInstanceId() {
 }
 
 void EventLoopManager::lateInit() {
+  mSensorRequestManager.init();
+
 #ifdef CHRE_GNSS_SUPPORT_ENABLED
   mGnssManager.init();
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
