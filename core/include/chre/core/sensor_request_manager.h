@@ -44,6 +44,12 @@ class SensorRequestManager : public NonCopyable {
   ~SensorRequestManager();
 
   /**
+   * Initializes the underlying platform-specific sensors. Must be called
+   * prior to invoking any other methods in this class.
+   */
+  void init();
+
+  /**
    * Determines whether the runtime is aware of a given sensor type. The
    * supplied sensorHandle is only populated if the sensor type is known.
    *
