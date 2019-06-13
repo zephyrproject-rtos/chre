@@ -62,6 +62,23 @@ void flushTimerCallback(uint16_t /* eventType */, void * /* data */) {
 
 SensorRequestManager::SensorRequestManager() {
   mSensorRequests.resize(mSensorRequests.capacity());
+}
+
+SensorRequestManager::~SensorRequestManager() {
+  for (size_t i = 0; i < mSensorRequests.size(); i++) {
+    // Disable sensors that have been enabled previously.
+    if (mSensorRequests[i].isSensorSupported()) {
+      mSensorRequests[i].removeAll();
+    }
+  }
+
+  PlatformSensor::deinit();
+}
+
+void SensorRequestManager::init() {
+  // The Platform sensor must be initialized prior to interacting with any
+  // sensors.
+  PlatformSensor::init();
 
   DynamicVector<Sensor> sensors;
   sensors.reserve(8);  // Avoid some initial reallocation churn
@@ -82,15 +99,6 @@ SensorRequestManager::SensorRequestManager() {
         mSensorRequests[sensorIndex].setSensor(std::move(sensors[i]));
         LOGD("Found sensor: %s", getSensorTypeName(sensorType));
       }
-    }
-  }
-}
-
-SensorRequestManager::~SensorRequestManager() {
-  for (size_t i = 0; i < mSensorRequests.size(); i++) {
-    // Disable sensors that have been enabled previously.
-    if (mSensorRequests[i].isSensorSupported()) {
-      mSensorRequests[i].removeAll();
     }
   }
 }

@@ -22,9 +22,11 @@
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/conditional_lock_guard.h"
 #include "chre/util/lock_guard.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/time.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -250,7 +252,7 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
   if (mRunning && (senderInstanceId == kSystemInstanceId ||
       mEventPool.getFreeBlockCount() > kMinReservedSystemEventCount)) {
     success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   senderInstanceId,targetInstanceId);
+                                   senderInstanceId, targetInstanceId);
     if (!success) {
       // This can only happen if the event is a system event type. This
       // postEvent method will fail if a non-system event is posted when the
@@ -334,8 +336,15 @@ bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
     uint32_t targetInstanceId) {
   bool success = false;
 
-  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
-                                     senderInstanceId, targetInstanceId);
+  Milliseconds receivedTime = Nanoseconds(SystemTime::getMonotonicTime());
+  // The event loop should never contain more than 65 seconds worth of data
+  // unless something has gone terribly wrong so use uint16_t to save space.
+  uint16_t receivedTimeMillis = receivedTime.getMilliseconds();
+
+  Event *event = mEventPool.allocate(eventType, receivedTimeMillis, eventData,
+                                     freeCallback, senderInstanceId,
+                                     targetInstanceId);
+
   if (event != nullptr) {
     success = mEvents.push(event);
   }

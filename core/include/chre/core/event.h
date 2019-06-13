@@ -38,8 +38,8 @@ constexpr uint32_t kInvalidInstanceId = kBroadcastInstanceId;
 
 class Event : public NonCopyable {
  public:
-  Event(uint16_t eventType, void *eventData,
-        chreEventCompleteFunction *freeCallback,
+  Event(uint16_t eventType_, uint16_t receivedTimeMillis_, void *eventData_,
+        chreEventCompleteFunction *freeCallback_,
         uint32_t senderInstanceId = kSystemInstanceId,
         uint32_t targetInstanceId = kBroadcastInstanceId);
 
@@ -58,6 +58,9 @@ class Event : public NonCopyable {
   }
 
   const uint16_t eventType;
+  //! This value can serve as a proxy for how fast CHRE is processing events
+  //! in its queue by substracting the newest event timestamp by the oldest one.
+  const uint16_t receivedTimeMillis;
   void * const eventData;
   chreEventCompleteFunction * const freeCallback;
   const uint32_t senderInstanceId;
