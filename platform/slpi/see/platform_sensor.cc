@@ -153,11 +153,12 @@ const char *kSeeDataTypes[] = {
 void handleMissingSensor() {
   // Try rebooting if a sensor is missing, which might help recover from a
   // transient failure/race condition at startup. But to avoid endless crashes,
-  // only do this within the first 45 seconds after boot - we rely on knowledge
-  // that getMonotonicTime() maps into QTimer here, and QTimer only resets when
-  // the entire system is rebooted (it continues increasing after SLPI SSR).
+  // only do this within 15 seconds of the timeout on initializing SEE - we rely
+  // on knowledge that getMonotonicTime() maps into QTimer here, and QTimer only
+  // resets when the entire system is rebooted (it continues increasing after
+  // SLPI SSR).
 #ifndef CHRE_LOG_ONLY_NO_SENSOR
-  if (SystemTime::getMonotonicTime() < Seconds(45)) {
+  if (SystemTime::getMonotonicTime() < (kDefaultSeeWaitTimeout + Seconds(15))) {
     FATAL_ERROR("Missing required sensor(s)");
   } else
 #endif
