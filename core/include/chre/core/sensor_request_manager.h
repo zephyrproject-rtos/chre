@@ -21,6 +21,7 @@
 #include "chre/core/sensor.h"
 #include "chre/core/sensor_request.h"
 #include "chre/core/timer_pool.h"
+#include "chre/platform/atomic.h"
 #include "chre/platform/system_time.h"
 #include "chre/platform/system_timer.h"
 #include "chre/util/fixed_size_vector.h"
@@ -214,6 +215,8 @@ class SensorRequestManager : public NonCopyable {
    */
   class SensorRequests {
    public:
+    SensorRequests() : mFlushRequestPending(false) {}
+
      /**
       * Initializes the sensor object. This method must only be invoked once
       * when the SensorRequestManager initializes.
@@ -356,9 +359,17 @@ class SensorRequestManager : public NonCopyable {
     uint8_t makeFlushRequest(const FlushRequest& request);
 
     /**
-     * Cancels a timeout timer for a pending flush request.
+     * Clears any states (e.g. timeout timer and relevant flags) associated
+     * with a pending flush request.
      */
-    void cancelFlushTimer();
+    void clearPendingFlushRequest();
+
+    /**
+     * @return true if a flush through makeFlushRequest is pending.
+     */
+    inline bool isFlushRequestPending() const {
+      return mFlushRequestPending;
+    }
 
    private:
     //! The sensor associated with this request multiplexer. If this Optional
@@ -372,12 +383,15 @@ class SensorRequestManager : public NonCopyable {
     //! The timeout timer handle for the current flush request.
     TimerHandle mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
 
+    //! True if a flush request is pending for this sensor.
+    AtomicBool mFlushRequestPending;
+
     /**
-     * @return true if a flush through makeFlushRequest is pending.
+     * Make a flush request through PlatformSensor.
+     *
+     * @return true if the flush request was successfully made.
      */
-    inline bool isFlushRequestPending() const {
-      return mFlushRequestTimerHandle != CHRE_TIMER_INVALID;
-    }
+    bool doMakeFlushRequest();
   };
 
   //! The list of sensor requests.
