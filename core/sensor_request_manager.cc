@@ -389,33 +389,38 @@ bool SensorRequestManager::flushAsync(
 
 void SensorRequestManager::handleFlushCompleteEvent(
     uint8_t errorCode, SensorType sensorType) {
-  struct CallbackState {
-    uint8_t errorCode;
-    SensorType sensorType;
-  };
+  size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
+  if (sensorType > SensorType::Unknown
+      && sensorType < SensorType::SENSOR_TYPE_COUNT
+      && mSensorRequests[sensorIndex].isFlushRequestPending()) {
+    struct CallbackState {
+      uint8_t errorCode;
+      SensorType sensorType;
+    };
 
-  // Enables passing data through void pointer to avoid allocation.
-  union NestedCallbackState {
-    void *eventData;
-    CallbackState callbackState;
-  };
-  static_assert(sizeof(NestedCallbackState) == sizeof(void *),
-                "Size of NestedCallbackState must equal that of void *");
+    // Enables passing data through void pointer to avoid allocation.
+    union NestedCallbackState {
+      void *eventData;
+      CallbackState callbackState;
+    };
+    static_assert(sizeof(NestedCallbackState) == sizeof(void *),
+                  "Size of NestedCallbackState must equal that of void *");
 
-  NestedCallbackState state = {};
-  state.callbackState.errorCode = errorCode;
-  state.callbackState.sensorType = sensorType;
+    NestedCallbackState state = {};
+    state.callbackState.errorCode = errorCode;
+    state.callbackState.sensorType = sensorType;
 
-  auto callback = [](uint16_t /* eventType */, void *eventData) {
-    NestedCallbackState nestedState;
-    nestedState.eventData = eventData;
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .handleFlushCompleteEventSync(nestedState.callbackState.errorCode,
-                                      nestedState.callbackState.sensorType);
-  };
+    auto callback = [](uint16_t /* eventType */, void *eventData) {
+      NestedCallbackState nestedState;
+      nestedState.eventData = eventData;
+      EventLoopManagerSingleton::get()->getSensorRequestManager()
+          .handleFlushCompleteEventSync(nestedState.callbackState.errorCode,
+                                        nestedState.callbackState.sensorType);
+    };
 
-  EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SensorFlushComplete, state.eventData, callback);
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::SensorFlushComplete, state.eventData, callback);
+  }
 }
 
 void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
@@ -482,10 +487,10 @@ void SensorRequestManager::handleFlushCompleteEventSync(
       uint32_t sensorHandle;
       if (getSensorHandle(sensorType, &sensorHandle)) {
         SensorRequests& requests = getSensorRequests(sensorType);
-        requests.cancelFlushTimer();
+        requests.clearPendingFlushRequest();
+        mFlushRequestQueue.erase(i);
 
         postFlushCompleteEvent(sensorHandle, errorCode, request);
-        mFlushRequestQueue.erase(i);
         dispatchNextFlushRequest(sensorHandle, sensorType);
       }
       break;
@@ -629,7 +634,7 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
            ": deadline exceeded", static_cast<uint32_t>(request.sensorType),
            request.nanoappInstanceId);
       errorCode = CHRE_ERROR_TIMEOUT;
-    } else if (mSensor->flushAsync()) {
+    } else if (doMakeFlushRequest()) {
       errorCode = CHRE_ERROR_NONE;
       Nanoseconds delay = deadline - now;
       mFlushRequestTimerHandle =
@@ -647,10 +652,19 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
   return errorCode;
 }
 
-void SensorRequestManager::SensorRequests::cancelFlushTimer() {
+void SensorRequestManager::SensorRequests::clearPendingFlushRequest() {
   EventLoopManagerSingleton::get()->cancelDelayedCallback(
       mFlushRequestTimerHandle);
   mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+  mFlushRequestPending = false;
+}
+
+bool SensorRequestManager::SensorRequests::doMakeFlushRequest() {
+  // Set to true before making the request since it's a synchronous request
+  // and we may get the complete event before it returns.
+  mFlushRequestPending = true;
+  mFlushRequestPending = mSensor->flushAsync();
+  return mFlushRequestPending;
 }
 
 }  // namespace chre
