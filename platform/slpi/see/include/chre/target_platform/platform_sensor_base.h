@@ -18,6 +18,7 @@
 #define CHRE_PLATFORM_SLPI_SEE_PLATFORM_SENSOR_BASE_H_
 
 #include "chre/core/sensor_request.h"
+#include "chre/platform/slpi/see/see_helper.h"
 
 namespace chre {
 
@@ -50,6 +51,10 @@ class PlatformSensorBase {
    * @param status The current sampling status.
    */
   void setSamplingStatus(const struct chreSensorSamplingStatus& status);
+
+  //! Stores the last received sampling status from SEE for this sensor making
+  //! it easier to dedup updates that come in later from SEE.
+  SeeHelperCallbackInterface::SamplingStatusData mLastReceivedSamplingStatus {};
 
  protected:
   //! The sensor type of this sensor.
