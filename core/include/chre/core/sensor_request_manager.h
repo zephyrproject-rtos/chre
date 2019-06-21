@@ -207,6 +207,8 @@ class SensorRequestManager : public NonCopyable {
     //! The timestamp at which this request should complete.
     Nanoseconds deadlineTimestamp = SystemTime::getMonotonicTime() +
         Nanoseconds(CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS);
+    //! True if this flush request is active and is pending completion.
+    bool isActive = false;
   };
 
   /**
@@ -240,6 +242,13 @@ class SensorRequestManager : public NonCopyable {
      */
     const DynamicVector<SensorRequest>& getRequests() const {
       return mMultiplexer.getRequests();
+    }
+
+    /**
+     * @return true if the sensor is currently enabled.
+     */
+    bool isSensorEnabled() const {
+      return !mMultiplexer.getRequests().empty();
     }
 
     /**
@@ -356,7 +365,7 @@ class SensorRequestManager : public NonCopyable {
      *
      * @return An error code from enum chreError
      */
-    uint8_t makeFlushRequest(const FlushRequest& request);
+    uint8_t makeFlushRequest(FlushRequest& request);
 
     /**
      * Clears any states (e.g. timeout timer and relevant flags) associated
@@ -420,13 +429,22 @@ class SensorRequestManager : public NonCopyable {
     uint32_t sensorHandle, uint8_t errorCode, const FlushRequest& request);
 
   /**
+   * Completes a flush request at the specified index by posting a
+   * CHRE_EVENT_SENSOR_FLUSH_COMPLETE event with the specified errorCode,
+   * removing the request from the queue, cleaning up states as necessary.
+   *
+   * @param index The index of the flush request.
+   * @param errorCode The error code to send the completion event with.
+   */
+  void completeFlushRequestAtIndex(size_t index, uint8_t errorCode);
+
+  /**
    * Dispatches the next flush request for the given sensor. If there are no
    * more pending flush requests, this method does nothing.
    *
-   * @param sensorHandle The handle of the sensor to apply a request for.
    * @param sensorType The corresponding sensor type.
    */
-  void dispatchNextFlushRequest(uint32_t sensorHandle, SensorType sensorType);
+  void dispatchNextFlushRequest(SensorType sensorType);
 
   /**
    * Handles a complete event for a sensor flush requested through flushAsync.
@@ -437,6 +455,16 @@ class SensorRequestManager : public NonCopyable {
    * @param sensorType The SensorType of sensor that has completed the flush.
    */
   void handleFlushCompleteEventSync(uint8_t errorCode, SensorType sensorType);
+
+  /**
+   * Cancels all pending flush requests for a given sensor and nanoapp.
+   *
+   * @param sensorType The type of sensor to cancel requests for.
+   * @param nanoappInstanceId The ID of the nanoapp to cancel requests for,
+   *     kSystemInstanceId to remove requests for all nanoapps.
+   */
+  void cancelFlushRequests(
+      SensorType sensorType, uint32_t nanoappInstanceId = kSystemInstanceId);
 };
 
 }  // namespace chre
