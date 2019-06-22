@@ -326,6 +326,18 @@ SensorType toCalibratedSensorType(SensorType sensorType);
  */
 SensorType toUncalibratedSensorType(SensorType sensorType);
 
+/**
+ * @param sensorType The sensor type.
+ *
+ * @return true if the sensor type is for a valid sensor.
+ */
+inline bool isValidSensorType(SensorType sensorType) {
+  // TODO: Consider asserting that sensorType < SensorType::SENSOR_TYPE_COUNT
+  //       once assertion can be enabled without costing extra memory overhead.
+  return sensorType > SensorType::Unknown
+      && sensorType < SensorType::SENSOR_TYPE_COUNT;
+}
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_SENSOR_TYPE_H_
