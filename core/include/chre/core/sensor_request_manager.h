@@ -374,6 +374,11 @@ class SensorRequestManager : public NonCopyable {
     void clearPendingFlushRequest();
 
     /**
+     * Cancels the pending timeout timer associated with a flush request.
+     */
+    void cancelPendingFlushRequestTimer();
+
+    /**
      * @return true if a flush through makeFlushRequest is pending.
      */
     inline bool isFlushRequestPending() const {
