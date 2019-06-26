@@ -20,9 +20,6 @@
 #include <chre.h>
 #include <cinttypes>
 
-#ifndef CHRE_NANOAPP_INTERNAL
-#include "chre/util/nanoapp/log.h"
-#endif  // CHRE_NANOAPP_INTERNAL
 #include "chre/util/singleton.h"
 #include "chre/util/time.h"
 #include "common.h"

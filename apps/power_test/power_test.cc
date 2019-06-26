@@ -17,7 +17,8 @@
 #include <chre.h>
 #include <cinttypes>
 
-#include "chre/util/nanoapp/log.h"
+#include "chre_power_test_generated.h"
+#include "chre/util/nanoapp/callbacks.h"
 #include "common.h"
 #include "request_manager.h"
 
@@ -25,6 +26,9 @@
 namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
+
+using flatbuffers::FlatBufferBuilder;
+using chre::power_test::MessageType;
 
 /**
  * Responds to a host request indicating whether the request was successfully
@@ -34,7 +38,29 @@ namespace {
  * @param hostEndpoint the host endpoint that sent the request to the nanoapp
  */
 void sendResponseMessageToHost(bool success, uint16_t hostEndpoint) {
-  // TODO: Implement a response message to the host.
+  auto builder = chre::MakeUnique<FlatBufferBuilder>();
+  if (builder.isNull()) {
+    LOG_OOM();
+  } else {
+    chre::power_test::CreateNanoappResponseMessage(*builder, success);
+
+    // CHRE's version of flatbuffers doesn't allow releasing the underlying
+    // buffer from the builder so copy it into a new buffer to be sent to the
+    // host.
+    size_t bufferCopySize = builder->GetSize();
+    void *buffer = chreHeapAlloc(bufferCopySize);
+    if (buffer == nullptr) {
+      LOG_OOM();
+    } else {
+      memcpy(buffer, builder->GetBufferPointer(), bufferCopySize);
+      if (!chreSendMessageToHostEndpoint(
+              buffer, bufferCopySize,
+              static_cast<uint32_t>(MessageType::NANOAPP_RESPONSE),
+              hostEndpoint, chre::heapFreeMessageCallback)) {
+        LOGE("Failed to send response message with success %d", success);
+      }
+    }
+  }
 }
 
 bool nanoappStart() {

@@ -35,6 +35,11 @@
 #error "NANOAPP_MINIMUM_LOG_LEVEL must be defined"
 #endif  // NANOAPP_MINIMUM_LOG_LEVEL
 
+/**
+ * Logs an out of memory error with file and line number.
+ */
+#define LOG_OOM() LOGE("OOM at %s:%d", CHRE_FILENAME, __LINE__)
+
 /*
  * Supply a stub implementation of the LOGx macros when the build is
  * configured with a minimum logging level that is above the requested level.

@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
- #ifndef CHRE_POWER_TEST_COMMON_H_
- #define CHRE_POWER_TEST_COMMON_H_
+#include "chre/util/nanoapp/callbacks.h"
 
-#ifndef CHRE_NANOAPP_INTERNAL
-#include "chre/util/nanoapp/log.h"
-#endif  // CHRE_NANOAPP_INTERNAL
+#include "chre/util/container_support.h"
 
-#ifdef CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest_TCM]"
-#else  // CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest]"
-#endif  // CHRE_TCM_BUILD
+namespace chre {
 
- #endif  // CHRE_POWER_TEST_COMMON_H_
+void heapFreeMessageCallback(void *message, size_t /* messageSize */) {
+  // container_support.h will use chreHeapFree when building for nanoapps
+  // and keeps as memoryFree if used within the framework itself.
+  memoryFree(message);
+}
+
+}  // namespace chre

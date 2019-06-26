@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
- #ifndef CHRE_POWER_TEST_COMMON_H_
- #define CHRE_POWER_TEST_COMMON_H_
+#ifndef CHRE_UTIL_CALLBACKS_H_
+#define CHRE_UTIL_CALLBACKS_H_
 
-#ifndef CHRE_NANOAPP_INTERNAL
-#include "chre/util/nanoapp/log.h"
-#endif  // CHRE_NANOAPP_INTERNAL
+#include <cstddef>
 
-#ifdef CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest_TCM]"
-#else  // CHRE_TCM_BUILD
-#define LOG_TAG "[PowerTest]"
-#endif  // CHRE_TCM_BUILD
+namespace chre {
 
- #endif  // CHRE_POWER_TEST_COMMON_H_
+/**
+ * Implementation of a chreMessageFreeFunction that frees the given message
+ * using the appropriate free function depending on whether this is included by
+ * a nanoapp or the CHRE framework. This should be used when no other work needs
+ * to be done after a nanoapp sends a message to the host.
+ *
+ * @see chreMessageFreeFunction
+ */
+void heapFreeMessageCallback(void *message, size_t messageSize);
+
+}  // namespace chre
+
+#endif  // CHRE_UTIL_CALLBACKS_H_
