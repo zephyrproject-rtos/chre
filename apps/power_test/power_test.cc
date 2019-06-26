@@ -74,7 +74,6 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void *eventData) {
-  // TODO: Print all events corresponding to what the nanoapp can request.
   switch (eventType) {
     case CHRE_EVENT_MESSAGE_FROM_HOST: {
       auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
@@ -86,8 +85,58 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
     case CHRE_EVENT_TIMER:
       RequestManagerSingleton::get()->handleTimerEvent(eventData);
       break;
+    case CHRE_EVENT_WIFI_ASYNC_RESULT: {
+      const struct chreAsyncResult *event =
+          static_cast<const struct chreAsyncResult *>(eventData);
+      LOGD("Wifi async result type %" PRIu8 " success %d error %" PRIu8,
+           event->requestType, event->success, event->errorCode);
+      break;
+    }
+    case CHRE_EVENT_WIFI_SCAN_RESULT: {
+      const struct chreWifiScanEvent *event =
+          static_cast<const struct chreWifiScanEvent *>(eventData);
+      LOGD("Wifi scan received with %" PRIu8 " results", event->resultCount);
+      break;
+    }
+    case CHRE_EVENT_GNSS_ASYNC_RESULT: {
+      const struct chreAsyncResult *event =
+          static_cast<const struct chreAsyncResult *>(eventData);
+      LOGD("GNSS async result type %" PRIu8 " success %d error %" PRIu8,
+           event->requestType, event->success, event->errorCode);
+      break;
+    }
+    case CHRE_EVENT_GNSS_LOCATION:
+      LOGD("GNSS location received");
+      break;
+    case CHRE_EVENT_WWAN_CELL_INFO_RESULT:
+      LOGD("Cell info received");
+      break;
+    case CHRE_EVENT_SENSOR_SAMPLING_CHANGE: {
+      const struct chreSensorSamplingStatusEvent *event =
+          static_cast<const struct chreSensorSamplingStatusEvent *>(eventData);
+      LOGD("Sensor sampling status change handle %" PRIu32
+           " enabled %d interval %" PRIu64 " latency %" PRIu64,
+           event->sensorHandle, event->status.enabled, event->status.interval,
+           event->status.latency);
+      break;
+    }
+    case CHRE_EVENT_AUDIO_DATA: {
+      const struct chreAudioDataEvent *event =
+          static_cast<const struct chreAudioDataEvent *>(eventData);
+      LOGD("Audio data received with %" PRIu32 " samples", event->sampleCount);
+      break;
+    }
+    case CHRE_EVENT_AUDIO_SAMPLING_CHANGE: {
+      const struct chreAudioSourceStatusEvent *event =
+          static_cast<const struct chreAudioSourceStatusEvent *>(eventData);
+      LOGD("Audio sampling status event for handle %" PRIu32 ", suspended: %d",
+           event->handle, event->status.suspended);
+      break;
+    }
     default:
-      LOGD("Received unknown event %" PRIu16, eventType);
+      // TODO: Make this log less as sensor events will spam the logcat if debug
+      // logging is enabled.
+      LOGD("Received event type %" PRIu16, eventType);
   }
 }
 
