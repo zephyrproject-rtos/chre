@@ -19,6 +19,7 @@
 #include "chre_api/chre/version.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
+#include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -49,13 +50,6 @@ bool isSensorRequestValid(const Sensor& sensor,
     }
   }
   return success;
-}
-
-void flushTimerCallback(uint16_t /* eventType */, void * /* data */) {
-  // TODO: Fatal error here since some platforms may not be able to handle
-  //       timeouts gracefully. Modify this implementation to drop flush
-  //       requests and handle stale responses in the future appropriately.
-  FATAL_ERROR("Flush request timed out");
 }
 
 }  // namespace
@@ -393,33 +387,31 @@ void SensorRequestManager::handleFlushCompleteEvent(
   size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
   if (isValidSensorType(sensorType)
       && mSensorRequests[sensorIndex].isFlushRequestPending()) {
+
+    // Cancel flush request timer before posting to the event queue to ensure
+    // a timeout event isn't processed by CHRE now that the complete event
+    // has been received.
+    mSensorRequests[sensorIndex].cancelPendingFlushRequestTimer();
+
     struct CallbackState {
       uint8_t errorCode;
       SensorType sensorType;
     };
 
-    // Enables passing data through void pointer to avoid allocation.
-    union NestedCallbackState {
-      void *eventData;
-      CallbackState callbackState;
-    };
-    static_assert(sizeof(NestedCallbackState) == sizeof(void *),
-                  "Size of NestedCallbackState must equal that of void *");
-
-    NestedCallbackState state = {};
-    state.callbackState.errorCode = errorCode;
-    state.callbackState.sensorType = sensorType;
+    NestedDataPtr<CallbackState> state = {};
+    state.data.errorCode = errorCode;
+    state.data.sensorType = sensorType;
 
     auto callback = [](uint16_t /* eventType */, void *eventData) {
-      NestedCallbackState nestedState;
-      nestedState.eventData = eventData;
+      NestedDataPtr<CallbackState> nestedState;
+      nestedState.dataPtr = eventData;
       EventLoopManagerSingleton::get()->getSensorRequestManager()
-          .handleFlushCompleteEventSync(nestedState.callbackState.errorCode,
-                                        nestedState.callbackState.sensorType);
+          .handleFlushCompleteEventSync(nestedState.data.errorCode,
+                                        nestedState.data.sensorType);
     };
 
     EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::SensorFlushComplete, state.eventData, callback);
+        SystemCallbackType::SensorFlushComplete, state.dataPtr, callback);
   }
 }
 
@@ -665,10 +657,29 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
       errorCode = CHRE_ERROR_NONE;
       Nanoseconds delay = deadline - now;
       request.isActive = true;
+
+      NestedDataPtr<SensorType> nestedType = {};
+      nestedType.data = request.sensorType;
+
+      auto callback = [](uint16_t /* eventType */, void * eventData) {
+        LOGE("Flush request timed out.");
+        NestedDataPtr<SensorType> nestedType;
+        nestedType.dataPtr = eventData;
+        // Send a complete event, thus closing out this flush request. If the
+        // request that has just timed out receives a response later, this may
+        // inadvertently close out a new request before it has actually
+        // completed.
+        // TODO: Attach an ID to all flush requests / responses so stale
+        // responses can be properly dropped.
+        EventLoopManagerSingleton::get()->getSensorRequestManager()
+            .handleFlushCompleteEventSync(CHRE_ERROR_TIMEOUT,
+                                          nestedType.data);
+      };
+
       mFlushRequestTimerHandle =
           EventLoopManagerSingleton::get()->setDelayedCallback(
-              SystemCallbackType::SensorFlushTimeout, nullptr /* data */,
-              flushTimerCallback, delay);
+              SystemCallbackType::SensorFlushTimeout, nestedType.dataPtr,
+              callback, delay);
     }
   } else {
     // Flush request will be made once the pending request is completed.
@@ -681,12 +692,16 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
 }
 
 void SensorRequestManager::SensorRequests::clearPendingFlushRequest() {
+  cancelPendingFlushRequestTimer();
+  mFlushRequestPending = false;
+}
+
+void SensorRequestManager::SensorRequests::cancelPendingFlushRequestTimer() {
   if (mFlushRequestTimerHandle != CHRE_TIMER_INVALID) {
     EventLoopManagerSingleton::get()->cancelDelayedCallback(
         mFlushRequestTimerHandle);
     mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
   }
-  mFlushRequestPending = false;
 }
 
 bool SensorRequestManager::SensorRequests::doMakeFlushRequest() {
