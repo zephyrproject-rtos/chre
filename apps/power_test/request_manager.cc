@@ -16,10 +16,10 @@
 
 #include "request_manager.h"
 
-#include "chre_power_test_generated.h"
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/audio.h"
 #include "chre/util/nested_data_ptr.h"
+#include "generated/chre_power_test_generated.h"
 
 namespace chre {
 namespace {

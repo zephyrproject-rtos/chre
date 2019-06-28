@@ -20,7 +20,7 @@
 #include "chre/platform/shared/host_protocol_common.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/version.h"
-#include "chre_host/host_messages_generated.h"
+#include "chre_host/generated/host_messages_generated.h"
 
 namespace chre {
 

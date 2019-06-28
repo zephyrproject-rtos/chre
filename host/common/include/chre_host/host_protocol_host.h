@@ -22,7 +22,7 @@
 
 #include "chre/platform/shared/host_protocol_common.h"
 #include "chre_host/fragmented_load_transaction.h"
-#include "chre_host/host_messages_generated.h"
+#include "chre_host/generated/host_messages_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 #include <vector>

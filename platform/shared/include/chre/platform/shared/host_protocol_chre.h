@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-#include "chre/platform/shared/host_messages_generated.h"
+#include "chre/platform/shared/generated/host_messages_generated.h"
 #include "chre/platform/shared/host_protocol_common.h"
 #include "flatbuffers/flatbuffers.h"
 
