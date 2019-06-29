@@ -193,7 +193,7 @@ class SeeHelper : public NonCopyable {
    */
   bool findSuidSync(const char *dataType, DynamicVector<sns_std_suid> *suids,
                     uint8_t minNumSuids = 1) {
-    uint32_t maxRetries = (mHaveTimedOutOnSuidLookup) ? 0 : 120;
+    uint32_t maxRetries = (mHaveTimedOutOnSuidLookup) ? 0 : 40;
     return findSuidSync(dataType, suids, minNumSuids, maxRetries,
                         Milliseconds(250) /* retryDelay */);
   }
