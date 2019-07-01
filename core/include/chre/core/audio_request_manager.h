@@ -35,14 +35,11 @@ namespace chre {
 class AudioRequestManager : public NonCopyable {
  public:
   /**
-   * Sets up the initial condition for the audio request manager including
-   * initial allocation of requests managers.
-   */
-  AudioRequestManager();
-
-  /**
    * Initializes the platform-specific audio module. Must be called prior to
    * invoking any other methods in this class.
+   *
+   * Sets up the initial condition for the audio request manager including
+   * initial allocation of requests managers.
    */
   void init();
 
@@ -103,10 +100,8 @@ class AudioRequestManager : public NonCopyable {
    * @param buffer Pointer to the start of the buffer.
    * @param bufferPos Pointer to buffer position to start the print (in-out).
    * @param size Size of the buffer in bytes.
-   *
-   * @return true if entire log printed, false if overflow or error.
    */
-  bool logStateToBuffer(char *buffer, size_t *bufferPos,
+  void logStateToBuffer(char *buffer, size_t *bufferPos,
                         size_t bufferSize) const;
 
   /**
@@ -222,8 +217,8 @@ class AudioRequestManager : public NonCopyable {
      * @return true if the supplied AudioDataEventRefCount is tracking the same
      *         published event as current object.
      */
-    bool operator==(const AudioDataEventRefCount& audioDataEventRefCount) {
-      return (event == audioDataEventRefCount.event);
+    bool operator==(const AudioDataEventRefCount& other) const {
+      return (event == other.event);
     }
 
     //! The event that is ref counted here.

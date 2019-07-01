@@ -59,6 +59,7 @@ SLPI_SMGR_CFLAGS += -DCHRE_SLPI_SMGR
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/core/api/kernel/libstd/stringl
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/qmimsgs/common/api
+SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc_api/pb
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/framework/cm/inc
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/api
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc
@@ -66,8 +67,6 @@ SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/internal
 SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/utils/nanopb
 
 SLPI_SEE_CFLAGS += -Iplatform/slpi/see/include
-
-SLPI_SEE_CFLAGS += -I$(SLPI_PREFIX)/ssc/inc/pb
 
 SLPI_SEE_CFLAGS += -DCHRE_SLPI_SEE
 
@@ -77,6 +76,10 @@ SLPI_SEE_CFLAGS += -DSSC_TARGET_HEXAGON
 
 # Defined in slpi_proc/ssc/build/ssc.scons
 SLPI_SEE_CFLAGS += -DPB_FIELD_16BIT
+
+ifeq ($(IMPORT_CHRE_UTILS), true)
+SLPI_SEE_CFLAGS += -DIMPORT_CHRE_UTILS
+endif
 
 # SLPI-specific Source Files ###################################################
 
@@ -93,12 +96,9 @@ SLPI_SRCS += platform/shared/host_protocol_common.cc
 SLPI_SRCS += platform/shared/memory_manager.cc
 SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
 SLPI_SRCS += platform/shared/pal_system_api.cc
-SLPI_SRCS += platform/shared/platform_gnss.cc
-SLPI_SRCS += platform/shared/platform_wifi.cc
-SLPI_SRCS += platform/shared/platform_wwan.cc
 SLPI_SRCS += platform/shared/system_time.cc
 SLPI_SRCS += platform/slpi/chre_api_re.cc
-SLPI_SRCS += platform/slpi/fatal_error.cc
+SLPI_SRCS += platform/slpi/debug_dump.cc
 SLPI_SRCS += platform/slpi/host_link.cc
 SLPI_SRCS += platform/slpi/init.cc
 SLPI_SRCS += platform/slpi/memory.cc
@@ -106,16 +106,28 @@ SLPI_SRCS += platform/slpi/memory_manager.cc
 SLPI_SRCS += platform/slpi/nanoapp_load_manager.cc
 SLPI_SRCS += platform/slpi/platform_nanoapp.cc
 SLPI_SRCS += platform/slpi/platform_pal.cc
-SLPI_SRCS += platform/slpi/preloaded_nanoapps.cc
 SLPI_SRCS += platform/slpi/system_time.cc
 SLPI_SRCS += platform/slpi/system_time_util.cc
 SLPI_SRCS += platform/slpi/system_timer.cc
 
 # Optional audio support.
 ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
-SLPI_CFLAGS += -I$(SLPI_PREFIX)/ssc/goog/wcd_spi/api
-
 SLPI_SRCS += platform/slpi/platform_audio.cc
+endif
+
+# Optional GNSS support.
+ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
+SLPI_SRCS += platform/shared/platform_gnss.cc
+endif
+
+# Optional Wi-Fi support.
+ifeq ($(CHRE_WIFI_SUPPORT_ENABLED), true)
+SLPI_SRCS += platform/shared/platform_wifi.cc
+endif
+
+# Optional WWAN support.
+ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
+SLPI_SRCS += platform/shared/platform_wwan.cc
 endif
 
 # SLPI/SMGR-specific Source Files ##############################################
@@ -127,22 +139,25 @@ SLPI_SMGR_SRCS += platform/slpi/smgr/smr_helper.cc
 
 # SLPI/SEE-specific Source Files ###############################################
 
-SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/platform_sensor.cc
 SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
+
+ifneq ($(IMPORT_CHRE_UTILS), true)
+SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_cal_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
+endif
 
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/cm/pb/sns_client.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/framework/suid_sensor/pb/sns_suid.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_cal.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_physical_sensor_test.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_proximity.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_remote_proc_state.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_resampler.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_sensor.pb.c
-SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc/sensors/pb/sns_std_type.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_client.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_suid.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_cal.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_physical_sensor_test.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_proximity.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_remote_proc_state.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_resampler.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_std.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_std_sensor.pb.c
+SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_std_type.pb.c
 
 SLPI_SEE_QSK_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qmi_client_alt.c
 SLPI_SEE_QMI_SRCS += $(SLPI_PREFIX)/chre/chre/src/system/chre/platform/slpi/sns_qmi_client.c
@@ -166,7 +181,6 @@ SIM_SRCS += platform/linux/system_time.cc
 SIM_SRCS += platform/linux/system_timer.cc
 SIM_SRCS += platform/linux/platform_nanoapp.cc
 SIM_SRCS += platform/linux/platform_sensor.cc
-SIM_SRCS += platform/linux/preloaded_nanoapps.cc
 SIM_SRCS += platform/shared/chre_api_audio.cc
 SIM_SRCS += platform/shared/chre_api_core.cc
 SIM_SRCS += platform/shared/chre_api_gnss.cc
@@ -177,14 +191,26 @@ SIM_SRCS += platform/shared/chre_api_wifi.cc
 SIM_SRCS += platform/shared/chre_api_wwan.cc
 SIM_SRCS += platform/shared/memory_manager.cc
 SIM_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
-SIM_SRCS += platform/shared/pal_gnss_stub.cc
-SIM_SRCS += platform/shared/pal_wifi_stub.cc
-SIM_SRCS += platform/shared/pal_wwan_stub.cc
 SIM_SRCS += platform/shared/pal_system_api.cc
-SIM_SRCS += platform/shared/platform_gnss.cc
-SIM_SRCS += platform/shared/platform_wifi.cc
-SIM_SRCS += platform/shared/platform_wwan.cc
 SIM_SRCS += platform/shared/system_time.cc
+
+# Optional GNSS support.
+ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/shared/pal_gnss_stub.cc
+SIM_SRCS += platform/shared/platform_gnss.cc
+endif
+
+# Optional Wi-Fi support.
+ifeq ($(CHRE_WIFI_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/shared/pal_wifi_stub.cc
+SIM_SRCS += platform/shared/platform_wifi.cc
+endif
+
+# Optional WWAN support.
+ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/shared/pal_wwan_stub.cc
+SIM_SRCS += platform/shared/platform_wwan.cc
+endif
 
 # Linux-specific Compiler Flags ################################################
 
@@ -192,9 +218,13 @@ GOOGLE_X86_LINUX_CFLAGS += -Iplatform/linux/include
 
 # Linux-specific Source Files ##################################################
 
+GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+
+# Optional audio support.
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 GOOGLE_X86_LINUX_SRCS += platform/linux/audio_source.cc
 GOOGLE_X86_LINUX_SRCS += platform/linux/platform_audio.cc
-GOOGLE_X86_LINUX_SRCS += platform/linux/init.cc
+endif
 
 # Android-specific Compiler Flags ##############################################
 
@@ -233,7 +263,7 @@ GOOGLE_ARM64_ANDROID_SRCS += host/common/host_protocol_host.cc
 GOOGLE_ARM64_ANDROID_SRCS += host/common/socket_server.cc
 
 # Optional audio support.
-ifneq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 GOOGLE_ARM64_ANDROID_SRCS += platform/android/platform_audio.cc
 endif
 

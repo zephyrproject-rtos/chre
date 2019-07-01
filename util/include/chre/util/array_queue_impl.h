@@ -101,6 +101,22 @@ bool ArrayQueue<ElementType, kCapacity>::push(ElementType&& element) {
 }
 
 template<typename ElementType, size_t kCapacity>
+void ArrayQueue<ElementType, kCapacity>::kick_push(const ElementType& element) {
+  if (full()) {
+    pop();
+  }
+  push(element);
+}
+
+template<typename ElementType, size_t kCapacity>
+void ArrayQueue<ElementType, kCapacity>::kick_push(ElementType&& element) {
+  if (full()) {
+    pop();
+  }
+  push(element);
+}
+
+template<typename ElementType, size_t kCapacity>
 void ArrayQueue<ElementType, kCapacity>::pop() {
   if (mSize > 0) {
     data()[mHead].~ElementType();

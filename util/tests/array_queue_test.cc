@@ -111,6 +111,27 @@ TEST(ArrayQueueTest, TestEmpty) {
   EXPECT_TRUE(q.empty());
 }
 
+TEST(ArrayQueueTest, KickPushWhenNotFull) {
+  ArrayQueue<int, 2> q;
+  q.kick_push(1);
+  EXPECT_EQ(1, q.size());
+  EXPECT_EQ(1, q[0]);
+  q.kick_push(2);
+  EXPECT_EQ(2, q.size());
+  EXPECT_EQ(2, q[1]);
+}
+
+TEST(ArrayQueueTest, KickPushWhenFull) {
+  ArrayQueue<int, 2> q;
+  q.kick_push(1);
+  q.push(2);
+  EXPECT_EQ(2, q.size());
+  q.kick_push(3);
+  EXPECT_EQ(2, q.size());
+  EXPECT_EQ(2, q[0]);
+  EXPECT_EQ(3, q[1]);
+}
+
 TEST(ArrayQueueTest, PopWhenEmpty) {
   ArrayQueue<int, 4> q;
   q.pop();

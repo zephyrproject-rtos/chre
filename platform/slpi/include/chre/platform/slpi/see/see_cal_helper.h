@@ -52,6 +52,21 @@ class SeeCalHelper : public NonCopyable {
                         float output[3]) const;
 
   /**
+   * Returns the cached calibration data. If the calibration data is available,
+   * this method will store all fields in the provided chreSensorThreeAxisData
+   * pointer, where the sample count is one. Thread-safe.
+   *
+   * @param sensorType Type of sensor to retrieve calibration data from, should
+   *                   be the type of a runtime-calibrated sensor
+   * @param biasData A non-null pointer to store the calibration data, not used
+   *                 if the calibration data is not available
+   *
+   * @return true if calibration data is successfully stored, false otherwise
+   */
+  bool getBias(
+      SensorType sensorType, struct chreSensorThreeAxisData *biasData) const;
+
+  /**
    * Get the cached SUID of a calibration sensor that corresponds to the
    * specified sensorType.
    *
@@ -86,12 +101,22 @@ class SeeCalHelper : public NonCopyable {
    * @param scale 3-axis scale factor; only valid if hasScale is true
    * @param hasMatrix true if matrix was decoded from the proto
    * @param matrix 3x3 compensation matrix; only valid if hasMatrix is true
-   * @param accuracy Android accuracy rating of the calibration quality (see
-   *                 sns_std_sensor_sample_status)
+   * @param accuracy CHRE accuracy rating of the calibration quality (see
+   *     CHRE_SENSOR_ACCURACY)
+   * @param timestamp The timestamp of the calibration event
+   *
+   * @see CHRE_SENSOR_ACCURACY
    */
   void updateCalibration(const sns_std_suid& suid, bool hasBias, float bias[3],
                          bool hasScale, float scale[3], bool hasMatrix,
-                         float matrix[9], uint8_t accuracy);
+                         float matrix[9], uint8_t accuracy, uint64_t timestamp);
+
+  /**
+   * @param suid SUID of the calibration sensor
+   *
+   * @return the SensorType corresponding to this physical sensor
+   */
+  SensorType getSensorTypeFromSuid(const sns_std_suid& suid) const;
 
  private:
   //! A struct to store a sensor's calibration data
@@ -103,6 +128,7 @@ class SeeCalHelper : public NonCopyable {
     bool hasScale;
     bool hasMatrix;
     uint8_t accuracy;
+    uint64_t timestamp;
   };
 
   //! A struct to store a cal sensor's UID and its cal data.

@@ -108,8 +108,6 @@ bool IslandVoteClient::voteSnsPowerMode(bool bigImage) {
   // TODO: (b/74524281) define success = (rc == SNS_RC_SUCCESS).
   bool success = (rc != SNS_RC_FAILED);
   if (!success) {
-    // Note that FATAL_ERROR must not be used here, because this can be called
-    // from preFatalError() (not that we should use it here regardless)
     LOGE("Failed to vote for bigImage %d with result %d", bigImage, rc);
   }
   return success;

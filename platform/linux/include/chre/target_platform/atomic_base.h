@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_
-#define CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_
+#ifndef CHRE_PLATFORM_LINUX_ATOMIC_BASE_H_
+#define CHRE_PLATFORM_LINUX_ATOMIC_BASE_H_
 
-#include <stdint.h>
-
-#include "chre/core/event_loop.h"
+#include <atomic>
 
 namespace chre {
 
 /**
- * Loads nanoapps that are standalone .so file (i.e. not static nanoapps), but
- * are pre-loaded in the system image.
+ * The Linux implementation of AtomicBase.
  */
-void loadPreloadedNanoapps();
+template<typename AtomicType>
+class AtomicBase {
+ protected:
+  //! The underlying std::atomic struct.
+  std::atomic<AtomicType> mAtomic;
+};
+
+typedef AtomicBase<bool> AtomicBoolBase;
+typedef AtomicBase<uint32_t> AtomicUint32Base;
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_LINUX_PRELOADED_NANOAPPS_H_
+#endif  // CHRE_PLATFORM_LINUX_ATOMIC_BASE_H_

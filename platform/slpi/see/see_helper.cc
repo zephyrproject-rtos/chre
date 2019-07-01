@@ -52,6 +52,9 @@
 #define LOG_NANOPB_ERROR(stream) \
     LOGE("Nanopb error: %s:%d", PB_GET_ERROR(stream), __LINE__)
 
+#define LOG_UNHANDLED_MSG(message) \
+    LOGW("Unhandled msg ID %" PRIu32 ": line %d", message, __LINE__)
+
 namespace chre {
 namespace {
 
@@ -98,6 +101,7 @@ struct SeeDataArg {
   size_t totalSamples;
   UniquePtr<uint8_t> event;
   UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> status;
+  UniquePtr<struct chreSensorThreeAxisData> bias;
   SensorType sensorType;
   bool isHostWakeSuspendEvent;
   bool isHostAwake;
@@ -480,7 +484,7 @@ bool decodeSnsSuidProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_suid.proto msg ID: %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
       break;
   }
   return success;
@@ -736,7 +740,7 @@ bool decodeSnsStdProtoEvent(pb_istream_t *stream, const pb_field_t *field,
     }
 
     default:
-      LOGW("Unhandled sns_std.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -811,6 +815,50 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
 
       case SensorSampleType::Vendor3: {
         auto *event = reinterpret_cast<chrexSensorVendor3Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor4: {
+        auto *event = reinterpret_cast<chrexSensorVendor4Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor5: {
+        auto *event = reinterpret_cast<chrexSensorVendor5Data *>(
+            data->event.get());
+        event->readings[index].value = *val;
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor6: {
+        auto *event = reinterpret_cast<chrexSensorVendor6Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor7: {
+        auto *event = reinterpret_cast<chrexSensorVendor7Data *>(
+            data->event.get());
+        memcpy(event->readings[index].values, val,
+               sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor8: {
+        auto *event = reinterpret_cast<chrexSensorVendor8Data *>(
             data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
@@ -947,9 +995,34 @@ bool decodeSnsStdSensorProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_std_sensor.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
+}
+
+/**
+ * Helper function to convert sns_std_sensor_sample_status to
+ * CHRE_SENSOR_ACCURACY_* values.
+ *
+ * @param status the SEE sensor sample status
+ *
+ * @return the corresponding CHRE_SENSOR_ACCURACY_* value,
+ * CHRE_SENSOR_ACCURACY_UNKNOWN if invalid
+ */
+uint8_t getChreSensorAccuracyFromSeeSampleStatus(
+    sns_std_sensor_sample_status status) {
+  switch (status) {
+    case SNS_STD_SENSOR_SAMPLE_STATUS_UNRELIABLE:
+      return CHRE_SENSOR_ACCURACY_UNRELIABLE;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_LOW:
+      return CHRE_SENSOR_ACCURACY_LOW;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_MEDIUM:
+      return CHRE_SENSOR_ACCURACY_MEDIUM;
+    case SNS_STD_SENSOR_SAMPLE_STATUS_ACCURACY_HIGH:
+      return CHRE_SENSOR_ACCURACY_HIGH;
+    default:
+      return CHRE_SENSOR_ACCURACY_UNKNOWN;
+  }
 }
 
 bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
@@ -976,11 +1049,19 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     bool hasBias = (offset.index == 3);
     bool hasScale = (scale.index == 3);
     bool hasMatrix = (matrix.index == 9);
-    uint8_t accuracy = static_cast<uint8_t>(event.status);
+    uint8_t accuracy = getChreSensorAccuracyFromSeeSampleStatus(event.status);
 
     calHelper->updateCalibration(
         info->suid, hasBias, offset.val, hasScale, scale.val,
-        hasMatrix, matrix.val, accuracy);
+        hasMatrix, matrix.val, accuracy, info->data->timeNs);
+
+    SensorType sensorType = calHelper->getSensorTypeFromSuid(info->suid);
+    auto biasData = MakeUniqueZeroFill<struct chreSensorThreeAxisData>();
+    if (biasData.isNull()) {
+      LOG_OOM();
+    } else if (calHelper->getBias(sensorType, biasData.get())) {
+      info->data->bias = std::move(biasData);
+    }
   }
   return success;
 }
@@ -999,7 +1080,7 @@ bool decodeSnsCalProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_cal.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1033,7 +1114,7 @@ bool decodeSnsProximityProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_proximity.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1068,7 +1149,7 @@ bool decodeSnsResamplerProtoEvent(pb_istream_t *stream, const pb_field_t *field,
       break;
 
     default:
-      LOGW("Unhandled sns_resampler.proto msg ID %" PRIu32, info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1101,8 +1182,7 @@ bool decodeSnsRemoteProcProtoEvent(
       break;
 
     default:
-      LOGW("Unhandled sns_remote_proc_state.proto msg ID %" PRIu32,
-           info->msgId);
+      LOG_UNHANDLED_MSG(info->msgId);
   }
   return success;
 }
@@ -1145,7 +1225,7 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
       default:
         success = false;
-        LOGW("Unhandled msg ID %" PRIu32, info->msgId);
+        LOG_UNHANDLED_MSG(info->msgId);
     }
   }
   return success;
@@ -1279,6 +1359,26 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
     case SensorSampleType::Vendor3:
       sampleSize = sizeof(chrexSensorVendor3SampleData);
       break;
+
+    case SensorSampleType::Vendor4:
+      sampleSize = sizeof(chrexSensorVendor4SampleData);
+      break;
+
+    case SensorSampleType::Vendor5:
+      sampleSize = sizeof(chrexSensorVendor5SampleData);
+      break;
+
+    case SensorSampleType::Vendor6:
+      sampleSize = sizeof(chrexSensorVendor6SampleData);
+      break;
+
+    case SensorSampleType::Vendor7:
+      sampleSize = sizeof(chrexSensorVendor7SampleData);
+      break;
+
+    case SensorSampleType::Vendor8:
+      sampleSize = sizeof(chrexSensorVendor8SampleData);
+      break;
 #endif  // CHREX_SENSOR_SUPPORT
 
     default:
@@ -1311,10 +1411,11 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 
     auto *header = reinterpret_cast<chreSensorDataHeader *>(
         info.data->event.get());
-    memset(header->reserved, 0, sizeof(header->reserved));
+    header->reserved = 0;
     header->sensorHandle = getSensorHandleFromSensorType(
         info.data->sensorType);
     header->readingCount = info.data->sampleIndex;
+    header->accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
 
     // Protect against out of bounds access in data decoding.
     info.data->totalSamples = info.data->sampleIndex;
@@ -1434,12 +1535,18 @@ void SeeHelper::handleSnsClientEventMsg(
         mWaitingOnInd = false;
         mCond.notify_one();
       } else {
+        if (data->info.msgId == SNS_STD_MSGID_SNS_STD_FLUSH_EVENT) {
+          mCbIf->onFlushCompleteEvent(data->info.data->sensorType);
+        }
         if (data->info.data->isHostWakeSuspendEvent) {
           mCbIf->onHostWakeSuspendEvent(data->info.data->isHostAwake);
         }
         if (!data->info.data->event.isNull()) {
           mCbIf->onSensorDataEvent(
               data->info.data->sensorType, std::move(data->info.data->event));
+        }
+        if (!data->info.data->bias.isNull()) {
+          mCbIf->onSensorBiasEvent(std::move(data->info.data->bias));
         }
         if (!data->info.data->status.isNull()) {
           if (data->info.data->sensorType == SensorType::Unknown) {
@@ -1505,9 +1612,9 @@ bool SeeHelper::findSuidSync(const char *dataType,
         mHaveTimedOutOnSuidLookup = true;
       }
       if (trialCount > 1) {
-        LOGD("Waited %" PRIu32 " ms for %s (found: %d)",
+        LOGD("Waited %" PRIu32 " ms for %s (found %zu, required %" PRIu8 ")",
              static_cast<uint32_t>(trialCount * retryDelay.getMilliseconds()),
-             dataType, success);
+             dataType, suids->size(), minNumSuids);
       }
     }
   }
@@ -1565,32 +1672,49 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     UniquePtr<pb_byte_t> msg;
     size_t msgLen = 0;
 
+    bool encodeSuccess = true;
     if (!request.enable) {
       // An empty message
       msgId = SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
-      success = true;
     } else if (sensorTypeIsContinuous(request.sensorType)) {
       if (suidsMatch(sensorInfo->suid, mResamplerSuid.value())) {
         msgId = SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG;
-        success = encodeSnsResamplerConfig(
+        encodeSuccess = encodeSnsResamplerConfig(
             request, sensorInfo->physicalSuid, &msg, &msgLen);
       } else {
         msgId = SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_CONFIG;
-        success = encodeSnsStdSensorConfig(request, &msg, &msgLen);
+        encodeSuccess = encodeSnsStdSensorConfig(request, &msg, &msgLen);
       }
     } else {
       msgId = SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG;
       // No sample rate needed to configure on-change or one-shot sensors.
-      success = true;
     }
 
-    if (success) {
+    if (encodeSuccess) {
       success = sendReq(sensorInfo->client, sensorInfo->suid,
                         nullptr /* syncData */, nullptr /* syncDataType */,
                         msgId, msg.get(), msgLen,
                         true /* batchValid */, request.batchPeriodUs,
                         request.passive, false /* waitForIndication */);
     }
+  }
+  return success;
+}
+
+bool SeeHelper::flush(SensorType sensorType) {
+  bool success = false;
+
+  const SensorInfo *sensorInfo = getSensorInfo(sensorType);
+  if (sensorInfo == nullptr) {
+    LOGE("SensorType %" PRIu8 " hasn't been registered",
+         static_cast<uint8_t>(sensorType));
+  } else {
+    uint32_t msgId = SNS_STD_MSGID_SNS_STD_FLUSH_REQ;
+    success = sendReq(sensorInfo->client, sensorInfo->suid,
+                      nullptr /* syncData */, nullptr /* syncDataType */,
+                      msgId, nullptr /* msg */, 0 /* msgLen */,
+                      false /* batchValid */, 0 /* batchPeriodUs */,
+                      false /* passive */, false /* waitForIndication */);
   }
   return success;
 }
