@@ -38,16 +38,19 @@ NANOAPP_VERSION = 0x00000001
 # Common Compiler Flags ########################################################
 
 # Include paths.
-COMMON_CFLAGS += -I.
+COMMON_CFLAGS += -I./include
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/external/flatbuffers/include
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/util/include
 
 # Defines
-COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
+COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 
 # Common Source Files ##########################################################
 
 COMMON_SRCS += power_test.cc
+COMMON_SRCS += request_manager.cc
 
 # Makefile Includes ############################################################
 
 include $(CHRE_PREFIX)/build/nanoapp/app.mk
+include $(CHRE_PREFIX)/external/external.mk

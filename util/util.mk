@@ -12,6 +12,7 @@ COMMON_CFLAGS += -Iutil/include
 COMMON_SRCS += util/buffer_base.cc
 COMMON_SRCS += util/dynamic_vector_base.cc
 COMMON_SRCS += util/nanoapp/audio.cc
+COMMON_SRCS += util/nanoapp/callbacks.cc
 COMMON_SRCS += util/nanoapp/debug.cc
 COMMON_SRCS += util/nanoapp/sensor.cc
 COMMON_SRCS += util/nanoapp/wifi.cc
