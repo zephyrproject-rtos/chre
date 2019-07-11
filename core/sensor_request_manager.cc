@@ -103,7 +103,8 @@ bool SensorRequestManager::getSensorHandle(SensorType sensorType,
 
   bool sensorHandleIsValid = false;
   if (!isValidSensorType(sensorType)) {
-    LOGW("Querying for unknown sensor type %" PRIu8, sensorType);
+    LOGW("Querying for unknown sensor type %" PRIu8,
+         static_cast<uint8_t>(sensorType));
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     sensorHandleIsValid = mSensorRequests[sensorIndex].isSensorSupported();
