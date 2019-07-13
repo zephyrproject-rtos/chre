@@ -22,6 +22,10 @@
 #include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 
+#define LOG_INVALID_SENSOR(x) \
+    LOGE("Invalid sensor type %" PRIu8 ": line %d", \
+         static_cast<uint8_t>(x), __LINE__)
+
 namespace chre {
 namespace {
 
@@ -86,7 +90,7 @@ void SensorRequestManager::init() {
       size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
 
       if (!isValidSensorType(sensorType)) {
-        LOGE("Invalid sensor type");
+        LOG_INVALID_SENSOR(sensorType);
       } else if (sensors[i].getMinInterval() == 0) {
         LOGE("Invalid sensor minInterval: %s", getSensorTypeName(sensorType));
       } else {
@@ -103,7 +107,7 @@ bool SensorRequestManager::getSensorHandle(SensorType sensorType,
 
   bool sensorHandleIsValid = false;
   if (!isValidSensorType(sensorType)) {
-    LOGW("Querying for unknown sensor type %" PRIu8, sensorType);
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     sensorHandleIsValid = mSensorRequests[sensorIndex].isSensorSupported();
@@ -122,7 +126,7 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
   // Validate the input to ensure that a valid handle has been provided.
   SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to configure an invalid sensor handle");
+    LOG_INVALID_SENSOR(sensorType);
     return false;
   }
 
@@ -220,8 +224,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
   // Validate the input to ensure that a valid handle has been provided.
   SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
-         sensorHandle);
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     if (!mSensorRequests[sensorIndex].isSensorSupported()) {
@@ -255,7 +258,7 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
 bool SensorRequestManager::removeAllRequests(SensorType sensorType) {
   bool success = false;
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to remove all requests of an invalid sensor type");
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     SensorRequests& requests = mSensorRequests[sensorIndex];
@@ -278,8 +281,7 @@ bool SensorRequestManager::removeAllRequests(SensorType sensorType) {
 Sensor *SensorRequestManager::getSensor(SensorType sensorType) {
   Sensor *sensorPtr = nullptr;
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to get Sensor of an invalid SensorType %d",
-         static_cast<int>(sensorType));
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     if (mSensorRequests[sensorIndex].isSensorSupported()) {
@@ -296,8 +298,7 @@ bool SensorRequestManager::getSensorSamplingStatus(
   bool success = false;
   SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
-         sensorHandle);
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
     if (mSensorRequests[sensorIndex].isSensorSupported()) {
@@ -311,7 +312,7 @@ const DynamicVector<SensorRequest>& SensorRequestManager::getRequests(
     SensorType sensorType) const {
   size_t sensorIndex = 0;
   if (!isValidSensorType(sensorType)) {
-    LOGW("Attempting to get requests of an invalid SensorType");
+    LOG_INVALID_SENSOR(sensorType);
   } else {
     sensorIndex = getSensorTypeArrayIndex(sensorType);
   }
@@ -344,8 +345,7 @@ bool SensorRequestManager::getThreeAxisBias(
   if (bias != nullptr) {
     SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
     if (!isValidSensorType(sensorType)) {
-      LOGW("Attempting to access sensor with an invalid handle %" PRIu32,
-           sensorHandle);
+      LOG_INVALID_SENSOR(sensorType);
     } else {
       size_t sensorIndex = getSensorTypeArrayIndex(sensorType);
       if (mSensorRequests[sensorIndex].isSensorSupported()) {
