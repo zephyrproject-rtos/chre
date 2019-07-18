@@ -21,6 +21,7 @@
 
 #include "chre_api/chre/event.h"
 #include "chre/core/event_loop.h"
+#include "chre/platform/atomic.h"
 #include "chre/platform/host_link.h"
 #include "chre/util/buffer.h"
 #include "chre/util/non_copyable.h"
@@ -81,6 +82,7 @@ typedef HostMessage MessageToHost;
  */
 class HostCommsManager : public NonCopyable {
  public:
+  HostCommsManager() : mIsNanoappBlamedForWakeup(false) {}
   /**
    * @see HostLink::flushMessagesSentByNanoapp
    */
@@ -130,6 +132,13 @@ class HostCommsManager : public NonCopyable {
       uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
       const void *messageData, size_t messageSize);
 
+  /*
+   * Resets mIsNanoappBlamedForWakeup to false so that
+   * nanoapp->blameHostWakeup() can be caled again on next wakeup for one of the
+   * nanoapps.
+   */
+  void resetBlameForNanoappHostWakeup();
+
   /**
    * Invoked by the HostLink platform layer when it is done with a message to
    * the host: either it successfully sent it, or encountered an error.
@@ -143,6 +152,11 @@ class HostCommsManager : public NonCopyable {
  private:
   //! The maximum number of messages we can have outstanding at any given time
   static constexpr size_t kMaxOutstandingMessages = 32;
+
+  //! Ensures that we do not blame more than once per host wakeup. This is
+  //! checked before calling host blame to make sure it is set once. The power
+  //! control managers then reset back to false on host suspend.
+  AtomicBool mIsNanoappBlamedForWakeup;
 
   //! Memory pool used to allocate message metadata (but not the contents of the
   //! messages themselves). Must be synchronized as the same HostCommsManager

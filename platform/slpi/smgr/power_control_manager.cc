@@ -63,6 +63,8 @@ void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
   EventLoopManagerSingleton::get()->getEventLoop()
       .getPowerControlManager().mHostIsAwake = !apSuspended;
   if (apSuspended) {
+    EventLoopManagerSingleton::get()->getHostCommsManager()
+        .resetBlameForNanoappHostWakeup();
     EventLoopManagerSingleton::get()->getEventLoop()
         .postEvent(CHRE_EVENT_HOST_ASLEEP, nullptr, nullptr);
   } else {

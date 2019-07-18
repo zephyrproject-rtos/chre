@@ -24,6 +24,11 @@
 
 namespace chre {
 
+Nanoapp::Nanoapp() {
+  // Push first bucket onto wakeup bucket queue
+  cycleWakeupBuckets(1);
+}
+
 Nanoapp::~Nanoapp() {
   CHRE_ASSERT_LOG(getTotalAllocatedBytes() == 0,
       "Nanoapp ID=0x%016" PRIx64 " still has %zu allocated bytes!", getAppId(),
@@ -87,6 +92,19 @@ Event *Nanoapp::processNextEvent() {
   return event;
 }
 
+void Nanoapp::blameHostWakeup() {
+  LOGI("Recorded host wakeup for nanoapp Id=%" PRIu32, getInstanceId());
+  if (mWakeupBuckets.back() < UINT8_MAX) ++mWakeupBuckets.back();
+}
+
+void Nanoapp::cycleWakeupBuckets(size_t numBuckets) {
+  numBuckets = numBuckets > kMaxSizeWakeupBuckets ?
+      kMaxSizeWakeupBuckets : numBuckets;
+  for (size_t i = 0; i < numBuckets; ++i) {
+    mWakeupBuckets.kick_push(0);
+  }
+}
+
 void Nanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
                                size_t bufferSize) const {
   PlatformNanoapp::logStateToBuffer(buffer, bufferPos, bufferSize);
@@ -94,9 +112,23 @@ void Nanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
       buffer, bufferPos, bufferSize,
       " Id=%" PRIu32 " AppId=0x%016" PRIx64
       " ver=0x%" PRIx32 " targetAPI=0x%" PRIx32
-      " currentAllocatedBytes=%zu peakAllocatedBytes=%zu\n",
+      " currentAllocatedBytes=%zu peakAllocatedBytes=%zu",
       getInstanceId(), getAppId(), getAppVersion(), getTargetApiVersion(),
       getTotalAllocatedBytes(), getPeakAllocatedBytes());
+  logWakeupsStateToBuffer(buffer, bufferPos, bufferSize);
+}
+
+void Nanoapp::logWakeupsStateToBuffer(char *buffer, size_t *bufferPos,
+                                      size_t bufferSize) const {
+  debugDumpPrint(buffer, bufferPos, bufferSize, " HostWakeups=[ Latest-> ");
+  // Get buckets latest -> earliest except last one
+  for (size_t i = mWakeupBuckets.size() - 1; i > 0; --i) {
+    debugDumpPrint(buffer, bufferPos, bufferSize,
+                   "%" PRIu8 ", ", mWakeupBuckets[i]);
+  }
+  // earliest bucket gets no comma
+  debugDumpPrint(buffer, bufferPos, bufferSize, "%" PRIu8 " ]\n",
+                 mWakeupBuckets.back());
 }
 
 }  // namespace chre

@@ -31,6 +31,9 @@
 
 namespace chre {
 
+// Out of line declaration required for nonintegral static types
+constexpr Nanoseconds EventLoop::kIntervalWakeupBucket;
+
 namespace {
 
 /**
@@ -116,6 +119,8 @@ void EventLoop::run() {
       // mEvents.pop() will be a blocking call if mEvents.empty()
       distributeEvent(mEvents.pop());
     }
+
+    handleNanoappWakeupBuckets();
 
     havePendingEvents = deliverEvents();
 
@@ -321,6 +326,16 @@ bool EventLoop::currentNanoappIsStopping() const {
 void EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
                                  size_t bufferSize) const {
   debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
+  const Nanoseconds timeSince =
+      SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
+  const uint64_t timeSinceMins = timeSince.toRawNanoseconds()
+      / kOneMinuteInNanoseconds;
+  const uint64_t durationMins = kIntervalWakeupBucket.toRawNanoseconds()
+      / kOneMinuteInNanoseconds;
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 " SinceLastBucketCycle=%" PRIu64 "mins"
+                 " BucketDuration=%" PRIu64 "mins\n\n",
+                 timeSinceMins, durationMins);
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
     app->logStateToBuffer(buffer, bufferPos, bufferSize);
   }
@@ -472,6 +487,19 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
 
   // Destroy the Nanoapp instance
   mNanoapps.erase(index);
+}
+
+void EventLoop::handleNanoappWakeupBuckets() {
+  const Nanoseconds now = SystemTime::getMonotonicTime();
+  const Nanoseconds duration = now - mTimeLastWakeupBucketCycled;
+  if (duration > kIntervalWakeupBucket) {
+    const size_t numBuckets = static_cast<size_t>(duration.toRawNanoseconds() /
+        kIntervalWakeupBucket.toRawNanoseconds());
+    mTimeLastWakeupBucketCycled = now;
+    for (auto& nanoapp: mNanoapps) {
+      nanoapp->cycleWakeupBuckets(numBuckets);
+    }
+  }
 }
 
 }  // namespace chre

@@ -58,9 +58,17 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
       // debugging
       msgToHost->toHostData.reserved = kMessageToHostReservedFieldValue;
 
+      // Let the nanoapp know that it woke up the host and record it
+      const bool hostWasAwake = EventLoopManagerSingleton::get()->getEventLoop()
+          .getPowerControlManager().hostIsAwake();
+
       success = mHostLink.sendMessage(msgToHost);
       if (!success) {
         mMessagePool.deallocate(msgToHost);
+      } else if (!hostWasAwake && !mIsNanoappBlamedForWakeup) {
+        // If message successfully sent and host was suspended before sending
+        mIsNanoappBlamedForWakeup = true;
+        nanoapp->blameHostWakeup();
       }
     }
   }
@@ -122,6 +130,10 @@ void HostCommsManager::sendMessageToNanoappFromHost(
                                   static_cast<uint32_t>(messageSize),
                                   targetInstanceId);
   }
+}
+
+void HostCommsManager::resetBlameForNanoappHostWakeup() {
+  mIsNanoappBlamedForWakeup = false;
 }
 
 void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
