@@ -348,10 +348,6 @@ typedef void (chreMessageFreeFunction)(void *message, size_t messageSize);
 /**
  * Enqueue an event to be sent to another nanoapp.
  *
- * Note: This version of the API does not give an easy means to discover
- * another nanoapp's instance ID.  For now, events will need to be sent to/from
- * the host to initially discover these IDs.
- *
  * @param eventType  This is a user-defined event type, of at least the
  *     value CHRE_EVENT_FIRST_USER_VALUE.  It is illegal to attempt to use any
  *     of the CHRE_EVENT_* values reserved for the CHRE.
@@ -366,7 +362,8 @@ typedef void (chreMessageFreeFunction)(void *message, size_t messageSize);
  *     being dropped), this callback will be invoked.  This argument is allowed
  *     to be NULL, in which case no callback will be invoked.
  * @param targetInstanceId  The ID of the instance we're delivering this event
- *     to.  Note that this is allowed to be our own instance.
+ *     to.  Note that this is allowed to be our own instance.  The instance ID
+ *     of a nanoapp can be retrieved by using chreGetNanoappInfoByInstanceId().
  * @returns true if the event was enqueued, false otherwise.  Note that even
  *     if this method returns 'false', the 'freeCallback' will be invoked,
  *     if non-NULL.  Note in the 'false' case, the 'freeCallback' may be
