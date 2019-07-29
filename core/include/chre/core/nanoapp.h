@@ -22,8 +22,8 @@
 #include "chre/core/event.h"
 #include "chre/core/event_ref_queue.h"
 #include "chre/platform/platform_nanoapp.h"
-#include "chre/util/array_queue.h"
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/fixed_size_vector.h"
 
 namespace chre {
 
@@ -155,9 +155,9 @@ class Nanoapp : public PlatformNanoapp {
   void blameHostWakeup();
 
   /*
-   * Pushes a new bucket to the back of mWakeupBuckets queue, possibly erasing
-   * bucket on front, if mWakeupBuckets.size() == kMaxSizeWakeupBuckets before
-   * calling.
+   * If buckets not full, then just pushes a 0 to back of buckets. If full, then
+   * shifts down all buckets from back to front and sets back to 0, losing the
+   * latest bucket value that was in front.
    *
    * @param numBuckets the number of buckets to cycle into to mWakeupBuckets
    */
@@ -189,7 +189,7 @@ class Nanoapp : public PlatformNanoapp {
 
   //! A fixed size buffer of buckets that keeps track of the number of host
   //! wakeups over time intervals.
-  ArrayQueue<uint8_t, kMaxSizeWakeupBuckets> mWakeupBuckets;
+  FixedSizeVector<uint16_t, kMaxSizeWakeupBuckets> mWakeupBuckets;
 
   //! The set of broadcast events that this app is registered for.
   // TODO: Implement a set container and replace DynamicVector here. There may
@@ -204,7 +204,6 @@ class Nanoapp : public PlatformNanoapp {
    */
   void logWakeupsStateToBuffer(char *buffer, size_t *bufferPos,
                                size_t bufferSize) const;
-
 };
 
 }

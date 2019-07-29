@@ -42,6 +42,7 @@ UniquePtr<char> EventLoopManager::debugDump() {
   } else {
     size_t debugStrPos = 0;
     mMemoryManager.logStateToBuffer(debugStr, &debugStrPos, kDebugStringSize);
+    mEventLoop.handleNanoappWakeupBuckets();
     mEventLoop.logStateToBuffer(debugStr, &debugStrPos, kDebugStringSize);
     mSensorRequestManager.logStateToBuffer(debugStr, &debugStrPos,
                                            kDebugStringSize);
