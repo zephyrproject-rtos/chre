@@ -24,6 +24,7 @@
 #include "chre/platform/mutex.h"
 #include "chre/platform/platform_nanoapp.h"
 #include "chre/platform/power_control_manager.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
@@ -49,7 +50,8 @@ namespace chre {
  */
 class EventLoop : public NonCopyable {
  public:
-  EventLoop() : mRunning(true) {}
+  EventLoop() : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
+    mRunning(true) {}
 
   /**
    * Synchronous callback used with forEachNanoapp
@@ -271,6 +273,14 @@ class EventLoop : public NonCopyable {
   static constexpr size_t kMaxUnscheduledEventCount =
       CHRE_MAX_UNSCHEDULED_EVENT_COUNT;
 
+  //! The time interval of nanoapp wakeup buckets, adjust in conjuction with
+  //! Nanoapp::kMaxSizeWakeupBuckets.
+  static constexpr Nanoseconds kIntervalWakeupBucket =
+      Nanoseconds(180 * kOneMinuteInNanoseconds);
+
+  //! The last time wakeup buckets were pushed onto the nanoapps.
+  Nanoseconds mTimeLastWakeupBucketCycled;
+
   //! The memory pool to allocate incoming events from.
   SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
 
@@ -416,6 +426,14 @@ class EventLoop : public NonCopyable {
    * nanoapp's own memory (even if there is no free callback).
    */
   void unloadNanoappAtIndex(size_t index);
+
+  /*
+   * Checks if the new wakeup buckets need to be pushed to nanoapps because the
+   * wakeup bucket interval has been surpassed since we pushed and pushes to the
+   * apps.
+   */
+  void handleNanoappWakeupBuckets();
+
 };
 
 }  // namespace chre

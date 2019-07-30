@@ -43,6 +43,11 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
   if (mHostIsAwake != awake) {
     mHostIsAwake = awake;
 
+    if (!awake) {
+      EventLoopManagerSingleton::get()->getHostCommsManager()
+          .resetBlameForNanoappHostWakeup();
+    }
+
     EventLoopManagerSingleton::get()->getEventLoop().postEvent(
         mHostIsAwake ? CHRE_EVENT_HOST_AWAKE : CHRE_EVENT_HOST_ASLEEP,
         nullptr /* eventData */, nullptr /* freeCallback */);
