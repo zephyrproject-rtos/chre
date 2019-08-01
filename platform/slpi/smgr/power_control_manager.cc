@@ -22,7 +22,7 @@
 
 namespace chre {
 
-PowerControlManagerBase::PowerControlManagerBase() : mIsHostAwake(true) {
+PowerControlManagerBase::PowerControlManagerBase() : mHostIsAwake(true) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
   char kClientName[] = "CHRE";
   sns_pm_err_code_e result = sns_pm_client_init(
