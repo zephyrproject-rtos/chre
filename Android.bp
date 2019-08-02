@@ -57,6 +57,25 @@ cc_binary {
     static_libs: ["chre_client"],
 }
 
+cc_binary {
+    name: "chre_power_test_client",
+    vendor: true,
+    local_include_dirs: [
+        "chre_api/include/chre_api",
+        "util/include",
+    ],
+    srcs: [
+        "host/common/test/power_test/chre_power_test_client.cc",
+    ],
+    cflags: ["-Wall", "-Werror"],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libutils",
+    ],
+    static_libs: ["chre_client"],
+}
+
 cc_test {
     name: "audio_stress_test",
     vendor: true,
