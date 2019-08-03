@@ -17,6 +17,8 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 #define CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 
+#include "chre/platform/atomic.h"
+
 #ifdef CHRE_THREAD_UTIL_ENABLED
 extern "C" {
 #include "sns_client_thread_util.h"
@@ -51,7 +53,7 @@ class PowerControlManagerBase {
 
  protected:
   //! Set to true if the host is awake, false if suspended.
-  bool mHostIsAwake = true;
+  AtomicBool mHostIsAwake;
 
 #ifdef CHRE_THREAD_UTIL_ENABLED
   //! Set to true if the thread is currently idle (no pending events),

@@ -120,8 +120,6 @@ void EventLoop::run() {
       distributeEvent(mEvents.pop());
     }
 
-    handleNanoappWakeupBuckets();
-
     havePendingEvents = deliverEvents();
 
     mPowerControlManager.postEventLoopProcess(mEvents.size());
@@ -326,11 +324,11 @@ bool EventLoop::currentNanoappIsStopping() const {
 void EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
                                  size_t bufferSize) const {
   debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
-  const Nanoseconds timeSince =
+  Nanoseconds timeSince =
       SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
-  const uint64_t timeSinceMins = timeSince.toRawNanoseconds()
+  uint64_t timeSinceMins = timeSince.toRawNanoseconds()
       / kOneMinuteInNanoseconds;
-  const uint64_t durationMins = kIntervalWakeupBucket.toRawNanoseconds()
+  uint64_t durationMins = kIntervalWakeupBucket.toRawNanoseconds()
       / kOneMinuteInNanoseconds;
   debugDumpPrint(buffer, bufferPos, bufferSize,
                  " SinceLastBucketCycle=%" PRIu64 "mins"
@@ -490,13 +488,13 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
 }
 
 void EventLoop::handleNanoappWakeupBuckets() {
-  const Nanoseconds now = SystemTime::getMonotonicTime();
-  const Nanoseconds duration = now - mTimeLastWakeupBucketCycled;
+  Nanoseconds now = SystemTime::getMonotonicTime();
+  Nanoseconds duration = now - mTimeLastWakeupBucketCycled;
   if (duration > kIntervalWakeupBucket) {
-    const size_t numBuckets = static_cast<size_t>(duration.toRawNanoseconds() /
+    size_t numBuckets = static_cast<size_t>(duration.toRawNanoseconds() /
         kIntervalWakeupBucket.toRawNanoseconds());
     mTimeLastWakeupBucketCycled = now;
-    for (auto& nanoapp: mNanoapps) {
+    for (auto& nanoapp : mNanoapps) {
       nanoapp->cycleWakeupBuckets(numBuckets);
     }
   }

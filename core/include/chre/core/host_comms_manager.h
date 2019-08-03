@@ -83,6 +83,7 @@ typedef HostMessage MessageToHost;
 class HostCommsManager : public NonCopyable {
  public:
   HostCommsManager() : mIsNanoappBlamedForWakeup(false) {}
+
   /**
    * @see HostLink::flushMessagesSentByNanoapp
    */
@@ -134,8 +135,8 @@ class HostCommsManager : public NonCopyable {
 
   /*
    * Resets mIsNanoappBlamedForWakeup to false so that
-   * nanoapp->blameHostWakeup() can be caled again on next wakeup for one of the
-   * nanoapps.
+   * nanoapp->blameHostWakeup() can be called again on next wakeup for one of
+   * the nanoapps.
    */
   void resetBlameForNanoappHostWakeup();
 

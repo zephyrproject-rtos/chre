@@ -23,7 +23,7 @@
 
 namespace chre {
 
-PowerControlManagerBase::PowerControlManagerBase() {
+PowerControlManagerBase::PowerControlManagerBase() : mHostIsAwake(true) {
 #ifdef CHRE_THREAD_UTIL_ENABLED
   sns_client_create_thread_utilization_client(&mThreadUtilClient);
 #endif  // CHRE_THREAD_UTIL_ENABLED

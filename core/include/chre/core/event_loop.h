@@ -50,8 +50,9 @@ namespace chre {
  */
 class EventLoop : public NonCopyable {
  public:
-  EventLoop() : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
-    mRunning(true) {}
+  EventLoop()
+    : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
+      mRunning(true) {}
 
   /**
    * Synchronous callback used with forEachNanoapp
@@ -72,6 +73,13 @@ class EventLoop : public NonCopyable {
    * @return true if the given app ID was found and instanceId was populated
    */
   bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId) const;
+
+  /*
+   * Checks if the new wakeup buckets need to be pushed to nanoapps because the
+   * wakeup bucket interval has been surpassed since we pushed and pushes to the
+   * apps.
+   */
+  void handleNanoappWakeupBuckets();
 
   /**
    * Iterates over the list of Nanoapps managed by this EventLoop, and invokes
@@ -426,14 +434,6 @@ class EventLoop : public NonCopyable {
    * nanoapp's own memory (even if there is no free callback).
    */
   void unloadNanoappAtIndex(size_t index);
-
-  /*
-   * Checks if the new wakeup buckets need to be pushed to nanoapps because the
-   * wakeup bucket interval has been surpassed since we pushed and pushes to the
-   * apps.
-   */
-  void handleNanoappWakeupBuckets();
-
 };
 
 }  // namespace chre

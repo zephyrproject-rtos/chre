@@ -49,6 +49,9 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 
 COMMON_SRCS += power_test.cc
 COMMON_SRCS += request_manager.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/dynamic_vector_base.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/audio.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Makefile Includes ############################################################
 

@@ -22,6 +22,8 @@
 #include "chre/platform/log.h"
 #include "chre/util/system/debug_dump.h"
 
+#include <algorithm>
+
 namespace chre {
 
 Nanoapp::Nanoapp() {
@@ -93,15 +95,16 @@ Event *Nanoapp::processNextEvent() {
 }
 
 void Nanoapp::blameHostWakeup() {
-  LOGI("Recorded host wakeup for nanoapp Id=%" PRIu32, getInstanceId());
-  if (mWakeupBuckets.back() < UINT8_MAX) ++mWakeupBuckets.back();
+  if (mWakeupBuckets.back() < UINT16_MAX) ++mWakeupBuckets.back();
 }
 
 void Nanoapp::cycleWakeupBuckets(size_t numBuckets) {
-  numBuckets = numBuckets > kMaxSizeWakeupBuckets ?
-      kMaxSizeWakeupBuckets : numBuckets;
+  numBuckets = std::min(numBuckets, kMaxSizeWakeupBuckets);
   for (size_t i = 0; i < numBuckets; ++i) {
-    mWakeupBuckets.kick_push(0);
+    if (mWakeupBuckets.full()) {
+      mWakeupBuckets.erase(0);
+    }
+    mWakeupBuckets.push_back(0);
   }
 }
 
@@ -124,11 +127,11 @@ void Nanoapp::logWakeupsStateToBuffer(char *buffer, size_t *bufferPos,
   // Get buckets latest -> earliest except last one
   for (size_t i = mWakeupBuckets.size() - 1; i > 0; --i) {
     debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "%" PRIu8 ", ", mWakeupBuckets[i]);
+                   "%" PRIu16 ", ", mWakeupBuckets[i]);
   }
   // earliest bucket gets no comma
-  debugDumpPrint(buffer, bufferPos, bufferSize, "%" PRIu8 " ]\n",
-                 mWakeupBuckets.back());
+  debugDumpPrint(buffer, bufferPos, bufferSize, "%" PRIu16 " ]\n",
+                 mWakeupBuckets.front());
 }
 
 }  // namespace chre
