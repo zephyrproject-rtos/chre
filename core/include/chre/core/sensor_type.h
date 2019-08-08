@@ -220,6 +220,14 @@ enum class SensorMode {
 };
 
 /**
+ * Returns a string representation of the given sensor mode.
+ *
+ * @param sensorMode The sensor mode to obtain a string for.
+ * @return A string representation of the sensor mode.
+ */
+const char *getSensorModeName(SensorMode sensorMode);
+
+/**
  * @return true if the sensor mode is considered to be active and would cause a
  *         sensor to be powered on in order to get sensor data.
  */

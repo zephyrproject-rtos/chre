@@ -82,6 +82,24 @@ const char *getSensorTypeName(SensorType sensorType) {
   }
 }
 
+const char *getSensorModeName(SensorMode sensorMode) {
+  switch (sensorMode) {
+    case SensorMode::Off:
+      return "Off";
+    case SensorMode::ActiveOneShot:
+      return "ActiveOneShot";
+    case SensorMode::PassiveOneShot:
+      return "PassiveOneShot";
+    case SensorMode::ActiveContinuous:
+      return "ActiveContinuous";
+    case SensorMode::PassiveContinuous:
+      return "PassiveContinuous";
+    default:
+      CHRE_ASSERT(false);
+      return "";
+  }
+}
+
 uint16_t getSampleEventTypeForSensorType(SensorType sensorType) {
   // The enum values of SensorType may not map to the defined values in the
   // CHRE API.
