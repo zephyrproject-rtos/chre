@@ -113,9 +113,8 @@ void AudioRequestManager::handleAudioAvailability(uint32_t handle, bool availabl
   }
 }
 
-void AudioRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                           size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize, "\nAudio:\n");
+void AudioRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nAudio:\n");
   for (size_t i = 0; i < mAudioRequestLists.size(); i++) {
     uint32_t handle = static_cast<uint32_t>(i);
     struct chreAudioSource source;
@@ -123,7 +122,7 @@ void AudioRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
 
     Nanoseconds timeSinceLastAudioEvent = SystemTime::getMonotonicTime()
         - mAudioRequestLists[i].lastEventTimestamp;
-    debugDumpPrint(buffer, bufferPos, bufferSize,
+    debugDump.print(
         " handle=%" PRIu32 ", name=\"%s\", available=%d, sampleRate=%" PRIu32
         ", buffer(ms)=[%" PRIu64 ",%" PRIu64 "], format=%" PRIu8
         ", timeSinceLastAudioEvent(ms)=%" PRIu64 "\n",
@@ -134,11 +133,11 @@ void AudioRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
 
     for (const auto& request : mAudioRequestLists[i].requests) {
       for (const auto& instanceId : request.instanceIds) {
-        debugDumpPrint(buffer, bufferPos, bufferSize,
-            "  nanoappId=%" PRIu32 ", numSamples=%" PRIu32
-            ", interval(ms)=%" PRIu64 "\n", instanceId, request.numSamples,
-            Milliseconds(Nanoseconds(request.deliveryInterval))
-                .getMilliseconds());
+        debugDump.print("  nanoappId=%" PRIu32 ", numSamples=%" PRIu32
+                        ", interval(ms)=%" PRIu64 "\n",
+                        instanceId, request.numSamples,
+                        Milliseconds(Nanoseconds(request.deliveryInterval))
+                            .getMilliseconds());
       }
     }
   }

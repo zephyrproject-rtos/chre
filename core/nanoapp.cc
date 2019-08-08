@@ -26,6 +26,8 @@
 
 namespace chre {
 
+constexpr size_t Nanoapp::kMaxSizeWakeupBuckets;
+
 Nanoapp::Nanoapp() {
   // Push first bucket onto wakeup bucket queue
   cycleWakeupBuckets(1);
@@ -108,30 +110,21 @@ void Nanoapp::cycleWakeupBuckets(size_t numBuckets) {
   }
 }
 
-void Nanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
-                               size_t bufferSize) const {
-  PlatformNanoapp::logStateToBuffer(buffer, bufferPos, bufferSize);
-  debugDumpPrint(
-      buffer, bufferPos, bufferSize,
-      " Id=%" PRIu32 " AppId=0x%016" PRIx64
-      " ver=0x%" PRIx32 " targetAPI=0x%" PRIx32
-      " currentAllocatedBytes=%zu peakAllocatedBytes=%zu",
-      getInstanceId(), getAppId(), getAppVersion(), getTargetApiVersion(),
-      getTotalAllocatedBytes(), getPeakAllocatedBytes());
-  logWakeupsStateToBuffer(buffer, bufferPos, bufferSize);
-}
-
-void Nanoapp::logWakeupsStateToBuffer(char *buffer, size_t *bufferPos,
-                                      size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize, " HostWakeups=[ Latest-> ");
+void Nanoapp::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  PlatformNanoapp::logStateToBuffer(debugDump);
+  debugDump.print(" Id=%" PRIu32 " AppId=0x%016" PRIx64 " ver=0x%" PRIx32
+                  " targetAPI=0x%" PRIx32
+                  " currentAllocatedBytes=%zu peakAllocatedBytes=%zu",
+                  getInstanceId(), getAppId(), getAppVersion(),
+                  getTargetApiVersion(), getTotalAllocatedBytes(),
+                  getPeakAllocatedBytes());
+  debugDump.print(" HostWakeups=[ Latest-> ");
   // Get buckets latest -> earliest except last one
   for (size_t i = mWakeupBuckets.size() - 1; i > 0; --i) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "%" PRIu16 ", ", mWakeupBuckets[i]);
+    debugDump.print("%" PRIu16 ", ", mWakeupBuckets[i]);
   }
   // earliest bucket gets no comma
-  debugDumpPrint(buffer, bufferPos, bufferSize, "%" PRIu16 " ]\n",
-                 mWakeupBuckets.front());
+  debugDump.print("%" PRIu16 " ]\n", mWakeupBuckets.front());
 }
 
 }  // namespace chre

@@ -261,49 +261,42 @@ void WifiRequestManager::handleScanEvent(chreWifiScanEvent *event) {
       SystemCallbackType::WifiHandleScanEvent, event, callback);
 }
 
-void WifiRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                          size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\nWifi: scan monitor %s\n",
-                 scanMonitorIsEnabled() ? "enabled" : "disabled");
+void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nWifi: scan monitor %s\n",
+                  scanMonitorIsEnabled() ? "enabled" : "disabled");
 
   if (scanMonitorIsEnabled()) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   " Wifi scan monitor enabled nanoapps:\n");
+    debugDump.print(" Wifi scan monitor enabled nanoapps:\n");
     for (const auto &instanceId : mScanMonitorNanoapps) {
-      debugDumpPrint(buffer, bufferPos, bufferSize, "  nappId=%" PRIu32 "\n",
-                     instanceId);
+      debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
     }
   }
 
   if (mScanRequestingNanoappInstanceId.has_value()) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   " Wifi request pending nanoappId=%" PRIu32 "\n",
-                   mScanRequestingNanoappInstanceId.value());
+    debugDump.print(" Wifi request pending nanoappId=%" PRIu32 "\n",
+                    mScanRequestingNanoappInstanceId.value());
   }
 
   if (!mPendingScanMonitorRequests.empty()) {
-    debugDumpPrint(buffer, bufferPos, bufferSize, " Wifi transition queue:\n");
+    debugDump.print(" Wifi transition queue:\n");
     for (const auto &transition : mPendingScanMonitorRequests) {
-      debugDumpPrint(
-          buffer, bufferPos, bufferSize, "  enable=%s nappId=%" PRIu32 "\n",
-          transition.enable ? "true" : "false", transition.nanoappInstanceId);
+      debugDump.print("  enable=%s nappId=%" PRIu32 "\n",
+                      transition.enable ? "true" : "false",
+                      transition.nanoappInstanceId);
     }
   }
 
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 " Last %zu wifi scan requests:\n",
-                 mWifiScanRequestLogs.size());
+  debugDump.print(" Last %zu wifi scan requests:\n",
+                  mWifiScanRequestLogs.size());
   static_assert(kNumWifiRequestLogs <= INT8_MAX,
                 "kNumWifiRequestLogs must be <= INT8_MAX");
   for (int8_t i = static_cast<int8_t>(mWifiScanRequestLogs.size()) - 1; i >= 0;
        i--) {
-    const auto &log = mWifiScanRequestLogs[i];
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "  ts=%" PRIu64 " nappId=%" PRIu32 " scanType=%" PRIu8
-                   " maxScanAge(ms)=%" PRIu32 "\n",
-                   log.timestamp, log.instanceId, log.scanType,
-                   log.maxScanAgeMs.getMilliseconds());
+    const auto &log = mWifiScanRequestLogs[static_cast<size_t>(i)];
+    debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " scanType=%" PRIu8
+                    " maxScanAge(ms)=%" PRIu64 "\n",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    log.scanType, log.maxScanAgeMs.getMilliseconds());
   }
 }
 

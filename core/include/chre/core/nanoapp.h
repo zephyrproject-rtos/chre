@@ -24,6 +24,7 @@
 #include "chre/platform/platform_nanoapp.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_vector.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -167,12 +168,9 @@ class Nanoapp : public PlatformNanoapp {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @param buffer Pointer to the start of the buffer.
-   * @param bufferPos Pointer to buffer position to start the print (in-out).
-   * @param size Size of the buffer in bytes.
+   * @param debugDump The object that is printed into for debug dump logs.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos,
-                        size_t bufferSize) const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   uint32_t mInstanceId = kInvalidInstanceId;
@@ -198,12 +196,6 @@ class Nanoapp : public PlatformNanoapp {
   DynamicVector<uint16_t> mRegisteredEvents;
 
   EventRefQueue mEventQueue;
-
-  /*
-   * Helper function to log the state of the wakeups buckets.
-   */
-  void logWakeupsStateToBuffer(char *buffer, size_t *bufferPos,
-                               size_t bufferSize) const;
 };
 
 }

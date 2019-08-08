@@ -45,31 +45,28 @@ namespace chre {
  */
 class EventLoopManager : public NonCopyable {
  public:
-   /**
-    * Validates that a CHRE API is invoked from a valid nanoapp context and
-    * returns a pointer to the currently executing nanoapp. This should be
-    * called by most CHRE API methods that require accessing details about the
-    * event loop or the nanoapp itself. If the current event loop or nanoapp are
-    * null, this is an assertion error.
-    *
-    * @param functionName The name of the CHRE API. This should be __func__.
-    * @param eventLoop Optional output parameter, which will be populated with
-    *        the EventLoop that is currently executing if this function is
-    *        successful
-    * @return A pointer to the currently executing nanoapp or null if outside
-    *         the context of a nanoapp.
-    */
+  /**
+   * Validates that a CHRE API is invoked from a valid nanoapp context and
+   * returns a pointer to the currently executing nanoapp. This should be
+   * called by most CHRE API methods that require accessing details about the
+   * event loop or the nanoapp itself. If the current event loop or nanoapp are
+   * null, this is an assertion error.
+   *
+   * @param functionName The name of the CHRE API. This should be __func__.
+   * @param eventLoop Optional output parameter, which will be populated with
+   *        the EventLoop that is currently executing if this function is
+   *        successful
+   * @return A pointer to the currently executing nanoapp or null if outside
+   *         the context of a nanoapp.
+   */
   static Nanoapp *validateChreApiCall(const char *functionName);
 
   /**
-   * Collect debugging information for this CHRE instance. Must only be called
-   * from the context of the main CHRE thread.
+   * Prints debug dump data into the debugDump object via its buffers.
    *
-   * @return Buffer containing debugging information stored in a null-terminated
-   *         string allocated on the heap (possibly nullptr if the allocation
-   *         failed)
+   * @param debugDump the object used to store the buffers for debug dump data
    */
-  UniquePtr<char> debugDump();
+  void debugDump(DebugDumpWrapper &debugDump);
 
   /**
    * Leverages the event queue mechanism to schedule a CHRE system callback to
