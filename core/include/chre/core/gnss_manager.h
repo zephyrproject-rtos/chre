@@ -104,6 +104,20 @@ class GnssSession {
     Milliseconds minInterval;
   };
 
+  //! Internal struct with data needed to log last X session requests
+  struct SessionRequestLog {
+    SessionRequestLog(Nanoseconds timestampIn, uint32_t instanceIdIn,
+                      Milliseconds intervalIn, bool startIn)
+        : timestamp(timestampIn),
+          instanceId(instanceIdIn),
+          interval(intervalIn),
+          start(startIn) {}
+    Nanoseconds timestamp;
+    uint32_t instanceId;
+    Milliseconds interval;
+    bool start;
+  };
+
   /**
    * Tracks the state of the GNSS engine.
    */
@@ -140,6 +154,10 @@ class GnssSession {
   //! state transition can be in flight at one time. Any further requests are
   //! queued here.
   ArrayQueue<StateTransition, kMaxGnssStateTransitions> mStateTransitions;
+
+  //! The list of most recent session request logs
+  static constexpr size_t kNumSessionRequestLogs = 10;
+  ArrayQueue<SessionRequestLog, kNumSessionRequestLogs> mSessionRequestLogs;
 
   //! The request multiplexer for GNSS session requests.
   DynamicVector<Request> mRequests;
@@ -287,6 +305,16 @@ class GnssSession {
    */
   bool controlPlatform(bool enable, Milliseconds minInterval,
                        Milliseconds minTimeToNext);
+
+  /**
+   * Add a log to list of session logs possibly pushing out the oldest log.
+   *
+   * @param nanoappInstanceId the instance of id of nanoapp requesting
+   * @param interval the interval in milliseconds for request
+   * @param start true if the is a start request, false if a stop request
+   */
+  void addSessionRequestLog(uint32_t nanoappInstanceId, Milliseconds interval,
+                            bool start);
 };
 
 /**
