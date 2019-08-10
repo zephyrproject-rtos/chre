@@ -63,6 +63,7 @@ cc_binary {
     local_include_dirs: [
         "chre_api/include/chre_api",
         "util/include",
+        "apps/power_test/common/include",
     ],
     srcs: [
         "host/common/test/power_test/chre_power_test_client.cc",
