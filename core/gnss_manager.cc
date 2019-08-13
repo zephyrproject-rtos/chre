@@ -105,7 +105,7 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 }
 
 void GnssSession::handleReportEvent(void *event) {
-  EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+  EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
       mReportEventType, event, freeReportEventCallback);
 }
 
@@ -310,9 +310,10 @@ bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
       event->reserved = 0;
       event->cookie = cookie;
 
-      eventPosted = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
-          kSystemInstanceId, instanceId);
+      eventPosted =
+          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+              CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
+              instanceId);
 
       if (!eventPosted) {
         memoryFree(event);

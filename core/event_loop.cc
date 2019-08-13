@@ -249,17 +249,14 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
   return unloaded;
 }
 
-bool EventLoop::postEvent(uint16_t eventType, void *eventData,
-                          chreEventCompleteFunction *freeCallback,
-                          uint32_t senderInstanceId,
-                          uint32_t targetInstanceId) {
+bool EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
+                               chreEventCompleteFunction *freeCallback,
+                               uint32_t targetInstanceId) {
   bool success = false;
 
-  if (mRunning &&
-      (senderInstanceId == kSystemInstanceId ||
-       mEventPool.getFreeBlockCount() > kMinReservedSystemEventCount)) {
+  if (mRunning) {
     success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   senderInstanceId, targetInstanceId);
+                                   kSystemInstanceId, targetInstanceId);
     if (!success) {
       // This can only happen if the event is a system event type. This
       // postEvent method will fail if a non-system event is posted when the
@@ -271,17 +268,21 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
-bool EventLoop::postEventOrFree(uint16_t eventType, void *eventData,
-                                chreEventCompleteFunction *freeCallback,
-                                uint32_t senderInstanceId,
-                                uint32_t targetInstanceId) {
+bool EventLoop::postLowPriorityEventOrFree(
+    uint16_t eventType, void *eventData,
+    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
+    uint32_t targetInstanceId) {
   bool success = false;
 
   if (mRunning) {
-    success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   senderInstanceId, targetInstanceId);
+    if (mEventPool.getFreeBlockCount() > kMinReservedHighPriorityEventCount) {
+      success = allocateAndPostEvent(eventType, eventData, freeCallback,
+                                     senderInstanceId, targetInstanceId);
+    }
     if (!success) {
-      freeCallback(eventType, eventData);
+      if (freeCallback != nullptr) {
+        freeCallback(eventType, eventData);
+      }
       LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
            eventType, targetInstanceId);
     }
@@ -296,7 +297,7 @@ void EventLoop::stop() {
   };
 
   // Stop accepting new events and tell the main loop to finish.
-  postEvent(0, nullptr, callback, kSystemInstanceId, kSystemInstanceId);
+  postEventOrDie(0, nullptr, callback, kSystemInstanceId);
 }
 
 void EventLoop::onStopComplete() {
@@ -471,7 +472,7 @@ void EventLoop::notifyAppStatusChange(uint16_t eventType,
     info->version = nanoapp.getAppVersion();
     info->instanceId = nanoapp.getInstanceId();
 
-    postEvent(eventType, info, freeEventDataCallback);
+    postEventOrDie(eventType, info, freeEventDataCallback);
   }
 }
 

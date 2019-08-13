@@ -398,9 +398,9 @@ void AudioRequestManager::postAudioSamplingChangeEvent(uint32_t instanceId,
   event->status.enabled = true;
   event->status.suspended = !available;
 
-  EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+  EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
       CHRE_EVENT_AUDIO_SAMPLING_CHANGE, event, freeEventDataCallback,
-      kSystemInstanceId, instanceId);
+      instanceId);
 }
 
 void AudioRequestManager::postAudioDataEventFatal(
@@ -411,9 +411,8 @@ void AudioRequestManager::postAudioDataEventFatal(
     mPlatformAudio.releaseAudioDataEvent(event);
   } else {
     for (const auto &instanceId : instanceIds) {
-      EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-          CHRE_EVENT_AUDIO_DATA, event, freeAudioDataEventCallback,
-          kSystemInstanceId, instanceId);
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_AUDIO_DATA, event, freeAudioDataEventCallback, instanceId);
     }
 
     mAudioDataEventRefCounts.emplace_back(

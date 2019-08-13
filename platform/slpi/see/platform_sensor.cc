@@ -206,19 +206,6 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
   return sensorType;
 }
 
-void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
-  memoryFree(eventData);
-
-  // Remove all requests if it's a one-shot sensor and only after data has been
-  // delivered to all clients.
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()
-        ->getSensorRequestManager()
-        .removeAllRequests(sensorType);
-  }
-}
-
 /**
  * Posts a CHRE_EVENT_SENSOR_SAMPLING_CHANGE event to the specified Nanoapp.
  *
@@ -235,9 +222,9 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
     event->sensorHandle = sensorHandle;
     event->status = status;
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
-        kSystemInstanceId, instanceId);
+        instanceId);
   }
 }
 
@@ -257,7 +244,7 @@ void postSensorBiasEvent(SensorType sensorType,
     } else {
       *event = bias;
       event->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
-      EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           eventType, event, freeEventDataCallback);
     }
   }
@@ -369,9 +356,8 @@ void SeeHelperCallback::onSensorDataEvent(SensorType sensorType,
     updateLastEvent(sensorType, eventData.get());
   }
 
-  uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
-  EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
-      eventType, eventData.get(), seeSensorDataEventFree);
+  EventLoopManagerSingleton::get()->getSensorRequestManager().handleSensorEvent(
+      sensorType, eventData.get());
   eventData.release();
 }
 
@@ -397,7 +383,7 @@ void SeeHelperCallback::onSensorBiasEvent(
     // Posts a newly allocated event for the uncalibrated type
     postSensorBiasEvent(toUncalibratedSensorType(sensorType), *biasData.get());
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         eventType, biasData.release(), freeEventDataCallback);
   }
 }
