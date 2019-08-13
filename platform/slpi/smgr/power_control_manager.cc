@@ -63,11 +63,11 @@ void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
   EventLoopManagerSingleton::get()->getEventLoop()
       .getPowerControlManager().mHostIsAwake = !apSuspended;
   if (apSuspended) {
-    EventLoopManagerSingleton::get()->getEventLoop()
-        .postEvent(CHRE_EVENT_HOST_ASLEEP, nullptr, nullptr);
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_HOST_ASLEEP, nullptr, nullptr);
   } else {
-    EventLoopManagerSingleton::get()->getEventLoop()
-        .postEvent(CHRE_EVENT_HOST_AWAKE, nullptr, nullptr);
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_HOST_AWAKE, nullptr, nullptr);
   }
 }
 

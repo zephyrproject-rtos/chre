@@ -87,8 +87,8 @@ class EventLoopManager : public NonCopyable {
    */
   void deferCallback(SystemCallbackType type, void *data,
                      SystemCallbackFunction *callback) {
-    mEventLoop.postEvent(static_cast<uint16_t>(type), data, callback,
-                         kSystemInstanceId, kSystemInstanceId);
+    mEventLoop.postEventOrDie(static_cast<uint16_t>(type), data, callback,
+                              kSystemInstanceId);
   }
 
   /**

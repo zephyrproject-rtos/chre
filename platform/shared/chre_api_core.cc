@@ -57,12 +57,9 @@ DLL_EXPORT bool chreSendEvent(uint16_t eventType, void *eventData,
     LOGW("Rejecting event from app instance %" PRIu32 " because it's stopping",
          nanoapp->getInstanceId());
   } else {
-    success = eventLoop.postEvent(eventType, eventData, freeCallback,
-                                  nanoapp->getInstanceId(), targetInstanceId);
-  }
-
-  if (!success && freeCallback != nullptr) {
-    freeCallback(eventType, eventData);
+    success = eventLoop.postLowPriorityEventOrFree(
+        eventType, eventData, freeCallback, nanoapp->getInstanceId(),
+        targetInstanceId);
   }
   return success;
 }

@@ -392,9 +392,9 @@ void AudioRequestManager::postAudioSamplingChangeEvent(uint32_t instanceId,
   event->status.enabled = true;
   event->status.suspended = !available;
 
-  EventLoopManagerSingleton::get()->getEventLoop()
-      .postEvent(CHRE_EVENT_AUDIO_SAMPLING_CHANGE, event,
-                 freeEventDataCallback, kSystemInstanceId, instanceId);
+  EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+      CHRE_EVENT_AUDIO_SAMPLING_CHANGE, event, freeEventDataCallback,
+      instanceId);
 }
 
 void AudioRequestManager::postAudioDataEventFatal(
@@ -404,11 +404,9 @@ void AudioRequestManager::postAudioDataEventFatal(
     LOGW("Received audio data event for no clients");
     mPlatformAudio.releaseAudioDataEvent(event);
   } else {
-    for (const auto& instanceId : instanceIds) {
-      EventLoopManagerSingleton::get()->getEventLoop()
-          .postEvent(CHRE_EVENT_AUDIO_DATA, event,
-                     freeAudioDataEventCallback,
-                     kSystemInstanceId, instanceId);
+    for (const auto &instanceId : instanceIds) {
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_AUDIO_DATA, event, freeAudioDataEventCallback, instanceId);
     }
 
     mAudioDataEventRefCounts.emplace_back(

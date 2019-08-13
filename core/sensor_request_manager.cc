@@ -19,6 +19,7 @@
 #include "chre_api/chre/version.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
+#include "chre/platform/shared/platform_sensor_util.h"
 #include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 
@@ -193,12 +194,11 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
       }
 
       // Deliver last valid event to new clients of on-change sensors
-      if (sensorTypeIsOnChange(sensor.getSensorType())
-          && sensor.getLastEvent() != nullptr) {
-        EventLoopManagerSingleton::get()->getEventLoop()
-            .postEvent(getSampleEventTypeForSensorType(sensorType),
-                       sensor.getLastEvent(), nullptr, kSystemInstanceId,
-                       nanoapp->getInstanceId());
+      if (sensorTypeIsOnChange(sensor.getSensorType()) &&
+          sensor.getLastEvent() != nullptr) {
+        EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+            getSampleEventTypeForSensorType(sensorType), sensor.getLastEvent(),
+            nullptr, nanoapp->getInstanceId());
       }
     }
   } else {
@@ -415,6 +415,20 @@ void SensorRequestManager::handleFlushCompleteEvent(
   }
 }
 
+void SensorRequestManager::handleSensorEvent(SensorType sensorType,
+                                             void *event) {
+  uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
+  // Only allow dropping continuous sensor events since losing one-shot or
+  // on-change events could result in nanoapps stuck in a bad state.
+  if (sensorTypeIsContinuous(sensorType)) {
+    EventLoopManagerSingleton::get()->getEventLoop().postLowPriorityEventOrFree(
+        eventType, event, sensorDataEventFree);
+  } else {
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        eventType, event, sensorDataEventFree);
+  }
+}
+
 void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
                                             size_t bufferSize) const {
   debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");
@@ -446,9 +460,9 @@ void SensorRequestManager::postFlushCompleteEvent(
     event->cookie = request.cookie;
     memset(event->reserved, 0, sizeof(event->reserved));
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_SENSOR_FLUSH_COMPLETE, event, freeEventDataCallback,
-        kSystemInstanceId, request.nanoappInstanceId);
+        request.nanoappInstanceId);
   }
 }
 
