@@ -98,8 +98,8 @@ void SendEventStressTest::handleEvent(uint32_t senderInstanceId,
                                       uint16_t eventType,
                                       const void* eventData) {
   if (sInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   sInMethod = true;
   if (senderInstanceId != mInstanceId) {
@@ -140,8 +140,8 @@ void SendEventStressTest::completeCallback(uint16_t eventType, void *data) {
   }
 
   if (sInMethod) {
-    sendFatalFailureToHost("completeCallback invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "completeCallback invoked while another nanoapp method is running");
   }
   sanityCheck(eventType, data, 1);
 

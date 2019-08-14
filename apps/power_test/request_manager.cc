@@ -72,8 +72,9 @@ chreSensorConfigureMode getModeForSensorType(uint8_t sensorType) {
       mode = CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT;
       break;
     default:
-      LOGE("Mode requested for unhandled sensor type %" PRIu8 " defaulting to "
-           "continuous", sensorType);
+      LOGE("Mode requested for unhandled sensor type %" PRIu8
+           " defaulting to continuous",
+           sensorType);
       mode = CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS;
   }
   return mode;

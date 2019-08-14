@@ -113,8 +113,8 @@ void HeapExhaustionStabilityTest::setUp(uint32_t messageSize,
   mInMethod = true;
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "HeapExhaustionStability message expects 0 additional bytes, "
-        "got ", &messageSize);
+        "HeapExhaustionStability message expects 0 additional bytes, got ",
+        &messageSize);
   }
 
   if (chreTimerSet(kExhaustionDuration, &kExhaustionDuration, true) ==
@@ -214,8 +214,8 @@ void HeapExhaustionStabilityTest::handleEvent(uint32_t senderInstanceId,
                                               uint16_t eventType,
                                               const void* eventData) {
   if (mInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   mInMethod = true;
 
@@ -243,8 +243,8 @@ void HeapExhaustionStabilityTest::handleTimer(uint32_t senderInstanceId,
     // Our test is done.
     freeMemory();
     if (mFinishedBitmask != kAllFinished) {
-      sendFatalFailureToHost("Done with test, but not all stages "
-                             "done.", &mFinishedBitmask);
+      sendFatalFailureToHost("Done with test, but not all stages done.",
+                             &mFinishedBitmask);
     }
     sendSuccessToHost();
 

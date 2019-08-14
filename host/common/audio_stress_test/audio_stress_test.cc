@@ -101,8 +101,9 @@ void sendLoadNanoappRequest(SocketClient& client, const char *filename,
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
 
-  LOGI("Sending load nanoapp request (%" PRIu32 " bytes total w/%zu bytes of "
-       "payload)", builder.GetSize(), buffer.size());
+  LOGI("Sending load nanoapp request (%" PRIu32
+       " bytes total w/%zu bytes of payload)",
+       builder.GetSize(), buffer.size());
   if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
     LOGE("Failed to send message");
   }

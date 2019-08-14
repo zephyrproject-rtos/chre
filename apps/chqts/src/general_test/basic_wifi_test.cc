@@ -186,25 +186,23 @@ void BasicWifiTest::handleEvent(uint32_t /* senderInstanceId */,
       handleChreWifiAsyncEvent(
           static_cast<const chreAsyncResult *>(eventData));
       break;
-    case CHRE_EVENT_WIFI_SCAN_RESULT:
-      {
-        const auto *result = static_cast<const chreWifiScanEvent *>(eventData);
-        if (isActiveWifiScanType(result)) {
-          // The first chreWifiScanResult is expected to come immediately,
-          // but a long delay is possible if it's implemented incorrectly,
-          // e.g. the async result comes right away (before the scan is actually
-          // completed), then there's a long delay to the scan result.
-          if (mStartTimestampNs != 0
-              && chreGetTime() - mStartTimestampNs >
-                  50 * kOneMillisecondInNanoseconds) {
-            sendFatalFailureToHost(
-                "Did not receive chreWifiScanResult within 50 milliseconds.");
-          }
-          mStartTimestampNs = 0;
-          validateWifiScanEvent(result);
+    case CHRE_EVENT_WIFI_SCAN_RESULT: {
+      const auto *result = static_cast<const chreWifiScanEvent *>(eventData);
+      if (isActiveWifiScanType(result)) {
+        // The first chreWifiScanResult is expected to come immediately,
+        // but a long delay is possible if it's implemented incorrectly,
+        // e.g. the async result comes right away (before the scan is actually
+        // completed), then there's a long delay to the scan result.
+        if (mStartTimestampNs != 0 && chreGetTime() - mStartTimestampNs >
+                                          50 * kOneMillisecondInNanoseconds) {
+          sendFatalFailureToHost(
+              "Did not receive chreWifiScanResult within 50 milliseconds.");
         }
+        mStartTimestampNs = 0;
+        validateWifiScanEvent(result);
       }
       break;
+    }
     default:
       unexpectedEvent(eventType);
       break;

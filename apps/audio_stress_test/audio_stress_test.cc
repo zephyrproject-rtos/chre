@@ -52,20 +52,22 @@ constexpr Seconds kMaxAudioGap = Seconds(300);
 //! The list of durations to subscribe to audio for. Even durations are for when
 //! audio is enabled and odd is for when audio is disabled.
 constexpr Milliseconds kStressPlan[] = {
-  // Enabled, Disabled
-  Milliseconds(20000), Milliseconds(20000),
-  Milliseconds(30000), Milliseconds(200),
-  Milliseconds(10000), Milliseconds(1000),
-  Milliseconds(10000), Milliseconds(1999),
-  Milliseconds(8000), Milliseconds(60000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
-  Milliseconds(1000), Milliseconds(1000),
+    // clang-format off
+    // Enabled, Disabled
+    Milliseconds(20000), Milliseconds(20000),
+    Milliseconds(30000), Milliseconds(200),
+    Milliseconds(10000), Milliseconds(1000),
+    Milliseconds(10000), Milliseconds(1999),
+    Milliseconds(8000), Milliseconds(60000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    Milliseconds(1000), Milliseconds(1000),
+    // clang-format on
 };
 
 //! The discovered audio handle found at startup.

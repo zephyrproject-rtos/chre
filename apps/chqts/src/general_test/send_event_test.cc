@@ -68,8 +68,8 @@ uint8_t SendEventTest::sCallbacksInvoked = 0;
 template<uint8_t kCallbackIndex>
 void SendEventTest::completeCallback(uint16_t eventType, void *data) {
   if (sInMethod) {
-    sendFatalFailureToHost("completeCallback called while another nanoapp "
-                           "method is running.");
+    sendFatalFailureToHost(
+        "completeCallback called while another nanoapp method is running.");
   }
   sInMethod = true;
   if ((data == nullptr) || (data == kOddData)) {
@@ -190,8 +190,8 @@ void SendEventTest::setUp(uint32_t messageSize, const void * /* message */) {
 void SendEventTest::handleEvent(uint32_t senderInstanceId,
                                 uint16_t eventType, const void* eventData) {
   if (sInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   sInMethod = true;
   if (senderInstanceId != chreGetInstanceId()) {

@@ -43,8 +43,9 @@ bool validateAppInfo(uint64_t expectedAppId, uint32_t expectedAppVersion,
     LOGE("Expected app version (0x%" PRIx32 ") doesn't match internal one (0x%"
          PRIx32 ")", expectedAppVersion, appInfo->appVersion);
   } else if (targetApiMajorVersion != ourApiMajorVersion) {
-    LOGE("App targets a different major API version (%" PRIu32 ") than what we "
-         "provide (%" PRIu32 ")", targetApiMajorVersion, ourApiMajorVersion);
+    LOGE("App targets a different major API version (%" PRIu32
+         ") than what we provide (%" PRIu32 ")",
+         targetApiMajorVersion, ourApiMajorVersion);
   } else if (strlen(appInfo->name) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {
     LOGE("App name is too long");
   } else if (strlen(appInfo->vendor) > CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN) {

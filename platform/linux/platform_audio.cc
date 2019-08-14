@@ -127,8 +127,9 @@ bool PlatformAudio::getAudioSource(uint32_t handle,
 }
 
 void PlatformAudioBase::addAudioSource(UniquePtr<AudioSource>& source) {
-  LOGI("Adding audio source - filename: %s, min buf size: %" PRIu64 "ms, "
-       "max buf size: %" PRIu64 "ms", source->audioFilename.c_str(),
+  LOGI("Adding audio source - filename: %s, min buf size: %" PRIu64
+       "ms, max buf size: %" PRIu64 "ms",
+       source->audioFilename.c_str(),
        Milliseconds(source->minBufferDuration).getMilliseconds(),
        Milliseconds(source->maxBufferDuration).getMilliseconds());
   auto& audioInfo = source->audioInfo;

@@ -158,8 +158,8 @@ void TimerSetTest::handleEvent(uint32_t senderInstanceId,
                                uint16_t eventType, const void* eventData) {
   uint64_t timestamp = chreGetTime();
   if (mInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   mInMethod = true;
   if (senderInstanceId != CHRE_INSTANCE_ID) {
@@ -195,8 +195,7 @@ TimerSetTest::Stage *TimerSetTest::getStageFromCookie(const void *cookie) {
   for (size_t i = 0; i < kStageCount; i++) {
     if (mStages[i].getCookie() == cookie) {
       if (ret != nullptr) {
-        sendInternalFailureToHost("Multiple stages with the same "
-                                  "cookie");
+        sendInternalFailureToHost("Multiple stages with the same cookie");
       }
       ret = &mStages[i];
       // It's cheap enough to go through the whole array, and will

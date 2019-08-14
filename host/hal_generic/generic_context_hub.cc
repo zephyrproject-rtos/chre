@@ -493,8 +493,9 @@ bool GenericContextHub::isExpectedLoadResponseLocked(
 
 void GenericContextHub::SocketCallbacks::handleUnloadNanoappResponse(
     const ::chre::fbs::UnloadNanoappResponseT& response) {
-  ALOGV("Got unload nanoapp response for transaction %" PRIu32 " with result "
-        "%d", response.transaction_id, response.success);
+  ALOGV("Got unload nanoapp response for transaction %" PRIu32
+        " with result %d",
+        response.transaction_id, response.success);
 
   invokeClientCallback([&]() {
     TransactionResult result = (response.success) ?
@@ -543,8 +544,9 @@ void GenericContextHub::writeToDebugFile(const char *str) {
 void GenericContextHub::writeToDebugFile(const char *str, size_t len) {
   ssize_t written = write(mDebugFd, str, len);
   if (written != (ssize_t) len) {
-    ALOGW("Couldn't write to debug header: returned %zd, expected %zu "
-          "(errno %d)", written, len, errno);
+    ALOGW(
+        "Couldn't write to debug header: returned %zd, expected %zu (errno %d)",
+        written, len, errno);
   }
 }
 

@@ -87,8 +87,7 @@ void TimerStressTest::startStages() {
   }
   markSuccess(0);
   if (chreTimerSet(kDuration, &kCookies[2], true) == CHRE_TIMER_INVALID) {
-    sendFatalFailureToHost("Unable to set new timer after successful "
-                           "cancel.");
+    sendFatalFailureToHost("Unable to set new timer after successful cancel.");
   }
 }
 
@@ -138,8 +137,8 @@ void TimerStressTest::handleStageEvent(uint32_t index) {
 void TimerStressTest::handleEvent(uint32_t senderInstanceId,
                                   uint16_t eventType, const void* eventData) {
   if (mInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   mInMethod = true;
   if (senderInstanceId != CHRE_INSTANCE_ID) {

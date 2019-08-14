@@ -38,8 +38,8 @@ using chre::EventLoopManagerSingleton;
 using chre::Milliseconds;
 
 //! A description of the simulator.
-constexpr char kSimDescription[] = "A simulation environment for the Context "
-                                   "Hub Runtime Environment (CHRE)";
+constexpr char kSimDescription[] =
+    "A simulation environment for the Context Hub Runtime Environment (CHRE)";
 
 //! The version of the simulator. This is not super important but is assigned by
 //! rules of semantic versioning.

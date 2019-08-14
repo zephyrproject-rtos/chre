@@ -88,9 +88,10 @@ void HostCommsManager::deliverNanoappMessageFromHost(
     LOG_OOM();
   } else if (!msgFromHost->message.copy_array(
       static_cast<const uint8_t *>(messageData), messageSize)) {
-    LOGE("Couldn't allocate %" PRIu32 " bytes for message data from host "
-             "(endpoint 0x%" PRIx16 " type %" PRIu32 ")", messageSize,
-         hostEndpoint, messageType);
+    LOGE("Couldn't allocate %" PRIu32
+         " bytes for message data from host "
+         "(endpoint 0x%" PRIx16 " type %" PRIu32 ")",
+         messageSize, hostEndpoint, messageType);
   } else {
     msgFromHost->appId = appId;
     msgFromHost->fromHostData.messageType = messageType;

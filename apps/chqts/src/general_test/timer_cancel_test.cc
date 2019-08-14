@@ -64,20 +64,21 @@ void TimerCancelTest::startStages() {
   }
 }
 
+// clang-format off
 TimerCancelTest::TimerCancelTest()
-  : Test(CHRE_API_VERSION_1_0),
-    mInMethod(false),
-    mStages{
-      // expectCallback:false ==> We're canceling before the timer fires.
-      // expectCallback:true  ==> We'll cancel after the timer fires once.
-      //
-      //        stage, oneShot, expectCallback
-        Stage(0,     false,   false),
-        Stage(1,     true,    false),
-        Stage(2,     false,   true  ),
-        Stage(3,     true,    true  )},
-    mFinishedBitmask(0) {
-}
+    : Test(CHRE_API_VERSION_1_0),
+      mInMethod(false),
+      mStages{
+        // expectCallback:false ==> We're canceling before the timer fires.
+        // expectCallback:true  ==> We'll cancel after the timer fires once.
+        //
+        //        stage, oneShot, expectCallback
+          Stage(0,     false,   false),
+          Stage(1,     true,    false),
+          Stage(2,     false,   true  ),
+          Stage(3,     true,    true  )},
+      mFinishedBitmask(0) {}
+// clang-format on
 
 void TimerCancelTest::setUp(uint32_t messageSize, const void * /* message */) {
   mInMethod = true;
@@ -112,8 +113,8 @@ void TimerCancelTest::handleStageEvent(Stage *stage) {
   bool cancelSucceeded = chreTimerCancel(stage->timerId);
   if (stage->oneShot) {
     if (cancelSucceeded) {
-      sendFatalFailureToHost("Claimed success canceling one-shot after "
-                             "it fired:", &stage->stage);
+      sendFatalFailureToHost(
+          "Claimed success canceling one-shot after it fired:", &stage->stage);
     }
   } else {
     if (!cancelSucceeded) {
@@ -131,8 +132,8 @@ void TimerCancelTest::handleStageEvent(Stage *stage) {
 void TimerCancelTest::handleEvent(uint32_t senderInstanceId,
                                   uint16_t eventType, const void* eventData) {
   if (mInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   mInMethod = true;
   if (senderInstanceId != CHRE_INSTANCE_ID) {

@@ -65,6 +65,7 @@ constexpr uint64_t makeGoogleNanoappId(uint32_t appNumber) {
   return makeNanoappId(CHRE_VENDOR_ID_GOOGLE, appNumber);
 }
 
+// clang-format off
 constexpr uint64_t kHelloWorldAppId       = makeExampleNanoappId(1);
 constexpr uint64_t kMessageWorldAppId     = makeExampleNanoappId(2);
 constexpr uint64_t kTimerWorldAppId       = makeExampleNanoappId(3);
@@ -80,6 +81,7 @@ constexpr uint64_t kAudioWorldAppId       = makeExampleNanoappId(12);
 constexpr uint64_t kHostAwakeWorldAppId   = makeExampleNanoappId(13);
 constexpr uint64_t kAudioStressTestAppId  = makeExampleNanoappId(14);
 constexpr uint64_t kPowerTestAppId        = makeExampleNanoappId(15);
+// clang-format on
 
 }  // namespace chre
 

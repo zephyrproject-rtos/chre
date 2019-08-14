@@ -93,8 +93,8 @@ template<uint8_t kCallbackIndex>
 void SendMessageToHostTest::smallMessageCallback(void *message,
                                                  size_t messageSize) {
   if (sInMethod) {
-    sendFatalFailureToHost("smallMessageCallback called while another "
-                           "nanoapp method is running");
+    sendFatalFailureToHost(
+        "smallMessageCallback called while another nanoapp method is running");
   }
   sInMethod = true;
   if (message == nullptr) {
@@ -123,8 +123,7 @@ void SendMessageToHostTest::smallMessageCallback(void *message,
       expectedCallbackIndex = 1;
       break;
     case 2:
-      sendFatalFailureToHost("callback invoked when null callback "
-                             "given");
+      sendFatalFailureToHost("callback invoked when null callback given");
       break;
     default:
       sendInternalFailureToHost("Invalid index", &stage);
@@ -162,8 +161,8 @@ uint32_t SendMessageToHostTest::getSmallDataIndex(const uint8_t *data) {
 void SendMessageToHostTest::largeMessageCallback(void *message,
                                                  size_t messageSize) {
   if (sInMethod) {
-    sendFatalFailureToHost("largeMessageCallback called while another "
-                           "nanoapp method is running");
+    sendFatalFailureToHost(
+        "largeMessageCallback called while another nanoapp method is running");
   }
   sInMethod = true;
   if (message == nullptr) {
@@ -178,8 +177,7 @@ void SendMessageToHostTest::largeMessageCallback(void *message,
     sendFatalFailureToHost("largeMessageCallback given bad message");
   }
   if (messageSize != kLargeSizes[index]) {
-    sendFatalFailureToHost("largeMessageCallback given incorrect "
-                           "messageSize");
+    sendFatalFailureToHost("largeMessageCallback given incorrect messageSize");
   }
   const uint8_t *msg = static_cast<const uint8_t*>(message);
   for (size_t i = 0; i < messageSize; i++) {
@@ -315,8 +313,8 @@ void SendMessageToHostTest::setUp(uint32_t messageSize,
   // stage: 6
   if (sendMessageToHost(sLargeMessageData[0], kLargeSizes[0],
                         kUntestedMessageType, largeMessageCallback)) {
-    sendFatalFailureToHost("Oversized data to chreSendMessageToHost "
-                           "claimed success");
+    sendFatalFailureToHost(
+        "Oversized data to chreSendMessageToHost claimed success");
   }
 
   // stage: 7
@@ -332,8 +330,8 @@ void SendMessageToHostTest::handleEvent(uint32_t senderInstanceId,
                                         uint16_t eventType,
                                         const void* eventData) {
   if (sInMethod) {
-    sendFatalFailureToHost("handleEvent invoked while another nanoapp "
-                           "method is running");
+    sendFatalFailureToHost(
+        "handleEvent invoked while another nanoapp method is running");
   }
   sInMethod = true;
 

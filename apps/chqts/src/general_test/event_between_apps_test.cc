@@ -114,8 +114,8 @@ void EventBetweenApps1::handleEvent(uint32_t senderInstanceId,
       sendFatalFailureToHost("Multiple messages from other nanoapp.");
     }
     if (senderInstanceId == CHRE_INSTANCE_ID) {
-      sendFatalFailureToHost("Received event from other nanoapp with "
-                             "CHRE_INSTANCE_ID for sender");
+      sendFatalFailureToHost(
+          "Received event from other nanoapp with CHRE_INSTANCE_ID for sender");
     }
     mReceivedInstanceId = senderInstanceId;
     uint32_t magic;
@@ -133,8 +133,8 @@ void EventBetweenApps1::handleEvent(uint32_t senderInstanceId,
     if (mApp0InstanceId == mReceivedInstanceId) {
       sendSuccessToHost();
     } else {
-      sendFatalFailureToHost("Got bad sender instance ID for nanoapp "
-                             "event: ", &mReceivedInstanceId);
+      sendFatalFailureToHost("Got bad sender instance ID for nanoapp event: ",
+                             &mReceivedInstanceId);
     }
   }
 }
