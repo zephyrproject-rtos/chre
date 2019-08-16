@@ -42,7 +42,8 @@ void sendResponseMessageToHost(bool success, uint16_t hostEndpoint) {
   if (builder.isNull()) {
     LOG_OOM();
   } else {
-    chre::power_test::CreateNanoappResponseMessage(*builder, success);
+    builder->Finish(
+        chre::power_test::CreateNanoappResponseMessage(*builder, success));
 
     // CHRE's version of flatbuffers doesn't allow releasing the underlying
     // buffer from the builder so copy it into a new buffer to be sent to the

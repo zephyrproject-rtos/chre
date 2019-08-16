@@ -80,22 +80,29 @@ chreSensorConfigureMode getModeForSensorType(uint8_t sensorType) {
   return mode;
 }
 
+/**
+ * Verifies a given message from the host is a valid message to the nanoapp.
+ *
+ * @param hostMessage message being delivered from the host
+ * @param verifiedMessage if verification is successful, contains the decoded
+ *     message from the host. Otherwise, is uninitialized.
+ * @return true if the message was verified to be a valid.
+ */
 template<class MessageClass>
 bool verifyMessage(const chreMessageFromHostData& hostMessage,
                    const MessageClass **verifiedMessage) {
   flatbuffers::Verifier verifier(
       static_cast<const uint8_t *>(hostMessage.message),
       hostMessage.messageSize);
-  bool success = true;
-  *verifiedMessage = static_cast<const MessageClass *>(hostMessage.message);
-  if (!(*verifiedMessage)->Verify(verifier)) {
+  bool verified = verifier.VerifyBuffer<MessageClass>(nullptr);
+  if (verified) {
+    *verifiedMessage = flatbuffers::GetRoot<MessageClass>(hostMessage.message);
+  } else {
     LOGE("Failed to verify %s message from host",
          power_test::EnumNameMessageType(
              static_cast<power_test::MessageType>(hostMessage.messageType)));
-    *verifiedMessage = nullptr;
-    success = false;
   }
-  return success;
+  return verified;
 }
 
 }  // namespace
