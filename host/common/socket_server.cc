@@ -244,8 +244,9 @@ bool SocketServer::sendToClientSocket(const void *data, size_t length,
 
 void SocketServer::serviceSocket() {
   constexpr size_t kListenIndex = 0;
-  static_assert(kListenIndex == 0, "Code assumes that the first index is "
-                "always the listen socket");
+  static_assert(kListenIndex == 0,
+                "Code assumes that the first index is always the listen "
+                "socket");
 
   mPollFds[kListenIndex].fd = mSockFd;
   mPollFds[kListenIndex].events = POLLIN;

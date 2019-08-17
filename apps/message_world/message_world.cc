@@ -32,10 +32,11 @@ constexpr uint32_t kMessageType = 1234;
 uint8_t gMessageData[CHRE_MESSAGE_TO_HOST_MAX_SIZE] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 void messageFreeCallback(void *message, size_t messageSize) {
-  LOGI("Got message free callback for message @"
-       " %p (match? %d) size %zu (match? %d)",
-       message, (message == gMessageData),
-       messageSize, (messageSize == sizeof(gMessageData)));
+  LOGI(
+      "Got message free callback for message @ %p (match? %d) size %zu (match?"
+      " %d)",
+      message, (message == gMessageData), messageSize,
+      (messageSize == sizeof(gMessageData)));
   if (!chreSendEvent(CHRE_EVENT_FIRST_USER_VALUE, nullptr, nullptr,
                      chreGetInstanceId())) {
     LOGE("Failed to send event");

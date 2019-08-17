@@ -267,10 +267,11 @@ bool nanoappStart() {
       chreSensorInfo& info = sensor.info;
       bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
       if (infoStatus) {
-        LOGI("SensorInfo: %s, Type=%" PRIu8 " OnChange=%d"
-             " OneShot=%d minInterval=%" PRIu64 "nsec",
-             info.sensorName, info.sensorType, info.isOnChange,
-             info.isOneShot, info.minInterval);
+        LOGI("SensorInfo: %s, Type=%" PRIu8
+             " OnChange=%d OneShot=%d "
+             "minInterval=%" PRIu64 "nsec",
+             info.sensorName, info.sensorType, info.isOnChange, info.isOneShot,
+             info.minInterval);
       } else {
         LOGE("chreGetSensorInfo failed");
       }
@@ -372,7 +373,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
             reading.isNear, reading.invalid);
 
       CLOGI("Prox time: sample %" PRIu64 " chre %" PRIu64 " delta %" PRId64
-            "ms", header.baseTimestamp, chreTime,
+            "ms",
+            header.baseTimestamp, chreTime,
             static_cast<int64_t>(sampleTime - chreTime) / 1000000);
 
       // Enable InstantMotion and StationaryDetect alternatively on near->far.

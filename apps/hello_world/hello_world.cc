@@ -38,8 +38,9 @@ bool nanoappStart() {
 void nanoappHandleEvent(uint32_t senderInstanceId,
                         uint16_t eventType,
                         const void * /*eventData*/) {
-  chreLog(CHRE_LOG_INFO, "Received event 0x%" PRIx16 " from 0x%" PRIx32 " at "
-          "time %" PRIu64, eventType, senderInstanceId, chreGetTime());
+  chreLog(CHRE_LOG_INFO,
+          "Received event 0x%" PRIx16 " from 0x%" PRIx32 " at time %" PRIu64,
+          eventType, senderInstanceId, chreGetTime());
 }
 
 void nanoappEnd() {

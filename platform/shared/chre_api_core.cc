@@ -84,8 +84,9 @@ DLL_EXPORT bool chreSendMessageToHostEndpoint(
   const EventLoop& eventLoop = EventLoopManagerSingleton::get()
       ->getEventLoop();
   if (eventLoop.currentNanoappIsStopping()) {
-    LOGW("Rejecting message to host from app instance %" PRIu32 " because it's "
-         "stopping", nanoapp->getInstanceId());
+    LOGW("Rejecting message to host from app instance %" PRIu32
+         " because it's stopping",
+         nanoapp->getInstanceId());
   } else {
     auto& hostCommsManager =
         EventLoopManagerSingleton::get()->getHostCommsManager();

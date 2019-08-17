@@ -104,13 +104,13 @@ void BasicSensorTestBase::checkPassiveConfigure() {
     // or latency should fail.
     if (chreSensorConfigure(mSensorHandle, mode,
                             CHRE_SENSOR_INTERVAL_DEFAULT, 999)) {
-      sendFatalFailureToHost("chreSensorConfigure() allowed passive with "
-                             "different latency");
+      sendFatalFailureToHost(
+          "chreSensorConfigure() allowed passive with different latency");
     }
     if (chreSensorConfigure(mSensorHandle, mode,
                             999, CHRE_SENSOR_LATENCY_DEFAULT)) {
-      sendFatalFailureToHost("chreSensorConfigure() allowed passive with "
-                             "different interval");
+      sendFatalFailureToHost(
+          "chreSensorConfigure() allowed passive with different interval");
     }
     // TODO: In a more in-depth test, we should test passive mode
     //     receiving data.  This is somewhat complicated by the fact that
@@ -123,14 +123,16 @@ void BasicSensorTestBase::checkPassiveConfigure() {
     if (!chreSensorConfigure(mSensorHandle, mode,
                              CHRE_SENSOR_INTERVAL_DEFAULT,
                              kOneSecondInNanoseconds)) {
-      sendFatalFailureToHost("chreSensorConfigure() failed passive with "
-                             "default interval and non-default latency");
+      sendFatalFailureToHost(
+          "chreSensorConfigure() failed passive with default interval and "
+          "non-default latency");
     }
     if (!isOneShotSensor() && !chreSensorConfigure(
         mSensorHandle, mode, kOneSecondInNanoseconds,
         CHRE_SENSOR_LATENCY_DEFAULT)) {
-      sendFatalFailureToHost("chreSensorConfigure() failed passive with "
-                             "non-default interval and default latency");
+      sendFatalFailureToHost(
+          "chreSensorConfigure() failed passive with non-default interval and "
+          "default latency");
     }
     if (!isOneShotSensor() && !chreSensorConfigure(
         mSensorHandle, mode, kOneSecondInNanoseconds,
@@ -147,8 +149,8 @@ void BasicSensorTestBase::startTest() {
     if (isRequiredSensor()) {
       sendFatalFailureToHost("Sensor is required, but no default found.");
     }
-    sendStringToHost(MessageType::kSkipped, "No default sensor found for "
-                     "optional sensor.");
+    sendStringToHost(MessageType::kSkipped,
+                     "No default sensor found for optional sensor.");
     return;
   }
 
@@ -161,16 +163,16 @@ void BasicSensorTestBase::startTest() {
   }
   if (info.sensorType != getSensorType()) {
     uint32_t type = info.sensorType;
-    sendFatalFailureToHost("chreSensorInfo::sensorType is not expected "
-                           "value, is:", &type);
+    sendFatalFailureToHost(
+        "chreSensorInfo::sensorType is not expected value, is:", &type);
   }
   if (info.isOnChange != isOnChangeSensor()) {
-    sendFatalFailureToHost("chreSensorInfo::isOnChange is opposite of "
-                           "what we expected");
+    sendFatalFailureToHost(
+        "chreSensorInfo::isOnChange is opposite of what we expected");
   }
   if (info.isOneShot != isOneShotSensor()) {
-    sendFatalFailureToHost("chreSensorInfo::isOneShot is opposite of "
-                           "what we expected");
+    sendFatalFailureToHost(
+        "chreSensorInfo::isOneShot is opposite of what we expected");
   }
 
   if (!chreGetSensorSamplingStatus(mSensorHandle, &mOriginalStatus)) {
@@ -192,8 +194,8 @@ void BasicSensorTestBase::startTest() {
 
   if (!chreSensorConfigure(mSensorHandle, mode,
                            mNewStatus.interval, mNewStatus.latency)) {
-    sendFatalFailureToHost("chreSensorConfigure() call failed with default"
-                           " interval and latency");
+    sendFatalFailureToHost(
+        "chreSensorConfigure() call failed with default interval and latency");
   }
   // handleEvent may start getting events, and our testing continues there.
   // (Note: The CHRE is not allow to call handleEvent() while we're still
@@ -412,8 +414,7 @@ void BasicSensorTestBase::handleSensorDataEvent(const void* eventData) {
 void BasicSensorTestBase::handleEvent(
     uint32_t senderInstanceId, uint16_t eventType, const void* eventData) {
   if (mInMethod) {
-    sendFatalFailureToHost("handleEvent() invoked while already in "
-                           "method.");
+    sendFatalFailureToHost("handleEvent() invoked while already in method.");
   }
   mInMethod = true;
   const uint16_t dataEventType =

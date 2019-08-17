@@ -109,8 +109,9 @@ void HeapAllocStressTest::setUp(uint32_t messageSize,
   ptrs[index] = chreHeapAlloc(last_alloc_size);
   if (ptrs[index] == NULL) {
     sendFatalFailureToHost(
-        "After exhausting heap and then free'ing, unable to alloc "
-        "again for size ", &last_alloc_size);
+        "After exhausting heap and then free'ing, unable to alloc again for "
+        "size",
+        &last_alloc_size);
   }
 
   // Everything's good, let's free up our memory.

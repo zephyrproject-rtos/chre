@@ -17,9 +17,9 @@
 #include <chre.h>
 #include <cinttypes>
 
-#include "chre_power_test_generated.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "common.h"
+#include "generated/chre_power_test_generated.h"
 #include "request_manager.h"
 
 #ifdef CHRE_NANOAPP_INTERNAL
@@ -42,7 +42,8 @@ void sendResponseMessageToHost(bool success, uint16_t hostEndpoint) {
   if (builder.isNull()) {
     LOG_OOM();
   } else {
-    chre::power_test::CreateNanoappResponseMessage(*builder, success);
+    builder->Finish(
+        chre::power_test::CreateNanoappResponseMessage(*builder, success));
 
     // CHRE's version of flatbuffers doesn't allow releasing the underlying
     // buffer from the builder so copy it into a new buffer to be sent to the

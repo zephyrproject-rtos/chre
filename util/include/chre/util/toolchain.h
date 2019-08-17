@@ -26,9 +26,11 @@
 
 // Promoting float to double is a necessary part of vararg-based logging, so
 // ignore those warnings when logging via chre/util/nanoapp/log.h
+// clang-format off
 #define CHRE_LOG_PREAMBLE \
     _Pragma("GCC diagnostic push") \
     _Pragma("GCC diagnostic ignored \"-Wdouble-promotion\"")
+// clang-format on
 
 #define CHRE_LOG_EPILOGUE \
     _Pragma("GCC diagnostic pop")
