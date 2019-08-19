@@ -175,6 +175,21 @@ class WifiRequestManager : public NonCopyable {
     bool enable;  //!< Requested scan monitor state
   };
 
+  //! An internal struct to hold scan request data for logging
+  struct WifiScanRequestLog {
+    WifiScanRequestLog(Nanoseconds timestampIn, uint32_t instanceIdIn,
+                       chreWifiScanType scanTypeIn, Milliseconds maxScanAgeMsIn)
+        : timestamp(timestampIn),
+          instanceId(instanceIdIn),
+          scanType(scanTypeIn),
+          maxScanAgeMs(maxScanAgeMsIn) {}
+
+    Nanoseconds timestamp;
+    uint32_t instanceId;
+    enum chreWifiScanType scanType;
+    Milliseconds maxScanAgeMs;
+  };
+
   static constexpr size_t kMaxScanMonitorStateTransitions = 8;
   static constexpr size_t kMaxPendingRangingRequests = 4;
 
@@ -219,6 +234,10 @@ class WifiRequestManager : public NonCopyable {
   //! Tracks the in-flight ranging request and any others queued up behind it
   ArrayQueue<PendingRangingRequest, kMaxPendingRangingRequests>
       mPendingRangingRequests;
+
+  //! List of most recent wifi scan request logs
+  static constexpr size_t kNumWifiRequestLogs = 10;
+  ArrayQueue<WifiScanRequestLog, kNumWifiRequestLogs> mWifiScanRequestLogs;
 
   //! Helps ensure we don't get stuck if platform isn't behaving as expected
   Nanoseconds mRangingResponseTimeout;
@@ -409,6 +428,16 @@ class WifiRequestManager : public NonCopyable {
    * @param scanEvent The scan event to release.
    */
   void handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent);
+
+  /**
+   * Adds a wifi scan request log onto list possibly kicking earliest log out
+   * if full.
+   *
+   * @param nanoappInstanceId The instance Id of the requesting nanoapp
+   * @param params The chre wifi scan params
+   */
+  void addWifiScanRequestLog(uint32_t nanoappInstanceId,
+                             const chreWifiScanParams *params);
 
   /**
    * Releases a wifi scan event after nanoapps have consumed it.
