@@ -113,25 +113,46 @@ void GnssSession::handleReportEvent(void *event) {
 
 void GnssSession::logStateToBuffer(
     char *buffer, size_t *bufferPos, size_t bufferSize) const {
+  // TODO: have all interval values print as INVALID if they are the max
+  // unsigned value
   debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\n %s: Current interval(ms)=%" PRIu64 "\n",
-                 mName, mCurrentInterval.getMilliseconds());
+                 "\n %s: Curr int(ms)=%" PRIu64 "\n", mName,
+                 mCurrentInterval.getMilliseconds());
   debugDumpPrint(buffer, bufferPos, bufferSize, "  Requests:\n");
   for (const auto& request : mRequests) {
     debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   minInterval(ms)=%" PRIu64 " nanoappId=%"
-                   PRIu32 "\n",
+                   "   minInt(ms)=%" PRIu64 " nappId=%" PRIu32 "\n",
                    request.minInterval.getMilliseconds(),
                    request.nanoappInstanceId);
   }
 
-  debugDumpPrint(buffer, bufferPos, bufferSize, "  Transition queue:\n");
-  for (const auto& transition : mStateTransitions) {
+  if (!mStateTransitions.empty()) {
+    debugDumpPrint(buffer, bufferPos, bufferSize, "  Transition queue:\n");
+    for (const auto &transition : mStateTransitions) {
+      debugDumpPrint(buffer, bufferPos, bufferSize,
+                     "   minInt(ms)=%" PRIu64
+                     " enable=%d"
+                     " nappId=%" PRIu32 "\n",
+                     transition.minInterval.getMilliseconds(),
+                     transition.enable, transition.nanoappInstanceId);
+    }
+  }
+
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 "  Last %zu session requests:\n", mSessionRequestLogs.size());
+  static_assert(kNumSessionRequestLogs <= INT8_MAX,
+                "kNumSessionRequestLogs must be less than INT8_MAX.");
+  for (int8_t i = static_cast<int8_t>(mSessionRequestLogs.size()) - 1; i >= 0;
+       i--) {
+    const auto &log = mSessionRequestLogs[i];
     debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   minInterval(ms)=%" PRIu64 " enable=%d"
-                   " nanoappId=%" PRIu32 "\n",
-                   transition.minInterval.getMilliseconds(),
-                   transition.enable, transition.nanoappInstanceId);
+                   "   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
+                   log.timestamp.toRawNanoseconds(), log.instanceId,
+                   log.start ? "start" : "stop\n");
+    if (log.start) {
+      debugDumpPrint(buffer, bufferPos, bufferSize, " int(ms)=%" PRIu64 "\n",
+                     log.interval.getMilliseconds());
+    }
   }
 }
 
@@ -159,6 +180,10 @@ bool GnssSession::configure(
     success = postAsyncResultEvent(
         instanceId, true /* success */, enable, minInterval, CHRE_ERROR_NONE,
         cookie);
+  }
+
+  if (success) {
+    addSessionRequestLog(nanoapp->getInstanceId(), minInterval, enable);
   }
 
   return success;
@@ -407,6 +432,12 @@ bool GnssSession::controlPlatform(
       CHRE_ASSERT_LOG(false, "Unhandled event type %" PRIu16, mReportEventType);
   }
   return success;
+}
+
+void GnssSession::addSessionRequestLog(uint32_t nanoappInstanceId,
+                                       Milliseconds interval, bool start) {
+  mSessionRequestLogs.kick_push(SessionRequestLog(
+      SystemTime::getMonotonicTime(), nanoappInstanceId, interval, start));
 }
 
 }  // namespace chre
