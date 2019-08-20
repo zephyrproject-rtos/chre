@@ -211,6 +211,10 @@ bool SensorRequestManager::setSensorRequest(Nanoapp *nanoapp,
     // TODO: Send an event to nanoapps to indicate the rate change.
   }
 
+  if (success) {
+    addSensorRequestLog(nanoapp->getInstanceId(), sensorType, sensorRequest);
+  }
+
   return success;
 }
 
@@ -425,15 +429,37 @@ void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
     SensorType sensor = static_cast<SensorType>(i);
     if (isValidSensorType(sensor)) {
       for (const auto& request : getRequests(sensor)) {
-        debugDumpPrint(buffer, bufferPos, bufferSize, " %s: mode=%d"
-                       " interval(ns)=%" PRIu64 " latency(ns)=%"
-                       PRIu64 " nanoappId=%" PRIu32 "\n",
+        // TODO: Rearrange these prints to be similar to sensor request logs
+        // below
+        debugDumpPrint(buffer, bufferPos, bufferSize,
+                       " %s: mode=%d"
+                       " int=%" PRIu64 " lat=%" PRIu64 " nappId=%" PRIu32 "\n",
                        getSensorTypeName(sensor), request.getMode(),
                        request.getInterval().toRawNanoseconds(),
                        request.getLatency().toRawNanoseconds(),
                        request.getInstanceId());
       }
     }
+  }
+  debugDumpPrint(buffer, bufferPos, bufferSize,
+                 "\n Last %zu Sensor Requests:\n", mSensorRequestLogs.size());
+  static_assert(kMaxSensorRequestLogs <= INT8_MAX,
+                "kMaxSensorRequestLogs must be <= INT8_MAX");
+  for (int8_t i = static_cast<int8_t>(mSensorRequestLogs.size()) - 1; i >= 0;
+       i--) {
+    const auto &log = mSensorRequestLogs[i];
+    debugDumpPrint(buffer, bufferPos, bufferSize,
+                   "  ts=%" PRIu64 " nappId=%" PRIu32 " sensType=%s mode=%s",
+                   log.timestamp.toRawNanoseconds(), log.instanceId,
+                   getSensorTypeName(log.sensorType),
+                   getSensorModeName(log.mode));
+
+    if (sensorModeIsContinuous(log.mode)) {
+      debugDumpPrint(
+          buffer, bufferPos, bufferSize, " int=%" PRIu64 " lat=%" PRIu64,
+          log.interval.toRawNanoseconds(), log.latency.toRawNanoseconds());
+    }
+    debugDumpPrint(buffer, bufferPos, bufferSize, "\n");
   }
 }
 
@@ -517,6 +543,15 @@ void SensorRequestManager::cancelFlushRequests(
   if (!requests.isFlushRequestPending()) {
     dispatchNextFlushRequest(sensorType);
   }
+}
+
+void SensorRequestManager::addSensorRequestLog(
+    uint32_t nanoappInstanceId, SensorType sensorType,
+    const SensorRequest &sensorRequest) {
+  mSensorRequestLogs.kick_push(SensorRequestLog(
+      SystemTime::getMonotonicTime(), nanoappInstanceId, sensorType,
+      sensorRequest.getMode(), sensorRequest.getInterval(),
+      sensorRequest.getLatency()));
 }
 
 const SensorRequest *SensorRequestManager::SensorRequests::find(

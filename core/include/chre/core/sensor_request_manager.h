@@ -211,6 +211,26 @@ class SensorRequestManager : public NonCopyable {
     bool isActive = false;
   };
 
+  //! An internal structure to store sensor request logs
+  struct SensorRequestLog {
+    SensorRequestLog(Nanoseconds timestampIn, uint32_t instanceIdIn,
+                     SensorType sensorTypeIn, SensorMode modeIn,
+                     Nanoseconds intervalIn, Nanoseconds latencyIn)
+        : timestamp(timestampIn),
+          instanceId(instanceIdIn),
+          sensorType(sensorTypeIn),
+          mode(modeIn),
+          interval(intervalIn),
+          latency(latencyIn) {}
+
+    Nanoseconds timestamp;
+    uint32_t instanceId;
+    SensorType sensorType;
+    SensorMode mode;
+    Nanoseconds interval;
+    Nanoseconds latency;
+  };
+
   /**
    * This allows tracking the state of a sensor with the various requests for it
    * and can trigger a change in mode/rate/latency when required.
@@ -411,6 +431,10 @@ class SensorRequestManager : public NonCopyable {
   //! The list of sensor requests.
   FixedSizeVector<SensorRequests, getSensorTypeCount()> mSensorRequests;
 
+  //! The list of logged sensor requests
+  static constexpr size_t kMaxSensorRequestLogs = 15;
+  ArrayQueue<SensorRequestLog, kMaxSensorRequestLogs> mSensorRequestLogs;
+
   //! A queue of flush requests made by nanoapps.
   static constexpr size_t kMaxFlushRequests = 16;
   FixedSizeVector<FlushRequest, kMaxFlushRequests> mFlushRequestQueue;
@@ -470,6 +494,18 @@ class SensorRequestManager : public NonCopyable {
    */
   void cancelFlushRequests(
       SensorType sensorType, uint32_t nanoappInstanceId = kSystemInstanceId);
+
+  /**
+   * Adds a request log to the list of logs possibly pushing latest log
+   * off if full.
+   *
+   * @param nanoappInstanceId Instance ID of the nanoapp that made the request.
+   * @param sensorType The sesnor type of requested sensor.
+   * @param sensorRequest The SensorRequest object holding params about
+   *    request.
+   */
+  void addSensorRequestLog(uint32_t nanoappInstanceId, SensorType sensorType,
+                           const SensorRequest &sensorRequest);
 };
 
 }  // namespace chre
