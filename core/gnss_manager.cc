@@ -36,11 +36,10 @@ uint32_t GnssManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
 }
 
-void GnssManager::logStateToBuffer(
-    char *buffer, size_t *bufferPos, size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize,"\nGNSS:");
-  mLocationSession.logStateToBuffer(buffer, bufferPos, bufferSize);
-  mMeasurementSession.logStateToBuffer(buffer, bufferPos, bufferSize);
+void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nGNSS:");
+  mLocationSession.logStateToBuffer(debugDump);
+  mMeasurementSession.logStateToBuffer(debugDump);
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
@@ -111,47 +110,39 @@ void GnssSession::handleReportEvent(void *event) {
       .postEvent(mReportEventType, event, freeReportEventCallback);
 }
 
-void GnssSession::logStateToBuffer(
-    char *buffer, size_t *bufferPos, size_t bufferSize) const {
+void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   // TODO: have all interval values print as INVALID if they are the max
   // unsigned value
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\n %s: Curr int(ms)=%" PRIu64 "\n", mName,
-                 mCurrentInterval.getMilliseconds());
-  debugDumpPrint(buffer, bufferPos, bufferSize, "  Requests:\n");
+  debugDump.print("\n %s: Curr int(ms)=%" PRIu64 "\n", mName,
+                  mCurrentInterval.getMilliseconds());
+  debugDump.print("  Requests:\n");
   for (const auto& request : mRequests) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   minInt(ms)=%" PRIu64 " nappId=%" PRIu32 "\n",
-                   request.minInterval.getMilliseconds(),
-                   request.nanoappInstanceId);
+    debugDump.print("   minInt(ms)=%" PRIu64 " nappId=%" PRIu32 "\n",
+                    request.minInterval.getMilliseconds(),
+                    request.nanoappInstanceId);
   }
 
   if (!mStateTransitions.empty()) {
-    debugDumpPrint(buffer, bufferPos, bufferSize, "  Transition queue:\n");
+    debugDump.print("  Transition queue:\n");
     for (const auto &transition : mStateTransitions) {
-      debugDumpPrint(buffer, bufferPos, bufferSize,
-                     "   minInt(ms)=%" PRIu64
-                     " enable=%d"
-                     " nappId=%" PRIu32 "\n",
-                     transition.minInterval.getMilliseconds(),
-                     transition.enable, transition.nanoappInstanceId);
+      debugDump.print("   minInt(ms)=%" PRIu64 " enable=%d nappId=%" PRIu32
+                      "\n",
+                      transition.minInterval.getMilliseconds(),
+                      transition.enable, transition.nanoappInstanceId);
     }
   }
 
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "  Last %zu session requests:\n", mSessionRequestLogs.size());
+  debugDump.print("  Last %zu session requests:\n", mSessionRequestLogs.size());
   static_assert(kNumSessionRequestLogs <= INT8_MAX,
                 "kNumSessionRequestLogs must be less than INT8_MAX.");
   for (int8_t i = static_cast<int8_t>(mSessionRequestLogs.size()) - 1; i >= 0;
        i--) {
-    const auto &log = mSessionRequestLogs[i];
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
-                   log.timestamp.toRawNanoseconds(), log.instanceId,
-                   log.start ? "start" : "stop\n");
+    const auto &log = mSessionRequestLogs[static_cast<size_t>(i)];
+    debugDump.print("   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    log.start ? "start" : "stop\n");
     if (log.start) {
-      debugDumpPrint(buffer, bufferPos, bufferSize, " int(ms)=%" PRIu64 "\n",
-                     log.interval.getMilliseconds());
+      debugDump.print(" int(ms)=%" PRIu64 "\n", log.interval.getMilliseconds());
     }
   }
 }

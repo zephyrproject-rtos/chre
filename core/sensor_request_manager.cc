@@ -421,9 +421,8 @@ void SensorRequestManager::handleFlushCompleteEvent(
   }
 }
 
-void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                            size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize, "\nSensors:\n");
+void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nSensors:\n");
   for (uint8_t i = 0; i < static_cast<uint8_t>(SensorType::SENSOR_TYPE_COUNT);
        i++) {
     SensorType sensor = static_cast<SensorType>(i);
@@ -431,35 +430,31 @@ void SensorRequestManager::logStateToBuffer(char *buffer, size_t *bufferPos,
       for (const auto& request : getRequests(sensor)) {
         // TODO: Rearrange these prints to be similar to sensor request logs
         // below
-        debugDumpPrint(buffer, bufferPos, bufferSize,
-                       " %s: mode=%d"
-                       " int=%" PRIu64 " lat=%" PRIu64 " nappId=%" PRIu32 "\n",
-                       getSensorTypeName(sensor), request.getMode(),
-                       request.getInterval().toRawNanoseconds(),
-                       request.getLatency().toRawNanoseconds(),
-                       request.getInstanceId());
+        debugDump.print(
+            " %s: mode=%d int=%" PRIu64 " lat=%" PRIu64 " nappId=%" PRIu32 "\n",
+            getSensorTypeName(sensor), request.getMode(),
+            request.getInterval().toRawNanoseconds(),
+            request.getLatency().toRawNanoseconds(), request.getInstanceId());
       }
     }
   }
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\n Last %zu Sensor Requests:\n", mSensorRequestLogs.size());
+  debugDump.print("\n Last %zu Sensor Requests:\n", mSensorRequestLogs.size());
   static_assert(kMaxSensorRequestLogs <= INT8_MAX,
                 "kMaxSensorRequestLogs must be <= INT8_MAX");
   for (int8_t i = static_cast<int8_t>(mSensorRequestLogs.size()) - 1; i >= 0;
        i--) {
-    const auto &log = mSensorRequestLogs[i];
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "  ts=%" PRIu64 " nappId=%" PRIu32 " sensType=%s mode=%s",
-                   log.timestamp.toRawNanoseconds(), log.instanceId,
-                   getSensorTypeName(log.sensorType),
-                   getSensorModeName(log.mode));
+    const auto &log = mSensorRequestLogs[static_cast<size_t>(i)];
+    debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " sensType=%s mode=%s",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    getSensorTypeName(log.sensorType),
+                    getSensorModeName(log.mode));
 
     if (sensorModeIsContinuous(log.mode)) {
-      debugDumpPrint(
-          buffer, bufferPos, bufferSize, " int=%" PRIu64 " lat=%" PRIu64,
-          log.interval.toRawNanoseconds(), log.latency.toRawNanoseconds());
+      debugDump.print(" int=%" PRIu64 " lat=%" PRIu64,
+                      log.interval.toRawNanoseconds(),
+                      log.latency.toRawNanoseconds());
     }
-    debugDumpPrint(buffer, bufferPos, bufferSize, "\n");
+    debugDump.print("\n");
   }
 }
 

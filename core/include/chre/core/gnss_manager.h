@@ -22,6 +22,7 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/platform_gnss.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/system/debug_dump.h"
 #include "chre/util/time.h"
 
 namespace chre {
@@ -86,10 +87,10 @@ class GnssSession {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @see GnssManager::logStateToBuffer
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos, size_t bufferSize)
-      const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   /**
@@ -355,14 +356,10 @@ class GnssManager : public NonCopyable {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @param buffer Pointer to the start of the buffer.
-   * @param bufferPos Pointer to buffer position to start the print (in-out).
-   * @param size Size of the buffer in bytes.
-   *
-   * @return true if entire log printed, false if overflow or error.
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos,
-                        size_t bufferSize) const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   // Allows GnssSession to access mPlatformGnss.

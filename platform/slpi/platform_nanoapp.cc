@@ -381,12 +381,10 @@ bool PlatformNanoapp::isSystemNanoapp() const {
   return (mAppInfo != nullptr) ? mAppInfo->isSystemNanoapp : false;
 }
 
-void PlatformNanoapp::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                       size_t bufferSize) const {
+void PlatformNanoapp::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   if (mAppInfo != nullptr) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   " %s: vendor=\"%s\" commit=\"%s\"",
-                   mAppInfo->name, mAppInfo->vendor, getAppVersionString());
+    debugDump.print(" %s: vendor=\"%s\" commit=\"%s\"", mAppInfo->name,
+                    mAppInfo->vendor, getAppVersionString());
   }
 }
 

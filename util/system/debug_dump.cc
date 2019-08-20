@@ -22,29 +22,66 @@
 
 namespace chre {
 
-void debugDumpPrint(char *buffer, size_t *bufferPos, size_t bufferSize,
-                    const char *formatStr, ...) {
-  if (*bufferPos < bufferSize) {
-    va_list argList;
-    va_start(argList, formatStr);
-    int strLen = vsnprintf(&buffer[*bufferPos], bufferSize - *bufferPos,
-                           formatStr, argList);
+void DebugDumpWrapper::print(const char *formatStr, ...) {
+  va_list argList;
+  size_t sizeOfStr;
+  va_start(argList, formatStr);
+  if (!sizeOfFormattedString(formatStr, argList, &sizeOfStr)) {
     va_end(argList);
-
-    if (strLen >= 0) {
-      size_t strLenBytes = static_cast<size_t>(strLen);
-      if (bufferSize < strLenBytes ||
-          *bufferPos >= (bufferSize - strLenBytes)) {
-        *bufferPos = bufferSize;
-        buffer[bufferSize - 1] = '\0';
-        LOG_OOM();
-      } else {
-        *bufferPos += strLenBytes;
-      }
+    LOGE("Error getting string size while debug dump printing");
+  } else {
+    va_end(argList);
+    if (sizeOfStr >= kBuffSize) {
+      LOGE(
+          "String was too large to fit in a single buffer for debug dump"
+          " print");
+    } else if ((mCurrBuff == nullptr || sizeOfStr >= kBuffSize - mBuffPos) &&
+               !allocNewBuffer()) {
+      LOGE("Error allocating buffer in debug dump print");
     } else {
-      LOGE("Error formatting dump state");
+      // String fits into current buffer or created a new buffer successfully
+      va_start(argList, formatStr);
+      if (!insertString(formatStr, argList)) {
+        LOGE("Error inserting string into buffer in debug dump");
+      }
+      va_end(argList);
     }
   }
+}
+
+bool DebugDumpWrapper::allocNewBuffer() {
+  mCurrBuff = static_cast<char *>(memoryAlloc(kBuffSize));
+  if (mCurrBuff == nullptr) {
+    LOG_OOM();
+  } else {
+    mBuffers.emplace_back(mCurrBuff);
+    mBuffPos = 0;
+    mCurrBuff[0] = '\0';
+  }
+  return mCurrBuff != nullptr;
+}
+
+bool DebugDumpWrapper::insertString(const char *formatStr, va_list argList) {
+  CHRE_ASSERT(mCurrBuff != nullptr);
+  int strLen =
+      vsnprintf(&mCurrBuff[mBuffPos], kBuffSize - mBuffPos, formatStr, argList);
+  if (strLen >= 0) {
+    mBuffPos += static_cast<size_t>(strLen);
+  }
+  return strLen >= 0;
+}
+
+bool DebugDumpWrapper::sizeOfFormattedString(const char *formatStr,
+                                             va_list argList,
+                                             size_t *sizeOfStr) {
+  bool success = true;
+  int strLen = vsnprintf(nullptr, 0, formatStr, argList);
+  if (strLen < 0) {
+    success = false;
+  } else {
+    *sizeOfStr = static_cast<size_t>(strLen);
+  }
+  return success;
 }
 
 }  // namespace chre

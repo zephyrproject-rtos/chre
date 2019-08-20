@@ -321,27 +321,24 @@ bool EventLoop::currentNanoappIsStopping() const {
   return (mCurrentApp == mStoppingNanoapp || !mRunning);
 }
 
-void EventLoop::logStateToBuffer(char *buffer, size_t *bufferPos,
-                                 size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize, "\nNanoapps:\n");
+void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nNanoapps:\n");
   Nanoseconds timeSince =
       SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
   uint64_t timeSinceMins = timeSince.toRawNanoseconds()
       / kOneMinuteInNanoseconds;
   uint64_t durationMins = kIntervalWakeupBucket.toRawNanoseconds()
       / kOneMinuteInNanoseconds;
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 " SinceLastBucketCycle=%" PRIu64 "mins"
-                 " BucketDuration=%" PRIu64 "mins\n\n",
-                 timeSinceMins, durationMins);
+  debugDump.print(" SinceLastBucketCycle=%" PRIu64
+                  "mins BucketDuration=%" PRIu64 "mins\n\n",
+                  timeSinceMins, durationMins);
   for (const UniquePtr<Nanoapp>& app : mNanoapps) {
-    app->logStateToBuffer(buffer, bufferPos, bufferSize);
+    app->logStateToBuffer(debugDump);
   }
 
-  debugDumpPrint(buffer, bufferPos, bufferSize, "\nEvent Loop:\n");
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "  Max event pool usage: %zu/%zu\n",
-                 mMaxEventPoolUsage, kMaxEventCount);
+  debugDump.print("\nEvent Loop:\n");
+  debugDump.print("  Max event pool usage: %zu/%zu\n", mMaxEventPoolUsage,
+                  kMaxEventCount);
 }
 
 bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
