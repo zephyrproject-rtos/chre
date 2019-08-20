@@ -33,9 +33,9 @@ class PlatformSensorBase {
   /**
    * Initializes the members of PlatformSensorBase.
    */
-  void initBase(
-      SensorType sensorType, uint64_t mMinInterval, const char *sensorName,
-      ChreSensorData *lastEvent, size_t lastEventSize, bool passiveSupported);
+  void initBase(SensorType sensorType, uint64_t mMinInterval,
+                const char *sensorName, ChreSensorData *lastEvent,
+                size_t lastEventSize, bool passiveSupported);
 
   /**
    * Copies the supplied event to the sensor's last event and marks last event
@@ -50,11 +50,11 @@ class PlatformSensorBase {
    *
    * @param status The current sampling status.
    */
-  void setSamplingStatus(const struct chreSensorSamplingStatus& status);
+  void setSamplingStatus(const struct chreSensorSamplingStatus &status);
 
   //! Stores the last received sampling status from SEE for this sensor making
   //! it easier to dedup updates that come in later from SEE.
-  SeeHelperCallbackInterface::SamplingStatusData mLastReceivedSamplingStatus {};
+  SeeHelperCallbackInterface::SamplingStatusData mLastReceivedSamplingStatus{};
 
  protected:
   //! The sensor type of this sensor.

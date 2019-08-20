@@ -19,10 +19,10 @@
 
 #include <cstdint>
 
-#include "chre_api/chre/sensor.h"
 #include "chre/core/nanoapp.h"
 #include "chre/core/sensor_type.h"
 #include "chre/util/time.h"
+#include "chre_api/chre/sensor.h"
 
 namespace chre {
 
@@ -74,7 +74,7 @@ class SensorRequest {
    * @param request The request to compare against.
    * @return Returns true if this request is equivalent to another.
    */
-  bool isEquivalentTo(const SensorRequest& request) const;
+  bool isEquivalentTo(const SensorRequest &request) const;
 
   /**
    * Assigns the current request to the maximal superset of the mode, rate
@@ -83,7 +83,7 @@ class SensorRequest {
    * @param request The other request to compare the attributes of.
    * @return true if any of the attributes of this request changed.
    */
-  bool mergeWith(const SensorRequest& request);
+  bool mergeWith(const SensorRequest &request);
 
   /**
    * @return Returns the interval of samples for this request.

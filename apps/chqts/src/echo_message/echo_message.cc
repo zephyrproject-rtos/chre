@@ -39,8 +39,7 @@ void messageFreeCallback(void *message, size_t size) {
 }
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType,
-                                   const void* eventData) {
+                                   uint16_t eventType, const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
 
@@ -49,16 +48,16 @@ extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
     }
 
     uint8_t *messageBuffer =
-        static_cast<uint8_t*>(chreHeapAlloc(msg->messageSize));
+        static_cast<uint8_t *>(chreHeapAlloc(msg->messageSize));
     if (msg->messageSize != 0 && messageBuffer == nullptr) {
       sendFatalFailureToHost("Failed to allocate memory for message buffer");
     }
 
-    std::memcpy(static_cast<void*>(messageBuffer), const_cast<void*>(msg->message),
-                msg->messageSize);
+    std::memcpy(static_cast<void *>(messageBuffer),
+                const_cast<void *>(msg->message), msg->messageSize);
 
     if (!chreSendMessageToHostEndpoint(
-            static_cast<void*>(messageBuffer), msg->messageSize,
+            static_cast<void *>(messageBuffer), msg->messageSize,
             msg->messageType, msg->hostEndpoint, messageFreeCallback)) {
       sendFatalFailureToHost("Failed to send message to host");
     }
@@ -69,8 +68,7 @@ extern "C" bool nanoappStart(void) {
   return true;
 }
 
-extern "C" void nanoappEnd(void) {
-}
+extern "C" void nanoappEnd(void) {}
 
 }  // anonymous namespace
 }  // namespace chre

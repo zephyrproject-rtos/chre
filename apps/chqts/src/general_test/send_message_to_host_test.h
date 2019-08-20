@@ -53,7 +53,7 @@ class SendMessageToHostTest : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
@@ -67,10 +67,8 @@ class SendMessageToHostTest : public Test {
   static constexpr size_t kSmallMessageTestCount = 4;
   static uint8_t sSmallMessageData[kSmallMessageTestCount][kSmallMessageSize];
 
-  static constexpr uint32_t kLargeSizes[2] = {
-    CHRE_MESSAGE_TO_HOST_MAX_SIZE + 1,
-    CHRE_MESSAGE_TO_HOST_MAX_SIZE
-  };
+  static constexpr uint32_t kLargeSizes[2] = {CHRE_MESSAGE_TO_HOST_MAX_SIZE + 1,
+                                              CHRE_MESSAGE_TO_HOST_MAX_SIZE};
   static void *sLargeMessageData[2];
 
   // Catch if CHRE implementation illegally reenters nanoapp code.
@@ -81,7 +79,7 @@ class SendMessageToHostTest : public Test {
   static constexpr uint32_t kAllFinished = (1 << 9) - 1;
   static uint32_t sFinishedBitmask;
 
-  template<uint8_t kCallbackIndex>
+  template <uint8_t kCallbackIndex>
   static void smallMessageCallback(void *message, size_t messageSize);
 
   static void smallMessageCallback0(void *message, size_t messageSize);
@@ -102,6 +100,5 @@ class SendMessageToHostTest : public Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_SEND_MESSAGE_TO_HOST_TEST_H_

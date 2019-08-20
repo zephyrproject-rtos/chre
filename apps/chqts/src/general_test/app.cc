@@ -37,8 +37,8 @@
 #include <general_test/nanoapp_info_by_instance_id_test.h>
 #include <general_test/nanoapp_info_events_test_observer.h>
 #include <general_test/nanoapp_info_events_test_performer.h>
-#include <general_test/send_event_test.h>
 #include <general_test/send_event_stress_test.h>
+#include <general_test/send_event_test.h>
 #include <general_test/send_message_to_host_test.h>
 #include <general_test/sensor_info_test.h>
 #include <general_test/simple_heap_alloc_test.h>
@@ -61,14 +61,13 @@ using nanoapp_testing::MessageType;
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendInternalFailureToHost;
 
-
 namespace general_test {
 
 // The size of this array is checked at compile time by the static_assert
 // in getNew().
 alignas(alignof(max_align_t)) static uint8_t gGetNewBackingMemory[128];
 
-template<typename N>
+template <typename N>
 static N *getNew() {
   // We intentionally avoid using chreHeapAlloc() to reduce dependencies
   // for our tests, especially things like HelloWorld.  This obviously
@@ -76,7 +75,7 @@ static N *getNew() {
   static_assert(sizeof(gGetNewBackingMemory) >= sizeof(N),
                 "getNew() backing memory is undersized");
 
-  return new(gGetNewBackingMemory) N();
+  return new (gGetNewBackingMemory) N();
 }
 
 // TODO(b/32114261): Remove this variable.
@@ -84,8 +83,7 @@ bool gUseNycMessageHack = true;
 
 class App {
  public:
-  App() : mConstructionCookie(kConstructed),
-          mCurrentTest(nullptr) {}
+  App() : mConstructionCookie(kConstructed), mCurrentTest(nullptr) {}
 
   ~App() {
     // Yes, it's very odd to actively set a value in our destructor.
@@ -96,8 +94,12 @@ class App {
     mConstructionCookie = kDestructed;
   }
 
-  bool wasConstructed() const { return mConstructionCookie == kConstructed; }
-  bool wasDestructed() const { return mConstructionCookie == kDestructed; }
+  bool wasConstructed() const {
+    return mConstructionCookie == kConstructed;
+  }
+  bool wasDestructed() const {
+    return mConstructionCookie == kDestructed;
+  }
 
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                    const void *eventData);
@@ -113,10 +115,9 @@ class App {
   static constexpr uint32_t kDestructed = UINT32_C(0x19845150);
 
   // TODO(b/32114261): Remove this method.
-  chreMessageFromHostData
-      adjustHostMessageForNYC(const chreMessageFromHostData *data);
+  chreMessageFromHostData adjustHostMessageForNYC(
+      const chreMessageFromHostData *data);
 };
-
 
 // In the NYC version of the CHRE, the "reservedMessageType" isn't
 // assured to be sent correctly from the host.  But we want our
@@ -124,8 +125,8 @@ class App {
 // the host prefixes this value in the first four bytes of 'message',
 // and here we reconstruct the message to be correct.
 // TODO(b/32114261): Remove this method.
-chreMessageFromHostData
-App::adjustHostMessageForNYC(const chreMessageFromHostData *data) {
+chreMessageFromHostData App::adjustHostMessageForNYC(
+    const chreMessageFromHostData *data) {
   if (!gUseNycMessageHack) {
     return *data;
   }
@@ -134,7 +135,7 @@ App::adjustHostMessageForNYC(const chreMessageFromHostData *data) {
   if (data->messageSize < sizeof(uint32_t)) {
     sendFatalFailureToHost("Undersized message in adjustHostMessageForNYC");
   }
-  const uint8_t *messageBytes = static_cast<const uint8_t*>(data->message);
+  const uint8_t *messageBytes = static_cast<const uint8_t *>(data->message);
   nanoapp_testing::memcpy(&(ret.reservedMessageType), messageBytes,
                           sizeof(ret.reservedMessageType));
   ret.reservedMessageType =
@@ -144,9 +145,8 @@ App::adjustHostMessageForNYC(const chreMessageFromHostData *data) {
   return ret;
 }
 
-
 void App::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                      const void* eventData) {
+                      const void *eventData) {
   // TODO: When we get an API that fixes the reservedMessageType,
   //       then we should only use our adjustedData hack on APIs
   //       prior to it being fixed.  Eventually, we should remove
@@ -168,32 +168,29 @@ void App::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
   // us which test to run.  We fail if it's anything else.
   if (eventType != CHRE_EVENT_MESSAGE_FROM_HOST) {
     uint32_t localEventType = eventType;
-    sendFatalFailureToHost(
-        "Unexpected event type with no established test:",
-        &localEventType);
+    sendFatalFailureToHost("Unexpected event type with no established test:",
+                           &localEventType);
   }
   if (senderInstanceId != CHRE_INSTANCE_ID) {
-    sendFatalFailureToHost(
-        "Got MESSAGE_FROM_HOST not from CHRE_INSTANCE_ID:",
-        &senderInstanceId);
+    sendFatalFailureToHost("Got MESSAGE_FROM_HOST not from CHRE_INSTANCE_ID:",
+                           &senderInstanceId);
   }
   createTest(eventData);
 }
 
 void App::createTest(const void *eventData) {
   if (mCurrentTest != nullptr) {
-    sendInternalFailureToHost(
-        "Got to createTest() with non-null mCurrentTest");
+    sendInternalFailureToHost("Got to createTest() with non-null mCurrentTest");
   }
 
   auto data = static_cast<const chreMessageFromHostData *>(eventData);
   switch (static_cast<TestNames>(data->reservedMessageType)) {
     using namespace general_test;
 
-#define CASE(testName, className) \
-    case TestNames::testName: \
-         mCurrentTest = getNew<className>(); \
-         break;
+#define CASE(testName, className)       \
+  case TestNames::testName:             \
+    mCurrentTest = getNew<className>(); \
+    break;
 
     CASE(kHelloWorld, HelloWorldTest);
     CASE(kSimpleHeapAlloc, SimpleHeapAllocTest);
@@ -236,8 +233,8 @@ void App::createTest(const void *eventData) {
 #undef CASE
 
     default:
-    sendFatalFailureToHost("Unexpected message type:",
-                           &(data->reservedMessageType));
+      sendFatalFailureToHost("Unexpected message type:",
+                             &(data->reservedMessageType));
   }
 
   if (mCurrentTest != nullptr) {
@@ -258,10 +255,8 @@ void App::freeTest() {
 
 static general_test::App gApp;
 
-
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType,
-                                   const void* eventData) {
+                                   uint16_t eventType, const void *eventData) {
   gApp.handleEvent(senderInstanceId, eventType, eventData);
 }
 
@@ -269,7 +264,7 @@ static uint32_t zeroedBytes[13];
 
 extern "C" bool nanoappStart(void) {
   // zeroedBytes is in the BSS and needs to be zero'd out.
-  for (size_t i = 0; i < sizeof(zeroedBytes)/sizeof(zeroedBytes[0]); i++) {
+  for (size_t i = 0; i < sizeof(zeroedBytes) / sizeof(zeroedBytes[0]); i++) {
     if (zeroedBytes[i] != 0) {
       return false;
     }

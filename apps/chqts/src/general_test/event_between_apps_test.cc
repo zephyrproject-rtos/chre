@@ -37,15 +37,13 @@ namespace general_test {
 const uint32_t EventBetweenApps0::kMagic = UINT32_C(0x51501984);
 
 EventBetweenApps0::EventBetweenApps0()
-    : Test(CHRE_API_VERSION_1_0), mContinueCount(0) {
-}
+    : Test(CHRE_API_VERSION_1_0), mContinueCount(0) {}
 
 void EventBetweenApps0::setUp(uint32_t messageSize,
                               const void * /* message */) {
   if (messageSize != 0) {
-    sendFatalFailureToHost(
-        "Initial message expects 0 additional bytes, got ",
-        &messageSize);
+    sendFatalFailureToHost("Initial message expects 0 additional bytes, got ",
+                           &messageSize);
   }
 
   NanoappInfo info;
@@ -53,12 +51,11 @@ void EventBetweenApps0::setUp(uint32_t messageSize,
 }
 
 void EventBetweenApps0::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void* eventData) {
+                                    uint16_t eventType, const void *eventData) {
   uint32_t app1InstanceId;
-  const void *message =
-      getMessageDataFromHostEvent(senderInstanceId, eventType, eventData,
-                                  MessageType::kContinue,
-                                  sizeof(app1InstanceId));
+  const void *message = getMessageDataFromHostEvent(
+      senderInstanceId, eventType, eventData, MessageType::kContinue,
+      sizeof(app1InstanceId));
   if (mContinueCount > 0) {
     sendFatalFailureToHost("Multiple kContinue messages sent");
   }
@@ -68,24 +65,22 @@ void EventBetweenApps0::handleEvent(uint32_t senderInstanceId,
   app1InstanceId = nanoapp_testing::littleEndianToHost(app1InstanceId);
   // It's safe to strip the 'const' because we're using nullptr for our
   // free callback.
-  uint32_t *sendData = const_cast<uint32_t*>(&kMagic);
+  uint32_t *sendData = const_cast<uint32_t *>(&kMagic);
   // Send an event to app1.  Note since app1 is on the same system, there are
   // no endian concerns for our sendData.
   chreSendEvent(kEventType, sendData, nullptr, app1InstanceId);
 }
 
 EventBetweenApps1::EventBetweenApps1()
-  : Test(CHRE_API_VERSION_1_0)
-    , mApp0InstanceId(CHRE_INSTANCE_ID)
-    , mReceivedInstanceId(CHRE_INSTANCE_ID) {
-}
+    : Test(CHRE_API_VERSION_1_0),
+      mApp0InstanceId(CHRE_INSTANCE_ID),
+      mReceivedInstanceId(CHRE_INSTANCE_ID) {}
 
 void EventBetweenApps1::setUp(uint32_t messageSize,
                               const void * /* message */) {
   if (messageSize != 0) {
-    sendFatalFailureToHost(
-        "Initial message expects 0 additional bytes, got ",
-        &messageSize);
+    sendFatalFailureToHost("Initial message expects 0 additional bytes, got ",
+                           &messageSize);
   }
 
   NanoappInfo appInfo;
@@ -93,20 +88,18 @@ void EventBetweenApps1::setUp(uint32_t messageSize,
 }
 
 void EventBetweenApps1::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void* eventData) {
+                                    uint16_t eventType, const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
-    const void *message =
-        getMessageDataFromHostEvent(senderInstanceId, eventType, eventData,
-                                    MessageType::kContinue,
-                                    sizeof(mApp0InstanceId));
+    const void *message = getMessageDataFromHostEvent(
+        senderInstanceId, eventType, eventData, MessageType::kContinue,
+        sizeof(mApp0InstanceId));
     // We expect kContinue once, with the app0's instance ID as data.
     if (mApp0InstanceId != CHRE_INSTANCE_ID) {
       // We know app0's instance ID can't be CHRE_INSTANCE_ID, otherwise
       // we would have aborted this test in commonInit().
       sendFatalFailureToHost("Multiple kContinue messages from host.");
     }
-    nanoapp_testing::memcpy(&mApp0InstanceId, message,
-                            sizeof(mApp0InstanceId));
+    nanoapp_testing::memcpy(&mApp0InstanceId, message, sizeof(mApp0InstanceId));
     mApp0InstanceId = nanoapp_testing::littleEndianToHost(mApp0InstanceId);
 
   } else if (eventType == EventBetweenApps0::kEventType) {
@@ -128,8 +121,8 @@ void EventBetweenApps1::handleEvent(uint32_t senderInstanceId,
     unexpectedEvent(eventType);
   }
 
-  if ((mApp0InstanceId != CHRE_INSTANCE_ID)
-      && (mReceivedInstanceId != CHRE_INSTANCE_ID)) {
+  if ((mApp0InstanceId != CHRE_INSTANCE_ID) &&
+      (mReceivedInstanceId != CHRE_INSTANCE_ID)) {
     if (mApp0InstanceId == mReceivedInstanceId) {
       sendSuccessToHost();
     } else {

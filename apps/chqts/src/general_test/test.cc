@@ -28,9 +28,8 @@ using nanoapp_testing::sendFatalFailureToHostUint8;
 namespace general_test {
 
 Test::Test(uint32_t minSupportedVersion)
-    : mApiVersion(chreGetApiVersion())
-      , mIsSupported(mApiVersion >= minSupportedVersion) {
-}
+    : mApiVersion(chreGetApiVersion()),
+      mIsSupported(mApiVersion >= minSupportedVersion) {}
 
 void Test::testSetUp(uint32_t messageSize, const void *message) {
   if (mIsSupported) {
@@ -53,10 +52,10 @@ void Test::unexpectedEvent(uint16_t eventType) {
 }
 
 void Test::validateChreAsyncResult(const chreAsyncResult *result,
-                                   const chreAsyncRequest& request) {
+                                   const chreAsyncRequest &request) {
   if (!result->success) {
-    sendFatalFailureToHostUint8(
-        "chre async result error: %d", result->errorCode);
+    sendFatalFailureToHostUint8("chre async result error: %d",
+                                result->errorCode);
   }
   if (result->success && result->errorCode != CHRE_ERROR_NONE) {
     sendFatalFailureToHostUint8(
@@ -64,12 +63,12 @@ void Test::validateChreAsyncResult(const chreAsyncResult *result,
         result->errorCode);
   }
   if (result->reserved != 0) {
-    sendFatalFailureToHostUint8(
-        "reserved should be 0, got: %d", result->reserved);
+    sendFatalFailureToHostUint8("reserved should be 0, got: %d",
+                                result->reserved);
   }
   if (result->cookie != request.cookie) {
-    chreLog(CHRE_LOG_ERROR, "Request cookie is %p, got %p",
-            request.cookie, result->cookie);
+    chreLog(CHRE_LOG_ERROR, "Request cookie is %p, got %p", request.cookie,
+            result->cookie);
     sendFatalFailureToHost("Request cookie mismatch");
   }
   if (result->requestType != request.requestType) {
@@ -84,10 +83,10 @@ void Test::validateChreAsyncResult(const chreAsyncResult *result,
   }
 }
 
-const void *Test::getMessageDataFromHostEvent(uint32_t senderInstanceId,
-                                              uint16_t eventType, const void* eventData,
-                                              nanoapp_testing::MessageType expectedMessageType,
-                                              uint32_t expectedMessageSize) {
+const void *Test::getMessageDataFromHostEvent(
+    uint32_t senderInstanceId, uint16_t eventType, const void *eventData,
+    nanoapp_testing::MessageType expectedMessageType,
+    uint32_t expectedMessageSize) {
   if (senderInstanceId != CHRE_INSTANCE_ID) {
     sendFatalFailureToHost("Unexpected sender ID:", &senderInstanceId);
   }
@@ -97,7 +96,7 @@ const void *Test::getMessageDataFromHostEvent(uint32_t senderInstanceId,
   if (eventData == nullptr) {
     sendFatalFailureToHost("NULL eventData given");
   }
-  auto data = static_cast<const chreMessageFromHostData*>(eventData);
+  auto data = static_cast<const chreMessageFromHostData *>(eventData);
   if (data->reservedMessageType != uint32_t(expectedMessageType)) {
     sendFatalFailureToHost("Unexpected reservedMessageType:",
                            &(data->reservedMessageType));
@@ -107,6 +106,5 @@ const void *Test::getMessageDataFromHostEvent(uint32_t senderInstanceId,
   }
   return data->message;
 }
-
 
 }  // namespace general_test

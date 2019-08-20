@@ -25,125 +25,164 @@ namespace general_test {
 
 class BasicAccelerometerTest : public BasicSensorTestBase {
  public:
-  BasicAccelerometerTest()
-      : BasicSensorTestBase() {}
+  BasicAccelerometerTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_ACCELEROMETER;
   }
-  bool isRequiredSensor() const override { return true; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return true;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicInstantMotionDetectTest : public BasicSensorTestBase {
  public:
-  BasicInstantMotionDetectTest()
-      : BasicSensorTestBase() {}
+  BasicInstantMotionDetectTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT;
   }
-  bool isRequiredSensor() const override { return true; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return true; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return true;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return true;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicStationaryDetectTest : public BasicSensorTestBase {
  public:
-  BasicStationaryDetectTest()
-      : BasicSensorTestBase() {}
+  BasicStationaryDetectTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_STATIONARY_DETECT;
   }
-  bool isRequiredSensor() const override { return true; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return true; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return true;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return true;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicGyroscopeTest : public BasicSensorTestBase {
  public:
-  BasicGyroscopeTest()
-      : BasicSensorTestBase() {}
+  BasicGyroscopeTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_GYROSCOPE;
   }
-  bool isRequiredSensor() const override { return true; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return true;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicMagnetometerTest : public BasicSensorTestBase {
  public:
-  BasicMagnetometerTest()
-      : BasicSensorTestBase() {}
+  BasicMagnetometerTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD;
   }
-  bool isRequiredSensor() const override { return false; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return false;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicBarometerTest : public BasicSensorTestBase {
  public:
-  BasicBarometerTest()
-      : BasicSensorTestBase() {}
+  BasicBarometerTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_PRESSURE;
   }
-  bool isRequiredSensor() const override { return false; }
-  bool isOnChangeSensor() const override { return false; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return false;
+  }
+  bool isOnChangeSensor() const override {
+    return false;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicLightSensorTest : public BasicSensorTestBase {
  public:
-  BasicLightSensorTest()
-      : BasicSensorTestBase() {}
+  BasicLightSensorTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_LIGHT;
   }
-  bool isRequiredSensor() const override { return false; }
-  bool isOnChangeSensor() const override { return true; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return false;
+  }
+  bool isOnChangeSensor() const override {
+    return true;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 class BasicProximityTest : public BasicSensorTestBase {
  public:
-  BasicProximityTest()
-      : BasicSensorTestBase() {}
+  BasicProximityTest() : BasicSensorTestBase() {}
 
  protected:
   uint8_t getSensorType() const override {
     return CHRE_SENSOR_TYPE_PROXIMITY;
   }
-  bool isRequiredSensor() const override { return false; }
-  bool isOnChangeSensor() const override { return true; }
-  bool isOneShotSensor() const override { return false; }
-  void confirmDataIsSane(const void* eventData) override;
+  bool isRequiredSensor() const override {
+    return false;
+  }
+  bool isOnChangeSensor() const override {
+    return true;
+  }
+  bool isOneShotSensor() const override {
+    return false;
+  }
+  void confirmDataIsSane(const void *eventData) override;
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_BASIC_SENSOR_TESTS_H_

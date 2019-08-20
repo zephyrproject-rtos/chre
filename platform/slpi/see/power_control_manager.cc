@@ -44,7 +44,8 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
     mHostIsAwake = awake;
 
     if (!awake) {
-      EventLoopManagerSingleton::get()->getHostCommsManager()
+      EventLoopManagerSingleton::get()
+          ->getHostCommsManager()
           .resetBlameForNanoappHostWakeup();
     }
 
@@ -55,8 +56,10 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
     if (awake) {
       auto callback = [](uint16_t /* eventType */, void * /* eventData*/) {
-        EventLoopManagerSingleton::get()->getAudioRequestManager()
-            .getPlatformAudio().onHostAwake();
+        EventLoopManagerSingleton::get()
+            ->getAudioRequestManager()
+            .getPlatformAudio()
+            .onHostAwake();
       };
 
       EventLoopManagerSingleton::get()->deferCallback(
@@ -95,4 +98,4 @@ bool PowerControlManager::hostIsAwake() {
   return mHostIsAwake;
 }
 
-} // namespace chre
+}  // namespace chre

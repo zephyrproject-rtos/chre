@@ -18,17 +18,15 @@
 
 #include <general_test/running_info.h>
 
-#include <shared/send_message.h>
 #include <shared/nano_endian.h>
 #include <shared/nano_string.h>
+#include <shared/send_message.h>
 
 #include <chre.h>
 
 namespace general_test {
 
-NanoappInfoByAppIdTest::NanoappInfoByAppIdTest()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+NanoappInfoByAppIdTest::NanoappInfoByAppIdTest() : Test(CHRE_API_VERSION_1_1) {}
 
 void NanoappInfoByAppIdTest::setUp(uint32_t /* messageSize */,
                                    const void * /* message */) {
@@ -40,11 +38,9 @@ void NanoappInfoByAppIdTest::handleEvent(uint32_t senderInstanceId,
                                          const void *eventData) {
   if (senderInstanceId == CHRE_INSTANCE_ID) {
     uint32_t appVersion;
-    const void *message =
-        getMessageDataFromHostEvent(senderInstanceId, eventType,
-                                    eventData,
-                                    nanoapp_testing::MessageType::kContinue,
-                                    sizeof(&appVersion));
+    const void *message = getMessageDataFromHostEvent(
+        senderInstanceId, eventType, eventData,
+        nanoapp_testing::MessageType::kContinue, sizeof(&appVersion));
 
     nanoapp_testing::memcpy(&appVersion, message, sizeof(appVersion));
     appVersion = nanoapp_testing::littleEndianToHost(appVersion);
@@ -57,4 +53,4 @@ void NanoappInfoByAppIdTest::handleEvent(uint32_t senderInstanceId,
   }
 }
 
-} // namespace general_test
+}  // namespace general_test

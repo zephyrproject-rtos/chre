@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
- #ifndef CHRE_POWER_TEST_REQUEST_MANAGER_H_
- #define CHRE_POWER_TEST_REQUEST_MANAGER_H_
+#ifndef CHRE_POWER_TEST_REQUEST_MANAGER_H_
+#define CHRE_POWER_TEST_REQUEST_MANAGER_H_
 
 #include <chre.h>
 #include <cinttypes>
@@ -36,16 +36,17 @@ class RequestManager {
    * @param hostMessage the message data received from the host AP
    * @return whether the message was processed successfully
    */
-  bool handleMessageFromHost(const chreMessageFromHostData& hostMessage);
+  bool handleMessageFromHost(const chreMessageFromHostData &hostMessage);
 
- /**
-  * Handles a timer event using the cookie to determine what action should be
-  * performed.
-  *
-  * @param cookie if non-null, contains an enum value corresponding to whatever
-  *     action should be performed when the timer fires
-  */
+  /**
+   * Handles a timer event using the cookie to determine what action should be
+   * performed.
+   *
+   * @param cookie if non-null, contains an enum value corresponding to whatever
+   *     action should be performed when the timer fires
+   */
   void handleTimerEvent(const void *cookie) const;
+
  private:
   //! Indicates the source that initially set up the timer.
   enum TimerType {
@@ -56,7 +57,7 @@ class RequestManager {
   };
 
   //! Holds the timer ID for each of the timer types.
-  uint32_t mTimerIds[TimerType::NUM_TYPES] = { CHRE_TIMER_INVALID };
+  uint32_t mTimerIds[TimerType::NUM_TYPES] = {CHRE_TIMER_INVALID};
 
   /**
    * Enables or disables break-it mode. When enabled, requests WiFi / GNSS /
@@ -66,7 +67,7 @@ class RequestManager {
    * @param enable whether to enable the break-it mode
    * @return whether the request was successful
    */
-   bool requestBreakIt(bool enable);
+  bool requestBreakIt(bool enable);
 
   /**
    * Enables / disables audio sampling. If enabled, identifies the primary audio
@@ -103,8 +104,7 @@ class RequestManager {
    *     before generating the first location fix
    * @return whether the request was successful
    */
-  bool requestGnssLocation(bool enable,
-                           uint32_t scanIntervalMillis,
+  bool requestGnssLocation(bool enable, uint32_t scanIntervalMillis,
                            uint32_t minTimeToNextFixMillis) const;
 
   /**
@@ -135,10 +135,8 @@ class RequestManager {
    *    to the nanoapp
    * @return whether the request was successful
    */
-  bool requestSensor(bool enable,
-                     uint8_t sensorType,
-                     uint64_t samplingIntervalNs,
-                     uint64_t latencyNs) const;
+  bool requestSensor(bool enable, uint8_t sensorType,
+                     uint64_t samplingIntervalNs, uint64_t latencyNs) const;
 
   /**
    * Enables / disables sampling of all sensors. If enabled, samples all

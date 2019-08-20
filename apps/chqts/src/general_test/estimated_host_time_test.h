@@ -53,6 +53,6 @@ class EstimatedHostTimeTest : public Test {
   uint64_t mPriorHostTime;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_ESTIMATED_HOST_TIME_TEST_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_ESTIMATED_HOST_TIME_TEST_H_

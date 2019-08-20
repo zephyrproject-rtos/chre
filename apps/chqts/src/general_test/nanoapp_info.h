@@ -62,6 +62,6 @@ class NanoappInfo {
   uint32_t mInstanceId;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_NANOAPP_INFO_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_NANOAPP_INFO_H_

@@ -23,8 +23,8 @@ CellInfoBase::CellInfoBase() {
   // Empty
 }
 
-bool CellInfoBase::isBoundedInt32(int32_t value, int32_t lower,
-                                  int32_t upper, int32_t invalid) {
+bool CellInfoBase::isBoundedInt32(int32_t value, int32_t lower, int32_t upper,
+                                  int32_t invalid) {
   return (((value >= lower) && (value <= upper)) || (value == invalid));
 }
 
@@ -38,4 +38,4 @@ void CellInfoBase::sendFatalFailureUint8(const char *message, uint8_t value) {
   nanoapp_testing::sendFatalFailureToHost(message, &val);
 }
 
-} // namespace general_test
+}  // namespace general_test

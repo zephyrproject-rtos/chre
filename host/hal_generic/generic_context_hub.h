@@ -26,9 +26,9 @@
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 
-#include "chre_host/socket_client.h"
-#include "chre_host/host_protocol_host.h"
 #include "chre_host/fragmented_load_transaction.h"
+#include "chre_host/host_protocol_host.h"
+#include "chre_host/socket_client.h"
 
 namespace android {
 namespace hardware {
@@ -36,34 +36,41 @@ namespace contexthub {
 namespace V1_0 {
 namespace implementation {
 
+using ::android::sp;
 using ::android::chre::FragmentedLoadRequest;
 using ::android::chre::FragmentedLoadTransaction;
+using ::android::hardware::hidl_handle;
+using ::android::hardware::hidl_string;
+using ::android::hardware::hidl_vec;
+using ::android::hardware::Return;
 using ::android::hardware::contexthub::V1_0::ContextHub;
 using ::android::hardware::contexthub::V1_0::ContextHubMsg;
 using ::android::hardware::contexthub::V1_0::IContexthub;
 using ::android::hardware::contexthub::V1_0::IContexthubCallback;
 using ::android::hardware::contexthub::V1_0::NanoAppBinary;
 using ::android::hardware::contexthub::V1_0::Result;
-using ::android::hardware::hidl_handle;
-using ::android::hardware::hidl_string;
-using ::android::hardware::hidl_vec;
-using ::android::hardware::Return;
-using ::android::sp;
 
 class GenericContextHub : public IContexthub {
  public:
   GenericContextHub();
 
-  Return<void> debug(const hidl_handle& fd, const hidl_vec<hidl_string>& options) override;
+  Return<void> debug(const hidl_handle &fd,
+                     const hidl_vec<hidl_string> &options) override;
 
   // Methods from ::android::hardware::contexthub::V1_0::IContexthub follow.
   Return<void> getHubs(getHubs_cb _hidl_cb) override;
-  Return<Result> registerCallback(uint32_t hubId, const sp<IContexthubCallback>& cb) override;
-  Return<Result> sendMessageToHub(uint32_t hubId, const ContextHubMsg& msg) override;
-  Return<Result> loadNanoApp(uint32_t hubId, const NanoAppBinary& appBinary, uint32_t transactionId) override;
-  Return<Result> unloadNanoApp(uint32_t hubId, uint64_t appId, uint32_t transactionId) override;
-  Return<Result> enableNanoApp(uint32_t hubId, uint64_t appId, uint32_t transactionId) override;
-  Return<Result> disableNanoApp(uint32_t hubId, uint64_t appId, uint32_t transactionId) override;
+  Return<Result> registerCallback(uint32_t hubId,
+                                  const sp<IContexthubCallback> &cb) override;
+  Return<Result> sendMessageToHub(uint32_t hubId,
+                                  const ContextHubMsg &msg) override;
+  Return<Result> loadNanoApp(uint32_t hubId, const NanoAppBinary &appBinary,
+                             uint32_t transactionId) override;
+  Return<Result> unloadNanoApp(uint32_t hubId, uint64_t appId,
+                               uint32_t transactionId) override;
+  Return<Result> enableNanoApp(uint32_t hubId, uint64_t appId,
+                               uint32_t transactionId) override;
+  Return<Result> disableNanoApp(uint32_t hubId, uint64_t appId,
+                                uint32_t transactionId) override;
   Return<Result> queryApps(uint32_t hubId) override;
 
  private:
@@ -74,34 +81,33 @@ class GenericContextHub : public IContexthub {
   class SocketCallbacks : public ::android::chre::SocketClient::ICallbacks,
                           public ::android::chre::IChreMessageHandlers {
    public:
-    explicit SocketCallbacks(GenericContextHub& parent);
+    explicit SocketCallbacks(GenericContextHub &parent);
     void onMessageReceived(const void *data, size_t length) override;
     void onConnected() override;
     void onDisconnected() override;
 
     void handleNanoappMessage(
-        const ::chre::fbs::NanoappMessageT& message) override;
+        const ::chre::fbs::NanoappMessageT &message) override;
 
     void handleHubInfoResponse(
-        const ::chre::fbs::HubInfoResponseT& response) override;
+        const ::chre::fbs::HubInfoResponseT &response) override;
 
     void handleNanoappListResponse(
-        const ::chre::fbs::NanoappListResponseT& response) override;
+        const ::chre::fbs::NanoappListResponseT &response) override;
 
     void handleLoadNanoappResponse(
-      const ::chre::fbs::LoadNanoappResponseT& response) override;
+        const ::chre::fbs::LoadNanoappResponseT &response) override;
 
     void handleUnloadNanoappResponse(
-      const ::chre::fbs::UnloadNanoappResponseT& response) override;
+        const ::chre::fbs::UnloadNanoappResponseT &response) override;
 
-    void handleDebugDumpData(
-      const ::chre::fbs::DebugDumpDataT& data) override;
+    void handleDebugDumpData(const ::chre::fbs::DebugDumpDataT &data) override;
 
     void handleDebugDumpResponse(
-      const ::chre::fbs::DebugDumpResponseT& response) override;
+        const ::chre::fbs::DebugDumpResponseT &response) override;
 
    private:
-    GenericContextHub& mParent;
+    GenericContextHub &mParent;
     bool mHaveConnected = false;
 
     /**
@@ -114,9 +120,9 @@ class GenericContextHub : public IContexthub {
   class DeathRecipient : public hidl_death_recipient {
    public:
     explicit DeathRecipient(const sp<GenericContextHub> contexthub);
-    void serviceDied(uint64_t cookie,
-                     const wp<::android::hidl::base::V1_0::IBase>& who)
-        override;
+    void serviceDied(
+        uint64_t cookie,
+        const wp<::android::hidl::base::V1_0::IBase> &who) override;
 
    private:
     sp<GenericContextHub> mGenericContextHub;
@@ -164,7 +170,7 @@ class GenericContextHub : public IContexthub {
    *         (if any), false otherwise
    */
   bool isExpectedLoadResponseLocked(
-      const ::chre::fbs::LoadNanoappResponseT& response);
+      const ::chre::fbs::LoadNanoappResponseT &response);
 
   /**
    * Sends a fragmented load request to CHRE. The caller must ensure that
@@ -175,10 +181,10 @@ class GenericContextHub : public IContexthub {
    * @return the result of the request
    */
   Result sendFragmentedLoadNanoAppRequest(
-      FragmentedLoadTransaction& transaction);
+      FragmentedLoadTransaction &transaction);
 };
 
-extern "C" IContexthub* HIDL_FETCH_IContexthub(const char* name);
+extern "C" IContexthub *HIDL_FETCH_IContexthub(const char *name);
 
 }  // namespace implementation
 }  // namespace V1_0

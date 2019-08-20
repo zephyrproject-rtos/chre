@@ -46,12 +46,12 @@
  * Otherwise just map into the chreLog function with the appropriate level.
  */
 
-#define CHRE_LOG(level, fmt, ...) \
-    do { \
-      CHRE_LOG_PREAMBLE \
-      chreLog(level, LOG_TAG " " fmt, ##__VA_ARGS__); \
-      CHRE_LOG_EPILOGUE \
-    } while (0)
+#define CHRE_LOG(level, fmt, ...)                   \
+  do {                                              \
+    CHRE_LOG_PREAMBLE                               \
+    chreLog(level, LOG_TAG " " fmt, ##__VA_ARGS__); \
+    CHRE_LOG_EPILOGUE                               \
+  } while (0)
 
 #if NANOAPP_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_ERROR
 #define LOGE(fmt, ...) CHRE_LOG(CHRE_LOG_ERROR, fmt, ##__VA_ARGS__)

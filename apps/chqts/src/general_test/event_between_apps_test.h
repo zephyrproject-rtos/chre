@@ -47,7 +47,7 @@ class EventBetweenApps0 : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
@@ -74,7 +74,7 @@ class EventBetweenApps1 : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:

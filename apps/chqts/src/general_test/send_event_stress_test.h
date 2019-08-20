@@ -32,7 +32,7 @@ class SendEventStressTest : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
@@ -49,6 +49,5 @@ class SendEventStressTest : public Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_SEND_EVENT_STRESS_TEST_H_

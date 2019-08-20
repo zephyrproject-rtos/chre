@@ -30,7 +30,7 @@
 //! Sample Vendor ID for example nanoapps. The vendor ID portion is the 5 most
 //! significant bytes of the app ID. This vendor ID should not appear in
 //! production.
-#define CHRE_VENDOR_ID_EXAMPLE  UINT64_C(0x0123456789000000)
+#define CHRE_VENDOR_ID_EXAMPLE UINT64_C(0x0123456789000000)
 
 namespace chre {
 

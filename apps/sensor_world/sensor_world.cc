@@ -29,10 +29,10 @@ namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
-using chre::Milliseconds;
-using chre::Seconds;
 using chre::getSensorNameForEventType;
 using chre::kOneMillisecondInNanoseconds;
+using chre::Milliseconds;
+using chre::Seconds;
 
 namespace {
 
@@ -57,132 +57,147 @@ struct SensorState {
   bool isInitialized;
   bool enable;
   uint64_t interval;  // nsec
-  uint64_t latency;  // nsec
+  uint64_t latency;   // nsec
   chreSensorInfo info;
 };
 
 SensorState sensors[] = {
-  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = false,  // InstantMotion is triggered by Prox
-    .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
-    .latency = CHRE_SENSOR_LATENCY_DEFAULT,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = false,  // StationaryDetect is triggered by Prox
-    .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
-    .latency = CHRE_SENSOR_LATENCY_DEFAULT,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_GYROSCOPE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_PRESSURE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(200).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_LIGHT,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(200).toRawNanoseconds(),
-    .latency = 0,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_PROXIMITY,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(200).toRawNanoseconds(),
-    .latency = 0,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Seconds(2).toRawNanoseconds(),
-    .latency = 0,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Seconds(2).toRawNanoseconds(),
-    .latency = 0,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Seconds(2).toRawNanoseconds(),
-    .latency = 0,
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
-  { .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
-    .handle = 0,
-    .isInitialized = false,
-    .enable = kEnableDefault,
-    .interval = Milliseconds(80).toRawNanoseconds(),
-    .latency = Seconds(4).toRawNanoseconds(),
-    .info = {},
-  },
+    {
+        .type = CHRE_SENSOR_TYPE_ACCELEROMETER,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = false,  // InstantMotion is triggered by Prox
+        .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
+        .latency = CHRE_SENSOR_LATENCY_DEFAULT,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = false,  // StationaryDetect is triggered by Prox
+        .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
+        .latency = CHRE_SENSOR_LATENCY_DEFAULT,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_GYROSCOPE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_PRESSURE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(200).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_LIGHT,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(200).toRawNanoseconds(),
+        .latency = 0,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_PROXIMITY,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(200).toRawNanoseconds(),
+        .latency = 0,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Seconds(2).toRawNanoseconds(),
+        .latency = 0,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Seconds(2).toRawNanoseconds(),
+        .latency = 0,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Seconds(2).toRawNanoseconds(),
+        .latency = 0,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = Milliseconds(80).toRawNanoseconds(),
+        .latency = Seconds(4).toRawNanoseconds(),
+        .info = {},
+    },
 };
 
 uint32_t gBreakItTimerHandle;
 
 // Conditional logging macro
-#define CLOGI(fmt, ...) do {               \
-    if (kEnableSensorEventLogging) {       \
-      LOGI(fmt, ##__VA_ARGS__);            \
-    }                                      \
+#define CLOGI(fmt, ...)              \
+  do {                               \
+    if (kEnableSensorEventLogging) { \
+      LOGI(fmt, ##__VA_ARGS__);      \
+    }                                \
   } while (0);
 
 // Helpers for testing InstantMotion and StationaryDetect
@@ -197,8 +212,8 @@ size_t motionSensorIndices[2];
 MotionMode motionMode = MotionMode::Instant;
 
 size_t getMotionSensorIndex() {
-  motionMode = (motionMode == MotionMode::Instant) ?
-      MotionMode::Stationary : MotionMode::Instant;
+  motionMode = (motionMode == MotionMode::Instant) ? MotionMode::Stationary
+                                                   : MotionMode::Instant;
   return motionSensorIndices[static_cast<size_t>(motionMode)];
 }
 
@@ -218,7 +233,7 @@ uint16_t getNextLfsrState() {
 
 void handleTimerEvent(const void *eventData) {
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
-    SensorState& sensor = sensors[i];
+    SensorState &sensor = sensors[i];
 
     bool enable = getNextLfsrState() & 0x1;
     if (sensor.isInitialized && sensor.enable != enable) {
@@ -226,35 +241,35 @@ void handleTimerEvent(const void *eventData) {
 
       bool status;
       if (!enable) {
-        status = chreSensorConfigureModeOnly(
-            sensor.handle, CHRE_SENSOR_CONFIGURE_MODE_DONE);
+        status = chreSensorConfigureModeOnly(sensor.handle,
+                                             CHRE_SENSOR_CONFIGURE_MODE_DONE);
       } else {
-        enum chreSensorConfigureMode mode = sensor.info.isOneShot
-            ? CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT
-            : CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS;
-        status = chreSensorConfigure(
-            sensor.handle, mode, sensor.interval, sensor.latency);
+        enum chreSensorConfigureMode mode =
+            sensor.info.isOneShot ? CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT
+                                  : CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS;
+        status = chreSensorConfigure(sensor.handle, mode, sensor.interval,
+                                     sensor.latency);
       }
 
-      LOGI("Configure [enable %d, status %d]: %s",
-           enable, status, getSensorTypeName(sensor.type));
+      LOGI("Configure [enable %d, status %d]: %s", enable, status,
+           getSensorTypeName(sensor.type));
     }
   }
 
   gBreakItTimerHandle = chreTimerSet(kBreakItPeriod.toRawNanoseconds(),
-        nullptr /* data */, true /* oneShot */);
+                                     nullptr /* data */, true /* oneShot */);
 }
 
-} // namespace
+}  // namespace
 
 bool nanoappStart() {
   LOGI("App started on platform ID %" PRIx64, chreGetPlatformId());
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
-    SensorState& sensor = sensors[i];
+    SensorState &sensor = sensors[i];
     sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
-    LOGI("Sensor %zu initialized: %s with handle %" PRIu32,
-         i, sensor.isInitialized ? "true" : "false", sensor.handle);
+    LOGI("Sensor %zu initialized: %s with handle %" PRIu32, i,
+         sensor.isInitialized ? "true" : "false", sensor.handle);
 
     if (sensor.type == CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT) {
       motionSensorIndices[static_cast<size_t>(MotionMode::Instant)] = i;
@@ -264,7 +279,7 @@ bool nanoappStart() {
 
     if (sensor.isInitialized) {
       // Get sensor info
-      chreSensorInfo& info = sensor.info;
+      chreSensorInfo &info = sensor.info;
       bool infoStatus = chreGetSensorInfo(sensor.handle, &info);
       if (infoStatus) {
         LOGI("SensorInfo: %s, Type=%" PRIu8
@@ -281,10 +296,10 @@ bool nanoappStart() {
         float odrHz = 1e9f / sensor.interval;
         float latencySec = sensor.latency / 1e9f;
         bool status = chreSensorConfigure(sensor.handle,
-            CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, sensor.interval,
-            sensor.latency);
-        LOGI("Requested data: odr %f Hz, latency %f sec, %s",
-             odrHz, latencySec, status ? "success" : "failure");
+                                          CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
+                                          sensor.interval, sensor.latency);
+        LOGI("Requested data: odr %f Hz, latency %f sec, %s", odrHz, latencySec,
+             status ? "success" : "failure");
       }
     }
   }
@@ -292,14 +307,13 @@ bool nanoappStart() {
   // Set timer for BreakIt test.
   if (kBreakIt) {
     gBreakItTimerHandle = chreTimerSet(kBreakItPeriod.toRawNanoseconds(),
-        nullptr /* data */, true /* oneShot */);
+                                       nullptr /* data */, true /* oneShot */);
   }
 
   return true;
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   uint64_t chreTime = chreGetTime();
   uint64_t sampleTime;
@@ -334,10 +348,10 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
         CLOGI("UncalGyro time: first %" PRIu64 " last %" PRIu64 " chre %" PRIu64
               " delta [%" PRId64 ", %" PRId64 "]ms",
               header.baseTimestamp, sampleTime, chreTime,
-              static_cast<int64_t>(header.baseTimestamp - chreTime)
-              / static_cast<int64_t>(kOneMillisecondInNanoseconds),
-              static_cast<int64_t>(sampleTime - chreTime)
-              / static_cast<int64_t>(kOneMillisecondInNanoseconds));
+              static_cast<int64_t>(header.baseTimestamp - chreTime) /
+                  static_cast<int64_t>(kOneMillisecondInNanoseconds),
+              static_cast<int64_t>(sampleTime - chreTime) /
+                  static_cast<int64_t>(kOneMillisecondInNanoseconds));
       }
       break;
     }
@@ -381,18 +395,18 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       if (reading.isNear == 0 && !kBreakIt) {
         size_t motionSensorIndex = getMotionSensorIndex();
         bool status = chreSensorConfigure(sensors[motionSensorIndex].handle,
-            CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
-            CHRE_SENSOR_INTERVAL_DEFAULT,
-            CHRE_SENSOR_LATENCY_DEFAULT);
+                                          CHRE_SENSOR_CONFIGURE_MODE_ONE_SHOT,
+                                          CHRE_SENSOR_INTERVAL_DEFAULT,
+                                          CHRE_SENSOR_LATENCY_DEFAULT);
         LOGI("Requested %s: %s", sensors[motionSensorIndex].info.sensorName,
-              status ? "success" : "failure");
+             status ? "success" : "failure");
       }
 
       // Exercise chreGetSensorSamplingStatus on one sensor on near->far.
       if (sensors[statusIndex].isInitialized && reading.isNear == 0) {
         struct chreSensorSamplingStatus status;
-        bool success = chreGetSensorSamplingStatus(sensors[statusIndex].handle,
-                                                   &status);
+        bool success =
+            chreGetSensorSamplingStatus(sensors[statusIndex].handle, &status);
         LOGI("%s success %d: enabled %d interval %" PRIu64 " latency %" PRIu64,
              sensors[statusIndex].info.sensorName, success, status.enabled,
              status.interval, status.latency);
@@ -406,14 +420,14 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
       const auto header = ev->header;
 
-      CLOGI("%s, %d samples",
-            getSensorNameForEventType(eventType), header.readingCount);
+      CLOGI("%s, %d samples", getSensorNameForEventType(eventType),
+            header.readingCount);
       break;
     }
 
     case CHRE_EVENT_SENSOR_SAMPLING_CHANGE: {
-      const auto *ev = static_cast<const chreSensorSamplingStatusEvent *>(
-          eventData);
+      const auto *ev =
+          static_cast<const chreSensorSamplingStatusEvent *>(eventData);
 
       CLOGI("Sampling Change: handle %" PRIu32 ", status: interval %" PRIu64
             " latency %" PRIu64 " enabled %d",
@@ -421,7 +435,6 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
             ev->status.enabled);
       break;
     }
-
 
     case CHRE_EVENT_TIMER:
       if (!kBreakIt) {
@@ -445,8 +458,8 @@ void nanoappEnd() {
 }  // anonymous namespace
 }  // namespace chre
 
-#include "chre/util/nanoapp/app_id.h"
 #include "chre/platform/static_nanoapp_init.h"
+#include "chre/util/nanoapp/app_id.h"
 
 CHRE_STATIC_NANOAPP_INIT(SensorWorld, chre::kSensorWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

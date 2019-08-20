@@ -19,8 +19,8 @@
 extern "C" {
 
 #include "HAP_farf.h"
-#include "timer.h"
 #include "qurt.h"
+#include "timer.h"
 
 }  // extern "C"
 
@@ -64,8 +64,9 @@ constexpr size_t kStackSize = (8 * 1024);
 //! Memory partition where the thread control block (TCB) should be stored,
 //! which controls micro-image support.
 //! @see qurt_thread_attr_set_tcb_partition
-constexpr unsigned char kTcbPartition = chre::isSlpiUimgSupported() ?
-    QURT_THREAD_ATTR_TCB_PARTITION_TCM : QURT_THREAD_ATTR_TCB_PARTITION_RAM;
+constexpr unsigned char kTcbPartition =
+    chre::isSlpiUimgSupported() ? QURT_THREAD_ATTR_TCB_PARTITION_TCM
+                                : QURT_THREAD_ATTR_TCB_PARTITION_RAM;
 
 //! The priority to set for the CHRE thread (value between 1-255, with 1 being
 //! the highest).

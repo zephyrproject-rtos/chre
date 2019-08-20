@@ -176,8 +176,6 @@ inline void sendSuccessToHost() {
   sendMessageToHost(MessageType::kSuccess);
 }
 
-
 }  // namespace nanoapp_testing
-
 
 #endif  // _GTS_NANOAPPS_SHARED_SEND_MESSAGE_H_

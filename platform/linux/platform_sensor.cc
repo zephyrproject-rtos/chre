@@ -18,7 +18,7 @@
 
 namespace chre {
 
-PlatformSensor::PlatformSensor(PlatformSensor&& other) {
+PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   *this = std::move(other);
 }
 
@@ -42,7 +42,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   return false;
 }
 
-bool PlatformSensor::applyRequest(const SensorRequest& request) {
+bool PlatformSensor::applyRequest(const SensorRequest &request) {
   // TODO: Implement this. Perhaps consider the request and start to pass in
   // sensor samples from mock sensor data once the sensor has transitioned to
   // being enabled. Maybe consider resampling input data if the provided mock
@@ -70,7 +70,7 @@ const char *PlatformSensor::getSensorName() const {
   return "";
 }
 
-PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+PlatformSensor &PlatformSensor::operator=(PlatformSensor &&other) {
   // TODO: Implement this.
   return *this;
 }

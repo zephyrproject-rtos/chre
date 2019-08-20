@@ -35,8 +35,8 @@ Nanoapp::Nanoapp() {
 
 Nanoapp::~Nanoapp() {
   CHRE_ASSERT_LOG(getTotalAllocatedBytes() == 0,
-      "Nanoapp ID=0x%016" PRIx64 " still has %zu allocated bytes!", getAppId(),
-      getTotalAllocatedBytes());
+                  "Nanoapp ID=0x%016" PRIx64 " still has %zu allocated bytes!",
+                  getAppId(), getTotalAllocatedBytes());
 }
 
 bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType) const {

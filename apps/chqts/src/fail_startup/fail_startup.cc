@@ -31,7 +31,7 @@
 
 extern "C" void nanoappHandleEvent(uint32_t /* senderInstanceId */,
                                    uint16_t /* eventType */,
-                                   const void* /* eventData */) {
+                                   const void * /* eventData */) {
   // Intentionally do nothing.
 }
 

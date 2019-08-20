@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
- #ifndef CHRE_POWER_TEST_COMMON_H_
- #define CHRE_POWER_TEST_COMMON_H_
+#ifndef CHRE_POWER_TEST_COMMON_H_
+#define CHRE_POWER_TEST_COMMON_H_
 
 #ifndef CHRE_NANOAPP_INTERNAL
 #include "chre/util/nanoapp/log.h"
@@ -27,4 +27,4 @@
 #define LOG_TAG "[PowerTest]"
 #endif  // CHRE_TCM_BUILD
 
- #endif  // CHRE_POWER_TEST_COMMON_H_
+#endif  // CHRE_POWER_TEST_COMMON_H_

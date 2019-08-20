@@ -18,7 +18,7 @@
 
 namespace chre {
 
-bool Sensor::setRequest(const SensorRequest& request) {
+bool Sensor::setRequest(const SensorRequest &request) {
   bool success = false;
 
   if (request.isEquivalentTo(mSensorRequest)) {

@@ -30,16 +30,13 @@ using nanoapp_testing::sendSuccessToHost;
 
 namespace general_test {
 
-LoggingSanityTest::LoggingSanityTest()
-    : Test(CHRE_API_VERSION_1_0) {
-}
+LoggingSanityTest::LoggingSanityTest() : Test(CHRE_API_VERSION_1_0) {}
 
 void LoggingSanityTest::setUp(uint32_t messageSize,
                               const void * /* message */) {
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "LoggingSanity message expects 0 additional bytes, got ",
-        &messageSize);
+        "LoggingSanity message expects 0 additional bytes, got ", &messageSize);
   }
 
   // Test each warning level.
@@ -76,12 +73,13 @@ void LoggingSanityTest::setUp(uint32_t messageSize,
   // We also use the min() value for all these signed types, assuring that
   // we'll get different %d vs %u output, and we'll get letters within our
   // %x and %X output.
-#define INT_TYPES(kPrefix, type) \
-  { \
-    type value = std::numeric_limits<type>::min(); \
-    chreLog(kInfo, "%" kPrefix "d %" kPrefix "u 0%" kPrefix "o 0x%" \
-            kPrefix "x 0x%" kPrefix "X", value, value, value, value, \
-            value); \
+#define INT_TYPES(kPrefix, type)                                     \
+  {                                                                  \
+    type value = std::numeric_limits<type>::min();                   \
+    chreLog(kInfo,                                                   \
+            "%" kPrefix "d %" kPrefix "u 0%" kPrefix "o 0x%" kPrefix \
+            "x 0x%" kPrefix "X",                                     \
+            value, value, value, value, value);                      \
   }
 
   INT_TYPES("hh", char);
@@ -124,7 +122,7 @@ void LoggingSanityTest::setUp(uint32_t messageSize,
 }
 
 void LoggingSanityTest::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void* eventData) {
+                                    uint16_t eventType, const void *eventData) {
   unexpectedEvent(eventType);
 }
 

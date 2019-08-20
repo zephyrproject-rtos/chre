@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "chre/apps/apps.h"
 #include "chre/core/static_nanoapps.h"
+#include "chre/apps/apps.h"
 #include "chre/util/macros.h"
 
 namespace chre {

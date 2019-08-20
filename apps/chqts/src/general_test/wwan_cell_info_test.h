@@ -36,12 +36,13 @@ class WwanCellInfoTest : public Test {
 
  private:
   void cancelTimer();
-  void validateCellInfo(uint8_t count, const struct chreWwanCellInfo *cells) const;
+  void validateCellInfo(uint8_t count,
+                        const struct chreWwanCellInfo *cells) const;
   void validateCellInfoResult(const void *eventData) const;
 
   uint32_t mTimerHandle = CHRE_TIMER_INVALID;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_WWAN_CELL_INFO_TEST_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_WWAN_CELL_INFO_TEST_H_

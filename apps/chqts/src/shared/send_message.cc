@@ -59,8 +59,7 @@ static void fatalError() {
   // Attempt to send a context-less failure message, in the hopes that
   // might get through.
   chreSendMessageToHost(nullptr, 0,
-                        static_cast<uint32_t>(MessageType::kFailure),
-                        nullptr);
+                        static_cast<uint32_t>(MessageType::kFailure), nullptr);
   // Whether or not that made it through, unambigiously fail this test
   // by aborting.
   nanoapp_testing::abort();
@@ -98,10 +97,10 @@ static void *prependMessageType(MessageType messageType, void *memory) {
   if (!needToPrependMessageType()) {
     return memory;
   }
-  uint32_t type = nanoapp_testing::hostToLittleEndian(
-      static_cast<uint32_t>(messageType));
+  uint32_t type =
+      nanoapp_testing::hostToLittleEndian(static_cast<uint32_t>(messageType));
   memcpy(memory, &type, sizeof(type));
-  uint8_t *ptr = static_cast<uint8_t*>(memory);
+  uint8_t *ptr = static_cast<uint8_t *>(memory);
   ptr += sizeof(type);
   return ptr;
 }
@@ -111,11 +110,10 @@ static void internalSendMessage(MessageType messageType, void *data,
   // Note that if the CHRE implementation occasionally drops a message
   // here, then tests will become flaky.  For now, we consider that to
   // be a flaky CHRE implementation which should fail testing.
-  if (!chreSendMessageToHostEndpoint(data, dataSize,
-                                     static_cast<uint32_t>(messageType),
-                                     CHRE_HOST_ENDPOINT_BROADCAST,
-                                     dumbAlloc ? freeDumbAllocMessage :
-                                     freeHeapMessage)) {
+  if (!chreSendMessageToHostEndpoint(
+          data, dataSize, static_cast<uint32_t>(messageType),
+          CHRE_HOST_ENDPOINT_BROADCAST,
+          dumbAlloc ? freeDumbAllocMessage : freeHeapMessage)) {
     fatalError();
   }
 }
@@ -149,9 +147,8 @@ void sendStringToHost(MessageType messageType, const char *message,
 
   size_t fullMessageLen = myMessageLen;
   char *fullMessage =
-      static_cast<char*>(getMessageMemory(&fullMessageLen, &dumbAlloc));
-  char *ptr = static_cast<char*>(prependMessageType(messageType,
-                                                    fullMessage));
+      static_cast<char *>(getMessageMemory(&fullMessageLen, &dumbAlloc));
+  char *ptr = static_cast<char *>(prependMessageType(messageType, fullMessage));
   memcpy(ptr, message, messageStrlen);
   ptr += messageStrlen;
   if (value != nullptr) {

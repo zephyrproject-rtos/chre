@@ -28,8 +28,8 @@ void freeEventDataCallback(uint16_t /*eventType*/, void *eventData) {
 }
 
 Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
-  chre::Nanoapp *currentNanoapp = EventLoopManagerSingleton::get()
-      ->getEventLoop().getCurrentNanoapp();
+  chre::Nanoapp *currentNanoapp =
+      EventLoopManagerSingleton::get()->getEventLoop().getCurrentNanoapp();
   CHRE_ASSERT_LOG(currentNanoapp, "%s called with no CHRE app context",
                   functionName);
   return currentNanoapp;
@@ -61,8 +61,8 @@ uint32_t EventLoopManager::getNextInstanceId() {
   // support wraparound for stress testing load/unload, then we can set a flag
   // when wraparound occurs and use EventLoop::findNanoappByInstanceId to ensure
   // we avoid conflicts
-  if (mLastInstanceId == kBroadcastInstanceId
-      || mLastInstanceId == kSystemInstanceId) {
+  if (mLastInstanceId == kBroadcastInstanceId ||
+      mLastInstanceId == kSystemInstanceId) {
     FATAL_ERROR("Exhausted instance IDs!");
   }
 

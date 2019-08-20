@@ -67,6 +67,6 @@ class TestSuccessMarker {
   uint32_t mFinishedBitmask = 0;
 };
 
-} // namespace nanoapp_testing
+}  // namespace nanoapp_testing
 
-#endif // _GTS_NANOAPPS_SHARED_TEST_SUCCESS_MARKER_H_
+#endif  // _GTS_NANOAPPS_SHARED_TEST_SUCCESS_MARKER_H_

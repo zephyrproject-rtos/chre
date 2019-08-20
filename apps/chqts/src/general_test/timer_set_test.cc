@@ -54,8 +54,12 @@ namespace general_test {
 
 TimerSetTest::Stage::Stage(uint32_t stage, uint64_t duration,
                            const void *cookie, bool oneShot)
-    : mSetTime(0), mDuration(duration), mStage(stage), mEventCount(0),
-      mCookie(cookie), mOneShot(oneShot) {}
+    : mSetTime(0),
+      mDuration(duration),
+      mStage(stage),
+      mEventCount(0),
+      mCookie(cookie),
+      mOneShot(oneShot) {}
 
 void TimerSetTest::Stage::start() {
   mSetTime = chreGetTime();
@@ -85,8 +89,7 @@ void TimerSetTest::Stage::processEvent(uint64_t timestamp, TimerSetTest *test) {
 
   if (mOneShot) {
     if (mEventCount > 1) {
-      sendFatalFailureToHost("One shot timer called multiple times ",
-                             &mStage);
+      sendFatalFailureToHost("One shot timer called multiple times ", &mStage);
     } else {
       test->markSuccess(mStage);
     }
@@ -104,42 +107,39 @@ void TimerSetTest::Stage::processEvent(uint64_t timestamp, TimerSetTest *test) {
 void TimerSetTest::initStages() {
   // To avoid fragmentation, we do one large allocation, and use
   // placement new to initialize it.
-  mStages = static_cast<Stage*>(chreHeapAlloc(sizeof(*mStages) *
-                                              kStageCount));
+  mStages = static_cast<Stage *>(chreHeapAlloc(sizeof(*mStages) * kStageCount));
   if (mStages == nullptr) {
     sendFatalFailureToHost("Insufficient heap");
   }
 
-#define COOKIE(num) reinterpret_cast<const void*>(num)
+#define COOKIE(num) reinterpret_cast<const void *>(num)
 
   // Stage 0: Test NULL cookie
-  new(&mStages[0]) Stage(0, kShortDuration, nullptr, true);
+  new (&mStages[0]) Stage(0, kShortDuration, nullptr, true);
   // Stage 1: Test (void*)-1 cookie
-  new(&mStages[1]) Stage(1, kShortDuration, COOKIE(-1), true);
+  new (&mStages[1]) Stage(1, kShortDuration, COOKIE(-1), true);
   // Stage 2: Test one shot with short duration
-  new(&mStages[2]) Stage(2, kShortDuration, COOKIE(2), true);
+  new (&mStages[2]) Stage(2, kShortDuration, COOKIE(2), true);
   // Stage 3: Test one shot with long duration
-  new(&mStages[3]) Stage(3, kLongDuration,  COOKIE(3), true);
+  new (&mStages[3]) Stage(3, kLongDuration, COOKIE(3), true);
   // Stage 4: Test recurring with long duration
-  new(&mStages[4]) Stage(4, kLongDuration,  COOKIE(4), false);
+  new (&mStages[4]) Stage(4, kLongDuration, COOKIE(4), false);
   // Stage 5: Test recurring with short duration
-  new(&mStages[5]) Stage(5, kShortDuration, COOKIE(5), false);
+  new (&mStages[5]) Stage(5, kShortDuration, COOKIE(5), false);
   static_assert((5 + 1) == kStageCount, "Missized array");
 
 #undef COOKIE
 }
 
 TimerSetTest::TimerSetTest()
-  : Test(CHRE_API_VERSION_1_0), mInMethod(false), mFinishedBitmask(0) {
-}
+    : Test(CHRE_API_VERSION_1_0), mInMethod(false), mFinishedBitmask(0) {}
 
 void TimerSetTest::setUp(uint32_t messageSize, const void * /* message */) {
   mInMethod = true;
 
   if (messageSize != 0) {
-    sendFatalFailureToHost(
-        "TimerSet message expects 0 additional bytes, got ",
-        &messageSize);
+    sendFatalFailureToHost("TimerSet message expects 0 additional bytes, got ",
+                           &messageSize);
   }
 
   initStages();
@@ -154,8 +154,8 @@ TimerSetTest::~TimerSetTest() {
   chreHeapFree(mStages);
 }
 
-void TimerSetTest::handleEvent(uint32_t senderInstanceId,
-                               uint16_t eventType, const void* eventData) {
+void TimerSetTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
+                               const void *eventData) {
   uint64_t timestamp = chreGetTime();
   if (mInMethod) {
     sendFatalFailureToHost(

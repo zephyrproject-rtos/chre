@@ -30,15 +30,15 @@ void abort(AbortBlame reason) {
   // in its chreAbort() implementation, let's try to blow things up.
   // Some compilers are smart about not wanting to crash like this, so
   // we need to fool them via indirection.
-  uint16_t zero = static_cast<uint16_t>(reason)
-      - static_cast<uint8_t>(reason);
-  uint8_t *badPointer = reinterpret_cast<uint8_t*>(zero);
+  uint16_t zero = static_cast<uint16_t>(reason) - static_cast<uint8_t>(reason);
+  uint8_t *badPointer = reinterpret_cast<uint8_t *>(zero);
   *badPointer = 1;
 
   // If we're here, we have a buggy CHRE on a platform where it's okay
   // to write to nullptr.  At the very least, let's not return from this
   // function.
-  while (true) {}
+  while (true) {
+  }
 }
 
 }  // namespace nanoapp_testing

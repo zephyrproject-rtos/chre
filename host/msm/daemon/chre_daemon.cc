@@ -55,12 +55,12 @@
 #include <unistd.h>
 
 #include <fstream>
-#include <string>
 #include <queue>
+#include <string>
 
 #include "chre/platform/slpi/fastrpc.h"
-#include "chre_host/log.h"
 #include "chre_host/host_protocol_host.h"
+#include "chre_host/log.h"
 #include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
 
@@ -88,9 +88,9 @@ using android::hardware::soundtrigger::V2_0::SoundModelHandle;
 using android::hardware::soundtrigger::V2_0::SoundModelType;
 #endif  // CHRE_DAEMON_LPMA_ENABLED
 
-using android::chre::HostProtocolHost;
-using android::chre::FragmentedLoadTransaction;
 using android::elapsedRealtimeNano;
+using android::chre::FragmentedLoadTransaction;
+using android::chre::HostProtocolHost;
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
@@ -99,9 +99,9 @@ namespace fbs = ::chre::fbs;
 typedef void *(thread_entry_point_f)(void *);
 
 struct reverse_monitor_thread_data {
-  pthread_t       thread;
+  pthread_t thread;
   pthread_mutex_t mutex;
-  pthread_cond_t  cond;
+  pthread_cond_t cond;
 };
 
 static void *chre_message_to_host_thread(void *arg);
@@ -109,8 +109,7 @@ static void *chre_monitor_thread(void *arg);
 static void *chre_reverse_monitor_thread(void *arg);
 static bool init_reverse_monitor(struct reverse_monitor_thread_data *data);
 static bool start_thread(pthread_t *thread_handle,
-                         thread_entry_point_f *thread_entry,
-                         void *arg);
+                         thread_entry_point_f *thread_entry, void *arg);
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 //! The name of the wakelock to use for the CHRE daemon.
@@ -123,7 +122,7 @@ static void onStHalServiceDeath();
 class StHalDeathRecipient : public android::hardware::hidl_death_recipient {
   virtual void serviceDied(
       uint64_t /* cookie */,
-      const wp<::android::hidl::base::V1_0::IBase>& /* who */) override {
+      const wp<::android::hidl::base::V1_0::IBase> & /* who */) override {
     LOGE("ST HAL service died.");
     onStHalServiceDeath();
   }
@@ -173,11 +172,11 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
     LOGV("Dumping buffer of size %zu bytes", size);
   }
   for (size_t i = 1; i <= size; ++i) {
-    offset += snprintf(&line[offset], sizeof(line) - offset, "%02x ",
-                       buffer[i - 1]);
-    offset_chars += snprintf(
-        &line_chars[offset_chars], sizeof(line_chars) - offset_chars,
-        "%c", (isprint(buffer[i - 1])) ? buffer[i - 1] : '.');
+    offset +=
+        snprintf(&line[offset], sizeof(line) - offset, "%02x ", buffer[i - 1]);
+    offset_chars +=
+        snprintf(&line_chars[offset_chars], sizeof(line_chars) - offset_chars,
+                 "%c", (isprint(buffer[i - 1])) ? buffer[i - 1] : '.');
     if ((i % 8) == 0) {
       LOGV("  %s\t%s", line, line_chars);
       offset = 0;
@@ -202,11 +201,11 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
 
 static void parseAndEmitLogMessages(unsigned char *message) {
   const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
-  const auto *logMessage = static_cast<const fbs::LogMessage *>(
-      container->message());
+  const auto *logMessage =
+      static_cast<const fbs::LogMessage *>(container->message());
 
   constexpr size_t kLogMessageHeaderSize = 2 + sizeof(uint64_t);
-  const flatbuffers::Vector<int8_t>& logData = *logMessage->buffer();
+  const flatbuffers::Vector<int8_t> &logData = *logMessage->buffer();
   for (size_t i = 0; i <= (logData.size() - kLogMessageHeaderSize);) {
     // Parse out the log level.
     const char *log = reinterpret_cast<const char *>(&logData.data()[i]);
@@ -268,8 +267,9 @@ static int64_t getTimeOffset(bool *success) {
     // overflow
     uint64_t qTimerNanos = (qTimerCount / qTimerFreq);
     if (qTimerNanos > UINT64_MAX / kOneSecondInNanoseconds) {
-      LOGE("CNTVCT_EL0 conversion to nanoseconds overflowed during time sync."
-           " Aborting time sync.");
+      LOGE(
+          "CNTVCT_EL0 conversion to nanoseconds overflowed during time sync."
+          " Aborting time sync.");
       *success = false;
     } else {
       qTimerNanos *= kOneSecondInNanoseconds;
@@ -292,7 +292,6 @@ static int64_t getTimeOffset(bool *success) {
 
   return timeOffset;
 }
-
 
 /**
  * @param logOnError If true, logs an error message on failure.
@@ -331,7 +330,7 @@ static bool sendTimeSyncMessage(bool logOnError) {
  */
 static bool sendTimeSyncMessageRetry(size_t maxNumRetries) {
   size_t numRetries = 0;
-  useconds_t retryDelayUs = 50000; // 50 ms initially
+  useconds_t retryDelayUs = 50000;  // 50 ms initially
   bool success = sendTimeSyncMessage(numRetries == maxNumRetries);
   while (!success && numRetries < maxNumRetries) {
     usleep(retryDelayUs);
@@ -426,7 +425,7 @@ static bool loadLpma(SoundModelHandle *lpmaHandle) {
   soundModel.vendorUuid.versionAndTimeHigh = 0x4DCE;
   soundModel.vendorUuid.variantAndClockSeqHigh = 0x8CB0;
 
-  const uint8_t uuidNode[6] = { 0x2E, 0x95, 0xA2, 0x31, 0x3A, 0xEE };
+  const uint8_t uuidNode[6] = {0x2E, 0x95, 0xA2, 0x31, 0x3A, 0xEE};
   memcpy(&soundModel.vendorUuid.node[0], uuidNode, sizeof(uuidNode));
   soundModel.data.resize(1);  // Insert a dummy byte to bypass HAL NULL checks.
 
@@ -438,8 +437,8 @@ static bool loadLpma(SoundModelHandle *lpmaHandle) {
     Return<void> hidlResult = lpmaEnableThread.stHalService->loadSoundModel(
         soundModel, NULL /* callback */, 0 /* cookie */,
         [&](int32_t retval, SoundModelHandle handle) {
-            loadResult = retval;
-            *lpmaHandle = handle;
+          loadResult = retval;
+          *lpmaHandle = handle;
         });
 
     if (hidlResult.isOk()) {
@@ -496,7 +495,7 @@ static void *chreLpmaEnableThread(void *arg) {
 
   const useconds_t kInitialRetryDelayUs = 500000;
   const int kRetryGrowthFactor = 2;
-  const int kRetryGrowthLimit = 5;  // Terminates at 8s retry interval.
+  const int kRetryGrowthLimit = 5;     // Terminates at 8s retry interval.
   const int kRetryWakeLockLimit = 10;  // Retry with a wakelock 10 times.
 
   int retryCount = 0;
@@ -627,9 +626,10 @@ static bool sendMessageToChre(uint16_t clientId, void *data, size_t length) {
  * @param transactionId The transaction ID to use when loading.
  * @return true if a request was successfully sent, false otherwise.
  */
-static bool sendNanoappLoad(
-    uint64_t appId, uint32_t appVersion, uint32_t appTargetApiVersion,
-    const std::string& appBinaryName, uint32_t transactionId) {
+static bool sendNanoappLoad(uint64_t appId, uint32_t appVersion,
+                            uint32_t appTargetApiVersion,
+                            const std::string &appBinaryName,
+                            uint32_t transactionId) {
   flatbuffers::FlatBufferBuilder builder;
   HostProtocolHost::encodeLoadNanoappRequestForFile(
       builder, transactionId, appId, appVersion, appTargetApiVersion,
@@ -655,8 +655,8 @@ static bool sendNanoappLoad(
  * @param transactionId The transaction ID to use when loading the app.
  * @return true if successful, false otherwise.
  */
-static bool loadNanoapp(const std::vector<uint8_t>& header,
-                        const std::string& nanoappName,
+static bool loadNanoapp(const std::vector<uint8_t> &header,
+                        const std::string &nanoappName,
                         uint32_t transactionId) {
   // This struct comes from build/build_template.mk and must not be modified.
   // Refer to that file for more details.
@@ -677,12 +677,12 @@ static bool loadNanoapp(const std::vector<uint8_t>& header,
     LOGE("Header size mismatch");
   } else {
     // The header blob contains the struct above.
-    const auto *appHeader = reinterpret_cast<
-        const NanoAppBinaryHeader *>(header.data());
+    const auto *appHeader =
+        reinterpret_cast<const NanoAppBinaryHeader *>(header.data());
 
     // Build the target API version from major and minor.
-    uint32_t targetApiVersion = (appHeader->targetChreApiMajorVersion << 24)
-        | (appHeader->targetChreApiMinorVersion << 16);
+    uint32_t targetApiVersion = (appHeader->targetChreApiMajorVersion << 24) |
+                                (appHeader->targetChreApiMinorVersion << 16);
 
     success = sendNanoappLoad(appHeader->appId, appHeader->appVersion,
                               targetApiVersion, nanoappName, transactionId);
@@ -710,8 +710,8 @@ static bool readFileContents(const char *filename,
 
     buffer->resize(size);
     if (!file.read(reinterpret_cast<char *>(buffer->data()), size)) {
-      LOGE("Couldn't read from file '%s': %d (%s)",
-           filename, errno, strerror(errno));
+      LOGE("Couldn't read from file '%s': %d (%s)", filename, errno,
+           strerror(errno));
     } else {
       success = true;
     }
@@ -729,8 +729,8 @@ static bool readFileContents(const char *filename,
  * @param name The filename of the nanoapp to load.
  * @param transactionId The transaction ID to use when loading the app.
  */
-static void loadPreloadedNanoapp(const std::string& directory,
-                                 const std::string& name,
+static void loadPreloadedNanoapp(const std::string &directory,
+                                 const std::string &name,
                                  uint32_t transactionId) {
   std::vector<uint8_t> headerBuffer;
 
@@ -740,8 +740,8 @@ static void loadPreloadedNanoapp(const std::string& directory,
   // within the directory its own binary resides in.
   std::string nanoappFilename = name + ".so";
 
-  if (readFileContents(headerFile.c_str(), &headerBuffer)
-      && !loadNanoapp(headerBuffer, nanoappFilename, transactionId)) {
+  if (readFileContents(headerFile.c_str(), &headerBuffer) &&
+      !loadNanoapp(headerBuffer, nanoappFilename, transactionId)) {
     LOGE("Failed to load nanoapp: '%s'", name.c_str());
   }
 }
@@ -772,9 +772,9 @@ static void loadPreloadedNanoapps() {
   } else if (!config.isMember("nanoapps") || !config.isMember("source_dir")) {
     LOGE("Malformed preloaded nanoapps config");
   } else {
-    const Json::Value& directory = config["source_dir"];
+    const Json::Value &directory = config["source_dir"];
     for (Json::ArrayIndex i = 0; i < config["nanoapps"].size(); i++) {
-      const Json::Value& nanoapp = config["nanoapps"][i];
+      const Json::Value &nanoapp = config["nanoapps"][i];
       loadPreloadedNanoapp(directory.asString(), nanoapp.asString(),
                            static_cast<uint32_t>(i));
     }
@@ -789,17 +789,17 @@ static void loadPreloadedNanoapps() {
 static void handleDaemonMessage(const uint8_t *message) {
   std::unique_ptr<fbs::MessageContainerT> container =
       fbs::UnPackMessageContainer(message);
-  if (container->message.type
-          != fbs::ChreMessage::LoadNanoappResponse) {
+  if (container->message.type != fbs::ChreMessage::LoadNanoappResponse) {
     LOGE("Invalid message from CHRE directed to daemon");
   } else {
     const auto *response = container->message.AsLoadNanoappResponse();
     if (gPreloadedNanoappPendingTransactionIds.empty()) {
       LOGE("Received nanoapp load response with no pending load");
-    } else if (gPreloadedNanoappPendingTransactionIds.front()
-                   != response->transaction_id) {
+    } else if (gPreloadedNanoappPendingTransactionIds.front() !=
+               response->transaction_id) {
       LOGE("Received nanoapp load response with ID %" PRIu32
-           " expected transaction id %" PRIu32, response->transaction_id,
+           " expected transaction id %" PRIu32,
+           response->transaction_id,
            gPreloadedNanoappPendingTransactionIds.front());
     } else {
       if (!response->success) {
@@ -825,8 +825,8 @@ static void *chre_message_to_host_thread(void *arg) {
   while (true) {
     messageLen = 0;
     LOGV("Calling into chre_slpi_get_message_to_host");
-    result = chre_slpi_get_message_to_host(
-        messageBuffer, sizeof(messageBuffer), &messageLen);
+    result = chre_slpi_get_message_to_host(messageBuffer, sizeof(messageBuffer),
+                                           &messageLen);
     LOGV("Got message from CHRE with size %u (result %d)", messageLen, result);
 
     if (result == CHRE_FASTRPC_ERROR_SHUTTING_DOWN) {
@@ -837,9 +837,10 @@ static void *chre_message_to_host_thread(void *arg) {
       uint16_t hostClientId;
       fbs::ChreMessage messageType;
       if (!HostProtocolHost::extractHostClientIdAndType(
-          messageBuffer, messageLen, &hostClientId, &messageType)) {
-        LOGW("Failed to extract host client ID from message - sending "
-             "broadcast");
+              messageBuffer, messageLen, &hostClientId, &messageType)) {
+        LOGW(
+            "Failed to extract host client ID from message - sending "
+            "broadcast");
         hostClientId = chre::kHostClientIdUnspecified;
       }
 
@@ -859,11 +860,12 @@ static void *chre_message_to_host_thread(void *arg) {
         server->sendToAllClients(messageBuffer,
                                  static_cast<size_t>(messageLen));
       } else {
-        server->sendToClientById(messageBuffer,
-                                 static_cast<size_t>(messageLen), hostClientId);
+        server->sendToClientById(messageBuffer, static_cast<size_t>(messageLen),
+                                 hostClientId);
       }
     } else if (!chre_shutdown_requested) {
-      LOGE("Received an unknown result and no shutdown was requested. Quitting");
+      LOGE(
+          "Received an unknown result and no shutdown was requested. Quitting");
       exit(-1);
     } else {
       // Received an unknown result but a shutdown was requested. Break from the
@@ -883,7 +885,7 @@ static void *chre_message_to_host_thread(void *arg) {
  * @return always returns NULL
  */
 static void *chre_monitor_thread(void *arg) {
-  (void) arg;
+  (void)arg;
   int ret = chre_slpi_wait_on_thread_exit();
   if (!chre_shutdown_requested) {
     LOGE("Detected unexpected CHRE thread exit (%d)\n", ret);
@@ -904,7 +906,7 @@ static void *chre_monitor_thread(void *arg) {
  */
 static void *chre_reverse_monitor_thread(void *arg) {
   struct reverse_monitor_thread_data *thread_data =
-      (struct reverse_monitor_thread_data *) arg;
+      (struct reverse_monitor_thread_data *)arg;
 
   int ret = chre_slpi_initialize_reverse_monitor();
   if (ret != CHRE_FASTRPC_SUCCESS) {
@@ -953,8 +955,7 @@ static bool init_reverse_monitor(struct reverse_monitor_thread_data *data) {
  * @return bool true if the thread was successfully started
  */
 static bool start_thread(pthread_t *thread_handle,
-                         thread_entry_point_f *thread_entry,
-                         void *arg) {
+                         thread_entry_point_f *thread_entry, void *arg) {
   int ret = pthread_create(thread_handle, NULL, thread_entry, arg);
   if (ret != 0) {
     LOG_ERROR("pthread_create failed", ret);
@@ -1050,4 +1051,3 @@ int main() {
 
   return ret;
 }
-

@@ -44,8 +44,8 @@ class Sensor : public PlatformSensor {
    */
   Sensor() = default;
 
-  Sensor(Sensor&& other) = default;
-  Sensor& operator=(Sensor&& other) = default;
+  Sensor(Sensor &&other) = default;
+  Sensor &operator=(Sensor &&other) = default;
 
   /**
    * Obtains a reference to the latest request that has been accepted by the
@@ -53,7 +53,7 @@ class Sensor : public PlatformSensor {
    *
    * @return A const reference to the SensorRequest.
    */
-  const SensorRequest& getRequest() const {
+  const SensorRequest &getRequest() const {
     return mSensorRequest;
   }
 
@@ -66,7 +66,7 @@ class Sensor : public PlatformSensor {
    * @return true if there was no change required or the platform has set the
    *         request successfully.
    */
-  bool setRequest(const SensorRequest& request);
+  bool setRequest(const SensorRequest &request);
 
  private:
   //! The most recent sensor request accepted by the platform.

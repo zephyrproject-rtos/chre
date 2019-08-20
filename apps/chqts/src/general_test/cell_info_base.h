@@ -30,11 +30,10 @@ class CellInfoBase {
   CellInfoBase();
 
  protected:
-  static bool isBoundedInt32(int32_t value, int32_t lower,
-                             int32_t upper, int32_t invalid);
-
+  static bool isBoundedInt32(int32_t value, int32_t lower, int32_t upper,
+                             int32_t invalid);
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_BASE_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_BASE_H_

@@ -18,8 +18,8 @@
 
 #include "chre/platform/slpi/smgr/platform_sensor_util.h"
 
-using chre::intervalToSmgrSamplingRate;
 using chre::intervalToSmgrQ16ReportRate;
+using chre::intervalToSmgrSamplingRate;
 using chre::Milliseconds;
 using chre::Nanoseconds;
 using chre::Seconds;

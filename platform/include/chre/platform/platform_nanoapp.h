@@ -17,8 +17,8 @@
 #ifndef CHRE_PLATFORM_PLATFORM_NANOAPP_H_
 #define CHRE_PLATFORM_PLATFORM_NANOAPP_H_
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 #include "chre/target_platform/platform_nanoapp_base.h"
 #include "chre/util/non_copyable.h"

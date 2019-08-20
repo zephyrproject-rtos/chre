@@ -30,7 +30,6 @@ using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendInternalFailureToHost;
 using nanoapp_testing::sendSuccessToHost;
 
-
 /*
  * Our test essentially has nine stages.  The first eight stages all involve
  * sending data to the Host.  Here is a table describing them:
@@ -82,14 +81,15 @@ namespace general_test {
 // TODO(b/32114261): Remove this variable.
 extern bool gUseNycMessageHack;
 
-uint8_t SendMessageToHostTest::sSmallMessageData[kSmallMessageTestCount][kSmallMessageSize];
+uint8_t SendMessageToHostTest::sSmallMessageData[kSmallMessageTestCount]
+                                                [kSmallMessageSize];
 void *SendMessageToHostTest::sLargeMessageData[2];
 constexpr uint32_t SendMessageToHostTest::kLargeSizes[2];
 
 bool SendMessageToHostTest::sInMethod = false;
 uint32_t SendMessageToHostTest::sFinishedBitmask = 0;
 
-template<uint8_t kCallbackIndex>
+template <uint8_t kCallbackIndex>
 void SendMessageToHostTest::smallMessageCallback(void *message,
                                                  size_t messageSize) {
   if (sInMethod) {
@@ -105,7 +105,7 @@ void SendMessageToHostTest::smallMessageCallback(void *message,
     sendFatalFailureToHost("smallMessageCallback given bad messageSize:",
                            &size);
   }
-  const uint8_t *msg = static_cast<const uint8_t*>(message);
+  const uint8_t *msg = static_cast<const uint8_t *>(message);
   for (size_t i = 0; i < messageSize; i++) {
     if (msg[i] != kDataByte) {
       sendFatalFailureToHost("Corrupt data in smallMessageCallback");
@@ -179,7 +179,7 @@ void SendMessageToHostTest::largeMessageCallback(void *message,
   if (messageSize != kLargeSizes[index]) {
     sendFatalFailureToHost("largeMessageCallback given incorrect messageSize");
   }
-  const uint8_t *msg = static_cast<const uint8_t*>(message);
+  const uint8_t *msg = static_cast<const uint8_t *>(message);
   for (size_t i = 0; i < messageSize; i++) {
     if (msg[i] != kDataByte) {
       sendFatalFailureToHost("Corrupt data in largeMessageCallback");
@@ -196,8 +196,7 @@ void SendMessageToHostTest::markSuccess(uint32_t stage) {
   chreLog(CHRE_LOG_DEBUG, "Stage %" PRIu32 " succeeded", stage);
   uint32_t finishedBit = (1 << stage);
   if (sFinishedBitmask & finishedBit) {
-    sendFatalFailureToHost("callback called multiple times for stage:",
-                           &stage);
+    sendFatalFailureToHost("callback called multiple times for stage:", &stage);
   }
   if ((kAllFinished & finishedBit) == 0) {
     sendFatalFailureToHost("markSuccess bad stage", &stage);
@@ -217,8 +216,7 @@ void SendMessageToHostTest::prepTestMemory() {
     if (sLargeMessageData[i] == nullptr) {
       sendFatalFailureToHost("Insufficient heap memory for test");
     }
-    nanoapp_testing::memset(sLargeMessageData[i], kDataByte,
-                            kLargeSizes[i]);
+    nanoapp_testing::memset(sLargeMessageData[i], kDataByte, kLargeSizes[i]);
   }
 }
 
@@ -232,8 +230,8 @@ void SendMessageToHostTest::sendMessageMaxSize() {
   //     incorrect to use while we're working around this bug.  When the
   //     bug is fixed, we'll add this declaration, and use the method
   //     widely.
-  nanoapp_testing::sendMessageToHost(MessageType::kContinue,
-                                     &maxSize, sizeof(maxSize));
+  nanoapp_testing::sendMessageToHost(MessageType::kContinue, &maxSize,
+                                     sizeof(maxSize));
 }
 
 // Wrapper for chreSendMessageToHost() that sets sInMethod to false during its
@@ -251,9 +249,7 @@ bool SendMessageToHostTest::sendMessageToHost(
   return success;
 }
 
-SendMessageToHostTest::SendMessageToHostTest()
-  : Test(CHRE_API_VERSION_1_0) {
-}
+SendMessageToHostTest::SendMessageToHostTest() : Test(CHRE_API_VERSION_1_0) {}
 
 void SendMessageToHostTest::setUp(uint32_t messageSize,
                                   const void * /* message */) {
@@ -328,7 +324,7 @@ void SendMessageToHostTest::setUp(uint32_t messageSize,
 
 void SendMessageToHostTest::handleEvent(uint32_t senderInstanceId,
                                         uint16_t eventType,
-                                        const void* eventData) {
+                                        const void *eventData) {
   if (sInMethod) {
     sendFatalFailureToHost(
         "handleEvent invoked while another nanoapp method is running");

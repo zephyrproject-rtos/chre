@@ -27,10 +27,10 @@
 #include <cstddef>
 #include <cstdint>
 
-
 #if !(defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
       defined(__BIG_ENDIAN))
-#error "Need to define the preprocessor defines __BYTE_ORDER, __LITTLE_ENDIAN" \
+#error \
+    "Need to define the preprocessor defines __BYTE_ORDER, __LITTLE_ENDIAN" \
        " and __BIG_ENDIAN."
 #endif
 
@@ -42,7 +42,6 @@
 #error "__BYTE_ORDER must be either __LITTLE_ENDIAN or __BIG_ENDIAN."
 #endif
 
-
 namespace nanoapp_testing {
 
 void swapBytes(uint8_t *bytes, size_t size);
@@ -52,15 +51,15 @@ void swapBytes(uint8_t *bytes, size_t size);
 // endianness.  Without the 'static', we'll just use the first version
 // of this we compile with, and fail some of the tests.
 
-template<typename T>
+template <typename T>
 static inline T hostToLittleEndian(T value) {
 #if (__BYTE_ORDER == __BIG_ENDIAN)
-  swapBytes(reinterpret_cast<uint8_t*>(&value), sizeof(T));
+  swapBytes(reinterpret_cast<uint8_t *>(&value), sizeof(T));
 #endif
   return value;
 }
 
-template<typename T>
+template <typename T>
 static inline T littleEndianToHost(T value) {
   // This has identical behavior to hostToLittleEndian.  We provide both
   // so code reads more cleanly.

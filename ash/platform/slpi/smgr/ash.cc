@@ -30,8 +30,8 @@ extern "C" {
 #include "chre/platform/slpi/smgr/smgr_client.h"
 #include "chre_api/chre/sensor.h"
 
-using chre::getSmrHelper;
 using chre::getSensorServiceSmrClientHandle;
+using chre::getSmrHelper;
 using chre::MakeUnique;
 using chre::MakeUniqueZeroFill;
 using chre::memoryAlloc;
@@ -145,8 +145,8 @@ DLL_EXPORT bool ashSetCalibration(uint8_t sensorType,
       populateCalRequest(sensorType, calInfo, calRequest.get());
 
       smr_err status = getSmrHelper()->sendReqSync(
-          getSensorServiceSmrClientHandle(), SNS_SMGR_CAL_REQ_V01,
-          &calRequest, &calResponse);
+          getSensorServiceSmrClientHandle(), SNS_SMGR_CAL_REQ_V01, &calRequest,
+          &calResponse);
 
       if (status != SMR_NO_ERR) {
         LOGE("Error setting sensor calibration: status %d", status);

@@ -21,7 +21,6 @@
 
 #include <cmath>
 
-#include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor.h"
 #include "chre/platform/assert.h"
@@ -31,6 +30,7 @@
 #include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/see/see_client.h"
 #include "chre/platform/system_time.h"
+#include "chre_api/chre/sensor.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/slpi/see/vendor_data_types.h"
@@ -112,16 +112,16 @@ SensorType getUimgSensorType(SensorType sensorType) {
 //! A class that implements SeeHelperCallbackInterface.
 class SeeHelperCallback : public SeeHelperCallbackInterface {
   void onSamplingStatusUpdate(
-      UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>&& status)
+      UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> &&status)
       override;
 
-  void onSensorDataEvent(
-      SensorType sensorType, UniquePtr<uint8_t>&& eventData) override;
+  void onSensorDataEvent(SensorType sensorType,
+                         UniquePtr<uint8_t> &&eventData) override;
 
   void onHostWakeSuspendEvent(bool awake) override;
 
-  void onSensorBiasEvent(UniquePtr<struct chreSensorThreeAxisData>&& biasData)
-      override;
+  void onSensorBiasEvent(
+      UniquePtr<struct chreSensorThreeAxisData> &&biasData) override;
 
   void onFlushCompleteEvent(SensorType sensorType) override;
 };
@@ -137,14 +137,8 @@ struct SuidAttr {
 //! The list of SEE platform sensor data types that CHRE intends to support.
 //! The standardized strings are defined in sns_xxx.proto.
 const char *kSeeDataTypes[] = {
-  "accel",
-  "gyro",
-  "mag",
-  "pressure",
-  "ambient_light",
-  "proximity",
-  "motion_detect",
-  "stationary_detect",
+    "accel",         "gyro",      "mag",           "pressure",
+    "ambient_light", "proximity", "motion_detect", "stationary_detect",
 };
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
@@ -219,7 +213,8 @@ void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
   // delivered to all clients.
   SensorType sensorType = getSensorTypeForSampleEventType(eventType);
   if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
+    EventLoopManagerSingleton::get()
+        ->getSensorRequestManager()
         .removeAllRequests(sensorType);
   }
 }
@@ -232,7 +227,7 @@ void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
  * @param status A reference of the sampling status to be posted.
  */
 void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
-                             const struct chreSensorSamplingStatus& status) {
+                             const struct chreSensorSamplingStatus &status) {
   auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
   if (event == nullptr) {
     LOG_OOM();
@@ -253,7 +248,7 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
  * @param bias The bias data.
  */
 void postSensorBiasEvent(SensorType sensorType,
-                         const chreSensorThreeAxisData& bias) {
+                         const chreSensorThreeAxisData &bias) {
   uint16_t eventType;
   if (getSensorBiasEventType(sensorType, &eventType)) {
     auto *event = memoryAlloc<struct chreSensorThreeAxisData>();
@@ -276,13 +271,14 @@ void postSensorBiasEvent(SensorType sensorType,
  * updates being posted to nanoapps.
  */
 void updateSamplingStatus(
-    const SeeHelperCallbackInterface::SamplingStatusData& update) {
-  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
-      .getSensor(update.sensorType);
+    const SeeHelperCallbackInterface::SamplingStatusData &update) {
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          update.sensorType);
   struct chreSensorSamplingStatus newStatus;
 
-  if (sensor != nullptr && !sensorTypeIsOneShot(update.sensorType)
-      && sensor->getSamplingStatus(&newStatus)) {
+  if (sensor != nullptr && !sensorTypeIsOneShot(update.sensorType) &&
+      sensor->getSamplingStatus(&newStatus)) {
     if (update.enabledValid) {
       newStatus.enabled = update.status.enabled;
     }
@@ -297,10 +293,10 @@ void updateSamplingStatus(
 
     // Only post to Nanoapps with an open request.
     uint32_t sensorHandle = getSensorHandleFromSensorType(update.sensorType);
-    const DynamicVector<SensorRequest>& requests =
-        EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .getRequests(update.sensorType);
-    for (const auto& req : requests) {
+    const DynamicVector<SensorRequest> &requests =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getRequests(
+            update.sensorType);
+    for (const auto &req : requests) {
       postSamplingStatusEvent(req.getInstanceId(), sensorHandle, newStatus);
     }
   }
@@ -314,8 +310,8 @@ void updateSamplingStatus(
  * is different.
  */
 bool isSameStatusUpdate(
-    const SeeHelperCallbackInterface::SamplingStatusData& status1,
-    const SeeHelperCallbackInterface::SamplingStatusData& status2) {
+    const SeeHelperCallbackInterface::SamplingStatusData &status1,
+    const SeeHelperCallbackInterface::SamplingStatusData &status2) {
   bool sameStatus = status1.enabledValid == status2.enabledValid;
   if (sameStatus && status1.enabledValid) {
     sameStatus &= status1.status.enabled == status2.status.enabled;
@@ -340,9 +336,10 @@ bool isSameStatusUpdate(
 }
 
 void SeeHelperCallback::onSamplingStatusUpdate(
-    UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>&& status) {
-  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
-      .getSensor(status->sensorType);
+    UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> &&status) {
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          status->sensorType);
 
   // TODO: Once the latency field is actually filled in by SEE, modify this
   // logic to avoid reacting if the latency and interval of the sensor are
@@ -361,11 +358,11 @@ void SeeHelperCallback::onSamplingStatusUpdate(
     // thread.
     EventLoopManagerSingleton::get()->deferCallback(
         SystemCallbackType::SensorStatusUpdate, status.release(), callback);
- }
+  }
 }
 
-void SeeHelperCallback::onSensorDataEvent(
-    SensorType sensorType, UniquePtr<uint8_t>&& eventData) {
+void SeeHelperCallback::onSensorDataEvent(SensorType sensorType,
+                                          UniquePtr<uint8_t> &&eventData) {
   // Schedule a deferred callback to update on-change sensor's last event in
   // the main thread.
   if (sensorTypeIsOnChange(sensorType)) {
@@ -380,15 +377,17 @@ void SeeHelperCallback::onSensorDataEvent(
 
 void SeeHelperCallback::onHostWakeSuspendEvent(bool awake) {
   if (EventLoopManagerSingleton::isInitialized()) {
-    EventLoopManagerSingleton::get()->getEventLoop()
-        .getPowerControlManager().onHostWakeSuspendEvent(awake);
+    EventLoopManagerSingleton::get()
+        ->getEventLoop()
+        .getPowerControlManager()
+        .onHostWakeSuspendEvent(awake);
   }
 }
 
 void SeeHelperCallback::onSensorBiasEvent(
-    UniquePtr<struct chreSensorThreeAxisData>&& biasData) {
-  SensorType sensorType = getSensorTypeFromSensorHandle(
-      biasData->header.sensorHandle);
+    UniquePtr<struct chreSensorThreeAxisData> &&biasData) {
+  SensorType sensorType =
+      getSensorTypeFromSensorHandle(biasData->header.sensorHandle);
 
   uint16_t eventType;
   if (!sensorTypeIsCalibrated(sensorType) ||
@@ -405,7 +404,8 @@ void SeeHelperCallback::onSensorBiasEvent(
 
 void SeeHelperCallback::onFlushCompleteEvent(SensorType sensorType) {
   if (EventLoopManagerSingleton::isInitialized()) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
+    EventLoopManagerSingleton::get()
+        ->getSensorRequestManager()
         .handleFlushCompleteEvent(CHRE_ERROR_NONE, sensorType);
   }
 }
@@ -463,8 +463,8 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
  * @param attr A reference to SeeAttrbutes.
  * @param sensor The sensor list.
  */
-void addSensor(SeeHelper& seeHelper, SensorType sensorType,
-               const sns_std_suid& suid, const SeeAttributes& attr,
+void addSensor(SeeHelper &seeHelper, SensorType sensorType,
+               const sns_std_suid &suid, const SeeAttributes &attr,
                DynamicVector<Sensor> *sensors) {
   // Concatenate vendor and name with a space in between.
   char sensorName[kSensorNameMaxLen];
@@ -473,9 +473,11 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
   strlcat(sensorName, attr.name, sizeof(sensorName));
 
   // Override one-shot sensor's minInterval to default
-  uint64_t minInterval = sensorTypeIsOneShot(sensorType) ?
-      CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
+  uint64_t minInterval =
+      sensorTypeIsOneShot(sensorType)
+          ? CHRE_SENSOR_INTERVAL_DEFAULT
+          : static_cast<uint64_t>(
+                ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
 
   // Allocates memory for on-change sensor's last event.
   size_t lastEventSize;
@@ -483,8 +485,8 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
 
   // Constructs and initializes PlatformSensorBase.
   Sensor sensor;
-  sensor.initBase(sensorType, minInterval, sensorName, lastEvent,
-                  lastEventSize, attr.passiveRequest);
+  sensor.initBase(sensorType, minInterval, sensorName, lastEvent, lastEventSize,
+                  attr.passiveRequest);
 
   if (!sensors->push_back(std::move(sensor))) {
     FATAL_ERROR("Failed to allocate new sensor: out of memory");
@@ -497,8 +499,8 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
   bool resample = false;
 #endif
   bool prevRegistered;
-  bool registered = seeHelper.registerSensor(
-      sensorType, suid, resample, &prevRegistered);
+  bool registered =
+      seeHelper.registerSensor(sensorType, suid, resample, &prevRegistered);
   if (!registered && prevRegistered) {
     LOGW("SUID has been previously registered");
   } else if (!registered) {
@@ -512,12 +514,12 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
  */
 bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
   bool success = true;
-  if ((sensorTypeIsContinuous(sensorType)
-       && streamType != SNS_STD_SENSOR_STREAM_TYPE_STREAMING)
-      || (sensorTypeIsOnChange(sensorType)
-          && streamType != SNS_STD_SENSOR_STREAM_TYPE_ON_CHANGE)
-      || (sensorTypeIsOneShot(sensorType)
-          && streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)) {
+  if ((sensorTypeIsContinuous(sensorType) &&
+       streamType != SNS_STD_SENSOR_STREAM_TYPE_STREAMING) ||
+      (sensorTypeIsOnChange(sensorType) &&
+       streamType != SNS_STD_SENSOR_STREAM_TYPE_ON_CHANGE) ||
+      (sensorTypeIsOneShot(sensorType) &&
+       streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)) {
     success = false;
     LOGW("Inconsistent sensor type %" PRIu8 " and stream type %" PRIu8,
          static_cast<uint8_t>(sensorType), streamType);
@@ -529,7 +531,7 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
  * Obtains the list of SUIDs and their attributes that support the specified
  * data type.
  */
-bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
+bool getSuidAndAttrs(SeeHelper &seeHelper, const char *dataType,
                      DynamicVector<SuidAttr> *suidAttrs, uint8_t minNumSuids) {
   DynamicVector<sns_std_suid> suids;
   bool success = seeHelper.findSuidSync(dataType, &suids, minNumSuids);
@@ -538,7 +540,7 @@ bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
   } else {
     LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
 
-    for (const auto& suid : suids) {
+    for (const auto &suid : suids) {
       SeeAttributes attr;
       if (!seeHelper.getAttributesSync(suid, &attr)) {
         success = false;
@@ -550,8 +552,8 @@ bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
              attr.vendor, attr.name, attr.hwId, attr.maxSampleRate,
              attr.streamType, attr.passiveRequest);
         SuidAttr sensor = {
-          .suid = suid,
-          .attr = attr,
+            .suid = suid,
+            .attr = attr,
         };
         if (!suidAttrs->push_back(sensor)) {
           success = false;
@@ -565,11 +567,11 @@ bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
 
 //! Check whether two sensors with the specified attrtibutes belong to the same
 //! sensor hardware module.
-bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
+bool sensorHwMatch(const SeeAttributes &attr0, const SeeAttributes &attr1) {
   // When HW ID is absent, it's default to 0 and won't be a factor.
-  return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0)
-          && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0)
-          && (attr0.hwId == attr1.hwId));
+  return ((strncmp(attr0.vendor, attr1.vendor, kSeeAttrStrValLen) == 0) &&
+          (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0) &&
+          (attr0.hwId == attr1.hwId));
 }
 
 /**
@@ -587,17 +589,18 @@ bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
  *        calibrated/temperature sensor types associated with this sensorType
  * @param sensors Vector to append found sensor(s) to
  */
-void findAndAddSensorsForType(
-    SeeHelper& seeHelper, const DynamicVector<SuidAttr>& temperatureSensors,
-    const char *dataType, SensorType sensorType, bool skipAdditionalTypes,
-    DynamicVector<Sensor> *sensors) {
+void findAndAddSensorsForType(SeeHelper &seeHelper,
+                              const DynamicVector<SuidAttr> &temperatureSensors,
+                              const char *dataType, SensorType sensorType,
+                              bool skipAdditionalTypes,
+                              DynamicVector<Sensor> *sensors) {
   DynamicVector<SuidAttr> primarySensors;
   if (!getSuidAndAttrs(seeHelper, dataType, &primarySensors,
                        1 /* minNumSuids */)) {
     handleMissingSensor();
   }
 
-  for (const auto& primarySensor : primarySensors) {
+  for (const auto &primarySensor : primarySensors) {
     sns_std_suid suid = primarySensor.suid;
     SeeAttributes attr = primarySensor.attr;
 
@@ -609,8 +612,8 @@ void findAndAddSensorsForType(
 
       if (!skipAdditionalTypes) {
         // Check if this sensor has a runtime-calibrated version.
-        SensorType calibratedType = getSensorTypeFromDataType(
-            dataType, true /* calibrated */);
+        SensorType calibratedType =
+            getSensorTypeFromDataType(dataType, true /* calibrated */);
         if (calibratedType != sensorType) {
           addSensor(seeHelper, calibratedType, suid, attr, sensors);
         }
@@ -619,7 +622,7 @@ void findAndAddSensorsForType(
         SensorType temperatureType = getTempSensorType(sensorType);
         if (temperatureType != SensorType::Unknown) {
           bool tempFound = false;
-          for (const auto& tempSensor : temperatureSensors) {
+          for (const auto &tempSensor : temperatureSensors) {
             sns_std_suid tempSuid = tempSensor.suid;
             SeeAttributes tempAttr = tempSensor.attr;
 
@@ -653,12 +656,12 @@ void getBigImageSensors(DynamicVector<Sensor> *sensors) {
   // are the ones we know that big image nanoapps will need at a different
   // batching rate compared to uimg.
   const char *kBigImageDataTypes[] = {
-    "accel",
-    "gyro",
-    "mag",
+      "accel",
+      "gyro",
+      "mag",
   };
 
-  SeeHelper& seeHelper = *getBigImageSeeHelper();
+  SeeHelper &seeHelper = *getBigImageSeeHelper();
   DynamicVector<SuidAttr> nullTemperatureSensorList;
 
   for (size_t i = 0; i < ARRAY_SIZE(kBigImageDataTypes); i++) {
@@ -668,9 +671,9 @@ void getBigImageSensors(DynamicVector<Sensor> *sensors) {
       SensorType sensorType = getBigImageSensorTypeFromDataType(
           dataType, (j == 0) /* calibrated */);
       if (sensorType != SensorType::Unknown) {
-        findAndAddSensorsForType(
-            seeHelper, nullTemperatureSensorList, dataType, sensorType,
-            true /* skipAdditionalTypes */, sensors);
+        findAndAddSensorsForType(seeHelper, nullTemperatureSensorList, dataType,
+                                 sensorType, true /* skipAdditionalTypes */,
+                                 sensors);
       }
     }
   }
@@ -693,7 +696,6 @@ SeeHelper *getSeeHelperForSensorType(SensorType sensorType) {
 
   return seeHelper;
 }
-
 
 }  // anonymous namespace
 
@@ -733,7 +735,7 @@ void PlatformSensor::deinit() {
 bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
-  SeeHelper& seeHelper = *getSeeHelper();
+  SeeHelper &seeHelper = *getSeeHelper();
   DynamicVector<SuidAttr> tempSensors;
   if (!getSuidAndAttrs(seeHelper, "sensor_temperature", &tempSensors,
                        CHRE_SEE_NUM_TEMP_SENSORS)) {
@@ -747,10 +749,11 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   constexpr size_t kNumVendorTypes = ARRAY_SIZE(kVendorDataTypes);
   for (size_t i = 0; i < kNumSeeTypes + kNumVendorTypes; i++) {
     const char *dataType = (i < kNumSeeTypes)
-        ? kSeeDataTypes[i] : kVendorDataTypes[i - kNumSeeTypes];
+                               ? kSeeDataTypes[i]
+                               : kVendorDataTypes[i - kNumSeeTypes];
 
-    SensorType sensorType = getSensorTypeFromDataType(
-        dataType, false /* calibrated */);
+    SensorType sensorType =
+        getSensorTypeFromDataType(dataType, false /* calibrated */);
     if (sensorType == SensorType::Unknown) {
       LOGE("Unknown sensor type found for '%s'", dataType);
       continue;
@@ -767,18 +770,20 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   return true;
 }
 
-bool PlatformSensor::applyRequest(const SensorRequest& request) {
+bool PlatformSensor::applyRequest(const SensorRequest &request) {
   SeeSensorRequest req = {
-    .sensorType = getSensorType(),
-    .enable = (request.getMode() != SensorMode::Off),
-    .passive = sensorModeIsPassive(request.getMode()),
-    .samplingRateHz = static_cast<float>(
-        kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
-    // Override batch period to 0 for non-continuous sensors to ensure one
-    // sample per batch.
-    .batchPeriodUs = !sensorTypeIsContinuous(mSensorType) ? 0
-        : static_cast<uint32_t>(request.getLatency().toRawNanoseconds()
-                                / kOneMicrosecondInNanoseconds),
+      .sensorType = getSensorType(),
+      .enable = (request.getMode() != SensorMode::Off),
+      .passive = sensorModeIsPassive(request.getMode()),
+      .samplingRateHz = static_cast<float>(
+          kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
+      // Override batch period to 0 for non-continuous sensors to ensure one
+      // sample per batch.
+      .batchPeriodUs =
+          !sensorTypeIsContinuous(mSensorType)
+              ? 0
+              : static_cast<uint32_t>(request.getLatency().toRawNanoseconds() /
+                                      kOneMicrosecondInNanoseconds),
   };
 
   if (req.enable && req.passive && !mPassiveSupported) {
@@ -811,7 +816,6 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     // update from SEE.
     struct chreSensorSamplingStatus status;
     if (getSamplingStatus(&status)) {
-
       // If passive request is not supported by this SEE sensor, it won't be
       // dynamically enabled/disabled and its status stays the same as set here.
       if (!mPassiveSupported) {
@@ -841,13 +845,13 @@ const char *PlatformSensor::getSensorName() const {
   return mSensorName;
 }
 
-PlatformSensor::PlatformSensor(PlatformSensor&& other) {
+PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   // Our move assignment operator doesn't assume that "this" is initialized, so
   // we can just use that here.
   *this = std::move(other);
 }
 
-PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+PlatformSensor &PlatformSensor::operator=(PlatformSensor &&other) {
   // Note: if this implementation is ever changed to depend on "this" containing
   // initialized values, the move constructor implemenation must be updated.
   mSensorType = other.mSensorType;
@@ -911,9 +915,10 @@ bool PlatformSensor::getThreeAxisBias(
   return success;
 }
 
-void PlatformSensorBase::initBase(
-    SensorType sensorType,uint64_t minInterval, const char *sensorName,
-    ChreSensorData *lastEvent, size_t lastEventSize, bool passiveSupported) {
+void PlatformSensorBase::initBase(SensorType sensorType, uint64_t minInterval,
+                                  const char *sensorName,
+                                  ChreSensorData *lastEvent,
+                                  size_t lastEventSize, bool passiveSupported) {
   mSensorType = sensorType;
   mMinInterval = minInterval;
   memcpy(mSensorName, sensorName, kSensorNameMaxLen);
@@ -933,7 +938,7 @@ void PlatformSensorBase::setLastEvent(const ChreSensorData *event) {
 }
 
 void PlatformSensorBase::setSamplingStatus(
-    const struct chreSensorSamplingStatus& status) {
+    const struct chreSensorSamplingStatus &status) {
   mSamplingStatus = status;
 }
 

@@ -17,8 +17,8 @@
 #ifndef _GTS_NANOAPPS_GENERAL_TEST_TIMER_CANCEL_TEST_H_
 #define _GTS_NANOAPPS_GENERAL_TEST_TIMER_CANCEL_TEST_H_
 
-#include <general_test/test.h>
 #include <chre.h>
+#include <general_test/test.h>
 
 namespace general_test {
 
@@ -33,7 +33,7 @@ class TimerCancelTest : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
@@ -44,9 +44,11 @@ class TimerCancelTest : public Test {
     bool expectCallback;
 
     // Leave timerId invalid.
-    Stage(uint32_t stage_, bool oneShot_, bool expectCallback_) :
-      stage(stage_), timerId(CHRE_TIMER_INVALID), oneShot(oneShot_),
-      expectCallback(expectCallback_) {}
+    Stage(uint32_t stage_, bool oneShot_, bool expectCallback_)
+        : stage(stage_),
+          timerId(CHRE_TIMER_INVALID),
+          oneShot(oneShot_),
+          expectCallback(expectCallback_) {}
   };
 
   bool mInMethod;
@@ -63,6 +65,5 @@ class TimerCancelTest : public Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_TIMER_CANCEL_TEST_H_

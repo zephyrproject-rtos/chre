@@ -36,8 +36,8 @@ uint16_t intervalToSmgrSamplingRate(Nanoseconds interval) {
   if (millis.getMilliseconds() > kInversionPoint) {
     constexpr uint64_t kMaxInterval = INT16_MAX;
 
-    smgrRate = static_cast<uint16_t>(
-        std::min(millis.getMilliseconds(), kMaxInterval));
+    smgrRate =
+        static_cast<uint16_t>(std::min(millis.getMilliseconds(), kMaxInterval));
   } else if (interval != Nanoseconds(0)) {
     constexpr uint64_t kMaxRate = kInversionPoint;
 

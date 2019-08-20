@@ -85,8 +85,7 @@ void TimerCancelTest::setUp(uint32_t messageSize, const void * /* message */) {
 
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "TimerCancel message expects 0 additional bytes, got ",
-        &messageSize);
+        "TimerCancel message expects 0 additional bytes, got ", &messageSize);
   }
 
   constexpr uint32_t kUnownedTimer = 0;
@@ -123,14 +122,13 @@ void TimerCancelTest::handleStageEvent(Stage *stage) {
     }
   }
   if (chreTimerCancel(stage->timerId)) {
-    sendFatalFailureToHost("Claimed success in second cancel:",
-                           &stage->stage);
+    sendFatalFailureToHost("Claimed success in second cancel:", &stage->stage);
   }
   markSuccess(stage->stage);
 }
 
-void TimerCancelTest::handleEvent(uint32_t senderInstanceId,
-                                  uint16_t eventType, const void* eventData) {
+void TimerCancelTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
+                                  const void *eventData) {
   if (mInMethod) {
     sendFatalFailureToHost(
         "handleEvent invoked while another nanoapp method is running");
@@ -143,7 +141,7 @@ void TimerCancelTest::handleEvent(uint32_t senderInstanceId,
   if (eventType != CHRE_EVENT_TIMER) {
     unexpectedEvent(eventType);
   }
-  const Stage *stage = static_cast<const Stage*>(eventData);
+  const Stage *stage = static_cast<const Stage *>(eventData);
   if (stage->stage >= kStageCount) {
     sendFatalFailureToHost("Invalid handleEvent data:", &stage->stage);
   }

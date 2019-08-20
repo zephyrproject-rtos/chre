@@ -22,18 +22,15 @@ bool CellInfoLte::validateIdentity(
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid LTE Mobile Country Code: %d", identity.mcc);
+    sendFatalFailureInt32("Invalid LTE Mobile Country Code: %d", identity.mcc);
   } else if (!isBoundedInt32(identity.mnc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid LTE Mobile Network Code: %d", identity.mnc);
+    sendFatalFailureInt32("Invalid LTE Mobile Network Code: %d", identity.mnc);
   } else if (!isBoundedInt32(identity.ci, 0, 268435455, INT32_MAX)) {
     sendFatalFailureInt32("Invalid LTE Cell Identity: %d", identity.ci);
   } else if (!isBoundedInt32(identity.pci, 0, 503, INT32_MAX)) {
     sendFatalFailureInt32("Invalid LTE Physical Cell Id: %d", identity.pci);
   } else if (!isBoundedInt32(identity.tac, 0, 65535, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid LTE Tracking Area Code: %d", identity.tac);
+    sendFatalFailureInt32("Invalid LTE Tracking Area Code: %d", identity.tac);
   } else if (!isBoundedInt32(identity.earfcn, 0, 262144, INT32_MAX)) {
     sendFatalFailureInt32("Invalid LTE Absolute RF Channel Number: %d",
                           identity.earfcn);
@@ -56,9 +53,8 @@ bool CellInfoLte::validateSignalStrength(
     sendFatalFailureInt32("Invalid LTE Reference Signal Receive Power: %d",
                           strength.rsrp);
   } else if (!isBoundedInt32(strength.rsrq, 3, 20, max)) {
-    sendFatalFailureInt32(
-        "Invalid LTE Reference Signal Receive Quality: %d",
-        strength.rsrq);
+    sendFatalFailureInt32("Invalid LTE Reference Signal Receive Quality: %d",
+                          strength.rsrq);
   } else if (!isBoundedInt32(strength.rssnr, -200, 300, max)) {
     sendFatalFailureInt32(
         "Invalid LTE Reference Signal Signal-to-noise Ratio: %d",
@@ -76,9 +72,9 @@ bool CellInfoLte::validateSignalStrength(
   return valid;
 }
 
-bool CellInfoLte::validate(const struct chreWwanCellInfoLte& cell) {
-  return (validateIdentity(cell.cellIdentityLte)
-          && validateSignalStrength(cell.signalStrengthLte));
+bool CellInfoLte::validate(const struct chreWwanCellInfoLte &cell) {
+  return (validateIdentity(cell.cellIdentityLte) &&
+          validateSignalStrength(cell.signalStrengthLte));
 }
 
-} // namespace general_test
+}  // namespace general_test

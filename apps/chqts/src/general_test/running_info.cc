@@ -43,11 +43,11 @@ bool RunningInfo::validate(uint32_t appVersion) {
         "Running info version does not match build constant");
     result = false;
   } else {
-    result = mPlatformInfo.validate(mRunningInfo.appId,
-                                    mRunningInfo.instanceId);
+    result =
+        mPlatformInfo.validate(mRunningInfo.appId, mRunningInfo.instanceId);
   }
 
   return result;
 }
 
-} // namespace general_test
+}  // namespace general_test

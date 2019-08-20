@@ -106,16 +106,15 @@ bool discoverAudioHandle() {
   bool success = false;
   struct chreAudioSource source;
   for (uint32_t i = 0; !success && chreAudioGetSource(i, &source); i++) {
-    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data",
-         source.name, source.sampleRate,
-         chre::getChreAudioFormatString(source.format));
+    LOGI("Found audio source '%s' with %" PRIu32 "Hz %s data", source.name,
+         source.sampleRate, chre::getChreAudioFormatString(source.format));
     LOGI("  buffer duration: [%" PRIu64 "ns, %" PRIu64 "ns]",
-        source.minBufferDuration, source.maxBufferDuration);
+         source.minBufferDuration, source.maxBufferDuration);
 
-    if (source.sampleRate == kBufferSampleRate
-        && source.minBufferDuration <= kBufferDuration.toRawNanoseconds()
-        && source.maxBufferDuration >= kBufferDuration.toRawNanoseconds()
-        && source.format == kBufferFormat) {
+    if (source.sampleRate == kBufferSampleRate &&
+        source.minBufferDuration <= kBufferDuration.toRawNanoseconds() &&
+        source.maxBufferDuration >= kBufferDuration.toRawNanoseconds() &&
+        source.format == kBufferFormat) {
       gAudioHandle = i;
       success = true;
     }
@@ -137,11 +136,12 @@ void checkTestPassing() {
   }
 }
 
-bool requestAudioForCurrentTestState(const Nanoseconds& testStateDuration) {
+bool requestAudioForCurrentTestState(const Nanoseconds &testStateDuration) {
   bool success = false;
   LOGD("Test stage %zu", gTestPosition);
   if (audioIsExpected()) {
-    if (!chreAudioConfigureSource(gAudioHandle, true, kBufferDuration.toRawNanoseconds(),
+    if (!chreAudioConfigureSource(gAudioHandle, true,
+                                  kBufferDuration.toRawNanoseconds(),
                                   kBufferDuration.toRawNanoseconds())) {
       LOGE("Failed to enable audio");
     } else {
@@ -208,15 +208,13 @@ void handleAudioSamplingChangeEvent(
 
 }  // namespace
 
-
 bool nanoappStart() {
   LOGI("start");
   gLastAudioTimestamp = Nanoseconds(chreGetTime());
   return (discoverAudioHandle() && advanceTestPosition());
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_TIMER:
@@ -224,8 +222,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
       break;
 
     case CHRE_EVENT_AUDIO_DATA:
-      handleAudioDataEvent(
-          static_cast<const chreAudioDataEvent *>(eventData));
+      handleAudioDataEvent(static_cast<const chreAudioDataEvent *>(eventData));
       break;
 
     case CHRE_EVENT_AUDIO_SAMPLING_CHANGE:

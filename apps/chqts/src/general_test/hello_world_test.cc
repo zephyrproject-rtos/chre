@@ -23,9 +23,7 @@ using nanoapp_testing::sendSuccessToHost;
 
 namespace general_test {
 
-HelloWorldTest::HelloWorldTest()
-    : Test(CHRE_API_VERSION_1_0) {
-}
+HelloWorldTest::HelloWorldTest() : Test(CHRE_API_VERSION_1_0) {}
 
 void HelloWorldTest::setUp(uint32_t messageSize, const void * /* message */) {
   if (messageSize != 0) {
@@ -38,7 +36,7 @@ void HelloWorldTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void HelloWorldTest::handleEvent(uint32_t /* senderInstanceId */,
                                  uint16_t eventType,
-                                 const void* /* eventData */) {
+                                 const void * /* eventData */) {
   unexpectedEvent(eventType);
 }
 

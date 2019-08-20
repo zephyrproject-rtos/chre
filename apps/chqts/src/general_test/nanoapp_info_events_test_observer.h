@@ -67,6 +67,6 @@ class NanoAppInfoEventsTestObserver : public Test {
   uint32_t mHistoryIndex = 0;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_NANOAPP_INFO_EVENTS_TEST_OBSERVER_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_NANOAPP_INFO_EVENTS_TEST_OBSERVER_H_

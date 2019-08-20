@@ -22,20 +22,19 @@ bool CellInfoTdscdma::validateIdentity(
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid TDSCDMA Mobile Country Code: %d", identity.mcc);
+    sendFatalFailureInt32("Invalid TDSCDMA Mobile Country Code: %d",
+                          identity.mcc);
   } else if (!isBoundedInt32(identity.mnc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid TDSCDMA Mobile Network Code: %d", identity.mnc);
+    sendFatalFailureInt32("Invalid TDSCDMA Mobile Network Code: %d",
+                          identity.mnc);
   } else if (!isBoundedInt32(identity.lac, 0, 65535, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid TDSCDMA Location Area Code: %d", identity.lac);
+    sendFatalFailureInt32("Invalid TDSCDMA Location Area Code: %d",
+                          identity.lac);
   } else if (!isBoundedInt32(identity.cid, 0, 65535, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid TDSCDMA Cell Identity: %d", identity.cid);
+    sendFatalFailureInt32("Invalid TDSCDMA Cell Identity: %d", identity.cid);
   } else if (!isBoundedInt32(identity.cpid, 0, 127, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid TDSCDMA Cell Parameters ID: %d", identity.cpid);
+    sendFatalFailureInt32("Invalid TDSCDMA Cell Parameters ID: %d",
+                          identity.cpid);
   } else {
     valid = true;
   }
@@ -57,9 +56,9 @@ bool CellInfoTdscdma::validateSignalStrength(
   return valid;
 }
 
-bool CellInfoTdscdma::validate(const struct chreWwanCellInfoTdscdma& cell) {
-  return (validateIdentity(cell.cellIdentityTdscdma)
-          && validateSignalStrength(cell.signalStrengthTdscdma));
+bool CellInfoTdscdma::validate(const struct chreWwanCellInfoTdscdma &cell) {
+  return (validateIdentity(cell.cellIdentityTdscdma) &&
+          validateSignalStrength(cell.signalStrengthTdscdma));
 }
 
-} // namespace general_test
+}  // namespace general_test

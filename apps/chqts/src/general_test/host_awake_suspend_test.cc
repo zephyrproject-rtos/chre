@@ -24,12 +24,10 @@
  */
 namespace general_test {
 
-HostAwakeSuspendTest::HostAwakeSuspendTest()
-    : Test(CHRE_API_VERSION_1_2) {
-}
+HostAwakeSuspendTest::HostAwakeSuspendTest() : Test(CHRE_API_VERSION_1_2) {}
 
-void HostAwakeSuspendTest::setUp(
-    uint32_t messageSize, const void * /* message */) {
+void HostAwakeSuspendTest::setUp(uint32_t messageSize,
+                                 const void * /* message */) {
   if (messageSize != 0) {
     nanoapp_testing::sendFatalFailureToHost(
         "Expected 0 byte message, got more bytes:", &messageSize);
@@ -54,4 +52,4 @@ void HostAwakeSuspendTest::handleEvent(uint32_t /* senderInstanceId */,
   unexpectedEvent(eventType);
 }
 
-} // namespace general_test
+}  // namespace general_test

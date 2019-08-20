@@ -24,7 +24,7 @@ namespace chre {
  * to avoid allocating space on the heap in the case where the data is smaller
  * than the size of a void pointer.
  */
-template<typename DataType>
+template <typename DataType>
 union NestedDataPtr {
   NestedDataPtr(DataType nestedData) : data(nestedData) {
     assertSize();
@@ -37,7 +37,6 @@ union NestedDataPtr {
   DataType data;
 
  private:
-
   /**
    * Ensures both constructors make the same assertion about the size of the
    * struct.

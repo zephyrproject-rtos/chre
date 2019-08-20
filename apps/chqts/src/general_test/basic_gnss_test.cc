@@ -30,9 +30,9 @@ namespace general_test {
 namespace {
 
 void testLocationSessionAsync() {
-  if (!chreGnssLocationSessionStartAsync(
-         1000 /* minIntervalMs */, 0 /* minTimeToNextFixMs */,
-         nullptr /* cookie */)) {
+  if (!chreGnssLocationSessionStartAsync(1000 /* minIntervalMs */,
+                                         0 /* minTimeToNextFixMs */,
+                                         nullptr /* cookie */)) {
     nanoapp_testing::sendFatalFailureToHost(
         "Failed to start a location session");
   }
@@ -42,14 +42,11 @@ void testLocationSessionAsync() {
   }
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-BasicGnssTest::BasicGnssTest()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+BasicGnssTest::BasicGnssTest() : Test(CHRE_API_VERSION_1_1) {}
 
-void BasicGnssTest::setUp(
-    uint32_t messageSize, const void * /* message */) {
+void BasicGnssTest::setUp(uint32_t messageSize, const void * /* message */) {
   if (messageSize != 0) {
     nanoapp_testing::sendFatalFailureToHost(
         "Expected 0 byte message, got more bytes:", &messageSize);
@@ -69,10 +66,10 @@ void BasicGnssTest::setUp(
 void BasicGnssTest::handleEvent(uint32_t /* senderInstanceId */,
                                 uint16_t eventType,
                                 const void * /* eventData */) {
-  if (eventType != CHRE_EVENT_GNSS_ASYNC_RESULT
-      && eventType != CHRE_EVENT_GNSS_LOCATION) {
+  if (eventType != CHRE_EVENT_GNSS_ASYNC_RESULT &&
+      eventType != CHRE_EVENT_GNSS_LOCATION) {
     unexpectedEvent(eventType);
   }
 }
 
-} // namespace general_test
+}  // namespace general_test

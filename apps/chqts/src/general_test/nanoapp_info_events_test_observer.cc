@@ -22,8 +22,7 @@
 namespace general_test {
 
 NanoAppInfoEventsTestObserver::NanoAppInfoEventsTestObserver()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+    : Test(CHRE_API_VERSION_1_1) {}
 
 void NanoAppInfoEventsTestObserver::setUp(uint32_t /* messageSize */,
                                           const void * /* message */) {
@@ -34,20 +33,18 @@ void NanoAppInfoEventsTestObserver::setUp(uint32_t /* messageSize */,
 void NanoAppInfoEventsTestObserver::handleEvent(uint32_t senderInstanceId,
                                                 uint16_t eventType,
                                                 const void *eventData) {
-  if ((senderInstanceId == CHRE_INSTANCE_ID)
-      && ((eventType == CHRE_EVENT_NANOAPP_STARTED)
-          || (eventType == CHRE_EVENT_NANOAPP_STOPPED))) {
-
+  if ((senderInstanceId == CHRE_INSTANCE_ID) &&
+      ((eventType == CHRE_EVENT_NANOAPP_STARTED) ||
+       (eventType == CHRE_EVENT_NANOAPP_STOPPED))) {
     const struct chreNanoappInfo *nanoAppInfo =
         static_cast<const struct chreNanoappInfo *>(eventData);
 
-    mStartStopHistory[mHistoryIndex].instanceId =
-        nanoAppInfo->instanceId;
+    mStartStopHistory[mHistoryIndex].instanceId = nanoAppInfo->instanceId;
 
     mStartStopHistory[mHistoryIndex].eventType = eventType;
     mHistoryIndex = (mHistoryIndex + 1) % kHistorySize;
-  } else if ((senderInstanceId == CHRE_INSTANCE_ID)
-             && (eventType == CHRE_EVENT_MESSAGE_FROM_HOST)) {
+  } else if ((senderInstanceId == CHRE_INSTANCE_ID) &&
+             (eventType == CHRE_EVENT_MESSAGE_FROM_HOST)) {
     uint32_t performerInstanceId;
 
     const void *message = getMessageDataFromHostEvent(
@@ -75,7 +72,7 @@ void NanoAppInfoEventsTestObserver::processStartStopHistory(
   // The oldest data (if present) is at the insertion point in the
   // circular array (i.e. mHistoryIndex)
   for (uint32_t i = 0; i < kHistorySize; ++i) {
-    HostActionMetadata& data =
+    HostActionMetadata &data =
         mStartStopHistory[(mHistoryIndex + i) % kHistorySize];
 
     if (data.instanceId == performerInstanceId) {
@@ -93,17 +90,13 @@ void NanoAppInfoEventsTestObserver::processStartStopHistory(
   }
 
   if (startCount > 1) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Received too many Start events");
+    nanoapp_testing::sendFatalFailureToHost("Received too many Start events");
   } else if (startCount == 0) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Did not receive Start event");
+    nanoapp_testing::sendFatalFailureToHost("Did not receive Start event");
   } else if (stopCount > 1) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Received too many Stop events");
+    nanoapp_testing::sendFatalFailureToHost("Received too many Stop events");
   } else if (stopCount == 0) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Did not receive Stop event");
+    nanoapp_testing::sendFatalFailureToHost("Did not receive Stop event");
   } else if (!eventsOrdered) {
     nanoapp_testing::sendFatalFailureToHost(
         "Start and Stop events were not in order");
@@ -112,4 +105,4 @@ void NanoAppInfoEventsTestObserver::processStartStopHistory(
   }
 }
 
-} // namespace general_test
+}  // namespace general_test

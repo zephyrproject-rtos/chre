@@ -22,14 +22,14 @@
 #ifdef CHRE_THREAD_UTIL_ENABLED
 extern "C" {
 #include "sns_client_thread_util.h"
-} // extern "C"
+}  // extern "C"
 #endif  // CHRE_THREAD_UTIL_ENABLED
 
 namespace chre {
 
 class PowerControlManagerBase {
  public:
-   PowerControlManagerBase();
+  PowerControlManagerBase();
   ~PowerControlManagerBase();
 
   /**
@@ -65,6 +65,6 @@ class PowerControlManagerBase {
 #endif  // CHRE_THREAD_UTIL_ENABLED
 };
 
-} // namespace chre
+}  // namespace chre
 
-#endif // CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
+#endif  // CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_

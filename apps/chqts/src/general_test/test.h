@@ -76,7 +76,7 @@ class Test {
    * @param request lastest chre async request.
    */
   static void validateChreAsyncResult(const chreAsyncResult *result,
-                                      const chreAsyncRequest& request);
+                                      const chreAsyncRequest &request);
 
   /**
    * Get the message data sent from the host, after performing sanity checks.
@@ -103,12 +103,12 @@ class Test {
    * @returns 'eventData'->message, assuming all the sanity checks pass.
    */
   static const void *getMessageDataFromHostEvent(
-      uint32_t senderInstanceId, uint16_t eventType, const void* eventData,
+      uint32_t senderInstanceId, uint16_t eventType, const void *eventData,
       nanoapp_testing::MessageType expectedMessageType,
       uint32_t expectedMessageSize);
 
   virtual void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                           const void* eventData) = 0;
+                           const void *eventData) = 0;
   virtual void setUp(uint32_t messageSize, const void *message) = 0;
 
   /**
@@ -132,6 +132,5 @@ class Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_TEST_H_

@@ -19,8 +19,7 @@
 #ifndef INTERNAL_TESTING
 
 #include <shared/send_message.h>
-#define REPORT_INTERNAL_ERROR(msg) \
-    sendInternalFailureToHost(msg)
+#define REPORT_INTERNAL_ERROR(msg) sendInternalFailureToHost(msg)
 
 #else
 
@@ -29,19 +28,18 @@
 
 #endif
 
-
 namespace nanoapp_testing {
 
 void memset(void *mem, int val, size_t count) {
-  uint8_t *bytes = static_cast<uint8_t*>(mem);
+  uint8_t *bytes = static_cast<uint8_t *>(mem);
   for (size_t i = 0; i < count; i++) {
     bytes[i] = static_cast<uint8_t>(val);
   }
 }
 
 void memcpy(void *d, const void *s, size_t bytes) {
-  uint8_t *dst = static_cast<uint8_t*>(d);
-  const uint8_t *src = static_cast<const uint8_t*>(s);
+  uint8_t *dst = static_cast<uint8_t *>(d);
+  const uint8_t *src = static_cast<const uint8_t *>(s);
   for (size_t i = 0; i < bytes; i++) {
     dst[i] = src[i];
   }
@@ -49,7 +47,8 @@ void memcpy(void *d, const void *s, size_t bytes) {
 
 size_t strlen(char const *str) {
   size_t ret = 0;
-  for (; str[ret] != '\0'; ret++) {}
+  for (; str[ret] != '\0'; ret++) {
+  }
   return ret;
 }
 
@@ -65,9 +64,8 @@ char *strncpy(char *dest, const char *src, size_t len) {
 }
 
 void uint32ToHexAscii(char *buffer, size_t buffer_len, uint32_t value) {
-  constexpr char lookup[16] = {
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+  constexpr char lookup[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                               '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
   if (buffer_len < kUint32ToHexAsciiBufferMinLen) {
     // We chose not to send our buffer_len here, as that would invoke
     // another call to this method and risk infinite recursion if something

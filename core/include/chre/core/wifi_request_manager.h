@@ -38,10 +38,10 @@ namespace chre {
  */
 class WifiRequestManager : public NonCopyable {
  public:
-   /**
-    * Initializes the WifiRequestManager with a default state and memory for any
-    * requests.
-    */
+  /**
+   * Initializes the WifiRequestManager with a default state and memory for any
+   * requests.
+   */
   WifiRequestManager();
 
   /**
@@ -313,9 +313,9 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the event was successfully posted to the event loop.
    */
-  bool postScanMonitorAsyncResultEvent(
-      uint32_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
-      const void *cookie);
+  bool postScanMonitorAsyncResultEvent(uint32_t nanoappInstanceId, bool success,
+                                       bool enable, uint8_t errorCode,
+                                       const void *cookie);
 
   /**
    * Calls through to postScanMonitorAsyncResultEvent but invokes the
@@ -324,9 +324,10 @@ class WifiRequestManager : public NonCopyable {
    * but CHRE failed to enqueue one. For parameter details,
    * @see postScanMonitorAsyncResultEvent
    */
-  void postScanMonitorAsyncResultEventFatal(
-      uint32_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
-      const void *cookie);
+  void postScanMonitorAsyncResultEventFatal(uint32_t nanoappInstanceId,
+                                            bool success, bool enable,
+                                            uint8_t errorCode,
+                                            const void *cookie);
 
   /**
    * Posts an event to a nanoapp indicating the result of a request for an
@@ -340,9 +341,8 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the event was successfully posted to the event loop.
    */
-  bool postScanRequestAsyncResultEvent(
-      uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
-      const void *cookie);
+  bool postScanRequestAsyncResultEvent(uint32_t nanoappInstanceId, bool success,
+                                       uint8_t errorCode, const void *cookie);
 
   /**
    * Calls through to postScanRequestAsyncResultEvent but invokes the
@@ -351,9 +351,9 @@ class WifiRequestManager : public NonCopyable {
    * but CHRE failed to enqueue one. For parameter details,
    * @see postScanRequestAsyncResultEvent
    */
-  void postScanRequestAsyncResultEventFatal(
-      uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
-      const void *cookie);
+  void postScanRequestAsyncResultEventFatal(uint32_t nanoappInstanceId,
+                                            bool success, uint8_t errorCode,
+                                            const void *cookie);
 
   /**
    * Posts a broadcast event containing the results of a wifi scan. Failure to

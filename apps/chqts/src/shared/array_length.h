@@ -28,7 +28,8 @@
  * template trickery which makes sure we only match statically-sized arrays.
  */
 template <typename T, size_t N>
-constexpr size_t arrayLength(T (&)[N]) { return N; }
-
+constexpr size_t arrayLength(T (&)[N]) {
+  return N;
+}
 
 #endif  // _GTS_NANOAPPS_SHARED_ARRAY_LENGTH_H_

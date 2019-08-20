@@ -27,8 +27,8 @@ namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
-using flatbuffers::FlatBufferBuilder;
 using chre::power_test::MessageType;
+using flatbuffers::FlatBufferBuilder;
 
 /**
  * Responds to a host request indicating whether the request was successfully
@@ -72,14 +72,13 @@ bool nanoappStart() {
   return true;
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_MESSAGE_FROM_HOST: {
       auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
-      bool success = RequestManagerSingleton::get()
-          ->handleMessageFromHost(*msg);
+      bool success =
+          RequestManagerSingleton::get()->handleMessageFromHost(*msg);
       sendResponseMessageToHost(success, msg->hostEndpoint);
       break;
     }
@@ -150,8 +149,8 @@ void nanoappEnd() {
 }  // anonymous namespace
 }  // namespace chre
 
-#include "chre/util/nanoapp/app_id.h"
 #include "chre/platform/static_nanoapp_init.h"
+#include "chre/util/nanoapp/app_id.h"
 
 CHRE_STATIC_NANOAPP_INIT(PowerTest, chre::kPowerTestAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

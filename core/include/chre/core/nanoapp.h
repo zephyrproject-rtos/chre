@@ -73,7 +73,6 @@ class Nanoapp : public PlatformNanoapp {
     return mPeakAllocatedBytes;
   }
 
-
   /**
    * Sets the total number of bytes the nanoapp has allocated. Also, modifies
    * the peak allocated bytes if the current total is higher than the peak.
@@ -198,6 +197,6 @@ class Nanoapp : public PlatformNanoapp {
   EventRefQueue mEventQueue;
 };
 
-}
+}  // namespace chre
 
 #endif  // CHRE_CORE_NANOAPP_H_

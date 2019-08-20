@@ -49,12 +49,13 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
         auto *cbData = static_cast<CallbackData *>(data);
 
         Sensor *sensor = EventLoopManagerSingleton::get()
-            ->getSensorRequestManager().getSensor(cbData->sensorType);
+                             ->getSensorRequestManager()
+                             .getSensor(cbData->sensorType);
 
         // Mark last event as valid only if the sensor is enabled. Event data
         // may arrive after sensor is disabled.
-        if (sensor != nullptr
-            && sensor->getRequest().getMode() != SensorMode::Off) {
+        if (sensor != nullptr &&
+            sensor->getRequest().getMode() != SensorMode::Off) {
           sensor->setLastEvent(cbData->event);
         }
         memoryFree(cbData);

@@ -16,8 +16,8 @@
 
 #include <shared/nano_string.h>
 
-#include <string.h>  // brings strlen, strncpy, and memset into scope.
 #include <stdint.h>
+#include <string.h>  // brings strlen, strncpy, and memset into scope.
 
 #include <gtest/gtest.h>
 #include <shared/array_length.h>
@@ -32,9 +32,9 @@ using namespace nanoapp_testing;
 
 static constexpr size_t kMemsetBufferLen = 16;
 static constexpr int kUnsetValue = 0x5F;
-static constexpr int kNewValue   = 0xB8;
+static constexpr int kNewValue = 0xB8;
 
-template<size_t kLenToSet>
+template <size_t kLenToSet>
 static void testMemset() {
   uint8_t expected[kMemsetBufferLen];
   uint8_t actual[arrayLength(expected)];
@@ -62,12 +62,11 @@ TEST(NanoStringsTest, MemsetFullArray) {
   testMemset<kMemsetBufferLen>();
 }
 
-
 static constexpr size_t kMemcpyBufferLen = 8;
 static constexpr uint8_t kMemcpySrc[kMemcpyBufferLen] = {
-  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
 
-template<size_t kLenToCopy>
+template <size_t kLenToCopy>
 static void testMemcpy() {
   uint8_t expected[arrayLength(kMemcpySrc)];
   uint8_t actual[arrayLength(expected)];
@@ -94,7 +93,6 @@ TEST(NanoStringsTest, MemcpyPartialArray) {
 TEST(NanoStringsTest, MemcpyFullArray) {
   testMemcpy<kMemcpyBufferLen>();
 }
-
 
 TEST(NanoStringsTest, StrlenEmptyString) {
   const char *str = "";
@@ -147,7 +145,6 @@ TEST(NanoStringsTest, StrncpyExactFit) {
   testStrncpy(kExactString, kStrncpyMax);
 }
 
-
 static void testHexAscii(uint32_t value, const char *str) {
   static constexpr size_t kAsciiLen =
       nanoapp_testing::kUint32ToHexAsciiBufferMinLen;
@@ -171,4 +168,3 @@ TEST(NanoStringsTest, Uint32ToHexAsciiMin) {
 TEST(NanoStringsTest, Uint32ToHexAsciiMax) {
   testHexAscii(0xFFFFFFFF, "0xFFFFFFFF");
 }
-
