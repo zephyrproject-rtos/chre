@@ -24,7 +24,7 @@ namespace general_test {
 
 class CellInfoLte : private CellInfoBase {
  public:
-  static bool validate(const struct chreWwanCellInfoLte& cell);
+  static bool validate(const struct chreWwanCellInfoLte &cell);
 
  private:
   static bool validateIdentity(const struct chreWwanCellIdentityLte identity);
@@ -32,6 +32,6 @@ class CellInfoLte : private CellInfoBase {
       const struct chreWwanSignalStrengthLte strength);
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_LTE_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_LTE_H_

@@ -47,8 +47,8 @@ void SeeCalHelper::applyCalibration(SensorType sensorType, const float input[3],
   }
 }
 
-bool SeeCalHelper::getBias(
-    SensorType sensorType, struct chreSensorThreeAxisData *biasData) const {
+bool SeeCalHelper::getBias(SensorType sensorType,
+                           struct chreSensorThreeAxisData *biasData) const {
   CHRE_ASSERT(biasData != nullptr);
 
   bool success = false;
@@ -77,7 +77,7 @@ bool SeeCalHelper::getBias(
   return success;
 }
 
-const sns_std_suid& SeeCalHelper::getCalSuidFromSensorType(
+const sns_std_suid &SeeCalHelper::getCalSuidFromSensorType(
     SensorType sensorType) const {
   static sns_std_suid suid = sns_suid_sensor_init_zero;
 
@@ -89,7 +89,7 @@ const sns_std_suid& SeeCalHelper::getCalSuidFromSensorType(
   return suid;
 }
 
-bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
+bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper &seeHelper) {
   bool success = true;
 
   // Find the cal sensor's SUID, assign it to mCalInfo, and make cal sensor data
@@ -112,14 +112,15 @@ bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
   return success;
 }
 
-void SeeCalHelper::updateCalibration(
-    const sns_std_suid& suid, bool hasBias, float bias[3], bool hasScale,
-    float scale[3], bool hasMatrix, float matrix[9], uint8_t accuracy,
-    uint64_t timestamp) {
+void SeeCalHelper::updateCalibration(const sns_std_suid &suid, bool hasBias,
+                                     float bias[3], bool hasScale,
+                                     float scale[3], bool hasMatrix,
+                                     float matrix[9], uint8_t accuracy,
+                                     uint64_t timestamp) {
   size_t index = getCalIndexFromSuid(suid);
   if (index < ARRAY_SIZE(mCalInfo)) {
     LockGuard<Mutex> lock(mMutex);
-    SeeCalData& calData = mCalInfo[index].cal;
+    SeeCalData &calData = mCalInfo[index].cal;
 
     calData.hasBias = hasBias;
     if (hasBias) {
@@ -141,7 +142,7 @@ void SeeCalHelper::updateCalibration(
   }
 }
 
-SensorType SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid& suid) const {
+SensorType SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid &suid) const {
   size_t calSensorIndex = getCalIndexFromSuid(suid);
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
     case SeeCalSensor::AccelCal:
@@ -188,11 +189,11 @@ const char *SeeCalHelper::getDataTypeForCalSensorIndex(size_t calSensorIndex) {
   return nullptr;
 }
 
-size_t SeeCalHelper::getCalIndexFromSuid(const sns_std_suid& suid) const {
+size_t SeeCalHelper::getCalIndexFromSuid(const sns_std_suid &suid) const {
   size_t i = 0;
   for (; i < ARRAY_SIZE(mCalInfo); i++) {
-    if (mCalInfo[i].suid.has_value()
-        && suidsMatch(suid, mCalInfo[i].suid.value())) {
+    if (mCalInfo[i].suid.has_value() &&
+        suidsMatch(suid, mCalInfo[i].suid.value())) {
       break;
     }
   }

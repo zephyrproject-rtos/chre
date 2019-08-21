@@ -43,6 +43,6 @@ class RunningInfo {
   struct chreNanoappInfo mRunningInfo;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_RUNNING_INFO_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_RUNNING_INFO_H_

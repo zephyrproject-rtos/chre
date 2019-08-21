@@ -33,11 +33,11 @@ namespace V1_0 {
 namespace implementation {
 
 using ::android::chre::getStringFromByteVector;
+using ::android::chre::HostProtocolHost;
 using ::android::hardware::Return;
 using ::android::hardware::contexthub::V1_0::AsyncEventType;
 using ::android::hardware::contexthub::V1_0::Result;
 using ::android::hardware::contexthub::V1_0::TransactionResult;
-using ::android::chre::HostProtocolHost;
 using ::flatbuffers::FlatBufferBuilder;
 
 // Aliased for consistency with the way these symbols are referenced in
@@ -63,7 +63,7 @@ constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
 /**
  * @return file descriptor contained in the hidl_handle, or -1 if there is none
  */
-int hidlHandleToFileDescriptor(const hidl_handle& hh) {
+int hidlHandleToFileDescriptor(const hidl_handle &hh) {
   const native_handle_t *handle = hh.getNativeHandle();
   return (handle != nullptr && handle->numFds >= 1) ? handle->data[0] : -1;
 }
@@ -71,10 +71,11 @@ int hidlHandleToFileDescriptor(const hidl_handle& hh) {
 }  // anonymous namespace
 
 GenericContextHub::DeathRecipient::DeathRecipient(
-    sp<GenericContextHub> contexthub) : mGenericContextHub(contexthub){}
+    sp<GenericContextHub> contexthub)
+    : mGenericContextHub(contexthub) {}
 
 void GenericContextHub::DeathRecipient::serviceDied(
-    uint64_t cookie, const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+    uint64_t cookie, const wp<::android::hidl::base::V1_0::IBase> & /* who */) {
   uint32_t hubId = static_cast<uint32_t>(cookie);
   mGenericContextHub->handleServiceDeath(hubId);
 }
@@ -91,7 +92,7 @@ GenericContextHub::GenericContextHub() {
 }
 
 Return<void> GenericContextHub::debug(
-    const hidl_handle& hh_fd, const hidl_vec<hidl_string>& /*options*/) {
+    const hidl_handle &hh_fd, const hidl_vec<hidl_string> & /*options*/) {
   // Timeout inside CHRE is typically 5 seconds, grant 500ms extra here to let
   // the data reach us
   constexpr auto kDebugDumpTimeout = std::chrono::milliseconds(5500);
@@ -167,7 +168,7 @@ Return<void> GenericContextHub::getHubs(getHubs_cb _hidl_cb) {
 }
 
 Return<Result> GenericContextHub::registerCallback(
-    uint32_t hubId, const sp<IContexthubCallback>& cb) {
+    uint32_t hubId, const sp<IContexthubCallback> &cb) {
   Result result;
   ALOGV("%s", __func__);
 
@@ -196,7 +197,7 @@ Return<Result> GenericContextHub::registerCallback(
 }
 
 Return<Result> GenericContextHub::sendMessageToHub(uint32_t hubId,
-                                                   const ContextHubMsg& msg) {
+                                                   const ContextHubMsg &msg) {
   Result result;
   ALOGV("%s", __func__);
 
@@ -204,9 +205,9 @@ Return<Result> GenericContextHub::sendMessageToHub(uint32_t hubId,
     result = Result::BAD_PARAMS;
   } else {
     FlatBufferBuilder builder(1024);
-    HostProtocolHost::encodeNanoappMessage(
-        builder, msg.appName, msg.msgType, msg.hostEndPoint, msg.msg.data(),
-        msg.msg.size());
+    HostProtocolHost::encodeNanoappMessage(builder, msg.appName, msg.msgType,
+                                           msg.hostEndPoint, msg.msg.data(),
+                                           msg.msg.size());
 
     if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
       result = Result::UNKNOWN_FAILURE;
@@ -218,8 +219,9 @@ Return<Result> GenericContextHub::sendMessageToHub(uint32_t hubId,
   return result;
 }
 
-Return<Result> GenericContextHub::loadNanoApp(
-    uint32_t hubId, const NanoAppBinary& appBinary, uint32_t transactionId) {
+Return<Result> GenericContextHub::loadNanoApp(uint32_t hubId,
+                                              const NanoAppBinary &appBinary,
+                                              uint32_t transactionId) {
   Result result;
   ALOGV("%s", __func__);
 
@@ -238,24 +240,24 @@ Return<Result> GenericContextHub::loadNanoApp(
         transactionId, appBinary.appId, appBinary.appVersion, targetApiVersion,
         appBinary.customBinary, kLoadFragmentSizeBytes);
 
-    result = sendFragmentedLoadNanoAppRequest(
-        mPendingLoadTransaction.value());
+    result = sendFragmentedLoadNanoAppRequest(mPendingLoadTransaction.value());
     if (result != Result::OK) {
       mPendingLoadTransaction.reset();
     }
   }
 
-  ALOGD("Attempted to send load nanoapp request for app of size %zu with ID "
-        "0x%016" PRIx64 " as transaction ID %" PRIu32 ": result %" PRIu32,
-        appBinary.customBinary.size(), appBinary.appId, transactionId, result);
+  ALOGD(
+      "Attempted to send load nanoapp request for app of size %zu with ID "
+      "0x%016" PRIx64 " as transaction ID %" PRIu32 ": result %" PRIu32,
+      appBinary.customBinary.size(), appBinary.appId, transactionId, result);
 
   return result;
 }
 
 Result GenericContextHub::sendFragmentedLoadNanoAppRequest(
-    FragmentedLoadTransaction& transaction) {
+    FragmentedLoadTransaction &transaction) {
   Result result;
-  const FragmentedLoadRequest& request = transaction.getNextRequest();
+  const FragmentedLoadRequest &request = transaction.getNextRequest();
 
   FlatBufferBuilder builder(128 + request.binary.size());
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(builder, request);
@@ -272,8 +274,8 @@ Result GenericContextHub::sendFragmentedLoadNanoAppRequest(
   return result;
 }
 
-Return<Result> GenericContextHub::unloadNanoApp(
-    uint32_t hubId, uint64_t appId, uint32_t transactionId) {
+Return<Result> GenericContextHub::unloadNanoApp(uint32_t hubId, uint64_t appId,
+                                                uint32_t transactionId) {
   Result result;
   ALOGV("%s", __func__);
 
@@ -291,22 +293,24 @@ Return<Result> GenericContextHub::unloadNanoApp(
   }
 
   ALOGD("Attempted to send unload nanoapp request for app ID 0x%016" PRIx64
-        " as transaction ID %" PRIu32 ": result %" PRIu32, appId, transactionId,
-        result);
+        " as transaction ID %" PRIu32 ": result %" PRIu32,
+        appId, transactionId, result);
 
   return result;
 }
 
-Return<Result> GenericContextHub::enableNanoApp(
-    uint32_t /* hubId */, uint64_t appId, uint32_t /* transactionId */) {
+Return<Result> GenericContextHub::enableNanoApp(uint32_t /* hubId */,
+                                                uint64_t appId,
+                                                uint32_t /* transactionId */) {
   // TODO
   ALOGW("Attempted to enable app ID 0x%016" PRIx64 ", but not supported",
         appId);
   return Result::TRANSACTION_FAILED;
 }
 
-Return<Result> GenericContextHub::disableNanoApp(
-    uint32_t /* hubId */, uint64_t appId, uint32_t /* transactionId */) {
+Return<Result> GenericContextHub::disableNanoApp(uint32_t /* hubId */,
+                                                 uint64_t appId,
+                                                 uint32_t /* transactionId */) {
   // TODO
   ALOGW("Attempted to disable app ID 0x%016" PRIx64 ", but not supported",
         appId);
@@ -332,7 +336,7 @@ Return<Result> GenericContextHub::queryApps(uint32_t hubId) {
   return result;
 }
 
-GenericContextHub::SocketCallbacks::SocketCallbacks(GenericContextHub& parent)
+GenericContextHub::SocketCallbacks::SocketCallbacks(GenericContextHub &parent)
     : mParent(parent) {}
 
 void GenericContextHub::SocketCallbacks::onMessageReceived(const void *data,
@@ -357,20 +361,19 @@ void GenericContextHub::SocketCallbacks::onDisconnected() {
 }
 
 void GenericContextHub::SocketCallbacks::handleNanoappMessage(
-    const fbs::NanoappMessageT& message) {
+    const fbs::NanoappMessageT &message) {
   ContextHubMsg msg;
   msg.appName = message.app_id;
   msg.hostEndPoint = message.host_endpoint;
   msg.msgType = message.message_type;
   msg.msg = message.message;
 
-  invokeClientCallback([&]() {
-    return mParent.mCallbacks->handleClientMsg(msg);
-  });
+  invokeClientCallback(
+      [&]() { return mParent.mCallbacks->handleClientMsg(msg); });
 }
 
 void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
-    const fbs::HubInfoResponseT& response) {
+    const fbs::HubInfoResponseT &response) {
   ALOGD("Got hub info response");
 
   std::lock_guard<std::mutex> lock(mParent.mHubInfoMutex);
@@ -403,12 +406,12 @@ void GenericContextHub::SocketCallbacks::handleHubInfoResponse(
 }
 
 void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
-    const fbs::NanoappListResponseT& response) {
+    const fbs::NanoappListResponseT &response) {
   std::vector<HubAppInfo> appInfoList;
 
   ALOGV("Got nanoapp list response with %zu apps", response.nanoapps.size());
-  for (const std::unique_ptr<fbs::NanoappListEntryT>& nanoapp
-         : response.nanoapps) {
+  for (const std::unique_ptr<fbs::NanoappListEntryT> &nanoapp :
+       response.nanoapps) {
     // TODO: determine if this is really required, and if so, have
     // HostProtocolHost strip out null entries as part of decode
     if (nanoapp == nullptr) {
@@ -429,53 +432,52 @@ void GenericContextHub::SocketCallbacks::handleNanoappListResponse(
     }
   }
 
-  invokeClientCallback([&]() {
-    return mParent.mCallbacks->handleAppsInfo(appInfoList);
-  });
+  invokeClientCallback(
+      [&]() { return mParent.mCallbacks->handleAppsInfo(appInfoList); });
 }
 
 void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
-    const ::chre::fbs::LoadNanoappResponseT& response) {
-  ALOGV("Got load nanoapp response for transaction %" PRIu32 " fragment %"
-        PRIu32 " with result %d", response.transaction_id, response.fragment_id,
-        response.success);
+    const ::chre::fbs::LoadNanoappResponseT &response) {
+  ALOGV("Got load nanoapp response for transaction %" PRIu32
+        " fragment %" PRIu32 " with result %d",
+        response.transaction_id, response.fragment_id, response.success);
   std::unique_lock<std::mutex> lock(mParent.mPendingLoadTransactionMutex);
 
   // TODO: Handle timeout in receiving load response
   if (!mParent.mPendingLoadTransaction.has_value()) {
     ALOGE("Dropping unexpected load response (no pending transaction exists)");
   } else {
-    FragmentedLoadTransaction& transaction =
+    FragmentedLoadTransaction &transaction =
         mParent.mPendingLoadTransaction.value();
 
     if (!mParent.isExpectedLoadResponseLocked(response)) {
-      ALOGE("Dropping unexpected load response, expected transaction %"
-            PRIu32 " fragment %" PRIu32 ", received transaction %" PRIu32
-            " fragment %" PRIu32, transaction.getTransactionId(),
-            mParent.mCurrentFragmentId, response.transaction_id,
-            response.fragment_id);
+      ALOGE("Dropping unexpected load response, expected transaction %" PRIu32
+            " fragment %" PRIu32 ", received transaction %" PRIu32
+            " fragment %" PRIu32,
+            transaction.getTransactionId(), mParent.mCurrentFragmentId,
+            response.transaction_id, response.fragment_id);
     } else {
       TransactionResult result;
       bool continueLoadRequest = false;
       if (response.success && !transaction.isComplete()) {
-        if (mParent.sendFragmentedLoadNanoAppRequest(transaction)
-            == Result::OK) {
+        if (mParent.sendFragmentedLoadNanoAppRequest(transaction) ==
+            Result::OK) {
           continueLoadRequest = true;
           result = TransactionResult::SUCCESS;
         } else {
           result = TransactionResult::FAILURE;
         }
       } else {
-        result = (response.success) ?
-            TransactionResult::SUCCESS : TransactionResult::FAILURE;
+        result = (response.success) ? TransactionResult::SUCCESS
+                                    : TransactionResult::FAILURE;
       }
 
       if (!continueLoadRequest) {
         mParent.mPendingLoadTransaction.reset();
         lock.unlock();
         invokeClientCallback([&]() {
-          return mParent.mCallbacks->handleTxnResult(
-              response.transaction_id, result);
+          return mParent.mCallbacks->handleTxnResult(response.transaction_id,
+                                                     result);
         });
       }
     }
@@ -483,29 +485,29 @@ void GenericContextHub::SocketCallbacks::handleLoadNanoappResponse(
 }
 
 bool GenericContextHub::isExpectedLoadResponseLocked(
-    const ::chre::fbs::LoadNanoappResponseT& response) {
-  return mPendingLoadTransaction.has_value()
-      && (mPendingLoadTransaction->getTransactionId()
-          == response.transaction_id)
-      && (response.fragment_id == 0
-          || mCurrentFragmentId == response.fragment_id);
+    const ::chre::fbs::LoadNanoappResponseT &response) {
+  return mPendingLoadTransaction.has_value() &&
+         (mPendingLoadTransaction->getTransactionId() ==
+          response.transaction_id) &&
+         (response.fragment_id == 0 ||
+          mCurrentFragmentId == response.fragment_id);
 }
 
 void GenericContextHub::SocketCallbacks::handleUnloadNanoappResponse(
-    const ::chre::fbs::UnloadNanoappResponseT& response) {
+    const ::chre::fbs::UnloadNanoappResponseT &response) {
   ALOGV("Got unload nanoapp response for transaction %" PRIu32
         " with result %d",
         response.transaction_id, response.success);
 
   invokeClientCallback([&]() {
-    TransactionResult result = (response.success) ?
-        TransactionResult::SUCCESS : TransactionResult::FAILURE;
+    TransactionResult result = (response.success) ? TransactionResult::SUCCESS
+                                                  : TransactionResult::FAILURE;
     return mParent.mCallbacks->handleTxnResult(response.transaction_id, result);
   });
 }
 
 void GenericContextHub::SocketCallbacks::handleDebugDumpData(
-    const ::chre::fbs::DebugDumpDataT& data) {
+    const ::chre::fbs::DebugDumpDataT &data) {
   ALOGV("Got debug dump data, size %zu", data.debug_str.size());
   if (mParent.mDebugFd == kInvalidFd) {
     ALOGW("Got unexpected debug dump data message");
@@ -517,7 +519,7 @@ void GenericContextHub::SocketCallbacks::handleDebugDumpData(
 }
 
 void GenericContextHub::SocketCallbacks::handleDebugDumpResponse(
-    const ::chre::fbs::DebugDumpResponseT& response) {
+    const ::chre::fbs::DebugDumpResponseT &response) {
   ALOGV("Got debug dump response, success %d, data count %" PRIu32,
         response.success, response.data_count);
   std::lock_guard<std::mutex> lock(mParent.mDebugDumpMutex);
@@ -543,7 +545,7 @@ void GenericContextHub::writeToDebugFile(const char *str) {
 
 void GenericContextHub::writeToDebugFile(const char *str, size_t len) {
   ssize_t written = write(mDebugFd, str, len);
-  if (written != (ssize_t) len) {
+  if (written != (ssize_t)len) {
     ALOGW(
         "Couldn't write to debug header: returned %zd, expected %zu (errno %d)",
         written, len, errno);
@@ -556,7 +558,7 @@ void GenericContextHub::handleServiceDeath(uint32_t hubId) {
   mCallbacks.clear();
 }
 
-IContexthub* HIDL_FETCH_IContexthub(const char* /* name */) {
+IContexthub *HIDL_FETCH_IContexthub(const char * /* name */) {
   return new GenericContextHub();
 }
 

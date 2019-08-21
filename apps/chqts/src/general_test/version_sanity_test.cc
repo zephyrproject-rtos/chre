@@ -27,15 +27,13 @@ using nanoapp_testing::sendSuccessToHost;
 
 namespace general_test {
 
-VersionSanityTest::VersionSanityTest()
-    : Test(CHRE_API_VERSION_1_0) {
-}
+VersionSanityTest::VersionSanityTest() : Test(CHRE_API_VERSION_1_0) {}
 
-void VersionSanityTest::setUp(uint32_t messageSize, const void * /* message */) {
+void VersionSanityTest::setUp(uint32_t messageSize,
+                              const void * /* message */) {
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "VersionSanity message expects 0 additional bytes, got ",
-        &messageSize);
+        "VersionSanity message expects 0 additional bytes, got ", &messageSize);
   }
 
   if (mApiVersion < CHRE_API_VERSION_1_0) {
@@ -75,7 +73,7 @@ void VersionSanityTest::setUp(uint32_t messageSize, const void * /* message */) 
 }
 
 void VersionSanityTest::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void* eventData) {
+                                    uint16_t eventType, const void *eventData) {
   unexpectedEvent(eventType);
 }
 

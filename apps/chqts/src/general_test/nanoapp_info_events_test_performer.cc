@@ -23,8 +23,7 @@
 namespace general_test {
 
 NanoAppInfoEventsTestPerformer::NanoAppInfoEventsTestPerformer()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+    : Test(CHRE_API_VERSION_1_1) {}
 
 void NanoAppInfoEventsTestPerformer::setUp(uint32_t /* messageSize */,
                                            const void * /* message */) {
@@ -38,4 +37,4 @@ void NanoAppInfoEventsTestPerformer::handleEvent(uint32_t senderInstanceId,
   // Do nothing
 }
 
-} // namespace general_test
+}  // namespace general_test

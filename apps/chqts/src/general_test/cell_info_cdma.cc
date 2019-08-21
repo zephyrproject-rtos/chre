@@ -23,11 +23,9 @@ bool CellInfoCdma::validateIdentity(
   constexpr int32_t max = INT32_MAX;
 
   if (!isBoundedInt32(identity.networkId, 0, 65535, max)) {
-    sendFatalFailureInt32(
-        "Invalid CDMA Network Id: %d", identity.networkId);
+    sendFatalFailureInt32("Invalid CDMA Network Id: %d", identity.networkId);
   } else if (!isBoundedInt32(identity.systemId, 0, 32767, max)) {
-    sendFatalFailureInt32(
-        "Invalid CDMA System Id: %d", identity.systemId);
+    sendFatalFailureInt32("Invalid CDMA System Id: %d", identity.systemId);
   } else if (!isBoundedInt32(identity.basestationId, 0, 65535, max)) {
     sendFatalFailureInt32("Invalid CDMA Base Station Id: %d",
                           identity.basestationId);
@@ -67,8 +65,8 @@ bool CellInfoCdma::validateSignalStrengthEvdo(
     sendFatalFailureInt32("Invalid CDMA/EVDO dbm: %d", strength.dbm);
   } else if ((strength.ecio < 0) || (strength.ecio > 1600)) {
     sendFatalFailureInt32("Invalid CDMA/EVDO ecio: %d", strength.ecio);
-  } else if ((strength.signalNoiseRatio < 0)
-             || (strength.signalNoiseRatio > 8)) {
+  } else if ((strength.signalNoiseRatio < 0) ||
+             (strength.signalNoiseRatio > 8)) {
     sendFatalFailureInt32("Invalid evdo signal noise ratio: %d",
                           strength.signalNoiseRatio);
   } else {
@@ -78,10 +76,10 @@ bool CellInfoCdma::validateSignalStrengthEvdo(
   return valid;
 }
 
-bool CellInfoCdma::validate(const struct chreWwanCellInfoCdma& cell) {
-  return (validateIdentity(cell.cellIdentityCdma)
-          && validateSignalStrengthCdma(cell.signalStrengthCdma)
-          && validateSignalStrengthEvdo(cell.signalStrengthEvdo));
+bool CellInfoCdma::validate(const struct chreWwanCellInfoCdma &cell) {
+  return (validateIdentity(cell.cellIdentityCdma) &&
+          validateSignalStrengthCdma(cell.signalStrengthCdma) &&
+          validateSignalStrengthEvdo(cell.signalStrengthEvdo));
 }
 
-} // namespace general_test
+}  // namespace general_test

@@ -24,7 +24,7 @@ namespace nanoapp_testing {
 TestSuccessMarker::TestSuccessMarker(uint32_t numStages) {
   if (numStages > 32) {
     sendFatalFailureToHost(
-      "Total number of stage should be less than 33, got %d", &numStages);
+        "Total number of stage should be less than 33, got %d", &numStages);
   }
   mAllFinished = (UINT64_C(1) << numStages) - 1;
 }
@@ -62,4 +62,4 @@ void TestSuccessMarker::markStageAndSuccessOnFinish(uint32_t stage) {
   }
 }
 
-} // namespace nanoapp_testing
+}  // namespace nanoapp_testing

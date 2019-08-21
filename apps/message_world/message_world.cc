@@ -55,8 +55,7 @@ bool nanoappStart() {
   return true;
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
@@ -69,8 +68,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId,
     }
 
     bool success = chreSendMessageToHostEndpoint(
-      gMessageData, sizeof(gMessageData), kMessageType,
-      CHRE_HOST_ENDPOINT_BROADCAST, messageFreeCallback);
+        gMessageData, sizeof(gMessageData), kMessageType,
+        CHRE_HOST_ENDPOINT_BROADCAST, messageFreeCallback);
     LOGI("Result of sending reply: %d", success);
   }
 }
@@ -83,8 +82,8 @@ void nanoappEnd() {
 }  // anonymous namespace
 }  // namespace chre
 
-#include "chre/util/nanoapp/app_id.h"
 #include "chre/platform/static_nanoapp_init.h"
+#include "chre/util/nanoapp/app_id.h"
 
 CHRE_STATIC_NANOAPP_INIT(MessageWorld, chre::kMessageWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

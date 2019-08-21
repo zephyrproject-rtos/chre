@@ -22,11 +22,9 @@ bool CellInfoGsm::validateIdentity(
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid GSM Mobile Country Code: %d", identity.mcc);
+    sendFatalFailureInt32("Invalid GSM Mobile Country Code: %d", identity.mcc);
   } else if (!isBoundedInt32(identity.mnc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid GSM Mobile Network Code: %d", identity.mnc);
+    sendFatalFailureInt32("Invalid GSM Mobile Network Code: %d", identity.mnc);
   } else if (!isBoundedInt32(identity.lac, 0, 65535, INT32_MAX)) {
     sendFatalFailureInt32("Invalid GSM Location Area Code", identity.lac);
   } else if (!isBoundedInt32(identity.cid, 0, 65535, INT32_MAX)) {
@@ -43,8 +41,7 @@ bool CellInfoGsm::validateIdentity(
     for (uint8_t byte : identity.reserved) {
       if (byte != 0) {
         valid = false;
-        sendFatalFailureUint8("Invalid GSM reserved byte: %d",
-                              byte);
+        sendFatalFailureUint8("Invalid GSM reserved byte: %d", byte);
       }
 
       if (!valid) {
@@ -73,9 +70,9 @@ bool CellInfoGsm::validateSignalStrength(
   return valid;
 }
 
-bool CellInfoGsm::validate(const struct chreWwanCellInfoGsm& cell) {
-  return (validateIdentity(cell.cellIdentityGsm)
-          && validateSignalStrength(cell.signalStrengthGsm));
+bool CellInfoGsm::validate(const struct chreWwanCellInfoGsm &cell) {
+  return (validateIdentity(cell.cellIdentityGsm) &&
+          validateSignalStrength(cell.signalStrengthGsm));
 }
 
-} // namespace general_test
+}  // namespace general_test

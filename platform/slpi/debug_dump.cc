@@ -31,7 +31,7 @@ namespace chre {
 #ifdef CHRE_ENABLE_DEBUG_DUMP
 size_t debugDumpStrMaxSize = ASH_DEBUG_DUMP_STR_MAX_SIZE;
 uint16_t debugDumpTimeoutMs = ASH_DEBUG_DUMP_TIMEOUT_MS;
-#else  // CHRE_ENABLE_DEBUG_DUMP
+#else   // CHRE_ENABLE_DEBUG_DUMP
 size_t debugDumpStrMaxSize = 0;
 uint16_t debugDumpTimeoutMs = 0;
 #endif  // CHRE_ENABLE_DEBUG_DUMP
@@ -40,7 +40,7 @@ bool registerDebugDumpCallback(const char *name, debugDumpCbFunc *callback,
                                void *cookie) {
 #ifdef CHRE_ENABLE_DEBUG_DUMP
   return ashRegisterDebugDumpCallback(name, callback, cookie);
-#else  // CHRE_ENABLE_DEBUG_DUMP
+#else   // CHRE_ENABLE_DEBUG_DUMP
   return false;
 #endif  // CHRE_ENABLE_DEBUG_DUMP
 }
@@ -54,7 +54,7 @@ void unregisterDebugDumpCallback(debugDumpCbFunc *callback) {
 bool commitDebugDump(uint32_t handle, const char *debugStr, bool done) {
 #ifdef CHRE_ENABLE_DEBUG_DUMP
   return ashCommitDebugDump(handle, debugStr, done);
-#else  // CHRE_ENABLE_DEBUG_DUMP
+#else   // CHRE_ENABLE_DEBUG_DUMP
   return false;
 #endif  // CHRE_ENABLE_DEBUG_DUMP
 }
@@ -62,7 +62,7 @@ bool commitDebugDump(uint32_t handle, const char *debugStr, bool done) {
 bool triggerDebugDump(debugDumpReadyCbFunc *readyCb, void *cookie) {
 #ifdef CHRE_ENABLE_DEBUG_DUMP
   return ashTriggerDebugDump(readyCb, cookie);
-#else  // CHRE_ENABLE_DEBUG_DUMP
+#else   // CHRE_ENABLE_DEBUG_DUMP
   return false;
 #endif  // CHRE_ENABLE_DEBUG_DUMP
 }

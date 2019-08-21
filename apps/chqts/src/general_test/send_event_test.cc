@@ -58,14 +58,14 @@ constexpr uint16_t kEventTypeCallback = CHRE_EVENT_FIRST_USER_VALUE + 2;
 
 // NOTE: This is not allowed to be constexpr, even if some version of g++/clang
 //     allow it.
-static void *kOddData = reinterpret_cast<void*>(-1);
+static void *kOddData = reinterpret_cast<void *>(-1);
 
 namespace general_test {
 
 bool SendEventTest::sInMethod = false;
 uint8_t SendEventTest::sCallbacksInvoked = 0;
 
-template<uint8_t kCallbackIndex>
+template <uint8_t kCallbackIndex>
 void SendEventTest::completeCallback(uint16_t eventType, void *data) {
   if (sInMethod) {
     sendFatalFailureToHost(
@@ -73,10 +73,9 @@ void SendEventTest::completeCallback(uint16_t eventType, void *data) {
   }
   sInMethod = true;
   if ((data == nullptr) || (data == kOddData)) {
-    sendFatalFailureToHost(
-        "completeCallback called with nullptr or odd data.");
+    sendFatalFailureToHost("completeCallback called with nullptr or odd data.");
   }
-  uint32_t num = *(reinterpret_cast<uint32_t*>(data));
+  uint32_t num = *(reinterpret_cast<uint32_t *>(data));
   uint16_t expectedEventType = 0xFFFF;
   uint8_t expectedCallbackIndex = 0xFF;
   switch (num) {
@@ -127,16 +126,13 @@ void SendEventTest::completeCallback1(uint16_t eventType, void *data) {
   completeCallback<1>(eventType, data);
 }
 
-SendEventTest::SendEventTest()
-  : Test(CHRE_API_VERSION_1_0) , mNextNum(0) {
-}
+SendEventTest::SendEventTest() : Test(CHRE_API_VERSION_1_0), mNextNum(0) {}
 
 void SendEventTest::setUp(uint32_t messageSize, const void * /* message */) {
   sInMethod = true;
   if (messageSize != 0) {
-    sendFatalFailureToHost(
-        "SendEvent message expects 0 additional bytes, got ",
-        &messageSize);
+    sendFatalFailureToHost("SendEvent message expects 0 additional bytes, got ",
+                           &messageSize);
   }
 
   const uint32_t id = chreGetInstanceId();
@@ -187,8 +183,8 @@ void SendEventTest::setUp(uint32_t messageSize, const void * /* message */) {
   sInMethod = false;
 }
 
-void SendEventTest::handleEvent(uint32_t senderInstanceId,
-                                uint16_t eventType, const void* eventData) {
+void SendEventTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
+                                const void *eventData) {
   if (sInMethod) {
     sendFatalFailureToHost(
         "handleEvent invoked while another nanoapp method is running");
@@ -226,8 +222,7 @@ void SendEventTest::handleEvent(uint32_t senderInstanceId,
     }
 
     if (expectedEventType != eventType) {
-      sendFatalFailureToHost("Incorrect event type sent for num ",
-                             &mNextNum);
+      sendFatalFailureToHost("Incorrect event type sent for num ", &mNextNum);
     }
     if (expectedData != eventData) {
       sendFatalFailureToHost("Incorrect data sent for num ", &mNextNum);

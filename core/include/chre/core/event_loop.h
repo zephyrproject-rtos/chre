@@ -29,6 +29,7 @@
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/synchronized_memory_pool.h"
+#include "chre/util/system/debug_dump.h"
 #include "chre/util/unique_ptr.h"
 #include "chre_api/chre/event.h"
 
@@ -51,13 +52,13 @@ namespace chre {
 class EventLoop : public NonCopyable {
  public:
   EventLoop()
-    : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
-      mRunning(true) {}
+      : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
+        mRunning(true) {}
 
   /**
    * Synchronous callback used with forEachNanoapp
    */
-  typedef void (NanoappCallbackFunction)(const Nanoapp *nanoapp, void *data);
+  typedef void(NanoappCallbackFunction)(const Nanoapp *nanoapp, void *data);
 
   /**
    * Searches the set of nanoapps managed by this EventLoop for one with the
@@ -102,9 +103,9 @@ class EventLoop : public NonCopyable {
    * @param message Pointer to the message data
    * @param messageSize Size of the message
    */
-  void invokeMessageFreeFunction(
-      uint64_t appId, chreMessageFreeFunction *freeFunction, void *message,
-      size_t messageSize);
+  void invokeMessageFreeFunction(uint64_t appId,
+                                 chreMessageFreeFunction *freeFunction,
+                                 void *message, size_t messageSize);
 
   /**
    * Invokes the Nanoapp's start callback, and if successful, adds it to the
@@ -118,7 +119,7 @@ class EventLoop : public NonCopyable {
    *        will have been transferred to be managed by this EventLoop.
    * @return true if the app was started successfully
    */
-  bool startNanoapp(UniquePtr<Nanoapp>& nanoapp);
+  bool startNanoapp(UniquePtr<Nanoapp> &nanoapp);
 
   /**
    * Stops and unloads a nanoapp identified by its instance ID. The end entry
@@ -209,7 +210,7 @@ class EventLoop : public NonCopyable {
    *
    * @return The timer pool owned by this event loop.
    */
-  TimerPool& getTimerPool() {
+  TimerPool &getTimerPool() {
     return mTimerPool;
   }
 
@@ -252,19 +253,16 @@ class EventLoop : public NonCopyable {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @param buffer Pointer to the start of the buffer.
-   * @param bufferPos Pointer to buffer position to start the print (in-out).
-   * @param size Size of the buffer in bytes.
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos,
-                        size_t bufferSize) const;
-
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
   /**
    * Returns a reference to the power control manager. This allows power
    * controls from subsystems outside the event loops.
    */
-  PowerControlManager& getPowerControlManager() {
+  PowerControlManager &getPowerControlManager() {
     return mPowerControlManager;
   }
 
@@ -341,8 +339,9 @@ class EventLoop : public NonCopyable {
    * @see postEvent and postEventOrFree
    */
   bool allocateAndPostEvent(uint16_t eventType, void *eventData,
-    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
-    uint32_t targetInstanceId);
+                            chreEventCompleteFunction *freeCallback,
+                            uint32_t senderInstanceId,
+                            uint32_t targetInstanceId);
 
   /**
    * Do one round of Nanoapp event delivery, only considering events in
@@ -359,7 +358,7 @@ class EventLoop : public NonCopyable {
    *
    * @return true if the nanoapp has another event pending in its queue
    */
-  bool deliverNextEvent(const UniquePtr<Nanoapp>& app);
+  bool deliverNextEvent(const UniquePtr<Nanoapp> &app);
 
   /**
    * Given an event pulled from the main incoming event queue (mEvents), deliver
@@ -422,7 +421,7 @@ class EventLoop : public NonCopyable {
    * @param eventType Should be one of CHRE_EVENT_NANOAPP_{STARTED, STOPPED}
    * @param nanoapp The nanoapp instance whose status has changed
    */
-  void notifyAppStatusChange(uint16_t eventType, const Nanoapp& nanoapp);
+  void notifyAppStatusChange(uint16_t eventType, const Nanoapp &nanoapp);
 
   /**
    * Stops and unloads the Nanoapp at the given index in mNanoapps.

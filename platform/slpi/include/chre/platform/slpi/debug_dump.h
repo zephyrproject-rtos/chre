@@ -46,7 +46,7 @@ extern uint16_t debugDumpTimeoutMs;
  *
  * @see registerDebugDumpCallback()
  */
-typedef void (debugDumpCbFunc)(void *cookie, uint32_t handle);
+typedef void(debugDumpCbFunc)(void *cookie, uint32_t handle);
 
 /**
  * Register a function to be invoked when a debug dump has been requested. Upon
@@ -67,7 +67,7 @@ typedef void (debugDumpCbFunc)(void *cookie, uint32_t handle);
  * @return true if the callback was successfully registered
  */
 bool registerDebugDumpCallback(const char *name, debugDumpCbFunc *callback,
-	                             void *cookie);
+                               void *cookie);
 
 /**
  * Unregisters a debug dump callback. After this function returns, the given
@@ -123,8 +123,8 @@ bool commitDebugDump(uint32_t handle, const char *debugStr, bool done);
  * @param complete true if this is the final call to this callback for the
  *        current dump session
  */
-typedef void (debugDumpReadyCbFunc)(void *cookie, const char *debugStr,
-                                    size_t debugStrSize, bool complete);
+typedef void(debugDumpReadyCbFunc)(void *cookie, const char *debugStr,
+                                   size_t debugStrSize, bool complete);
 
 /**
  * Kick off the debug dump data collection procedure. Synchronously invokes all

@@ -21,9 +21,7 @@
 
 namespace general_test {
 
-WifiCapabilitiesTest::WifiCapabilitiesTest()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+WifiCapabilitiesTest::WifiCapabilitiesTest() : Test(CHRE_API_VERSION_1_1) {}
 
 void WifiCapabilitiesTest::setUp(uint32_t messageSize,
                                  const void * /* message */) {
@@ -34,12 +32,12 @@ void WifiCapabilitiesTest::setUp(uint32_t messageSize,
     uint32_t allCapabilities = CHRE_WIFI_CAPABILITIES_NONE;
 
     if (mApiVersion >= CHRE_API_VERSION_1_1) {
-      allCapabilities |= CHRE_WIFI_CAPABILITIES_SCAN_MONITORING
-          | CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN;
+      allCapabilities |= CHRE_WIFI_CAPABILITIES_SCAN_MONITORING |
+                         CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN;
     }
     if (mApiVersion >= CHRE_API_VERSION_1_2) {
-      allCapabilities |= CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF
-          | CHRE_WIFI_CAPABILITIES_RTT_RANGING;
+      allCapabilities |= CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF |
+                         CHRE_WIFI_CAPABILITIES_RTT_RANGING;
     }
 
     // Call the new API
@@ -67,4 +65,4 @@ void WifiCapabilitiesTest::handleEvent(uint32_t /* senderInstanceId */,
   unexpectedEvent(eventType);
 }
 
-} // namespace general_test
+}  // namespace general_test

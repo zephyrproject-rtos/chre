@@ -33,8 +33,8 @@ smr_err SmrHelper::releaseSync(smr_client_hndl clientHandle,
   // deadlock in the callback.
   prepareForWait();
 
-  smr_err result = smr_client_release(
-      clientHandle, SmrHelper::smrReleaseCb, this);
+  smr_err result =
+      smr_client_release(clientHandle, SmrHelper::smrReleaseCb, this);
   if (result != SMR_NO_ERR) {
     LOGE("SMR client release failed: %d", result);
 
@@ -89,18 +89,19 @@ smr_err SmrHelper::waitForService(qmi_idl_service_object_type serviceObj,
   return result;
 }
 
-smr_err SmrHelper::sendReqAsyncUntyped(
-    smr_client_hndl client_handle, unsigned int msg_id,
-    void *req_c_struct, unsigned int req_c_struct_len,
-    void *resp_c_struct, unsigned int resp_c_struct_len,
-    void *resp_cb_data, smr_client_resp_cb resp_cb) {
+smr_err SmrHelper::sendReqAsyncUntyped(smr_client_hndl client_handle,
+                                       unsigned int msg_id, void *req_c_struct,
+                                       unsigned int req_c_struct_len,
+                                       void *resp_c_struct,
+                                       unsigned int resp_c_struct_len,
+                                       void *resp_cb_data,
+                                       smr_client_resp_cb resp_cb) {
   // Force big image since smr_client_send_req is not supported in micro-image
   slpiForceBigImage();
 
-  smr_err result = smr_client_send_req(client_handle, msg_id, req_c_struct,
-                                       req_c_struct_len, resp_c_struct,
-                                       resp_c_struct_len, resp_cb, resp_cb_data,
-                                       nullptr /* txn_handle */);
+  smr_err result = smr_client_send_req(
+      client_handle, msg_id, req_c_struct, req_c_struct_len, resp_c_struct,
+      resp_c_struct_len, resp_cb, resp_cb_data, nullptr /* txn_handle */);
 
   if (result != SMR_NO_ERR) {
     LOGE("Failed to send request (msg_id 0x%02x): %d", msg_id, result);
@@ -109,11 +110,12 @@ smr_err SmrHelper::sendReqAsyncUntyped(
   return result;
 }
 
-bool SmrHelper::sendReqSyncUntyped(
-    smr_client_hndl client_handle, unsigned int msg_id,
-    void *req_c_struct, unsigned int req_c_struct_len,
-    void *resp_c_struct, unsigned int resp_c_struct_len,
-    Nanoseconds timeout, smr_err *result) {
+bool SmrHelper::sendReqSyncUntyped(smr_client_hndl client_handle,
+                                   unsigned int msg_id, void *req_c_struct,
+                                   unsigned int req_c_struct_len,
+                                   void *resp_c_struct,
+                                   unsigned int resp_c_struct_len,
+                                   Nanoseconds timeout, smr_err *result) {
   // Set to false only in the event of timeout
   bool waitSuccess = true;
 
@@ -137,10 +139,10 @@ bool SmrHelper::sendReqSyncUntyped(
   // Note that null txn_handle means we can't abandon the transaction, but it's
   // only supported for QMI (non-SMR) services, and we don't expect that anyway.
   // SMR itself does not support canceling transactions made to SMR services.
-  *result = smr_client_send_req(
-      client_handle, msg_id, req_c_struct, req_c_struct_len, resp_c_struct,
-      resp_c_struct_len, SmrHelper::smrSyncRespCb, txn.get(),
-      nullptr /* txn_handle */);
+  *result = smr_client_send_req(client_handle, msg_id, req_c_struct,
+                                req_c_struct_len, resp_c_struct,
+                                resp_c_struct_len, SmrHelper::smrSyncRespCb,
+                                txn.get(), nullptr /* txn_handle */);
   if (*result != SMR_NO_ERR) {
     LOGE("Failed to send request (msg_id 0x%02x): %d", msg_id, *result);
 
@@ -209,12 +211,13 @@ void SmrHelper::smrReleaseCb(void *release_cb_data) {
   obj->mCond.notify_one();
 }
 
-void SmrHelper::smrSyncRespCb(
-    smr_client_hndl client_handle, unsigned int msg_id, void *resp_c_struct,
-    unsigned int resp_c_struct_len, void *resp_cb_data, smr_err transp_err) {
+void SmrHelper::smrSyncRespCb(smr_client_hndl client_handle,
+                              unsigned int msg_id, void *resp_c_struct,
+                              unsigned int resp_c_struct_len,
+                              void *resp_cb_data, smr_err transp_err) {
   auto *txn = static_cast<SmrTransaction *>(resp_cb_data);
-  txn->parent->handleResp(
-      client_handle, msg_id, resp_c_struct, resp_c_struct_len, transp_err, txn);
+  txn->parent->handleResp(client_handle, msg_id, resp_c_struct,
+                          resp_c_struct_len, transp_err, txn);
 }
 
 void SmrHelper::smrWaitForServiceCb(

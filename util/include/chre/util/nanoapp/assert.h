@@ -34,15 +34,16 @@
  * @param the condition to check for non-zero.
  */
 #ifdef CHRE_ASSERTIONS_ENABLED
-#define CHRE_ASSERT(condition) do {                                    \
-      if (!(condition)) {                                              \
-        chreLog(CHRE_LOG_ERROR, "CHRE_ASSERT at %s:%d", CHRE_FILENAME, \
-                __LINE__);                                             \
-        chreAbort(UINT32_MAX);                                         \
-      }                                                                \
-    } while (0)
+#define CHRE_ASSERT(condition)                                       \
+  do {                                                               \
+    if (!(condition)) {                                              \
+      chreLog(CHRE_LOG_ERROR, "CHRE_ASSERT at %s:%d", CHRE_FILENAME, \
+              __LINE__);                                             \
+      chreAbort(UINT32_MAX);                                         \
+    }                                                                \
+  } while (0)
 #else
-#define CHRE_ASSERT(condition) ((void) (condition))
+#define CHRE_ASSERT(condition) ((void)(condition))
 #endif  // CHRE_ASSERTIONS_ENABLED
 
 #ifdef GTEST

@@ -33,9 +33,7 @@
 
 namespace general_test {
 
-WwanCellInfoTest::WwanCellInfoTest()
-    : Test(CHRE_API_VERSION_1_1) {
-}
+WwanCellInfoTest::WwanCellInfoTest() : Test(CHRE_API_VERSION_1_1) {}
 
 void WwanCellInfoTest::setUp(uint32_t messageSize, const void * /* message */) {
   if ((chreWwanGetCapabilities() & CHRE_WWAN_GET_CELL_INFO) == 0) {
@@ -44,8 +42,8 @@ void WwanCellInfoTest::setUp(uint32_t messageSize, const void * /* message */) {
     nanoapp_testing::sendFatalFailureToHost(
         "chreWwanGetCellInfo failed unexpectedly");
   } else {
-    mTimerHandle = chreTimerSet(CHRE_ASYNC_RESULT_TIMEOUT_NS,
-                                &mTimerHandle, true /* oneShot */);
+    mTimerHandle = chreTimerSet(CHRE_ASYNC_RESULT_TIMEOUT_NS, &mTimerHandle,
+                                true /* oneShot */);
 
     if (mTimerHandle == CHRE_TIMER_INVALID) {
       nanoapp_testing::sendFatalFailureToHost(
@@ -60,8 +58,7 @@ WwanCellInfoTest::~WwanCellInfoTest() {
 }
 
 void WwanCellInfoTest::handleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType,
-                                   const void *eventData) {
+                                   uint16_t eventType, const void *eventData) {
   // The only expected message is from the async call
   if (senderInstanceId != CHRE_INSTANCE_ID) {
     nanoapp_testing::sendFatalFailureToHost(
@@ -87,37 +84,33 @@ void WwanCellInfoTest::cancelTimer() {
   }
 }
 
-void WwanCellInfoTest::validateCellInfo(uint8_t count,
-                                        const struct chreWwanCellInfo *cells) const {
+void WwanCellInfoTest::validateCellInfo(
+    uint8_t count, const struct chreWwanCellInfo *cells) const {
   bool valid = true;
 
   for (int i = 0; (i < count) && valid; ++i) {
     if (cells[i].reserved != 0) {
       valid = false;
-      CellInfoBase::sendFatalFailureUint8(
-          "Invalid reserved CellInfo field: %d", cells[i].reserved);
+      CellInfoBase::sendFatalFailureUint8("Invalid reserved CellInfo field: %d",
+                                          cells[i].reserved);
     }
 
     for (uint8_t byte : cells[i].reserved2) {
       if (byte != 0) {
         valid = false;
-        CellInfoBase::sendFatalFailureUint8(
-            "Invalid reserved2 field: %d", byte);
+        CellInfoBase::sendFatalFailureUint8("Invalid reserved2 field: %d",
+                                            byte);
       }
     }
 
-    if ((cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_UNKNOWN)
-        && (cells[i].timeStampType
-            != CHRE_WWAN_CELL_TIMESTAMP_TYPE_ANTENNA)
-        && (cells[i].timeStampType
-            != CHRE_WWAN_CELL_TIMESTAMP_TYPE_MODEM)
-        && (cells[i].timeStampType
-            != CHRE_WWAN_CELL_TIMESTAMP_TYPE_OEM_RIL)
-        && (cells[i].timeStampType
-            != CHRE_WWAN_CELL_TIMESTAMP_TYPE_JAVA_RIL)) {
+    if ((cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_UNKNOWN) &&
+        (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_ANTENNA) &&
+        (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_MODEM) &&
+        (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_OEM_RIL) &&
+        (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_JAVA_RIL)) {
       valid = false;
-      CellInfoBase::sendFatalFailureUint8(
-          "Invalid timeStampType: %d", cells[i].timeStampType);
+      CellInfoBase::sendFatalFailureUint8("Invalid timeStampType: %d",
+                                          cells[i].timeStampType);
     }
 
     if (cells[i].cellInfoType == CHRE_WWAN_CELL_INFO_TYPE_GSM) {
@@ -132,8 +125,8 @@ void WwanCellInfoTest::validateCellInfo(uint8_t count,
       valid &= CellInfoTdscdma::validate(cells[i].CellInfo.tdscdma);
     } else {
       valid = false;
-      CellInfoBase::sendFatalFailureUint8(
-          "Invalid cellInfoType: %d", cells[i].cellInfoType);
+      CellInfoBase::sendFatalFailureUint8("Invalid cellInfoType: %d",
+                                          cells[i].cellInfoType);
     }
   }
 
@@ -152,15 +145,13 @@ void WwanCellInfoTest::validateCellInfoResult(const void *eventData) const {
     nanoapp_testing::sendFatalFailureToHost(
         "Received version is unexpected value");
   } else if (result->reserved != 0) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Received reserved field non-zero");
+    nanoapp_testing::sendFatalFailureToHost("Received reserved field non-zero");
   } else {
     const uint32_t *receivedCookie =
         static_cast<const uint32_t *>(result->cookie);
 
     if (receivedCookie != &mTimerHandle) {
-      nanoapp_testing::sendFatalFailureToHost(
-          "Received cookie does not match");
+      nanoapp_testing::sendFatalFailureToHost("Received cookie does not match");
     } else if (result->cellInfoCount != 0) {
       validateCellInfo(result->cellInfoCount, result->cells);
     } else {
@@ -169,4 +160,4 @@ void WwanCellInfoTest::validateCellInfoResult(const void *eventData) const {
   }
 }
 
-} // namespace general_test
+}  // namespace general_test

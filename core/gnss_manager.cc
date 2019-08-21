@@ -25,8 +25,7 @@ namespace chre {
 
 GnssManager::GnssManager()
     : mLocationSession(CHRE_EVENT_GNSS_LOCATION),
-      mMeasurementSession(CHRE_EVENT_GNSS_DATA) {
-}
+      mMeasurementSession(CHRE_EVENT_GNSS_DATA) {}
 
 void GnssManager::init() {
   mPlatformGnss.init();
@@ -36,11 +35,10 @@ uint32_t GnssManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
 }
 
-void GnssManager::logStateToBuffer(
-    char *buffer, size_t *bufferPos, size_t bufferSize) const {
-  debugDumpPrint(buffer, bufferPos, bufferSize,"\nGNSS:");
-  mLocationSession.logStateToBuffer(buffer, bufferPos, bufferSize);
-  mMeasurementSession.logStateToBuffer(buffer, bufferPos, bufferSize);
+void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nGNSS:");
+  mLocationSession.logStateToBuffer(debugDump);
+  mMeasurementSession.logStateToBuffer(debugDump);
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
@@ -107,58 +105,50 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 }
 
 void GnssSession::handleReportEvent(void *event) {
-  EventLoopManagerSingleton::get()->getEventLoop()
-      .postEvent(mReportEventType, event, freeReportEventCallback);
+  EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+      mReportEventType, event, freeReportEventCallback);
 }
 
-void GnssSession::logStateToBuffer(
-    char *buffer, size_t *bufferPos, size_t bufferSize) const {
+void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   // TODO: have all interval values print as INVALID if they are the max
   // unsigned value
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "\n %s: Curr int(ms)=%" PRIu64 "\n", mName,
-                 mCurrentInterval.getMilliseconds());
-  debugDumpPrint(buffer, bufferPos, bufferSize, "  Requests:\n");
-  for (const auto& request : mRequests) {
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   minInt(ms)=%" PRIu64 " nappId=%" PRIu32 "\n",
-                   request.minInterval.getMilliseconds(),
-                   request.nanoappInstanceId);
+  debugDump.print("\n %s: Curr int(ms)=%" PRIu64 "\n", mName,
+                  mCurrentInterval.getMilliseconds());
+  debugDump.print("  Requests:\n");
+  for (const auto &request : mRequests) {
+    debugDump.print("   minInt(ms)=%" PRIu64 " nappId=%" PRIu32 "\n",
+                    request.minInterval.getMilliseconds(),
+                    request.nanoappInstanceId);
   }
 
   if (!mStateTransitions.empty()) {
-    debugDumpPrint(buffer, bufferPos, bufferSize, "  Transition queue:\n");
+    debugDump.print("  Transition queue:\n");
     for (const auto &transition : mStateTransitions) {
-      debugDumpPrint(buffer, bufferPos, bufferSize,
-                     "   minInt(ms)=%" PRIu64
-                     " enable=%d"
-                     " nappId=%" PRIu32 "\n",
-                     transition.minInterval.getMilliseconds(),
-                     transition.enable, transition.nanoappInstanceId);
+      debugDump.print("   minInt(ms)=%" PRIu64 " enable=%d nappId=%" PRIu32
+                      "\n",
+                      transition.minInterval.getMilliseconds(),
+                      transition.enable, transition.nanoappInstanceId);
     }
   }
 
-  debugDumpPrint(buffer, bufferPos, bufferSize,
-                 "  Last %zu session requests:\n", mSessionRequestLogs.size());
+  debugDump.print("  Last %zu session requests:\n", mSessionRequestLogs.size());
   static_assert(kNumSessionRequestLogs <= INT8_MAX,
                 "kNumSessionRequestLogs must be less than INT8_MAX.");
   for (int8_t i = static_cast<int8_t>(mSessionRequestLogs.size()) - 1; i >= 0;
        i--) {
-    const auto &log = mSessionRequestLogs[i];
-    debugDumpPrint(buffer, bufferPos, bufferSize,
-                   "   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
-                   log.timestamp.toRawNanoseconds(), log.instanceId,
-                   log.start ? "start" : "stop\n");
+    const auto &log = mSessionRequestLogs[static_cast<size_t>(i)];
+    debugDump.print("   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    log.start ? "start" : "stop\n");
     if (log.start) {
-      debugDumpPrint(buffer, bufferPos, bufferSize, " int(ms)=%" PRIu64 "\n",
-                     log.interval.getMilliseconds());
+      debugDump.print(" int(ms)=%" PRIu64 "\n", log.interval.getMilliseconds());
     }
   }
 }
 
-bool GnssSession::configure(
-    Nanoapp *nanoapp, bool enable, Milliseconds minInterval,
-    Milliseconds minTimeToNext, const void *cookie) {
+bool GnssSession::configure(Nanoapp *nanoapp, bool enable,
+                            Milliseconds minInterval,
+                            Milliseconds minTimeToNext, const void *cookie) {
   bool success = false;
   uint32_t instanceId = nanoapp->getInstanceId();
   size_t requestIndex = 0;
@@ -177,9 +167,8 @@ bool GnssSession::configure(
       }
     }
   } else {
-    success = postAsyncResultEvent(
-        instanceId, true /* success */, enable, minInterval, CHRE_ERROR_NONE,
-        cookie);
+    success = postAsyncResultEvent(instanceId, true /* success */, enable,
+                                   minInterval, CHRE_ERROR_NONE, cookie);
   }
 
   if (success) {
@@ -189,8 +178,8 @@ bool GnssSession::configure(
   return success;
 }
 
-bool GnssSession::nanoappHasRequest(
-    uint32_t instanceId, size_t *requestIndex) const {
+bool GnssSession::nanoappHasRequest(uint32_t instanceId,
+                                    size_t *requestIndex) const {
   bool hasRequest = false;
   for (size_t i = 0; i < mRequests.size(); i++) {
     if (mRequests[i].nanoappInstanceId == instanceId) {
@@ -206,9 +195,9 @@ bool GnssSession::nanoappHasRequest(
   return hasRequest;
 }
 
-bool GnssSession::addRequestToQueue(
-    uint32_t instanceId, bool enable, Milliseconds minInterval,
-    const void *cookie) {
+bool GnssSession::addRequestToQueue(uint32_t instanceId, bool enable,
+                                    Milliseconds minInterval,
+                                    const void *cookie) {
   StateTransition stateTransition;
   stateTransition.nanoappInstanceId = instanceId;
   stateTransition.enable = enable;
@@ -227,14 +216,15 @@ bool GnssSession::isEnabled() const {
   return !mRequests.empty();
 }
 
-bool GnssSession::stateTransitionIsRequired(
-    bool requestedState, Milliseconds minInterval, bool nanoappHasRequest,
-    size_t requestIndex) const {
+bool GnssSession::stateTransitionIsRequired(bool requestedState,
+                                            Milliseconds minInterval,
+                                            bool nanoappHasRequest,
+                                            size_t requestIndex) const {
   bool requestToEnable = (requestedState && !isEnabled());
-  bool requestToIncreaseRate = (requestedState && isEnabled()
-      && minInterval < mCurrentInterval);
-  bool requestToDisable = (!requestedState && nanoappHasRequest
-                           && mRequests.size() == 1);
+  bool requestToIncreaseRate =
+      (requestedState && isEnabled() && minInterval < mCurrentInterval);
+  bool requestToDisable =
+      (!requestedState && nanoappHasRequest && mRequests.size() == 1);
 
   // An effective rate decrease for the session can only occur if the nanoapp
   // has an existing request.
@@ -246,28 +236,30 @@ bool GnssSession::stateTransitionIsRequired(
     // requested interval and the new request is slower than the current
     // requested rate.
     size_t requestCount = 0;
-    const auto& currentRequest = mRequests[requestIndex];
+    const auto &currentRequest = mRequests[requestIndex];
     for (size_t i = 0; i < mRequests.size(); i++) {
-      const Request& request = mRequests[i];
-      if (i != requestIndex
-          && request.minInterval == currentRequest.minInterval) {
+      const Request &request = mRequests[i];
+      if (i != requestIndex &&
+          request.minInterval == currentRequest.minInterval) {
         requestCount++;
       }
     }
 
-    requestToDecreaseRate = (minInterval > mCurrentInterval
-        && currentRequest.minInterval == mCurrentInterval && requestCount == 0);
+    requestToDecreaseRate =
+        (minInterval > mCurrentInterval &&
+         currentRequest.minInterval == mCurrentInterval && requestCount == 0);
   }
 
-  return (requestToEnable || requestToDisable || requestToIncreaseRate
-          || requestToDecreaseRate);
+  return (requestToEnable || requestToDisable || requestToIncreaseRate ||
+          requestToDecreaseRate);
 }
 
-bool GnssSession::updateRequests(
-    bool enable, Milliseconds minInterval, uint32_t instanceId) {
+bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
+                                 uint32_t instanceId) {
   bool success = true;
-  Nanoapp *nanoapp = EventLoopManagerSingleton::get()->getEventLoop()
-      .findNanoappByInstanceId(instanceId);
+  Nanoapp *nanoapp =
+      EventLoopManagerSingleton::get()->getEventLoop().findNanoappByInstanceId(
+          instanceId);
   if (nanoapp == nullptr) {
     LOGW("Failed to update GNSS session request list for non-existent nanoapp");
   } else {
@@ -297,15 +289,15 @@ bool GnssSession::updateRequests(
       // nanoapp. Remove it from the list of requests.
       mRequests.erase(requestIndex);
       nanoapp->unregisterForBroadcastEvent(mReportEventType);
-    } // else disabling an inactive request, treat as success per CHRE API
+    }  // else disabling an inactive request, treat as success per CHRE API
   }
 
   return success;
 }
 
-bool GnssSession::postAsyncResultEvent(
-    uint32_t instanceId, bool success, bool enable, Milliseconds minInterval,
-    uint8_t errorCode, const void *cookie) {
+bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
+                                       bool enable, Milliseconds minInterval,
+                                       uint8_t errorCode, const void *cookie) {
   bool eventPosted = false;
   if (!success || updateRequests(enable, minInterval, instanceId)) {
     chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
@@ -318,9 +310,9 @@ bool GnssSession::postAsyncResultEvent(
       event->reserved = 0;
       event->cookie = cookie;
 
-      eventPosted = EventLoopManagerSingleton::get()->getEventLoop()
-          .postEvent(CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
-                     kSystemInstanceId, instanceId);
+      eventPosted = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
+          kSystemInstanceId, instanceId);
 
       if (!eventPosted) {
         memoryFree(event);
@@ -331,9 +323,11 @@ bool GnssSession::postAsyncResultEvent(
   return eventPosted;
 }
 
-void GnssSession::postAsyncResultEventFatal(
-    uint32_t instanceId, bool success, bool enable, Milliseconds minInterval,
-    uint8_t errorCode, const void *cookie) {
+void GnssSession::postAsyncResultEventFatal(uint32_t instanceId, bool success,
+                                            bool enable,
+                                            Milliseconds minInterval,
+                                            uint8_t errorCode,
+                                            const void *cookie) {
   if (!postAsyncResultEvent(instanceId, success, enable, minInterval, errorCode,
                             cookie)) {
     FATAL_ERROR("Failed to send GNSS session request async result event");
@@ -346,47 +340,46 @@ void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
   CHRE_ASSERT_LOG(!mStateTransitions.empty(),
                   "handleStatusChangeSync called with no transitions");
   if (!mStateTransitions.empty()) {
-    const auto& stateTransition = mStateTransitions.front();
+    const auto &stateTransition = mStateTransitions.front();
 
     if (success) {
       mCurrentInterval = stateTransition.minInterval;
     }
 
     success &= (stateTransition.enable == enabled);
-    postAsyncResultEventFatal(stateTransition.nanoappInstanceId, success,
-                              stateTransition.enable,
-                              stateTransition.minInterval,
-                              errorCode, stateTransition.cookie);
+    postAsyncResultEventFatal(
+        stateTransition.nanoappInstanceId, success, stateTransition.enable,
+        stateTransition.minInterval, errorCode, stateTransition.cookie);
     mStateTransitions.pop();
   }
 
   while (!mStateTransitions.empty()) {
-    const auto& stateTransition = mStateTransitions.front();
+    const auto &stateTransition = mStateTransitions.front();
 
     size_t requestIndex;
-    bool hasRequest = nanoappHasRequest(
-        stateTransition.nanoappInstanceId, &requestIndex);
+    bool hasRequest =
+        nanoappHasRequest(stateTransition.nanoappInstanceId, &requestIndex);
 
     if (stateTransitionIsRequired(stateTransition.enable,
-                                  stateTransition.minInterval,
-                                  hasRequest, requestIndex)) {
+                                  stateTransition.minInterval, hasRequest,
+                                  requestIndex)) {
       if (controlPlatform(stateTransition.enable, stateTransition.minInterval,
                           Milliseconds(0))) {
         break;
       } else {
         LOGE("Failed to enable a GNSS session for nanoapp instance %" PRIu32,
              stateTransition.nanoappInstanceId);
-        postAsyncResultEventFatal(
-            stateTransition.nanoappInstanceId, false /* success */,
-            stateTransition.enable, stateTransition.minInterval,
-            CHRE_ERROR, stateTransition.cookie);
+        postAsyncResultEventFatal(stateTransition.nanoappInstanceId,
+                                  false /* success */, stateTransition.enable,
+                                  stateTransition.minInterval, CHRE_ERROR,
+                                  stateTransition.cookie);
         mStateTransitions.pop();
       }
     } else {
-      postAsyncResultEventFatal(
-          stateTransition.nanoappInstanceId, true /* success */,
-          stateTransition.enable, stateTransition.minInterval,
-          CHRE_ERROR_NONE, stateTransition.cookie);
+      postAsyncResultEventFatal(stateTransition.nanoappInstanceId,
+                                true /* success */, stateTransition.enable,
+                                stateTransition.minInterval, CHRE_ERROR_NONE,
+                                stateTransition.cookie);
       mStateTransitions.pop();
     }
   }
@@ -395,14 +388,16 @@ void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
 void GnssSession::freeReportEventCallback(uint16_t eventType, void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_GNSS_LOCATION:
-      EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
-          .releaseLocationEvent(
+      EventLoopManagerSingleton::get()
+          ->getGnssManager()
+          .mPlatformGnss.releaseLocationEvent(
               static_cast<chreGnssLocationEvent *>(eventData));
       break;
 
     case CHRE_EVENT_GNSS_DATA:
-      EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
-          .releaseMeasurementDataEvent(
+      EventLoopManagerSingleton::get()
+          ->getGnssManager()
+          .mPlatformGnss.releaseMeasurementDataEvent(
               static_cast<chreGnssDataEvent *>(eventData));
       break;
 
@@ -411,21 +406,25 @@ void GnssSession::freeReportEventCallback(uint16_t eventType, void *eventData) {
   }
 }
 
-bool GnssSession::controlPlatform(
-    bool enable, Milliseconds minInterval, Milliseconds /* minTimeToNext */) {
+bool GnssSession::controlPlatform(bool enable, Milliseconds minInterval,
+                                  Milliseconds /* minTimeToNext */) {
   bool success = false;
 
   switch (mReportEventType) {
     case CHRE_EVENT_GNSS_LOCATION:
       // TODO: Provide support for min time to next report. It is currently sent
       // to the platform as zero.
-      success = EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
-          .controlLocationSession(enable, minInterval, Milliseconds(0));
+      success = EventLoopManagerSingleton::get()
+                    ->getGnssManager()
+                    .mPlatformGnss.controlLocationSession(enable, minInterval,
+                                                          Milliseconds(0));
       break;
 
     case CHRE_EVENT_GNSS_DATA:
-      success = EventLoopManagerSingleton::get()->getGnssManager().mPlatformGnss
-          .controlMeasurementSession(enable, minInterval);
+      success =
+          EventLoopManagerSingleton::get()
+              ->getGnssManager()
+              .mPlatformGnss.controlMeasurementSession(enable, minInterval);
       break;
 
     default:

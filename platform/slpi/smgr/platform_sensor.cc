@@ -29,7 +29,6 @@ extern "C" {
 
 }  // extern "C"
 
-#include "chre_api/chre/sensor.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor.h"
 #include "chre/core/timer_pool.h"
@@ -37,12 +36,13 @@ extern "C" {
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/platform_sensor_util.h"
-#include "chre/platform/slpi/uimg_util.h"
 #include "chre/platform/slpi/smgr/platform_sensor_util.h"
 #include "chre/platform/slpi/smgr/smgr_client.h"
 #include "chre/platform/slpi/smgr/smr_helper.h"
+#include "chre/platform/slpi/uimg_util.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/macros.h"
+#include "chre_api/chre/sensor.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/slpi/smgr/platform_sensor_util.h"
@@ -158,32 +158,31 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType,
   // constants provided by their API. Do not change these values without care.
   // You have been warned!
   if (dataType == SNS_SMGR_DATA_TYPE_PRIMARY_V01) {
-    if (sensorId >= SNS_SMGR_ID_ACCEL_V01
-        && sensorId < SNS_SMGR_ID_GYRO_V01) {
+    if (sensorId >= SNS_SMGR_ID_ACCEL_V01 && sensorId < SNS_SMGR_ID_GYRO_V01) {
       if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
         return SensorType::Accelerometer;
       } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
         return SensorType::UncalibratedAccelerometer;
       }
-    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
-        && sensorId < SNS_SMGR_ID_MAG_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01 &&
+               sensorId < SNS_SMGR_ID_MAG_V01) {
       if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
         return SensorType::Gyroscope;
       } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
         return SensorType::UncalibratedGyroscope;
       }
-    } else if (sensorId >= SNS_SMGR_ID_MAG_V01
-        && sensorId < SNS_SMGR_ID_PRESSURE_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_MAG_V01 &&
+               sensorId < SNS_SMGR_ID_PRESSURE_V01) {
       if (calType == SNS_SMGR_CAL_SEL_FULL_CAL_V01) {
         return SensorType::GeomagneticField;
       } else if (calType == SNS_SMGR_CAL_SEL_FACTORY_CAL_V01) {
         return SensorType::UncalibratedGeomagneticField;
       }
-    } else if (sensorId >= SNS_SMGR_ID_PRESSURE_V01
-        && sensorId < SNS_SMGR_ID_PROX_LIGHT_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_PRESSURE_V01 &&
+               sensorId < SNS_SMGR_ID_PROX_LIGHT_V01) {
       return SensorType::Pressure;
-    } else if (sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01
-        && sensorId < SNS_SMGR_ID_HUMIDITY_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01 &&
+               sensorId < SNS_SMGR_ID_HUMIDITY_V01) {
       return SensorType::Proximity;
     } else if (sensorId == SNS_SMGR_ID_OEM_SENSOR_09_V01) {
       return SensorType::StationaryDetect;
@@ -195,16 +194,15 @@ SensorType getSensorTypeFromSensorId(uint8_t sensorId, uint8_t dataType,
 #endif  // CHREX_SENSOR_SUPPORT
     }
   } else if (dataType == SNS_SMGR_DATA_TYPE_SECONDARY_V01) {
-    if (sensorId >= SNS_SMGR_ID_ACCEL_V01
-        && sensorId < SNS_SMGR_ID_GYRO_V01) {
+    if (sensorId >= SNS_SMGR_ID_ACCEL_V01 && sensorId < SNS_SMGR_ID_GYRO_V01) {
       return SensorType::AccelerometerTemperature;
-    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
-        && sensorId < SNS_SMGR_ID_MAG_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01 &&
+               sensorId < SNS_SMGR_ID_MAG_V01) {
       return SensorType::GyroscopeTemperature;
-    } else if ((sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01
-        && sensorId < SNS_SMGR_ID_HUMIDITY_V01)
-        || (sensorId >= SNS_SMGR_ID_ULTRA_VIOLET_V01
-            && sensorId < SNS_SMGR_ID_OBJECT_TEMP_V01)) {
+    } else if ((sensorId >= SNS_SMGR_ID_PROX_LIGHT_V01 &&
+                sensorId < SNS_SMGR_ID_HUMIDITY_V01) ||
+               (sensorId >= SNS_SMGR_ID_ULTRA_VIOLET_V01 &&
+                sensorId < SNS_SMGR_ID_OBJECT_TEMP_V01)) {
       return SensorType::Light;
     }
   }
@@ -239,8 +237,8 @@ SensorType getSensorTypeFromReportId(uint8_t reportId) {
  * @return Returns a unique report ID that is based on SensorType.
  */
 uint8_t getReportId(uint8_t sensorId, uint8_t dataType, uint8_t calType) {
-  SensorType sensorType = getSensorTypeFromSensorId(
-      sensorId, dataType, calType);
+  SensorType sensorType =
+      getSensorTypeFromSensorId(sensorId, dataType, calType);
 
   CHRE_ASSERT_LOG(sensorType != SensorType::Unknown,
                   "sensorId %" PRIu8 ", dataType %" PRIu8 ", calType %" PRIu8,
@@ -256,8 +254,8 @@ uint8_t getReportId(uint8_t sensorId, uint8_t dataType, uint8_t calType) {
  */
 bool isSecondaryTemperature(uint8_t reportId) {
   SensorType sensorType = getSensorTypeFromReportId(reportId);
-  return (sensorType == SensorType::AccelerometerTemperature
-          || sensorType == SensorType::GyroscopeTemperature);
+  return (sensorType == SensorType::AccelerometerTemperature ||
+          sensorType == SensorType::GyroscopeTemperature);
 }
 
 /**
@@ -267,11 +265,11 @@ bool isSecondaryTemperature(uint8_t reportId) {
  * @return true if it's a valid pair of indices length and report ID.
  */
 bool isValidIndicesLength(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg) {
-  return ((bufferingIndMsg.Indices_len == 1
-           && !isSecondaryTemperature(bufferingIndMsg.ReportId))
-          || (bufferingIndMsg.Indices_len == 2
-              && isSecondaryTemperature(bufferingIndMsg.ReportId)));
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg) {
+  return ((bufferingIndMsg.Indices_len == 1 &&
+           !isSecondaryTemperature(bufferingIndMsg.ReportId)) ||
+          (bufferingIndMsg.Indices_len == 2 &&
+           isSecondaryTemperature(bufferingIndMsg.ReportId)));
 }
 
 /**
@@ -324,7 +322,7 @@ ChreSensorData *allocateLastEvent(SensorType sensorType, size_t *eventSize) {
  * @param calType The calibration type (CAL_SEL) as defined in the SMGR API.
  * @param sensor The sensor list.
  */
-void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
+void addSensor(const sns_smgr_sensor_datatype_info_s_v01 &sensorInfo,
                uint8_t calType, DynamicVector<Sensor> *sensors) {
   Sensor sensor;
   sensor.sensorId = sensorInfo.SensorID;
@@ -338,9 +336,11 @@ void addSensor(const sns_smgr_sensor_datatype_info_s_v01& sensorInfo,
   // Override one-shot sensor's minInterval to default
   SensorType sensorType = getSensorTypeFromSensorId(
       sensorInfo.SensorID, sensorInfo.DataType, calType);
-  sensor.minInterval = sensorTypeIsOneShot(sensorType) ?
-      CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          Seconds(1).toRawNanoseconds() / sensorInfo.MaxSampleRate);
+  sensor.minInterval =
+      sensorTypeIsOneShot(sensorType)
+          ? CHRE_SENSOR_INTERVAL_DEFAULT
+          : static_cast<uint64_t>(Seconds(1).toRawNanoseconds() /
+                                  sensorInfo.MaxSampleRate);
 
   // Allocates memory for on-change sensor's last event.
   sensor.lastEvent = allocateLastEvent(sensorType, &sensor.lastEventSize);
@@ -367,11 +367,11 @@ uint64_t getNanosecondsFromSmgrTicks(uint32_t ticks) {
 
 void populateSensorDataHeader(
     SensorType sensorType, chreSensorDataHeader *header,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   // Compensate for header timestamp's 32-bit rollovers
   uint64_t slpiTime = SystemTime::getMonotonicTime().toRawNanoseconds();
-  uint64_t baseTime = getNanosecondsFromSmgrTicks(
-      sensorIndex.FirstSampleTimestamp);
+  uint64_t baseTime =
+      getNanosecondsFromSmgrTicks(sensorIndex.FirstSampleTimestamp);
   while (slpiTime > baseTime + kTickRolloverOffset / 2) {
     baseTime += kTickRolloverOffset;
   }
@@ -383,13 +383,13 @@ void populateSensorDataHeader(
 }
 
 void populateThreeAxisEvent(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg,
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg,
     SensorType sensorType, chreSensorThreeAxisData *data,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
   for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
-    const sns_smgr_buffering_sample_s_v01& sensorData =
+    const sns_smgr_buffering_sample_s_v01 &sensorData =
         bufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow here.
@@ -402,8 +402,8 @@ void populateThreeAxisEvent(
     data->readings[i].z = -FX_FIXTOFLT_Q16_SP(sensorData.Data[2]);
 
     // Convert from Gauss to micro Tesla
-    if (sensorType == SensorType::GeomagneticField
-        || sensorType == SensorType::UncalibratedGeomagneticField) {
+    if (sensorType == SensorType::GeomagneticField ||
+        sensorType == SensorType::UncalibratedGeomagneticField) {
       data->readings[i].x *= kMicroTeslaPerGauss;
       data->readings[i].y *= kMicroTeslaPerGauss;
       data->readings[i].z *= kMicroTeslaPerGauss;
@@ -412,13 +412,13 @@ void populateThreeAxisEvent(
 }
 
 void populateFloatEvent(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg,
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg,
     SensorType sensorType, chreSensorFloatData *data,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
   for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
-    const sns_smgr_buffering_sample_s_v01& sensorData =
+    const sns_smgr_buffering_sample_s_v01 &sensorData =
         bufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow.
@@ -429,13 +429,13 @@ void populateFloatEvent(
 }
 
 void populateByteEvent(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg,
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg,
     SensorType sensorType, chreSensorByteData *data,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
   for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
-    const sns_smgr_buffering_sample_s_v01& sensorData =
+    const sns_smgr_buffering_sample_s_v01 &sensorData =
         bufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow.
@@ -449,13 +449,13 @@ void populateByteEvent(
 }
 
 void populateOccurrenceEvent(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg,
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg,
     SensorType sensorType, chreSensorOccurrenceData *data,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   populateSensorDataHeader(sensorType, &data->header, sensorIndex);
 
   for (size_t i = 0; i < sensorIndex.SampleCount; i++) {
-    const sns_smgr_buffering_sample_s_v01& sensorData =
+    const sns_smgr_buffering_sample_s_v01 &sensorData =
         bufferingIndMsg.Samples[i + sensorIndex.FirstSampleIdx];
 
     // TimeStampOffset has max value of < 2 sec so it will not overflow.
@@ -468,14 +468,15 @@ void populateOccurrenceEvent(
  * Allocate event memory according to SensorType and populate event readings.
  */
 void *allocateAndPopulateEvent(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg,
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg,
     SensorType sensorType,
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex) {
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex) {
   SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
   size_t memorySize = sizeof(chreSensorDataHeader);
   switch (sampleType) {
     case SensorSampleType::ThreeAxis: {
-      memorySize += sensorIndex.SampleCount *
+      memorySize +=
+          sensorIndex.SampleCount *
           sizeof(chreSensorThreeAxisData::chreSensorThreeAxisSampleData);
       auto *event =
           static_cast<chreSensorThreeAxisData *>(memoryAlloc(memorySize));
@@ -487,9 +488,8 @@ void *allocateAndPopulateEvent(
 
     case SensorSampleType::Float: {
       memorySize += sensorIndex.SampleCount *
-          sizeof(chreSensorFloatData::chreSensorFloatSampleData);
-      auto *event =
-          static_cast<chreSensorFloatData *>(memoryAlloc(memorySize));
+                    sizeof(chreSensorFloatData::chreSensorFloatSampleData);
+      auto *event = static_cast<chreSensorFloatData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
         populateFloatEvent(bufferingIndMsg, sensorType, event, sensorIndex);
       }
@@ -498,9 +498,8 @@ void *allocateAndPopulateEvent(
 
     case SensorSampleType::Byte: {
       memorySize += sensorIndex.SampleCount *
-          sizeof(chreSensorByteData::chreSensorByteSampleData);
-      auto *event =
-          static_cast<chreSensorByteData *>(memoryAlloc(memorySize));
+                    sizeof(chreSensorByteData::chreSensorByteSampleData);
+      auto *event = static_cast<chreSensorByteData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
         populateByteEvent(bufferingIndMsg, sensorType, event, sensorIndex);
       }
@@ -508,13 +507,14 @@ void *allocateAndPopulateEvent(
     }
 
     case SensorSampleType::Occurrence: {
-      memorySize += sensorIndex.SampleCount *
+      memorySize +=
+          sensorIndex.SampleCount *
           sizeof(chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
       auto *event =
           static_cast<chreSensorOccurrenceData *>(memoryAlloc(memorySize));
       if (event != nullptr) {
-        populateOccurrenceEvent(
-            bufferingIndMsg, sensorType, event, sensorIndex);
+        populateOccurrenceEvent(bufferingIndMsg, sensorType, event,
+                                sensorIndex);
       }
       return event;
     }
@@ -522,8 +522,8 @@ void *allocateAndPopulateEvent(
 #ifdef CHREX_SENSOR_SUPPORT
     case SensorSampleType::Vendor0:
       return allocateAndPopulateVendor0Event(
-          bufferingIndMsg, sensorType, sensorIndex,
-          populateSensorDataHeader, getNanosecondsFromSmgrTicks);
+          bufferingIndMsg, sensorType, sensorIndex, populateSensorDataHeader,
+          getNanosecondsFromSmgrTicks);
 #endif  // CHREX_SENSOR_SUPPORT
 
     default:
@@ -542,7 +542,8 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
   // delivered to all clients.
   SensorType sensorType = getSensorTypeForSampleEventType(eventType);
   if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
+    EventLoopManagerSingleton::get()
+        ->getSensorRequestManager()
         .removeAllRequests(sensorType);
   }
 }
@@ -553,30 +554,30 @@ void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
  * @param bufferingIndMsg Decoded buffering indication message
  */
 void handleSensorDataIndication(
-    const sns_smgr_buffering_ind_msg_v01& bufferingIndMsg) {
+    const sns_smgr_buffering_ind_msg_v01 &bufferingIndMsg) {
   // We only requested one sensor per request except for a secondary
   // temperature sensor.
   bool validReport = isValidIndicesLength(bufferingIndMsg);
   CHRE_ASSERT_LOG(validReport,
                   "Got buffering indication from %" PRIu32
                   " sensors with report ID %" PRIu8,
-                  bufferingIndMsg.Indices_len,
-                  bufferingIndMsg.ReportId);
+                  bufferingIndMsg.Indices_len, bufferingIndMsg.ReportId);
   if (validReport) {
     // Identify the index for the desired sensor. It is always 0 except
     // possibly for a secondary temperature sensor.
     uint32_t index = 0;
     if (isSecondaryTemperature(bufferingIndMsg.ReportId)) {
-      index = (bufferingIndMsg.Indices[0].DataType
-               == SNS_SMGR_DATA_TYPE_SECONDARY_V01) ? 0 : 1;
+      index = (bufferingIndMsg.Indices[0].DataType ==
+               SNS_SMGR_DATA_TYPE_SECONDARY_V01)
+                  ? 0
+                  : 1;
     }
-    const sns_smgr_buffering_sample_index_s_v01& sensorIndex =
+    const sns_smgr_buffering_sample_index_s_v01 &sensorIndex =
         bufferingIndMsg.Indices[index];
 
     // Use ReportID to identify sensors as
     // bufferingIndMsg.Samples[i].Flags are not populated.
-    SensorType sensorType = getSensorTypeFromReportId(
-        bufferingIndMsg.ReportId);
+    SensorType sensorType = getSensorTypeFromReportId(bufferingIndMsg.ReportId);
     if (sensorType == SensorType::Unknown) {
       LOGW("Received sensor sample for unknown sensor %" PRIu8 " %" PRIu8,
            sensorIndex.SensorId, sensorIndex.DataType);
@@ -584,9 +585,9 @@ void handleSensorDataIndication(
       LOGW("Received sensorType %d event with 0 sample",
            static_cast<int>(sensorType));
     } else {
-      void *eventData = allocateAndPopulateEvent(
-          bufferingIndMsg, sensorType, sensorIndex);
-      auto *header = static_cast< chreSensorDataHeader *>(eventData);
+      void *eventData =
+          allocateAndPopulateEvent(bufferingIndMsg, sensorType, sensorIndex);
+      auto *header = static_cast<chreSensorDataHeader *>(eventData);
       if (eventData == nullptr) {
         LOGW("Dropping event due to allocation failure");
       } else if (header->readingCount == 0) {
@@ -620,9 +621,11 @@ void handleSensorDataIndication(
  *
  * @see smr_client_ind_cb
  */
-void platformSensorServiceIndicationCallback(
-    smr_client_hndl handle, unsigned int messageId, void *decodedInd,
-    unsigned int decodedIndLen, void *callbackData) {
+void platformSensorServiceIndicationCallback(smr_client_hndl handle,
+                                             unsigned int messageId,
+                                             void *decodedInd,
+                                             unsigned int decodedIndLen,
+                                             void *callbackData) {
   switch (messageId) {
     case SNS_SMGR_BUFFERING_IND_V01: {
       CHRE_ASSERT(decodedIndLen >= sizeof(sns_smgr_buffering_ind_msg_v01));
@@ -653,26 +656,26 @@ size_t populateSensorTypeArrayFromSensorId(uint8_t sensorId,
 
   size_t numSensorTypes = 0;
   if (sensorTypes != nullptr) {
-    if (sensorId >= SNS_SMGR_ID_ACCEL_V01
-          && sensorId < SNS_SMGR_ID_GYRO_V01) {
+    if (sensorId >= SNS_SMGR_ID_ACCEL_V01 && sensorId < SNS_SMGR_ID_GYRO_V01) {
       sensorTypes[0] = SensorType::Accelerometer;
       sensorTypes[1] = SensorType::UncalibratedAccelerometer;
       sensorTypes[2] = SensorType::AccelerometerTemperature;
       numSensorTypes = 3;
-    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01
-          && sensorId < SNS_SMGR_ID_MAG_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_GYRO_V01 &&
+               sensorId < SNS_SMGR_ID_MAG_V01) {
       sensorTypes[0] = SensorType::Gyroscope;
       sensorTypes[1] = SensorType::UncalibratedGyroscope;
       sensorTypes[2] = SensorType::GyroscopeTemperature;
       numSensorTypes = 3;
-    } else if (sensorId >= SNS_SMGR_ID_MAG_V01
-          && sensorId < SNS_SMGR_ID_PRESSURE_V01) {
+    } else if (sensorId >= SNS_SMGR_ID_MAG_V01 &&
+               sensorId < SNS_SMGR_ID_PRESSURE_V01) {
       sensorTypes[0] = SensorType::GeomagneticField;
       sensorTypes[1] = SensorType::UncalibratedGeomagneticField;
       numSensorTypes = 2;
     } else {
-      SensorType sensorType = getSensorTypeFromSensorId(sensorId,
-          SNS_SMGR_DATA_TYPE_PRIMARY_V01, SNS_SMGR_CAL_SEL_FULL_CAL_V01);
+      SensorType sensorType =
+          getSensorTypeFromSensorId(sensorId, SNS_SMGR_DATA_TYPE_PRIMARY_V01,
+                                    SNS_SMGR_CAL_SEL_FULL_CAL_V01);
       if (sensorType != SensorType::Unknown) {
         sensorTypes[0] = sensorType;
         numSensorTypes = 1;
@@ -693,17 +696,18 @@ size_t populateSensorTypeArrayFromSensorId(uint8_t sensorId,
  * @return The merged SensorMode.
  */
 SensorMode getMergedMode(uint8_t sensorId, SensorType sensorType,
-                         const SensorRequest& request) {
+                         const SensorRequest &request) {
   // Identify sensor requests to merge
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
-  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
-      sensorId, sensorTypes);
+  size_t numSensorTypes =
+      populateSensorTypeArrayFromSensorId(sensorId, sensorTypes);
 
   // merge requests
   SensorRequest mergedRequest;
   for (size_t i = 0; i < numSensorTypes; i++) {
-    const Sensor *sensor = EventLoopManagerSingleton::get()
-      ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    const Sensor *sensor =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+            sensorTypes[i]);
     if (sensor != nullptr) {
       mergedRequest.mergeWith(
           (sensorTypes[i] == sensorType) ? request : sensor->getRequest());
@@ -751,13 +755,14 @@ void onOtherClientPresenceChange(uint8_t sensorId, bool otherClientPresent) {
  */
 Sensor *getFirstValidSensor(uint8_t sensorId) {
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
-  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
-      sensorId, sensorTypes);
+  size_t numSensorTypes =
+      populateSensorTypeArrayFromSensorId(sensorId, sensorTypes);
 
   Sensor *sensor = nullptr;
   for (size_t i = 0; i < numSensorTypes; i++) {
-    sensor = EventLoopManagerSingleton::get()
-        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    sensor =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+            sensorTypes[i]);
     if (sensor != nullptr) {
       break;
     }
@@ -774,8 +779,7 @@ Sensor *getFirstValidSensor(uint8_t sensorId) {
  * @param transpErr The error related to the request.
  */
 void onClientRequestInfoResponse(
-    const sns_smgr_client_request_info_resp_msg_v01& resp,
-    uint8_t sensorId,
+    const sns_smgr_client_request_info_resp_msg_v01 &resp, uint8_t sensorId,
     smr_err transpErr) {
   size_t index = getSensorMonitorIndex(sensorId);
   if (transpErr != SMR_NO_ERR) {
@@ -834,19 +838,18 @@ void onStatusChange(uint8_t sensorId) {
 
       SmrReqCallback<sns_smgr_client_request_info_resp_msg_v01> callback =
           [](UniquePtr<sns_smgr_client_request_info_resp_msg_v01> resp,
-             void *data,
-             smr_err transpErr) {
-        NestedSensorId nestedIdCb;
-        nestedIdCb.eventData = data;
-        onClientRequestInfoResponse(*resp.get(),
-                                    nestedIdCb.sensorId, transpErr);
-      };
+             void *data, smr_err transpErr) {
+            NestedSensorId nestedIdCb;
+            nestedIdCb.eventData = data;
+            onClientRequestInfoResponse(*resp.get(), nestedIdCb.sensorId,
+                                        transpErr);
+          };
 
       infoRequest->sensor_id = sensorId;
       smr_err smrStatus = getSmrHelper()->sendReqAsync(
           gPlatformSensorServiceSmrClientHandle,
-          SNS_SMGR_CLIENT_REQUEST_INFO_REQ_V01,
-          &infoRequest, &infoResponse, callback, nestedId.eventData);
+          SNS_SMGR_CLIENT_REQUEST_INFO_REQ_V01, &infoRequest, &infoResponse,
+          callback, nestedId.eventData);
       if (smrStatus != SMR_NO_ERR) {
         LOGE("Error requesting client request info: %d", smrStatus);
       }
@@ -861,7 +864,7 @@ void onStatusChange(uint8_t sensorId) {
  * @param eventRef A reference of the sampling status event to be posted.
  */
 void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
-                             const struct chreSensorSamplingStatus& status) {
+                             const struct chreSensorSamplingStatus &status) {
   // TODO: add a generic reference counted pointer class and use it for Event
   // to share across interested nanoapps.
   auto *event = memoryAlloc<struct chreSensorSamplingStatusEvent>();
@@ -880,7 +883,7 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
 /**
  * Updates the sampling status after the sensor request is accepted by SMGR.
  */
-void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
+void updateSamplingStatus(Sensor *sensor, const SensorRequest &request) {
   // With SMGR's implementation, sampling interval will be filtered to be the
   // same as requested. Latency can be shorter if there were other SMGR clients
   // with proc_type also set to SNS_PROC_SSC_V01.
@@ -888,7 +891,7 @@ void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
   // updated.
   if (sensor != nullptr) {
     bool postUpdate = false;
-    struct chreSensorSamplingStatus& status = sensor->samplingStatus;
+    struct chreSensorSamplingStatus &status = sensor->samplingStatus;
     bool enabled = (request.getMode() != SensorMode::Off);
     if (status.enabled != enabled) {
       postUpdate = true;
@@ -906,13 +909,14 @@ void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
     }
 
     if (postUpdate) {
-      uint32_t sensorHandle = getSensorHandleFromSensorType(
-          sensor->getSensorType());
+      uint32_t sensorHandle =
+          getSensorHandleFromSensorType(sensor->getSensorType());
 
       // Only post to Nanoapps with an open request.
-      auto& requests = EventLoopManagerSingleton::get()->
-          getSensorRequestManager().getRequests(sensor->getSensorType());
-      for (const auto& req : requests) {
+      auto &requests = EventLoopManagerSingleton::get()
+                           ->getSensorRequestManager()
+                           .getRequests(sensor->getSensorType());
+      for (const auto &req : requests) {
         postSamplingStatusEvent(req.getInstanceId(), sensorHandle, status);
       }
     }
@@ -925,17 +929,18 @@ void updateSamplingStatus(Sensor *sensor, const SensorRequest& request) {
  * @param smgrMonitorIndMsg Indication message received from SMGR
  */
 void handleSensorStatusMonitorIndication(
-    const sns_smgr_sensor_status_monitor_ind_msg_v02& smgrMonitorIndMsg) {
+    const sns_smgr_sensor_status_monitor_ind_msg_v02 &smgrMonitorIndMsg) {
   uint8_t sensorId = smgrMonitorIndMsg.sensor_id;
 
   // Only use one Sensor to avoid multiple timers per sensorId.
   Sensor *sensor = getFirstValidSensor(sensorId);
   if (sensor == nullptr) {
-    LOGE("Sensor ID: %" PRIu8 " in status update doesn't correspond to "
-         "valid sensor.", sensorId);
-  // SMGR should send all callbacks back on the same thread which 
-  // means the following code won't result in any timers overriding one
-  // another.
+    LOGE("Sensor ID: %" PRIu8
+         " in status update doesn't correspond to "
+         "valid sensor.",
+         sensorId);
+    // SMGR should send all callbacks back on the same thread which means the
+    // following code won't result in any timers overriding one another.
   } else if (sensor->timerHandle.load() == CHRE_TIMER_INVALID) {
     // Enables passing the sensor ID through the event data pointer to avoid
     // allocating memory
@@ -955,9 +960,7 @@ void handleSensorStatusMonitorIndication(
     // Schedule a delayed callback to handle sensor status change on the main
     // thread.
     TimerHandle timer = EventLoopManagerSingleton::get()->setDelayedCallback(
-        SystemCallbackType::SensorStatusUpdate,
-        nestedId.eventData,
-        callback,
+        SystemCallbackType::SensorStatusUpdate, nestedId.eventData, callback,
         kStatusDelayIntervalNanos);
     sensor->timerHandle = timer;
   }
@@ -976,9 +979,11 @@ void handleSensorStatusMonitorIndication(
  *
  * @see smr_client_ind_cb
  */
-void platformSensorInternalServiceIndicationCallback(
-    smr_client_hndl handle, unsigned int messageId, void *decodedInd,
-    unsigned int decodedIndLen, void *callbackData) {
+void platformSensorInternalServiceIndicationCallback(smr_client_hndl handle,
+                                                     unsigned int messageId,
+                                                     void *decodedInd,
+                                                     unsigned int decodedIndLen,
+                                                     void *callbackData) {
   switch (messageId) {
     case SNS_SMGR_SENSOR_STATUS_MONITOR_IND_V02: {
       CHRE_ASSERT(decodedIndLen >=
@@ -1015,8 +1020,8 @@ void setSensorMonitorRequest(uint8_t sensorId, bool enable) {
 
     smr_err status = getSmrHelper()->sendReqSync(
         gPlatformSensorInternalServiceSmrClientHandle,
-        SNS_SMGR_SENSOR_STATUS_MONITOR_REQ_V02,
-        &monitorRequest, &monitorResponse);
+        SNS_SMGR_SENSOR_STATUS_MONITOR_REQ_V02, &monitorRequest,
+        &monitorResponse);
     if (status != SMR_NO_ERR) {
       LOGE("Error setting sensor status monitor: %d", status);
     } else if (monitorResponse->resp.sns_result_t != SNS_RESULT_SUCCESS_V01) {
@@ -1057,8 +1062,7 @@ void addSensorMonitor(uint8_t sensorId) {
  * @param sensors The list of sensors to append newly found sensors to.
  * @return Returns false if an error occurs.
  */
-bool getSensorsForSensorId(uint8_t sensorId,
-                           DynamicVector<Sensor> *sensors) {
+bool getSensorsForSensorId(uint8_t sensorId, DynamicVector<Sensor> *sensors) {
   bool success = false;
   auto sensorInfoRequest =
       MakeUniqueZeroFill<sns_smgr_single_sensor_info_req_msg_v01>();
@@ -1070,31 +1074,31 @@ bool getSensorsForSensorId(uint8_t sensorId,
   } else {
     sensorInfoRequest->SensorID = sensorId;
 
-    smr_err status = getSmrHelper()->sendReqSync(
-        gPlatformSensorServiceSmrClientHandle,
-        SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
-        &sensorInfoRequest, &sensorInfoResponse);
+    smr_err status =
+        getSmrHelper()->sendReqSync(gPlatformSensorServiceSmrClientHandle,
+                                    SNS_SMGR_SINGLE_SENSOR_INFO_REQ_V01,
+                                    &sensorInfoRequest, &sensorInfoResponse);
 
     if (status != SMR_NO_ERR) {
       LOGE("Error requesting single sensor info: %d", status);
     } else if (sensorInfoResponse->Resp.sns_result_t !=
-                   SNS_RESULT_SUCCESS_V01) {
+               SNS_RESULT_SUCCESS_V01) {
       LOGE("Single sensor info request failed with error: %d",
            sensorInfoResponse->Resp.sns_err_t);
     } else {
-      const sns_smgr_sensor_info_s_v01& sensorInfoList =
+      const sns_smgr_sensor_info_s_v01 &sensorInfoList =
           sensorInfoResponse->SensorInfo;
       for (uint32_t i = 0; i < sensorInfoList.data_type_info_len; i++) {
-        const sns_smgr_sensor_datatype_info_s_v01& sensorInfo =
+        const sns_smgr_sensor_datatype_info_s_v01 &sensorInfo =
             sensorInfoList.data_type_info[i];
         LOGD("SensorID %" PRIu8 ", DataType %" PRIu8 ", MaxRate %" PRIu16
              "Hz, SensorName %s",
-             sensorInfo.SensorID, sensorInfo.DataType,
-             sensorInfo.MaxSampleRate, sensorInfo.SensorName);
+             sensorInfo.SensorID, sensorInfo.DataType, sensorInfo.MaxSampleRate,
+             sensorInfo.SensorName);
 
-        SensorType sensorType = getSensorTypeFromSensorId(
-            sensorInfo.SensorID, sensorInfo.DataType,
-            SNS_SMGR_CAL_SEL_FULL_CAL_V01);
+        SensorType sensorType =
+            getSensorTypeFromSensorId(sensorInfo.SensorID, sensorInfo.DataType,
+                                      SNS_SMGR_CAL_SEL_FULL_CAL_V01);
         if (sensorType != SensorType::Unknown) {
           addSensor(sensorInfo, SNS_SMGR_CAL_SEL_FULL_CAL_V01, sensors);
 
@@ -1140,8 +1144,8 @@ uint8_t getSmgrRequestActionForMode(SensorMode mode) {
 uint8_t getDecimationType(uint8_t sensorId, uint8_t dataType) {
   // Request filtered data for accel and gyro to reduce noise aliasing in case
   // SMGR has other higher ODR clients.
-  if ((sensorId == SNS_SMGR_ID_ACCEL_V01 || sensorId == SNS_SMGR_ID_GYRO_V01)
-      && dataType == SNS_SMGR_DATA_TYPE_PRIMARY_V01) {
+  if ((sensorId == SNS_SMGR_ID_ACCEL_V01 || sensorId == SNS_SMGR_ID_GYRO_V01) &&
+      dataType == SNS_SMGR_DATA_TYPE_PRIMARY_V01) {
     return SNS_SMGR_DECIMATION_FILTER_V01;
   } else {
     return SNS_SMGR_DECIMATION_RECENT_SAMPLE_V01;
@@ -1159,18 +1163,18 @@ uint8_t getDecimationType(uint8_t sensorId, uint8_t dataType) {
  * @param minInterval The minimum interval allowed by this sensor.
  * @param sensorDataRequest The pointer to the data request to be populated.
  */
-void populateSensorRequest(
-    const SensorRequest& chreRequest, uint8_t sensorId, uint8_t dataType,
-    uint8_t calType, uint64_t minInterval,
-    sns_smgr_buffering_req_msg_v01 *sensorRequest) {
+void populateSensorRequest(const SensorRequest &chreRequest, uint8_t sensorId,
+                           uint8_t dataType, uint8_t calType,
+                           uint64_t minInterval,
+                           sns_smgr_buffering_req_msg_v01 *sensorRequest) {
   // Zero the fields in the request. All mandatory and unused fields are
   // specified to be set to false or zero so this is safe.
   memset(sensorRequest, 0, sizeof(*sensorRequest));
 
   // Reconstructs a request to deliver one-shot sensors' data ASAP and set
   // default interval to some meaningful number.
-  bool isOneShot = sensorTypeIsOneShot(getSensorTypeFromSensorId(
-      sensorId, dataType, calType));
+  bool isOneShot = sensorTypeIsOneShot(
+      getSensorTypeFromSensorId(sensorId, dataType, calType));
   uint64_t cappedInterval = chreRequest.getInterval().toRawNanoseconds();
   if (cappedInterval == CHRE_SENSOR_INTERVAL_DEFAULT) {
     // For one-shot sensors, we've overridden minInterval to default in init.
@@ -1209,8 +1213,8 @@ void populateSensorRequest(
     sensorRequest->Item_len = 2;
     sensorRequest->Item[1].SensorId = sensorId;
     sensorRequest->Item[1].DataType = SNS_SMGR_DATA_TYPE_PRIMARY_V01;
-    sensorRequest->Item[1].Decimation = getDecimationType(
-        sensorId, SNS_SMGR_DATA_TYPE_PRIMARY_V01);
+    sensorRequest->Item[1].Decimation =
+        getDecimationType(sensorId, SNS_SMGR_DATA_TYPE_PRIMARY_V01);
     sensorRequest->Item[1].Calibration = SNS_SMGR_CAL_SEL_FULL_CAL_V01;
     sensorRequest->Item[1].SamplingRate = sensorRequest->Item[0].SamplingRate;
   }
@@ -1232,19 +1236,20 @@ void populateSensorRequest(
  * @param request The intended sensor request
  * @return true if the request is allowed.
  */
-bool isRequestAllowed(SensorType sensorType, const SensorRequest& request) {
+bool isRequestAllowed(SensorType sensorType, const SensorRequest &request) {
   bool allowed = false;
 
-  const Sensor *sensor = EventLoopManagerSingleton::get()
-      ->getSensorRequestManager().getSensor(sensorType);
+  const Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          sensorType);
   if (sensor != nullptr) {
     if (sensorModeIsPassive(request.getMode())) {
       size_t index = getSensorMonitorIndex(sensor->sensorId);
       if (index == gSensorMonitors.size()) {
         LOGE("SensorId %" PRIu8 " doesn't have a monitor", sensor->sensorId);
       } else {
-        SensorMode mergedMode = getMergedMode(
-            sensor->sensorId, sensorType, request);
+        SensorMode mergedMode =
+            getMergedMode(sensor->sensorId, sensorType, request);
         bool otherClientPresent = gSensorMonitors[index].otherClientPresent;
         allowed = (sensorModeIsActive(mergedMode) || otherClientPresent);
         LOGD("sensorType %d allowed %d: mergedMode %d, otherClientPresent %d",
@@ -1270,7 +1275,7 @@ bool isRequestAllowed(SensorType sensorType, const SensorRequest& request) {
  * @return true if the request has been made successfully.
  */
 bool makeBufferingReq(uint8_t sensorId, uint8_t dataType, uint8_t calType,
-                      uint64_t minInterval, const SensorRequest& request) {
+                      uint64_t minInterval, const SensorRequest &request) {
   bool success = false;
   auto sensorRequest = MakeUniqueZeroFill<sns_smgr_buffering_req_msg_v01>();
   auto sensorResponse = MakeUnique<sns_smgr_buffering_resp_msg_v01>();
@@ -1278,8 +1283,8 @@ bool makeBufferingReq(uint8_t sensorId, uint8_t dataType, uint8_t calType,
   if (sensorRequest.isNull() || sensorResponse.isNull()) {
     LOGE("Failed to allocate buffering msg");
   } else {
-    populateSensorRequest(request, sensorId, dataType, calType,
-                          minInterval, sensorRequest.get());
+    populateSensorRequest(request, sensorId, dataType, calType, minInterval,
+                          sensorRequest.get());
 
     smr_err status = getSmrHelper()->sendReqSync(
         gPlatformSensorServiceSmrClientHandle, SNS_SMGR_BUFFERING_REQ_V01,
@@ -1287,9 +1292,9 @@ bool makeBufferingReq(uint8_t sensorId, uint8_t dataType, uint8_t calType,
 
     if (status != SMR_NO_ERR) {
       LOGE("Error requesting sensor data: %d", status);
-    } else if (sensorResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01
-        || (sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_SUCCESS_V01
-            && sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_MODIFIED_V01)) {
+    } else if (sensorResponse->Resp.sns_result_t != SNS_RESULT_SUCCESS_V01 ||
+               (sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_SUCCESS_V01 &&
+                sensorResponse->AckNak != SNS_SMGR_RESPONSE_ACK_MODIFIED_V01)) {
       LOGE("Sensor data request failed with error: %d, AckNak: %d",
            sensorResponse->Resp.sns_err_t, sensorResponse->AckNak);
     } else {
@@ -1307,11 +1312,12 @@ bool makeBufferingReq(uint8_t sensorId, uint8_t dataType, uint8_t calType,
  * @param request The sensor request to be made.
  * @return true if the request has been accepted.
  */
-bool makeRequest(SensorType sensorType, const SensorRequest& request) {
+bool makeRequest(SensorType sensorType, const SensorRequest &request) {
   bool success = false;
 
-  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
-      .getSensor(sensorType);
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          sensorType);
   if (sensor != nullptr) {
     // Do not make an off request if the sensor is already off. Otherwise, SMGR
     // returns an error.
@@ -1349,16 +1355,17 @@ bool makeRequest(SensorType sensorType, const SensorRequest& request) {
 bool makeAllPendingRequests(uint8_t sensorId) {
   // Identify sensor types to check for pending requests
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
-  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
-      sensorId, sensorTypes);
+  size_t numSensorTypes =
+      populateSensorTypeArrayFromSensorId(sensorId, sensorTypes);
   bool accepted = false;
   for (size_t i = 0; i < numSensorTypes; i++) {
-    const Sensor *sensor = EventLoopManagerSingleton::get()
-        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    const Sensor *sensor =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+            sensorTypes[i]);
 
     // If sensor is off and the request is not off, it's a pending request.
-    if (sensor != nullptr && sensor->isSensorOff
-        && sensor->getRequest().getMode() != SensorMode::Off) {
+    if (sensor != nullptr && sensor->isSensorOff &&
+        sensor->getRequest().getMode() != SensorMode::Off) {
       accepted |= makeRequest(sensorTypes[i], sensor->getRequest());
     }
   }
@@ -1375,16 +1382,17 @@ bool makeAllPendingRequests(uint8_t sensorId) {
 bool removeAllPassiveRequests(uint8_t sensorId) {
   // Specify sensor types to check for passive requests
   SensorType sensorTypes[kMaxNumSensorsPerSensorId];
-  size_t numSensorTypes = populateSensorTypeArrayFromSensorId(
-      sensorId, sensorTypes);
+  size_t numSensorTypes =
+      populateSensorTypeArrayFromSensorId(sensorId, sensorTypes);
   bool accepted = false;
   for (size_t i = 0; i < numSensorTypes; i++) {
-    const Sensor *sensor = EventLoopManagerSingleton::get()
-        ->getSensorRequestManager().getSensor(sensorTypes[i]);
+    const Sensor *sensor =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+            sensorTypes[i]);
 
     // Turn off sensors that have a passive request
-    if (sensor != nullptr
-        && sensorModeIsPassive(sensor->getRequest().getMode())) {
+    if (sensor != nullptr &&
+        sensorModeIsPassive(sensor->getRequest().getMode())) {
       SensorRequest offRequest;
       accepted |= makeRequest(sensorTypes[i], offRequest);
     }
@@ -1397,7 +1405,8 @@ bool removeAllPassiveRequests(uint8_t sensorId) {
 PlatformSensor::~PlatformSensor() {
   if (lastEvent != nullptr) {
     LOGD("Releasing lastEvent: id %" PRIu8 ", type %" PRIu8 ", cal %" PRIu8
-         ", size %zu", sensorId, dataType, calType, lastEventSize);
+         ", size %zu",
+         sensorId, dataType, calType, lastEventSize);
     memoryFree(lastEvent);
   }
 }
@@ -1443,20 +1452,20 @@ void PlatformSensor::init() {
     FATAL_ERROR("Failed while waiting for SNS SMGR internal service");
   }
 
-  status = smr_client_init(
-      smgrInternalSvcObj, SMR_CLIENT_INSTANCE_ANY,
-      platformSensorInternalServiceIndicationCallback,
-      nullptr /* ind_cb_data */, kSmrInitTimeoutMs, nullptr /* err_cb */,
-      nullptr /* err_cb_data */, &gPlatformSensorInternalServiceSmrClientHandle,
-      isSlpiUimgSupported());
+  status = smr_client_init(smgrInternalSvcObj, SMR_CLIENT_INSTANCE_ANY,
+                           platformSensorInternalServiceIndicationCallback,
+                           nullptr /* ind_cb_data */, kSmrInitTimeoutMs,
+                           nullptr /* err_cb */, nullptr /* err_cb_data */,
+                           &gPlatformSensorInternalServiceSmrClientHandle,
+                           isSlpiUimgSupported());
   if (status != SMR_NO_ERR) {
     FATAL_ERROR("Failed to initialize SMGR internal client: %d", status);
   }
 }
 
 void PlatformSensor::deinit() {
-  smr_err err = getSmrHelper()->releaseSync(
-      gPlatformSensorServiceSmrClientHandle);
+  smr_err err =
+      getSmrHelper()->releaseSync(gPlatformSensorServiceSmrClientHandle);
   if (err != SMR_NO_ERR) {
     LOGE("Failed to release SMGR client: %d", err);
   }
@@ -1506,7 +1515,7 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
   return success;
 }
 
-bool PlatformSensor::applyRequest(const SensorRequest& request) {
+bool PlatformSensor::applyRequest(const SensorRequest &request) {
   bool success;
 
   if (!SmrHelperSingleton::isInitialized()) {
@@ -1522,11 +1531,12 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
     // As sensor status monior indication doesn't support secondary sensor
     // status change, Light sensor (a secondary one) is always overridden to be
     // requested with an active mode.
-    bool passiveLight = (getSensorType() == SensorType::Light
-                         && sensorModeIsPassive(request.getMode()));
+    bool passiveLight = (getSensorType() == SensorType::Light &&
+                         sensorModeIsPassive(request.getMode()));
     if (passiveLight) {
-      LOGE("Passive request for Light sensor is not supported. "
-           "Overriding request to active");
+      LOGE(
+          "Passive request for Light sensor is not supported. "
+          "Overriding request to active");
     }
     SensorRequest localRequest(
         passiveLight ? SensorMode::ActiveContinuous : request.getMode(),
@@ -1552,12 +1562,14 @@ bool PlatformSensor::flushAsync() {
   //       sensor request is successfully handled and executed. This
   //       implementation mirrors the sensors HAL implementation of flush.
   bool success = false;
-  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
-      .getSensor(getSensorType());
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          getSensorType());
   if (sensor != nullptr) {
     success = applyRequest(sensor->getRequest());
     if (success) {
-      EventLoopManagerSingleton::get()->getSensorRequestManager()
+      EventLoopManagerSingleton::get()
+          ->getSensorRequestManager()
           .handleFlushCompleteEvent(CHRE_ERROR_NONE, getSensorType());
     }
   }
@@ -1577,13 +1589,13 @@ const char *PlatformSensor::getSensorName() const {
   return sensorName;
 }
 
-PlatformSensor::PlatformSensor(PlatformSensor&& other) {
+PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   // Our move assignment operator doesn't assume that "this" is initialized, so
   // we can just use that here
   *this = std::move(other);
 }
 
-PlatformSensor& PlatformSensor::operator=(PlatformSensor&& other) {
+PlatformSensor &PlatformSensor::operator=(PlatformSensor &&other) {
   // Note: if this implementation is ever changed to depend on "this" containing
   // initialized values, the move constructor implemenation must be updated
   sensorId = other.sensorId;

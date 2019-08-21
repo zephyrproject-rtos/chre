@@ -19,8 +19,8 @@
 extern "C" {
 
 #include "HAP_farf.h"
-#include "timer.h"
 #include "qurt.h"
+#include "timer.h"
 
 }  // extern "C"
 
@@ -36,6 +36,7 @@ extern "C" {
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/uimg_util.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/system/debug_dump.h"
 
 #ifdef CHRE_SLPI_SEE
 #include "chre/platform/slpi/see/island_vote_client.h"
@@ -63,8 +64,9 @@ constexpr size_t kStackSize = (8 * 1024);
 //! Memory partition where the thread control block (TCB) should be stored,
 //! which controls micro-image support.
 //! @see qurt_thread_attr_set_tcb_partition
-constexpr unsigned char kTcbPartition = chre::isSlpiUimgSupported() ?
-    QURT_THREAD_ATTR_TCB_PARTITION_TCM : QURT_THREAD_ATTR_TCB_PARTITION_RAM;
+constexpr unsigned char kTcbPartition =
+    chre::isSlpiUimgSupported() ? QURT_THREAD_ATTR_TCB_PARTITION_TCM
+                                : QURT_THREAD_ATTR_TCB_PARTITION_RAM;
 
 //! The priority to set for the CHRE thread (value between 1-255, with 1 being
 //! the highest).
@@ -94,9 +96,15 @@ int gTlsKey;
 bool gTlsKeyValid;
 
 void performDebugDumpCallback(uint16_t /*eventType*/, void *data) {
-  auto *handle = static_cast<const uint32_t *>(data);
-  UniquePtr<char> dump = chre::EventLoopManagerSingleton::get()->debugDump();
-  chre::commitDebugDump(*handle, dump.get(), true /*done*/);
+  uint32_t handle = *(static_cast<const uint32_t *>(data));
+  chre::DebugDumpWrapper debugDump(chre::debugDumpStrMaxSize);
+  chre::EventLoopManagerSingleton::get()->debugDump(debugDump);
+  for (size_t i = 0; i < debugDump.getBuffers().size() - 1; i++) {
+    const auto &buff = debugDump.getBuffers()[i];
+    chre::commitDebugDump(handle, buff.get(), false /*done*/);
+  }
+  chre::commitDebugDump(handle, debugDump.getBuffers().back().get(),
+                        true /*done*/);
 }
 
 void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {

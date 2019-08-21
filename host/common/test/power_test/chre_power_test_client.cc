@@ -29,10 +29,10 @@
 #include <vector>
 
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/version.h"
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
 #include "chre_host/socket_client.h"
-#include "chre/version.h"
 
 /**
  * @file
@@ -46,8 +46,8 @@
  */
 
 using android::sp;
-using android::chre::getStringFromByteVector;
 using android::chre::FragmentedLoadTransaction;
+using android::chre::getStringFromByteVector;
 using android::chre::HostProtocolHost;
 using android::chre::IChreMessageHandlers;
 using android::chre::SocketClient;
@@ -72,22 +72,17 @@ std::condition_variable kReadyCond;
 std::mutex kReadyMutex;
 std::unique_lock<std::mutex> kReadyCondLock(kReadyMutex);
 
-enum class Command : uint32_t {
-  kUnloadAll = 0,
-  kLoad,
-  kUnload
-};
+enum class Command : uint32_t { kUnloadAll = 0, kLoad, kUnload };
 
 std::unordered_map<std::string, Command> commandMap{
-  {"unloadall", Command::kUnloadAll},
-  {"load", Command::kLoad},
-  {"unload", Command::kUnload}
-};
+    {"unloadall", Command::kUnloadAll},
+    {"load", Command::kLoad},
+    {"unload", Command::kUnload}};
 
 class SocketCallbacks : public SocketClient::ICallbacks,
                         public IChreMessageHandlers {
  public:
-  SocketCallbacks(std::condition_variable& readyCond)
+  SocketCallbacks(std::condition_variable &readyCond)
       : mConditionVariable(readyCond) {}
 
   void onMessageReceived(const void *data, size_t length) override {
@@ -108,35 +103,38 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     LOGI("Socket disconnected");
   }
 
-  void handleNanoappMessage(const fbs::NanoappMessageT& message) override {
+  void handleNanoappMessage(const fbs::NanoappMessageT &message) override {
     LOGI("Got message from nanoapp 0x%" PRIx64 " to endpoint 0x%" PRIx16
-         " with type 0x%" PRIx32 " and length %zu", message.app_id,
-         message.host_endpoint, message.message_type, message.message.size());
+         " with type 0x%" PRIx32 " and length %zu",
+         message.app_id, message.host_endpoint, message.message_type,
+         message.message.size());
   }
 
-  void handleNanoappListResponse(const fbs::NanoappListResponseT& response)
-      override {
+  void handleNanoappListResponse(
+      const fbs::NanoappListResponseT &response) override {
     LOGI("Got nanoapp list response with %zu apps:", response.nanoapps.size());
     mAppIdVector.clear();
-    for (const auto& nanoapp : response.nanoapps) {
-      LOGI("  App ID 0x%016" PRIx64 " version 0x%" PRIx32 " enabled %d system "
-           "%d", nanoapp->app_id, nanoapp->version, nanoapp->enabled,
+    for (const auto &nanoapp : response.nanoapps) {
+      LOGI("  App ID 0x%016" PRIx64 " version 0x%" PRIx32
+           " enabled %d system "
+           "%d",
+           nanoapp->app_id, nanoapp->version, nanoapp->enabled,
            nanoapp->is_system);
       mAppIdVector.push_back(nanoapp->app_id);
     }
     mConditionVariable.notify_all();
   }
 
-  void handleLoadNanoappResponse(const fbs::LoadNanoappResponseT& response)
-      override {
+  void handleLoadNanoappResponse(
+      const fbs::LoadNanoappResponseT &response) override {
     LOGI("Got load nanoapp response, transaction ID 0x%" PRIx32 " result %d",
          response.transaction_id, response.success);
     mSuccess = response.success;
     mConditionVariable.notify_all();
   }
 
-  void handleUnloadNanoappResponse(const fbs::UnloadNanoappResponseT& response)
-      override {
+  void handleUnloadNanoappResponse(
+      const fbs::UnloadNanoappResponseT &response) override {
     LOGI("Got unload nanoapp response, transaction ID 0x%" PRIx32 " result %d",
          response.transaction_id, response.success);
     mSuccess = response.success;
@@ -147,17 +145,17 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     return mSuccess;
   }
 
-  std::vector<uint64_t>& getAppIdVector() {
+  std::vector<uint64_t> &getAppIdVector() {
     return mAppIdVector;
   }
 
  private:
   bool mSuccess = false;
-  std::condition_variable& mConditionVariable;
+  std::condition_variable &mConditionVariable;
   std::vector<uint64_t> mAppIdVector;
 };
 
-bool requestNanoappList(SocketClient& client) {
+bool requestNanoappList(SocketClient &client) {
   FlatBufferBuilder builder(64);
   HostProtocolHost::encodeNanoappListRequest(builder);
 
@@ -169,7 +167,7 @@ bool requestNanoappList(SocketClient& client) {
   return true;
 }
 
-bool sendLoadNanoappRequest(SocketClient& client, const char *filename,
+bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
                             uint64_t appId, uint32_t appVersion,
                             uint32_t apiVersion) {
   std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -190,14 +188,16 @@ bool sendLoadNanoappRequest(SocketClient& client, const char *filename,
   // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, apiVersion,
-      buffer, buffer.size() /* fragmentSize */);
+      1 /* transactionId */, appId, appVersion, apiVersion, buffer,
+      buffer.size() /* fragmentSize */);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
-  LOGI("Sending load nanoapp request (%" PRIu32 " bytes total w/ %zu bytes of "
-       "payload)", builder.GetSize(), buffer.size());
-  bool success = client.sendMessage(builder.GetBufferPointer(),
-                                    builder.GetSize());
+  LOGI("Sending load nanoapp request (%" PRIu32
+       " bytes total w/ %zu bytes of "
+       "payload)",
+       builder.GetSize(), buffer.size());
+  bool success =
+      client.sendMessage(builder.GetBufferPointer(), builder.GetSize());
   if (!success) {
     LOGE("Failed to send message");
   }
@@ -205,23 +205,22 @@ bool sendLoadNanoappRequest(SocketClient& client, const char *filename,
   return success;
 }
 
-bool loadNanoapp(SocketClient& client, sp<SocketCallbacks> callbacks,
-                 const char *filename, uint64_t appId,
-                 uint32_t appVersion, uint32_t apiVersion) {
-  if (!sendLoadNanoappRequest(client, filename, appId,
-                              appVersion, apiVersion)) {
+bool loadNanoapp(SocketClient &client, sp<SocketCallbacks> callbacks,
+                 const char *filename, uint64_t appId, uint32_t appVersion,
+                 uint32_t apiVersion) {
+  if (!sendLoadNanoappRequest(client, filename, appId, appVersion,
+                              apiVersion)) {
     return false;
   }
   auto status = kReadyCond.wait_for(kReadyCondLock, kTimeout);
-  bool success = (status == std::cv_status::no_timeout
-                  && callbacks->actionSucceeded());
-  LOGI("Loading the nanoapp with appId: %" PRIx64 " success: %d",
-       appId, success);
+  bool success =
+      (status == std::cv_status::no_timeout && callbacks->actionSucceeded());
+  LOGI("Loading the nanoapp with appId: %" PRIx64 " success: %d", appId,
+       success);
   return success;
 }
 
-bool sendUnloadNanoappRequest(SocketClient& client, uint64_t appId) {
-
+bool sendUnloadNanoappRequest(SocketClient &client, uint64_t appId) {
   FlatBufferBuilder builder(64);
   constexpr uint32_t kTransactionId = 4321;
   HostProtocolHost::encodeUnloadNanoappRequest(
@@ -236,20 +235,20 @@ bool sendUnloadNanoappRequest(SocketClient& client, uint64_t appId) {
   return true;
 }
 
-bool unloadNanoapp(SocketClient& client, sp<SocketCallbacks> callbacks,
+bool unloadNanoapp(SocketClient &client, sp<SocketCallbacks> callbacks,
                    uint64_t appId) {
   if (!sendUnloadNanoappRequest(client, appId)) {
     return false;
   }
   auto status = kReadyCond.wait_for(kReadyCondLock, kTimeout);
-  bool success = (status == std::cv_status::no_timeout
-                  && callbacks->actionSucceeded());
-  LOGI("Unloading the nanoapp with appId: %" PRIx64 " success: %d",
-       appId, success);
+  bool success =
+      (status == std::cv_status::no_timeout && callbacks->actionSucceeded());
+  LOGI("Unloading the nanoapp with appId: %" PRIx64 " success: %d", appId,
+       success);
   return success;
 }
 
-bool listNanoapps(SocketClient& client) {
+bool listNanoapps(SocketClient &client) {
   if (!requestNanoappList(client)) {
     LOGE("Failed in listing nanoapps");
     return false;
@@ -260,7 +259,7 @@ bool listNanoapps(SocketClient& client) {
   return success;
 }
 
-bool unloadAllNanoapps(SocketClient& client, sp<SocketCallbacks> callbacks) {
+bool unloadAllNanoapps(SocketClient &client, sp<SocketCallbacks> callbacks) {
   std::vector<uint64_t> appIds;
   if (!listNanoapps(client)) {
     return false;
@@ -282,7 +281,7 @@ uint64_t getId(std::vector<std::string> args) {
   return kPowerTestAppId;
 }
 
-const char* getPath(std::vector<std::string> args) {
+const char *getPath(std::vector<std::string> args) {
   if (!args.empty() && args[0] == "tcm") {
     return kPowerTestTcmPath;
   }
@@ -292,11 +291,12 @@ const char* getPath(std::vector<std::string> args) {
 static void usage() {
   const char *name = "chre_power_test_client";
   LOGI(
-    "\n"
-    "Usage:\n"
-    " %s load <optional: tcm>\n"
-    " %s unload <optional: tcm>\n"
-    " %s unloadall\n", name, name, name);
+      "\n"
+      "Usage:\n"
+      " %s load <optional: tcm>\n"
+      " %s unload <optional: tcm>\n"
+      " %s unloadall\n",
+      name, name, name);
 }
 
 }  // anonymous namespace

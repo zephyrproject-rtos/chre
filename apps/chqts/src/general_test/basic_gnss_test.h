@@ -34,6 +34,6 @@ class BasicGnssTest : public Test {
   void setUp(uint32_t messageSize, const void *message) override;
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_BASIC_GNSS_TEST_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_BASIC_GNSS_TEST_H_

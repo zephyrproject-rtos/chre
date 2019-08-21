@@ -35,19 +35,20 @@ class TimerSetTest : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
   class Stage {
    public:
-    Stage(uint32_t stage, uint64_t duration, const void *cookie,
-          bool oneShot);
+    Stage(uint32_t stage, uint64_t duration, const void *cookie, bool oneShot);
     void start();
     // We take 'test' so we can call markSuccess if appropriate.
     void processEvent(uint64_t timestamp, TimerSetTest *test);
 
-    const void *getCookie() const { return mCookie; }
+    const void *getCookie() const {
+      return mCookie;
+    }
 
    private:
     uint64_t mSetTime;
@@ -73,6 +74,5 @@ class TimerSetTest : public Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_TIMER_SET_TEST_H_

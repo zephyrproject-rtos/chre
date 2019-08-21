@@ -22,15 +22,13 @@
 #include <gtest/gtest.h>
 #include <shared/array_length.h>
 
-
-template<size_t kByteCount>
+template <size_t kByteCount>
 static void swapByteTest() {
-  uint8_t bytes[] = {
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-    0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10 };
-  static constexpr uint8_t postSwap[] = {
-    0x10, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09,
-    0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01 };
+  uint8_t bytes[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+                     0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
+  static constexpr uint8_t postSwap[] = {0x10, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B,
+                                         0x0A, 0x09, 0x08, 0x07, 0x06, 0x05,
+                                         0x04, 0x03, 0x02, 0x01};
 
 #ifdef __clang__
   // This static_assert crashes g++, but it's legit and works in clang.
@@ -50,7 +48,6 @@ static void swapByteTest() {
     EXPECT_EQ(kByteCount + 1, bytes[kByteCount]);
   }
 }
-
 
 TEST(EndianTest, SwapBytes1) {
   swapByteTest<1>();
@@ -72,13 +69,12 @@ TEST(EndianTest, SwapBytes16) {
   swapByteTest<16>();
 }
 
-
 // These tests should work regardless of which endian platform this
 // test happens to be built and running on.
 
 static constexpr uint32_t kValue = UINT32_C(0x04030201);
-static constexpr uint8_t kLittleEndianRepresentation[4] = {
-  0x01, 0x02, 0x03, 0x04 };
+static constexpr uint8_t kLittleEndianRepresentation[4] = {0x01, 0x02, 0x03,
+                                                           0x04};
 
 TEST(EndianTest, LittleEndianToHost) {
   uint32_t value;
@@ -92,7 +88,7 @@ TEST(EndianTest, HostToLittleEndian) {
   uint32_t value = kValue;
   value = nanoapp_testing::hostToLittleEndian(value);
 
-  const uint8_t *bytes = reinterpret_cast<uint8_t*>(&value);
+  const uint8_t *bytes = reinterpret_cast<uint8_t *>(&value);
   EXPECT_EQ(0, ::memcmp(kLittleEndianRepresentation, bytes,
                         sizeof(kLittleEndianRepresentation)));
 }

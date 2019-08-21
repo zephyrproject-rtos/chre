@@ -27,6 +27,7 @@
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
+#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -75,7 +76,7 @@ class SensorRequestManager : public NonCopyable {
    *         request false will be returned.
    */
   bool setSensorRequest(Nanoapp *nanoapp, uint32_t sensorHandle,
-                        const SensorRequest& sensorRequest);
+                        const SensorRequest &sensorRequest);
 
   /**
    * Populates the supplied info struct if the sensor handle exists.
@@ -85,7 +86,7 @@ class SensorRequestManager : public NonCopyable {
    * @param info A non-null pointer to a chreSensorInfo struct.
    * @return true if the supplied sensor handle exists.
    */
-  bool getSensorInfo(uint32_t sensorHandle, const Nanoapp& nanoapp,
+  bool getSensorInfo(uint32_t sensorHandle, const Nanoapp &nanoapp,
                      struct chreSensorInfo *info) const;
   /*
    * Removes all requests of a sensorType and unregisters all nanoapps for its
@@ -127,7 +128,7 @@ class SensorRequestManager : public NonCopyable {
    * @param sensorType The SensorType of the sensor.
    * @return The list of open requests of this sensor in a DynamicVector.
    */
-  const DynamicVector<SensorRequest>& getRequests(SensorType sensorType) const;
+  const DynamicVector<SensorRequest> &getRequests(SensorType sensorType) const;
 
   /**
    * Configures a nanoapp to receive bias events.
@@ -138,8 +139,8 @@ class SensorRequestManager : public NonCopyable {
    *
    * @return true if the configuration was successful.
    */
-  bool configureBiasEvents(
-      Nanoapp *nanoapp, uint32_t sensorHandle, bool enable);
+  bool configureBiasEvents(Nanoapp *nanoapp, uint32_t sensorHandle,
+                           bool enable);
 
   /**
    * Synchronously retrieves the current bias for a sensor that supports
@@ -151,8 +152,8 @@ class SensorRequestManager : public NonCopyable {
    * @return false if the sensor handle was invalid or the sensor does not
    *     report bias data in the chreSensorThreeAxisData format.
    */
-  bool getThreeAxisBias(
-      uint32_t sensorHandle, struct chreSensorThreeAxisData *bias) const;
+  bool getThreeAxisBias(uint32_t sensorHandle,
+                        struct chreSensorThreeAxisData *bias) const;
 
   /**
    * Makes a sensor flush request for a nanoapp asynchronously.
@@ -182,12 +183,10 @@ class SensorRequestManager : public NonCopyable {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @param buffer Pointer to the start of the buffer.
-   * @param bufferPos Pointer to buffer position to start the print (in-out).
-   * @param size Size of the buffer in bytes.
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos,
-                        size_t bufferSize) const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   //! An internal structure to store incoming sensor flush requests
@@ -205,7 +204,8 @@ class SensorRequestManager : public NonCopyable {
     //! The opaque pointer provided in flushAsync().
     const void *cookie;
     //! The timestamp at which this request should complete.
-    Nanoseconds deadlineTimestamp = SystemTime::getMonotonicTime() +
+    Nanoseconds deadlineTimestamp =
+        SystemTime::getMonotonicTime() +
         Nanoseconds(CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS);
     //! True if this flush request is active and is pending completion.
     bool isActive = false;
@@ -239,13 +239,13 @@ class SensorRequestManager : public NonCopyable {
    public:
     SensorRequests() : mFlushRequestPending(false) {}
 
-     /**
-      * Initializes the sensor object. This method must only be invoked once
-      * when the SensorRequestManager initializes.
-      *
-      * @param sensor The sensor object to initialize with.
-      */
-    void setSensor(Sensor&& sensor) {
+    /**
+     * Initializes the sensor object. This method must only be invoked once
+     * when the SensorRequestManager initializes.
+     *
+     * @param sensor The sensor object to initialize with.
+     */
+    void setSensor(Sensor &&sensor) {
       CHRE_ASSERT(!mSensor.has_value());
       mSensor = std::move(sensor);
     }
@@ -260,7 +260,7 @@ class SensorRequestManager : public NonCopyable {
     /**
      * @return The set of active requests for this sensor.
      */
-    const DynamicVector<SensorRequest>& getRequests() const {
+    const DynamicVector<SensorRequest> &getRequests() const {
       return mMultiplexer.getRequests();
     }
 
@@ -275,7 +275,7 @@ class SensorRequestManager : public NonCopyable {
      * @return A constant reference to the sensor object. This method has an
      * undefined behavior if isSensorSupported() is false.
      */
-    const Sensor& getSensor() const {
+    const Sensor &getSensor() const {
       return mSensor.value();
     }
 
@@ -283,7 +283,7 @@ class SensorRequestManager : public NonCopyable {
      * @return A reference to the sensor object. This method has an undefined
      * behavior if isSensorSupported() is false.
      */
-    Sensor& getSensor() {
+    Sensor &getSensor() {
       return mSensor.value();
     }
 
@@ -339,7 +339,7 @@ class SensorRequestManager : public NonCopyable {
      *        assigned to the status of the request changing (true or false).
      * @return true if the add operation was successful.
      */
-    bool add(const SensorRequest& request, bool *requestChanged);
+    bool add(const SensorRequest &request, bool *requestChanged);
 
     /**
      * Removes a sensor request from the request multiplexer for this sensor.
@@ -364,7 +364,7 @@ class SensorRequestManager : public NonCopyable {
      *        with.
      * @return true if the update operation was successful.
      */
-    bool update(size_t updateIndex, const SensorRequest& request,
+    bool update(size_t updateIndex, const SensorRequest &request,
                 bool *requestChanged);
 
     /**
@@ -385,7 +385,7 @@ class SensorRequestManager : public NonCopyable {
      *
      * @return An error code from enum chreError
      */
-    uint8_t makeFlushRequest(FlushRequest& request);
+    uint8_t makeFlushRequest(FlushRequest &request);
 
     /**
      * Clears any states (e.g. timeout timer and relevant flags) associated
@@ -442,7 +442,7 @@ class SensorRequestManager : public NonCopyable {
   /**
    * Helper function to convert SensorType to SensorRequests.
    */
-  SensorRequests& getSensorRequests(SensorType sensorType) {
+  SensorRequests &getSensorRequests(SensorType sensorType) {
     size_t index = getSensorTypeArrayIndex(sensorType);
     return mSensorRequests[index];
   }
@@ -454,8 +454,8 @@ class SensorRequestManager : public NonCopyable {
    * @param errorCode An error code from enum chreError
    * @param request The corresponding FlushRequest.
    */
-  void postFlushCompleteEvent(
-    uint32_t sensorHandle, uint8_t errorCode, const FlushRequest& request);
+  void postFlushCompleteEvent(uint32_t sensorHandle, uint8_t errorCode,
+                              const FlushRequest &request);
 
   /**
    * Completes a flush request at the specified index by posting a
@@ -492,8 +492,8 @@ class SensorRequestManager : public NonCopyable {
    * @param nanoappInstanceId The ID of the nanoapp to cancel requests for,
    *     kSystemInstanceId to remove requests for all nanoapps.
    */
-  void cancelFlushRequests(
-      SensorType sensorType, uint32_t nanoappInstanceId = kSystemInstanceId);
+  void cancelFlushRequests(SensorType sensorType,
+                           uint32_t nanoappInstanceId = kSystemInstanceId);
 
   /**
    * Adds a request log to the list of logs possibly pushing latest log

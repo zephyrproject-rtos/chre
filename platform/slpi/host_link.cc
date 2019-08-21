@@ -26,14 +26,14 @@
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
-#include "chre/platform/system_time.h"
-#include "chre/platform/system_timer.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/slpi/debug_dump.h"
 #include "chre/platform/slpi/fastrpc.h"
-#include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/nanoapp_load_manager.h"
+#include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/system_time.h"
+#include "chre/platform/system_time.h"
+#include "chre/platform/system_timer.h"
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/macros.h"
 #include "chre/util/unique_ptr.h"
@@ -59,7 +59,7 @@ union HostClientIdCallbackData {
   uint16_t hostClientId;
   void *ptr;
 };
-static_assert(sizeof(uint16_t) <= sizeof(void*),
+static_assert(sizeof(uint16_t) <= sizeof(void *),
               "Pointer must at least fit a u16 for passing the host client ID");
 
 struct LoadNanoappCallbackData {
@@ -131,12 +131,11 @@ struct DebugDumpCallbackData {
 /**
  * @see buildAndEnqueueMessage()
  */
-typedef void (MessageBuilderFunction)(FlatBufferBuilder& builder, void *cookie);
+typedef void(MessageBuilderFunction)(FlatBufferBuilder &builder, void *cookie);
 
-FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize>
-    gOutboundQueue;
+FixedSizeBlockingQueue<PendingMessage, kOutboundQueueSize> gOutboundQueue;
 
-int copyToHostBuffer(const FlatBufferBuilder& builder, unsigned char *buffer,
+int copyToHostBuffer(const FlatBufferBuilder &builder, unsigned char *buffer,
                      size_t bufferSize, unsigned int *messageLen) {
   uint8_t *data = builder.GetBufferPointer();
   size_t size = builder.GetSize();
@@ -192,8 +191,7 @@ bool enqueueMessage(PendingMessage message) {
  */
 bool buildAndEnqueueMessage(PendingMessageType msgType,
                             size_t initialBufferSize,
-                            MessageBuilderFunction *msgBuilder,
-                            void *cookie) {
+                            MessageBuilderFunction *msgBuilder, void *cookie) {
   bool pushed = false;
 
   auto builder = MakeUnique<FlatBufferBuilder>(initialBufferSize);
@@ -220,22 +218,21 @@ bool buildAndEnqueueMessage(PendingMessageType msgType,
 /**
  * FlatBuffer message builder callback used with constructNanoappListCallback()
  */
-void buildNanoappListResponse(FlatBufferBuilder& builder, void *cookie) {
+void buildNanoappListResponse(FlatBufferBuilder &builder, void *cookie) {
   auto nanoappAdderCallback = [](const Nanoapp *nanoapp, void *data) {
     auto *cbData = static_cast<NanoappListData *>(data);
     HostProtocolChre::addNanoappListEntry(
         *(cbData->builder), cbData->nanoappEntries, nanoapp->getAppId(),
-        nanoapp->getAppVersion(), true /*enabled*/,
-        nanoapp->isSystemNanoapp());
+        nanoapp->getAppVersion(), true /*enabled*/, nanoapp->isSystemNanoapp());
   };
 
   // Add a NanoappListEntry to the FlatBuffer for each nanoapp
   auto *cbData = static_cast<NanoappListData *>(cookie);
   cbData->builder = &builder;
-  EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   eventLoop.forEachNanoapp(nanoappAdderCallback, cbData);
-  HostProtocolChre::finishNanoappListResponse(
-      builder, cbData->nanoappEntries, cbData->hostClientId);
+  HostProtocolChre::finishNanoappListResponse(builder, cbData->nanoappEntries,
+                                              cbData->hostClientId);
 }
 
 void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
@@ -245,12 +242,12 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
   NanoappListData cbData = {};
   cbData.hostClientId = clientIdCbData.hostClientId;
 
-  const EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   size_t expectedNanoappCount = eventLoop.getNanoappCount();
   if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
     LOG_OOM();
   } else {
-    constexpr size_t kFixedOverhead  = 48;
+    constexpr size_t kFixedOverhead = 48;
     constexpr size_t kPerNanoappSize = 32;
     size_t initialBufferSize =
         (kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
@@ -262,16 +259,16 @@ void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
 }
 
 void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<LoadNanoappCallbackData *>(cookie);
 
-    EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+    EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
     bool success =
         cbData->nanoapp->isLoaded() && eventLoop.startNanoapp(cbData->nanoapp);
 
-    HostProtocolChre::encodeLoadNanoappResponse(
-        builder, cbData->hostClientId, cbData->transactionId,
-        success, cbData->fragmentId);
+    HostProtocolChre::encodeLoadNanoappResponse(builder, cbData->hostClientId,
+                                                cbData->transactionId, success,
+                                                cbData->fragmentId);
   };
 
   // Re-wrap the callback data struct, so it is destructed and freed, ensuring
@@ -284,17 +281,17 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
 }
 
 void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<UnloadNanoappCallbackData *>(cookie);
 
     bool success = false;
     uint32_t instanceId;
-    EventLoop& eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+    EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
     if (!eventLoop.findNanoappInstanceIdByAppId(cbData->appId, &instanceId)) {
       LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);
     } else {
-      success = eventLoop.unloadNanoapp(instanceId,
-                                        cbData->allowSystemNanoappUnload);
+      success =
+          eventLoop.unloadNanoapp(instanceId, cbData->allowSystemNanoappUnload);
     }
 
     HostProtocolChre::encodeUnloadNanoappResponse(
@@ -314,13 +311,13 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
   constexpr size_t kFixedSizePortion = 80;
   FlatBufferBuilder builder(msgToHost->message.size() + kFixedSizePortion);
   HostProtocolChre::encodeNanoappMessage(
-    builder, msgToHost->appId, msgToHost->toHostData.messageType,
-    msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
-    msgToHost->message.size());
+      builder, msgToHost->appId, msgToHost->toHostData.messageType,
+      msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
+      msgToHost->message.size());
 
   int result = copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 
-  auto& hostCommsManager =
+  auto &hostCommsManager =
       EventLoopManagerSingleton::get()->getHostCommsManager();
   hostCommsManager.onMessageToHostComplete(msgToHost);
 
@@ -333,15 +330,13 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
 
   constexpr char kHubName[] = "CHRE on SLPI";
   constexpr char kVendor[] = "Google";
-  constexpr char kToolchain[] = "Hexagon Tools 8.x (clang "
-    STRINGIFY(__clang_major__) "."
-    STRINGIFY(__clang_minor__) "."
-    STRINGIFY(__clang_patchlevel__) ")";
+  constexpr char kToolchain[] =
+      "Hexagon Tools 8.x (clang " STRINGIFY(__clang_major__) "." STRINGIFY(
+          __clang_minor__) "." STRINGIFY(__clang_patchlevel__) ")";
   constexpr uint32_t kLegacyPlatformVersion = 0;
   constexpr uint32_t kLegacyToolchainVersion =
-    ((__clang_major__ & 0xFF) << 24) |
-    ((__clang_minor__ & 0xFF) << 16) |
-    (__clang_patchlevel__ & 0xFFFF);
+      ((__clang_major__ & 0xFF) << 24) | ((__clang_minor__ & 0xFF) << 16) |
+      (__clang_patchlevel__ & 0xFFFF);
   constexpr float kPeakMips = 350;
   constexpr float kStoppedPower = 0;
   constexpr float kSleepPower = 1;
@@ -358,9 +353,9 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
   return copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 }
 
-int generateMessageFromBuilder(
-    FlatBufferBuilder *builder, unsigned char *buffer, size_t bufferSize,
-    unsigned int *messageLen) {
+int generateMessageFromBuilder(FlatBufferBuilder *builder,
+                               unsigned char *buffer, size_t bufferSize,
+                               unsigned int *messageLen) {
   CHRE_ASSERT(builder != nullptr);
   int result = copyToHostBuffer(*builder, buffer, bufferSize, messageLen);
   builder->~FlatBufferBuilder();
@@ -376,23 +371,23 @@ void sendDebugDumpData(uint16_t hostClientId, const char *debugStr,
     size_t debugStrSize;
   };
 
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     const auto *data = static_cast<const DebugDumpMessageData *>(cookie);
-    HostProtocolChre::encodeDebugDumpData(
-        builder, data->hostClientId, data->debugStr, data->debugStrSize);
+    HostProtocolChre::encodeDebugDumpData(builder, data->hostClientId,
+                                          data->debugStr, data->debugStrSize);
   };
 
   constexpr size_t kFixedSizePortion = 52;
   DebugDumpMessageData data;
   data.hostClientId = hostClientId;
-  data.debugStr     = debugStr;
+  data.debugStr = debugStr;
   data.debugStrSize = debugStrSize;
   buildAndEnqueueMessage(PendingMessageType::DebugDumpData,
                          kFixedSizePortion + debugStrSize, msgBuilder, &data);
 }
 
 void sendDebugDumpResponse(DebugDumpCallbackData *data) {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     const auto *cbData = static_cast<const DebugDumpCallbackData *>(cookie);
     HostProtocolChre::encodeDebugDumpResponse(
         builder, cbData->hostClientId, cbData->success, cbData->dataCount);
@@ -422,9 +417,8 @@ void onDebugDumpDataReady(void *cookie, const char *debugStr,
   }
 }
 
-void sendFragmentResponse(
-    uint16_t hostClientId, uint32_t transactionId, uint32_t fragmentId,
-    bool success) {
+void sendFragmentResponse(uint16_t hostClientId, uint32_t transactionId,
+                          uint32_t fragmentId, bool success) {
   struct FragmentedLoadInfoResponse {
     uint16_t hostClientId;
     uint32_t transactionId;
@@ -432,18 +426,18 @@ void sendFragmentResponse(
     bool success;
   };
 
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<FragmentedLoadInfoResponse *>(cookie);
     HostProtocolChre::encodeLoadNanoappResponse(
-        builder, cbData->hostClientId, cbData->transactionId,
-        cbData->success, cbData->fragmentId);
+        builder, cbData->hostClientId, cbData->transactionId, cbData->success,
+        cbData->fragmentId);
   };
 
   FragmentedLoadInfoResponse response = {
-    .hostClientId = hostClientId,
-    .transactionId = transactionId,
-    .fragmentId = fragmentId,
-    .success = success,
+      .hostClientId = hostClientId,
+      .transactionId = transactionId,
+      .fragmentId = fragmentId,
+      .success = success,
   };
   constexpr size_t kInitialBufferSize = 48;
   buildAndEnqueueMessage(PendingMessageType::LoadNanoappResponse,
@@ -454,7 +448,7 @@ void sendFragmentResponse(
  * Sends a request to the host for a time sync message.
  */
 void sendTimeSyncRequest() {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     HostProtocolChre::encodeTimeSyncRequest(builder);
   };
 
@@ -481,9 +475,7 @@ void setTimeSyncRequestTimer(Nanoseconds delay) {
   if (sTimeSyncRequestTimer.isActive()) {
     sTimeSyncRequestTimer.cancel();
   }
-  auto callback = [](void* /* data */) {
-    sendTimeSyncRequest();
-  };
+  auto callback = [](void * /* data */) { sendTimeSyncRequest(); };
   if (!sTimeSyncRequestTimer.set(callback, nullptr /* data */, delay)) {
     LOGE("Failed to set time sync request timer.");
   }
@@ -504,20 +496,21 @@ void setTimeSyncRequestTimer(Nanoseconds delay) {
  * @return A valid pointer to a nanoapp that can be loaded into the system. A
  *     nullptr if the preparation process fails.
  */
-UniquePtr<Nanoapp> handleLoadNanoappFile(
-    uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t targetApiVersion, const char *appFilename) {
+UniquePtr<Nanoapp> handleLoadNanoappFile(uint16_t hostClientId,
+                                         uint32_t transactionId, uint64_t appId,
+                                         uint32_t appVersion,
+                                         uint32_t targetApiVersion,
+                                         const char *appFilename) {
   LOGD("Load nanoapp request for app ID 0x%016" PRIx64 " ver 0x%" PRIx32
-       " target API 0x%08" PRIx32 " (txnId %" PRIu32 " client %"
-       PRIu16 ")", appId, appVersion, targetApiVersion, transactionId,
-       hostClientId);
+       " target API 0x%08" PRIx32 " (txnId %" PRIu32 " client %" PRIu16 ")",
+       appId, appVersion, targetApiVersion, transactionId, hostClientId);
 
   auto nanoapp = MakeUnique<Nanoapp>();
 
   if (nanoapp.isNull()) {
     LOG_OOM();
-  } else if (!nanoapp->setAppInfo(appId, appVersion, appFilename)
-      || !nanoapp->isLoaded()) {
+  } else if (!nanoapp->setAppInfo(appId, appVersion, appFilename) ||
+             !nanoapp->isLoaded()) {
     nanoapp.reset(nullptr);
   }
 
@@ -549,23 +542,23 @@ UniquePtr<Nanoapp> handleLoadNanoappData(
   static NanoappLoadManager sLoadManager;
 
   bool success = true;
-  if (fragmentId == 0 || fragmentId == 1) { // first fragment
+  if (fragmentId == 0 || fragmentId == 1) {  // first fragment
     size_t totalAppBinaryLen = (fragmentId == 0) ? bufferLen : appBinaryLen;
     LOGD("Load nanoapp request for app ID 0x%016" PRIx64 " ver 0x%" PRIx32
-         " target API 0x%08" PRIx32 " size %zu (txnId %" PRIu32 " client %"
-         PRIu16 ")", appId, appVersion, targetApiVersion, totalAppBinaryLen,
-         transactionId, hostClientId);
+         " target API 0x%08" PRIx32 " size %zu (txnId %" PRIu32
+         " client %" PRIu16 ")",
+         appId, appVersion, targetApiVersion, totalAppBinaryLen, transactionId,
+         hostClientId);
 
     if (sLoadManager.hasPendingLoadTransaction()) {
       FragmentedLoadInfo info = sLoadManager.getTransactionInfo();
-      sendFragmentResponse(
-          info.hostClientId, info.transactionId, 0 /* fragmentId */,
-          false /* success */);
+      sendFragmentResponse(info.hostClientId, info.transactionId,
+                           0 /* fragmentId */, false /* success */);
       sLoadManager.markFailure();
     }
 
-    success = sLoadManager.prepareForLoad(
-        hostClientId, transactionId, appId, appVersion, totalAppBinaryLen);
+    success = sLoadManager.prepareForLoad(hostClientId, transactionId, appId,
+                                          appVersion, totalAppBinaryLen);
   }
   success &= sLoadManager.copyNanoappFragment(
       hostClientId, transactionId, (fragmentId == 0) ? 1 : fragmentId, buffer,
@@ -590,8 +583,9 @@ UniquePtr<Nanoapp> handleLoadNanoappData(
  *
  * @return 0 on success, nonzero on failure
  */
-extern "C" int chre_slpi_get_message_to_host(
-    unsigned char *buffer, int bufferLen, unsigned int *messageLen) {
+extern "C" int chre_slpi_get_message_to_host(unsigned char *buffer,
+                                             int bufferLen,
+                                             unsigned int *messageLen) {
   CHRE_ASSERT(buffer != nullptr);
   CHRE_ASSERT(bufferLen > 0);
   CHRE_ASSERT(messageLen != nullptr);
@@ -629,8 +623,8 @@ extern "C" int chre_slpi_get_message_to_host(
       case PendingMessageType::TimeSyncRequest:
       case PendingMessageType::LowPowerMicAccessRequest:
       case PendingMessageType::LowPowerMicAccessRelease:
-        result = generateMessageFromBuilder(pendingMsg.data.builder,
-                                            buffer, bufferSize, messageLen);
+        result = generateMessageFromBuilder(pendingMsg.data.builder, buffer,
+                                            bufferSize, messageLen);
         break;
 
       default:
@@ -665,7 +659,7 @@ extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
   if (message == nullptr || messageLen <= 0) {
     LOGE("Got null or invalid size (%d) message from host", messageLen);
   } else if (!HostProtocolChre::decodeMessageFromHost(
-      message, static_cast<size_t>(messageLen))) {
+                 message, static_cast<size_t>(messageLen))) {
     LOGE("Failed to decode/handle message");
   } else {
     result = CHRE_FASTRPC_SUCCESS;
@@ -718,14 +712,15 @@ void HostLinkBase::shutdown() {
   // a state where it's not blocked in chre_slpi_get_message_to_host().
   int retryCount = 5;
   FARF(MEDIUM, "Shutting down host link");
-  while (!enqueueMessage(PendingMessage(PendingMessageType::Shutdown))
-         && --retryCount > 0) {
+  while (!enqueueMessage(PendingMessage(PendingMessageType::Shutdown)) &&
+         --retryCount > 0) {
     timer_sleep(kPollingIntervalUsec, T_USEC, true /* non_deferrable */);
   }
 
   if (retryCount <= 0) {
     // Don't use LOGE, as it may involve trying to send a message
-    FARF(ERROR, "No room in outbound queue for shutdown message and host not "
+    FARF(ERROR,
+         "No room in outbound queue for shutdown message and host not "
          "draining queue!");
   } else {
     // We were able to push the shutdown message. Wait for the queue to
@@ -739,7 +734,7 @@ void HostLinkBase::shutdown() {
 }
 
 void sendAudioRequest() {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     HostProtocolChre::encodeLowPowerMicAccessRequest(builder);
   };
 
@@ -749,7 +744,7 @@ void sendAudioRequest() {
 }
 
 void sendAudioRelease() {
-  auto msgBuilder = [](FlatBufferBuilder& builder, void *cookie) {
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
     HostProtocolChre::encodeLowPowerMicAccessRelease(builder);
   };
 
@@ -758,24 +753,27 @@ void sendAudioRelease() {
                          kInitialSize, msgBuilder, nullptr);
 }
 
-void HostMessageHandlers::handleNanoappMessage(
-    uint64_t appId, uint32_t messageType, uint16_t hostEndpoint,
-    const void *messageData, size_t messageDataLen) {
-  LOGD("Parsed nanoapp message from host: app ID 0x%016" PRIx64 ", endpoint "
+void HostMessageHandlers::handleNanoappMessage(uint64_t appId,
+                                               uint32_t messageType,
+                                               uint16_t hostEndpoint,
+                                               const void *messageData,
+                                               size_t messageDataLen) {
+  LOGD("Parsed nanoapp message from host: app ID 0x%016" PRIx64
+       ", endpoint "
        "0x%" PRIx16 ", msgType %" PRIu32 ", payload size %zu",
        appId, hostEndpoint, messageType, messageDataLen);
 
-  HostCommsManager& manager =
+  HostCommsManager &manager =
       EventLoopManagerSingleton::get()->getHostCommsManager();
-  manager.sendMessageToNanoappFromHost(
-      appId, messageType, hostEndpoint, messageData, messageDataLen);
+  manager.sendMessageToNanoappFromHost(appId, messageType, hostEndpoint,
+                                       messageData, messageDataLen);
 }
 
 void HostMessageHandlers::handleHubInfoRequest(uint16_t hostClientId) {
   // We generate the response in the context of chre_slpi_get_message_to_host
   LOGD("Hub info request from client ID %" PRIu16, hostClientId);
-  enqueueMessage(PendingMessage(
-      PendingMessageType::HubInfoResponse, hostClientId));
+  enqueueMessage(
+      PendingMessage(PendingMessageType::HubInfoResponse, hostClientId));
 }
 
 void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
@@ -794,13 +792,13 @@ void HostMessageHandlers::handleLoadNanoappRequest(
     size_t appBinaryLen) {
   UniquePtr<Nanoapp> pendingNanoapp;
   if (appFileName != nullptr) {
-    pendingNanoapp = handleLoadNanoappFile(
-        hostClientId, transactionId, appId, appVersion, targetApiVersion,
-        appFileName);
+    pendingNanoapp =
+        handleLoadNanoappFile(hostClientId, transactionId, appId, appVersion,
+                              targetApiVersion, appFileName);
   } else {
-    pendingNanoapp = handleLoadNanoappData(
-        hostClientId, transactionId, appId, appVersion, targetApiVersion,
-        buffer, bufferLen, fragmentId, appBinaryLen);
+    pendingNanoapp = handleLoadNanoappData(hostClientId, transactionId, appId,
+                                           appVersion, targetApiVersion, buffer,
+                                           bufferLen, fragmentId, appBinaryLen);
   }
 
   if (!pendingNanoapp.isNull()) {
@@ -809,7 +807,7 @@ void HostMessageHandlers::handleLoadNanoappRequest(
       LOG_OOM();
     } else {
       cbData->transactionId = transactionId;
-      cbData->hostClientId  = hostClientId;
+      cbData->hostClientId = hostClientId;
       cbData->appId = appId;
       cbData->fragmentId = fragmentId;
       cbData->nanoapp = std::move(pendingNanoapp);
@@ -827,7 +825,8 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
     uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
     bool allowSystemNanoappUnload) {
   LOGD("Unload nanoapp request (txnID %" PRIu32 ") for appId 0x%016" PRIx64
-       " system %d", transactionId, appId, allowSystemNanoappUnload);
+       " system %d",
+       transactionId, appId, allowSystemNanoappUnload);
   auto *cbData = memoryAlloc<UnloadNanoappCallbackData>();
   if (cbData == nullptr) {
     LOG_OOM();
@@ -847,7 +846,8 @@ void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
   setEstimatedHostTimeOffset(offset);
 
   // Schedule a time sync request since offset may drift
-  constexpr Seconds kClockDriftTimeSyncPeriod = Seconds(60 * 60 * 6); // 6 hours
+  constexpr Seconds kClockDriftTimeSyncPeriod =
+      Seconds(60 * 60 * 6);  // 6 hours
   setTimeSyncRequestTimer(kClockDriftTimeSyncPeriod);
 }
 

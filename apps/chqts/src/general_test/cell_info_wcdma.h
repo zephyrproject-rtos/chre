@@ -24,15 +24,14 @@ namespace general_test {
 
 class CellInfoWcdma : private CellInfoBase {
  public:
-  static bool validate(const struct chreWwanCellInfoWcdma& cell);
+  static bool validate(const struct chreWwanCellInfoWcdma &cell);
 
  private:
-  static bool validateIdentity(
-      const struct chreWwanCellIdentityWcdma identity);
+  static bool validateIdentity(const struct chreWwanCellIdentityWcdma identity);
   static bool validateSignalStrength(
       const struct chreWwanSignalStrengthWcdma strength);
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_WCDMA_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_WCDMA_H_

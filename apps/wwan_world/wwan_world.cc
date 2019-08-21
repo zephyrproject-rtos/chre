@@ -92,7 +92,8 @@ void logChreWwanInfo(const chreWwanCellInfo *cell) {
       LOGI("    lac %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.lac);
       LOGI("    cid %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.cid);
       LOGI("    psc %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.psc);
-      LOGI("    uarfcn %" PRId32, cell->CellInfo.wcdma.cellIdentityWcdma.uarfcn);
+      LOGI("    uarfcn %" PRId32,
+           cell->CellInfo.wcdma.cellIdentityWcdma.uarfcn);
       break;
     default:
       // TODO: Support logging all cell types.
@@ -120,7 +121,6 @@ void handleCellInfoResult(const chreWwanCellInfoResult *result) {
 
 }  // namespace
 
-
 bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
@@ -137,13 +137,13 @@ bool nanoappStart() {
       wwanCapabilitiesStr = "INVALID";
   }
 
-  LOGI("Detected WWAN support as: %s (%" PRIu32 ")",
-       wwanCapabilitiesStr, wwanCapabilities);
+  LOGI("Detected WWAN support as: %s (%" PRIu32 ")", wwanCapabilitiesStr,
+       wwanCapabilities);
 
   if (wwanCapabilities & CHRE_WWAN_GET_CELL_INFO) {
-    gCellInfoTimerHandle = chreTimerSet(kCellInfoInterval.toRawNanoseconds(),
-                                        &gCellInfoTimerHandle /* data */,
-                                        false /* oneShot */);
+    gCellInfoTimerHandle =
+        chreTimerSet(kCellInfoInterval.toRawNanoseconds(),
+                     &gCellInfoTimerHandle /* data */, false /* oneShot */);
     if (gCellInfoTimerHandle == CHRE_TIMER_INVALID) {
       LOGE("Failed to set a periodic cell info timer");
     } else {
@@ -154,8 +154,7 @@ bool nanoappStart() {
   return true;
 }
 
-void nanoappHandleEvent(uint32_t senderInstanceId,
-                        uint16_t eventType,
+void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_TIMER:
@@ -178,8 +177,8 @@ void nanoappEnd() {
 }  // anonymous namespace
 }  // namespace chre
 
-#include "chre/util/nanoapp/app_id.h"
 #include "chre/platform/static_nanoapp_init.h"
+#include "chre/util/nanoapp/app_id.h"
 
 CHRE_STATIC_NANOAPP_INIT(WwanWorld, chre::kWwanWorldAppId, 0);
 #endif  // CHRE_NANOAPP_INTERNAL

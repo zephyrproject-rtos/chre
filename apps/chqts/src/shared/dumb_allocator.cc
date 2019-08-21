@@ -82,5 +82,4 @@ bool DumbAllocatorBase::getSlot(const void *pointer, size_t *slot) const {
   return ((mRawMemory + (*slot * mAllocSize)) == ptr);
 }
 
-
 }  // namespace nanoapp_testing

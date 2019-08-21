@@ -22,6 +22,7 @@
 #include "chre/core/nanoapp.h"
 #include "chre/platform/platform_gnss.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/system/debug_dump.h"
 #include "chre/util/time.h"
 
 namespace chre {
@@ -86,10 +87,10 @@ class GnssSession {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @see GnssManager::logStateToBuffer
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos, size_t bufferSize)
-      const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   /**
@@ -202,8 +203,8 @@ class GnssSession {
    *
    * @return true if the provided instanceId was found.
    */
-  bool nanoappHasRequest(uint32_t instanceId, size_t *requestIndex = nullptr)
-      const;
+  bool nanoappHasRequest(uint32_t instanceId,
+                         size_t *requestIndex = nullptr) const;
 
   /**
    * Adds a request for a session to the queue of state transitions.
@@ -236,9 +237,9 @@ class GnssSession {
    *
    * @return true if a state transition is required.
    */
-  bool stateTransitionIsRequired(
-      bool requestedState, Milliseconds minInterval, bool nanoappHasRequest,
-      size_t requestIndex) const;
+  bool stateTransitionIsRequired(bool requestedState, Milliseconds minInterval,
+                                 bool nanoappHasRequest,
+                                 size_t requestIndex) const;
 
   /**
    * Updates the session requests given a nanoapp and the interval requested.
@@ -264,9 +265,9 @@ class GnssSession {
    *
    * @return true if the event was successfully posted.
    */
-  bool postAsyncResultEvent(
-      uint32_t instanceId, bool success, bool enable,
-      Milliseconds minInterval, uint8_t errorCode, const void *cookie);
+  bool postAsyncResultEvent(uint32_t instanceId, bool success, bool enable,
+                            Milliseconds minInterval, uint8_t errorCode,
+                            const void *cookie);
 
   /**
    * Calls through to postAsyncResultEvent but invokes FATAL_ERROR if the
@@ -275,9 +276,9 @@ class GnssSession {
    * enqueue one. For parameter details,
    * @see postAsyncResultEvent
    */
-  void postAsyncResultEventFatal(
-      uint32_t instanceId, bool success, bool enable,
-      Milliseconds minInterval, uint8_t errorCode, const void *cookie);
+  void postAsyncResultEventFatal(uint32_t instanceId, bool success, bool enable,
+                                 Milliseconds minInterval, uint8_t errorCode,
+                                 const void *cookie);
 
   /**
    * Handles the result of a request to PlatformGnss to change the state of
@@ -343,11 +344,11 @@ class GnssManager : public NonCopyable {
    */
   uint32_t getCapabilities();
 
-  GnssSession& getLocationSession() {
+  GnssSession &getLocationSession() {
     return mLocationSession;
   };
 
-  GnssSession& getMeasurementSession() {
+  GnssSession &getMeasurementSession() {
     return mMeasurementSession;
   };
 
@@ -355,14 +356,10 @@ class GnssManager : public NonCopyable {
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
-   * @param buffer Pointer to the start of the buffer.
-   * @param bufferPos Pointer to buffer position to start the print (in-out).
-   * @param size Size of the buffer in bytes.
-   *
-   * @return true if entire log printed, false if overflow or error.
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
    */
-  void logStateToBuffer(char *buffer, size_t *bufferPos,
-                        size_t bufferSize) const;
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
  private:
   // Allows GnssSession to access mPlatformGnss.

@@ -43,12 +43,11 @@ class DumbAllocatorBase {
  private:
   const size_t mAllocSize;
   const size_t mSlotCount;
-  uint8_t * const mRawMemory;
+  uint8_t *const mRawMemory;
   uint32_t mAllocatedSlots;
 
   bool getSlot(const void *ptr, size_t *slot) const;
 };
-
 
 /**
  * This dumb allocator is designed to allow us to easily get chunks of
@@ -61,7 +60,7 @@ class DumbAllocatorBase {
  * This will allow up to kSlotCount allocations of up to kAllocSize bytes
  * each, and costs (kSlotCount * kAllocSize) bytes of underlying storage.
  */
-template<size_t kAllocSize, size_t kSlotCount>
+template <size_t kAllocSize, size_t kSlotCount>
 class DumbAllocator : DumbAllocatorBase {
  public:
   DumbAllocator()
@@ -100,7 +99,6 @@ class DumbAllocator : DumbAllocatorBase {
 
   static_assert(kSlotCount <= MaxSlotCount(), "kSlotCount is too high");
 };
-
 
 }  // namespace nanoapp_testing
 

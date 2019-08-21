@@ -36,7 +36,7 @@ class SendEventTest : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
  private:
@@ -46,7 +46,7 @@ class SendEventTest : public Test {
   static bool sInMethod;
   static uint8_t sCallbacksInvoked;
 
-  template<uint8_t kCallbackIndex>
+  template <uint8_t kCallbackIndex>
   static void completeCallback(uint16_t eventType, void *data);
 
   static void completeCallback0(uint16_t eventType, void *data);
@@ -54,6 +54,5 @@ class SendEventTest : public Test {
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_SEND_EVENT_TEST_H_

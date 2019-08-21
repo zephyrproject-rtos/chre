@@ -50,10 +50,10 @@
 #endif  // CHREX_SENSOR_SUPPORT
 
 #define LOG_NANOPB_ERROR(stream) \
-    LOGE("Nanopb error: %s:%d", PB_GET_ERROR(stream), __LINE__)
+  LOGE("Nanopb error: %s:%d", PB_GET_ERROR(stream), __LINE__)
 
 #define LOG_UNHANDLED_MSG(message) \
-    LOGW("Unhandled msg ID %" PRIu32 ": line %d", message, __LINE__)
+  LOGW("Unhandled msg ID %" PRIu32 ": line %d", message, __LINE__)
 
 namespace chre {
 namespace {
@@ -143,8 +143,9 @@ bool copyPayload(pb_ostream_t *stream, const pb_field_t *field,
   auto *data = static_cast<const SeeBufArg *>(*arg);
   if (!pb_encode_tag_for_field(stream, field)) {
     LOG_NANOPB_ERROR(stream);
-  } else if (!pb_encode_string(
-      stream, static_cast<const pb_byte_t *>(data->buf), data->bufLen)) {
+  } else if (!pb_encode_string(stream,
+                               static_cast<const pb_byte_t *>(data->buf),
+                               data->bufLen)) {
     LOG_NANOPB_ERROR(stream);
   } else {
     success = true;
@@ -200,20 +201,20 @@ bool encodeSnsStdAttrReq(UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
  *
  * @return true if the pb message and length were obtained.
  */
-bool encodeSnsSuidReq(const char *dataType,
-                      UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
+bool encodeSnsSuidReq(const char *dataType, UniquePtr<pb_byte_t> *msg,
+                      size_t *msgLen) {
   CHRE_ASSERT(msg);
   CHRE_ASSERT(msgLen);
   bool success = false;
 
   // Initialize the pb message
   SeeBufArg data = {
-    .buf = dataType,
-    .bufLen = strlen(dataType),
+      .buf = dataType,
+      .bufLen = strlen(dataType),
   };
   sns_suid_req req = {
-    .data_type.funcs.encode = copyPayload,
-    .data_type.arg = &data,
+      .data_type.funcs.encode = copyPayload,
+      .data_type.arg = &data,
   };
 
   if (!pb_get_encoded_size(msgLen, sns_suid_req_fields, &req)) {
@@ -248,8 +249,8 @@ bool encodeSnsSuidReq(const char *dataType,
  *
  * @return true if the pb message and length were obtained.
  */
-bool encodeSnsResamplerConfig(const SeeSensorRequest& request,
-                              const sns_std_suid& suid,
+bool encodeSnsResamplerConfig(const SeeSensorRequest &request,
+                              const sns_std_suid &suid,
                               UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
   CHRE_ASSERT(msg);
   CHRE_ASSERT(msgLen);
@@ -257,12 +258,12 @@ bool encodeSnsResamplerConfig(const SeeSensorRequest& request,
 
   // Initialize the pb message
   sns_resampler_config req = {
-    .sensor_uid = suid,
-    .resampled_rate = request.samplingRateHz,
-    .rate_type = SNS_RESAMPLER_RATE_FIXED,
-    .filter = true,
-    .has_axis_cnt = true,
-    .axis_cnt = 3,  // TODO: set this properly.
+      .sensor_uid = suid,
+      .resampled_rate = request.samplingRateHz,
+      .rate_type = SNS_RESAMPLER_RATE_FIXED,
+      .filter = true,
+      .has_axis_cnt = true,
+      .axis_cnt = 3,  // TODO: set this properly.
   };
 
   if (!pb_get_encoded_size(msgLen, sns_resampler_config_fields, &req)) {
@@ -296,7 +297,7 @@ bool encodeSnsResamplerConfig(const SeeSensorRequest& request,
  *
  * @return true if the pb message and length were obtained.
  */
-bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
+bool encodeSnsStdSensorConfig(const SeeSensorRequest &request,
                               UniquePtr<pb_byte_t> *msg, size_t *msgLen) {
   CHRE_ASSERT(msg);
   CHRE_ASSERT(msgLen);
@@ -304,7 +305,7 @@ bool encodeSnsStdSensorConfig(const SeeSensorRequest& request,
 
   // Initialize the pb message
   sns_std_sensor_config req = {
-    .sample_rate = request.samplingRateHz,
+      .sample_rate = request.samplingRateHz,
   };
 
   if (!pb_get_encoded_size(msgLen, sns_std_sensor_config_fields, &req)) {
@@ -335,12 +336,12 @@ bool encodeSnsRemoteProcSensorConfig(pb_byte_t *msgBuffer, size_t msgBufferSize,
   CHRE_ASSERT(msgLen);
 
   sns_remote_proc_state_config request = {
-    .proc_type = processorType,
+      .proc_type = processorType,
   };
 
   pb_ostream_t stream = pb_ostream_from_buffer(msgBuffer, msgBufferSize);
-  bool success = pb_encode(
-      &stream, sns_remote_proc_state_config_fields, &request);
+  bool success =
+      pb_encode(&stream, sns_remote_proc_state_config_fields, &request);
   if (!success) {
     LOG_NANOPB_ERROR(&stream);
   } else {
@@ -353,9 +354,9 @@ bool encodeSnsRemoteProcSensorConfig(pb_byte_t *msgBuffer, size_t msgBufferSize,
 /**
  * Prepares a sns_client_req message with provided payload.
  */
-bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId,
-                      void *payload, size_t payloadLen,
-                      bool batchValid, uint32_t batchPeriodUs, bool passive,
+bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId, void *payload,
+                      size_t payloadLen, bool batchValid,
+                      uint32_t batchPeriodUs, bool passive,
                       UniquePtr<sns_client_request_msg> *msg, SeeBufArg *data) {
   CHRE_ASSERT(payload || payloadLen == 0);
   CHRE_ASSERT(msg);
@@ -369,8 +370,7 @@ bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId,
     success = true;
 
     // Initialize sns_client_request_msg to be sent
-    data->buf = payload,
-    data->bufLen = payloadLen,
+    data->buf = payload, data->bufLen = payloadLen,
 
     req->suid = suid;
     req->msg_id = msgId;
@@ -383,8 +383,7 @@ bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId,
     req->request.batching.flush_period = batchPeriodUs + 3000000;
     req->request.payload.funcs.encode = copyPayload;
     req->request.payload.arg = data;
-    req->request.has_is_passive = true,
-    req->request.is_passive = passive,
+    req->request.has_is_passive = true, req->request.is_passive = passive,
 
     *msg = std::move(req);
   }
@@ -428,16 +427,17 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
   auto *info = static_cast<SeeInfoArg *>(*arg);
   if (!suidsMatch(info->suid, kSuidLookup)) {
     LOGE("SNS_SUID_MSGID_SNS_SUID_EVENT with incorrect SUID: 0x%" PRIx64
-         " %" PRIx64, info->suid.suid_high, info->suid.suid_low);
+         " %" PRIx64,
+         info->suid.suid_high, info->suid.suid_low);
   }
 
   SeeBufArg data;
   DynamicVector<sns_std_suid> suids;
   sns_suid_event event = {
-    .data_type.funcs.decode = decodeStringField,
-    .data_type.arg = &data,
-    .suid.funcs.decode = decodeSnsSuidEventSuid,
-    .suid.arg = &suids,
+      .data_type.funcs.decode = decodeStringField,
+      .data_type.arg = &data,
+      .suid.funcs.decode = decodeSnsSuidEventSuid,
+      .suid.arg = &suids,
   };
 
   bool success = pb_decode(stream, sns_suid_event_fields, &event);
@@ -453,16 +453,15 @@ bool decodeSnsSuidEvent(pb_istream_t *stream, const pb_field_t *field,
     // Note that there's no need to compare the SUIDs as no other calls
     // but findSuidSync populate mWaitingDataType and can lead to a data
     // type match.
-    if (info->sync->syncData == nullptr
-        || strncmp(info->sync->syncDataType,
-                   static_cast<const char *>(data.buf),
-                   std::min(data.bufLen, kSeeAttrStrValLen)) != 0) {
+    if (info->sync->syncData == nullptr ||
+        strncmp(info->sync->syncDataType, static_cast<const char *>(data.buf),
+                std::min(data.bufLen, kSeeAttrStrValLen)) != 0) {
       LOGW("Received late SNS_SUID_MSGID_SNS_SUID_EVENT indication");
     } else {
       info->sync->syncIndFound = true;
-      auto *outputSuids = static_cast<DynamicVector<sns_std_suid> *>(
-          info->sync->syncData);
-      for (const auto& suid : suids) {
+      auto *outputSuids =
+          static_cast<DynamicVector<sns_std_suid> *>(info->sync->syncData);
+      for (const auto &suid : suids) {
         outputSuids->push_back(suid);
       }
     }
@@ -698,8 +697,8 @@ bool decodeSnsStdAttrEvent(pb_istream_t *stream, const pb_field_t *field,
       // arrive between a later findAttributesSync req/ind pair.
       // Note that req/ind misalignment can still happen if getAttributesSync is
       // called again with the same SUID.
-      if (info->sync->syncData == nullptr
-          || !suidsMatch(info->suid, info->sync->syncSuid)) {
+      if (info->sync->syncData == nullptr ||
+          !suidsMatch(info->suid, info->sync->syncSuid)) {
         LOGW("Received late SNS_STD_MSGID_SNS_STD_ATTR_EVENT indication");
       } else {
         info->sync->syncIndFound = true;
@@ -749,23 +748,23 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
   SeeDataArg *data = info->data;
   size_t index = data->sampleIndex;
   if (!data->event.isNull() && index < data->totalSamples) {
-    SensorSampleType sampleType = getSensorSampleTypeFromSensorType(
-        data->sensorType);
+    SensorSampleType sampleType =
+        getSensorSampleTypeFromSensorType(data->sensorType);
 
     uint32_t *timestampDelta = nullptr;
     switch (sampleType) {
       case SensorSampleType::ThreeAxis: {
-        auto *event = reinterpret_cast<chreSensorThreeAxisData *>(
-            data->event.get());
-        info->calHelper->applyCalibration(
-            data->sensorType, val, event->readings[index].values);
+        auto *event =
+            reinterpret_cast<chreSensorThreeAxisData *>(data->event.get());
+        info->calHelper->applyCalibration(data->sensorType, val,
+                                          event->readings[index].values);
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
 
       case SensorSampleType::Float: {
-        auto *event = reinterpret_cast<chreSensorFloatData *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chreSensorFloatData *>(data->event.get());
         event->readings[index].value = val[0];
         timestampDelta = &event->readings[index].timestampDelta;
         break;
@@ -780,16 +779,16 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Occurrence: {
-        auto *event = reinterpret_cast<chreSensorOccurrenceData *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chreSensorOccurrenceData *>(data->event.get());
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
 
 #ifdef CHREX_SENSOR_SUPPORT
       case SensorSampleType::Vendor0: {
-        auto *event = reinterpret_cast<chrexSensorVendor0Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor0Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -797,8 +796,8 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor1: {
-        auto *event = reinterpret_cast<chrexSensorVendor1Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor1Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -806,16 +805,16 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor2: {
-        auto *event = reinterpret_cast<chrexSensorVendor2Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor2Data *>(data->event.get());
         event->readings[index].value = *val;
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
 
       case SensorSampleType::Vendor3: {
-        auto *event = reinterpret_cast<chrexSensorVendor3Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor3Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -823,8 +822,8 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor4: {
-        auto *event = reinterpret_cast<chrexSensorVendor4Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor4Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -832,16 +831,16 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor5: {
-        auto *event = reinterpret_cast<chrexSensorVendor5Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor5Data *>(data->event.get());
         event->readings[index].value = *val;
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
 
       case SensorSampleType::Vendor6: {
-        auto *event = reinterpret_cast<chrexSensorVendor6Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor6Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -849,8 +848,8 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor7: {
-        auto *event = reinterpret_cast<chrexSensorVendor7Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor7Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -858,8 +857,8 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
       }
 
       case SensorSampleType::Vendor8: {
-        auto *event = reinterpret_cast<chrexSensorVendor8Data *>(
-            data->event.get());
+        auto *event =
+            reinterpret_cast<chrexSensorVendor8Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
         timestampDelta = &event->readings[index].timestampDelta;
@@ -872,16 +871,17 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
     }
 
     if (data->sampleIndex == 0) {
-      auto *header = reinterpret_cast<chreSensorDataHeader *>(
-          data->event.get());
+      auto *header =
+          reinterpret_cast<chreSensorDataHeader *>(data->event.get());
       header->baseTimestamp = data->timeNs;
       *timestampDelta = 0;
     } else {
       uint64_t delta = data->timeNs - data->prevTimeNs;
       if (delta > UINT32_MAX) {
         LOGE("Sensor %" PRIu8 " timestampDelta overflow: prev %" PRIu64
-             " curr %" PRIu64, static_cast<uint8_t>(data->sensorType),
-             data->prevTimeNs, data->timeNs);
+             " curr %" PRIu64,
+             static_cast<uint8_t>(data->sensorType), data->prevTimeNs,
+             data->timeNs);
         delta = UINT32_MAX;
       }
       *timestampDelta = static_cast<uint32_t>(delta);
@@ -915,16 +915,17 @@ bool decodeFloatData(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
-bool decodeSnsStdSensorPhysicalConfigEvent(
-    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+bool decodeSnsStdSensorPhysicalConfigEvent(pb_istream_t *stream,
+                                           const pb_field_t *field,
+                                           void **arg) {
   SeeBufArg data = {};
   sns_std_sensor_physical_config_event event = {
-    .operation_mode.funcs.decode = decodeStringField,
-    .operation_mode.arg = &data,
+      .operation_mode.funcs.decode = decodeStringField,
+      .operation_mode.arg = &data,
   };
 
-  bool success = pb_decode(stream, sns_std_sensor_physical_config_event_fields,
-                           &event);
+  bool success =
+      pb_decode(stream, sns_std_sensor_physical_config_event_fields, &event);
   if (!success) {
     LOG_NANOPB_ERROR(stream);
   } else {
@@ -963,8 +964,8 @@ bool decodeSnsStdSensorEvent(pb_istream_t *stream, const pb_field_t *field,
                              void **arg) {
   SeeFloatArg sample = {};
   sns_std_sensor_event event = {
-    .data.funcs.decode = decodeFloatData,
-    .data.arg = &sample,
+      .data.funcs.decode = decodeFloatData,
+      .data.arg = &sample,
   };
 
   bool success = pb_decode(stream, sns_std_sensor_event_fields, &event);
@@ -1031,12 +1032,12 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
   SeeFloatArg scale = {};
   SeeFloatArg matrix = {};
   sns_cal_event event = {
-    .bias.funcs.decode = decodeFloatData,
-    .bias.arg = &offset,
-    .scale_factor.funcs.decode = decodeFloatData,
-    .scale_factor.arg = &scale,
-    .comp_matrix.funcs.decode = decodeFloatData,
-    .comp_matrix.arg = &matrix,
+      .bias.funcs.decode = decodeFloatData,
+      .bias.arg = &offset,
+      .scale_factor.funcs.decode = decodeFloatData,
+      .scale_factor.arg = &scale,
+      .comp_matrix.funcs.decode = decodeFloatData,
+      .comp_matrix.arg = &matrix,
   };
 
   bool success = pb_decode(stream, sns_cal_event_fields, &event);
@@ -1051,9 +1052,9 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
     bool hasMatrix = (matrix.index == 9);
     uint8_t accuracy = getChreSensorAccuracyFromSeeSampleStatus(event.status);
 
-    calHelper->updateCalibration(
-        info->suid, hasBias, offset.val, hasScale, scale.val,
-        hasMatrix, matrix.val, accuracy, info->data->timeNs);
+    calHelper->updateCalibration(info->suid, hasBias, offset.val, hasScale,
+                                 scale.val, hasMatrix, matrix.val, accuracy,
+                                 info->data->timeNs);
 
     SensorType sensorType = calHelper->getSensorTypeFromSuid(info->suid);
     auto biasData = MakeUniqueZeroFill<struct chreSensorThreeAxisData>();
@@ -1154,8 +1155,8 @@ bool decodeSnsResamplerProtoEvent(pb_istream_t *stream, const pb_field_t *field,
   return success;
 }
 
-bool decodeSnsRemoteProcStateEvent(
-    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+bool decodeSnsRemoteProcStateEvent(pb_istream_t *stream,
+                                   const pb_field_t *field, void **arg) {
   sns_remote_proc_state_event event = sns_remote_proc_state_event_init_default;
   bool success = pb_decode(stream, sns_remote_proc_state_event_fields, &event);
   if (!success) {
@@ -1163,8 +1164,7 @@ bool decodeSnsRemoteProcStateEvent(
   } else if (event.proc_type == SNS_STD_CLIENT_PROCESSOR_APSS) {
     auto *info = static_cast<SeeInfoArg *>(*arg);
     info->data->isHostWakeSuspendEvent = true;
-    info->data->isHostAwake =
-        (event.event_type == SNS_REMOTE_PROC_STATE_AWAKE);
+    info->data->isHostAwake = (event.event_type == SNS_REMOTE_PROC_STATE_AWAKE);
   }
   return success;
 }
@@ -1172,8 +1172,8 @@ bool decodeSnsRemoteProcStateEvent(
 /**
  * Decode messages defined in sns_remote_proc_state.proto
  */
-bool decodeSnsRemoteProcProtoEvent(
-    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+bool decodeSnsRemoteProcProtoEvent(pb_istream_t *stream,
+                                   const pb_field_t *field, void **arg) {
   bool success = false;
   auto *info = static_cast<SeeInfoArg *>(*arg);
   switch (info->msgId) {
@@ -1192,8 +1192,8 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
 
   payload->arg = const_cast<SeeInfoArg *>(info);
 
-  if (info->remoteProcSuid->has_value()
-      && suidsMatch(info->suid, info->remoteProcSuid->value())) {
+  if (info->remoteProcSuid->has_value() &&
+      suidsMatch(info->suid, info->remoteProcSuid->value())) {
     payload->funcs.decode = decodeSnsRemoteProcProtoEvent;
   } else if (suidsMatch(info->suid, kSuidLookup)) {
     payload->funcs.decode = decodeSnsSuidProtoEvent;
@@ -1239,8 +1239,8 @@ bool decodeMsgIdAndTime(pb_istream_t *stream, uint32_t *msgId,
                         uint64_t *timeNs) {
   sns_client_event_msg_sns_client_event event = {};
 
-  bool success = pb_decode(
-      stream, sns_client_event_msg_sns_client_event_fields, &event);
+  bool success =
+      pb_decode(stream, sns_client_event_msg_sns_client_event_fields, &event);
   if (!success) {
     LOG_NANOPB_ERROR(stream);
   } else {
@@ -1279,9 +1279,8 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
   }
 
   // Increment sample count only after sensor event decoding.
-  if (success
-      && (info->msgId == SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT
-          || info->msgId == SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT)) {
+  if (success && (info->msgId == SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT ||
+                  info->msgId == SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT)) {
     info->data->sampleIndex++;
   }
   return success;
@@ -1291,11 +1290,11 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
  * Obtain the SensorType from the list of registered SensorInfos.
  */
 SensorType getSensorTypeFromSensorInfo(
-    sns_client *client, const sns_std_suid& suid,
-    const DynamicVector<SeeHelper::SensorInfo>& sensorInfos) {
+    sns_client *client, const sns_std_suid &suid,
+    const DynamicVector<SeeHelper::SensorInfo> &sensorInfos) {
   bool suidFound = false;
   SensorType otherType;
-  for (const auto& sensorInfo : sensorInfos) {
+  for (const auto &sensorInfo : sensorInfos) {
     if (suidsMatch(sensorInfo.suid, suid)) {
       suidFound = true;
       if (sensorInfo.client == client) {
@@ -1306,8 +1305,8 @@ SensorType getSensorTypeFromSensorInfo(
   }
 
   if (suidFound) {
-    LOGE("Unmatched client: %p, SUID 0x%016" PRIx64 " %016" PRIx64,
-             client, suid.suid_high, suid.suid_low);
+    LOGE("Unmatched client: %p, SUID 0x%016" PRIx64 " %016" PRIx64, client,
+         suid.suid_high, suid.suid_low);
 
     // Return SensorType in the other sns_client that matches the SUID as a
     // backup plan.
@@ -1324,23 +1323,21 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
   size_t sampleSize = 0;
   switch (sampleType) {
     case SensorSampleType::ThreeAxis:
-      sampleSize = sizeof(
-          chreSensorThreeAxisData::chreSensorThreeAxisSampleData);
+      sampleSize =
+          sizeof(chreSensorThreeAxisData::chreSensorThreeAxisSampleData);
       break;
 
     case SensorSampleType::Float:
-      sampleSize = sizeof(
-          chreSensorFloatData::chreSensorFloatSampleData);
+      sampleSize = sizeof(chreSensorFloatData::chreSensorFloatSampleData);
       break;
 
     case SensorSampleType::Byte:
-      sampleSize = sizeof(
-          chreSensorByteData::chreSensorByteSampleData);
+      sampleSize = sizeof(chreSensorByteData::chreSensorByteSampleData);
       break;
 
     case SensorSampleType::Occurrence:
-      sampleSize = sizeof(
-          chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
+      sampleSize =
+          sizeof(chreSensorOccurrenceData::chreSensorOccurrenceSampleData);
       break;
 
 #ifdef CHREX_SENSOR_SUPPORT
@@ -1386,8 +1383,10 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
            static_cast<uint8_t>(sensorType));
   }
 
-  size_t memorySize = (sampleType == SensorSampleType::Unknown)
-      ? 0 : (sizeof(chreSensorDataHeader) + numSamples * sampleSize);
+  size_t memorySize =
+      (sampleType == SensorSampleType::Unknown)
+          ? 0
+          : (sizeof(chreSensorDataHeader) + numSamples * sampleSize);
   void *event = (memorySize == 0) ? nullptr : memoryAlloc(memorySize);
 
   if (event == nullptr && memorySize != 0) {
@@ -1397,7 +1396,7 @@ void *allocateEvent(SensorType sensorType, size_t numSamples) {
 }
 
 // Allocates the sensor event memory and partially populates the header.
-bool prepareSensorEvent(SeeInfoArg& info) {
+bool prepareSensorEvent(SeeInfoArg &info) {
   bool success = false;
 
   UniquePtr<uint8_t> buf(static_cast<uint8 *>(
@@ -1409,11 +1408,10 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 
     info.data->prevTimeNs = 0;
 
-    auto *header = reinterpret_cast<chreSensorDataHeader *>(
-        info.data->event.get());
+    auto *header =
+        reinterpret_cast<chreSensorDataHeader *>(info.data->event.get());
     header->reserved = 0;
-    header->sensorHandle = getSensorHandleFromSensorType(
-        info.data->sensorType);
+    header->sensorHandle = getSensorHandleFromSensorType(info.data->sensorType);
     header->readingCount = info.data->sampleIndex;
     header->accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
 
@@ -1430,16 +1428,16 @@ bool prepareSensorEvent(SeeInfoArg& info) {
 }  // anonymous namespace
 
 const SeeHelper::SnsClientApi SeeHelper::kDefaultApi = {
-  .sns_client_init   = sns_client_init,
-  .sns_client_deinit = sns_client_deinit,
-  .sns_client_send   = sns_client_send,
+    .sns_client_init = sns_client_init,
+    .sns_client_deinit = sns_client_deinit,
+    .sns_client_send = sns_client_send,
 };
 
 #ifdef CHRE_SLPI_UIMG_ENABLED
 const SeeHelper::SnsClientApi BigImageSeeHelper::kQmiApi = {
-  .sns_client_init   = sns_qmi_client_init,
-  .sns_client_deinit = sns_qmi_client_deinit,
-  .sns_client_send   = sns_qmi_client_send,
+    .sns_client_init = sns_qmi_client_init,
+    .sns_client_deinit = sns_qmi_client_deinit,
+    .sns_client_send = sns_qmi_client_send,
 };
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
@@ -1468,8 +1466,8 @@ SeeHelper::~SeeHelper() {
   }
 }
 
-void SeeHelper::handleSnsClientEventMsg(
-    sns_client *client, const void *payload, size_t payloadLen) {
+void SeeHelper::handleSnsClientEventMsg(sns_client *client, const void *payload,
+                                        size_t payloadLen) {
   CHRE_ASSERT(payload);
 
   pb_istream_t stream = pb_istream_from_buffer(
@@ -1542,8 +1540,8 @@ void SeeHelper::handleSnsClientEventMsg(
           mCbIf->onHostWakeSuspendEvent(data->info.data->isHostAwake);
         }
         if (!data->info.data->event.isNull()) {
-          mCbIf->onSensorDataEvent(
-              data->info.data->sensorType, std::move(data->info.data->event));
+          mCbIf->onSensorDataEvent(data->info.data->sensorType,
+                                   std::move(data->info.data->event));
         }
         if (!data->info.data->bias.isNull()) {
           mCbIf->onSensorBiasEvent(std::move(data->info.data->bias));
@@ -1600,8 +1598,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
         }
 
         // Ignore failures from sendReq, we'll retry anyways (up to maxRetries)
-        sendReq(sns_suid_sensor_init_default,
-                suids, dataType,
+        sendReq(sns_suid_sensor_init_default, suids, dataType,
                 SNS_SUID_MSGID_SNS_SUID_REQ, msg.get(), msgLen,
                 false /* batchValid */, 0 /* batchPeriodUs */,
                 false /* passive */, true /* waitForIndication */);
@@ -1622,7 +1619,7 @@ bool SeeHelper::findSuidSync(const char *dataType,
   return success;
 }
 
-bool SeeHelper::getAttributesSync(const sns_std_suid& suid,
+bool SeeHelper::getAttributesSync(const sns_std_suid &suid,
                                   SeeAttributes *attr) {
   CHRE_ASSERT(attr);
   bool success = false;
@@ -1652,15 +1649,14 @@ bool SeeHelper::init(SeeHelperCallbackInterface *cbIf, Microseconds timeout,
   sns_client *client;
 
   // Initialize cal/remote_proc_state sensors before making sensor data request.
-  return (waitForService(&client, timeout)
-          && mSeeClients.push_back(client)
-          && initResamplerSensor()
-          && (skipDefaultSensorInit
-              || (mCalHelper->registerForCalibrationUpdates(*this)
-                  && initRemoteProcSensor())));
+  return (waitForService(&client, timeout) && mSeeClients.push_back(client) &&
+          initResamplerSensor() &&
+          (skipDefaultSensorInit ||
+           (mCalHelper->registerForCalibrationUpdates(*this) &&
+            initRemoteProcSensor())));
 }
 
-bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
+bool SeeHelper::makeRequest(const SeeSensorRequest &request) {
   bool success = false;
 
   const SensorInfo *sensorInfo = getSensorInfo(request.sensorType);
@@ -1691,11 +1687,11 @@ bool SeeHelper::makeRequest(const SeeSensorRequest& request) {
     }
 
     if (encodeSuccess) {
-      success = sendReq(sensorInfo->client, sensorInfo->suid,
-                        nullptr /* syncData */, nullptr /* syncDataType */,
-                        msgId, msg.get(), msgLen,
-                        true /* batchValid */, request.batchPeriodUs,
-                        request.passive, false /* waitForIndication */);
+      success =
+          sendReq(sensorInfo->client, sensorInfo->suid, nullptr /* syncData */,
+                  nullptr /* syncDataType */, msgId, msg.get(), msgLen,
+                  true /* batchValid */, request.batchPeriodUs, request.passive,
+                  false /* waitForIndication */);
     }
   }
   return success;
@@ -1710,31 +1706,29 @@ bool SeeHelper::flush(SensorType sensorType) {
          static_cast<uint8_t>(sensorType));
   } else {
     uint32_t msgId = SNS_STD_MSGID_SNS_STD_FLUSH_REQ;
-    success = sendReq(sensorInfo->client, sensorInfo->suid,
-                      nullptr /* syncData */, nullptr /* syncDataType */,
-                      msgId, nullptr /* msg */, 0 /* msgLen */,
-                      false /* batchValid */, 0 /* batchPeriodUs */,
-                      false /* passive */, false /* waitForIndication */);
+    success =
+        sendReq(sensorInfo->client, sensorInfo->suid, nullptr /* syncData */,
+                nullptr /* syncDataType */, msgId, nullptr /* msg */,
+                0 /* msgLen */, false /* batchValid */, 0 /* batchPeriodUs */,
+                false /* passive */, false /* waitForIndication */);
   }
   return success;
 }
 
-bool SeeHelper::configureOnChangeSensor(const sns_std_suid& suid, bool enable) {
-  uint32_t msgId = (enable)
-      ? SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG
-      : SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
-  return sendReq(
-      suid, nullptr /* syncData */, nullptr /* syncDataType */,
-      msgId, nullptr /* msg */, 0 /* msgLen */,
-      false /* batchValid */, 0 /* batchPeriodUs */,
-      false /* passive */, false /* waitForIndication */);
+bool SeeHelper::configureOnChangeSensor(const sns_std_suid &suid, bool enable) {
+  uint32_t msgId = (enable) ? SNS_STD_SENSOR_MSGID_SNS_STD_ON_CHANGE_CONFIG
+                            : SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
+  return sendReq(suid, nullptr /* syncData */, nullptr /* syncDataType */,
+                 msgId, nullptr /* msg */, 0 /* msgLen */,
+                 false /* batchValid */, 0 /* batchPeriodUs */,
+                 false /* passive */, false /* waitForIndication */);
 }
 
 /**
  * Sends a request to SEE and waits for the response.
  */
-bool SeeHelper::sendSeeReqSync(
-    sns_client *client, sns_client_request_msg *req, Nanoseconds timeoutResp) {
+bool SeeHelper::sendSeeReqSync(sns_client *client, sns_client_request_msg *req,
+                               Nanoseconds timeoutResp) {
   CHRE_ASSERT(client);
   CHRE_ASSERT(req);
   bool success = false;
@@ -1752,8 +1746,8 @@ bool SeeHelper::sendSeeReqSync(
       cbData->txnId = ++mCurrentTxnId;
     }
 
-    int status = mSnsClientApi->sns_client_send(
-        client, req, SeeHelper::seeRespCb, cbData);
+    int status = mSnsClientApi->sns_client_send(client, req,
+                                                SeeHelper::seeRespCb, cbData);
     if (status != 0) {
       LOGE("Error sending SEE request %d", status);
       memoryFree(cbData);
@@ -1780,8 +1774,8 @@ bool SeeHelper::sendSeeReqSync(
         } else {
           mNumMissingResp = 0;
           if (mRespError != SNS_STD_ERROR_NO_ERROR) {
-            LOGE("SEE txn ID %" PRIu32 " failed with error %d",
-                 mCurrentTxnId, mRespError);
+            LOGE("SEE txn ID %" PRIu32 " failed with error %d", mCurrentTxnId,
+                 mRespError);
           } else {
             success = true;
           }
@@ -1793,12 +1787,12 @@ bool SeeHelper::sendSeeReqSync(
   return success;
 }
 
-bool SeeHelper::sendReq(
-    sns_client *client, const sns_std_suid& suid,
-    void *syncData, const char *syncDataType,
-    uint32_t msgId, void *payload, size_t payloadLen,
-    bool batchValid, uint32_t batchPeriodUs, bool passive,
-    bool waitForIndication, Nanoseconds timeoutResp, Nanoseconds timeoutInd) {
+bool SeeHelper::sendReq(sns_client *client, const sns_std_suid &suid,
+                        void *syncData, const char *syncDataType,
+                        uint32_t msgId, void *payload, size_t payloadLen,
+                        bool batchValid, uint32_t batchPeriodUs, bool passive,
+                        bool waitForIndication, Nanoseconds timeoutResp,
+                        Nanoseconds timeoutInd) {
   UniquePtr<sns_client_request_msg> msg;
   SeeBufArg data;
   bool success = false;
@@ -1818,7 +1812,7 @@ bool SeeHelper::sendReq(
   return success;
 }
 
-void SeeHelper::prepareWaitForInd(const sns_std_suid& suid, void *syncData,
+void SeeHelper::prepareWaitForInd(const sns_std_suid &suid, void *syncData,
                                   const char *syncDataType) {
   LockGuard<Mutex> lock(mMutex);
   CHRE_ASSERT(!mWaitingOnInd);
@@ -1858,22 +1852,21 @@ bool SeeHelper::waitForInd(bool reqSent, Nanoseconds timeoutInd) {
   return success;
 }
 
-void SeeHelper::seeIndCb(
-    sns_client *client, void *msg, uint32_t msgLen, void *cbData) {
+void SeeHelper::seeIndCb(sns_client *client, void *msg, uint32_t msgLen,
+                         void *cbData) {
   auto *obj = static_cast<SeeHelper *>(cbData);
   obj->handleSnsClientEventMsg(client, msg, msgLen);
 }
 
 void SeeHelper::seeRespCb(sns_client *client, sns_std_error error,
-                              void *cbData) {
+                          void *cbData) {
   auto *respCbData = static_cast<SeeRespCbData *>(cbData);
   respCbData->seeHelper->handleSeeResp(respCbData->txnId, error);
   memoryFree(cbData);
 }
 
-bool SeeHelper::registerSensor(
-    SensorType sensorType, const sns_std_suid& suid, bool resample,
-    bool *prevRegistered) {
+bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid &suid,
+                               bool resample, bool *prevRegistered) {
   CHRE_ASSERT(sensorType != SensorType::Unknown);
   CHRE_ASSERT(prevRegistered != nullptr);
   bool success = false;
@@ -1883,13 +1876,13 @@ bool SeeHelper::registerSensor(
     LOGE("Unable to use resampler without its SUID");
   } else {
     // The SUID to make request to.
-    const sns_std_suid& reqSuid = doResample ? mResamplerSuid.value() : suid;
+    const sns_std_suid &reqSuid = doResample ? mResamplerSuid.value() : suid;
 
     // Check whether the SUID/SensorType pair has been previously registered.
     // Also count how many other SensorTypes the SUID has been registered with.
     *prevRegistered = false;
     size_t suidRegCount = 0;
-    for (const auto& sensorInfo : mSensorInfos) {
+    for (const auto &sensorInfo : mSensorInfos) {
       if (suidsMatch(reqSuid, sensorInfo.suid)) {
         suidRegCount++;
         if (sensorInfo.sensorType == sensorType) {
@@ -1913,10 +1906,10 @@ bool SeeHelper::registerSensor(
     // Add a new entry only if this SUID/SensorType pair hasn't been registered.
     if (!*prevRegistered && clientAvailable) {
       SensorInfo sensorInfo = {
-        .suid = reqSuid,
-        .sensorType = sensorType,
-        .client = mSeeClients[suidRegCount],
-        .physicalSuid = suid,
+          .suid = reqSuid,
+          .sensorType = sensorType,
+          .client = mSeeClients[suidRegCount],
+          .physicalSuid = suid,
       };
       success = mSensorInfos.push_back(sensorInfo);
     }
@@ -1928,15 +1921,14 @@ bool SeeHelper::sensorIsRegistered(SensorType sensorType) const {
   return (getSensorInfo(sensorType) != nullptr);
 }
 
-bool SeeHelper::waitForService(sns_client **client,
-                               Microseconds timeout) {
+bool SeeHelper::waitForService(sns_client **client, Microseconds timeout) {
   CHRE_ASSERT(client);
 
   // TODO: add error_cb and error_cb_data.
   int status = mSnsClientApi->sns_client_init(
-      client, timeout.getMilliseconds(),
-      SeeHelper::seeIndCb, this /* ind_cb_data */,
-      nullptr /* error_cb */, nullptr /* error_cb_data */);
+      client, timeout.getMilliseconds(), SeeHelper::seeIndCb,
+      this /* ind_cb_data */, nullptr /* error_cb */,
+      nullptr /* error_cb_data */);
 
   bool success = (status == 0);
   if (!success) {
@@ -1961,9 +1953,8 @@ bool SeeHelper::initRemoteProcSensor() {
     size_t msgLen;
     if (encodeSnsRemoteProcSensorConfig(msgBuffer, kBufferSize, &msgLen,
                                         SNS_STD_CLIENT_PROCESSOR_APSS)) {
-      success = sendReq(mRemoteProcSuid.value(),
-                        nullptr /* syncData */, nullptr /* syncDataType */,
-                        msgId, msgBuffer, msgLen,
+      success = sendReq(mRemoteProcSuid.value(), nullptr /* syncData */,
+                        nullptr /* syncDataType */, msgId, msgBuffer, msgLen,
                         false /* batchValid */, 0 /* batchPeriodUs */,
                         false /* passive */, false /* waitForIndication */);
       if (!success) {
@@ -1991,7 +1982,7 @@ bool SeeHelper::initResamplerSensor() {
 
 const SeeHelper::SensorInfo *SeeHelper::getSensorInfo(
     SensorType sensorType) const {
-  for (const auto& sensorInfo : mSensorInfos) {
+  for (const auto &sensorInfo : mSensorInfos) {
     if (sensorInfo.sensorType == sensorType) {
       return &sensorInfo;
     }

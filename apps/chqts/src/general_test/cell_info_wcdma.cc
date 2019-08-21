@@ -22,14 +22,13 @@ bool CellInfoWcdma::validateIdentity(
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid WCDMA Mobile Country Code: %d", identity.mcc);
+    sendFatalFailureInt32("Invalid WCDMA Mobile Country Code: %d",
+                          identity.mcc);
   } else if (!isBoundedInt32(identity.mnc, 0, 999, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid WCDMA Mobile Network Code: %d", identity.mnc);
+    sendFatalFailureInt32("Invalid WCDMA Mobile Network Code: %d",
+                          identity.mnc);
   } else if (!isBoundedInt32(identity.lac, 0, 65535, INT32_MAX)) {
-    sendFatalFailureInt32(
-        "Invalid WCDMA Location Area Code: %d", identity.lac);
+    sendFatalFailureInt32("Invalid WCDMA Location Area Code: %d", identity.lac);
   } else if (!isBoundedInt32(identity.cid, 0, 268435455, INT32_MAX)) {
     sendFatalFailureInt32("Invalid WCDMA Cell Identity: %d", identity.cid);
   } else if (!isBoundedInt32(identity.psc, 0, 511, INT32_MAX)) {
@@ -62,9 +61,9 @@ bool CellInfoWcdma::validateSignalStrength(
   return valid;
 }
 
-bool CellInfoWcdma::validate(const struct chreWwanCellInfoWcdma& cell) {
-  return (validateIdentity(cell.cellIdentityWcdma)
-          && validateSignalStrength(cell.signalStrengthWcdma));
+bool CellInfoWcdma::validate(const struct chreWwanCellInfoWcdma &cell) {
+  return (validateIdentity(cell.cellIdentityWcdma) &&
+          validateSignalStrength(cell.signalStrengthWcdma));
 }
 
-} // namespace general_test
+}  // namespace general_test

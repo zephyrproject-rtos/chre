@@ -29,9 +29,8 @@
 #include <gtest/gtest.h>
 #include <shared/array_length.h>
 
-
-static constexpr uint8_t kLittleEndianRepresentation[4] = {
-  0x01, 0x02, 0x03, 0x04 };
+static constexpr uint8_t kLittleEndianRepresentation[4] = {0x01, 0x02, 0x03,
+                                                           0x04};
 
 TEST(EndianTest, LittleEndianToLittleEndianHost) {
   uint32_t value;

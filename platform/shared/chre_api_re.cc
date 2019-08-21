@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include "chre_api/chre/re.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/macros.h"
+#include "chre_api/chre/re.h"
 
 using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
@@ -46,24 +46,29 @@ DLL_EXPORT uint32_t chreGetInstanceId(void) {
 DLL_EXPORT uint32_t chreTimerSet(uint64_t duration, const void *cookie,
                                  bool oneShot) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return EventLoopManagerSingleton::get()->getEventLoop().getTimerPool()
+  return EventLoopManagerSingleton::get()
+      ->getEventLoop()
+      .getTimerPool()
       .setNanoappTimer(nanoapp, chre::Nanoseconds(duration), cookie, oneShot);
 }
 
 DLL_EXPORT bool chreTimerCancel(uint32_t timerId) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return EventLoopManagerSingleton::get()->getEventLoop().getTimerPool()
+  return EventLoopManagerSingleton::get()
+      ->getEventLoop()
+      .getTimerPool()
       .cancelNanoappTimer(nanoapp, timerId);
 }
 
 DLL_EXPORT void *chreHeapAlloc(uint32_t bytes) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return chre::EventLoopManagerSingleton::get()->getMemoryManager().
-      nanoappAlloc(nanoapp, bytes);
+  return chre::EventLoopManagerSingleton::get()
+      ->getMemoryManager()
+      .nanoappAlloc(nanoapp, bytes);
 }
 
 DLL_EXPORT void chreHeapFree(void *ptr) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  chre::EventLoopManagerSingleton::get()->getMemoryManager().
-      nanoappFree(nanoapp, ptr);
+  chre::EventLoopManagerSingleton::get()->getMemoryManager().nanoappFree(
+      nanoapp, ptr);
 }

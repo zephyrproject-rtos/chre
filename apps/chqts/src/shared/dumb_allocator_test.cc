@@ -63,7 +63,7 @@ TEST(DumbAllocatorTests, AllocsAfterFree) {
 
 TEST(DumbAllocatorTests, ContainsIsFalseForBadPtrs) {
   DA da;
-  uint8_t *ptr = static_cast<uint8_t*>(da.alloc(kAllocSize));
+  uint8_t *ptr = static_cast<uint8_t *>(da.alloc(kAllocSize));
   ASSERT_NE(nullptr, ptr);
   EXPECT_FALSE(da.contains(ptr - 1));
   EXPECT_FALSE(da.contains(ptr + 1));

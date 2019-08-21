@@ -24,7 +24,7 @@ namespace general_test {
 
 class CellInfoTdscdma : private CellInfoBase {
  public:
-  static bool validate(const struct chreWwanCellInfoTdscdma& cell);
+  static bool validate(const struct chreWwanCellInfoTdscdma &cell);
 
  private:
   static bool validateIdentity(
@@ -33,6 +33,6 @@ class CellInfoTdscdma : private CellInfoBase {
       const struct chreWwanSignalStrengthTdscdma strength);
 };
 
-} // namespace general_test
+}  // namespace general_test
 
-#endif // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_TDSCDMA_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_TDSCDMA_H_

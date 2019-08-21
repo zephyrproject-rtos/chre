@@ -38,7 +38,7 @@ class BasicSensorTestBase : public Test {
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
-                   const void* eventData) override;
+                   const void *eventData) override;
   void setUp(uint32_t messageSize, const void *message) override;
 
   /**
@@ -84,7 +84,7 @@ class BasicSensorTestBase : public Test {
    *     will trigger a fatal error report).  This function returning
    *     is evidence the data is sane.
    */
-  virtual void confirmDataIsSane(const void* eventData) = 0;
+  virtual void confirmDataIsSane(const void *eventData) = 0;
 
  private:
   enum State {
@@ -114,16 +114,14 @@ class BasicSensorTestBase : public Test {
   void finishTest();
   void checkPassiveConfigure();
   void handleBiasEvent(uint16_t eventType,
-                       const chreSensorThreeAxisData* eventData);
+                       const chreSensorThreeAxisData *eventData);
   void handleSamplingChangeEvent(
-      const chreSensorSamplingStatusEvent* eventData);
-  void handleSensorDataEvent(const void* eventData);
-  void sanityCheckHeader(const chreSensorDataHeader* header,
-                         bool modifyTimestamps,
-                         uint64_t eventDuration);
+      const chreSensorSamplingStatusEvent *eventData);
+  void handleSensorDataEvent(const void *eventData);
+  void sanityCheckHeader(const chreSensorDataHeader *header,
+                         bool modifyTimestamps, uint64_t eventDuration);
 };
 
 }  // namespace general_test
-
 
 #endif  // _GTS_NANOAPPS_GENERAL_TEST_BASIC_SENSOR_TEST_BASE_H_

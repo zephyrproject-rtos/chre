@@ -31,8 +31,7 @@ typedef HostMessage MessageToHost;
  * Abstracts the platform-specific communications link between CHRE and the host
  * processor
  */
-class HostLink : public HostLinkBase,
-                 public NonCopyable {
+class HostLink : public HostLinkBase, public NonCopyable {
  public:
   /**
    * Flush (or purge) any messages sent by the given app ID that are currently

@@ -27,17 +27,16 @@ namespace general_test {
 EstimatedHostTimeTest::EstimatedHostTimeTest()
     : Test(CHRE_API_VERSION_1_1),
       mTimerHandle(CHRE_TIMER_INVALID),
-      mRemainingIterations(25) {
-}
+      mRemainingIterations(25) {}
 
 void EstimatedHostTimeTest::setUp(uint32_t /* messageSize */,
                                   const void * /* message */) {
   mPriorHostTime = chreGetEstimatedHostTime();
 
-  constexpr uint64_t timerInterval = 100000000; // 100 ms
+  constexpr uint64_t timerInterval = 100000000;  // 100 ms
 
-  mTimerHandle = chreTimerSet(timerInterval, &mTimerHandle,
-                              false /* oneShot */);
+  mTimerHandle =
+      chreTimerSet(timerInterval, &mTimerHandle, false /* oneShot */);
 
   if (mTimerHandle == CHRE_TIMER_INVALID) {
     nanoapp_testing::sendFatalFailureToHost(
@@ -55,14 +54,12 @@ void EstimatedHostTimeTest::handleEvent(uint32_t senderInstanceId,
     uint64_t currentHostTime = chreGetEstimatedHostTime();
 
     // TODO: Estimate message RTT to allow stricter accuracy check
-    constexpr uint64_t timeDelta = 50000000; // 50 ms
+    constexpr uint64_t timeDelta = 50000000;  // 50 ms
 
     uint64_t givenHostTime;
-    const void *message =
-        getMessageDataFromHostEvent(senderInstanceId, eventType,
-                                    eventData,
-                                    nanoapp_testing::MessageType::kContinue,
-                                    sizeof(givenHostTime));
+    const void *message = getMessageDataFromHostEvent(
+        senderInstanceId, eventType, eventData,
+        nanoapp_testing::MessageType::kContinue, sizeof(givenHostTime));
 
     nanoapp_testing::memcpy(&givenHostTime, message, sizeof(givenHostTime));
     givenHostTime = nanoapp_testing::littleEndianToHost(givenHostTime);
@@ -97,9 +94,8 @@ void EstimatedHostTimeTest::verifyIncreasingTime() {
 
     --mRemainingIterations;
   } else {
-    nanoapp_testing::sendFatalFailureToHost(
-        "Unable to verify increasing time");
+    nanoapp_testing::sendFatalFailureToHost("Unable to verify increasing time");
   }
 }
 
-} // namespace general_test
+}  // namespace general_test

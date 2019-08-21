@@ -32,16 +32,16 @@
  * @param level log level to pass to ALOG (LOG_ERROR, LOG_WARN, etc.)
  * @param format printf-style format string
  */
-#define CHRE_LOG(level, format, ...)                 \
-    do {                                             \
-        ALOG(level, LOG_TAG, format, ##__VA_ARGS__); \
-        printf("%s:%d : " format "\n", __func__, __LINE__, ##__VA_ARGS__); \
-    } while (0)
+#define CHRE_LOG(level, format, ...)                                   \
+  do {                                                                 \
+    ALOG(level, LOG_TAG, format, ##__VA_ARGS__);                       \
+    printf("%s:%d : " format "\n", __func__, __LINE__, ##__VA_ARGS__); \
+  } while (0)
 
-#define LOGE(format, ...) CHRE_LOG(LOG_ERROR,   format, ##__VA_ARGS__)
-#define LOGW(format, ...) CHRE_LOG(LOG_WARN,    format, ##__VA_ARGS__)
-#define LOGI(format, ...) CHRE_LOG(LOG_INFO,    format, ##__VA_ARGS__)
-#define LOGD(format, ...) CHRE_LOG(LOG_DEBUG,   format, ##__VA_ARGS__)
+#define LOGE(format, ...) CHRE_LOG(LOG_ERROR, format, ##__VA_ARGS__)
+#define LOGW(format, ...) CHRE_LOG(LOG_WARN, format, ##__VA_ARGS__)
+#define LOGI(format, ...) CHRE_LOG(LOG_INFO, format, ##__VA_ARGS__)
+#define LOGD(format, ...) CHRE_LOG(LOG_DEBUG, format, ##__VA_ARGS__)
 
 #if LOG_NDEBUG
 #define LOGV(format, ...) chreLogNull(format, ##__VA_ARGS__)
@@ -56,11 +56,11 @@
  * @param message Error message string to log
  * @param error_code Standard error code number (EINVAL, etc)
  */
-#define LOG_ERROR(message, error_code)                              \
-    do {                                                            \
-        char error_string[64];                                      \
-        strerror_r(error_code, error_string, sizeof(error_string)); \
-        LOGE("%s: %s (%d)\n", message, error_string, error_code);   \
-    } while (0)
+#define LOG_ERROR(message, error_code)                          \
+  do {                                                          \
+    char error_string[64];                                      \
+    strerror_r(error_code, error_string, sizeof(error_string)); \
+    LOGE("%s: %s (%d)\n", message, error_string, error_code);   \
+  } while (0)
 
 #endif  // CHRE_HOST_LOG_H_

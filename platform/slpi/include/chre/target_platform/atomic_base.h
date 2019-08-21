@@ -30,6 +30,7 @@ class AtomicBase {
   static_assert(sizeof(unsigned int) == sizeof(uint32_t),
                 "Unsigned int must be the same size as uint32_t or"
                 " atomic operations may fail.");
+
  protected:
   //! The underlying atomic value.
   unsigned int mValue;

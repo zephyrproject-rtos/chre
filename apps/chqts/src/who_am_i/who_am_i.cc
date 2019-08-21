@@ -36,11 +36,10 @@ namespace {
 //! A buffer to store the host endpoint ID of a messaging client.
 uint8_t messageBuffer[2];
 
-} // anonymous namespace
+}  // anonymous namespace
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType,
-                                   const void* eventData) {
+                                   uint16_t eventType, const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
 
@@ -50,10 +49,10 @@ extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
 
     messageBuffer[0] = (msg->hostEndpoint & 0xff00) >> 8;
     messageBuffer[1] = (msg->hostEndpoint & 0xff);
-    if (!chreSendMessageToHostEndpoint(
-            static_cast<void*>(messageBuffer), sizeof(messageBuffer),
-            msg->messageType, msg->hostEndpoint,
-            nullptr /* messageFreeCallback */)) {
+    if (!chreSendMessageToHostEndpoint(static_cast<void *>(messageBuffer),
+                                       sizeof(messageBuffer), msg->messageType,
+                                       msg->hostEndpoint,
+                                       nullptr /* messageFreeCallback */)) {
       sendFatalFailureToHost("Failed to send message to host");
     }
   }
@@ -63,7 +62,6 @@ extern "C" bool nanoappStart(void) {
   return true;
 }
 
-extern "C" void nanoappEnd(void) {
-}
+extern "C" void nanoappEnd(void) {}
 
 }  // namespace chre

@@ -310,26 +310,25 @@ SensorMode getSensorModeFromEnum(enum chreSensorConfigureMode enumSensorMode) {
 }
 
 bool sensorTypeIsOneShot(SensorType sensorType) {
-  return (sensorType == SensorType::InstantMotion
-          || sensorType == SensorType::StationaryDetect
+  return (sensorType == SensorType::InstantMotion ||
+          sensorType == SensorType::StationaryDetect
 #ifdef CHREX_SENSOR_SUPPORT
           || extension::vendorSensorTypeIsOneShot(sensorType)
 #endif
-         );
+  );
 }
 
 bool sensorTypeIsOnChange(SensorType sensorType) {
-  return (sensorType == SensorType::Light
-          || sensorType == SensorType::Proximity
+  return (sensorType == SensorType::Light || sensorType == SensorType::Proximity
 #ifdef CHREX_SENSOR_SUPPORT
           || extension::vendorSensorTypeIsOnChange(sensorType)
 #endif
-         );
+  );
 }
 
 bool sensorTypeIsContinuous(SensorType sensorType) {
-  return (!sensorTypeIsOneShot(sensorType)
-          && !sensorTypeIsOnChange(sensorType));
+  return (!sensorTypeIsOneShot(sensorType) &&
+          !sensorTypeIsOnChange(sensorType));
 }
 
 bool sensorTypeReportsBias(SensorType sensorType) {
@@ -375,9 +374,9 @@ bool getSensorBiasEventType(SensorType sensorType, uint16_t *eventType) {
 }
 
 bool sensorTypeIsCalibrated(SensorType sensorType) {
-  return (sensorType == SensorType::Accelerometer
-          || sensorType == SensorType::Gyroscope
-          || sensorType == SensorType::GeomagneticField);
+  return (sensorType == SensorType::Accelerometer ||
+          sensorType == SensorType::Gyroscope ||
+          sensorType == SensorType::GeomagneticField);
 }
 
 SensorType toCalibratedSensorType(SensorType sensorType) {

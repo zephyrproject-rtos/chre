@@ -29,32 +29,30 @@ struct AppInfo {
 } __attribute__((packed));
 
 NanoappInfo::NanoappInfo()
-  : mAppId(chreGetAppId()), mInstanceId(chreGetInstanceId()) {
-    if (mInstanceId == CHRE_INSTANCE_ID) {
-      nanoapp_testing::sendFatalFailureToHost(
-          "Given CHRE_INSTANCE_ID for my instance ID");
-    }
+    : mAppId(chreGetAppId()), mInstanceId(chreGetInstanceId()) {
+  if (mInstanceId == CHRE_INSTANCE_ID) {
+    nanoapp_testing::sendFatalFailureToHost(
+        "Given CHRE_INSTANCE_ID for my instance ID");
+  }
 }
 
 void NanoappInfo::sendToHost() {
   AppInfo info = {
-    .appId = nanoapp_testing::hostToLittleEndian(mAppId),
-    .instanceId = nanoapp_testing::hostToLittleEndian(mInstanceId),
+      .appId = nanoapp_testing::hostToLittleEndian(mAppId),
+      .instanceId = nanoapp_testing::hostToLittleEndian(mInstanceId),
   };
 
-  sendMessageToHost(nanoapp_testing::MessageType::kContinue,
-                    &info, sizeof(info));
+  sendMessageToHost(nanoapp_testing::MessageType::kContinue, &info,
+                    sizeof(info));
 }
 
 bool NanoappInfo::validate(uint64_t appId, uint32_t instanceId) {
   bool result = true;
   if (appId != mAppId) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "app IDs do not match");
+    nanoapp_testing::sendFatalFailureToHost("app IDs do not match");
     result = false;
   } else if (instanceId != mInstanceId) {
-    nanoapp_testing::sendFatalFailureToHost(
-        "instance IDs do not match");
+    nanoapp_testing::sendFatalFailureToHost("instance IDs do not match");
     result = false;
   }
 
@@ -83,4 +81,4 @@ bool NanoappInfo::queryByInstanceId(struct chreNanoappInfo *info) {
   return result;
 }
 
-} // namespace general_test
+}  // namespace general_test

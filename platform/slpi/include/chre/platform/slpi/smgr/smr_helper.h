@@ -23,7 +23,6 @@ extern "C" {
 
 #include "qurt.h"
 #include "sns_usmr.h"
-
 }
 
 #include "chre/platform/condition_variable.h"
@@ -42,7 +41,7 @@ constexpr Nanoseconds kDefaultSmrTimeout = Seconds(2);
 //! external dependencies blocking SMGR initialization.
 constexpr Nanoseconds kDefaultSmrWaitTimeout = Seconds(5);
 
-template<typename RespStruct>
+template <typename RespStruct>
 using SmrReqCallback = void (*)(UniquePtr<RespStruct> resp, void *callbackData,
                                 smr_err transpErr);
 
@@ -79,11 +78,11 @@ class SmrHelper : public NonCopyable {
    *
    * @return Result code returned by smr_client_send_req()
    */
-  template<typename ReqStruct, typename RespStruct>
-  smr_err sendReqAsync(
-      smr_client_hndl clientHandle, unsigned int msgId,
-      UniquePtr<ReqStruct> *req, UniquePtr<RespStruct> *resp,
-      SmrReqCallback<RespStruct> callback, void *callbackData) {
+  template <typename ReqStruct, typename RespStruct>
+  smr_err sendReqAsync(smr_client_hndl clientHandle, unsigned int msgId,
+                       UniquePtr<ReqStruct> *req, UniquePtr<RespStruct> *resp,
+                       SmrReqCallback<RespStruct> callback,
+                       void *callbackData) {
     // Try to catch copy/paste errors at compile time - QMI always has a
     // different struct definition for request and response
     static_assert(!std::is_same<ReqStruct, RespStruct>::value,
@@ -131,20 +130,19 @@ class SmrHelper : public NonCopyable {
    * @return Result code returned by smr_client_send_req(), or SMR_TIMEOUT_ERR
    *         if the supplied timeout was reached
    */
-  template<typename ReqStruct, typename RespStruct>
-  smr_err sendReqSync(
-      smr_client_hndl clientHandle, unsigned int msgId,
-      UniquePtr<ReqStruct> *req, UniquePtr<RespStruct> *resp,
-      Nanoseconds timeout = kDefaultSmrTimeout) {
+  template <typename ReqStruct, typename RespStruct>
+  smr_err sendReqSync(smr_client_hndl clientHandle, unsigned int msgId,
+                      UniquePtr<ReqStruct> *req, UniquePtr<RespStruct> *resp,
+                      Nanoseconds timeout = kDefaultSmrTimeout) {
     // Try to catch copy/paste errors at compile time - QMI always has a
     // different struct definition for request and response
     static_assert(!std::is_same<ReqStruct, RespStruct>::value,
                   "Request and response structures must be different");
 
     smr_err result;
-    bool timedOut = !sendReqSyncUntyped(
-        clientHandle, msgId, req->get(), sizeof(ReqStruct),
-        resp->get(), sizeof(RespStruct), timeout, &result);
+    bool timedOut =
+        !sendReqSyncUntyped(clientHandle, msgId, req->get(), sizeof(ReqStruct),
+                            resp->get(), sizeof(RespStruct), timeout, &result);
 
     // Unlike QMI, SMR does not support canceling an in-flight transaction.
     // SMR's internal request structure maintains a pointer to the client
@@ -197,7 +195,7 @@ class SmrHelper : public NonCopyable {
    * Struct used to store data needed once smr_client_send_req invokes the async
    * request callback.
    */
-  template<typename ReqStruct, typename RespStruct>
+  template <typename ReqStruct, typename RespStruct>
   struct AsyncCallbackData {
     //! Callback given by the client issuing the request.
     SmrReqCallback<RespStruct> callback;
@@ -224,11 +222,13 @@ class SmrHelper : public NonCopyable {
    * @see sendReqAsync()
    * @see smr_client_send_req()
    */
-  static smr_err sendReqAsyncUntyped(
-      smr_client_hndl client_handle, unsigned int msg_id,
-      void *req_c_struct, unsigned int req_c_struct_len,
-      void *resp_c_struct, unsigned int resp_c_struct_len,
-      void *resp_cb_data, smr_client_resp_cb resp_cb);
+  static smr_err sendReqAsyncUntyped(smr_client_hndl client_handle,
+                                     unsigned int msg_id, void *req_c_struct,
+                                     unsigned int req_c_struct_len,
+                                     void *resp_c_struct,
+                                     unsigned int resp_c_struct_len,
+                                     void *resp_cb_data,
+                                     smr_client_resp_cb resp_cb);
 
   /**
    * Implements sendReqSync(), but with accepting untyped (void*) buffers.
@@ -244,11 +244,10 @@ class SmrHelper : public NonCopyable {
    * @see sendReqSync()
    * @see smr_client_send_req()
    */
-  bool sendReqSyncUntyped(
-      smr_client_hndl client_handle, unsigned int msg_id,
-      void *req_c_struct, unsigned int req_c_struct_len,
-      void *resp_c_struct, unsigned int resp_c_struct_len,
-      Nanoseconds timeout, smr_err *result);
+  bool sendReqSyncUntyped(smr_client_hndl client_handle, unsigned int msg_id,
+                          void *req_c_struct, unsigned int req_c_struct_len,
+                          void *resp_c_struct, unsigned int resp_c_struct_len,
+                          Nanoseconds timeout, smr_err *result);
 
   /**
    * Processes an SMR response callback
@@ -279,11 +278,11 @@ class SmrHelper : public NonCopyable {
    *
    * @see smr_client_resp_cb
    */
-  template<typename ReqStruct, typename RespStruct>
-  static void smrAsyncRespCb(smr_client_hndl client_handle,
-                             unsigned int msg_id, void *resp_c_struct,
-                             unsigned int resp_c_struct_len,
-                             void *resp_cb_data, smr_err transp_err) {
+  template <typename ReqStruct, typename RespStruct>
+  static void smrAsyncRespCb(smr_client_hndl client_handle, unsigned int msg_id,
+                             void *resp_c_struct,
+                             unsigned int resp_c_struct_len, void *resp_cb_data,
+                             smr_err transp_err) {
     auto callback = [](uint16_t /* type */, void *data) {
       UniquePtr<AsyncCallbackData<ReqStruct, RespStruct>> cbData(
           static_cast<AsyncCallbackData<ReqStruct, RespStruct> *>(data));
@@ -298,7 +297,7 @@ class SmrHelper : public NonCopyable {
     // Schedule a deferred callback to handle sensor status change on the
     // main thread.
     EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SensorStatusInfoResponse, resp_cb_data, callback);
+        SystemCallbackType::SensorStatusInfoResponse, resp_cb_data, callback);
   }
 
   /**
@@ -306,9 +305,8 @@ class SmrHelper : public NonCopyable {
    *
    * @see smr_client_resp_cb
    */
-  static void smrSyncRespCb(smr_client_hndl client_handle,
-                            unsigned int msg_id, void *resp_c_struct,
-                            unsigned int resp_c_struct_len,
+  static void smrSyncRespCb(smr_client_hndl client_handle, unsigned int msg_id,
+                            void *resp_c_struct, unsigned int resp_c_struct_len,
                             void *resp_cb_data, smr_err transp_err);
 
   /**

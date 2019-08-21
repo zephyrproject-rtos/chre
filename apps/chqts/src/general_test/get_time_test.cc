@@ -29,15 +29,12 @@ using nanoapp_testing::sendFatalFailureToHost;
 
 namespace general_test {
 
-GetTimeTest::GetTimeTest()
-    : Test(CHRE_API_VERSION_1_0), mContinueCount(0) {
-}
+GetTimeTest::GetTimeTest() : Test(CHRE_API_VERSION_1_0), mContinueCount(0) {}
 
 void GetTimeTest::setUp(uint32_t messageSize, const void * /* message */) {
   if (messageSize != 0) {
-    sendFatalFailureToHost(
-        "GetTime message expects 0 additional bytes, got ",
-        &messageSize);
+    sendFatalFailureToHost("GetTime message expects 0 additional bytes, got ",
+                           &messageSize);
   }
 
   uint64_t firstTime = chreGetTime();
@@ -56,8 +53,7 @@ void GetTimeTest::setUp(uint32_t messageSize, const void * /* message */) {
     // We don't require this to have increased, because maybe we're
     // on a relatively fast processor, or have a low resolution clock.
     if (nextTime < prevTime) {
-      sendFatalFailureToHost(
-          "chreGetTime() is not monotonically increasing");
+      sendFatalFailureToHost("chreGetTime() is not monotonically increasing");
     }
 
     prevTime = nextTime;
@@ -74,8 +70,8 @@ void GetTimeTest::setUp(uint32_t messageSize, const void * /* message */) {
   // Now we'll wait to get a 'continue' from the host.
 }
 
-void GetTimeTest::handleEvent(uint32_t senderInstanceId,
-                              uint16_t eventType, const void* eventData) {
+void GetTimeTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
+                              const void *eventData) {
   // We ignore the return value, since we expect no data.
   getMessageDataFromHostEvent(senderInstanceId, eventType, eventData,
                               MessageType::kContinue, 0);
