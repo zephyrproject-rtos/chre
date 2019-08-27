@@ -44,7 +44,7 @@ constexpr uint8_t kAllSensorTypes[] = {
 };
 
 /**
- * Retreive the configure mode for the given sensor type.
+ * Retrieve the configure mode for the given sensor type.
  *
  * @param sensorType The type of the sensor
  * @return The sensor configure mode for the given sensor type
