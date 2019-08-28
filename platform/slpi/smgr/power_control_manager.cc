@@ -68,10 +68,10 @@ void PowerControlManagerBase::apSuspendCallback(bool apSuspended) {
     EventLoopManagerSingleton::get()
         ->getHostCommsManager()
         .resetBlameForNanoappHostWakeup();
-    EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_HOST_ASLEEP, nullptr, nullptr);
   } else {
-    EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_HOST_AWAKE, nullptr, nullptr);
   }
 }

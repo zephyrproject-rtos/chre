@@ -180,6 +180,16 @@ class SensorRequestManager : public NonCopyable {
   void handleFlushCompleteEvent(uint8_t errorCode, SensorType sensorType);
 
   /**
+   * Invoked by the PlatformSensor when a sensor event is received for a given
+   * sensor. This method should be invoked from the same thread.
+   *
+   * @param sensorType the type of sensor the sensor data corresponds to
+   * @param event the event data formatted as one of the chreSensorXXXData
+   *     defined in the CHRE API, implicitly specified by sensorType.
+   */
+  void handleSensorEvent(SensorType sensorType, void *event);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *

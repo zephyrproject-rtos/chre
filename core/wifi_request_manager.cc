@@ -402,9 +402,10 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
       event->cookie = cookie;
 
       // Post the event.
-      eventPosted = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-          kSystemInstanceId, nanoappInstanceId);
+      eventPosted =
+          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+              CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+              nanoappInstanceId);
       if (!eventPosted) {
         memoryFree(event);
       }
@@ -438,9 +439,10 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
     event->cookie = cookie;
 
     // Post the event.
-    eventPosted = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-        kSystemInstanceId, nanoappInstanceId);
+    eventPosted =
+        EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+            CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+            nanoappInstanceId);
   }
 
   return eventPosted;
@@ -456,7 +458,7 @@ void WifiRequestManager::postScanRequestAsyncResultEventFatal(
 }
 
 void WifiRequestManager::postScanEventFatal(chreWifiScanEvent *event) {
-  EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+  EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
       CHRE_EVENT_WIFI_SCAN_RESULT, event, freeWifiScanEventCallback);
 }
 
@@ -581,9 +583,10 @@ bool WifiRequestManager::postRangingAsyncResult(uint8_t errorCode) {
       event->reserved = 0;
       event->cookie = req.cookie;
 
-      eventPosted = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
-          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-          kSystemInstanceId, req.nanoappInstanceId);
+      eventPosted =
+          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+              CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+              req.nanoappInstanceId);
       if (!eventPosted) {
         memoryFree(event);
       }
@@ -618,9 +621,9 @@ void WifiRequestManager::handleRangingEventSync(
     if (errorCode != CHRE_ERROR_NONE) {
       LOGW("RTT ranging failed with error %d", errorCode);
     } else {
-      EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           CHRE_EVENT_WIFI_RANGING_RESULT, event, freeWifiRangingEventCallback,
-          kSystemInstanceId, mPendingRangingRequests.front().nanoappInstanceId);
+          mPendingRangingRequests.front().nanoappInstanceId);
     }
     mPendingRangingRequests.pop();
   }
