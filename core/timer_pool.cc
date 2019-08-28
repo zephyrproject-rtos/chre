@@ -223,11 +223,10 @@ bool TimerPool::handleExpiredTimersAndScheduleNextLocked() {
     TimerRequest& currentTimerRequest = mTimerRequests.top();
     if (currentTime >= currentTimerRequest.expirationTime) {
       // Post an event for an expired timer.
-      success = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+      success = EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           currentTimerRequest.eventType,
           const_cast<void *>(currentTimerRequest.cookie),
-          currentTimerRequest.callback, kSystemInstanceId,
-          currentTimerRequest.instanceId);
+          currentTimerRequest.callback, currentTimerRequest.instanceId);
 
       // Reschedule the timer if needed, and release the current request.
       if (!currentTimerRequest.isOneShot) {

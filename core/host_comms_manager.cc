@@ -89,9 +89,9 @@ void HostCommsManager::deliverNanoappMessageFromHost(
     msgFromHost->fromHostData.message = msgFromHost->message.data();
     msgFromHost->fromHostData.hostEndpoint = hostEndpoint;
 
-    success = EventLoopManagerSingleton::get()->getEventLoop().postEvent(
+    success = EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_MESSAGE_FROM_HOST, &msgFromHost->fromHostData,
-        freeMessageFromHostCallback, kSystemInstanceId, targetInstanceId);
+        freeMessageFromHostCallback, targetInstanceId);
   }
 
   if (!success && msgFromHost != nullptr) {
