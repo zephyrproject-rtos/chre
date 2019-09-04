@@ -28,6 +28,7 @@ using nanoapp_testing::MessageType;
 using nanoapp_testing::kOneMillisecondInNanoseconds;
 using nanoapp_testing::kOneSecondInNanoseconds;
 using nanoapp_testing::sendFatalFailureToHost;
+using nanoapp_testing::sendFatalFailureToHostUint8;
 using nanoapp_testing::sendInternalFailureToHost;
 using nanoapp_testing::sendStringToHost;
 using nanoapp_testing::sendSuccessToHost;
@@ -319,8 +320,18 @@ void BasicSensorTestBase::sanityCheckHeader(const chreSensorDataHeader* header,
   if (header->readingCount == 0) {
     sendFatalFailureToHost("SensorDataHeader has readingCount of 0");
   }
-  if ((header->reserved[0] != 0) || (header->reserved[1] != 0)) {
-    sendFatalFailureToHost("SensorDataHeader has non-zero reserved bytes");
+
+  if (header->reserved != 0) {
+    sendFatalFailureToHost("SensorDataHeader has non-zero reserved field");
+  }
+
+  if (mApiVersion < CHRE_API_VERSION_1_3) {
+    if (header->accuracy != 0) {
+      sendFatalFailureToHost("SensorDataHeader has non-zero reserved field");
+    }
+  } else if (header->accuracy > CHRE_SENSOR_ACCURACY_HIGH) {
+    sendFatalFailureToHostUint8("Sensor accuracy is not within valid range: ",
+                                header->accuracy);
   }
 }
 

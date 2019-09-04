@@ -17,9 +17,11 @@
 #ifndef CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 #define CHRE_PLATFORM_SLPI_SEE_POWER_CONTROL_MANAGER_BASE_H_
 
+#ifdef CHRE_THREAD_UTIL_ENABLED
 extern "C" {
 #include "sns_client_thread_util.h"
 } // extern "C"
+#endif  // CHRE_THREAD_UTIL_ENABLED
 
 namespace chre {
 
@@ -51,12 +53,14 @@ class PowerControlManagerBase {
   //! Set to true if the host is awake, false if suspended.
   bool mHostIsAwake = true;
 
+#ifdef CHRE_THREAD_UTIL_ENABLED
   //! Set to true if the thread is currently idle (no pending events),
   //! false otherwise.
   bool mIsThreadIdle = true;
 
   //! A pointer to the client to compute thread utilization
   sns_thread_util_client *mThreadUtilClient = nullptr;
+#endif  // CHRE_THREAD_UTIL_ENABLED
 };
 
 } // namespace chre

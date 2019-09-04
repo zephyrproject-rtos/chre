@@ -113,6 +113,8 @@ class IslandVoteClient : public NonCopyable {
 //! Provides an alias to the IslandVoteClient singleton
 typedef Singleton<IslandVoteClient> IslandVoteClientSingleton;
 
+extern template class Singleton<IslandVoteClient>;
+
 } // namespace chre
 
 #endif // CHRE_PLATFORM_SLPI_SEE_ISLAND_VOTE_CLIENT_H_

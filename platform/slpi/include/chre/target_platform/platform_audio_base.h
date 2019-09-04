@@ -17,13 +17,16 @@
 #ifndef CHRE_PLATFORM_SLPI_PLATFORM_AUDIO_BASE_H_
 #define CHRE_PLATFORM_SLPI_PLATFORM_AUDIO_BASE_H_
 
+#include "chre/pal/audio.h"
+#include "chre/platform/shared/platform_pal.h"
+
 namespace chre {
 
 /**
  * The base PlatformAudio class for the SLPI to inject platform specific
  * functionality from.
  */
-class PlatformAudioBase {
+class PlatformAudioBase : public PlatformPal {
  public:
   /**
    * Invoked whenever the host goes awake. This is used to implement the
@@ -32,6 +35,13 @@ class PlatformAudioBase {
   void onHostAwake();
 
  protected:
+  //! The instance of callbacks that are provided to the CHRE PAL.
+  static const chrePalAudioCallbacks sAudioCallbacks;
+
+  //! The instance of the CHRE PAL API for audio. This will be set to nullptr
+  //! if the platform does not supply an implementation.
+  const chrePalAudioApi *mAudioApi;
+
   //! The number of open audio clients. This is incremented/decremented by the
   //! setHandleEnabled platform API.
   uint32_t mNumAudioClients = 0;

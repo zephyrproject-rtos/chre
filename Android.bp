@@ -38,7 +38,7 @@ cc_library_static {
     cflags: ["-Wall", "-Werror"],
 }
 
-cc_test {
+cc_binary {
     name: "chre_test_client",
     vendor: true,
     local_include_dirs: [
@@ -55,7 +55,6 @@ cc_test {
         "libutils",
     ],
     static_libs: ["chre_client"],
-    gtest: false,
 }
 
 cc_test {
