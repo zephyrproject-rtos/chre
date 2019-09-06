@@ -109,7 +109,6 @@ cc_library_shared {
         "libcutils",
         "liblog",
         "libhidlbase",
-        "libhidltransport",
         "libutils",
         "android.hardware.contexthub@1.0",
     ],
