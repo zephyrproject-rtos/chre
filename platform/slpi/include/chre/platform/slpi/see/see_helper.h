@@ -81,7 +81,7 @@ class SeeHelperCallbackInterface {
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
 //! external dependencies blocking SEE initialization.
-constexpr Nanoseconds kDefaultSeeWaitTimeout = Seconds(5);
+constexpr Nanoseconds kDefaultSeeWaitTimeout = Seconds(30);
 
 //! Default timeout for sendReq response
 constexpr Nanoseconds kDefaultSeeRespTimeout = Seconds(1);
