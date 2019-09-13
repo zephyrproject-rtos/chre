@@ -112,8 +112,8 @@ void FixedSizeVector<ElementType, kCapacity>::pop_back() {
 template <typename ElementType, size_t kCapacity>
 ElementType &FixedSizeVector<ElementType, kCapacity>::operator[](size_t index) {
   CHRE_ASSERT(index < mSize);
-  if (index >= mSize) {
-    index = mSize - 1;
+  if (index >= kCapacity) {
+    index = kCapacity - 1;
   }
 
   return data()[index];
@@ -123,8 +123,8 @@ template <typename ElementType, size_t kCapacity>
 const ElementType &FixedSizeVector<ElementType, kCapacity>::operator[](
     size_t index) const {
   CHRE_ASSERT(index < mSize);
-  if (index >= mSize) {
-    index = mSize - 1;
+  if (index >= kCapacity) {
+    index = kCapacity - 1;
   }
 
   return data()[index];
