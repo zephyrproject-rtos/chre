@@ -16,11 +16,16 @@
 
 #include <general_test/basic_wifi_test.h>
 
+#include <cmath>
+
 #include <chre.h>
+#include <shared/macros.h>
 #include <shared/send_message.h>
 #include <shared/time_util.h>
 
-using nanoapp_testing::kOneMillisecondInNanoseconds;
+#include "chre/util/time.h"
+#include "chre/util/unique_ptr.h"
+
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendFatalFailureToHostUint8;
 using nanoapp_testing::sendSuccessToHost;
@@ -41,13 +46,16 @@ namespace general_test {
 
 namespace {
 
-//! A dummy cookie to pass into the enable
-//! configure scan monitoring async request.
+//! A dummy cookie to pass into the enable configure scan monitoring async
+//! request.
 constexpr uint32_t kEnableScanMonitoringCookie = 0x1337;
 
-//! A dummy cookie to pass into the disable
-//! configure scan monitoring async request.
+//! A dummy cookie to pass into the disable configure scan monitoring async
+//! request.
 constexpr uint32_t kDisableScanMonitoringCookie = 0x1338;
+
+//! A dummy cookie to pass into request ranging async.
+constexpr uint32_t kRequestRangingCookie = 0xefac;
 
 //! A dummy cookie to pass into request scan async.
 constexpr uint32_t kOnDemandScanCookie = 0xcafe;
@@ -60,6 +68,10 @@ constexpr uint32_t kWifiBandStartFreq_5_GHz = 5000;
 
 //! Frequency of channel 14
 constexpr uint32_t kWifiBandFreqOfChannel_14 = 2484;
+
+//! The amount of time to allow between an operation timing out and the event
+//! being deliverd to the test.
+constexpr uint32_t kTimeoutWiggleRoomNs = 2 * chre::kOneSecondInNanoseconds;
 
 /**
  * Calls API testConfigureScanMonitorAsync. Sends fatal failure to host
@@ -87,6 +99,30 @@ void testConfigureScanMonitorAsync(bool enable, const void *cookie) {
 void testRequestScanAsync() {
   if (!chreWifiRequestScanAsyncDefault(&kOnDemandScanCookie)) {
     sendFatalFailureToHost("Failed to request for on-demand WiFi scan.");
+  }
+}
+
+/**
+ * Calls API chreWifiRequestRangingAsync. Sends fatal failure to host if the
+ * API call fails.
+ */
+void testRequestRangingAsync(const struct chreWifiScanResult *aps,
+                             uint8_t length) {
+  void *array = chreHeapAlloc(sizeof(chreWifiRangingTarget) * length);
+  ASSERT_NE(array, nullptr,
+            "Failed to allocate array for issuing a ranging request");
+
+  chre::UniquePtr<struct chreWifiRangingTarget> targetList(
+      static_cast<struct chreWifiRangingTarget *>(array));
+  for (uint8_t i = 0; i < length; i++) {
+    chreWifiRangingTargetFromScanResult(&aps[i], &targetList[i]);
+  }
+
+  struct chreWifiRangingParams params = {.targetListLen = length,
+                                         .targetList = targetList.get()};
+  if (!chreWifiRequestRangingAsync(&params, &kRequestRangingCookie)) {
+    sendFatalFailureToHost(
+        "Failed to request ranging for a list of WiFi scans.");
   }
 }
 
@@ -155,6 +191,96 @@ void validateCenterFreq(const chreWifiScanResult &result) {
   }
 }
 
+/**
+ * Validates that RSSI is within sane limits.
+ */
+void validateRssi(int8_t rssi) {
+  // It's possible for WiFi RSSI to be positive if the phone is placed
+  // right next to a high-power AP (e.g. transmitting at 20 dBm),
+  // in which case RSSI will be < 20 dBm. Place a high threshold to check
+  // against values likely to be erroneous (36 dBm/4W).
+  ASSERT_LT(rssi, 36, "RSSI is greater than 36");
+}
+
+/**
+ * Validates that the amount of access points ranging was requested for matches
+ * the number of ranging results returned. Also, verifies that the BSSID of
+ * the each access point is present in the ranging results.
+ */
+void validateRangingEventSize(const struct chreWifiScanResult *results,
+                              size_t size,
+                              const struct chreWifiRangingEvent *event) {
+  ASSERT_EQ(event->resultCount, size,
+            "RTT ranging result count was not the same as the requested target "
+            "list size");
+
+  for (size_t i = 0; i < size; i++) {
+    bool matchFound = false;
+    for (size_t j = 0; j < size; j++) {
+      if (memcmp(results[i].bssid, event->results[j].macAddress,
+                 CHRE_WIFI_BSSID_LEN) == 0) {
+        matchFound = true;
+        break;
+      }
+    }
+    if (!matchFound) {
+      sendFatalFailureToHost(
+          "BSSID from ranging request not found in the result list");
+    }
+  }
+}
+
+/**
+ * Validates the location configuration information returned by a ranging result
+ * is compliant with the formatting specified at @see chreWifiLci.
+ */
+void validateLci(const struct chreWifiRangingResult::chreWifiLci *lci) {
+  // Per RFC 6225 2.3, there are 25 fractional bits and up to 9 integer bits
+  // used for lat / lng so verify that no bits outside those are used.
+  constexpr int64_t kMaxLat = INT64_C(90) << 25;
+  constexpr int64_t kMaxLng = INT64_C(180) << 25;
+  ASSERT_IN_RANGE(lci->latitude, -1 * kMaxLat, kMaxLat,
+                  "LCI's latitude is outside the range of -90 to 90");
+  ASSERT_IN_RANGE(lci->longitude, -1 * kMaxLng, kMaxLng,
+                  "LCI's longitude is outside the range of -180 to 180");
+
+  // According to RFC 6225, values greater than 34 are reserved
+  constexpr uint8_t kMaxLatLngUncertainty = 34;
+  ASSERT_LE(lci->latitudeUncertainty, kMaxLatLngUncertainty,
+            "LCI's latitude uncertainty is greater than 34");
+  ASSERT_LE(lci->longitudeUncertainty, kMaxLatLngUncertainty,
+            "LCI's longitude uncertainty is greater than 34");
+
+  if (lci->altitudeType == CHRE_WIFI_LCI_ALTITUDE_TYPE_METERS) {
+    // Highest largely populated city in the world, El Alto, Bolivia, is 4300
+    // meters and the tallest building in the world is 828 meters so the upper
+    // bound for this range should be 5500 meters (contains some padding).
+    constexpr int32_t kMaxAltitudeMeters = 5500 << 8;
+
+    // Lowest largely populated city in the world, Baku, Azerbaijan, is 28
+    // meters below sea level so -100 meters should be a good lower bound.
+    constexpr int32_t kMinAltitudeMeters = (100 << 8) * -1;
+    ASSERT_IN_RANGE(
+        lci->altitude, kMinAltitudeMeters, kMaxAltitudeMeters,
+        "LCI's altitude is outside of the range of -25 to 500 meters");
+
+    // According to RFC 6225, values greater than 30 are reserved
+    constexpr uint8_t kMaxAltitudeUncertainty = 30;
+    ASSERT_LE(lci->altitudeUncertainty, kMaxAltitudeUncertainty,
+              "LCI's altitude certainty is greater than 30");
+  } else if (lci->altitudeType == CHRE_WIFI_LCI_ALTITUDE_TYPE_FLOORS) {
+    // Tallest building has 163 floors. Assume -5 to 100 floors is a sane range.
+    constexpr int32_t kMaxAltitudeFloors = 100 << 8;
+    constexpr int32_t kMinAltitudeFloors = (5 << 8) * -1;
+    ASSERT_IN_RANGE(
+        lci->altitude, kMinAltitudeFloors, kMaxAltitudeFloors,
+        "LCI's altitude is outside of the range of -5 to 100 floors");
+  } else if (lci->altitudeType != CHRE_WIFI_LCI_ALTITUDE_TYPE_UNKNOWN) {
+    sendFatalFailureToHost(
+        "LCI's altitude type was not unknown, floors, or meters");
+  }
+}
+
 }  // anonymous namespace
 
 BasicWifiTest::BasicWifiTest() : Test(CHRE_API_VERSION_1_1) {}
@@ -171,28 +297,52 @@ void BasicWifiTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void BasicWifiTest::handleEvent(uint32_t /* senderInstanceId */,
                                 uint16_t eventType, const void *eventData) {
-  if (eventData == nullptr) {
-    sendFatalFailureToHost("Received null eventData");
-  }
+  ASSERT_NE(eventData, nullptr, "Received null eventData");
   switch (eventType) {
     case CHRE_EVENT_WIFI_ASYNC_RESULT:
       handleChreWifiAsyncEvent(static_cast<const chreAsyncResult *>(eventData));
       break;
     case CHRE_EVENT_WIFI_SCAN_RESULT: {
+      if (!scanEventExpected()) {
+        sendFatalFailureToHost("WiFi scan event received when not requested");
+      }
       const auto *result = static_cast<const chreWifiScanEvent *>(eventData);
       if (isActiveWifiScanType(result)) {
         // The first chreWifiScanResult is expected to come immediately,
         // but a long delay is possible if it's implemented incorrectly,
         // e.g. the async result comes right away (before the scan is actually
         // completed), then there's a long delay to the scan result.
-        if (mStartTimestampNs != 0 && chreGetTime() - mStartTimestampNs >
-                                          50 * kOneMillisecondInNanoseconds) {
+        if (mStartTimestampNs != 0 &&
+            chreGetTime() - mStartTimestampNs >
+                50 * chre::kOneMillisecondInNanoseconds) {
           sendFatalFailureToHost(
               "Did not receive chreWifiScanResult within 50 milliseconds.");
         }
         mStartTimestampNs = 0;
         validateWifiScanEvent(result);
       }
+      break;
+    }
+    case CHRE_EVENT_WIFI_RANGING_RESULT: {
+      if (!rangingEventExpected()) {
+        sendFatalFailureToHost(
+            "WiFi ranging event received when not requested");
+      }
+      const auto *result = static_cast<const chreWifiRangingEvent *>(eventData);
+      // Allow some wiggle room between the expected timeout and when the event
+      // would actually be delivered to the test.
+      if (mStartTimestampNs != 0 &&
+          chreGetTime() - mStartTimestampNs >
+              CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS + kTimeoutWiggleRoomNs) {
+        sendFatalFailureToHost(
+            "Did not receive chreWifiRangingEvent within the ranging timeout");
+      }
+      validateRangingEvent(result);
+      // Ensure timestamp is reset after everything is validated as it's used to
+      // validate the ranging event
+      mStartTimestampNs = 0;
+      mTestSuccessMarker.markStageAndSuccessOnFinish(
+          BASIC_WIFI_TEST_STAGE_SCAN_RTT);
       break;
     }
     default:
@@ -205,10 +355,12 @@ void BasicWifiTest::handleChreWifiAsyncEvent(const chreAsyncResult *result) {
   if (!mCurrentWifiRequest.has_value()) {
     nanoapp_testing::sendFailureToHost("Unexpected async result");
   }
+
   validateChreAsyncResult(result, mCurrentWifiRequest.value());
 
   switch (result->requestType) {
     case CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN:
+    case CHRE_WIFI_REQUEST_TYPE_RANGING:
       mStartTimestampNs = chreGetTime();
       break;
     case CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR:
@@ -258,6 +410,24 @@ void BasicWifiTest::startScanAsyncTestStage() {
   } else {
     mTestSuccessMarker.markStageAndSuccessOnFinish(
         BASIC_WIFI_TEST_STAGE_SCAN_ASYNC);
+    startRangingAsyncTestStage();
+  }
+}
+
+void BasicWifiTest::startRangingAsyncTestStage() {
+  // If no scans were received, the test has nothing to range with so simply
+  // mark it as a success.
+  // TODO: Enable ranging test once b/140635936 is resolved.
+  if (false && mWifiCapabilities & CHRE_WIFI_CAPABILITIES_RTT_RANGING &&
+      mLatestWifiScanResults.size() != 0) {
+    testRequestRangingAsync(mLatestWifiScanResults.data(),
+                            mLatestWifiScanResults.size());
+    resetCurrentWifiRequest(&kRequestRangingCookie,
+                            CHRE_WIFI_REQUEST_TYPE_RANGING,
+                            CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS);
+  } else {
+    mTestSuccessMarker.markStageAndSuccessOnFinish(
+        BASIC_WIFI_TEST_STAGE_SCAN_RTT);
   }
 }
 
@@ -295,10 +465,19 @@ void BasicWifiTest::validateWifiScanEvent(const chreWifiScanEvent *eventData) {
   mWiFiScanResultRemaining -= eventData->resultCount;
 
   validateWifiScanResult(eventData->resultCount, eventData->results);
+
+  // Save the latest results for future tests retaining old data if the new
+  // scan is empty (so the test has something to use).
+  if (eventData->resultCount > 0) {
+    mLatestWifiScanResults.copy_array(eventData->results,
+                                      eventData->resultCount);
+  }
+
   if (mWiFiScanResultRemaining == 0) {
     mNextExpectedIndex = 0;
     mTestSuccessMarker.markStageAndSuccessOnFinish(
         BASIC_WIFI_TEST_STAGE_SCAN_ASYNC);
+    startRangingAsyncTestStage();
   }
 }
 
@@ -317,18 +496,67 @@ void BasicWifiTest::validateWifiScanResult(uint8_t count,
       chreLog(CHRE_LOG_ERROR, "Got unexpected band %d", results[i].band);
     }
 
-    // It's possible for WiFi RSSI be positive if the phone is placed
-    // right next to a high-power AP (e.g. transmitting at 20 dBm),
-    // in which case RSSI will be < 20 dBm. Place a high threshold to check
-    // against values likely to be erroneous (36 dBm/4W).
-    if (results[i].rssi >= 36) {
-      chreLog(CHRE_LOG_ERROR, "RSSI should be less than 36, got: %d",
-              results[i].rssi);
-    }
+    validateRssi(results[i].rssi);
 
     validatePrimaryChannel(results[i]);
     validateCenterFreq(results[i]);
   }
+}
+
+void BasicWifiTest::validateRangingEvent(
+    const chreWifiRangingEvent *eventData) {
+  if (eventData->version != CHRE_WIFI_RANGING_EVENT_VERSION) {
+    sendFatalFailureToHostUint8("Got unexpected ranging event version %d",
+                                eventData->version);
+  }
+
+  validateRangingEventSize(mLatestWifiScanResults.data(),
+                           mLatestWifiScanResults.size(), eventData);
+
+  for (uint8_t i = 0; i < eventData->resultCount; i++) {
+    auto &result = eventData->results[i];
+    ASSERT_IN_RANGE(result.timestamp, mStartTimestampNs, chreGetTime(),
+                    "Ranging result timestamp isn't between the ranging "
+                    "request start time and the current time");
+
+    if (result.status != CHRE_WIFI_RANGING_STATUS_SUCCESS) {
+      if (result.rssi != 0 || result.distance != 0 ||
+          result.distanceStdDev != 0) {
+        sendFatalFailureToHost(
+            "Ranging result with failure status had non-zero state");
+      }
+    } else {
+      validateRssi(result.rssi);
+
+      constexpr uint32_t kMaxDistanceMillimeters = 100 * 1000;
+      if (result.distance > kMaxDistanceMillimeters) {
+        sendFatalFailureToHost(
+            "Ranging result was more than 100 meters away %" PRIu32,
+            &result.distance);
+      }
+
+      constexpr uint32_t kMaxStdDevMillimeters = 10 * 1000;
+      if (result.distanceStdDev > kMaxStdDevMillimeters) {
+        sendFatalFailureToHost(
+            "Ranging result distance stddev was more than 10 meters %" PRIu32,
+            &result.distanceStdDev);
+      }
+
+      if (result.flags & CHRE_WIFI_RTT_RESULT_HAS_LCI) {
+        validateLci(&result.lci);
+      }
+    }
+  }
+}
+
+bool BasicWifiTest::rangingEventExpected() {
+  return mTestSuccessMarker.isStageMarked(BASIC_WIFI_TEST_STAGE_SCAN_ASYNC) &&
+         !mTestSuccessMarker.isStageMarked(BASIC_WIFI_TEST_STAGE_SCAN_RTT);
+}
+
+bool BasicWifiTest::scanEventExpected() {
+  return mTestSuccessMarker.isStageMarked(BASIC_WIFI_TEST_STAGE_SCAN_MONITOR) &&
+         !mTestSuccessMarker.isStageMarked(BASIC_WIFI_TEST_STAGE_SCAN_ASYNC);
 }
 
 }  // namespace general_test
