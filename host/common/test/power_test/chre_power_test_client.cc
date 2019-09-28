@@ -44,7 +44,7 @@
  * control the power test nanoapp located at system/chre/apps/power_test
  *
  * Usage:
- *  chre_power_test_client load <optional: tcm>
+ *  chre_power_test_client load <optional: tcm> <optional: path>
  *  chre_power_test_client unload <optional: tcm>
  *  chre_power_test_client unloadall
  *  chre_power_test_client timer <optional: tcm> <enable> <interval_ns>
@@ -384,11 +384,23 @@ inline uint64_t getId(std::vector<string> &args) {
   return kPowerTestAppId;
 }
 
+/**
+ * When user provides the customized path in tcm mode, the args[1] is the path.
+ * In this case, the args[0] has to be "tcm". When user provide customized path
+ * for non-tcm mode, the args[0] is the path.
+ */
+
 inline const char *getPath(std::vector<string> &args) {
-  if (!args.empty() && args[0] == "tcm") {
+  if (args.empty()) {
+    return kPowerTestPath;
+  }
+  if (args[0] == "tcm") {
+    if (args.size() > 1) {
+      return args[1].c_str();
+    }
     return kPowerTestTcmPath;
   }
-  return kPowerTestPath;
+  return args[0].c_str();
 }
 
 inline uint64_t getNanoseconds(std::vector<string> &args, size_t index) {
@@ -590,7 +602,7 @@ static void usage() {
   LOGI(
       "\n"
       "Usage:\n"
-      " chre_power_test_client load <optional: tcm>\n"
+      " chre_power_test_client load <optional: tcm> <optional: path>\n"
       " chre_power_test_client unload <optional: tcm>\n"
       " chre_power_test_client unloadall\n"
       " chre_power_test_client timer <optional: tcm> <enable> <interval_ns>\n"
