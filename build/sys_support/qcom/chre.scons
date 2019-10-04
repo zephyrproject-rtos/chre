@@ -265,7 +265,6 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/util/buffer_base.cc",
     "${BUILDPATH}/system/chre/util/dynamic_vector_base.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/audio.cc",
-    "${BUILDPATH}/system/chre/util/nanoapp/callbacks.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/debug.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/sensor.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/wifi.cc",
