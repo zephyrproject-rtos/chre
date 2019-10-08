@@ -113,7 +113,8 @@ uint32_t chreGetInstanceId(void);
  * and delivered when appropriate (e.g. the host wakes up). If done this way,
  * the internal buffer is recommended to be large enough (at least a few KB), so
  * that multiple messages can be buffered. When these logs are sent to the host,
- * they should be visible under the tag 'CHRE' in logcat.
+ * they are strongly recommended to be made visible under the tag 'CHRE' in
+ * logcat - a future version of the CHRE API may make this a hard requirement.
  *
  * A log entry can have a variety of levels (@see LogLevel).  This function
  * allows a variable number of arguments, in a printf-style format.
