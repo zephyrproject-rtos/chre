@@ -134,6 +134,20 @@ class HostCommsManager : public NonCopyable {
                                     const void *messageData,
                                     size_t messageSize);
 
+  /**
+   * This function is used by sendMessageToNanoappFromHost() for sending
+   * deferred messages. Messages are deferred when the destination nanoapp is
+   * not yet loaded.
+   *
+   * By the time this function is called through deferCallback, nanoapp load
+   * requests in the queue will have been processed and therefore all nanoapps
+   * are expected to be ready.
+   *
+   * @param craftedMessage Deferred message from host to be delivered to the
+   * destination nanoapp
+   */
+  void sendDeferredMessageToNanoappFromHost(MessageFromHost *craftedMessage);
+
   /*
    * Resets mIsNanoappBlamedForWakeup to false so that
    * nanoapp->blameHostWakeup() can be called again on next wakeup for one of
@@ -171,21 +185,33 @@ class HostCommsManager : public NonCopyable {
 
   /**
    * Allocates and populates the event structure used to notify a nanoapp of an
-   * incoming message from the host, and posts an event to the nanoapp for
-   * processing. Used to implement sendMessageToNanoappFromHost() - see that
+   * incoming message from the host.
+   *
+   * Used to implement sendMessageToNanoappFromHost() - see that
    * function for parameter documentation.
    *
    * All parameters must be sanitized before invoking this function.
    *
-   * @param targetInstanceId Instance ID of the destination nanoapp
-   *
    * @see sendMessageToNanoappFromHost
    */
-  void deliverNanoappMessageFromHost(uint64_t appId, uint16_t hostEndpoint,
-                                     uint32_t messageType,
-                                     const void *messageData,
-                                     uint32_t messageSize,
-                                     uint32_t targetInstanceId);
+  MessageFromHost *craftNanoappMessageFromHost(uint64_t appId,
+                                               uint16_t hostEndpoint,
+                                               uint32_t messageType,
+                                               const void *messageData,
+                                               uint32_t messageSize);
+
+  /**
+   * Posts a crafted event, craftedMessage, to a nanoapp for processing, and
+   * deallocates it afterwards.
+   *
+   * Used to implement sendMessageToNanoappFromHost() and
+   * sendDeferredMessageToNanoappFromHost(). They allocate and populated the
+   * event using craftNanoappMessageFromHost().
+   *
+   * @param craftedMessage Message from host to be delivered to the destination
+   * nanoapp
+   */
+  bool deliverNanoappMessageFromHost(MessageFromHost *craftedMessage);
 
   /**
    * Releases memory associated with a message to the host, including invoking

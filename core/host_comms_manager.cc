@@ -81,11 +81,9 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
   return success;
 }
 
-void HostCommsManager::deliverNanoappMessageFromHost(
+MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
     uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
-    const void *messageData, uint32_t messageSize, uint32_t targetInstanceId) {
-  bool success = false;
-
+    const void *messageData, uint32_t messageSize) {
   MessageFromHost *msgFromHost = mMessagePool.allocate();
   if (msgFromHost == nullptr) {
     LOG_OOM();
@@ -95,21 +93,39 @@ void HostCommsManager::deliverNanoappMessageFromHost(
          " bytes for message data from host "
          "(endpoint 0x%" PRIx16 " type %" PRIu32 ")",
          messageSize, hostEndpoint, messageType);
+    mMessagePool.deallocate(msgFromHost);
+    msgFromHost = nullptr;
   } else {
     msgFromHost->appId = appId;
     msgFromHost->fromHostData.messageType = messageType;
     msgFromHost->fromHostData.messageSize = static_cast<uint32_t>(messageSize);
     msgFromHost->fromHostData.message = msgFromHost->message.data();
     msgFromHost->fromHostData.hostEndpoint = hostEndpoint;
-
-    success = EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-        CHRE_EVENT_MESSAGE_FROM_HOST, &msgFromHost->fromHostData,
-        freeMessageFromHostCallback, targetInstanceId);
   }
 
-  if (!success && msgFromHost != nullptr) {
-    mMessagePool.deallocate(msgFromHost);
+  return msgFromHost;
+}
+
+bool HostCommsManager::deliverNanoappMessageFromHost(
+    MessageFromHost *craftedMessage) {
+  const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  uint32_t targetInstanceId;
+  bool success = false;
+
+  CHRE_ASSERT_LOG(craftedMessage != nullptr,
+                  "Cannot deliver NULL pointer nanoapp message from host");
+
+  if (eventLoop.findNanoappInstanceIdByAppId(craftedMessage->appId,
+                                             &targetInstanceId)) {
+    success = true;
+    if (!EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+            CHRE_EVENT_MESSAGE_FROM_HOST, &craftedMessage->fromHostData,
+            freeMessageFromHostCallback, targetInstanceId)) {
+      mMessagePool.deallocate(craftedMessage);
+    }
   }
+
+  return success;
 }
 
 void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
@@ -117,9 +133,6 @@ void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
                                                     uint16_t hostEndpoint,
                                                     const void *messageData,
                                                     size_t messageSize) {
-  const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  uint32_t targetInstanceId;
-
   if (hostEndpoint == kHostEndpointBroadcast) {
     LOGE("Received invalid message from host from broadcast endpoint");
   } else if (messageSize > ((UINT32_MAX))) {
@@ -127,14 +140,44 @@ void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
     // struct chreMessageFromHostData. We don't expect to ever need to exceed
     // this, but the check ensures we're on the up and up.
     LOGE("Rejecting message of size %zu (too big)", messageSize);
-  } else if (!eventLoop.findNanoappInstanceIdByAppId(appId,
-                                                     &targetInstanceId)) {
-    LOGE("Dropping message; destination app ID 0x%016" PRIx64 " not found",
-         appId);
   } else {
-    deliverNanoappMessageFromHost(appId, hostEndpoint, messageType, messageData,
-                                  static_cast<uint32_t>(messageSize),
-                                  targetInstanceId);
+    MessageFromHost *craftedMessage = craftNanoappMessageFromHost(
+        appId, hostEndpoint, messageType, messageData, messageSize);
+    if (craftedMessage == nullptr) {
+      LOGE("Out of memory - rejecting message to app ID 0x%016" PRIx64
+           "(size %zu)",
+           appId, messageSize);
+    } else if (!deliverNanoappMessageFromHost(craftedMessage)) {
+      LOGD("Deferring message; destination app ID 0x%016" PRIx64
+           " not found at this time",
+           appId);
+
+      auto deferredMessageCallback = [](uint16_t /*type*/, void *data) {
+        EventLoopManagerSingleton::get()
+            ->getHostCommsManager()
+            .sendDeferredMessageToNanoappFromHost(
+                static_cast<MessageFromHost *>(data));
+      };
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::DeferredMessageToNanoappFromHost, craftedMessage,
+          deferredMessageCallback);
+    }
+  }
+}
+
+void HostCommsManager::sendDeferredMessageToNanoappFromHost(
+    MessageFromHost *craftedMessage) {
+  CHRE_ASSERT_LOG(craftedMessage != nullptr,
+                  "Deferred message from host is a NULL pointer");
+
+  if (!deliverNanoappMessageFromHost(craftedMessage)) {
+    LOGE("Dropping deferred message; destination app ID 0x%016" PRIx64
+         " still not found",
+         craftedMessage->appId);
+    mMessagePool.deallocate(craftedMessage);
+  } else {
+    LOGD("Deferred message to app ID 0x%016" PRIx64 " delivered",
+         craftedMessage->appId);
   }
 }
 
