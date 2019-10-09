@@ -73,10 +73,10 @@ extern "C" {
 /**
  * Value for version 1.3 of the Context Hub Runtime Environment API interface.
  *
- * The version of the CHRE API shipped with the Android Q release.
- *
- * @note This version of the CHRE API has not been finalized yet, and is
- * currently considered a preview that is subject to change.
+ * The version of the CHRE API shipped with the Android Q release. It adds
+ * support for GNSS location altitude/speed/bearing accuracy. It also adds step
+ * detect as a standard CHRE sensor and supports bias event delivery and sensor
+ * data flushing.
  *
  * @see CHRE_API_VERSION
  */
