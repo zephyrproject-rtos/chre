@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,11 @@
  * limitations under the License.
  */
 
-#include "chre/platform/platform_sensor.h"
+#include "chre/pal/sensor.h"
 
-namespace chre {
-
-uint8_t PlatformSensor::getSensorType() const {
-  return mSensorInfo->sensorType;
+const struct chrePalSensorApi *chrePalSensorGetApi(
+    uint32_t requestedApiVersion) {
+  // This stub implementation of the CHRE PAL returns nullptr to indicate that
+  // it is not supplied by this platform.
+  return nullptr;
 }
-
-uint64_t PlatformSensor::getMinInterval() const {
-  return mSensorInfo->minInterval;
-}
-
-bool PlatformSensor::reportsBiasEvents() const {
-  return mSensorInfo->reportsBiasEvents == 1;
-}
-
-const char *PlatformSensor::getSensorName() const {
-  return mSensorInfo->sensorName;
-}
-
-}  // namespace chre

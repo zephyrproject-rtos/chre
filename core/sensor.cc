@@ -16,20 +16,24 @@
 
 #include "chre/core/sensor.h"
 
+#include "chre_api/chre/version.h"
+
 namespace chre {
 
-bool Sensor::setRequest(const SensorRequest &request) {
-  bool success = false;
+void Sensor::populateSensorInfo(struct chreSensorInfo *info,
+                                uint32_t targetApiVersion) const {
+  info->sensorType = getSensorType();
+  info->isOnChange = isOnChange();
+  info->isOneShot = isOneShot();
+  info->reportsBiasEvents = reportsBiasEvents();
+  info->unusedFlags = 0;
+  info->sensorName = getSensorName();
 
-  if (request.isEquivalentTo(mSensorRequest)) {
-    success = true;
-  } else if (applyRequest(request)) {
-    // Update mSensorRequest only if platform has accepted the request.
-    mSensorRequest = request;
-    success = true;
+  // minInterval was added in CHRE API v1.1 - do not attempt to populate for
+  // nanoapps targeting v1.0 as their struct will not be large enough
+  if (targetApiVersion >= CHRE_API_VERSION_1_1) {
+    info->minInterval = getMinInterval();
   }
-
-  return success;
 }
 
 }  // namespace chre

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,21 @@
 
 #include "chre/platform/platform_sensor.h"
 
+#include "chre_api/chre/sensor.h"
+
 namespace chre {
 
-uint8_t PlatformSensor::getSensorType() const {
-  return mSensorInfo->sensorType;
+bool PlatformSensor::getSamplingStatus(
+    struct chreSensorSamplingStatus *status) const {
+  CHRE_ASSERT(status != nullptr);
+
+  memcpy(status, &mSamplingStatus, sizeof(*status));
+  return true;
 }
 
-uint64_t PlatformSensor::getMinInterval() const {
-  return mSensorInfo->minInterval;
-}
-
-bool PlatformSensor::reportsBiasEvents() const {
-  return mSensorInfo->reportsBiasEvents == 1;
-}
-
-const char *PlatformSensor::getSensorName() const {
-  return mSensorInfo->sensorName;
+void PlatformSensor::setSamplingStatus(
+    const struct chreSensorSamplingStatus &status) {
+  mSamplingStatus = status;
 }
 
 }  // namespace chre

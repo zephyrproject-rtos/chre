@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_SENSOR_H_
 #define CHRE_CORE_SENSOR_H_
 
+#include "chre/core/sensor_type_helpers.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
@@ -28,10 +29,9 @@ namespace chre {
  *
  * Note that like chre::Nanoapp, this class uses inheritance to separate the
  * common code (Sensor) from common interface with platform-specific
- * implementation (PlatformSensor) from the fully platform-specific part
- * (PlatformSensorBase). However, this inheritance relationship does *not* imply
- * polymorphism, and this object must only be referred to via the most-derived
- * type, i.e. chre::Sensor.
+ * implementation (PlatformSensor). However, this inheritance relationship does
+ * *not* imply polymorphism, and this object must only be referred to via the
+ * most-derived type, i.e. chre::Sensor.
  */
 class Sensor : public PlatformSensor {
  public:
@@ -40,12 +40,9 @@ class Sensor : public PlatformSensor {
    * by common code, as platform-specific initialization of the Sensor object is
    * required for it to be usable.
    *
-   * @see PlatformSensor::getSensors
+   * @see PlatformSensorManager::getSensors
    */
   Sensor() = default;
-
-  Sensor(Sensor &&other) = default;
-  Sensor &operator=(Sensor &&other) = default;
 
   /**
    * Obtains a reference to the latest request that has been accepted by the
@@ -58,19 +55,83 @@ class Sensor : public PlatformSensor {
   }
 
   /**
-   * Sets the current request of this sensor. If this request is a change from
-   * the previous request, it is sent to the underlying platform. If isValid()
-   * returns false this function will also return false and do nothing.
+   * Sets the request of this sensor that's been accepted by the platform.
    *
    * @param request The new request for this sensor.
-   * @return true if there was no change required or the platform has set the
-   *         request successfully.
    */
-  bool setRequest(const SensorRequest &request);
+  void setRequest(const SensorRequest &request) {
+    mSensorRequest = request;
+  }
+
+  /**
+   * @return Pointer to this sensor's last data event. It returns a nullptr if
+   *         the sensor doesn't provide it.
+   */
+  ChreSensorData *getLastEvent() const {
+    return mLastEvent;
+  }
+
+  /**
+   * Sets the most recent event received for this sensor.
+   *
+   * @param event The most recent event received for this sensor.
+   */
+  void setLastEvent(ChreSensorData *event) {
+    mLastEvent = event;
+  }
+
+  /**
+   * @return Whether this sensor is a one-shot sensor.
+   */
+  bool isOneShot() const {
+    return SensorTypeHelpers::isOneShot(getSensorType());
+  }
+
+  /**
+   * @return Whether this sensor is an on-change sensor.
+   */
+  bool isOnChange() const {
+    return SensorTypeHelpers::isOnChange(getSensorType());
+  }
+
+  /**
+   * @return Whether this sensor is a continuous sensor.
+   */
+  bool isContinuous() const {
+    return SensorTypeHelpers::isContinuous(getSensorType());
+  }
+
+  /**
+   * @return Whether this sensor is calibrated.
+   */
+  bool isCalibrated() const {
+    return SensorTypeHelpers::isCalibrated(getSensorType());
+  }
+
+  /**
+   * @param eventType A non-null pointer to the event type to populate
+   * @return true if this sensor has a bias event type.
+   */
+  bool getBiasEventType(uint16_t *eventType) const {
+    return SensorTypeHelpers::getBiasEventType(getSensorType(), eventType);
+  }
+
+  /**
+   * Gets the sensor info of this sensor in the CHRE API format.
+   *
+   * @param info A non-null pointer to the chreSensor info to populate.
+   * @param targetApiVersion CHRE_API_VERSION_ value corresponding to the API
+   *     that the info struct should be populated for.
+   */
+  void populateSensorInfo(struct chreSensorInfo *info,
+                          uint32_t targetApiVersion) const;
 
  private:
   //! The most recent sensor request accepted by the platform.
   SensorRequest mSensorRequest;
+
+  //! The most recent event received for this sensor;
+  ChreSensorData *mLastEvent;
 };
 
 }  // namespace chre

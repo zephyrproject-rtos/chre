@@ -11,10 +11,6 @@ COMMON_CFLAGS += -Iplatform/include
 
 # Common Compiler Flags ########################################################
 
-# Common Source Files ##########################################################
-
-COMMON_SRCS += platform/shared/platform_sensor_util.cc
-
 # SLPI-specific Compiler Flags #################################################
 
 # Include paths.
@@ -159,6 +155,7 @@ SIM_SRCS += platform/linux/system_time.cc
 SIM_SRCS += platform/linux/system_timer.cc
 SIM_SRCS += platform/linux/platform_nanoapp.cc
 SIM_SRCS += platform/linux/platform_sensor.cc
+SIM_SRCS += platform/linux/platform_sensor_type_helpers.cc
 SIM_SRCS += platform/shared/chre_api_audio.cc
 SIM_SRCS += platform/shared/chre_api_core.cc
 SIM_SRCS += platform/shared/chre_api_gnss.cc
@@ -169,7 +166,10 @@ SIM_SRCS += platform/shared/chre_api_wifi.cc
 SIM_SRCS += platform/shared/chre_api_wwan.cc
 SIM_SRCS += platform/shared/memory_manager.cc
 SIM_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
+SIM_SRCS += platform/shared/pal_sensor_stub.cc
 SIM_SRCS += platform/shared/pal_system_api.cc
+SIM_SRCS += platform/shared/platform_sensor.cc
+SIM_SRCS += platform/shared/platform_sensor_manager.cc
 SIM_SRCS += platform/shared/system_time.cc
 
 # Optional GNSS support.

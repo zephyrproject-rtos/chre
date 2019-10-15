@@ -23,6 +23,13 @@
 
 namespace chre {
 
+//! Indicates the reporting mode of the sensor
+enum class ReportingMode : uint8_t {
+  OnChange,
+  OneShot,
+  Continuous,
+};
+
 //! The union of possible CHRE sensor data event type with one sample.
 union ChreSensorData {
   struct chreSensorThreeAxisData threeAxisData;
