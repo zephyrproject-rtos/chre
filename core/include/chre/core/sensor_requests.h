@@ -40,7 +40,7 @@ class SensorRequests {
    *
    * @param sensor The sensor object to initialize with.
    */
-  void setSensor(const Sensor &&sensor) {
+  void setSensor(Sensor &&sensor) {
     mSensor = std::move(sensor);
   }
 

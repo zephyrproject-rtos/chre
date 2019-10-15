@@ -54,7 +54,7 @@ void PlatformSensorManager::init() {
   }
 }
 
-const DynamicVector<Sensor> PlatformSensorManager::getSensors() {
+DynamicVector<Sensor> PlatformSensorManager::getSensors() {
   DynamicVector<Sensor> sensors;
   struct chreSensorInfo *palSensors = nullptr;
   uint32_t arraySize;

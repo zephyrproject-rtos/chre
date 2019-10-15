@@ -87,4 +87,35 @@ bool SensorTypeHelpers::getBiasEventType(uint8_t sensorType,
   return success;
 }
 
+size_t SensorTypeHelpers::getLastEventSize(uint8_t sensorType) {
+  if (isOnChange(sensorType)) {
+    switch (sensorType) {
+      case CHRE_SENSOR_TYPE_ACCELEROMETER:
+      case CHRE_SENSOR_TYPE_GYROSCOPE:
+      case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
+      case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
+      case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
+      case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
+        return sizeof(chreSensorThreeAxisData);
+      case CHRE_SENSOR_TYPE_PRESSURE:
+      case CHRE_SENSOR_TYPE_LIGHT:
+      case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
+      case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
+      case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE:
+        return sizeof(chreSensorFloatData);
+      case CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT:
+      case CHRE_SENSOR_TYPE_STATIONARY_DETECT:
+      case CHRE_SENSOR_TYPE_STEP_DETECT:
+        return sizeof(chreSensorOccurrenceData);
+      case CHRE_SENSOR_TYPE_PROXIMITY:
+        return sizeof(chreSensorByteData);
+      default:
+        // Update implementation to prevent undefined from being used.
+        CHRE_ASSERT(false);
+        return 0;
+    }
+  }
+  return 0;
+}
+
 }  // namespace chre

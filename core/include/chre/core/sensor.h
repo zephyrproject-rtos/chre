@@ -19,7 +19,6 @@
 
 #include "chre/core/sensor_type_helpers.h"
 #include "chre/platform/platform_sensor.h"
-#include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
 
 namespace chre {
@@ -44,6 +43,18 @@ class Sensor : public PlatformSensor {
    */
   Sensor() = default;
 
+  Sensor(Sensor &&other);
+  Sensor &operator=(Sensor &&other);
+
+  ~Sensor();
+
+  /**
+   * Initializes various Sensor class state. The platform implementation is
+   * responsible for invoking this after any base class state necessary for
+   * PlatformSensor methods to work is set up.
+   */
+  void init();
+
   /**
    * Obtains a reference to the latest request that has been accepted by the
    * platform.
@@ -61,23 +72,6 @@ class Sensor : public PlatformSensor {
    */
   void setRequest(const SensorRequest &request) {
     mSensorRequest = request;
-  }
-
-  /**
-   * @return Pointer to this sensor's last data event. It returns a nullptr if
-   *         the sensor doesn't provide it.
-   */
-  ChreSensorData *getLastEvent() const {
-    return mLastEvent;
-  }
-
-  /**
-   * Sets the most recent event received for this sensor.
-   *
-   * @param event The most recent event received for this sensor.
-   */
-  void setLastEvent(ChreSensorData *event) {
-    mLastEvent = event;
   }
 
   /**
@@ -126,12 +120,58 @@ class Sensor : public PlatformSensor {
   void populateSensorInfo(struct chreSensorInfo *info,
                           uint32_t targetApiVersion) const;
 
+  /**
+   * @return Pointer to this sensor's last data event. It returns a nullptr if
+   *         the sensor doesn't provide it.
+   */
+  ChreSensorData *getLastEvent() const {
+    return mLastEventValid ? mLastEvent : nullptr;
+  }
+
+  /**
+   * Copies the supplied event to the sensor's last event and marks last event
+   * valid. This method must be invoked within the CHRE thread before the event
+   * containing the sensor data is delivered to nanoapps.
+   *
+   * @param event The pointer to the event to copy from. If nullptr, the last
+   *     event is marked invalid.
+   */
+  void setLastEvent(ChreSensorData *event);
+
+  /**
+   * Gets the current status of this sensor in the CHRE API format.
+   *
+   * @param status A non-null pointer to chreSensorSamplingStatus to populate
+   * @return true if the sampling status has been successfully obtained.
+   */
+  bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
+
+  /**
+   * Sets the current status of this sensor in the CHRE API format.
+   *
+   * @param status The current sampling status.
+   */
+  void setSamplingStatus(const struct chreSensorSamplingStatus &status);
+
  private:
+  size_t getLastEventSize() {
+    return SensorTypeHelpers::getLastEventSize(getSensorType());
+  }
+
+  //! The latest sampling status provided by the sensor.
+  struct chreSensorSamplingStatus mSamplingStatus = {};
+
+  //! Set to true only when this sensor is currently active and we have a copy
+  //! of the most recent event in lastEvent.
+  bool mLastEventValid = false;
+
+  //! The most recent event received for this sensor. Only enough memory is
+  //! allocated to store the sensor data for this particular sensor (a.k.a.
+  //! don't attempt to use other fields in this union).
+  ChreSensorData *mLastEvent = nullptr;
+
   //! The most recent sensor request accepted by the platform.
   SensorRequest mSensorRequest;
-
-  //! The most recent event received for this sensor;
-  ChreSensorData *mLastEvent;
 };
 
 }  // namespace chre

@@ -20,6 +20,43 @@
 
 namespace chre {
 
+Sensor::Sensor(Sensor &&other) : PlatformSensor(std::move(other)) {
+  *this = std::move(other);
+}
+
+Sensor &Sensor::operator=(Sensor &&other) {
+  PlatformSensor::operator=(std::move(other));
+
+  // Note: if this implementation is ever changed to depend on "this" containing
+  // initialized values, the move constructor implementation must be updated.
+  mLastEvent = other.mLastEvent;
+  other.mLastEvent = nullptr;
+
+  mLastEventValid = other.mLastEventValid;
+  other.mLastEventValid = false;
+
+  return *this;
+}
+
+Sensor::~Sensor() {
+  if (mLastEvent != nullptr) {
+    LOGD("Releasing lastEvent: sensor %s, size %zu", getSensorName(),
+         getLastEventSize());
+    memoryFree(mLastEvent);
+  }
+}
+
+void Sensor::init() {
+  size_t lastEventSize = getLastEventSize();
+  if (lastEventSize > 0) {
+    mLastEvent = static_cast<ChreSensorData *>(memoryAlloc(lastEventSize));
+    if (mLastEvent == nullptr) {
+      FATAL_ERROR("Failed to allocate last event memory for %s",
+                  getSensorName());
+    }
+  }
+}
+
 void Sensor::populateSensorInfo(struct chreSensorInfo *info,
                                 uint32_t targetApiVersion) const {
   info->sensorType = getSensorType();
@@ -34,6 +71,27 @@ void Sensor::populateSensorInfo(struct chreSensorInfo *info,
   if (targetApiVersion >= CHRE_API_VERSION_1_1) {
     info->minInterval = getMinInterval();
   }
+}
+
+void Sensor::setLastEvent(ChreSensorData *event) {
+  size_t lastEventSize = getLastEventSize();
+  if (event == nullptr || lastEventSize == 0) {
+    mLastEventValid = false;
+  } else {
+    memcpy(mLastEvent, event, lastEventSize);
+    mLastEventValid = true;
+  }
+}
+
+bool Sensor::getSamplingStatus(struct chreSensorSamplingStatus *status) const {
+  CHRE_ASSERT(status != nullptr);
+
+  memcpy(status, &mSamplingStatus, sizeof(*status));
+  return true;
+}
+
+void Sensor::setSamplingStatus(const struct chreSensorSamplingStatus &status) {
+  mSamplingStatus = status;
 }
 
 }  // namespace chre

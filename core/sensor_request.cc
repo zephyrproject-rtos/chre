@@ -47,9 +47,9 @@ SensorRequest::SensorRequest(SensorMode mode, Nanoseconds interval,
 
 SensorRequest::SensorRequest(uint32_t instanceId, SensorMode mode,
                              Nanoseconds interval, Nanoseconds latency)
-    : mInstanceId(instanceId),
-      mInterval(interval),
+    : mInterval(interval),
       mLatency(latency),
+      mInstanceId(instanceId),
       mMode(mode) {
   // cap non-default interval/latency to ensure no overflow in CHRE internal
   // operations.

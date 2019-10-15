@@ -25,7 +25,6 @@ extern "C" {
 
 #include "sns_suid.pb.h"
 
-#include "chre/core/sensor_type.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
 #include "chre/platform/slpi/see/see_cal_helper.h"
@@ -46,8 +45,8 @@ inline bool suidsMatch(const sns_std_suid &suid0, const sns_std_suid &suid1) {
 class SeeHelperCallbackInterface {
  public:
   struct SamplingStatusData {
-    SensorType sensorType;
     struct chreSensorSamplingStatus status;
+    uint8_t sensorType;
     bool enabledValid;
     bool intervalValid;
     bool latencyValid;
@@ -62,7 +61,7 @@ class SeeHelperCallbackInterface {
   //! Invoked by the SEE thread to provide sensor data events. The event data
   //! format is one of the chreSensorXXXData defined in the CHRE API, implicitly
   //! specified by sensorType.
-  virtual void onSensorDataEvent(SensorType sensorType,
+  virtual void onSensorDataEvent(uint8_t sensorType,
                                  UniquePtr<uint8_t> &&eventData) = 0;
 
   //! Invoked by the SEE thread to update the AP wake/suspend status.
@@ -73,10 +72,11 @@ class SeeHelperCallbackInterface {
   //! runtime-calibrated sensors, regardless of whether the runtime-calibrated
   //! or uncalibrated versions of the sensor is enabled.
   virtual void onSensorBiasEvent(
+      uint8_t sensorType,
       UniquePtr<struct chreSensorThreeAxisData> &&biasData) = 0;
 
   //! Invoked by the SEE thread to notify a flush complete
-  virtual void onFlushCompleteEvent(SensorType sensorType) = 0;
+  virtual void onFlushCompleteEvent(uint8_t sensorType) = 0;
 };
 
 //! Default timeout for waitForService. Have a longer timeout since there may be
@@ -99,7 +99,6 @@ constexpr size_t kSeeAttrStrValLen = 64;
 struct SeeAttributes {
   char vendor[kSeeAttrStrValLen];
   char name[kSeeAttrStrValLen];
-  char type[kSeeAttrStrValLen];
   int64_t hwId;
   float maxSampleRate;
   uint8_t streamType;
@@ -108,7 +107,7 @@ struct SeeAttributes {
 
 //! A struct to facilitate making sensor request
 struct SeeSensorRequest {
-  SensorType sensorType;
+  uint8_t sensorType;
   bool enable;
   bool passive;
   float samplingRateHz;
@@ -128,7 +127,7 @@ class SeeHelper : public NonCopyable {
   //! SensorType.
   struct SensorInfo {
     sns_std_suid suid;
-    SensorType sensorType;
+    uint8_t sensorType;
     sns_client *client;
     //! The SUID of the underlying physical sensor, different from suid if
     //! resampler is used.
@@ -212,7 +211,7 @@ class SeeHelper : public NonCopyable {
   /**
    * @return the SeeCalHelper instance used by this SeeHelper
    */
-  SeeCalHelper *getCalHelper() {
+  SeeCalHelper *getCalHelper() const {
     return mCalHelper;
   }
 
@@ -252,7 +251,7 @@ class SeeHelper : public NonCopyable {
    *
    * @return true if the request has been successfully made.
    */
-  bool flush(SensorType sensorType);
+  bool flush(uint8_t sensorType);
 
   /**
    * Register a SensorType with the SUID of the SEE sensor/driver.
@@ -272,7 +271,7 @@ class SeeHelper : public NonCopyable {
    *
    * @return true if the SUID/SensorType pair was successfully registered.
    */
-  bool registerSensor(SensorType sensorType, const sns_std_suid &suid,
+  bool registerSensor(uint8_t sensorType, const sns_std_suid &suid,
                       bool resample, bool *prevRegistered);
 
   /**
@@ -283,7 +282,7 @@ class SeeHelper : public NonCopyable {
    *
    * @return true if the given sensor type has been registered, false otherwise
    */
-  bool sensorIsRegistered(SensorType sensorType) const;
+  bool sensorIsRegistered(uint8_t sensorType) const;
 
  protected:
   struct SnsClientApi {
@@ -304,7 +303,7 @@ class SeeHelper : public NonCopyable {
    * @return A constant reference to the calibration sensor's SUID if present.
    *         Otherwise, a reference to sns_suid_sensor_init_zero is returned.
    */
-  const sns_std_suid &getCalSuidFromSensorType(SensorType sensorType) const {
+  const sns_std_suid &getCalSuidFromSensorType(uint8_t sensorType) const {
     return mCalHelper->getCalSuidFromSensorType(sensorType);
   }
 
@@ -498,9 +497,9 @@ class SeeHelper : public NonCopyable {
 
   /**
    * @return SensorInfo instance found in mSensorInfos with the given
-   *         SensorType, or nullptr if not found
+   *         sensor type, or nullptr if not found
    */
-  const SensorInfo *getSensorInfo(SensorType sensorType) const;
+  const SensorInfo *getSensorInfo(uint8_t sensorType) const;
 };
 
 #ifdef CHRE_SLPI_UIMG_ENABLED

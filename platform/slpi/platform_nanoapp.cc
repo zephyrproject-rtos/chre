@@ -74,16 +74,16 @@ void rewriteToChreEventType(uint16_t *eventType) {
  * @return The sensor type of the corresponding big-image sensor, or the input
  *     sensor type if one does not exist.
  */
-SensorType getBigImageSensorType(SensorType sensorType) {
+uint8_t getBigImageSensorType(uint8_t sensorType) {
   switch (sensorType) {
-    case SensorType::Accelerometer:
-      return SensorType::VendorType3;
-    case SensorType::UncalibratedAccelerometer:
-      return SensorType::VendorType6;
-    case SensorType::UncalibratedGyroscope:
-      return SensorType::VendorType7;
-    case SensorType::UncalibratedGeomagneticField:
-      return SensorType::VendorType8;
+    case CHRE_SENSOR_TYPE_ACCELEROMETER:
+      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
+      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
+      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
+    case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
+      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
     default:
       return sensorType;
   }
@@ -98,9 +98,14 @@ SensorType getBigImageSensorType(SensorType sensorType) {
  *     handle if one does not exist.
  */
 uint32_t getBigImageSensorHandle(uint32_t sensorHandle) {
-  SensorType sensorType = getSensorTypeFromSensorHandle(sensorHandle);
-  sensorType = getBigImageSensorType(sensorType);
-  return getSensorHandleFromSensorType(sensorType);
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          sensorHandle);
+  uint8_t bigImageType = getBigImageSensorType(sensor->getSensorType());
+  uint32_t bigImageHandle;
+  EventLoopManagerSingleton::get()->getSensorRequestManager().getSensorHandle(
+      bigImageType, &bigImageHandle);
+  return bigImageHandle;
 }
 
 /**

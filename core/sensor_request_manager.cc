@@ -150,8 +150,8 @@ void SensorRequestManager::init() {
   // sensors.
   mPlatformSensorManager.init();
 
-  const DynamicVector<Sensor> &sensors = mPlatformSensorManager.getSensors();
-  if (!mSensorRequests.initDefaultSize(sensors.size())) {
+  DynamicVector<Sensor> sensors = mPlatformSensorManager.getSensors();
+  if (sensors.size() > 0 && !mSensorRequests.initDefaultSize(sensors.size())) {
     LOG_OOM();
   } else {
     for (size_t i = 0; i < sensors.size(); i++) {
@@ -239,7 +239,7 @@ bool SensorRequestManager::setSensorRequest(
           }
 
           // Deliver last valid event to new clients of on-change sensors
-          if (sensor.isOnChange() && sensor.getLastEvent() != nullptr) {
+          if (sensor.getLastEvent() != nullptr) {
             EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
                 eventType, sensor.getLastEvent(), nullptr /* freeCallback */,
                 nanoapp->getInstanceId());
@@ -311,9 +311,7 @@ bool SensorRequestManager::removeAllRequests(uint32_t sensorHandle) {
 
 Sensor *SensorRequestManager::getSensor(uint32_t sensorHandle) {
   Sensor *sensorPtr = nullptr;
-  if (sensorHandle >= mSensorRequests.size()) {
-    LOG_INVALID_HANDLE(sensorHandle);
-  } else {
+  if (sensorHandle < mSensorRequests.size()) {
     sensorPtr = &mSensorRequests[sensorHandle].getSensor();
   }
   return sensorPtr;
@@ -384,7 +382,7 @@ bool SensorRequestManager::getThreeAxisBias(
     if (sensorHandle >= mSensorRequests.size()) {
       LOG_INVALID_HANDLE(sensorHandle);
     } else {
-      mPlatformSensorManager.getThreeAxisBias(
+      success = mPlatformSensorManager.getThreeAxisBias(
           mSensorRequests[sensorHandle].getSensor(), bias);
     }
   }
@@ -419,6 +417,7 @@ void SensorRequestManager::releaseSensorDataEvent(uint16_t eventType,
                                                   void *eventData) {
   // Remove all requests if it's a one-shot sensor and only after data has been
   // delivered to all clients.
+  mPlatformSensorManager.releaseSensorDataEvent(eventData);
   uint8_t sensorType = getSensorTypeForSampleEventType(eventType);
   uint32_t sensorHandle;
   if (getSensorHandle(sensorType, &sensorHandle)) {
@@ -468,7 +467,10 @@ void SensorRequestManager::handleFlushCompleteEvent(uint32_t sensorHandle,
 
 void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
                                                  void *event) {
-  if (sensorHandle < mSensorRequests.size()) {
+  if (sensorHandle >= mSensorRequests.size()) {
+    LOG_INVALID_HANDLE(sensorHandle);
+    mPlatformSensorManager.releaseSensorDataEvent(event);
+  } else {
     if (mSensorRequests[sensorHandle].getSensor().isOnChange()) {
       updateLastEvent(sensorHandle, event);
     }
@@ -514,7 +516,7 @@ void SensorRequestManager::handleSamplingStatusUpdate(
     // Schedule a deferred callback to handle sensor status change in the main
     // thread.
     EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::SensorStatusUpdate, status, callback);
+        SystemCallbackType::SensorStatusUpdate, cbData, callback);
   }
 }
 
@@ -523,7 +525,11 @@ void SensorRequestManager::handleBiasEvent(uint32_t sensorHandle,
   Sensor *sensor =
       EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
           sensorHandle);
-  if (sensor != nullptr) {
+  CHRE_ASSERT(sensor != nullptr);
+
+  if (sensor == nullptr) {
+    releaseBiasData(biasData);
+  } else {
     uint16_t eventType;
     if (!sensor->reportsBiasEvents() || !sensor->getBiasEventType(&eventType)) {
       LOGE("Received bias event for unsupported sensor type %s",

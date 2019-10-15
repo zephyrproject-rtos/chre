@@ -19,6 +19,7 @@
 
 #include "chre/core/sensor_request.h"
 #include "chre/core/sensor_type.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/target_platform/platform_sensor_base.h"
 #include "chre/util/dynamic_vector.h"
 
@@ -30,7 +31,7 @@ namespace chre {
  *
  * @see Sensor
  */
-class PlatformSensor : public PlatformSensorBase {
+class PlatformSensor : public PlatformSensorBase, public NonCopyable {
  public:
   /**
    * Obtains the SensorType of this platform sensor. The implementation of this
@@ -59,24 +60,7 @@ class PlatformSensor : public PlatformSensorBase {
    */
   const char *getSensorName() const;
 
-  /**
-   * Gets the current status of this sensor in the CHRE API format.
-   *
-   * @param status A non-null pointer to chreSensorSamplingStatus to populate
-   * @return true if the sampling status has been successfully obtained.
-   */
-  bool getSamplingStatus(struct chreSensorSamplingStatus *status) const;
-
-  /**
-   * Sets the current status of this sensor in the CHRE API format.
-   *
-   * @param status The current sampling status.
-   */
-  void setSamplingStatus(const struct chreSensorSamplingStatus &status);
-
  protected:
-  struct chreSensorSamplingStatus mSamplingStatus;
-
   /**
    * Default constructor that puts this instance in an unspecified state.
    * Additional platform-specific initialization will likely be necessary to put
@@ -84,6 +68,11 @@ class PlatformSensor : public PlatformSensorBase {
    * instead construct via Sensor.
    */
   PlatformSensor() = default;
+
+  PlatformSensor(PlatformSensor &&other);
+  PlatformSensor &operator=(PlatformSensor &&other);
+
+  ~PlatformSensor() = default;
 };
 
 }  // namespace chre

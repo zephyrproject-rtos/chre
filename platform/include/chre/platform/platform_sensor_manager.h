@@ -43,7 +43,7 @@ class PlatformSensorManager : public PlatformSensorManagerBase {
    * @return A DynamicVector to populate with the list of sensors the framework
    *     can send requests to.
    */
-  const DynamicVector<Sensor> getSensors();
+  DynamicVector<Sensor> getSensors();
 
   /**
    * Sends the sensor request to the provided sensor. The request issued through

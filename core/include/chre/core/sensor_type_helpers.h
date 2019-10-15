@@ -78,6 +78,17 @@ class SensorTypeHelpers : public PlatformSensorTypeHelpers {
    * @return true if this sensor has a bias event type.
    */
   static bool getBiasEventType(uint8_t sensorType, uint16_t *eventType);
+
+  /**
+   * Determines the size needed to store the latest event from a sensor. Since
+   * only on-change sensors have their latest events retained, only those
+   * sensors will receive a non-zero value from this method.
+   *
+   * @param sensorType The sensorType of this sensor.
+   * @return the memory size for an on-change sensor to store its last data
+   *     event.
+   */
+  static size_t getLastEventSize(uint8_t sensorType);
 };
 
 }  // namespace chre

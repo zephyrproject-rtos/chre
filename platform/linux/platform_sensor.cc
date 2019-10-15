@@ -34,4 +34,18 @@ const char *PlatformSensor::getSensorName() const {
   return mSensorInfo->sensorName;
 }
 
+PlatformSensor::PlatformSensor(PlatformSensor &&other) {
+  *this = std::move(other);
+}
+
+PlatformSensor &PlatformSensor::operator=(PlatformSensor &&other) {
+  // Note: if this implementation is ever changed to depend on "this" containing
+  // initialized values, the move constructor implementation must be updated.
+  mSensorHandle = other.mSensorHandle;
+  mSensorInfo = other.mSensorInfo;
+  other.mSensorInfo = nullptr;
+
+  return *this;
+}
+
 }  // namespace chre
