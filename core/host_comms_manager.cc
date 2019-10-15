@@ -83,7 +83,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
 
 MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
     uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
-    const void *messageData, uint32_t messageSize) {
+    const void *messageData, size_t messageSize) {
   MessageFromHost *msgFromHost = mMessagePool.allocate();
   if (msgFromHost == nullptr) {
     LOG_OOM();
