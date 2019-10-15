@@ -19,7 +19,6 @@
 
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
-#include "chre/util/nanoapp/sensor.h"
 #include "chre/util/time.h"
 
 #define LOG_TAG "[SensorWorld]"
@@ -29,7 +28,6 @@ namespace chre {
 namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
-using chre::getSensorNameForEventType;
 using chre::kOneMillisecondInNanoseconds;
 using chre::Milliseconds;
 using chre::Seconds;
@@ -231,6 +229,15 @@ uint16_t getNextLfsrState() {
   return lfsr;
 }
 
+const char *getSensorName(uint32_t sensorHandle) {
+  for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
+    if (sensors[i].handle == sensorHandle) {
+      return sensors[i].info.sensorName;
+    }
+  }
+  return nullptr;
+}
+
 void handleTimerEvent(const void *eventData) {
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     SensorState &sensor = sensors[i];
@@ -252,7 +259,7 @@ void handleTimerEvent(const void *eventData) {
       }
 
       LOGI("Configure [enable %d, status %d]: %s", enable, status,
-           getSensorTypeName(sensor.type));
+           sensor.info.sensorName);
     }
   }
 
@@ -341,7 +348,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       z /= header.readingCount;
 
       CLOGI("%s, %d samples: %f %f %f, t=%" PRIu64 " ms",
-            getSensorNameForEventType(eventType), header.readingCount, x, y, z,
+            getSensorName(header.sensorHandle), header.readingCount, x, y, z,
             header.baseTimestamp / kOneMillisecondInNanoseconds);
 
       if (eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA) {
@@ -371,7 +378,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       v /= header.readingCount;
 
       CLOGI("%s, %d samples: %f, t=%" PRIu64 " ms",
-            getSensorNameForEventType(eventType), header.readingCount, v,
+            getSensorName(header.sensorHandle), header.readingCount, v,
             header.baseTimestamp / kOneMillisecondInNanoseconds);
       break;
     }
@@ -383,7 +390,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       sampleTime = header.baseTimestamp;
 
       CLOGI("%s, %d samples: isNear %d, invalid %d",
-            getSensorNameForEventType(eventType), header.readingCount,
+            getSensorName(header.sensorHandle), header.readingCount,
             reading.isNear, reading.invalid);
 
       CLOGI("Prox time: sample %" PRIu64 " chre %" PRIu64 " delta %" PRId64
@@ -420,7 +427,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
       const auto header = ev->header;
 
-      CLOGI("%s, %d samples", getSensorNameForEventType(eventType),
+      CLOGI("%s, %d samples", getSensorName(header.sensorHandle),
             header.readingCount);
       break;
     }

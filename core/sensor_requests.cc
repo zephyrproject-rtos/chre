@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-#include "chre/util/nanoapp/sensor.h"
+#include "chre/core/sensor_requests.h"
 
-#include "chre/core/sensor_request.h"
-#include "chre_api/chre/sensor.h"
+#include "chre/core/event_loop_manager.h"
 
 namespace chre {
 
-const char *getSensorNameForEventType(uint16_t eventType) {
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  return getSensorTypeName(sensorType);
+void SensorRequests::clearPendingFlushRequest() {
+  cancelPendingFlushRequestTimer();
+  mFlushRequestPending = false;
 }
 
-const char *getSensorTypeName(uint8_t sensorType) {
-  SensorType type = getSensorTypeFromUnsignedInt(sensorType);
-  return getSensorTypeName(type);
+void SensorRequests::cancelPendingFlushRequestTimer() {
+  if (mFlushRequestTimerHandle != CHRE_TIMER_INVALID) {
+    EventLoopManagerSingleton::get()->cancelDelayedCallback(
+        mFlushRequestTimerHandle);
+    mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+  }
 }
 
 }  // namespace chre

@@ -18,6 +18,7 @@ COMMON_SRCS += core/init.cc
 COMMON_SRCS += core/nanoapp.cc
 COMMON_SRCS += core/sensor.cc
 COMMON_SRCS += core/sensor_request.cc
+COMMON_SRCS += core/sensor_requests.cc
 COMMON_SRCS += core/sensor_request_manager.cc
 COMMON_SRCS += core/sensor_type.cc
 COMMON_SRCS += core/sensor_type_helpers.cc
