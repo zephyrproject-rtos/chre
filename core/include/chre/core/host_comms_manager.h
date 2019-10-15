@@ -198,7 +198,7 @@ class HostCommsManager : public NonCopyable {
                                                uint16_t hostEndpoint,
                                                uint32_t messageType,
                                                const void *messageData,
-                                               size_t messageSize);
+                                               uint32_t messageSize);
 
   /**
    * Posts a crafted event, craftedMessage, to a nanoapp for processing, and
