@@ -83,7 +83,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
 
 MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
     uint64_t appId, uint16_t hostEndpoint, uint32_t messageType,
-    const void *messageData, size_t messageSize) {
+    const void *messageData, uint32_t messageSize) {
   MessageFromHost *msgFromHost = mMessagePool.allocate();
   if (msgFromHost == nullptr) {
     LOG_OOM();
@@ -98,7 +98,7 @@ MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
   } else {
     msgFromHost->appId = appId;
     msgFromHost->fromHostData.messageType = messageType;
-    msgFromHost->fromHostData.messageSize = static_cast<uint32_t>(messageSize);
+    msgFromHost->fromHostData.messageSize = messageSize;
     msgFromHost->fromHostData.message = msgFromHost->message.data();
     msgFromHost->fromHostData.hostEndpoint = hostEndpoint;
   }
@@ -142,7 +142,8 @@ void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
     LOGE("Rejecting message of size %zu (too big)", messageSize);
   } else {
     MessageFromHost *craftedMessage = craftNanoappMessageFromHost(
-        appId, hostEndpoint, messageType, messageData, messageSize);
+        appId, hostEndpoint, messageType, messageData,
+        static_cast<uint32_t>(messageSize));
     if (craftedMessage == nullptr) {
       LOGE("Out of memory - rejecting message to app ID 0x%016" PRIx64
            "(size %zu)",
