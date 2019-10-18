@@ -21,6 +21,7 @@
 #include <chre.h>
 
 #include <general_test/basic_audio_test.h>
+#include <general_test/basic_flush_async_test.h>
 #include <general_test/basic_gnss_test.h>
 #include <general_test/basic_sensor_tests.h>
 #include <general_test/basic_wifi_test.h>
@@ -184,6 +185,7 @@ void App::createTest(const void *eventData) {
   }
 
   auto data = static_cast<const chreMessageFromHostData *>(eventData);
+
   switch (static_cast<TestNames>(data->reservedMessageType)) {
     using namespace general_test;
 
@@ -229,6 +231,7 @@ void App::createTest(const void *eventData) {
     CASE(kHostAwakeSuspend, HostAwakeSuspendTest);
     CASE(kBasicGnssTest, BasicGnssTest);
     CASE(kBasicWifiTest, BasicWifiTest);
+    CASE(kBasicSensorFlushAsyncTest, BasicSensorFlushAsyncTest);
 
 #undef CASE
 

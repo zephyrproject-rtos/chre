@@ -222,6 +222,11 @@ enum class TestNames : uint32_t {
    * Test: BasicWifiTest
    */
   kBasicWifiTest = 0x0425,
+
+  /**
+   * Test: SensorFlushAsyncTest
+   */
+  kBasicSensorFlushAsyncTest = 0x0426,
 };
 
 }  // namespace general_test
