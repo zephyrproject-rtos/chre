@@ -767,4 +767,51 @@ TEST(DynamicVector, Resize) {
   EXPECT_EQ(vector[1].value, 1);
   EXPECT_EQ(vector[2].value, 4);
   EXPECT_EQ(vector[3].value, 5);
+
+  // Reset index for future tests
+  FancyInt::index = 0;
+}
+
+class NotCopyableOrMovable : public chre::NonCopyable, public FancyInt {
+ public:
+  NotCopyableOrMovable() = default;
+
+  NotCopyableOrMovable(NotCopyableOrMovable &&other) = delete;
+  NotCopyableOrMovable &operator=(NotCopyableOrMovable &&other) = delete;
+};
+
+TEST(DynamicVector, InitDefaultSize) {
+  DynamicVector<NotCopyableOrMovable> vector;
+  ASSERT_TRUE(vector.initDefaultSize(4));
+
+  EXPECT_EQ(vector[0].value, 0);
+  EXPECT_EQ(vector[1].value, 1);
+  EXPECT_EQ(vector[2].value, 2);
+  EXPECT_EQ(vector[3].value, 3);
+
+  // Reset index for future tests
+  FancyInt::index = 0;
+}
+
+TEST(DynamicVector, InitDefaultSize_NonEmptyArray) {
+  DynamicVector<FancyInt> vector;
+  ASSERT_TRUE(vector.resize(4));
+
+  ASSERT_FALSE(vector.initDefaultSize(10));
+  EXPECT_EQ(vector.size(), 4);
+
+  // Reset index for future tests
+  FancyInt::index = 0;
+}
+
+TEST(DynamicVector, InitDefaultSize_EmptiedArray) {
+  DynamicVector<FancyInt> vector;
+  ASSERT_TRUE(vector.resize(4));
+  vector.clear();
+
+  ASSERT_FALSE(vector.initDefaultSize(10));
+  EXPECT_EQ(vector.size(), 0);
+
+  // Reset index for future tests
+  FancyInt::index = 0;
 }
