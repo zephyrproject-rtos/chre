@@ -25,13 +25,8 @@
 
 extern "C" {
 
-#ifdef CHRE_SLPI_SEE
 #include "sns_island_util.h"
-#endif  // CHRE_SLPI_SEE
-
-#if defined(CHRE_SLPI_SMGR) || defined(CHRE_SLPI_SEE)
 #include "sns_memmgr.h"
-#endif
 
 }  // extern "C"
 
@@ -39,9 +34,6 @@ namespace chre {
 
 void *memoryAlloc(size_t size) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-#if defined(CHRE_SLPI_SMGR)
-  return SNS_OS_U_MALLOC(SNS_CHRE, size);
-#elif defined(CHRE_SLPI_SEE)
   void *ptr = sns_malloc(SNS_HEAP_CHRE_ISLAND, size);
 
   // Fall back to big image memory when uimg memory is exhausted.
@@ -61,9 +53,6 @@ void *memoryAlloc(size_t size) {
 
   return ptr;
 #else
-#error SLPI UIMG memory allocation not supported
-#endif
-#else
   return malloc(size);
 #endif  // CHRE_SLPI_UIMG_ENABLED
 }
@@ -78,9 +67,6 @@ void *palSystemApiMemoryAlloc(size_t size) {
 
 void memoryFree(void *pointer) {
 #ifdef CHRE_SLPI_UIMG_ENABLED
-#if defined(CHRE_SLPI_SMGR)
-  SNS_OS_FREE(pointer);
-#elif defined(CHRE_SLPI_SEE)
   if (sns_island_is_island_ptr(reinterpret_cast<intptr_t>(pointer))) {
     sns_free(pointer);
   } else {
@@ -94,9 +80,6 @@ void memoryFree(void *pointer) {
       IslandVoteClientSingleton::get()->decrementBigImageRefCount();
     }
   }
-#else
-#error SLPI UIMG memory free not supported
-#endif
 #else
   free(pointer);
 #endif  // CHRE_SLPI_UIMG_ENABLED
