@@ -61,9 +61,15 @@ extern "C" {
 #define CHRE_PAL_GNSS_API_V1_3 CHRE_PAL_CREATE_API_VERSION(1, 3)
 
 /**
+ * Introduced alongside CHRE API v1.4, adding support for carrier frequency in
+ * chreGnssMeasurement delivered by measurementStatusChangeCallback.
+ */
+#define CHRE_PAL_GNSS_API_V1_4 CHRE_PAL_CREATE_API_VERSION(1, 4)
+
+/**
  * The version of the CHRE GNSS PAL defined in this header file.
  */
-#define CHRE_PAL_GNSS_API_CURRENT_VERSION CHRE_PAL_GNSS_API_V1_3
+#define CHRE_PAL_GNSS_API_CURRENT_VERSION CHRE_PAL_GNSS_API_V1_4
 
 struct chrePalGnssCallbacks {
   /**

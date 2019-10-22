@@ -168,6 +168,7 @@ extern "C" {
 #define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1B_PAGE_SYNC      UINT16_C(1 << 12)
 #define CHRE_GNSS_MEASUREMENT_STATE_SBAS_SYNC              UINT16_C(1 << 13)
 
+#define CHRE_GNSS_MEASUREMENT_CARRIER_FREQURNCY_UNKNOWN    0.f
 
 /**
  * Indicates a type of request made in this API. Used to populate the resultType
@@ -291,8 +292,19 @@ struct chreGnssMeasurement {
     //! @see #chreGnssMultipathIndicator
     uint8_t multipath_indicator;
 
-    //! Reserved for future use; set to 0
-    uint8_t reserved[4];
+    //! Carrier frequency of the signal tracked in Hz.
+    //! For example, it can be the GPS central frequency for L1 = 1575.45 MHz,
+    //! or L2 = 1227.60 MHz, L5 = 1176.45 MHz, various GLO channels, etc.
+    //!
+    //! Set to CHRE_GNSS_MEASUREMENT_CARRIER_FREQUENCY_UNKNOWN if not reported.
+    //!
+    //! For an L1, L5 receiver tracking a satellite on L1 and L5 at the same
+    //! time, two chreGnssMeasurement structs must be reported for this same
+    //! satellite, in one of the measurement structs, all the values related to
+    //! L1 must be filled, and in the other all of the values related to L5
+    //! must be filled.
+    //! @since v1.4
+    float carrier_frequency_hz;
 };
 
 /**
