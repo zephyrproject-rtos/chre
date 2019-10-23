@@ -59,26 +59,6 @@ DynamicVector<ElementType> &DynamicVector<ElementType>::operator=(
 }
 
 template <typename ElementType>
-bool DynamicVector<ElementType>::initDefaultSize(size_type size) {
-  bool success = false;
-  if (mData == nullptr && size > 0) {
-    ElementType *newData =
-        static_cast<ElementType *>(memoryAlloc(size * sizeof(ElementType)));
-    if (newData != nullptr) {
-      for (size_type i = 0; i < size; i++) {
-        new (&newData[i]) ElementType();
-      }
-      mData = newData;
-      mCapacity = size;
-      mSize = size;
-      success = true;
-    }
-  }
-
-  return success;
-}
-
-template <typename ElementType>
 void DynamicVector<ElementType>::clear() {
   destroy(data(), mSize);
   mSize = 0;

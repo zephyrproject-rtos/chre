@@ -139,9 +139,9 @@ void updateSamplingStatus(uint32_t sensorHandle,
 }  // namespace
 
 SensorRequestManager::~SensorRequestManager() {
-  for (size_t i = 0; i < mSensorRequests.size(); i++) {
+  for (size_t i = 0; i < mSensors.size(); i++) {
     // Disable sensors that have been enabled previously.
-    removeAllRequests(mSensorRequests[i]);
+    removeAllRequests(mSensors[i]);
   }
 }
 
@@ -150,14 +150,7 @@ void SensorRequestManager::init() {
   // sensors.
   mPlatformSensorManager.init();
 
-  DynamicVector<Sensor> sensors = mPlatformSensorManager.getSensors();
-  if (sensors.size() > 0 && !mSensorRequests.initDefaultSize(sensors.size())) {
-    LOG_OOM();
-  } else {
-    for (size_t i = 0; i < sensors.size(); i++) {
-      mSensorRequests[i].setSensor(std::move(sensors[i]));
-    }
-  }
+  mSensors = mPlatformSensorManager.getSensors();
 }
 
 bool SensorRequestManager::getSensorHandle(uint8_t sensorType,
@@ -165,8 +158,8 @@ bool SensorRequestManager::getSensorHandle(uint8_t sensorType,
   CHRE_ASSERT(sensorHandle);
 
   bool sensorHandleIsValid = false;
-  for (uint32_t i = 0; i < mSensorRequests.size(); i++) {
-    if (mSensorRequests[i].getSensor().getSensorType() == sensorType) {
+  for (uint32_t i = 0; i < mSensors.size(); i++) {
+    if (mSensors[i].getSensorType() == sensorType) {
       sensorHandleIsValid = true;
       *sensorHandle = i;
       break;
@@ -184,17 +177,17 @@ bool SensorRequestManager::setSensorRequest(
   bool success = false;
   bool requestChanged = false;
 
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
   } else {
-    SensorRequests &requests = mSensorRequests[sensorHandle];
-    const Sensor &sensor = requests.getSensor();
+    Sensor &sensor = mSensors[sensorHandle];
     if (isSensorRequestValid(sensor, sensorRequest)) {
       size_t requestIndex;
       uint8_t sensorType = sensor.getSensorType();
       uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
-      bool nanoappHasRequest = findRequest(nanoapp->getInstanceId(), requests,
-                                           &requestIndex) != nullptr;
+      bool nanoappHasRequest =
+          sensor.getRequestMultiplexer().findRequest(nanoapp->getInstanceId(),
+                                                     &requestIndex) != nullptr;
 
       if (sensorRequest.getMode() == SensorMode::Off) {
         if (nanoappHasRequest) {
@@ -202,7 +195,7 @@ bool SensorRequestManager::setSensorRequest(
           // request. The existing request is removed from the multiplexer. The
           // nanoapp is unregistered from events of this type if this request
           // was successful.
-          success = removeRequest(requests, requestIndex, &requestChanged);
+          success = removeRequest(sensor, requestIndex, &requestChanged);
           if (success) {
             cancelFlushRequests(sensorType, nanoapp->getInstanceId());
 
@@ -226,7 +219,7 @@ bool SensorRequestManager::setSensorRequest(
         // existing request. The request is newly created and added to the
         // multiplexer. The nanoapp is registered for events if this request was
         // successful.
-        success = addRequest(requests, sensorRequest, &requestChanged);
+        success = addRequest(sensor, sensorRequest, &requestChanged);
         if (success) {
           nanoapp->registerForBroadcastEvent(eventType);
 
@@ -248,8 +241,8 @@ bool SensorRequestManager::setSensorRequest(
       } else {
         // The request changes the mode to the enabled state and there was an
         // existing request. The existing request is updated.
-        success = updateRequest(requests, requestIndex, sensorRequest,
-                                &requestChanged);
+        success =
+            updateRequest(sensor, requestIndex, sensorRequest, &requestChanged);
       }
 
       // TODO: Allow translating the sensor request
@@ -274,11 +267,11 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
   CHRE_ASSERT(info);
 
   bool success = false;
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
   } else {
-    mSensorRequests[sensorHandle].getSensor().populateSensorInfo(
-        info, nanoapp.getTargetApiVersion());
+    mSensors[sensorHandle].populateSensorInfo(info,
+                                              nanoapp.getTargetApiVersion());
     success = true;
   }
 
@@ -287,13 +280,13 @@ bool SensorRequestManager::getSensorInfo(uint32_t sensorHandle,
 
 bool SensorRequestManager::removeAllRequests(uint32_t sensorHandle) {
   bool success = false;
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
   } else {
-    SensorRequests &requests = mSensorRequests[sensorHandle];
-    uint8_t sensorType = requests.getSensor().getSensorType();
+    Sensor &sensor = mSensors[sensorHandle];
+    uint8_t sensorType = sensor.getSensorType();
     uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
-    for (const SensorRequest &request : requests.getRequests()) {
+    for (const SensorRequest &request : sensor.getRequests()) {
       Nanoapp *nanoapp = EventLoopManagerSingleton::get()
                              ->getEventLoop()
                              .findNanoappByInstanceId(request.getInstanceId());
@@ -303,7 +296,7 @@ bool SensorRequestManager::removeAllRequests(uint32_t sensorHandle) {
     }
 
     cancelFlushRequests(sensorType);
-    success = removeAllRequests(requests);
+    success = removeAllRequests(sensor);
   }
 
   return success;
@@ -311,8 +304,8 @@ bool SensorRequestManager::removeAllRequests(uint32_t sensorHandle) {
 
 Sensor *SensorRequestManager::getSensor(uint32_t sensorHandle) {
   Sensor *sensorPtr = nullptr;
-  if (sensorHandle < mSensorRequests.size()) {
-    sensorPtr = &mSensorRequests[sensorHandle].getSensor();
+  if (sensorHandle < mSensors.size()) {
+    sensorPtr = &mSensors[sensorHandle];
   }
   return sensorPtr;
 }
@@ -322,11 +315,10 @@ bool SensorRequestManager::getSensorSamplingStatus(
   CHRE_ASSERT(status);
 
   bool success = false;
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
   } else {
-    success =
-        mSensorRequests[sensorHandle].getSensor().getSamplingStatus(status);
+    success = mSensors[sensorHandle].getSamplingStatus(status);
   }
 
   return success;
@@ -334,24 +326,24 @@ bool SensorRequestManager::getSensorSamplingStatus(
 
 const DynamicVector<SensorRequest> &SensorRequestManager::getRequests(
     uint32_t sensorHandle) const {
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
     sensorHandle = 0;
   }
-  return mSensorRequests[sensorHandle].getRequests();
+  return mSensors[sensorHandle].getRequests();
 }
 
 bool SensorRequestManager::configureBiasEvents(Nanoapp *nanoapp,
                                                uint32_t sensorHandle,
                                                bool enable) {
   bool success = false;
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
-  } else if (enable && !mSensorRequests[sensorHandle].isSensorEnabled()) {
+  } else if (enable && !mSensors[sensorHandle].isSensorEnabled()) {
     LOGE("Bias events can't be configured for a disabled sensor!");
   } else {
     uint16_t eventType;
-    Sensor &sensor = mSensorRequests[sensorHandle].getSensor();
+    Sensor &sensor = mSensors[sensorHandle];
     if (sensor.getBiasEventType(&eventType)) {
       uint64_t currentLatency = 0;
       if (enable) {
@@ -379,11 +371,11 @@ bool SensorRequestManager::getThreeAxisBias(
 
   bool success = false;
   if (bias != nullptr) {
-    if (sensorHandle >= mSensorRequests.size()) {
+    if (sensorHandle >= mSensors.size()) {
       LOG_INVALID_HANDLE(sensorHandle);
     } else {
-      success = mPlatformSensorManager.getThreeAxisBias(
-          mSensorRequests[sensorHandle].getSensor(), bias);
+      success =
+          mPlatformSensorManager.getThreeAxisBias(mSensors[sensorHandle], bias);
     }
   }
 
@@ -395,11 +387,11 @@ bool SensorRequestManager::flushAsync(Nanoapp *nanoapp, uint32_t sensorHandle,
   bool success = false;
 
   uint32_t nanoappInstanceId = nanoapp->getInstanceId();
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
-  } else if (mSensorRequests[sensorHandle].getSensor().isOneShot()) {
+  } else if (mSensors[sensorHandle].isOneShot()) {
     LOGE("Cannot flush a one-shot sensor of type %" PRIu8,
-         mSensorRequests[sensorHandle].getSensor().getSensorType());
+         mSensors[sensorHandle].getSensorType());
   } else if (mFlushRequestQueue.full()) {
     LOG_OOM();
   } else {
@@ -420,23 +412,21 @@ void SensorRequestManager::releaseSensorDataEvent(uint16_t eventType,
   mPlatformSensorManager.releaseSensorDataEvent(eventData);
   uint8_t sensorType = getSensorTypeForSampleEventType(eventType);
   uint32_t sensorHandle;
-  if (getSensorHandle(sensorType, &sensorHandle)) {
-    Sensor &sensor = mSensorRequests[sensorHandle].getSensor();
-    if (sensor.isOneShot()) {
-      removeAllRequests(sensorHandle);
-    }
+  if (getSensorHandle(sensorType, &sensorHandle) &&
+      mSensors[sensorHandle].isOneShot()) {
+    removeAllRequests(sensorHandle);
   }
 }
 
 void SensorRequestManager::handleFlushCompleteEvent(uint32_t sensorHandle,
                                                     uint32_t flushRequestId,
                                                     uint8_t errorCode) {
-  if (sensorHandle < mSensorRequests.size() &&
-      mSensorRequests[sensorHandle].isFlushRequestPending()) {
+  if (sensorHandle < mSensors.size() &&
+      mSensors[sensorHandle].isFlushRequestPending()) {
     // Cancel flush request timer before posting to the event queue to ensure
     // a timeout event isn't processed by CHRE now that the complete event
     // has been received.
-    mSensorRequests[sensorHandle].cancelPendingFlushRequestTimer();
+    mSensors[sensorHandle].cancelPendingFlushRequestTimer();
 
     struct CallbackState {
       uint8_t errorCode;
@@ -467,20 +457,20 @@ void SensorRequestManager::handleFlushCompleteEvent(uint32_t sensorHandle,
 
 void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
                                                  void *event) {
-  if (sensorHandle >= mSensorRequests.size()) {
+  if (sensorHandle >= mSensors.size()) {
     LOG_INVALID_HANDLE(sensorHandle);
     mPlatformSensorManager.releaseSensorDataEvent(event);
   } else {
-    if (mSensorRequests[sensorHandle].getSensor().isOnChange()) {
+    if (mSensors[sensorHandle].isOnChange()) {
       updateLastEvent(sensorHandle, event);
     }
 
-    uint16_t eventType = getSampleEventTypeForSensorType(
-        mSensorRequests[sensorHandle].getSensor().getSensorType());
+    uint16_t eventType =
+        getSampleEventTypeForSensorType(mSensors[sensorHandle].getSensorType());
 
     // Only allow dropping continuous sensor events since losing one-shot or
     // on-change events could result in nanoapps stuck in a bad state.
-    if (mSensorRequests[sensorHandle].getSensor().isContinuous()) {
+    if (mSensors[sensorHandle].isContinuous()) {
       EventLoopManagerSingleton::get()
           ->getEventLoop()
           .postLowPriorityEventOrFree(eventType, event, sensorDataEventFree);
@@ -549,13 +539,13 @@ void SensorRequestManager::handleBiasEvent(uint32_t sensorHandle,
 
 void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nSensors:\n");
-  for (uint8_t i = 0; i < mSensorRequests.size(); i++) {
-    for (const auto &request : mSensorRequests[i].getRequests()) {
+  for (uint8_t i = 0; i < mSensors.size(); i++) {
+    for (const auto &request : mSensors[i].getRequests()) {
       // TODO: Rearrange these prints to be similar to sensor request logs
       // below
       debugDump.print(
           " %s: mode=%d int=%" PRIu64 " lat=%" PRIu64 " nappId=%" PRIu32 "\n",
-          mSensorRequests[i].getSensor().getSensorName(), request.getMode(),
+          mSensors[i].getSensorName(), request.getMode(),
           request.getInterval().toRawNanoseconds(),
           request.getLatency().toRawNanoseconds(), request.getInstanceId());
     }
@@ -570,7 +560,7 @@ void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
     if (getSensorHandle(log.sensorType, &sensorHandle)) {
       debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " sensType=%s mode=%s",
                       log.timestamp.toRawNanoseconds(), log.instanceId,
-                      mSensorRequests[sensorHandle].getSensor().getSensorName(),
+                      mSensors[sensorHandle].getSensorName(),
                       getSensorModeName(log.mode));
     }
 
@@ -607,7 +597,7 @@ void SensorRequestManager::completeFlushRequestAtIndex(size_t index,
     const FlushRequest &request = mFlushRequestQueue[index];
     uint32_t sensorHandle = request.sensorHandle;
     if (request.isActive) {
-      mSensorRequests[sensorHandle].clearPendingFlushRequest();
+      mSensors[sensorHandle].clearPendingFlushRequest();
     }
 
     postFlushCompleteEvent(sensorHandle, errorCode, request);
@@ -654,8 +644,7 @@ void SensorRequestManager::cancelFlushRequests(uint32_t sensorHandle,
     }
   }
 
-  SensorRequests &requests = mSensorRequests[sensorHandle];
-  if (!requests.isFlushRequestPending()) {
+  if (!mSensors[sensorHandle].isFlushRequestPending()) {
     dispatchNextFlushRequest(sensorHandle);
   }
 }
@@ -669,39 +658,21 @@ void SensorRequestManager::addSensorRequestLog(
       sensorRequest.getLatency()));
 }
 
-const SensorRequest *SensorRequestManager::findRequest(uint32_t instanceId,
-                                                       SensorRequests &requests,
-                                                       size_t *index) const {
-  CHRE_ASSERT(index);
-
-  RequestMultiplexer<SensorRequest> &multiplexer = requests.getMultiplexer();
-  const auto &multiplexerRequests = multiplexer.getRequests();
-  for (size_t i = 0; i < multiplexerRequests.size(); i++) {
-    const SensorRequest &sensorRequest = multiplexerRequests[i];
-    if (sensorRequest.getInstanceId() == instanceId) {
-      *index = i;
-      return &sensorRequest;
-    }
-  }
-
-  return nullptr;
-}
-
-bool SensorRequestManager::addRequest(SensorRequests &requests,
+bool SensorRequestManager::addRequest(Sensor &sensor,
                                       const SensorRequest &request,
                                       bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
 
   size_t addIndex;
   bool success = true;
-  RequestMultiplexer<SensorRequest> &multiplexer = requests.getMultiplexer();
+  SensorRequestMultiplexer &multiplexer = sensor.getRequestMultiplexer();
   if (!multiplexer.addRequest(request, &addIndex, requestChanged)) {
     *requestChanged = false;
     success = false;
     LOG_OOM();
   } else if (*requestChanged) {
     success = mPlatformSensorManager.configureSensor(
-        requests.getSensor(), multiplexer.getCurrentMaximalRequest());
+        sensor, multiplexer.getCurrentMaximalRequest());
     if (!success) {
       // Remove the newly added request since the platform failed to handle
       // it. The sensor is expected to maintain the existing request so there is
@@ -718,19 +689,18 @@ bool SensorRequestManager::addRequest(SensorRequests &requests,
   return success;
 }
 
-bool SensorRequestManager::updateRequest(SensorRequests &requests,
-                                         size_t updateIndex,
+bool SensorRequestManager::updateRequest(Sensor &sensor, size_t updateIndex,
                                          const SensorRequest &request,
                                          bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
 
   bool success = true;
-  RequestMultiplexer<SensorRequest> &multiplexer = requests.getMultiplexer();
+  SensorRequestMultiplexer &multiplexer = sensor.getRequestMultiplexer();
   SensorRequest previousRequest = multiplexer.getRequests()[updateIndex];
   multiplexer.updateRequest(updateIndex, request, requestChanged);
   if (*requestChanged) {
     success = mPlatformSensorManager.configureSensor(
-        requests.getSensor(), multiplexer.getCurrentMaximalRequest());
+        sensor, multiplexer.getCurrentMaximalRequest());
     if (!success) {
       // Roll back the request since sending it to the sensor failed. The
       // request will roll back to the previous maximal. The sensor is
@@ -747,17 +717,15 @@ bool SensorRequestManager::updateRequest(SensorRequests &requests,
   return success;
 }
 
-bool SensorRequestManager::removeRequest(SensorRequests &requests,
-                                         size_t removeIndex,
+bool SensorRequestManager::removeRequest(Sensor &sensor, size_t removeIndex,
                                          bool *requestChanged) {
   CHRE_ASSERT(requestChanged != nullptr);
 
   bool success = true;
-  requests.getMultiplexer().removeRequest(removeIndex, requestChanged);
+  sensor.getRequestMultiplexer().removeRequest(removeIndex, requestChanged);
   if (*requestChanged) {
     success = mPlatformSensorManager.configureSensor(
-        requests.getSensor(),
-        requests.getMultiplexer().getCurrentMaximalRequest());
+        sensor, sensor.getRequestMultiplexer().getCurrentMaximalRequest());
     if (!success) {
       LOGE("SensorRequestManager failed to remove a request");
 
@@ -775,15 +743,14 @@ bool SensorRequestManager::removeRequest(SensorRequests &requests,
   return success;
 }
 
-bool SensorRequestManager::removeAllRequests(SensorRequests &requests) {
+bool SensorRequestManager::removeAllRequests(Sensor &sensor) {
   bool requestChanged;
-  requests.getMultiplexer().removeAllRequests(&requestChanged);
+  sensor.getRequestMultiplexer().removeAllRequests(&requestChanged);
 
   bool success = true;
   if (requestChanged) {
     SensorRequest emptyRequest;
-    success = mPlatformSensorManager.configureSensor(requests.getSensor(),
-                                                     emptyRequest);
+    success = mPlatformSensorManager.configureSensor(sensor, emptyRequest);
 
     if (!success) {
       LOGE("SensorRequestManager failed to remove all request");
@@ -801,18 +768,18 @@ bool SensorRequestManager::removeAllRequests(SensorRequests &requests) {
 
 uint8_t SensorRequestManager::makeFlushRequest(FlushRequest &request) {
   uint8_t errorCode = CHRE_ERROR;
-  SensorRequests &requests = mSensorRequests[request.sensorHandle];
-  if (!requests.isSensorEnabled()) {
+  Sensor &sensor = mSensors[request.sensorHandle];
+  if (!sensor.isSensorEnabled()) {
     LOGE("Cannot flush on disabled sensor");
-  } else if (!requests.isFlushRequestPending()) {
+  } else if (!sensor.isFlushRequestPending()) {
     Nanoseconds now = SystemTime::getMonotonicTime();
     Nanoseconds deadline = request.deadlineTimestamp;
     if (now >= deadline) {
       LOGE("Flush sensor %s failed for nanoapp ID %" PRIu32
            ": deadline exceeded",
-           requests.getSensor().getSensorName(), request.nanoappInstanceId);
+           sensor.getSensorName(), request.nanoappInstanceId);
       errorCode = CHRE_ERROR_TIMEOUT;
-    } else if (doMakeFlushRequest(requests)) {
+    } else if (doMakeFlushRequest(sensor)) {
       errorCode = CHRE_ERROR_NONE;
       Nanoseconds delay = deadline - now;
       request.isActive = true;
@@ -835,7 +802,7 @@ uint8_t SensorRequestManager::makeFlushRequest(FlushRequest &request) {
             .handleFlushCompleteEventSync(CHRE_ERROR_TIMEOUT, nestedIndex.data);
       };
 
-      requests.setFlushRequestTimerHandle(
+      sensor.setFlushRequestTimerHandle(
           EventLoopManagerSingleton::get()->setDelayedCallback(
               SystemCallbackType::SensorFlushTimeout, index.dataPtr, callback,
               delay));
@@ -850,16 +817,15 @@ uint8_t SensorRequestManager::makeFlushRequest(FlushRequest &request) {
   return errorCode;
 }
 
-bool SensorRequestManager::doMakeFlushRequest(SensorRequests &requests) {
+bool SensorRequestManager::doMakeFlushRequest(Sensor &sensor) {
   // Set to true before making the request since the request may be a
   // synchronous request and we may get the complete event before it returns.
-  requests.setFlushRequestPending(true);
+  sensor.setFlushRequestPending(true);
   // TODO: Refactor code to take the request ID into account so multiple flush
   // requests can be issued.
   uint32_t flushRequestId;
-  bool success =
-      mPlatformSensorManager.flush(requests.getSensor(), &flushRequestId);
-  requests.setFlushRequestPending(success);
+  bool success = mPlatformSensorManager.flush(sensor, &flushRequestId);
+  sensor.setFlushRequestPending(success);
   return success;
 }
 

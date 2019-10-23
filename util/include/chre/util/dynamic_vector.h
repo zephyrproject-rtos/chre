@@ -63,25 +63,6 @@ class DynamicVector : private DynamicVectorBase {
   ~DynamicVector();
 
   /**
-   * If called before any other methods are invoked on the DynamicVector after
-   * default construction, allocates capacity for newSize elements and
-   * default-inserts that many instances of ElementType into the vector. No
-   * copies are made.
-   *
-   * If the DynamicVector is not in its default-constructed state, this method
-   * will make no changes to the vector's size and will return false.
-   *
-   * This is meant to provide a method to construct to a DynamicVector of
-   * immovable and non-copyable elements similar to
-   * std::vector(size_type count). This can't be made into a constructor since
-   * CHRE is unable to throw an exception if the memory allocation fails.
-   *
-   * @param size The size the vector should become.
-   * @return true if the init operation was successful.
-   */
-  bool initDefaultSize(size_type size);
-
-  /**
    * Removes all elements from the vector, but does not change the capacity.
    * All iterators and references are invalidated.
    */

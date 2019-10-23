@@ -14,23 +14,26 @@
  * limitations under the License.
  */
 
-#include "chre/core/sensor_requests.h"
+#include "chre/core/sensor_request_multiplexer.h"
 
 #include "chre/core/event_loop_manager.h"
 
 namespace chre {
 
-void SensorRequests::clearPendingFlushRequest() {
-  cancelPendingFlushRequestTimer();
-  mFlushRequestPending = false;
-}
+const SensorRequest *SensorRequestMultiplexer::findRequest(
+    uint32_t instanceId, size_t *index) const {
+  CHRE_ASSERT(index);
 
-void SensorRequests::cancelPendingFlushRequestTimer() {
-  if (mFlushRequestTimerHandle != CHRE_TIMER_INVALID) {
-    EventLoopManagerSingleton::get()->cancelDelayedCallback(
-        mFlushRequestTimerHandle);
-    mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+  const DynamicVector<SensorRequest> &requests = getRequests();
+  for (size_t i = 0; i < requests.size(); i++) {
+    const SensorRequest &sensorRequest = requests[i];
+    if (sensorRequest.getInstanceId() == instanceId) {
+      *index = i;
+      return &sensorRequest;
+    }
   }
+
+  return nullptr;
 }
 
 }  // namespace chre

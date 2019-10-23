@@ -16,19 +16,27 @@
 
 #include "chre/core/sensor.h"
 
+#include "chre/core/event_loop_manager.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
 
-Sensor::Sensor(Sensor &&other) : PlatformSensor(std::move(other)) {
+Sensor::Sensor(Sensor &&other)
+    : PlatformSensor(std::move(other)), mFlushRequestPending(false) {
   *this = std::move(other);
 }
 
 Sensor &Sensor::operator=(Sensor &&other) {
   PlatformSensor::operator=(std::move(other));
 
-  // Note: if this implementation is ever changed to depend on "this" containing
-  // initialized values, the move constructor implementation must be updated.
+  mSensorRequests = std::move(other.mSensorRequests);
+
+  mFlushRequestTimerHandle = other.mFlushRequestTimerHandle;
+  other.mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+
+  mFlushRequestPending = other.mFlushRequestPending.load();
+  other.mFlushRequestPending = false;
+
   mLastEvent = other.mLastEvent;
   other.mLastEvent = nullptr;
 
@@ -70,6 +78,19 @@ void Sensor::populateSensorInfo(struct chreSensorInfo *info,
   // nanoapps targeting v1.0 as their struct will not be large enough
   if (targetApiVersion >= CHRE_API_VERSION_1_1) {
     info->minInterval = getMinInterval();
+  }
+}
+
+void Sensor::clearPendingFlushRequest() {
+  cancelPendingFlushRequestTimer();
+  mFlushRequestPending = false;
+}
+
+void Sensor::cancelPendingFlushRequestTimer() {
+  if (mFlushRequestTimerHandle != CHRE_TIMER_INVALID) {
+    EventLoopManagerSingleton::get()->cancelDelayedCallback(
+        mFlushRequestTimerHandle);
+    mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
   }
 }
 

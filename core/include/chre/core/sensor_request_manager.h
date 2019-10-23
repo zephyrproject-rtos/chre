@@ -19,7 +19,7 @@
 
 #include "chre/core/sensor.h"
 #include "chre/core/sensor_request.h"
-#include "chre/core/sensor_requests.h"
+#include "chre/core/sensor_request_multiplexer.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/platform_sensor_manager.h"
 #include "chre/platform/system_time.h"
@@ -287,8 +287,8 @@ class SensorRequestManager : public NonCopyable {
     SensorMode mode;
   };
 
-  //! The list of sensor requests.
-  DynamicVector<SensorRequests> mSensorRequests;
+  //! The list of all sensors
+  DynamicVector<Sensor> mSensors;
 
   //! The list of logged sensor requests
   static constexpr size_t kMaxSensorRequestLogs = 15;
@@ -314,71 +314,52 @@ class SensorRequestManager : public NonCopyable {
   /**
    * Make a flush request through PlatformSensorManager.
    *
-   * @param requests The requests that contain the state for the sensor that
-   *     needs to be flushed.
+   * @param sensor The sensor to flush.
    * @return true if the flush request was successfully made.
    */
-  bool doMakeFlushRequest(SensorRequests &requests);
-
-  /**
-   * Searches through the list of sensor requests for a request owned by the
-   * given nanoapp. The provided non-null index pointer is populated with the
-   * index of the request if it is found.
-   *
-   * @param instanceId The instance ID of the nanoapp whose request is being
-   *        searched for.
-   * @param requests The list of requests to search through.
-   * @param index A non-null pointer to an index that is populated if a
-   *        request for this nanoapp is found.
-   * @return A pointer to a SensorRequest that is owned by the provided
-   *         nanoapp if one is found otherwise nullptr.
-   */
-  const SensorRequest *findRequest(uint32_t instanceId,
-                                   SensorRequests &requests,
-                                   size_t *index) const;
+  bool doMakeFlushRequest(Sensor &sensor);
 
   /**
    * Removes all requests and consolidates all the maximal request changes
    * into one sensor configuration update.
    *
-   * @param requests The list of requests to clear.
+   * @param sensor The sensor to clear all requests for.
    * @return true if all the requests have been removed and sensor
    *         configuration successfully updated.
    */
-  bool removeAllRequests(SensorRequests &requests);
+  bool removeAllRequests(Sensor &sensor);
 
   /**
    * Removes a sensor request from the given lists of requests. The provided
    * index must fall in the range of the sensor requests available.
    *
-   * @param requests The list of requests to remove from.
+   * @param sensor The sensor to remove the request from.
    * @param removeIndex The index to remove the request from.
    * @param requestChanged A non-null pointer to a bool to indicate that the
    *        net request made to the sensor has changed. This boolean is always
    *        assigned to the status of the request changing (true or false).
    * @return true if the remove operation was successful.
    */
-  bool removeRequest(SensorRequests &requests, size_t removeIndex,
-                     bool *requestChanged);
+  bool removeRequest(Sensor &sensor, size_t removeIndex, bool *requestChanged);
 
   /**
    * Adds a new sensor request to the given list of requests.
    *
-   * @param requests The list of requests to add to.
+   * @param sensor The sensor to add the request to.
    * @param request The request to add to the multiplexer.
    * @param requestChanged A non-null pointer to a bool to indicate that the
    *        net request made to the sensor has changed. This boolean is always
    *        assigned to the status of the request changing (true or false).
    * @return true if the add operation was successful.
    */
-  bool addRequest(SensorRequests &requests, const SensorRequest &request,
+  bool addRequest(Sensor &sensor, const SensorRequest &request,
                   bool *requestChanged);
 
   /**
    * Updates a sensor request in the given list of requests. The provided index
    * must fall in range of the sensor requests managed by the multiplexer.
    *
-   * @param requests The list of requests to update.
+   * @param sensor The sensor that will be updated.
    * @param updateIndex The index to update the request at.
    * @param request The new sensor request to replace the existing request
    *        with.
@@ -387,7 +368,7 @@ class SensorRequestManager : public NonCopyable {
    *        assigned to the status of the request changing (true or false).
    * @return true if the update operation was successful.
    */
-  bool updateRequest(SensorRequests &requests, size_t updateIndex,
+  bool updateRequest(Sensor &sensor, size_t updateIndex,
                      const SensorRequest &request, bool *requestChanged);
 
   /**

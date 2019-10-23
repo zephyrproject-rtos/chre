@@ -17,7 +17,10 @@
 #ifndef CHRE_CORE_SENSOR_H_
 #define CHRE_CORE_SENSOR_H_
 
+#include "chre/core/sensor_request_multiplexer.h"
 #include "chre/core/sensor_type_helpers.h"
+#include "chre/core/timer_pool.h"
+#include "chre/platform/atomic.h"
 #include "chre/platform/platform_sensor.h"
 #include "chre/util/optional.h"
 
@@ -41,7 +44,7 @@ class Sensor : public PlatformSensor {
    *
    * @see PlatformSensorManager::getSensors
    */
-  Sensor() = default;
+  Sensor() : mFlushRequestPending(false) {}
 
   Sensor(Sensor &&other);
   Sensor &operator=(Sensor &&other);
@@ -54,6 +57,13 @@ class Sensor : public PlatformSensor {
    * PlatformSensor methods to work is set up.
    */
   void init();
+
+  /**
+   * @return true if the sensor is currently enabled.
+   */
+  bool isSensorEnabled() const {
+    return !mSensorRequests.getRequests().empty();
+  }
 
   /**
    * Obtains a reference to the latest request that has been accepted by the
@@ -72,6 +82,21 @@ class Sensor : public PlatformSensor {
    */
   void setRequest(const SensorRequest &request) {
     mSensorRequest = request;
+  }
+
+  /**
+   * @return A reference to the list of all active requests for this sensor.
+   */
+  const DynamicVector<SensorRequest> &getRequests() const {
+    return mSensorRequests.getRequests();
+  }
+
+  /**
+   * @return A reference to the multiplexer for all active requests for this
+   *     sensor.
+   */
+  SensorRequestMultiplexer &getRequestMultiplexer() {
+    return mSensorRequests;
   }
 
   /**
@@ -119,6 +144,43 @@ class Sensor : public PlatformSensor {
    */
   void populateSensorInfo(struct chreSensorInfo *info,
                           uint32_t targetApiVersion) const;
+
+  /**
+   * Clears any states (e.g. timeout timer and relevant flags) associated
+   * with a pending flush request.
+   */
+  void clearPendingFlushRequest();
+
+  /**
+   * Cancels the pending timeout timer associated with a flush request.
+   */
+  void cancelPendingFlushRequestTimer();
+
+  /**
+   * Sets the timer handle used to time out an active flush request for this
+   * sensor.
+   *
+   * @param handle Timer handle for the current flush request.
+   */
+  void setFlushRequestTimerHandle(TimerHandle handle) {
+    mFlushRequestTimerHandle = handle;
+  }
+
+  /**
+   * Sets whether a flush request is pending or not.
+   *
+   * @param pending bool indicating whether a flush is pending.
+   */
+  void setFlushRequestPending(bool pending) {
+    mFlushRequestPending = pending;
+  }
+
+  /**
+   * @return true if a flush is pending.
+   */
+  bool isFlushRequestPending() const {
+    return mFlushRequestPending;
+  }
 
   /**
    * @return Pointer to this sensor's last data event. It returns a nullptr if
@@ -172,6 +234,15 @@ class Sensor : public PlatformSensor {
 
   //! The most recent sensor request accepted by the platform.
   SensorRequest mSensorRequest;
+
+  //! The multiplexer for all requests for this sensor.
+  SensorRequestMultiplexer mSensorRequests;
+
+  //! The timeout timer handle for the current flush request.
+  TimerHandle mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
+
+  //! True if a flush request is pending for this sensor.
+  AtomicBool mFlushRequestPending;
 };
 
 }  // namespace chre
