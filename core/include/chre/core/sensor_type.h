@@ -22,6 +22,15 @@
 
 #include "chre_api/chre/sensor.h"
 
+/**
+ * @file
+ * This file contains miscellaneous types useful in the core framework and
+ * platform implementations for dealing with sensors.
+ *
+ * Additionally, it contains methods useful for converting between these types
+ * and types used by the CHRE APIs and other miscellaneous helper methods that
+ * help make the rest of the codebase more readable.
+ */
 namespace chre {
 
 //! Indicates the reporting mode of the sensor

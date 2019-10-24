@@ -23,7 +23,8 @@
 namespace chre {
 
 /**
- * Keeps track of the state of a sensor along with the various requests for it.
+ * Provides methods on top of the RequestMultiplexer class specific for working
+ * with SensorRequest objects.
  */
 class SensorRequestMultiplexer : public RequestMultiplexer<SensorRequest> {
  public:

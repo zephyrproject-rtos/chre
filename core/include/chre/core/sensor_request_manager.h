@@ -30,8 +30,13 @@
 
 namespace chre {
 
-// TODO(b/139693714): Update documentation for this and various other sensor
-// classes.
+/**
+ * Handles requests from nanoapps for sensor data and information. This includes
+ * multiplexing multiple requests into one for the platform to handle.
+ *
+ * This class is effectively a singleton as there can only be one instance of
+ * the PlatformSensorManager instance.
+ */
 class SensorRequestManager : public NonCopyable {
  public:
   /**

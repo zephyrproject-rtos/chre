@@ -24,6 +24,11 @@
 
 namespace chre {
 
+/**
+ * Handles communicating with all CHRE-supported sensors in the system at the
+ * behest of the core framework while also managing the receipt of various
+ * sensor events that CHRE is able to process.
+ */
 class PlatformSensorManager : public PlatformSensorManagerBase {
  public:
   ~PlatformSensorManager();
