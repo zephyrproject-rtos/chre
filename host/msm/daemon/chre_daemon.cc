@@ -81,6 +81,7 @@
 #include <hardware_legacy/power.h>
 
 using android::sp;
+using android::wp;
 using android::hardware::Return;
 using android::hardware::soundtrigger::V2_0::ISoundTriggerHw;
 using android::hardware::soundtrigger::V2_0::SoundModelHandle;
@@ -115,15 +116,32 @@ static bool start_thread(pthread_t *thread_handle,
 //! The name of the wakelock to use for the CHRE daemon.
 static const char kWakeLockName[] = "chre_daemon";
 
+//! Forward declarations
+static void onStHalServiceDeath();
+
+//! Class to handle when a connected ST HAL service dies.
+class StHalDeathRecipient : public android::hardware::hidl_death_recipient {
+  virtual void serviceDied(
+      uint64_t /* cookie */,
+      const wp<::android::hidl::base::V1_0::IBase>& /* who */) override {
+    LOGE("ST HAL service died.");
+    onStHalServiceDeath();
+  }
+};
+
 struct LpmaEnableThreadData {
   pthread_t thread;
   pthread_mutex_t mutex;
   pthread_cond_t cond;
   bool currentLpmaEnabled;
   bool targetLpmaEnabled;
+  bool connectedToService;
+  sp<StHalDeathRecipient> deathRecipient = new StHalDeathRecipient();
+  sp<ISoundTriggerHw> stHalService;
 };
 
 static LpmaEnableThreadData lpmaEnableThread;
+
 #endif  // CHRE_DAEMON_LPMA_ENABLED
 
 //! The host ID to use when preloading nanoapps. This is used before the server
@@ -275,6 +293,22 @@ static int64_t getTimeOffset(bool *success) {
   return timeOffset;
 }
 
+static int startChreThread() {
+  int ret;
+  // Retry a few times in case the SLPI is not ready yet.
+  constexpr size_t kMaxNumRetries = 5;
+  size_t numRetries = 0;
+  useconds_t retryDelayUs = 50000; // 50 ms initially
+  while (((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS)
+         && numRetries < kMaxNumRetries) {
+    usleep(retryDelayUs);
+    numRetries++;
+    retryDelayUs *= 2;
+  }
+
+  return ret;
+}
+
 static void sendTimeSyncMessage() {
   bool timeSyncSuccess = true;
   int64_t timeOffset = getTimeOffset(&timeSyncSuccess);
@@ -287,7 +321,8 @@ static void sendTimeSyncMessage() {
         static_cast<int>(builder.GetSize()));
 
     if (success != 0) {
-      LOGE("Failed to deliver timestamp message from host to CHRE: %d", success);
+      LOGE("Failed to deliver time sync message from host to CHRE: %d",
+           success);
     }
   }
 }
@@ -326,6 +361,38 @@ static void setLpmaState(bool enabled) {
   pthread_cond_signal(&lpmaEnableThread.cond);
 }
 
+static void onStHalServiceDeath() {
+  pthread_mutex_lock(&lpmaEnableThread.mutex);
+  lpmaEnableThread.connectedToService = false;
+  if (lpmaEnableThread.targetLpmaEnabled) {
+    // ST HAL has died, so assume that the sound model is no longer active,
+    // and trigger a reload of the sound model.
+    lpmaEnableThread.currentLpmaEnabled = false;
+    pthread_cond_signal(&lpmaEnableThread.cond);
+  }
+  pthread_mutex_unlock(&lpmaEnableThread.mutex);
+}
+
+/**
+ * Connects to the ST HAL service, if not already. This method should only
+ * be invoked after acquiring the lpmaEnableThread.mutex lock.
+ *
+ * @return true if successfully connected to the HAL.
+ */
+static bool connectToStHalServiceLocked() {
+  if (!lpmaEnableThread.connectedToService) {
+    lpmaEnableThread.stHalService = ISoundTriggerHw::getService();
+    if (lpmaEnableThread.stHalService != nullptr) {
+      LOGI("Connected to ST HAL service");
+      lpmaEnableThread.connectedToService = true;
+      lpmaEnableThread.stHalService->linkToDeath(
+          lpmaEnableThread.deathRecipient, 0 /* flags */);
+    }
+  }
+
+  return lpmaEnableThread.connectedToService;
+}
+
 /**
  * Loads the LPMA use case via the SoundTrigger HAL HIDL service.
  *
@@ -348,12 +415,12 @@ static bool loadLpma(SoundModelHandle *lpmaHandle) {
   soundModel.data.resize(1);  // Insert a dummy byte to bypass HAL NULL checks.
 
   bool loaded = false;
-  sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
-  if (stHal == nullptr) {
+  if (!connectToStHalServiceLocked()) {
     LOGE("Failed to get ST HAL service for LPMA load");
   } else {
     int32_t loadResult;
-    Return<void> hidlResult = stHal->loadSoundModel(soundModel, NULL, 0,
+    Return<void> hidlResult = lpmaEnableThread.stHalService->loadSoundModel(
+        soundModel, NULL /* callback */, 0 /* cookie */,
         [&](int32_t retval, SoundModelHandle handle) {
             loadResult = retval;
             *lpmaHandle = handle;
@@ -389,11 +456,11 @@ static bool loadLpma(SoundModelHandle *lpmaHandle) {
 static void unloadLpma(SoundModelHandle lpmaHandle) {
   LOGD("Unloading LPMA");
 
-  sp<ISoundTriggerHw> stHal = ISoundTriggerHw::getService();
-  if (stHal == nullptr) {
+  if (!connectToStHalServiceLocked()) {
     LOGE("Failed to get ST HAL service for LPMA unload");
   } else {
-    Return<int32_t> hidlResult = stHal->unloadSoundModel(lpmaHandle);
+    Return<int32_t> hidlResult =
+        lpmaEnableThread.stHalService->unloadSoundModel(lpmaHandle);
 
     if (hidlResult.isOk()) {
       if (hidlResult == 0) {
@@ -912,9 +979,7 @@ int main() {
     LOGE("Couldn't initialize LPMA enable thread");
 #endif  // CHRE_DAEMON_LPMA_ENABLED
   } else {
-    // Send time offset message before nanoapps start
-    sendTimeSyncMessage();
-    if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
+    if ((ret = startChreThread()) != CHRE_FASTRPC_SUCCESS) {
       LOGE("Failed to start CHRE: %d", ret);
     } else {
       if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
@@ -924,6 +989,8 @@ int main() {
         LOGE("Couldn't start CHRE->Host message thread");
       } else {
         LOGI("CHRE started");
+        // Send a time sync message before any of the nanoapps start.
+        sendTimeSyncMessage();
         loadPreloadedNanoapps();
 
         // TODO: take 2nd argument as command-line parameter
