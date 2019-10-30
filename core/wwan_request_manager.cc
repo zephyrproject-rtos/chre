@@ -65,10 +65,9 @@ void WwanRequestManager::handleCellInfoResultSync(
     chreWwanCellInfoResult *result) {
   if (mCellInfoRequestingNanoappInstanceId.has_value()) {
     result->cookie = mCellInfoRequestingNanoappCookie;
-    EventLoopManagerSingleton::get()->getEventLoop()
-        .postEvent(CHRE_EVENT_WWAN_CELL_INFO_RESULT, result,
-                   freeCellInfoResultCallback, kSystemInstanceId,
-                   mCellInfoRequestingNanoappInstanceId.value());
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_WWAN_CELL_INFO_RESULT, result, freeCellInfoResultCallback,
+        mCellInfoRequestingNanoappInstanceId.value());
   } else {
     LOGE("Cell info results received unexpectedly");
   }

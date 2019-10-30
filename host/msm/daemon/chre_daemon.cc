@@ -293,23 +293,13 @@ static int64_t getTimeOffset(bool *success) {
   return timeOffset;
 }
 
-static int startChreThread() {
-  int ret;
-  // Retry a few times in case the SLPI is not ready yet.
-  constexpr size_t kMaxNumRetries = 5;
-  size_t numRetries = 0;
-  useconds_t retryDelayUs = 50000; // 50 ms initially
-  while (((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS)
-         && numRetries < kMaxNumRetries) {
-    usleep(retryDelayUs);
-    numRetries++;
-    retryDelayUs *= 2;
-  }
 
-  return ret;
-}
-
-static void sendTimeSyncMessage() {
+/**
+ * @param logOnError If true, logs an error message on failure.
+ *
+ * @return true if the time sync message was successfully sent to CHRE.
+ */
+static bool sendTimeSyncMessage(bool logOnError) {
   bool timeSyncSuccess = true;
   int64_t timeOffset = getTimeOffset(&timeSyncSuccess);
 
@@ -321,10 +311,36 @@ static void sendTimeSyncMessage() {
         static_cast<int>(builder.GetSize()));
 
     if (success != 0) {
-      LOGE("Failed to deliver time sync message from host to CHRE: %d",
-           success);
+      if (logOnError) {
+        LOGE("Failed to deliver time sync message from host to CHRE: %d",
+             success);
+      }
+      timeSyncSuccess = false;
     }
   }
+
+  return timeSyncSuccess;
+}
+
+/**
+ * Sends a time sync message to CHRE, retrying a specified time until success.
+ *
+ * @param maxNumRetries The number of times to retry sending the message
+ *
+ * @return true if the time sync message was successfully sent to CHRE.
+ */
+static bool sendTimeSyncMessageRetry(size_t maxNumRetries) {
+  size_t numRetries = 0;
+  useconds_t retryDelayUs = 50000; // 50 ms initially
+  bool success = sendTimeSyncMessage(numRetries == maxNumRetries);
+  while (!success && numRetries < maxNumRetries) {
+    usleep(retryDelayUs);
+    numRetries++;
+    retryDelayUs *= 2;
+    success = sendTimeSyncMessage(numRetries == maxNumRetries);
+  }
+
+  return success;
 }
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
@@ -829,7 +845,7 @@ static void *chre_message_to_host_thread(void *arg) {
       if (messageType == fbs::ChreMessage::LogMessage) {
         parseAndEmitLogMessages(messageBuffer);
       } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
-        sendTimeSyncMessage();
+        sendTimeSyncMessage(true /* logOnError */);
 #ifdef CHRE_DAEMON_LPMA_ENABLED
       } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {
         setLpmaState(true);
@@ -972,14 +988,20 @@ int main() {
   }
 #endif  // ADSPRPC
 
-  if (!init_reverse_monitor(&reverse_monitor)) {
+  // Send time sync message before nanoapps start, retrying a few times
+  // in case the SLPI is not ready yet. This retry logic must be placed before
+  // any of the other FastRPC method invocations.
+  constexpr size_t kMaxNumRetries = 5;
+  if (!sendTimeSyncMessageRetry(kMaxNumRetries)) {
+    LOGE("Failed to send initial time sync message");
+  } else if (!init_reverse_monitor(&reverse_monitor)) {
     LOGE("Couldn't initialize reverse monitor");
 #ifdef CHRE_DAEMON_LPMA_ENABLED
   } else if (!initLpmaEnableThread(&lpmaEnableThread)) {
     LOGE("Couldn't initialize LPMA enable thread");
 #endif  // CHRE_DAEMON_LPMA_ENABLED
   } else {
-    if ((ret = startChreThread()) != CHRE_FASTRPC_SUCCESS) {
+    if ((ret = chre_slpi_start_thread()) != CHRE_FASTRPC_SUCCESS) {
       LOGE("Failed to start CHRE: %d", ret);
     } else {
       if (!start_thread(&monitor_thread, chre_monitor_thread, NULL)) {
@@ -989,8 +1011,6 @@ int main() {
         LOGE("Couldn't start CHRE->Host message thread");
       } else {
         LOGI("CHRE started");
-        // Send a time sync message before any of the nanoapps start.
-        sendTimeSyncMessage();
         loadPreloadedNanoapps();
 
         // TODO: take 2nd argument as command-line parameter

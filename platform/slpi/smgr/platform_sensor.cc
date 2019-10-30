@@ -532,21 +532,6 @@ void *allocateAndPopulateEvent(
   }
 }
 
-void smgrSensorDataEventFree(uint16_t eventType, void *eventData) {
-  // Events are allocated using the simple memoryAlloc/memoryFree platform
-  // functions.
-  // TODO: Consider using a MemoryPool.
-  memoryFree(eventData);
-
-  // Remove all requests if it's a one-shot sensor and only after data has been
-  // delivered to all clients.
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .removeAllRequests(sensorType);
-  }
-}
-
 /**
  * Handles sensor data provided by the SMGR framework.
  *
@@ -599,9 +584,9 @@ void handleSensorDataIndication(
           updateLastEvent(sensorType, eventData);
         }
 
-        EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
-            getSampleEventTypeForSensorType(sensorType), eventData,
-            smgrSensorDataEventFree);
+        EventLoopManagerSingleton::get()
+            ->getSensorRequestManager()
+            .handleSensorEvent(sensorType, eventData);
       }
     }
   }  // if (validReport)
@@ -871,9 +856,9 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
     event->sensorHandle = sensorHandle;
     memcpy(&event->status, &status, sizeof(event->status));
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
-        kSystemInstanceId, instanceId);
+        instanceId);
   }
 }
 
@@ -933,7 +918,7 @@ void handleSensorStatusMonitorIndication(
   if (sensor == nullptr) {
     LOGE("Sensor ID: %" PRIu8 " in status update doesn't correspond to "
          "valid sensor.", sensorId);
-  // SMGR should send all callbacks back on the same thread which 
+  // SMGR should send all callbacks back on the same thread which
   // means the following code won't result in any timers overriding one
   // another.
   } else if (sensor->timerHandle.load() == CHRE_TIMER_INVALID) {
