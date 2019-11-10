@@ -106,8 +106,6 @@ struct reverse_monitor_thread_data {
 
 static void *chre_message_to_host_thread(void *arg);
 static void *chre_monitor_thread(void *arg);
-static void *chre_reverse_monitor_thread(void *arg);
-static bool init_reverse_monitor(struct reverse_monitor_thread_data *data);
 static bool start_thread(pthread_t *thread_handle,
                          thread_entry_point_f *thread_entry, void *arg);
 
@@ -897,59 +895,6 @@ static void *chre_monitor_thread(void *arg) {
 }
 
 /**
- * Entry point for the "reverse" monitor thread, which invokes a FastRPC method
- * to register a thread destructor, and blocks waiting on a condition variable.
- * This allows for the code running in the DSP to detect abnormal shutdown of
- * the host-side binary and perform graceful cleanup.
- *
- * @return always returns NULL
- */
-static void *chre_reverse_monitor_thread(void *arg) {
-  struct reverse_monitor_thread_data *thread_data =
-      (struct reverse_monitor_thread_data *)arg;
-
-  int ret = chre_slpi_initialize_reverse_monitor();
-  if (ret != CHRE_FASTRPC_SUCCESS) {
-    LOGE("Failed to initialize reverse monitor: %d", ret);
-  } else {
-    // Block here on the condition variable until the main thread notifies
-    // us to exit
-    pthread_mutex_lock(&thread_data->mutex);
-    pthread_cond_wait(&thread_data->cond, &thread_data->mutex);
-    pthread_mutex_unlock(&thread_data->mutex);
-  }
-
-  LOGV("Reverse monitor thread exited");
-  return NULL;
-}
-
-/**
- * Initializes the data shared with the reverse monitor thread, and starts the
- * thread.
- *
- * @param data Pointer to structure containing the (uninitialized) condition
- *        variable and associated data passed to the reverse monitor thread
- *
- * @return true on success
- */
-static bool init_reverse_monitor(struct reverse_monitor_thread_data *data) {
-  bool success = false;
-  int ret;
-
-  if ((ret = pthread_mutex_init(&data->mutex, NULL)) != 0) {
-    LOG_ERROR("Failed to initialize mutex", ret);
-  } else if ((ret = pthread_cond_init(&data->cond, NULL)) != 0) {
-    LOG_ERROR("Failed to initialize condition variable", ret);
-  } else if (!start_thread(&data->thread, chre_reverse_monitor_thread, data)) {
-    LOGE("Couldn't start reverse monitor thread");
-  } else {
-    success = true;
-  }
-
-  return success;
-}
-
-/**
  * Start a thread with default attributes, or log an error on failure
  *
  * @return bool true if the thread was successfully started
@@ -976,7 +921,6 @@ int main() {
   pthread_t monitor_thread;
   pthread_t msg_to_host_thread;
 
-  struct reverse_monitor_thread_data reverse_monitor;
   ::android::chre::SocketServer server;
 
 #ifdef ADSPRPC
@@ -996,8 +940,15 @@ int main() {
   constexpr size_t kMaxNumRetries = 5;
   if (!sendTimeSyncMessageRetry(kMaxNumRetries)) {
     LOGE("Failed to send initial time sync message");
-  } else if (!init_reverse_monitor(&reverse_monitor)) {
-    LOGE("Couldn't initialize reverse monitor");
+    // Reverse monitor invokes a FastRPC method to allow the code running in
+    // CHRE to detect abnormal shutdown of the host-side daemon and perform a
+    // gracefull cleanup.
+    // ToDo: consolidate the chre_slpi_initialize_reverse_monitor() logic into
+    // an always-running daemon thread to eliminate the FastRPC call and save
+    // space in the CHRE framework.
+  } else if ((ret = chre_slpi_initialize_reverse_monitor()) !=
+             CHRE_FASTRPC_SUCCESS) {
+    LOGE("Failed to initialize reverse monitor: %d", ret);
 #ifdef CHRE_DAEMON_LPMA_ENABLED
   } else if (!initLpmaEnableThread(&lpmaEnableThread)) {
     LOGE("Couldn't initialize LPMA enable thread");
@@ -1029,13 +980,6 @@ int main() {
         ret = pthread_join(monitor_thread, NULL);
         if (ret != 0) {
           LOG_ERROR("Join on monitor thread failed", ret);
-        }
-
-        LOGV("Joining reverse monitor thread");
-        pthread_cond_signal(&reverse_monitor.cond);
-        ret = pthread_join(reverse_monitor.thread, NULL);
-        if (ret != 0) {
-          LOG_ERROR("Join on reverse monitor thread failed", ret);
         }
 
         LOGV("Joining message to host thread");
