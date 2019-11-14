@@ -359,8 +359,11 @@ void BasicWifiTest::handleChreWifiAsyncEvent(const chreAsyncResult *result) {
   validateChreAsyncResult(result, mCurrentWifiRequest.value());
 
   switch (result->requestType) {
-    case CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN:
     case CHRE_WIFI_REQUEST_TYPE_RANGING:
+      // Reuse same start timestamp as the scan request since ranging fields
+      // may be retrieved automatically as part of that scan.
+      break;
+    case CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN:
       mStartTimestampNs = chreGetTime();
       break;
     case CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR:
@@ -417,8 +420,7 @@ void BasicWifiTest::startScanAsyncTestStage() {
 void BasicWifiTest::startRangingAsyncTestStage() {
   // If no scans were received, the test has nothing to range with so simply
   // mark it as a success.
-  // TODO: Enable ranging test once b/140635936 is resolved.
-  if (false && mWifiCapabilities & CHRE_WIFI_CAPABILITIES_RTT_RANGING &&
+  if (mWifiCapabilities & CHRE_WIFI_CAPABILITIES_RTT_RANGING &&
       mLatestWifiScanResults.size() != 0) {
     testRequestRangingAsync(mLatestWifiScanResults.data(),
                             mLatestWifiScanResults.size());
