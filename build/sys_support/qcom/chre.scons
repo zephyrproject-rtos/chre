@@ -196,16 +196,16 @@ prereq = env.HeaderBuilder("${BUILDPATH}/chre_slpi.h", libchre_slpi_skel_idl)
 
 chre_cc_src = [
 # Various Qualcomm protobufs needed by CHRE code
-    "${BUILD_ROOT}/ssc_api/pb/sns_client.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_suid.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_cal.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_physical_sensor_test.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_proximity.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_remote_proc_state.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_resampler.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_std.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_std_sensor.pb.c",
-    "${BUILD_ROOT}/ssc_api/pb/sns_std_type.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_client.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_suid.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_cal.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_physical_sensor_test.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_proximity.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_remote_proc_state.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_resampler.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_std.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_std_sensor.pb.c",
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_std_type.pb.c",
 
 # Core CHRE framework code
     "${BUILDPATH}/system/chre/core/event.cc",
