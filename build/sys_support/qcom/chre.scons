@@ -48,7 +48,7 @@ env.Replace(HEXAGONCC_OPT = ' -O0 ')
 env.Replace(CFLAGS = ' -G0')
 
 env.Replace(HEXAGONCC_WARN = '-Wall  -Wno-cast-align -Wpointer-arith -Wno-missing-braces' \
-                             ' -Wno-strict-aliasing -Wstrict-prototypes -Wnested-externs -Werror -Wextra')
+                             ' -Wno-strict-aliasing -Wstrict-prototypes -Wnested-externs -Werror')
 env.Replace(HEXAGON_UNDEF = ' ')
 env.Replace(HEXAGON_LANIND = '-fno-exceptions -fno-strict-aliasing -fno-zero-initialized-in-bss' \
                              ' -fdata-sections -fno-signed-char -fdiagnostics-show-option ')
@@ -176,7 +176,6 @@ CHRE_DEFINES = [
     'SSC_TARGET_HEXAGON',
     'CHRE_SLPI_SEE',
     'PB_FIELD_16BIT',
-    'IMPORT_CHRE_UTILS',
     'CHRE_MESSAGE_TO_HOST_MAX_SIZE=4000',
     'QDSP6',
     'CHRE_USE_FARF_LOGGING',
@@ -257,10 +256,12 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/platform/slpi/system_time.cc",
     "${BUILDPATH}/system/chre/platform/slpi/system_time_util.cc",
     "${BUILDPATH}/system/chre/platform/slpi/system_timer.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/see/island_vote_client.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/power_control_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/platform_sensor.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/see_helper.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/see_cal_helper.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/see/sns_qmi_client.c",
     "${BUILDPATH}/system/chre/util/system/debug_dump.cc",
     "${BUILDPATH}/system/chre/util/buffer_base.cc",
     "${BUILDPATH}/system/chre/util/dynamic_vector_base.cc",
