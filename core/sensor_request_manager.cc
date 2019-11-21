@@ -714,8 +714,8 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
 
       auto callback = [](uint16_t /* eventType */, void *eventData) {
         LOGE("Flush request timed out.");
-        NestedDataPtr<SensorType> nestedType;
-        nestedType.dataPtr = eventData;
+        NestedDataPtr<SensorType> nestedSensorType;
+        nestedSensorType.dataPtr = eventData;
         // Send a complete event, thus closing out this flush request. If the
         // request that has just timed out receives a response later, this may
         // inadvertently close out a new request before it has actually
@@ -724,7 +724,8 @@ uint8_t SensorRequestManager::SensorRequests::makeFlushRequest(
         // responses can be properly dropped.
         EventLoopManagerSingleton::get()
             ->getSensorRequestManager()
-            .handleFlushCompleteEventSync(CHRE_ERROR_TIMEOUT, nestedType.data);
+            .handleFlushCompleteEventSync(CHRE_ERROR_TIMEOUT,
+                                          nestedSensorType.data);
       };
 
       mFlushRequestTimerHandle =
