@@ -172,13 +172,11 @@ env.RequirePrivateApi('CHRE')
 # Define various preprocessor definitions needed to compile CHRE
 #-------------------------------------------------------------------------------
 
-# If SCONS_OEM_BUILD_VER is defined for your build target, uncomment the following
-# code to ensure that build version is used by the CHRE library as well.
-# oem_ver = os.environ.get('SCONS_OEM_BUILD_VER')
-# oem_ver = str(oem_ver).strip().strip('"')
-
-# Remove this line if the above code is used.
-oem_ver = 'undefined'
+oem_ver = os.environ.get('SCONS_OEM_BUILD_VER')
+if oem_ver is not None:
+    oem_ver = str(oem_ver).strip().strip('"')
+else:
+    oem_ver = 'undefined'
 
 CHRE_DEFINES = [
     'CHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG',
