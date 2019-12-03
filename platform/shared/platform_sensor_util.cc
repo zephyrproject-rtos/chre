@@ -67,4 +67,18 @@ void updateLastEvent(SensorType sensorType, const void *eventData) {
   }
 }
 
+void sensorDataEventFree(uint16_t eventType, void *eventData) {
+  // TODO: Consider using a MemoryPool.
+  memoryFree(eventData);
+
+  // Remove all requests if it's a one-shot sensor and only after data has been
+  // delivered to all clients.
+  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
+  if (sensorTypeIsOneShot(sensorType)) {
+    EventLoopManagerSingleton::get()
+        ->getSensorRequestManager()
+        .removeAllRequests(sensorType);
+  }
+}
+
 }  // namespace chre

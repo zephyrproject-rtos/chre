@@ -30,6 +30,20 @@ namespace chre {
  */
 void updateLastEvent(SensorType sensorType, const void *eventData);
 
+/**
+ * A helper chreEventCompleteFunction that handles freeing sensor data and
+ * removing all requests associated with the sensor type if it represents a
+ * one-shot sensor.
+ *
+ * NOTE: This function assumes the eventData was allocated using the memoryAlloc
+ * platform function.
+ *
+ * @see postEvent
+ * @param eventType The type of sample event that eventData represents.
+ * @param eventData The sensor event data that should be freed.
+ */
+void sensorDataEventFree(uint16_t eventType, void *eventData);
+
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_SHARED_PLATFORM_SENSOR_UTIL_H_
