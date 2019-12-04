@@ -30,6 +30,10 @@
 #include "stringl.h"
 #include "timer.h"
 
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+#include "sns_amd.pb.h"
+#endif
+
 #ifdef CHRE_SLPI_UIMG_ENABLED
 #include "sns_qmi_client.h"
 #endif
@@ -1187,6 +1191,35 @@ bool decodeSnsRemoteProcProtoEvent(
   return success;
 }
 
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+bool decodeSnsAmdProtoEvent(
+    pb_istream_t *stream, const pb_field_t *field, void **arg) {
+  bool success = false;
+  sns_amd_event event = sns_amd_event_init_default;
+  auto *info = static_cast<SeeInfoArg *>(*arg);
+
+  if (!pb_decode(stream, sns_amd_event_fields, &event)) {
+    LOG_NANOPB_ERROR(stream);
+  } else {
+    // Stationary / instant motion share the same suid so modify the sensorType
+    // to be the correct type depending on the event.
+    if (SNS_AMD_EVENT_TYPE_STATIONARY == event.state) {
+      info->data->sensorType = SensorType::StationaryDetect;
+    } else if (SNS_AMD_EVENT_TYPE_MOTION == event.state) {
+      info->data->sensorType = SensorType::InstantMotion;
+    } else {
+      CHRE_ASSERT(false);
+    }
+
+    float val = 0;
+    populateEventSample(info, &val);
+    success = true;
+  }
+
+  return success;
+}
+#endif
+
 bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
   bool success = true;
 
@@ -1222,6 +1255,12 @@ bool assignPayloadCallback(const SeeInfoArg *info, pb_callback_t *payload) {
       case SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG_EVENT:
         payload->funcs.decode = decodeSnsResamplerProtoEvent;
         break;
+
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+      case SNS_AMD_MSGID_SNS_AMD_EVENT:
+        payload->funcs.decode = decodeSnsAmdProtoEvent;
+        break;
+#endif
 
       default:
         success = false;
@@ -1281,7 +1320,11 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
   // Increment sample count only after sensor event decoding.
   if (success
       && (info->msgId == SNS_STD_SENSOR_MSGID_SNS_STD_SENSOR_EVENT
-          || info->msgId == SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT)) {
+          || info->msgId == SNS_PROXIMITY_MSGID_SNS_PROXIMITY_EVENT
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+          || info->msgId == SNS_AMD_MSGID_SNS_AMD_EVENT
+#endif
+      )) {
     info->data->sampleIndex++;
   }
   return success;

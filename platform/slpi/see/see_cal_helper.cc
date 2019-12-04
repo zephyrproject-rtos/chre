@@ -144,14 +144,18 @@ void SeeCalHelper::updateCalibration(
 SensorType SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid& suid) const {
   size_t calSensorIndex = getCalIndexFromSuid(suid);
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::AccelCal:
       return SensorType::Accelerometer;
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::GyroCal:
       return SensorType::Gyroscope;
     case SeeCalSensor::MagCal:
       return SensorType::GeomagneticField;
     default:
-      CHRE_ASSERT(false);
+      // Fall-through as CHRE can receive calibration events for other sensors
+      // even if it doesn't request them.
+      break;
   }
   return SensorType::Unknown;
 }
@@ -159,9 +163,11 @@ SensorType SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid& suid) const {
 size_t SeeCalHelper::getCalIndexFromSensorType(SensorType sensorType) {
   SeeCalSensor index;
   switch (sensorType) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case SensorType::Accelerometer:
       index = SeeCalSensor::AccelCal;
       break;
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case SensorType::Gyroscope:
       index = SeeCalSensor::GyroCal;
       break;
@@ -176,8 +182,10 @@ size_t SeeCalHelper::getCalIndexFromSensorType(SensorType sensorType) {
 
 const char *SeeCalHelper::getDataTypeForCalSensorIndex(size_t calSensorIndex) {
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::AccelCal:
       return "accel_cal";
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::GyroCal:
       return "gyro_cal";
     case SeeCalSensor::MagCal:
