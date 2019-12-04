@@ -217,6 +217,10 @@ libchre_slpi_skel_idl = "${BUILDPATH}/system/chre/host/msm/daemon/idl/chre_slpi.
 prereq = env.HeaderBuilder("${BUILDPATH}/chre_slpi.h", libchre_slpi_skel_idl)
 
 chre_cc_src = [
+    # QMI interfaces
+    "${BUILD_ROOT}/qmimsgs/common/src/common_v01.c",
+    "${BUILD_ROOT}/qmimsgs/sns_client_api/src/sns_client_api_v01.c",
+
     # Qualcomm protobufs needed by CHRE code
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_client.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_suid.pb.c",
