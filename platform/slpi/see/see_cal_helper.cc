@@ -146,9 +146,11 @@ bool SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid &suid,
   size_t calSensorIndex = getCalIndexFromSuid(suid);
   bool found = true;
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::AccelCal:
       *sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
       break;
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::GyroCal:
       *sensorType = CHRE_SENSOR_TYPE_GYROSCOPE;
       break;
@@ -156,8 +158,10 @@ bool SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid &suid,
       *sensorType = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD;
       break;
     default:
-      CHRE_ASSERT(false);
+      // Don't assert here as SEE may send us calibration updates for other
+      // sensors even if CHRE doesn't request them.
       found = false;
+      break;
   }
   return found;
 }
@@ -165,9 +169,11 @@ bool SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid &suid,
 size_t SeeCalHelper::getCalIndexFromSensorType(uint8_t sensorType) {
   SeeCalSensor index;
   switch (sensorType) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case CHRE_SENSOR_TYPE_ACCELEROMETER:
       index = SeeCalSensor::AccelCal;
       break;
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case CHRE_SENSOR_TYPE_GYROSCOPE:
       index = SeeCalSensor::GyroCal;
       break;
@@ -182,8 +188,10 @@ size_t SeeCalHelper::getCalIndexFromSensorType(uint8_t sensorType) {
 
 const char *SeeCalHelper::getDataTypeForCalSensorIndex(size_t calSensorIndex) {
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::AccelCal:
       return "accel_cal";
+#endif  // CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::GyroCal:
       return "gyro_cal";
     case SeeCalSensor::MagCal:
