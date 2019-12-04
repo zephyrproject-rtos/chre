@@ -65,7 +65,7 @@ HEXAGON_LIB_PATH = "{0}/{1}/Tools/target/hexagon/lib/{2}/G0/pic".format(hexagon_
 #-------------------------------------------------------------------------------
 env.Replace(ASM_DFLAGS = '-D__V_DYNAMIC__')
 env.Replace(CC_DFLAGS = '-D__V_DYNAMIC__')
-env.Replace(HEXAGONCC_OPT = ' -O0 ')
+env.Replace(HEXAGONCC_OPT = ' -Os ')
 env.Replace(CFLAGS = ' -G0')
 
 env.Replace(HEXAGONCC_WARN = '-Wall  -Wno-cast-align -Wpointer-arith -Wno-missing-braces' \
