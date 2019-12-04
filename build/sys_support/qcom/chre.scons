@@ -294,26 +294,26 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/util/nanoapp/wifi.cc",
 ]
 
-if USES_CHRE_AUDIO:
+if USE_CHRE_AUDIO:
     chre_cc_src.extend([
         "${BUILDPATH}/system/chre/core/audio_request_manager.cc",
         "${BUILDPATH}/system/chre/platform/slpi/platform_audio.cc",
     ])
 
-if USES_CHRE_GNSS:
+if USE_CHRE_GNSS:
     chre_cc_src.extend([
         "${BUILDPATH}/system/chre/core/gnss_manager.cc",
         "${BUILDPATH}/system/chre/platform/shared/platform_gnss.cc",
     ])
 
-if USES_CHRE_WIFI:
+if USE_CHRE_WIFI:
     chre_cc_src.extend([
         "${BUILDPATH}/system/chre/core/wifi_request_manager.cc",
         "${BUILDPATH}/system/chre/core/wifi_scan_request.cc",
         "${BUILDPATH}/system/chre/platform/shared/platform_wifi.cc",
     ])
 
-if USES_CHRE_WWAN:
+if USE_CHRE_WWAN:
     chre_cc_src.extend([
         "${BUILDPATH}/system/chre/core/wwan_request_manager.cc",
         "${BUILDPATH}/system/chre/platform/shared/platform_wwan.cc",
