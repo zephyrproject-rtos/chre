@@ -215,6 +215,10 @@ class Sensor : public PlatformSensor {
    */
   void setSamplingStatus(const struct chreSensorSamplingStatus &status);
 
+  const char *getSensorTypeName() const {
+    return SensorTypeHelpers::getSensorTypeName(getSensorType());
+  }
+
  private:
   size_t getLastEventSize() {
     return SensorTypeHelpers::getLastEventSize(getSensorType());

@@ -50,6 +50,12 @@ class PlatformSensorTypeHelpers : public PlatformSensorTypeHelpersBase {
    */
   static bool getVendorSensorBiasEventType(uint8_t sensorType,
                                            uint16_t *eventType);
+
+  /**
+   * @param sensorType The vendor sensor type to obtain a string for.
+   * @return A string representation of the vendor sensor type.
+   */
+  static const char *getVendorSensorTypeName(uint8_t sensorType);
 };
 
 }  // namespace chre
