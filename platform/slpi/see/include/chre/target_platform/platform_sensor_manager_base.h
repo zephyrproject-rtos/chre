@@ -30,7 +30,9 @@ namespace chre {
  */
 class PlatformSensorManagerBase : public SeeHelperCallbackInterface {
  public:
+#ifdef CHRE_SLPI_UIMG_ENABLED
   PlatformSensorManagerBase() : mBigImageSeeHelper(mSeeHelper.getCalHelper()) {}
+#endif  // CHRE_SLPI_UIMG_ENABLED
 
   /**
    * Helper function to retrieve the SeeHelper for a given sensor type.

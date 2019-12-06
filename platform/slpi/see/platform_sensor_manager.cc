@@ -47,14 +47,6 @@
 namespace chre {
 namespace {
 
-#ifdef CHRE_SLPI_UIMG_ENABLED
-#ifndef CHREX_SENSOR_SUPPORT
-// The current implementation uses vendor sensor type 3 to remap into accel,
-// with requests made through QMI instead of QSockets, as SEE does not support
-// micro-image batching in QCM.
-#error "CHRE extensions are required for micro-image SEE support"
-#endif  // CHREX_SENSOR_SUPPORT
-
 //! A struct to facilitate sensor discovery
 struct SuidAttr {
   sns_std_suid suid;
@@ -71,6 +63,14 @@ const char *kSeeDataTypes[] = {
 };
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
+
+#ifdef CHRE_SLPI_UIMG_ENABLED
+#ifndef CHREX_SENSOR_SUPPORT
+// The current implementation uses vendor sensor type 3 to remap into accel,
+// with requests made through QMI instead of QSockets, as SEE does not support
+// micro-image batching in QCM.
+#error "CHRE extensions are required for micro-image SEE support"
+#endif  // CHREX_SENSOR_SUPPORT
 
 bool isBigImageSensorType(uint8_t sensorType) {
   return (sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL ||
