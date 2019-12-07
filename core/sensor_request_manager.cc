@@ -620,6 +620,13 @@ void SensorRequestManager::dispatchNextFlushRequest(uint32_t sensorHandle) {
   }
 }
 
+void SensorRequestManager::onFlushTimeout(uint32_t sensorHandle) {
+  if (sensorHandle < mSensors.size()) {
+    Sensor &sensor = mSensors[sensorHandle];
+    sensor.setFlushRequestTimerHandle(CHRE_TIMER_INVALID);
+  }
+}
+
 void SensorRequestManager::handleFlushCompleteEventSync(uint8_t errorCode,
                                                         uint32_t sensorHandle) {
   for (size_t i = 0; i < mFlushRequestQueue.size(); i++) {
@@ -790,6 +797,9 @@ uint8_t SensorRequestManager::makeFlushRequest(FlushRequest &request) {
         LOGE("Flush request timed out.");
         NestedDataPtr<uint32_t> nestedIndex;
         nestedIndex.dataPtr = eventData;
+        EventLoopManagerSingleton::get()
+            ->getSensorRequestManager()
+            .onFlushTimeout(nestedIndex.data);
 
         // Send a complete event, thus closing out this flush request. If the
         // request that has just timed out receives a response later, this may
