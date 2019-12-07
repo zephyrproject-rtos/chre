@@ -39,6 +39,7 @@
 #include <cinttypes>
 #include <cmath>
 
+#include "chre/core/sensor_type_helpers.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/system_time_util.h"
@@ -102,7 +103,7 @@ struct SeeDataArg {
   UniquePtr<uint8_t> event;
   UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> status;
   UniquePtr<struct chreSensorThreeAxisData> bias;
-  SensorType sensorType;
+  uint8_t sensorType;
   bool isHostWakeSuspendEvent;
   bool isHostAwake;
 };
@@ -640,9 +641,6 @@ bool decodeSnsStrAttr(pb_istream_t *stream, const pb_field_t *field,
           strlcpy(attrData->vendor, data->attrArg.strVal,
                   sizeof(attrData->vendor));
           break;
-        case SNS_STD_SENSOR_ATTRID_TYPE:
-          strlcpy(attrData->type, data->attrArg.strVal, sizeof(attrData->type));
-          break;
         case SNS_STD_SENSOR_ATTRID_AVAILABLE:
           if (!data->attrArg.boolVal) {
             LOGW("%s: %d", getAttrNameFromAttrId(data->attr.attr_id),
@@ -749,7 +747,8 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
   size_t index = data->sampleIndex;
   if (!data->event.isNull() && index < data->totalSamples) {
     SensorSampleType sampleType =
-        getSensorSampleTypeFromSensorType(data->sensorType);
+        PlatformSensorTypeHelpers::getSensorSampleTypeFromSensorType(
+            data->sensorType);
 
     uint32_t *timestampDelta = nullptr;
     switch (sampleType) {
@@ -1056,12 +1055,14 @@ bool decodeSnsCalEvent(pb_istream_t *stream, const pb_field_t *field,
                                  scale.val, hasMatrix, matrix.val, accuracy,
                                  info->data->timeNs);
 
-    SensorType sensorType = calHelper->getSensorTypeFromSuid(info->suid);
+    uint8_t sensorType;
     auto biasData = MakeUniqueZeroFill<struct chreSensorThreeAxisData>();
     if (biasData.isNull()) {
       LOG_OOM();
-    } else if (calHelper->getBias(sensorType, biasData.get())) {
+    } else if (calHelper->getSensorTypeFromSuid(info->suid, &sensorType) &&
+               calHelper->getBias(sensorType, biasData.get())) {
       info->data->bias = std::move(biasData);
+      info->data->sensorType = sensorType;
     }
   }
   return success;
@@ -1289,11 +1290,11 @@ bool decodeSnsClientEventMsg(pb_istream_t *stream, const pb_field_t *field,
 /**
  * Obtain the SensorType from the list of registered SensorInfos.
  */
-SensorType getSensorTypeFromSensorInfo(
+uint8_t getSensorTypeFromSensorInfo(
     sns_client *client, const sns_std_suid &suid,
     const DynamicVector<SeeHelper::SensorInfo> &sensorInfos) {
   bool suidFound = false;
-  SensorType otherType;
+  uint8_t otherType;
   for (const auto &sensorInfo : sensorInfos) {
     if (suidsMatch(sensorInfo.suid, suid)) {
       suidFound = true;
@@ -1312,14 +1313,15 @@ SensorType getSensorTypeFromSensorInfo(
     // backup plan.
     return otherType;
   }
-  return SensorType::Unknown;
+  return CHRE_SENSOR_TYPE_INVALID;
 }
 
 /**
  * Allocate event memory according to SensorType and the number of samples.
  */
-void *allocateEvent(SensorType sensorType, size_t numSamples) {
-  SensorSampleType sampleType = getSensorSampleTypeFromSensorType(sensorType);
+void *allocateEvent(uint8_t sensorType, size_t numSamples) {
+  SensorSampleType sampleType =
+      PlatformSensorTypeHelpers::getSensorSampleTypeFromSensorType(sensorType);
   size_t sampleSize = 0;
   switch (sampleType) {
     case SensorSampleType::ThreeAxis:
@@ -1411,7 +1413,6 @@ bool prepareSensorEvent(SeeInfoArg &info) {
     auto *header =
         reinterpret_cast<chreSensorDataHeader *>(info.data->event.get());
     header->reserved = 0;
-    header->sensorHandle = getSensorHandleFromSensorType(info.data->sensorType);
     header->readingCount = info.data->sampleIndex;
     header->accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
 
@@ -1519,7 +1520,7 @@ void SeeHelper::handleSnsClientEventMsg(sns_client *client, const void *payload,
       }
 
       if (data->info.data->sampleIndex > 0) {
-        if (data->info.data->sensorType == SensorType::Unknown) {
+        if (data->info.data->sensorType == CHRE_SENSOR_TYPE_INVALID) {
           LOGE("Unhandled sensor data SUID 0x%016" PRIx64 " %016" PRIx64,
                data->info.suid.suid_high, data->info.suid.suid_low);
         } else if (!prepareSensorEvent(data->info)) {
@@ -1544,10 +1545,11 @@ void SeeHelper::handleSnsClientEventMsg(sns_client *client, const void *payload,
                                    std::move(data->info.data->event));
         }
         if (!data->info.data->bias.isNull()) {
-          mCbIf->onSensorBiasEvent(std::move(data->info.data->bias));
+          mCbIf->onSensorBiasEvent(data->info.data->sensorType,
+                                   std::move(data->info.data->bias));
         }
         if (!data->info.data->status.isNull()) {
-          if (data->info.data->sensorType == SensorType::Unknown) {
+          if (data->info.data->sensorType == CHRE_SENSOR_TYPE_INVALID) {
             LOGE("Unhandled sensor status SUID 0x%016" PRIx64 " %016" PRIx64,
                  data->info.suid.suid_high, data->info.suid.suid_low);
           } else {
@@ -1672,7 +1674,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest &request) {
     if (!request.enable) {
       // An empty message
       msgId = SNS_CLIENT_MSGID_SNS_CLIENT_DISABLE_REQ;
-    } else if (sensorTypeIsContinuous(request.sensorType)) {
+    } else if (SensorTypeHelpers::isContinuous(request.sensorType)) {
       if (suidsMatch(sensorInfo->suid, mResamplerSuid.value())) {
         msgId = SNS_RESAMPLER_MSGID_SNS_RESAMPLER_CONFIG;
         encodeSuccess = encodeSnsResamplerConfig(
@@ -1697,7 +1699,7 @@ bool SeeHelper::makeRequest(const SeeSensorRequest &request) {
   return success;
 }
 
-bool SeeHelper::flush(SensorType sensorType) {
+bool SeeHelper::flush(uint8_t sensorType) {
   bool success = false;
 
   const SensorInfo *sensorInfo = getSensorInfo(sensorType);
@@ -1865,13 +1867,13 @@ void SeeHelper::seeRespCb(sns_client *client, sns_std_error error,
   memoryFree(cbData);
 }
 
-bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid &suid,
+bool SeeHelper::registerSensor(uint8_t sensorType, const sns_std_suid &suid,
                                bool resample, bool *prevRegistered) {
-  CHRE_ASSERT(sensorType != SensorType::Unknown);
+  CHRE_ASSERT(sensorType != CHRE_SENSOR_TYPE_INVALID);
   CHRE_ASSERT(prevRegistered != nullptr);
   bool success = false;
 
-  bool doResample = resample && sensorTypeIsContinuous(sensorType);
+  bool doResample = resample && SensorTypeHelpers::isContinuous(sensorType);
   if (doResample && !mResamplerSuid.has_value()) {
     LOGE("Unable to use resampler without its SUID");
   } else {
@@ -1917,7 +1919,7 @@ bool SeeHelper::registerSensor(SensorType sensorType, const sns_std_suid &suid,
   return success;
 }
 
-bool SeeHelper::sensorIsRegistered(SensorType sensorType) const {
+bool SeeHelper::sensorIsRegistered(uint8_t sensorType) const {
   return (getSensorInfo(sensorType) != nullptr);
 }
 
@@ -1981,7 +1983,7 @@ bool SeeHelper::initResamplerSensor() {
 }
 
 const SeeHelper::SensorInfo *SeeHelper::getSensorInfo(
-    SensorType sensorType) const {
+    uint8_t sensorType) const {
   for (const auto &sensorInfo : mSensorInfos) {
     if (sensorInfo.sensorType == sensorType) {
       return &sensorInfo;

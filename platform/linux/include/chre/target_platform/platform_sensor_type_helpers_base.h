@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_UTIL_NANOAPP_SENSOR_H_
-#define CHRE_UTIL_NANOAPP_SENSOR_H_
-
-#include <cstdint>
+#ifndef CHRE_TARGET_PLATFORM_SENSOR_TYPE_HELPERS_BASE_H_
+#define CHRE_TARGET_PLATFORM_SENSOR_TYPE_HELPERS_BASE_H_
 
 namespace chre {
 
 /**
- * Returns the name of a sensor for a given event type.
- *
- * @param eventType the type of a sensor sample event.
- * @return the name of the sensor that produced this event type.
+ * Can be used to expose static methods to the PlatformSensorTypeHelpers class
+ * for use in working with vendor sensor types. Currently, this is unused in the
+ * Linux implementation as sensors are not supported.
  */
-const char *getSensorNameForEventType(uint16_t eventType);
-
-/**
- * Returns the name of a given CHRE API sensor type.
- *
- * @param sensorType the type of a sensor.
- * @return the name of the sensor.
- */
-const char *getSensorTypeName(uint8_t sensorType);
+class PlatformSensorTypeHelpersBase {};
 
 }  // namespace chre
 
-#endif  // CHRE_UTIL_NANOAPP_SENSOR_H_
+#endif  // CHRE_TARGET_PLATFORM_SENSOR_TYPE_HELPERS_BASE_H_

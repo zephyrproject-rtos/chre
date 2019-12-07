@@ -48,7 +48,7 @@ class SeeCalHelper : public NonCopyable {
    * @param output Location to store sample with calibration applied (can be
    *               same as input)
    */
-  void applyCalibration(SensorType sensorType, const float input[3],
+  void applyCalibration(uint8_t sensorType, const float input[3],
                         float output[3]) const;
 
   /**
@@ -63,7 +63,7 @@ class SeeCalHelper : public NonCopyable {
    *
    * @return true if calibration data is successfully stored, false otherwise
    */
-  bool getBias(SensorType sensorType,
+  bool getBias(uint8_t sensorType,
                struct chreSensorThreeAxisData *biasData) const;
 
   /**
@@ -75,7 +75,7 @@ class SeeCalHelper : public NonCopyable {
    * @return A constant reference to the calibration sensor's SUID if present.
    *         Otherwise, a reference to sns_suid_sensor_init_zero is returned.
    */
-  const sns_std_suid &getCalSuidFromSensorType(SensorType sensorType) const;
+  const sns_std_suid &getCalSuidFromSensorType(uint8_t sensorType) const;
 
   /**
    * Uses the supplied SeeHelper instance to register for updates to all
@@ -113,10 +113,13 @@ class SeeCalHelper : public NonCopyable {
 
   /**
    * @param suid SUID of the calibration sensor
+   * @param sensorType A non-null pointer that will contain the sensor type
+   *     corresponding to the given SUID, if found.
    *
-   * @return the SensorType corresponding to this physical sensor
+   * @return true if a sensor type was found for the given SUID.
    */
-  SensorType getSensorTypeFromSuid(const sns_std_suid &suid) const;
+  bool getSensorTypeFromSuid(const sns_std_suid &suid,
+                             uint8_t *sensorType) const;
 
  private:
   //! A struct to store a sensor's calibration data
@@ -156,7 +159,7 @@ class SeeCalHelper : public NonCopyable {
   SeeCalInfo mCalInfo[kNumSeeCalSensors] = {};
 
   //! Map SensorType to associated index in mCalInfo
-  static size_t getCalIndexFromSensorType(SensorType sensorType);
+  static size_t getCalIndexFromSensorType(uint8_t sensorType);
 
   //! Map index in mCalInfo to SEE sensor data type string
   static const char *getDataTypeForCalSensorIndex(size_t calSensorIndex);

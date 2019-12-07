@@ -22,27 +22,6 @@ using chre::kMaxIntervalLatencyNs;
 using chre::Nanoseconds;
 using chre::SensorMode;
 using chre::SensorRequest;
-using chre::SensorType;
-
-TEST(SensorType, LosslessSensorHandleToSensorTypeAndBack) {
-  // Verify that converting a sensor to a handle and from a handle back to a
-  // sensor is a lossless conversion. The specific value of the handle is
-  // unimportant, as long as it can be consistently converted back and forth.
-  SensorType sensorType = SensorType::Pressure;
-  uint32_t sensorHandle = getSensorHandleFromSensorType(sensorType);
-  sensorType = chre::getSensorTypeFromSensorHandle(sensorHandle);
-  EXPECT_EQ(sensorType, SensorType::Pressure);
-
-  sensorType = SensorType::Proximity;
-  sensorHandle = getSensorHandleFromSensorType(sensorType);
-  sensorType = chre::getSensorTypeFromSensorHandle(sensorHandle);
-  EXPECT_EQ(sensorType, SensorType::Proximity);
-}
-
-TEST(SensorType, SensorHandleToSensorTypeUnknownHandles) {
-  EXPECT_EQ(chre::getSensorTypeFromSensorHandle(0), SensorType::Unknown);
-  EXPECT_EQ(chre::getSensorTypeFromSensorHandle(10000), SensorType::Unknown);
-}
 
 TEST(SensorRequest, DefaultMinimalPriority) {
   SensorRequest request;

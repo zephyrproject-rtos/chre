@@ -265,6 +265,10 @@ typedef Singleton<EventLoopManager> EventLoopManagerSingleton;
 //! calls. This reduces codesize considerably.
 extern template class Singleton<EventLoopManager>;
 
+inline SensorRequestManager &getSensorRequestManager() {
+  return EventLoopManagerSingleton::get()->getSensorRequestManager();
+}
+
 }  // namespace chre
 
 #endif  // CHRE_CORE_EVENT_LOOP_MANAGER_H_

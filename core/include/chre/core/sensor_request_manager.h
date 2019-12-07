@@ -17,28 +17,28 @@
 #ifndef CHRE_CORE_SENSOR_REQUEST_MANAGER_H_
 #define CHRE_CORE_SENSOR_REQUEST_MANAGER_H_
 
-#include "chre/core/request_multiplexer.h"
 #include "chre/core/sensor.h"
 #include "chre/core/sensor_request.h"
-#include "chre/core/timer_pool.h"
-#include "chre/platform/atomic.h"
+#include "chre/core/sensor_request_multiplexer.h"
+#include "chre/platform/fatal_error.h"
+#include "chre/platform/platform_sensor_manager.h"
 #include "chre/platform/system_time.h"
 #include "chre/platform/system_timer.h"
-#include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
+/**
+ * Handles requests from nanoapps for sensor data and information. This includes
+ * multiplexing multiple requests into one for the platform to handle.
+ *
+ * This class is effectively a singleton as there can only be one instance of
+ * the PlatformSensorManager instance.
+ */
 class SensorRequestManager : public NonCopyable {
  public:
-  /**
-   * Performs initialization of the SensorRequestManager and populates the
-   * sensor list with platform sensors.
-   */
-  SensorRequestManager();
-
   /**
    * Destructs the sensor request manager and releases platform sensor resources
    * if requested.
@@ -60,7 +60,7 @@ class SensorRequestManager : public NonCopyable {
    *                     handle for nanoapps.
    * @return true if the supplied sensor type is available for use.
    */
-  bool getSensorHandle(SensorType sensorType, uint32_t *sensorHandle) const;
+  bool getSensorHandle(uint8_t sensorType, uint32_t *sensorHandle) const;
 
   /**
    * Sets a sensor request for the given nanoapp for the provided sensor handle.
@@ -92,25 +92,23 @@ class SensorRequestManager : public NonCopyable {
    * Removes all requests of a sensorType and unregisters all nanoapps for its
    * events.
    *
-   * @param sensorType The sensor type whose requests are to be removed.
+   * @param sensorHandle The handle of the sensor.
    * @return true if all requests of the sensor type have been successfully
    *         removed.
    */
-  bool removeAllRequests(SensorType sensorType);
+  bool removeAllRequests(uint32_t sensorHandle);
 
   /**
-   * Obtains a pointer to the Sensor of the specified sensorType.
+   * Obtains a pointer to the Sensor of the specified sensorHandle.
    *
    * NOTE: Some platform implementations invoke this method from different
    * threads assuming the underlying list of sensors doesn't change after
    * initialization.
    *
-   * @param sensorType The SensorType of the sensor.
-   * @return A pointer to the Sensor of sensorType, or nullptr if sensorType is
-   *         invalid or the requested SensorType is not supported on the current
-   *         platform.
+   * @param sensorHandle The sensor handle corresponding to the sensor.
+   * @return A pointer to the Sensor, or nullptr if sensorHandle is invalid.
    */
-  Sensor *getSensor(SensorType sensorType);
+  Sensor *getSensor(uint32_t sensorHandle);
 
   /**
    * Populates the supplied sampling status struct if the sensor handle exists.
@@ -123,12 +121,12 @@ class SensorRequestManager : public NonCopyable {
                                struct chreSensorSamplingStatus *status) const;
 
   /**
-   * Obtains the list of open requests of the specified SensorType.
+   * Obtains the list of open requests of the specified sensor handle.
    *
-   * @param sensorType The SensorType of the sensor.
+   * @param sensorHandle The handle of the sensor.
    * @return The list of open requests of this sensor in a DynamicVector.
    */
-  const DynamicVector<SensorRequest> &getRequests(SensorType sensorType) const;
+  const DynamicVector<SensorRequest> &getRequests(uint32_t sensorHandle) const;
 
   /**
    * Configures a nanoapp to receive bias events.
@@ -169,25 +167,49 @@ class SensorRequestManager : public NonCopyable {
   bool flushAsync(Nanoapp *nanoapp, uint32_t sensorHandle, const void *cookie);
 
   /**
-   * Invoked by the PlatformSensor when a flush complete event is received for a
-   * given sensor for a request done through flushAsync(). This method can be
-   * invoked from any thread, and defers processing the event to the main CHRE
-   * event loop.
+   * Invoked by the PlatformSensorManager when a flush complete event is
+   * received for a given sensor for a request done through flushAsync(). This
+   * method can be invoked from any thread, and defers processing the event to
+   * the main CHRE event loop.
    *
+   * @param sensorHandle The sensor handle that completed flushing.
+   * @param flushRequestId The ID of the flush request that completed. Should
+   *     be set to UINT32_MAX if request IDs are not supported by the platform.
    * @param errorCode An error code from enum chreError
-   * @param sensorType The SensorType of sensor that has completed the flush.
    */
-  void handleFlushCompleteEvent(uint8_t errorCode, SensorType sensorType);
+  void handleFlushCompleteEvent(uint32_t sensorHandle, uint32_t flushRequestId,
+                                uint8_t errorCode);
 
   /**
-   * Invoked by the PlatformSensor when a sensor event is received for a given
-   * sensor. This method should be invoked from the same thread.
+   * Invoked by the PlatformSensorManager when a sensor event is received for a
+   * given sensor. This method should be invoked from the same thread.
    *
-   * @param sensorType the type of sensor the sensor data corresponds to
+   * @param sensorHandle The sensor handle this data event is from.
    * @param event the event data formatted as one of the chreSensorXXXData
-   *     defined in the CHRE API, implicitly specified by sensorType.
+   *     defined in the CHRE API, implicitly specified by sensorHandle.
    */
-  void handleSensorEvent(SensorType sensorType, void *event);
+  void handleSensorDataEvent(uint32_t sensorHandle, void *event);
+
+  /**
+   * Invoked by the PlatformSensorManager when a sensor's sampling status
+   * changes. This method can be invoked from any thread.
+   *
+   * @param sensorHandle The handle that corresponds to the sensor this update
+   *     is for.
+   * @param status The status update for the given sensor.
+   */
+  void handleSamplingStatusUpdate(uint32_t sensorHandle,
+                                  struct chreSensorSamplingStatus *status);
+
+  /**
+   * Invoked by the PlatformSensorManager when a bias update has been received
+   * for a sensor. This method can be invoked from any thread.
+   *
+   * @param sensorHandle The handle that corresponds to the sensor this update
+   *     is for.
+   * @param bias The bias update for the given sensor.
+   */
+  void handleBiasEvent(uint32_t sensorHandle, void *biasData);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
@@ -198,25 +220,54 @@ class SensorRequestManager : public NonCopyable {
    */
   void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
+  /**
+   * Releases the sensor data event back to the platform. Also removes any
+   * requests for a one-shot sensor if the sensor type corresponds to a one-shot
+   * sensor.
+   *
+   * @param eventType the sensor event type that was sent and now needs to be
+   *     released.
+   * @param eventData the event data to be released back to the platform.
+   */
+  void releaseSensorDataEvent(uint16_t eventType, void *eventData);
+
+  /**
+   * Releases the bias data back to the platform.
+   *
+   * @param biasData the bias data to be released back to the platform.
+   */
+  void releaseBiasData(void *biasData) {
+    mPlatformSensorManager.releaseBiasEvent(biasData);
+  }
+
+  /**
+   * Releases the sampling status updated back to the platform.
+   *
+   * @param status the status to be released back to the platform.
+   */
+  void releaseSamplingStatusUpdate(struct chreSensorSamplingStatus *status) {
+    mPlatformSensorManager.releaseSamplingStatusUpdate(status);
+  }
+
  private:
   //! An internal structure to store incoming sensor flush requests
   struct FlushRequest {
-    FlushRequest(SensorType type, uint32_t id, const void *cookiePtr) {
-      sensorType = type;
+    FlushRequest(uint32_t handle, uint32_t id, const void *cookiePtr) {
+      sensorHandle = handle;
       nanoappInstanceId = id;
       cookie = cookiePtr;
     }
 
-    //! The sensor type the flush request is for.
-    SensorType sensorType;
-    //! The ID of the nanoapp that requested the flush.
-    uint32_t nanoappInstanceId;
-    //! The opaque pointer provided in flushAsync().
-    const void *cookie;
     //! The timestamp at which this request should complete.
     Nanoseconds deadlineTimestamp =
         SystemTime::getMonotonicTime() +
         Nanoseconds(CHRE_SENSOR_FLUSH_COMPLETE_TIMEOUT_NS);
+    //! The sensor handle this flush request is for.
+    uint32_t sensorHandle;
+    //! The ID of the nanoapp that requested the flush.
+    uint32_t nanoappInstanceId;
+    //! The opaque pointer provided in flushAsync().
+    const void *cookie;
     //! True if this flush request is active and is pending completion.
     bool isActive = false;
   };
@@ -224,222 +275,25 @@ class SensorRequestManager : public NonCopyable {
   //! An internal structure to store sensor request logs
   struct SensorRequestLog {
     SensorRequestLog(Nanoseconds timestampIn, uint32_t instanceIdIn,
-                     SensorType sensorTypeIn, SensorMode modeIn,
+                     uint8_t sensorTypeIn, SensorMode modeIn,
                      Nanoseconds intervalIn, Nanoseconds latencyIn)
         : timestamp(timestampIn),
+          interval(intervalIn),
+          latency(latencyIn),
           instanceId(instanceIdIn),
           sensorType(sensorTypeIn),
-          mode(modeIn),
-          interval(intervalIn),
-          latency(latencyIn) {}
+          mode(modeIn) {}
 
     Nanoseconds timestamp;
-    uint32_t instanceId;
-    SensorType sensorType;
-    SensorMode mode;
     Nanoseconds interval;
     Nanoseconds latency;
+    uint32_t instanceId;
+    uint8_t sensorType;
+    SensorMode mode;
   };
 
-  /**
-   * This allows tracking the state of a sensor with the various requests for it
-   * and can trigger a change in mode/rate/latency when required.
-   */
-  class SensorRequests {
-   public:
-    SensorRequests() : mFlushRequestPending(false) {}
-
-    /**
-     * Initializes the sensor object. This method must only be invoked once
-     * when the SensorRequestManager initializes.
-     *
-     * @param sensor The sensor object to initialize with.
-     */
-    void setSensor(Sensor &&sensor) {
-      CHRE_ASSERT(!mSensor.has_value());
-      mSensor = std::move(sensor);
-    }
-
-    /**
-     * @return true if the sensor is supported by the platform.
-     */
-    bool isSensorSupported() const {
-      return mSensor.has_value();
-    }
-
-    /**
-     * @return The set of active requests for this sensor.
-     */
-    const DynamicVector<SensorRequest> &getRequests() const {
-      return mMultiplexer.getRequests();
-    }
-
-    /**
-     * @return true if the sensor is currently enabled.
-     */
-    bool isSensorEnabled() const {
-      return !mMultiplexer.getRequests().empty();
-    }
-
-    /**
-     * @return A constant reference to the sensor object. This method has an
-     * undefined behavior if isSensorSupported() is false.
-     */
-    const Sensor &getSensor() const {
-      return mSensor.value();
-    }
-
-    /**
-     * @return A reference to the sensor object. This method has an undefined
-     * behavior if isSensorSupported() is false.
-     */
-    Sensor &getSensor() {
-      return mSensor.value();
-    }
-
-    /**
-     * Gets the sensor's sampling status. The caller must ensure that
-     * isSensorSupported() is true before invoking this method.
-     *
-     * @param status A non-null pointer where the sampling status will be
-     * stored, if successful.
-     *
-     * @return true if getting the sampling status succeeded.
-     */
-    bool getSamplingStatus(struct chreSensorSamplingStatus *status) const {
-      CHRE_ASSERT(isSensorSupported());
-      return isSensorSupported() ? mSensor->getSamplingStatus(status) : false;
-    }
-
-    /**
-     * Synchronously retrieves the current bias for a sensor that supports
-     * data in the chreSensorThreeAxisData format. The caller must ensure that
-     * isSensorSupported() is true before invoking this method.
-     *
-     * @param bias A non-null pointer to store the current bias data.
-     *
-     * @return false if sensor does not report bias data in the
-     *     chreSensorThreeAxisData format.
-     */
-    bool getThreeAxisBias(struct chreSensorThreeAxisData *bias) const {
-      CHRE_ASSERT(isSensorSupported());
-      return isSensorSupported() ? mSensor->getThreeAxisBias(bias) : false;
-    }
-
-    /**
-     * Searches through the list of sensor requests for a request owned by the
-     * given nanoapp. The provided non-null index pointer is populated with the
-     * index of the request if it is found.
-     *
-     * @param instanceId The instance ID of the nanoapp whose request is being
-     *        searched for.
-     * @param index A non-null pointer to an index that is populated if a
-     *        request for this nanoapp is found.
-     * @return A pointer to a SensorRequest that is owned by the provided
-     *         nanoapp if one is found otherwise nullptr.
-     */
-    const SensorRequest *find(uint32_t instanceId, size_t *index) const;
-
-    /**
-     * Adds a new sensor request to the request multiplexer for this sensor.
-     *
-     * @param request The request to add to the multiplexer.
-     * @param requestChanged A non-null pointer to a bool to indicate that the
-     *        net request made to the sensor has changed. This boolean is always
-     *        assigned to the status of the request changing (true or false).
-     * @return true if the add operation was successful.
-     */
-    bool add(const SensorRequest &request, bool *requestChanged);
-
-    /**
-     * Removes a sensor request from the request multiplexer for this sensor.
-     * The provided index must fall in the range of the sensor requests managed
-     * by the multiplexer.
-     *
-     * @param removeIndex The index to remove the request from.
-     * @param requestChanged A non-null pointer to a bool to indicate that the
-     *        net request made to the sensor has changed. This boolean is always
-     *        assigned to the status of the request changing (true or false).
-     * @return true if the remove operation was successful.
-     */
-    bool remove(size_t removeIndex, bool *requestChanged);
-
-    /**
-     * Updates a sensor request in the request multiplexer for this sensor. The
-     * provided index must fall in range of the sensor requests managed by the
-     * multiplexer.
-     *
-     * @param updateIndex The index to update the request at.
-     * @param request The new sensor request to replace the existing request
-     *        with.
-     * @return true if the update operation was successful.
-     */
-    bool update(size_t updateIndex, const SensorRequest &request,
-                bool *requestChanged);
-
-    /**
-     * Removes all requests and consolidates all the maximal request changes
-     * into one sensor configuration update.
-     *
-     * @return true if all the requests have been removed and sensor
-     *         configuration successfully updated.
-     */
-    bool removeAll();
-
-    /**
-     * Makes a specified flush request for this sensor, and sets the timeout
-     * timer appropriately. If there already is a pending flush request, then
-     * this method does nothing.
-     *
-     * @param request the request to make
-     *
-     * @return An error code from enum chreError
-     */
-    uint8_t makeFlushRequest(FlushRequest &request);
-
-    /**
-     * Clears any states (e.g. timeout timer and relevant flags) associated
-     * with a pending flush request.
-     */
-    void clearPendingFlushRequest();
-
-    /**
-     * Cancels the pending timeout timer associated with a flush request.
-     */
-    void cancelPendingFlushRequestTimer();
-
-    /**
-     * @return true if a flush through makeFlushRequest is pending.
-     */
-    inline bool isFlushRequestPending() const {
-      return mFlushRequestPending;
-    }
-
-   private:
-    //! The sensor associated with this request multiplexer. If this Optional
-    //! container does not have a value, then the platform does not support this
-    //! type of sensor.
-    Optional<Sensor> mSensor;
-
-    //! The request multiplexer for this sensor.
-    RequestMultiplexer<SensorRequest> mMultiplexer;
-
-    //! The timeout timer handle for the current flush request.
-    TimerHandle mFlushRequestTimerHandle = CHRE_TIMER_INVALID;
-
-    //! True if a flush request is pending for this sensor.
-    AtomicBool mFlushRequestPending;
-
-    /**
-     * Make a flush request through PlatformSensor.
-     *
-     * @return true if the flush request was successfully made.
-     */
-    bool doMakeFlushRequest();
-  };
-
-  //! The list of sensor requests.
-  FixedSizeVector<SensorRequests, getSensorTypeCount()> mSensorRequests;
+  //! The list of all sensors
+  DynamicVector<Sensor> mSensors;
 
   //! The list of logged sensor requests
   static constexpr size_t kMaxSensorRequestLogs = 15;
@@ -449,13 +303,78 @@ class SensorRequestManager : public NonCopyable {
   static constexpr size_t kMaxFlushRequests = 16;
   FixedSizeVector<FlushRequest, kMaxFlushRequests> mFlushRequestQueue;
 
+  PlatformSensorManager mPlatformSensorManager;
+
   /**
-   * Helper function to convert SensorType to SensorRequests.
+   * Makes a specified flush request, and sets the timeout timer appropriately.
+   * If there already is a pending flush request for the sensor specified in
+   * the request, then this method does nothing.
+   *
+   * @param request the request to make
+   *
+   * @return An error code from enum chreError
    */
-  SensorRequests &getSensorRequests(SensorType sensorType) {
-    size_t index = getSensorTypeArrayIndex(sensorType);
-    return mSensorRequests[index];
-  }
+  uint8_t makeFlushRequest(FlushRequest &request);
+
+  /**
+   * Make a flush request through PlatformSensorManager.
+   *
+   * @param sensor The sensor to flush.
+   * @return true if the flush request was successfully made.
+   */
+  bool doMakeFlushRequest(Sensor &sensor);
+
+  /**
+   * Removes all requests and consolidates all the maximal request changes
+   * into one sensor configuration update.
+   *
+   * @param sensor The sensor to clear all requests for.
+   * @return true if all the requests have been removed and sensor
+   *         configuration successfully updated.
+   */
+  bool removeAllRequests(Sensor &sensor);
+
+  /**
+   * Removes a sensor request from the given lists of requests. The provided
+   * index must fall in the range of the sensor requests available.
+   *
+   * @param sensor The sensor to remove the request from.
+   * @param removeIndex The index to remove the request from.
+   * @param requestChanged A non-null pointer to a bool to indicate that the
+   *        net request made to the sensor has changed. This boolean is always
+   *        assigned to the status of the request changing (true or false).
+   * @return true if the remove operation was successful.
+   */
+  bool removeRequest(Sensor &sensor, size_t removeIndex, bool *requestChanged);
+
+  /**
+   * Adds a new sensor request to the given list of requests.
+   *
+   * @param sensor The sensor to add the request to.
+   * @param request The request to add to the multiplexer.
+   * @param requestChanged A non-null pointer to a bool to indicate that the
+   *        net request made to the sensor has changed. This boolean is always
+   *        assigned to the status of the request changing (true or false).
+   * @return true if the add operation was successful.
+   */
+  bool addRequest(Sensor &sensor, const SensorRequest &request,
+                  bool *requestChanged);
+
+  /**
+   * Updates a sensor request in the given list of requests. The provided index
+   * must fall in range of the sensor requests managed by the multiplexer.
+   *
+   * @param sensor The sensor that will be updated.
+   * @param updateIndex The index to update the request at.
+   * @param request The new sensor request to replace the existing request
+   *        with.
+   * @param requestChanged A non-null pointer to a bool to indicate that the
+   *        net request made to the sensor has changed. This boolean is always
+   *        assigned to the status of the request changing (true or false).
+   * @return true if the update operation was successful.
+   */
+  bool updateRequest(Sensor &sensor, size_t updateIndex,
+                     const SensorRequest &request, bool *requestChanged);
 
   /**
    * Posts an event to a nanoapp indicating the completion of a flush request.
@@ -481,9 +400,10 @@ class SensorRequestManager : public NonCopyable {
    * Dispatches the next flush request for the given sensor. If there are no
    * more pending flush requests, this method does nothing.
    *
-   * @param sensorType The corresponding sensor type.
+   * @param sensorHandle The handle of the sensor to dispatch a new flush
+   *     request for.
    */
-  void dispatchNextFlushRequest(SensorType sensorType);
+  void dispatchNextFlushRequest(uint32_t sensorHandle);
 
   /**
    * Handles a complete event for a sensor flush requested through flushAsync.
@@ -491,18 +411,19 @@ class SensorRequestManager : public NonCopyable {
    * method is intended to be invoked on the CHRE event loop thread.
    *
    * @param errorCode An error code from enum chreError
-   * @param sensorType The SensorType of sensor that has completed the flush.
+   * @param sensorHandle The handle of the sensor that has completed the flush.
    */
-  void handleFlushCompleteEventSync(uint8_t errorCode, SensorType sensorType);
+  void handleFlushCompleteEventSync(uint8_t errorCode, uint32_t sensorHandle);
 
   /**
    * Cancels all pending flush requests for a given sensor and nanoapp.
    *
-   * @param sensorType The type of sensor to cancel requests for.
+   * @param sensorHandle The sensor handle indicating the sensor to cancel flush
+   *     requests for.
    * @param nanoappInstanceId The ID of the nanoapp to cancel requests for,
    *     kSystemInstanceId to remove requests for all nanoapps.
    */
-  void cancelFlushRequests(SensorType sensorType,
+  void cancelFlushRequests(uint32_t sensorHandle,
                            uint32_t nanoappInstanceId = kSystemInstanceId);
 
   /**
@@ -510,11 +431,11 @@ class SensorRequestManager : public NonCopyable {
    * off if full.
    *
    * @param nanoappInstanceId Instance ID of the nanoapp that made the request.
-   * @param sensorType The sesnor type of requested sensor.
+   * @param sensorType The sensor type of requested sensor.
    * @param sensorRequest The SensorRequest object holding params about
    *    request.
    */
-  void addSensorRequestLog(uint32_t nanoappInstanceId, SensorType sensorType,
+  void addSensorRequestLog(uint32_t nanoappInstanceId, uint8_t sensorType,
                            const SensorRequest &sensorRequest);
 };
 

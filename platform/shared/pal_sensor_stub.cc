@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,11 @@
  * limitations under the License.
  */
 
-#include "chre/util/nanoapp/sensor.h"
+#include "chre/pal/sensor.h"
 
-#include "chre/core/sensor_request.h"
-#include "chre_api/chre/sensor.h"
-
-namespace chre {
-
-const char *getSensorNameForEventType(uint16_t eventType) {
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  return getSensorTypeName(sensorType);
+const struct chrePalSensorApi *chrePalSensorGetApi(
+    uint32_t requestedApiVersion) {
+  // This stub implementation of the CHRE PAL returns nullptr to indicate that
+  // it is not supplied by this platform.
+  return nullptr;
 }
-
-const char *getSensorTypeName(uint8_t sensorType) {
-  SensorType type = getSensorTypeFromUnsignedInt(sensorType);
-  return getSensorTypeName(type);
-}
-
-}  // namespace chre

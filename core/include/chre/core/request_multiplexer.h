@@ -52,6 +52,20 @@ namespace chre {
 template <typename RequestType>
 class RequestMultiplexer : public NonCopyable {
  public:
+  RequestMultiplexer() = default;
+  RequestMultiplexer(RequestMultiplexer &&other) {
+    *this = std::move(other);
+  }
+
+  RequestMultiplexer &operator=(RequestMultiplexer &&other) {
+    mRequests = std::move(other.mRequests);
+
+    mCurrentMaximalRequest = other.mCurrentMaximalRequest;
+    other.mCurrentMaximalRequest = RequestType();
+
+    return *this;
+  }
+
   /**
    * Adds a request to the list of requests being managed by this multiplexer.
    *

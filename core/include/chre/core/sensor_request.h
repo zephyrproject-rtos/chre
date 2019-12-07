@@ -115,16 +115,16 @@ class SensorRequest {
   }
 
  private:
-  //! The nanoapp that made this request or zero when unset. This will be
-  //! kInvalidInstanceId when returned by the generateIntersectionOf method.
-  uint32_t mInstanceId = kInvalidInstanceId;
-
   //! The interval between samples for this request.
   Nanoseconds mInterval;
 
   //! The maximum amount of time samples can be batched prior to dispatching to
   //! the client
   Nanoseconds mLatency;
+
+  //! The nanoapp that made this request or zero when unset. This will be
+  //! kInvalidInstanceId when returned by the generateIntersectionOf method.
+  uint32_t mInstanceId = kInvalidInstanceId;
 
   //! The mode of this request.
   SensorMode mMode;

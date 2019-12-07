@@ -25,10 +25,8 @@ using chre::EventLoopManagerSingleton;
 using chre::Nanoseconds;
 using chre::SensorMode;
 using chre::SensorRequest;
-using chre::SensorType;
 
 using chre::getSensorModeFromEnum;
-using chre::getSensorTypeFromUnsignedInt;
 
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
 namespace {
@@ -105,11 +103,9 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
   }
 #endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
 
-  SensorType validatedSensorType = getSensorTypeFromUnsignedInt(sensorType);
-  return (validatedSensorType != SensorType::Unknown &&
-          EventLoopManagerSingleton::get()
-              ->getSensorRequestManager()
-              .getSensorHandle(validatedSensorType, handle));
+  return EventLoopManagerSingleton::get()
+      ->getSensorRequestManager()
+      .getSensorHandle(sensorType, handle);
 }
 
 DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
