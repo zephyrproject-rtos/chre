@@ -406,6 +406,13 @@ class SensorRequestManager : public NonCopyable {
   void dispatchNextFlushRequest(uint32_t sensorHandle);
 
   /**
+   * A method that is called whenever a flush request times out.
+   *
+   * @param sensorHandle The sensor handle of the flush request.
+   */
+  void onFlushTimeout(uint32_t sensorHandle);
+
+  /**
    * Handles a complete event for a sensor flush requested through flushAsync.
    * See handleFlushCompleteEvent which may be called from any thread. This
    * method is intended to be invoked on the CHRE event loop thread.
