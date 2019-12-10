@@ -17,6 +17,10 @@
 #ifndef CHRE_PLATFORM_LINUX_PLATFORM_SENSOR_MANAGER_BASE_H_
 #define CHRE_PLATFORM_LINUX_PLATFORM_SENSOR_MANAGER_BASE_H_
 
+#include <cstdint>
+
+#include "chre/pal/sensor.h"
+
 namespace chre {
 
 /**
