@@ -51,41 +51,9 @@ bool PlatformSensorTypeHelpers::getVendorSensorBiasEventType(
 #endif
 }
 
-const char *PlatformSensorTypeHelpersBase::getSensorTypeName(
+const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
     uint8_t sensorType) {
   switch (sensorType) {
-    case CHRE_SENSOR_TYPE_INVALID:
-      return "Unknown";
-    case CHRE_SENSOR_TYPE_ACCELEROMETER:
-      return "Accelerometer";
-    case CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT:
-      return "Instant Motion";
-    case CHRE_SENSOR_TYPE_STATIONARY_DETECT:
-      return "Stationary Detect";
-    case CHRE_SENSOR_TYPE_GYROSCOPE:
-      return "Gyroscope";
-    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
-      return "Geomagnetic Field";
-    case CHRE_SENSOR_TYPE_PRESSURE:
-      return "Pressure";
-    case CHRE_SENSOR_TYPE_LIGHT:
-      return "Light";
-    case CHRE_SENSOR_TYPE_PROXIMITY:
-      return "Proximity";
-    case CHRE_SENSOR_TYPE_STEP_DETECT:
-      return "Step Detect";
-    case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
-      return "Accelerometer Temp";
-    case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
-      return "Gyroscope Temp";
-    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE:
-      return "Geomagnetic Field Temp";
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
-      return "Uncal Accelerometer";
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
-      return "Uncal Gyroscope";
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
-      return "Uncal Geomagnetic Field";
     // TODO: Map this to a vendor provided by an extension similar to
     // vendorGetSensorBiasEventType.
     case CHRE_VENDOR_SENSOR_TYPE(0):

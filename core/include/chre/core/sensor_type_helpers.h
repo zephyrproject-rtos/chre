@@ -89,6 +89,12 @@ class SensorTypeHelpers : public PlatformSensorTypeHelpers {
    *     event.
    */
   static size_t getLastEventSize(uint8_t sensorType);
+
+  /**
+   * @param sensorType The sensor type to obtain a string for.
+   * @return A string representation of the sensor type.
+   */
+  static const char *getSensorTypeName(uint8_t sensorType);
 };
 
 }  // namespace chre

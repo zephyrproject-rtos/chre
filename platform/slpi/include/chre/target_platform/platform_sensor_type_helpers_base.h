@@ -54,14 +54,6 @@ enum class SensorSampleType {
 class PlatformSensorTypeHelpersBase {
  public:
   /**
-   * Returns a string representation of the given sensor type.
-   *
-   * @param sensorType The sensor type to obtain a string for.
-   * @return A string representation of the sensor type.
-   */
-  static const char *getSensorTypeName(uint8_t sensorType);
-
-  /**
    * Obtains the temperature sensor type of the specified sensor type.
    *
    * @param sensorType The sensor type to obtain its temperature sensor type
