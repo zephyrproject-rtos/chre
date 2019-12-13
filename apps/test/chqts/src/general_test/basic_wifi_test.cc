@@ -16,6 +16,7 @@
 
 #include <general_test/basic_wifi_test.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include <chre.h>
@@ -108,17 +109,37 @@ void testRequestScanAsync() {
  */
 void testRequestRangingAsync(const struct chreWifiScanResult *aps,
                              uint8_t length) {
-  void *array = chreHeapAlloc(sizeof(chreWifiRangingTarget) * length);
+  // Sending an array larger than CHRE_WIFI_RANGING_LIST_MAX_LEN will cause
+  // an immediate failure.
+  uint8_t targetLength =
+      std::min(length, static_cast<uint8_t>(CHRE_WIFI_RANGING_LIST_MAX_LEN));
+
+  void *array = chreHeapAlloc(sizeof(chreWifiRangingTarget) * targetLength);
   ASSERT_NE(array, nullptr,
             "Failed to allocate array for issuing a ranging request");
 
   chre::UniquePtr<struct chreWifiRangingTarget> targetList(
       static_cast<struct chreWifiRangingTarget *>(array));
-  for (uint8_t i = 0; i < length; i++) {
+
+  // Save the last spot for any available RTT APs in case they didn't make it
+  // in the array earlier. This first loop allows non-RTT compatible APs as a
+  // way to test that the driver implementation will return failure for only
+  // those APs and success for valid RTT APs.
+  for (uint8_t i = 0; i < targetLength - 1; i++) {
     chreWifiRangingTargetFromScanResult(&aps[i], &targetList[i]);
   }
 
-  struct chreWifiRangingParams params = {.targetListLen = length,
+  for (uint8_t i = targetLength - 1; i < length; i++) {
+    if ((aps[i].flags & CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER) ==
+            CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER ||
+        i == (length - 1)) {
+      chreWifiRangingTargetFromScanResult(&aps[i],
+                                          &targetList[targetLength - 1]);
+      break;
+    }
+  }
+
+  struct chreWifiRangingParams params = {.targetListLen = targetLength,
                                          .targetList = targetList.get()};
   if (!chreWifiRequestRangingAsync(&params, &kRequestRangingCookie)) {
     sendFatalFailureToHost(
@@ -207,27 +228,30 @@ void validateRssi(int8_t rssi) {
  * the number of ranging results returned. Also, verifies that the BSSID of
  * the each access point is present in the ranging results.
  */
-void validateRangingEventSize(const struct chreWifiScanResult *results,
-                              size_t size,
-                              const struct chreWifiRangingEvent *event) {
-  ASSERT_EQ(event->resultCount, size,
+void validateRangingEventArray(const struct chreWifiScanResult *results,
+                               size_t resultsSize,
+                               const struct chreWifiRangingEvent *event) {
+  size_t expectedArraySize = std::min(
+      resultsSize, static_cast<size_t>(CHRE_WIFI_RANGING_LIST_MAX_LEN));
+  ASSERT_EQ(event->resultCount, expectedArraySize,
             "RTT ranging result count was not the same as the requested target "
             "list size");
 
-  for (size_t i = 0; i < size; i++) {
-    bool matchFound = false;
-    for (size_t j = 0; j < size; j++) {
+  uint8_t matchesFound = 0;
+
+  for (size_t i = 0; i < resultsSize; i++) {
+    for (size_t j = 0; j < expectedArraySize; j++) {
       if (memcmp(results[i].bssid, event->results[j].macAddress,
                  CHRE_WIFI_BSSID_LEN) == 0) {
-        matchFound = true;
+        matchesFound++;
         break;
       }
     }
-    if (!matchFound) {
-      sendFatalFailureToHost(
-          "BSSID from ranging request not found in the result list");
-    }
   }
+
+  ASSERT_EQ(
+      matchesFound, expectedArraySize,
+      "BSSID(s) from the ranging request were not found in the ranging result");
 }
 
 /**
@@ -512,8 +536,8 @@ void BasicWifiTest::validateRangingEvent(
                                 eventData->version);
   }
 
-  validateRangingEventSize(mLatestWifiScanResults.data(),
-                           mLatestWifiScanResults.size(), eventData);
+  validateRangingEventArray(mLatestWifiScanResults.data(),
+                            mLatestWifiScanResults.size(), eventData);
 
   for (uint8_t i = 0; i < eventData->resultCount; i++) {
     auto &result = eventData->results[i];
