@@ -168,7 +168,7 @@ extern "C" {
 #define CHRE_GNSS_MEASUREMENT_STATE_GAL_E1B_PAGE_SYNC      UINT16_C(1 << 12)
 #define CHRE_GNSS_MEASUREMENT_STATE_SBAS_SYNC              UINT16_C(1 << 13)
 
-#define CHRE_GNSS_MEASUREMENT_CARRIER_FREQURNCY_UNKNOWN    0.f
+#define CHRE_GNSS_MEASUREMENT_CARRIER_FREQUENCY_UNKNOWN    0.f
 
 /**
  * Indicates a type of request made in this API. Used to populate the resultType
