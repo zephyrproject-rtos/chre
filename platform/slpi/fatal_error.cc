@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
-#define CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
-
-#include "err.h"
-
-#include "chre/util/macros.h"
-
-#define FATAL_ERROR_QUIT() \
-  chre::fatalErrorQuit("CHRE fatal@" CHRE_FILENAME ":" STRINGIFY(__LINE__))
+#include "chre/target_platform/assert.h"
 
 namespace chre {
 
-void fatalErrorQuit(const char *errorString);
+void fatalErrorQuit(const char *errorString) {
+  ERR_FATAL(errorString, 0, 0, 0);
+}
 
 }  // namespace chre
-
-#endif  // CHRE_PLATFORM_SLPI_FATAL_ERROR_H_
