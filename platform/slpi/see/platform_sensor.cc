@@ -143,8 +143,8 @@ const char *kSeeDataTypes[] = {
   "pressure",
   "ambient_light",
   "proximity",
-  "motion_detect",
-  "stationary_detect",
+  "amd",  // Instant motion
+  "amd",  // Stationary detect shares the same data type as instant motion
 };
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
@@ -196,7 +196,8 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
     sensorType = SensorType::Light;
   } else if (strcmp(dataType, "proximity") == 0) {
     sensorType = SensorType::Proximity;
-  } else if (strcmp(dataType, "motion_detect") == 0) {
+  } else if (strcmp(dataType, "motion_detect") == 0 ||
+             strcmp(dataType, "amd") == 0) {
     sensorType = SensorType::InstantMotion;
   } else if (strcmp(dataType, "stationary_detect") == 0) {
     sensorType = SensorType::StationaryDetect;
@@ -459,10 +460,16 @@ void addSensor(SeeHelper& seeHelper, SensorType sensorType,
   strlcat(sensorName, " ", sizeof(sensorName));
   strlcat(sensorName, attr.name, sizeof(sensorName));
 
+  // Some sensors have a max sample rate of 0 which makes ceilf return infinity
+  // for on-change or continuous sensors when that's not the correct
+  // minInterval.
+  float maxSampleRate =
+      (attr.maxSampleRate == 0.0f) ? 10 : attr.maxSampleRate;
+
   // Override one-shot sensor's minInterval to default
   uint64_t minInterval = sensorTypeIsOneShot(sensorType) ?
       CHRE_SENSOR_INTERVAL_DEFAULT : static_cast<uint64_t>(
-          ceilf(Seconds(1).toRawNanoseconds() / attr.maxSampleRate));
+          ceilf(Seconds(1).toRawNanoseconds() / maxSampleRate));
 
   // Allocates memory for on-change sensor's last event.
   size_t lastEventSize;
@@ -503,8 +510,13 @@ bool isStreamTypeCorrect(SensorType sensorType, uint8_t streamType) {
        && streamType != SNS_STD_SENSOR_STREAM_TYPE_STREAMING)
       || (sensorTypeIsOnChange(sensorType)
           && streamType != SNS_STD_SENSOR_STREAM_TYPE_ON_CHANGE)
+// The default SLPI build exposes instant motion / stationary sensors as
+// on-change, but CHRE uses them as one-shot
+#ifndef CHRE_SLPI_DEFAULT_BUILD
       || (sensorTypeIsOneShot(sensorType)
-          && streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)) {
+          && streamType != SNS_STD_SENSOR_STREAM_TYPE_SINGLE_OUTPUT)
+#endif
+      ) {
     success = false;
     LOGW("Inconsistent sensor type %" PRIu8 " and stream type %" PRIu8,
          static_cast<uint8_t>(sensorType), streamType);
@@ -550,6 +562,7 @@ bool getSuidAndAttrs(SeeHelper& seeHelper, const char *dataType,
   return success;
 }
 
+#ifndef CHRE_SLPI_DEFAULT_BUILD
 //! Check whether two sensors with the specified attrtibutes belong to the same
 //! sensor hardware module.
 bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
@@ -558,6 +571,7 @@ bool sensorHwMatch(const SeeAttributes& attr0, const SeeAttributes& attr1) {
           && (strncmp(attr0.name, attr1.name, kSeeAttrStrValLen) == 0)
           && (attr0.hwId == attr1.hwId));
 }
+#endif
 
 /**
  * Looks up SUID(s) associated with a given sensor data type string and sensor
@@ -610,7 +624,14 @@ void findAndAddSensorsForType(
             sns_std_suid tempSuid = tempSensor.suid;
             SeeAttributes tempAttr = tempSensor.attr;
 
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+            // The default build exposes a single temp sensor to be used for
+            // all temperature sensors that doesn't have the same attributes
+            // as the primarySensor.
+            if (true) {
+#else
             if (sensorHwMatch(attr, tempAttr)) {
+#endif
               LOGD("Found matching temperature sensor type");
               tempFound = true;
               addSensor(seeHelper, temperatureType, tempSuid, tempAttr,
@@ -743,8 +764,20 @@ bool PlatformSensor::getSensors(DynamicVector<Sensor> *sensors) {
       continue;
     }
 
+    bool skipAdditionalTypes = false;
+
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+    // Stationary and motion detect share the same dataType on the default build
+    if (sensorType == SensorType::InstantMotion && i == kNumSeeTypes - 1) {
+      sensorType = SensorType::StationaryDetect;
+      // Skip additional types or InstantMotion will be added to the sensor list
+      // twice.
+      skipAdditionalTypes = true;
+    }
+#endif
+
     findAndAddSensorsForType(seeHelper, tempSensors, dataType, sensorType,
-                             false /* skipAdditionalTypes */, sensors);
+                             skipAdditionalTypes, sensors);
   }
 
 #ifdef CHRE_SLPI_UIMG_ENABLED
