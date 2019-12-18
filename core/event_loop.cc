@@ -22,9 +22,11 @@
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/conditional_lock_guard.h"
 #include "chre/util/lock_guard.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/time.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -242,15 +244,14 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
   return unloaded;
 }
 
-bool EventLoop::postEvent(uint16_t eventType, void *eventData,
-    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
-    uint32_t targetInstanceId) {
+bool EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
+                               chreEventCompleteFunction *freeCallback,
+                               uint32_t targetInstanceId) {
   bool success = false;
 
-  if (mRunning && (senderInstanceId == kSystemInstanceId ||
-      mEventPool.getFreeBlockCount() > kMinReservedSystemEventCount)) {
+  if (mRunning) {
     success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   senderInstanceId,targetInstanceId);
+                                   kSystemInstanceId, targetInstanceId);
     if (!success) {
       // This can only happen if the event is a system event type. This
       // postEvent method will fail if a non-system event is posted when the
@@ -262,16 +263,21 @@ bool EventLoop::postEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
-bool EventLoop::postEventOrFree(uint16_t eventType, void *eventData,
+bool EventLoop::postLowPriorityEventOrFree(
+    uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
     uint32_t targetInstanceId) {
   bool success = false;
 
   if (mRunning) {
-    success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   senderInstanceId,targetInstanceId);
+    if (mEventPool.getFreeBlockCount() > kMinReservedHighPriorityEventCount) {
+      success = allocateAndPostEvent(eventType, eventData, freeCallback,
+                                     senderInstanceId, targetInstanceId);
+    }
     if (!success) {
-      freeCallback(eventType, eventData);
+      if (freeCallback != nullptr) {
+        freeCallback(eventType, eventData);
+      }
       LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
            eventType, targetInstanceId);
     }
@@ -286,7 +292,7 @@ void EventLoop::stop() {
   };
 
   // Stop accepting new events and tell the main loop to finish.
-  postEvent(0, nullptr, callback, kSystemInstanceId, kSystemInstanceId);
+  postEventOrDie(0, nullptr, callback, kSystemInstanceId);
 }
 
 void EventLoop::onStopComplete() {
@@ -334,8 +340,15 @@ bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
     uint32_t targetInstanceId) {
   bool success = false;
 
-  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
-                                     senderInstanceId, targetInstanceId);
+  Milliseconds receivedTime = Nanoseconds(SystemTime::getMonotonicTime());
+  // The event loop should never contain more than 65 seconds worth of data
+  // unless something has gone terribly wrong so use uint16_t to save space.
+  uint16_t receivedTimeMillis = receivedTime.getMilliseconds();
+
+  Event *event = mEventPool.allocate(eventType, receivedTimeMillis, eventData,
+                                     freeCallback, senderInstanceId,
+                                     targetInstanceId);
+
   if (event != nullptr) {
     success = mEvents.push(event);
   }
@@ -444,7 +457,7 @@ void EventLoop::notifyAppStatusChange(uint16_t eventType,
     info->version    = nanoapp.getAppVersion();
     info->instanceId = nanoapp.getInstanceId();
 
-    postEvent(eventType, info, freeEventDataCallback);
+    postEventOrDie(eventType, info, freeEventDataCallback);
   }
 }
 

@@ -972,6 +972,11 @@ bool chreSensorGetThreeAxisBias(uint32_t sensorHandle,
  * CHRE_EVENT_SENSOR_FLUSH_COMPLETE events received must equal the number of
  * flush requests made.
  *
+ * If a sensor request is disabled after a flush request is made through this
+ * method but before the flush operation is completed, the nanoapp will receive
+ * a CHRE_EVENT_SENSOR_FLUSH_COMPLETE with the error code
+ * CHRE_ERROR_FUNCTION_DISABLED for any pending flush requests.
+ *
  * Starting with CHRE API v1.3, implementations must support this capability
  * across all exposed sensor types.
  *

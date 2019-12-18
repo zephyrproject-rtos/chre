@@ -139,9 +139,21 @@ class EventLoop : public NonCopyable {
 
   /**
    * Posts an event to a nanoapp that is currently running (or all nanoapps if
-   * the target instance ID is kBroadcastInstanceId). If the senderInstanceId is
-   * kSystemInstanceId and the event fails to post, this is considered a fatal
+   * the target instance ID is kBroadcastInstanceId). A senderInstanceId cannot
+   * be provided to this method because it should only be used to post events
+   * sent by the system. If the event fails to post, this is considered a fatal
    * error.
+   *
+   * @see postLowPriorityEventOrFree
+   */
+  bool postEventOrDie(uint16_t eventType, void *eventData,
+                      chreEventCompleteFunction *freeCallback,
+                      uint32_t targetInstanceId = kBroadcastInstanceId);
+
+  /**
+   * Posts an event to a nanoapp that is currently running (or all nanoapps if
+   * the target instance ID is kBroadcastInstanceId). If the event fails to
+   * post, it is freed with freeCallback.
    *
    * This function is safe to call from any thread.
    *
@@ -152,26 +164,15 @@ class EventLoop : public NonCopyable {
    * @param senderInstanceId The instance ID of the sender of this event.
    * @param targetInstanceId The instance ID of the destination of this event.
    *
-   * @return true if the event was successfully added to the queue. Note that
-   *         unlike chreSendEvent, this does *not* invoke the free callback if
-   *         it failed to post the event.
+   * @return true if the event was successfully added to the queue.
    *
    * @see chreSendEvent
    */
-  bool postEvent(uint16_t eventType, void *eventData,
-                 chreEventCompleteFunction *freeCallback,
-                 uint32_t senderInstanceId = kSystemInstanceId,
-                 uint32_t targetInstanceId = kBroadcastInstanceId);
-
-  /**
-   * Post an event to a nanoapp. If it fails, free the event with freeCallback.
-   *
-   * @see postEvent
-   */
-  bool postEventOrFree(uint16_t eventType, void *eventData,
-                       chreEventCompleteFunction *freeCallback,
-                       uint32_t senderInstanceId = kSystemInstanceId,
-                       uint32_t targetInstanceId = kBroadcastInstanceId);
+  bool postLowPriorityEventOrFree(
+      uint16_t eventType, void *eventData,
+      chreEventCompleteFunction *freeCallback,
+      uint32_t senderInstanceId = kSystemInstanceId,
+      uint32_t targetInstanceId = kBroadcastInstanceId);
 
   /**
    * Returns a pointer to the currently executing Nanoapp, or nullptr if none is
@@ -262,9 +263,9 @@ class EventLoop : public NonCopyable {
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = CHRE_MAX_EVENT_COUNT;
 
-  //! The minimum number of events to reserve in the event pool for system
-  //! events.
-  static constexpr size_t kMinReservedSystemEventCount = 16;
+  //! The minimum number of events to reserve in the event pool for high
+  //! priority events.
+  static constexpr size_t kMinReservedHighPriorityEventCount = 16;
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.
@@ -320,7 +321,7 @@ class EventLoop : public NonCopyable {
    *
    * @return true if the event has been successfully allocated and posted.
    *
-   * @see postEvent and postEventOrFree
+   * @see postEventOrDie and postLowPriorityEventOrFree
    */
   bool allocateAndPostEvent(uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,

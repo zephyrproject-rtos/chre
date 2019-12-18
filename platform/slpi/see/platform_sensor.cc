@@ -30,7 +30,6 @@
 #include "chre/platform/shared/platform_sensor_util.h"
 #include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/see/see_client.h"
-#include "chre/platform/slpi/see/see_helper.h"
 #include "chre/platform/system_time.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
@@ -153,11 +152,12 @@ const char *kSeeDataTypes[] = {
 void handleMissingSensor() {
   // Try rebooting if a sensor is missing, which might help recover from a
   // transient failure/race condition at startup. But to avoid endless crashes,
-  // only do this within the first 45 seconds after boot - we rely on knowledge
-  // that getMonotonicTime() maps into QTimer here, and QTimer only resets when
-  // the entire system is rebooted (it continues increasing after SLPI SSR).
+  // only do this within 15 seconds of the timeout on initializing SEE - we rely
+  // on knowledge that getMonotonicTime() maps into QTimer here, and QTimer only
+  // resets when the entire system is rebooted (it continues increasing after
+  // SLPI SSR).
 #ifndef CHRE_LOG_ONLY_NO_SENSOR
-  if (SystemTime::getMonotonicTime() < Seconds(45)) {
+  if (SystemTime::getMonotonicTime() < (kDefaultSeeWaitTimeout + Seconds(15))) {
     FATAL_ERROR("Missing required sensor(s)");
   } else
 #endif
@@ -213,18 +213,6 @@ SensorType getSensorTypeFromDataType(const char *dataType, bool calibrated) {
   return sensorType;
 }
 
-void seeSensorDataEventFree(uint16_t eventType, void *eventData) {
-  memoryFree(eventData);
-
-  // Remove all requests if it's a one-shot sensor and only after data has been
-  // delivered to all clients.
-  SensorType sensorType = getSensorTypeForSampleEventType(eventType);
-  if (sensorTypeIsOneShot(sensorType)) {
-    EventLoopManagerSingleton::get()->getSensorRequestManager()
-        .removeAllRequests(sensorType);
-  }
-}
-
 /**
  * Posts a CHRE_EVENT_SENSOR_SAMPLING_CHANGE event to the specified Nanoapp.
  *
@@ -241,9 +229,9 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
     event->sensorHandle = sensorHandle;
     event->status = status;
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_SENSOR_SAMPLING_CHANGE, event, freeEventDataCallback,
-        kSystemInstanceId, instanceId);
+        instanceId);
   }
 }
 
@@ -263,7 +251,7 @@ void postSensorBiasEvent(SensorType sensorType,
     } else {
       *event = bias;
       event->header.sensorHandle = getSensorHandleFromSensorType(sensorType);
-      EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           eventType, event, freeEventDataCallback);
     }
   }
@@ -271,17 +259,19 @@ void postSensorBiasEvent(SensorType sensorType,
 
 /**
  * Updates the sampling status.
+ *
+ * This should only be called when the new SamplingStatusData is different
+ * from the most recently processed SamplingStatusData to avoid duplicate
+ * updates being posted to nanoapps.
  */
 void updateSamplingStatus(
     const SeeHelperCallbackInterface::SamplingStatusData& update) {
   Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
       .getSensor(update.sensorType);
-  struct chreSensorSamplingStatus prevStatus;
+  struct chreSensorSamplingStatus newStatus;
 
   if (sensor != nullptr && !sensorTypeIsOneShot(update.sensorType)
-      && sensor->getSamplingStatus(&prevStatus)) {
-    struct chreSensorSamplingStatus newStatus = prevStatus;
-
+      && sensor->getSamplingStatus(&newStatus)) {
     if (update.enabledValid) {
       newStatus.enabled = update.status.enabled;
     }
@@ -292,35 +282,75 @@ void updateSamplingStatus(
       newStatus.latency = update.status.latency;
     }
 
-    if (newStatus.enabled != prevStatus.enabled ||
-        (newStatus.enabled && (newStatus.interval != prevStatus.interval
-                               || newStatus.latency != prevStatus.latency))) {
-      sensor->setSamplingStatus(newStatus);
+    sensor->setSamplingStatus(newStatus);
 
-      // Only post to Nanoapps with an open request.
-      uint32_t sensorHandle = getSensorHandleFromSensorType(update.sensorType);
-      const DynamicVector<SensorRequest>& requests =
-          EventLoopManagerSingleton::get()->getSensorRequestManager()
-          .getRequests(update.sensorType);
-      for (const auto& req : requests) {
-        postSamplingStatusEvent(req.getInstanceId(), sensorHandle, newStatus);
-      }
+    // Only post to Nanoapps with an open request.
+    uint32_t sensorHandle = getSensorHandleFromSensorType(update.sensorType);
+    const DynamicVector<SensorRequest>& requests =
+        EventLoopManagerSingleton::get()->getSensorRequestManager()
+        .getRequests(update.sensorType);
+    for (const auto& req : requests) {
+      postSamplingStatusEvent(req.getInstanceId(), sensorHandle, newStatus);
     }
   }
 }
 
+/**
+ * Compares the given status updates and returns true if they are the same.
+ *
+ * A simple memcmp cannot be done because if a given field is not valid, then
+ * the field may be different across updates, but doesn't indicate the update
+ * is different.
+ */
+bool isSameStatusUpdate(
+    const SeeHelperCallbackInterface::SamplingStatusData& status1,
+    const SeeHelperCallbackInterface::SamplingStatusData& status2) {
+  bool sameStatus = status1.enabledValid == status2.enabledValid;
+  if (sameStatus && status1.enabledValid) {
+    sameStatus &= status1.status.enabled == status2.status.enabled;
+  }
+
+  // Only check interval / latency fields if both status updates say the sensor
+  // is enabled since CHRE doesn't care what the fields are set to if the sensor
+  // is disabled.
+  if (sameStatus && status1.status.enabled) {
+    sameStatus &= status1.intervalValid == status2.intervalValid;
+    if (sameStatus && status1.intervalValid) {
+      sameStatus &= status1.status.interval == status2.status.interval;
+    }
+
+    sameStatus &= status1.latencyValid == status2.latencyValid;
+    if (sameStatus && status1.latencyValid) {
+      sameStatus &= status1.status.latency == status2.status.latency;
+    }
+  }
+
+  return sameStatus;
+}
+
 void SeeHelperCallback::onSamplingStatusUpdate(
     UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>&& status) {
-  auto callback = [](uint16_t /* type */, void *data) {
-    auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
-        static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(data));
-    updateSamplingStatus(*cbData);
-  };
+  Sensor *sensor = EventLoopManagerSingleton::get()->getSensorRequestManager()
+      .getSensor(status->sensorType);
 
-  // Schedule a deferred callback to handle sensor status change in the main
-  // thread.
-  EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SensorStatusUpdate, status.release(), callback);
+  // TODO: Once the latency field is actually filled in by SEE, modify this
+  // logic to avoid reacting if the latency and interval of the sensor are
+  // updated separately, but contain the same info as before.
+  if (sensor != nullptr &&
+      !isSameStatusUpdate(sensor->mLastReceivedSamplingStatus, *status.get())) {
+    sensor->mLastReceivedSamplingStatus = *status.get();
+
+    auto callback = [](uint16_t /* type */, void *data) {
+      auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
+          static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(data));
+      updateSamplingStatus(*cbData);
+    };
+
+    // Schedule a deferred callback to handle sensor status change in the main
+    // thread.
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::SensorStatusUpdate, status.release(), callback);
+ }
 }
 
 void SeeHelperCallback::onSensorDataEvent(
@@ -331,9 +361,8 @@ void SeeHelperCallback::onSensorDataEvent(
     updateLastEvent(sensorType, eventData.get());
   }
 
-  uint16_t eventType = getSampleEventTypeForSensorType(sensorType);
-  EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
-      eventType, eventData.get(), seeSensorDataEventFree);
+  EventLoopManagerSingleton::get()->getSensorRequestManager().handleSensorEvent(
+      sensorType, eventData.get());
   eventData.release();
 }
 
@@ -357,7 +386,7 @@ void SeeHelperCallback::onSensorBiasEvent(
     // Posts a newly allocated event for the uncalibrated type
     postSensorBiasEvent(toUncalibratedSensorType(sensorType), *biasData.get());
 
-    EventLoopManagerSingleton::get()->getEventLoop().postEventOrFree(
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         eventType, biasData.release(), freeEventDataCallback);
   }
 }

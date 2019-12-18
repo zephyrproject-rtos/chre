@@ -183,6 +183,9 @@ class AudioRequestManager : public NonCopyable {
     //! Whether or not the source is available. It is unavailable by default.
     bool available = false;
 
+    //! The timestamp when the last audio data event was received.
+    Nanoseconds lastEventTimestamp;
+
     //! The request to post the next event to.
     AudioRequest *nextAudioRequest = nullptr;
 
