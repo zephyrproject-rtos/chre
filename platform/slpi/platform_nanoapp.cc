@@ -340,7 +340,7 @@ bool PlatformNanoappBase::verifyNanoappInfo() {
 
 const char *PlatformNanoappBase::getAppVersionString() const {
   const char *versionString = "<undefined>";
-  if (mAppInfo != nullptr && mAppInfo->structMinorVersion >= 2 
+  if (mAppInfo != nullptr && mAppInfo->structMinorVersion >= 2
       && mAppInfo->appVersionString != NULL) {
     size_t appVersionStringLength = strlen(mAppInfo->appVersionString);
 

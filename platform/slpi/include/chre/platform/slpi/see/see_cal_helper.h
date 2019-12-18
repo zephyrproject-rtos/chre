@@ -139,7 +139,9 @@ class SeeCalHelper : public NonCopyable {
 
   //! The list of SEE cal sensors supported.
   enum class SeeCalSensor : size_t {
+#ifdef CHRE_ENABLE_ACCEL_CAL
     AccelCal,
+#endif  // CHRE_ENABLE_ACCEL_CAL
     GyroCal,
     MagCal,
     NumCalSensors,

@@ -179,6 +179,7 @@ else:
     oem_ver = 'undefined'
 
 CHRE_DEFINES = [
+    'CHRE_SLPI_DEFAULT_BUILD',
     'CHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG',
     'NANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG',
     'CHRE_ASSERTIONS_ENABLED',
@@ -187,7 +188,7 @@ CHRE_DEFINES = [
     'CHRE_PATCH_VERSION=1',
     'CHRE_FILENAME=__FILE__',
     'CHRE_PLATFORM_ID=0x476f6f676c000005',
-    'CHRE_SEE_NUM_TEMP_SENSORS=3',
+    'CHRE_SEE_NUM_TEMP_SENSORS=1',
     'FLATBUFFERS_CHRE',
     'SSC_TARGET_HEXAGON',
     'CHRE_SLPI_SEE',
@@ -222,6 +223,7 @@ chre_cc_src = [
     "${BUILD_ROOT}/qmimsgs/sns_client_api/src/sns_client_api_v01.c",
 
     # Qualcomm protobufs needed by CHRE code
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_amd.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_client.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_suid.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_cal.pb.c",
