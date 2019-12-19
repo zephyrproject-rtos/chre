@@ -156,7 +156,7 @@ const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion);
  * @since v1.4
  */
 static inline void chreWwanPackNrNci(int64_t nci,
-                                     chreWwanCellIdentityNr *nrCellId) {
+                                     struct chreWwanCellIdentityNr *nrCellId) {
   nrCellId->nci1 = (nci >> 32) & 0xffffffff;
   nrCellId->nci0 = nci & 0xffffffff;
 }

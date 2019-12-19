@@ -544,7 +544,7 @@ bool chreWwanGetCellInfoAsync(const void *cookie);
  * @since v1.4
  */
 static inline int64_t chreWwanUnpackNrNci(
-    const chreWwanCellIdentityNr *nrCellId) {
+    const struct chreWwanCellIdentityNr *nrCellId) {
   return ((uint64_t) nrCellId->nci1 << 32) | nrCellId->nci0;
 }
 
