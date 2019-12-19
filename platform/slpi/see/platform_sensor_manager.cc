@@ -58,9 +58,19 @@ struct SuidAttr {
 //! The list of SEE platform sensor data types that CHRE intends to support.
 //! The standardized strings are defined in sns_xxx.proto.
 const char *kSeeDataTypes[] = {
-    "accel", "gyro", "mag", "pressure", "ambient_light", "proximity", "amd",
-    "amd",  // Both instant motion and stationary detect share the same data
-            // type
+    "accel",
+    "gyro",
+    "mag",
+    "pressure",
+    "ambient_light",
+    "proximity",
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+    // Both instant motion and stationary detect share the same data type.
+    "amd",
+    "amd",
+#else
+    "motion_detect", "stationary_detect",
+#endif
 };
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
