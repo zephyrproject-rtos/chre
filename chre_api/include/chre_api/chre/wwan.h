@@ -197,6 +197,50 @@ struct chreWwanCellIdentityTdscdma {
     int32_t cpid;
 };
 
+//! Reference: android.hardware.radio@1.4 CellIdentityNr
+//! @since v1.4
+struct chreWwanCellIdentityNr {
+    //! 3-digit Mobile Country Code, in range [0, 999]. This value must be valid
+    //! for registered or camped cells. INT32_MAX means invalid/unreported.
+    int32_t mcc;
+
+    //! 2 or 3-digit Mobile Network Code, in range [0, 999]. This value must be
+    //! valid for registered or camped cells. INT32_MAX means
+    //! invalid/unreported.
+    int32_t mnc;
+
+    //! NR Cell Identity in range [0, 68719476735] (36 bits), which
+    //! unambiguously identifies a cell within a public land mobile network
+    //! (PLMN). This value must be valid for registered or camped cells.
+    //! Reference: TS 38.413 section 9.3.1.7.
+    //!
+    //! Note: for backward compatibility reasons, the nominally int64_t nci is
+    //! split into two uint32_t values, with nci0 being the least significant 4
+    //! bytes. If chreWwanUnpackNrNci returns INT64_MAX, it means nci is
+    //! invalid/unreported.
+    //!
+    //! Users are recommended to use the helper accessor chreWwanUnpackNrNci to
+    //! access the nci field.
+    //!
+    //! @see chreWwanUnpackNrNci
+    uint32_t nci0;
+    uint32_t nci1;
+
+    //! Physical cell id in range [0, 1007]. This value must be valid.
+    //! Reference: TS 38.331 section 6.3.2.
+    int32_t pci;
+
+    //! 24-bit tracking area code in range [0, 16777215]. INT32_MAX means
+    //! invalid/unreported.
+    //! Reference: TS 38.413 section 9.3.3.10 and TS 29.571 section 5.4.2.
+    int32_t tac;
+
+    //! NR Absolute Radio Frequency Channel Number, in range [0, 3279165]. This
+    //! value must be valid.
+    //! Reference: TS 38.101-1 section 5.4.2.1 and TS 38.101-2 section 5.4.2.1.
+    int32_t nrarfcn;
+};
+
 //! Reference: RIL_GSM_SignalStrength_v12
 struct chreWwanSignalStrengthGsm {
     //! Valid values are (0-31, 99) as defined in TS 27.007 8.5
@@ -260,7 +304,7 @@ struct chreWwanSignalStrengthLte {
     int32_t rsrp;
 
     //! The current Reference Signal Receive Quality in dB multiplied by -1.
-    //! Range: 20 to 3 dB.
+    //! Range: 3 to 20 dB.
     //! INT32_MAX: 0x7FFFFFFF denotes invalid value.
     //! Reference: 3GPP TS 36.133 9.1.7
     int32_t rsrq;
@@ -295,6 +339,45 @@ struct chreWwanSignalStrengthTdscdma {
     int32_t rscp;
 };
 
+//! Reference: android.hardware.radio@1.4 NrSignalStrength
+//! @since v1.4
+struct chreWwanSignalStrengthNr {
+    //! SS (second synchronization) reference signal received power in dBm
+    //! multiplied by -1.
+    //! Range [44, 140], INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.1 and TS 38.133 section 10.1.6.
+    int32_t ssRsrp;
+
+    //! SS reference signal received quality in 0.5 dB units.
+    //! Range [-86, 41] with -86 = -43.0 dB and 41 = 20.5 dB.
+    //! INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.3 and TS 38.133 section 10.1.11.1.
+    int32_t ssRsrq;
+
+    //! SS signal-to-noise and interference ratio in 0.5 dB units.
+    //! Range [-46, 81] with -46 = -23.0 dB and 81 = 40.5 dB.
+    //! INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.5 and TS 38.133 section 10.1.16.1.
+    int32_t ssSinr;
+
+    //! CSI reference signal received power in dBm multiplied by -1.
+    //! Range [44, 140], INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.2 and TS 38.133 section 10.1.6.
+    int32_t csiRsrp;
+
+    //! CSI reference signal received quality in 0.5 dB units.
+    //! Range [-86, 41] with -86 = -43.0 dB and 41 = 20.5 dB.
+    //! INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.4 and TS 38.133 section 10.1.11.1.
+    int32_t csiRsrq;
+
+    //! CSI signal-to-noise and interference ratio in 0.5 dB units.
+    //! Range [-46, 81] with -46 = -23.0 dB and 81 = 40.5 dB.
+    //! INT32_MAX means invalid/unreported.
+    //! Reference: TS 38.215 section 5.1.6 and TS 38.133 section 10.1.16.1.
+    int32_t csiSinr;
+};
+
 //! Reference: RIL_CellInfoGsm_v12
 struct chreWwanCellInfoGsm {
     struct chreWwanCellIdentityGsm    cellIdentityGsm;
@@ -326,13 +409,22 @@ struct chreWwanCellInfoTdscdma {
     struct chreWwanSignalStrengthTdscdma  signalStrengthTdscdma;
 };
 
+//! Reference: android.hardware.radio@1.4 CellInfoNr
+//! @since v1.4
+struct chreWwanCellInfoNr {
+    struct chreWwanCellIdentityNr    cellIdentityNr;
+    struct chreWwanSignalStrengthNr  signalStrengthNr;
+};
+
 //! Reference: RIL_CellInfoType
+//! All other values are reserved and should be ignored by nanoapps.
 enum chreWwanCellInfoType {
     CHRE_WWAN_CELL_INFO_TYPE_GSM      = 1,
     CHRE_WWAN_CELL_INFO_TYPE_CDMA     = 2,
     CHRE_WWAN_CELL_INFO_TYPE_LTE      = 3,
     CHRE_WWAN_CELL_INFO_TYPE_WCDMA    = 4,
     CHRE_WWAN_CELL_INFO_TYPE_TD_SCDMA = 5,
+    CHRE_WWAN_CELL_INFO_TYPE_NR       = 6,  //! @since v1.4
 };
 
 //! Reference: RIL_TimeStampType
@@ -354,8 +446,8 @@ struct chreWwanCellInfo {
     //! to retrieve additional information
     uint8_t cellInfoType;
 
-    //! A value from value from enum {@link #CellTimeStampType} that identifies
-    //! the source of the value in timeStamp. This is typically set to
+    //! A value from enum {@link #CellTimeStampType} that identifies the source
+    //! of the value in timeStamp. This is typically set to
     //! CHRE_WWAN_CELL_TIMESTAMP_TYPE_OEM_RIL, and indicates the time given by
     //! chreGetTime() that an intermediate module received the data from the
     //! modem and forwarded it to the requesting CHRE client.
@@ -374,10 +466,8 @@ struct chreWwanCellInfo {
         struct chreWwanCellInfoLte     lte;
         struct chreWwanCellInfoWcdma   wcdma;
         struct chreWwanCellInfoTdscdma tdscdma;
+        struct chreWwanCellInfoNr      nr;  //! @since v1.4
     } CellInfo;
-
-    //! Additional bytes reserved for future use; must be set to 0
-    uint8_t reserved2[4];
 };
 
 /**
@@ -444,6 +534,19 @@ uint32_t chreWwanGetCapabilities(void);
  */
 bool chreWwanGetCellInfoAsync(const void *cookie);
 
+/**
+ * Helper accessor for nci in the chreWwanCellIdentityNr struct.
+ *
+ * @return nci or INT64_MAX if invalid/unreported.
+ *
+ * @see chreWwanCellIdentityNr
+ *
+ * @since v1.4
+ */
+static inline int64_t chreWwanUnpackNrNci(
+    const chreWwanCellIdentityNr *nrCellId) {
+  return ((uint64_t) nrCellId->nci1 << 32) | nrCellId->nci0;
+}
 
 #ifdef __cplusplus
 }
