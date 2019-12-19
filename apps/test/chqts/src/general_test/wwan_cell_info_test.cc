@@ -95,14 +95,6 @@ void WwanCellInfoTest::validateCellInfo(
                                           cells[i].reserved);
     }
 
-    for (uint8_t byte : cells[i].reserved2) {
-      if (byte != 0) {
-        valid = false;
-        CellInfoBase::sendFatalFailureUint8("Invalid reserved2 field: %d",
-                                            byte);
-      }
-    }
-
     if ((cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_UNKNOWN) &&
         (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_ANTENNA) &&
         (cells[i].timeStampType != CHRE_WWAN_CELL_TIMESTAMP_TYPE_MODEM) &&
