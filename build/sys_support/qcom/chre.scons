@@ -179,6 +179,7 @@ else:
     oem_ver = 'undefined'
 
 CHRE_DEFINES = [
+    'CHRE_SLPI_DEFAULT_BUILD',
     'CHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG',
     'NANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG',
     'CHRE_ASSERTIONS_ENABLED',
@@ -187,7 +188,7 @@ CHRE_DEFINES = [
     'CHRE_PATCH_VERSION=1',
     'CHRE_FILENAME=__FILE__',
     'CHRE_PLATFORM_ID=0x476f6f676c000005',
-    'CHRE_SEE_NUM_TEMP_SENSORS=3',
+    'CHRE_SEE_NUM_TEMP_SENSORS=1',
     'FLATBUFFERS_CHRE',
     'SSC_TARGET_HEXAGON',
     'CHRE_SLPI_SEE',
@@ -222,6 +223,7 @@ chre_cc_src = [
     "${BUILD_ROOT}/qmimsgs/sns_client_api/src/sns_client_api_v01.c",
 
     # Qualcomm protobufs needed by CHRE code
+    "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_amd.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_client.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_suid.pb.c",
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_cal.pb.c",
@@ -243,8 +245,10 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/core/nanoapp.cc",
     "${BUILDPATH}/system/chre/core/sensor_request.cc",
     "${BUILDPATH}/system/chre/core/sensor_request_manager.cc",
+    "${BUILDPATH}/system/chre/core/sensor_request_multiplexer.cc",
     "${BUILDPATH}/system/chre/core/sensor.cc",
     "${BUILDPATH}/system/chre/core/sensor_type.cc",
+    "${BUILDPATH}/system/chre/core/sensor_type_helpers.cc",
     "${BUILDPATH}/system/chre/core/static_nanoapps.cc",
     "${BUILDPATH}/system/chre/core/timer_pool.cc",
 
@@ -262,9 +266,9 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/platform/shared/memory_manager.cc",
     "${BUILDPATH}/system/chre/platform/shared/nanoapp/nanoapp_dso_util.cc",
     "${BUILDPATH}/system/chre/platform/shared/pal_system_api.cc",
-    "${BUILDPATH}/system/chre/platform/shared/platform_sensor_util.cc",
     "${BUILDPATH}/system/chre/platform/shared/system_time.cc",
     "${BUILDPATH}/system/chre/platform/slpi/chre_api_re.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/debug_dump.cc",
     "${BUILDPATH}/system/chre/platform/slpi/host_link.cc",
     "${BUILDPATH}/system/chre/platform/slpi/init.cc",
     "${BUILDPATH}/system/chre/platform/slpi/memory.cc",
@@ -272,13 +276,14 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/platform/slpi/nanoapp_load_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/platform_nanoapp.cc",
     "${BUILDPATH}/system/chre/platform/slpi/platform_pal.cc",
-    "${BUILDPATH}/system/chre/platform/slpi/debug_dump.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/platform_sensor_type_helpers.cc",
     "${BUILDPATH}/system/chre/platform/slpi/system_time.cc",
     "${BUILDPATH}/system/chre/platform/slpi/system_time_util.cc",
     "${BUILDPATH}/system/chre/platform/slpi/system_timer.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/island_vote_client.cc",
-    "${BUILDPATH}/system/chre/platform/slpi/see/power_control_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/platform_sensor.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/see/platform_sensor_manager.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/see/power_control_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/see_helper.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/see_cal_helper.cc",
     "${BUILDPATH}/system/chre/platform/slpi/see/sns_qmi_client.c",
@@ -290,7 +295,6 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/util/nanoapp/audio.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/callbacks.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/debug.cc",
-    "${BUILDPATH}/system/chre/util/nanoapp/sensor.cc",
     "${BUILDPATH}/system/chre/util/nanoapp/wifi.cc",
 ]
 
