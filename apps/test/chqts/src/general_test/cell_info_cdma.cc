@@ -18,7 +18,7 @@
 namespace general_test {
 
 bool CellInfoCdma::validateIdentity(
-    const struct chreWwanCellIdentityCdma identity) {
+    const struct chreWwanCellIdentityCdma &identity) {
   bool valid = false;
   constexpr int32_t max = INT32_MAX;
 
@@ -41,7 +41,7 @@ bool CellInfoCdma::validateIdentity(
 }
 
 bool CellInfoCdma::validateSignalStrengthCdma(
-    const struct chreWwanSignalStrengthCdma strength) {
+    const struct chreWwanSignalStrengthCdma &strength) {
   bool valid = false;
 
   // TODO: Find exact limits on dbm and ecio
@@ -57,7 +57,7 @@ bool CellInfoCdma::validateSignalStrengthCdma(
 }
 
 bool CellInfoCdma::validateSignalStrengthEvdo(
-    const struct chreWwanSignalStrengthEvdo strength) {
+    const struct chreWwanSignalStrengthEvdo &strength) {
   bool valid = false;
 
   // TODO: Find exact limits on dbm and ecio

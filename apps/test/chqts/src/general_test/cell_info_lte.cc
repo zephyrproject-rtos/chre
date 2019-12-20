@@ -18,7 +18,7 @@
 namespace general_test {
 
 bool CellInfoLte::validateIdentity(
-    const struct chreWwanCellIdentityLte identity) {
+    const struct chreWwanCellIdentityLte &identity) {
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
@@ -42,7 +42,7 @@ bool CellInfoLte::validateIdentity(
 }
 
 bool CellInfoLte::validateSignalStrength(
-    const struct chreWwanSignalStrengthLte strength) {
+    const struct chreWwanSignalStrengthLte &strength) {
   bool valid = false;
   constexpr int32_t max = INT32_MAX;
 

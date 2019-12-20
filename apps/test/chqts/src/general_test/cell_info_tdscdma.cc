@@ -18,7 +18,7 @@
 namespace general_test {
 
 bool CellInfoTdscdma::validateIdentity(
-    const struct chreWwanCellIdentityTdscdma identity) {
+    const struct chreWwanCellIdentityTdscdma &identity) {
   bool valid = false;
 
   if (!isBoundedInt32(identity.mcc, 0, 999, INT32_MAX)) {
@@ -43,7 +43,7 @@ bool CellInfoTdscdma::validateIdentity(
 }
 
 bool CellInfoTdscdma::validateSignalStrength(
-    const struct chreWwanSignalStrengthTdscdma strength) {
+    const struct chreWwanSignalStrengthTdscdma &strength) {
   bool valid = false;
 
   if (!isBoundedInt32(strength.rscp, 25, 120, INT32_MAX)) {
