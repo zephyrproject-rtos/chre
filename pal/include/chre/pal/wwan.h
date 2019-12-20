@@ -40,9 +40,14 @@ extern "C" {
 #define CHRE_PAL_WWAN_API_V1_0 CHRE_PAL_CREATE_API_VERSION(1, 0)
 
 /**
+ * Introduced alongside CHRE API v1.4, adding support for NR5G Cell Info.
+ */
+#define CHRE_PAL_WWAN_API_V1_4 CHRE_PAL_CREATE_API_VERSION(1, 4)
+
+/**
  * The version of the CHRE WWAN PAL defined in this header file.
  */
-#define CHRE_PAL_WWAN_API_CURRENT_VERSION CHRE_PAL_WWAN_API_V1_0
+#define CHRE_PAL_WWAN_API_CURRENT_VERSION CHRE_PAL_WWAN_API_V1_4
 
 struct chrePalWwanCallbacks {
   /**
@@ -140,6 +145,21 @@ struct chrePalWwanApi {
  *         module is loaded.
  */
 const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion);
+
+/**
+ * Helper setter for nci in the chreWwanCellIdentityNr struct.
+ *
+ * @param nci INT64_MAX if invalid/unreported.
+ *
+ * @see chreWwanCellIdentityNr
+ *
+ * @since v1.4
+ */
+static inline void chreWwanPackNrNci(int64_t nci,
+                                     struct chreWwanCellIdentityNr *nrCellId) {
+  nrCellId->nci1 = (nci >> 32) & 0xffffffff;
+  nrCellId->nci0 = nci & 0xffffffff;
+}
 
 #ifdef __cplusplus
 }
