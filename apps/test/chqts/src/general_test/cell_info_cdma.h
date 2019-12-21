@@ -27,11 +27,11 @@ class CellInfoCdma : private CellInfoBase {
   static bool validate(const struct chreWwanCellInfoCdma &cell);
 
  private:
-  static bool validateIdentity(const struct chreWwanCellIdentityCdma identity);
+  static bool validateIdentity(const struct chreWwanCellIdentityCdma &identity);
   static bool validateSignalStrengthCdma(
-      const struct chreWwanSignalStrengthCdma strength);
+      const struct chreWwanSignalStrengthCdma &strength);
   static bool validateSignalStrengthEvdo(
-      const struct chreWwanSignalStrengthEvdo strength);
+      const struct chreWwanSignalStrengthEvdo &strength);
 };
 
 }  // namespace general_test

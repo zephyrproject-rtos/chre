@@ -27,9 +27,9 @@ class CellInfoLte : private CellInfoBase {
   static bool validate(const struct chreWwanCellInfoLte &cell);
 
  private:
-  static bool validateIdentity(const struct chreWwanCellIdentityLte identity);
+  static bool validateIdentity(const struct chreWwanCellIdentityLte &identity);
   static bool validateSignalStrength(
-      const struct chreWwanSignalStrengthLte strength);
+      const struct chreWwanSignalStrengthLte &strength);
 };
 
 }  // namespace general_test
