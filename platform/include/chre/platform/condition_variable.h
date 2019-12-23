@@ -52,7 +52,11 @@ class ConditionVariable : public ConditionVariableBase, public NonCopyable {
    * Causes the current thread to block until the condition variable is
    * notified. The provided mutex will be unlocked and the thread will be
    * blocked until the condition variable has notified. The mutex is relocked
-   * prior to this function returning.
+   * prior to this function returning. Note that while std::condition_variable
+   * allows for multiple threads to wait on the same condition variable object
+   * concurrently, the CHRE platform implementation is only required to allow
+   * for a single waiting thread. The calling code must also be equipped to
+   * handle spurious wakeups.
    *
    * @param The currently locked mutex.
    */
