@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -25,8 +24,10 @@
  * useful in determining location.
  *
  * Based on Android N RIL definitions (located at this path as of the time of
- * this comment: hardware/ril/include/telephony/ril.h), version 12. Refer to
- * that file and associated documentation for futher details.
+ * this comment: hardware/ril/include/telephony/ril.h), version 12. Updated
+ * based on Android radio HAL definition (hardware/interfaces/radio) for more
+ * recent Android builds. Refer to those files and associated documentation for
+ * further details.
  *
  * In general, the parts of this API that are taken from the RIL follow the
  * field naming conventions established in that interface rather than the CHRE
@@ -244,22 +245,26 @@ struct chreWwanCellIdentityNr {
 //! Reference: RIL_GSM_SignalStrength_v12
 struct chreWwanSignalStrengthGsm {
     //! Valid values are (0-31, 99) as defined in TS 27.007 8.5
+    //! INT32_MAX means invalid/unreported.
     int32_t signalStrength;
 
     //! bit error rate (0-7, 99) as defined in TS 27.007 8.5
+    //! INT32_MAX means invalid/unreported.
     int32_t bitErrorRate;
 
-    //! Timing Advance in bit periods. 1 bit period = 48.13 us. INT32_MAX
-    //! denotes invalid value
+    //! Timing Advance in bit periods. 1 bit period = 48.13 us.
+    //! INT32_MAX means invalid/unreported.
     int32_t timingAdvance;
 };
 
 //! Reference: RIL_SignalStrengthWcdma
 struct chreWwanSignalStrengthWcdma {
     //! Valid values are (0-31, 99) as defined in TS 27.007 8.5
+    //! INT32_MAX means invalid/unreported.
     int32_t signalStrength;
 
     //! bit error rate (0-7, 99) as defined in TS 27.007 8.5
+    //! INT32_MAX means invalid/unreported.
     int32_t bitErrorRate;
 };
 
@@ -268,11 +273,13 @@ struct chreWwanSignalStrengthCdma {
     //! Valid values are positive integers.  This value is the actual RSSI value
     //! multiplied by -1.  Example: If the actual RSSI is -75, then this
     //! response value will be 75.
+    //! INT32_MAX means invalid/unreported.
     int32_t dbm;
 
     //! Valid values are positive integers.  This value is the actual Ec/Io
     //! multiplied by -10.  Example: If the actual Ec/Io is -12.5 dB, then this
     //! response value will be 125.
+    //! INT32_MAX means invalid/unreported.
     int32_t ecio;
 };
 
@@ -281,14 +288,17 @@ struct chreWwanSignalStrengthEvdo {
     //! Valid values are positive integers.  This value is the actual RSSI value
     //! multiplied by -1.  Example: If the actual RSSI is -75, then this
     //! response value will be 75.
+    //! INT32_MAX means invalid/unreported.
     int32_t dbm;
 
     //! Valid values are positive integers.  This value is the actual Ec/Io
     //! multiplied by -10.  Example: If the actual Ec/Io is -12.5 dB, then this
     //! response value will be 125.
+    //! INT32_MAX means invalid/unreported.
     int32_t ecio;
 
     //! Valid values are 0-8.  8 is the highest signal to noise ratio.
+    //! INT32_MAX means invalid/unreported.
     int32_t signalNoiseRatio;
 };
 
@@ -299,32 +309,32 @@ struct chreWwanSignalStrengthLte {
 
     //! The current Reference Signal Receive Power in dBm multipled by -1.
     //! Range: 44 to 140 dBm
-    //! INT32_MAX: 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP TS 36.133 9.1.4
     int32_t rsrp;
 
     //! The current Reference Signal Receive Quality in dB multiplied by -1.
     //! Range: 3 to 20 dB.
-    //! INT32_MAX: 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP TS 36.133 9.1.7
     int32_t rsrq;
 
     //! The current reference signal signal-to-noise ratio in 0.1 dB units.
     //! Range: -200 to +300 (-200 = -20.0 dB, +300 = 30dB).
-    //! INT32_MAX : 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP TS 36.101 8.1.1
     int32_t rssnr;
 
     //! The current Channel Quality Indicator.
     //! Range: 0 to 15.
-    //! INT32_MAX : 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP TS 36.101 9.2, 9.3, A.4
     int32_t cqi;
 
     //! timing advance in micro seconds for a one way trip from cell to device.
     //! Approximate distance can be calculated using 300m/us * timingAdvance.
     //! Range: 0 to 0x7FFFFFFE
-    //! INT32_MAX : 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP 36.321 section 6.1.3.5
     //! also: http://www.cellular-planningoptimization.com/2010/02/timing-advance-with-calculation.html
     int32_t timingAdvance;
@@ -334,7 +344,7 @@ struct chreWwanSignalStrengthLte {
 struct chreWwanSignalStrengthTdscdma {
     //! The Received Signal Code Power in dBm multipled by -1.
     //! Range : 25 to 120
-    //! INT32_MAX: 0x7FFFFFFF denotes invalid value.
+    //! INT32_MAX means invalid/unreported.
     //! Reference: 3GPP TS 25.123, section 9.1.1.1
     int32_t rscp;
 };

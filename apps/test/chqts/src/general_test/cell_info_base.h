@@ -16,6 +16,7 @@
 #ifndef _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_BASE_H_
 #define _GTS_NANOAPPS_GENERAL_TEST_CELL_INFO_BASE_H_
 
+#include <cstdbool>
 #include <cstdint>
 
 namespace general_test {
@@ -25,13 +26,16 @@ class CellInfoBase {
   // TODO: A quick hack to convert to a uint32_t for sending fatal failure
   static void sendFatalFailureInt32(const char *message, int32_t value);
   static void sendFatalFailureUint8(const char *message, uint8_t value);
+  static void sendFatalFailure(const char *message);
 
  private:
   CellInfoBase();
 
  protected:
   static bool isBoundedInt32(int32_t value, int32_t lower, int32_t upper,
-                             int32_t invalid);
+                             int32_t invalid, bool invalidAllowed = true);
+  static bool isBoundedInt64(int64_t value, int64_t lower, int64_t upper,
+                             int64_t invalid, bool invalidAllowed = true);
 };
 
 }  // namespace general_test

@@ -13,6 +13,7 @@ GENERAL_TEST_SRC_FILES = \
     cell_info_cdma.cc \
     cell_info_gsm.cc \
     cell_info_lte.cc \
+    cell_info_nr.cc \
     cell_info_tdscdma.cc \
     cell_info_wcdma.cc \
     estimated_host_time_test.cc \

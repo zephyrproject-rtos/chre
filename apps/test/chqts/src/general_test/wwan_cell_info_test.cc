@@ -19,6 +19,7 @@
 #include <general_test/cell_info_cdma.h>
 #include <general_test/cell_info_gsm.h>
 #include <general_test/cell_info_lte.h>
+#include <general_test/cell_info_nr.h>
 #include <general_test/cell_info_tdscdma.h>
 #include <general_test/cell_info_wcdma.h>
 
@@ -115,6 +116,9 @@ void WwanCellInfoTest::validateCellInfo(
       valid &= CellInfoWcdma::validate(cells[i].CellInfo.wcdma);
     } else if (cells[i].cellInfoType == CHRE_WWAN_CELL_INFO_TYPE_TD_SCDMA) {
       valid &= CellInfoTdscdma::validate(cells[i].CellInfo.tdscdma);
+    } else if (cells[i].cellInfoType == CHRE_WWAN_CELL_INFO_TYPE_NR) {
+      valid &=
+          CellInfoNr::validate(cells[i].CellInfo.nr, cells[i].registered != 0);
     } else {
       valid = false;
       CellInfoBase::sendFatalFailureUint8("Invalid cellInfoType: %d",

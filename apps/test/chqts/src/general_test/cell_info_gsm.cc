@@ -57,10 +57,12 @@ bool CellInfoGsm::validateSignalStrength(
     const struct chreWwanSignalStrengthGsm &strength) {
   bool valid = false;
 
-  if (!isBoundedInt32(strength.signalStrength, 0, 31, 99)) {
+  if (!isBoundedInt32(strength.signalStrength, 0, 31, INT32_MAX) &&
+      strength.signalStrength != 99) {
     sendFatalFailureInt32("Invalid GSM signal strength: %d",
                           strength.signalStrength);
-  } else if (!isBoundedInt32(strength.bitErrorRate, 0, 7, 99)) {
+  } else if (!isBoundedInt32(strength.bitErrorRate, 0, 7, INT32_MAX) &&
+             strength.bitErrorRate != 99) {
     sendFatalFailureInt32("Invalid GSM bit error rate: %d",
                           strength.bitErrorRate);
   } else {
