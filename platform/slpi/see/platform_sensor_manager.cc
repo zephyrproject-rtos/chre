@@ -194,15 +194,15 @@ bool getSensorTypeFromDataType(const char *dataType, bool calibrated,
     *sensorType = CHRE_SENSOR_TYPE_STATIONARY_DETECT;
   } else if (strcmp(dataType, "step_detect") == 0) {
     *sensorType = CHRE_SENSOR_TYPE_STEP_DETECT;
-#ifdef CHREX_SENSOR_SUPPORT
-    // TODO: Invoke function in vendor_sensor_types to provide the appropriate
-    // vendor sensor type mapping.
-  } else if (strcmp(dataType, kVendorDataTypes[0]) == 0) {
-    *sensorType = CHRE_SENSOR_TYPE_VENDOR_START;
-#endif  // CHREX_SENSOR_SUPPORT
   } else {
+#ifdef CHREX_SENSOR_SUPPORT
+    success = extension::vendorSensorTypeFromDataType(dataType, calibrated,
+                                                      sensorType);
+  }
+#else
     success = false;
   }
+#endif
   return success;
 }
 

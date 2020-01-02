@@ -22,8 +22,6 @@
 #define CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO CHRE_VENDOR_SENSOR_TYPE(7)
 #define CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG CHRE_VENDOR_SENSOR_TYPE(8)
 
-// TODO: Delegate some of the below functions to a vendor-provided function that
-// can define the names for vendor sensors to improve debug dumps.
 namespace chre {
 
 /**
