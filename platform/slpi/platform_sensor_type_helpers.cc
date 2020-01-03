@@ -38,8 +38,13 @@ ReportingMode PlatformSensorTypeHelpers::getVendorSensorReportingMode(
 }
 
 bool PlatformSensorTypeHelpers::getVendorSensorIsCalibrated(
-    uint8_t /* sensorType */) {
+    uint8_t sensorType) {
+#ifdef CHREX_SENSOR_SUPPORT
+  return extension::vendorSensorTypeIsCalibrated(sensorType);
+#else
+  UNUSED_VAR(sensorType);
   return false;
+#endif
 }
 
 bool PlatformSensorTypeHelpers::getVendorSensorBiasEventType(
@@ -53,9 +58,10 @@ bool PlatformSensorTypeHelpers::getVendorSensorBiasEventType(
 
 const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
     uint8_t sensorType) {
+#ifdef CHREX_SENSOR_SUPPORT
+  return extension::vendorSensorTypeName(sensorType);
+#else
   switch (sensorType) {
-    // TODO: Map this to a vendor provided by an extension similar to
-    // vendorGetSensorBiasEventType.
     case CHRE_VENDOR_SENSOR_TYPE(0):
       return "Vendor Type 0";
     case CHRE_VENDOR_SENSOR_TYPE(1):
@@ -78,6 +84,7 @@ const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
       CHRE_ASSERT(false);
       return "";
   }
+#endif
 }
 
 uint8_t PlatformSensorTypeHelpersBase::getTempSensorType(uint8_t sensorType) {
@@ -119,30 +126,14 @@ PlatformSensorTypeHelpersBase::getSensorSampleTypeFromSensorType(
       return SensorSampleType::Occurrence;
     case CHRE_SENSOR_TYPE_PROXIMITY:
       return SensorSampleType::Byte;
-#ifdef CHREX_SENSOR_SUPPORT
-    case CHRE_VENDOR_SENSOR_TYPE(0):
-      return SensorSampleType::Vendor0;
-    case CHRE_VENDOR_SENSOR_TYPE(1):
-      return SensorSampleType::Vendor1;
-    case CHRE_VENDOR_SENSOR_TYPE(2):
-      return SensorSampleType::Vendor2;
-    case CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL:
-      return SensorSampleType::Vendor3;
-    case CHRE_VENDOR_SENSOR_TYPE(4):
-      return SensorSampleType::Vendor4;
-    case CHRE_VENDOR_SENSOR_TYPE(5):
-      return SensorSampleType::Vendor5;
-    case CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL:
-      return SensorSampleType::Vendor6;
-    case CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO:
-      return SensorSampleType::Vendor7;
-    case CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG:
-      return SensorSampleType::Vendor8;
-#endif  // CHREX_SENSOR_SUPPORT
     default:
+#ifdef CHREX_SENSOR_SUPPORT
+      return extension::vendorSensorSampleTypeFromSensorType(sensorType);
+#else
       // Update implementation to prevent undefined from being used.
       CHRE_ASSERT(false);
       return SensorSampleType::Unknown;
+#endif
   }
 }
 
