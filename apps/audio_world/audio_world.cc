@@ -37,6 +37,12 @@ using chre::Nanoseconds;
 //! The number of frequencies to generate an FFT over.
 constexpr size_t kNumFrequencies = 128;
 
+//! True if audio has successfully been requested.
+bool gAudioRequested = false;
+
+//! The requested audio handle.
+uint32_t gAudioHandle;
+
 //! State for Kiss FFT and logging.
 uint8_t gKissFftBuffer[4096];
 kiss_fftr_cfg gKissFftConfig;
@@ -133,6 +139,8 @@ bool nanoappStart() {
       // Only request audio data from the first source, but continue discovery.
       if (chreAudioConfigureSource(i, true, audioSource.minBufferDuration,
                                    audioSource.minBufferDuration)) {
+        gAudioRequested = true;
+        gAudioHandle = i;
         LOGI("Requested audio from handle %" PRIu32 " successfully", i);
       } else {
         LOGE("Failed to request audio from handle %" PRIu32, i);
@@ -162,6 +170,10 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
 }
 
 void nanoappEnd() {
+  if (gAudioRequested) {
+    chreAudioConfigureSource(gAudioHandle, false /* enable */,
+                             0 /* bufferDuration */, 0 /* deliveryInterval */);
+  }
   LOGI("Stopped");
 }
 
