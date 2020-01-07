@@ -17,6 +17,7 @@
 #include "chre/platform/platform_sensor_type_helpers.h"
 
 #include "chre/platform/assert.h"
+#include "chre/util/macros.h"
 
 #ifdef CHREX_SENSOR_SUPPORT
 #include "chre/extensions/platform/vendor_sensor_types.h"
