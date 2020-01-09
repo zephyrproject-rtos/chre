@@ -29,6 +29,7 @@ SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/mproc
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/core/api/systemdrivers
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/HAP
+SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/a1std
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/inc/stddef
 SLPI_CFLAGS += -I$(SLPI_PREFIX)/platform/rtld/inc
 
