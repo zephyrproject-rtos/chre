@@ -16,6 +16,10 @@
 
 LOCAL_PATH := $(call my-dir)
 
+# Don't build the daemon for targets that don't contain a vendor image as
+# libsdsprpc and libadsprpc are provided by vendor code
+ifeq ($(BUILDING_VENDOR_IMAGE),true)
+
 ifeq ($(CHRE_DAEMON_ENABLED),true)
 
 include $(CLEAR_VARS)
@@ -83,4 +87,5 @@ endif
 
 include $(BUILD_EXECUTABLE)
 
+endif
 endif
