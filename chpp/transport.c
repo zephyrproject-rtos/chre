@@ -31,15 +31,15 @@ enum ChppRxState {
 
   // Processing the packet header. Moves to CHPP_STATE_PAYLOAD after processing
   // the expected length of the header.
-  CHPP_STATE_HEADER,
+  CHPP_STATE_HEADER = 1,
 
   // Copying the packet payload. The payload length is determined by the header.
   // Moves to CHPP_STATE_FOOTER afterwards.
-  CHPP_STATE_PAYLOAD,
+  CHPP_STATE_PAYLOAD = 2,
 
   // Processing the packet footer (checksum) and responding accordingly. Moves
   // to CHPP_STATE_PREAMBLE afterwards.
-  CHPP_STATE_FOOTER
+  CHPP_STATE_FOOTER = 3,
 };
 
 struct ChppRxStatus {
@@ -51,13 +51,28 @@ struct ChppRxStatus {
   size_t loc;
 };
 
+struct ChppRxDatagram {
+  // Length of datagram payload in bytes (A datagram can be constituted from one
+  // or more packets)
+  size_t length;
+
+  // Location counter in bytes within datagram.
+  size_t loc;
+
+  // Datagram payload
+  uint8_t *payload;
+};
+
 /************************************************
  *  Global (to this file) Variables
  ***********************************************/
+// TODO: Eliminate global state as it precludes running multiple instances of
+// the code in parallel.
 
 static struct ChppRxStatus gRxStatus;         // Rx state and location within
 static struct ChppTransportHeader gRxHeader;  // Rx packet header
 static struct ChppTransportFooter gRxFooter;  // Rx packet footer (checksum)
+static struct ChppRxDatagram gRxDatagram;     // Rx datagram
 
 /************************************************
  *  Prototypes
@@ -68,6 +83,7 @@ static size_t chppConsumePreamble(const uint8_t *buf, size_t len);
 static size_t chppConsumeHeader(const uint8_t *buf, size_t len);
 static size_t chppConsumePayload(const uint8_t *buf, size_t len);
 static size_t chppConsumeFooter(const uint8_t *buf, size_t len);
+static bool chppValidateChecksum();
 
 /************************************************
  *  Tx
@@ -164,7 +180,33 @@ static size_t chppConsumeHeader(const uint8_t *buf, size_t len) {
   gRxStatus.loc += bytesToCopy;
   if (gRxStatus.loc == sizeof(struct ChppTransportHeader)) {
     // Header copied. Move on
-    chppUpdateRxState(CHPP_STATE_PAYLOAD);
+    // TODO: Sanity check header
+
+    if (gRxHeader.length > 0) {
+      // Payload bearing packet
+      uint8_t *tempPayload;
+
+      if (gRxDatagram.length > 0) {
+        // Packet is a continuation of a fragmented datagram
+        tempPayload = chppRealloc(gRxDatagram.payload,
+                                  gRxDatagram.length + gRxHeader.length,
+                                  gRxDatagram.length);
+      } else {
+        // Packet is a new datagram
+        tempPayload = chppMalloc(gRxHeader.length);
+      }
+
+      if (tempPayload == NULL) {
+        LOGE("OOM for packet %d, len=%u. Previous fragment(s) total len=%zu",
+             gRxHeader.seq, gRxHeader.length, gRxDatagram.length);
+
+        // TODO: handle OOM
+      } else {
+        gRxDatagram.payload = tempPayload;
+        gRxDatagram.length += gRxHeader.length;
+        chppUpdateRxState(CHPP_STATE_PAYLOAD);
+      }
+    }
   }
 
   return bytesToCopy;
@@ -186,12 +228,13 @@ static size_t chppConsumePayload(const uint8_t *buf, size_t len) {
 
   LOGD("Copying %zu bytes of payload", bytesToCopy);
 
-  // TODO: deal with the payload, making sure to prevent buffer overflows
-  UNUSED_VAR(buf);
+  memcpy(&gRxDatagram.payload + gRxDatagram.loc, buf, bytesToCopy);
+  gRxDatagram.loc += bytesToCopy;
 
   gRxStatus.loc += bytesToCopy;
   if (gRxStatus.loc == gRxHeader.length) {
     // Payload copied. Move on
+
     chppUpdateRxState(CHPP_STATE_FOOTER);
   }
 
@@ -220,7 +263,40 @@ static size_t chppConsumeFooter(const uint8_t *buf, size_t len) {
   if (gRxStatus.loc == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
-    // TODO: Check checksum, ACK / NACK accordingly, and send off packet
+    // Check checksum, ACK / NACK / send off datagram accordingly
+    if (!chppValidateChecksum()) {
+      // Packet is bad. Roll back and enqueue NACK
+      gRxDatagram.length -= gRxHeader.length;
+      gRxDatagram.loc -= gRxHeader.length;
+
+      uint8_t *tempPayload =
+          chppRealloc(gRxDatagram.payload, gRxDatagram.length,
+                      gRxDatagram.length + gRxHeader.length);
+      if (tempPayload == NULL) {
+        LOGE(
+            "OOM reallocating to discard bad continuation packet %d len=%u. "
+            "Previous fragment(s) total len=%zu",
+            gRxHeader.seq, gRxHeader.length, gRxDatagram.length);
+      } else {
+        gRxDatagram.payload = tempPayload;
+      }
+
+      // TODO: enqueue NACK
+
+    } else {
+      // Packet is good, enqueue ACK
+      // TODO: enqueue ACK
+
+      if (!(gRxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM)) {
+        // End of this packet is end of a datagram
+
+        // TODO: do something with the data
+
+        gRxDatagram.loc = 0;
+        gRxDatagram.length = 0;
+        free(gRxDatagram.payload);
+      }  // else, packet is part of a larger datagram
+    }
 
     chppUpdateRxState(CHPP_STATE_PREAMBLE);
   }
@@ -262,4 +338,11 @@ bool chppRxData(const uint8_t *buf, size_t len) {
   }
 
   return (gRxStatus.state == CHPP_STATE_PREAMBLE && gRxStatus.loc == 0);
+}
+
+bool chppValidateChecksum() {
+  // TODO
+
+  LOGE("Blindly assuming checksum is correct");
+  return true;
 }
