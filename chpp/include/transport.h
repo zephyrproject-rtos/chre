@@ -61,6 +61,10 @@ extern "C" {
 #define CHPP_PREAMBLE_LEN_BYTES 2
 /** @} */
 
+/************************************************
+ *  Status variables to store context in lieu of global variables (this)
+ ***********************************************/
+
 /**
  * Error codes optionally reported in ChppTransportHeader
  */
@@ -114,6 +118,52 @@ struct ChppTransportFooter {
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
+enum ChppRxState {
+  // Waiting for, or processing, the preamble (i.e. packet start delimiter)
+  // Moves to CHPP_STATE_HEADER as soon as it has seen a complete preamble.
+  CHPP_STATE_PREAMBLE = 0,
+
+  // Processing the packet header. Moves to CHPP_STATE_PAYLOAD after processing
+  // the expected length of the header.
+  CHPP_STATE_HEADER = 1,
+
+  // Copying the packet payload. The payload length is determined by the header.
+  // Moves to CHPP_STATE_FOOTER afterwards.
+  CHPP_STATE_PAYLOAD = 2,
+
+  // Processing the packet footer (checksum) and responding accordingly. Moves
+  // to CHPP_STATE_PREAMBLE afterwards.
+  CHPP_STATE_FOOTER = 3,
+};
+
+struct ChppRxStatus {
+  // Current receiving state, as described in ChppRxState.
+  enum ChppRxState state;
+
+  // Location counter in bytes within each state. Must always be reinitialized
+  // to 0 when switching states.
+  size_t loc;
+};
+
+struct ChppRxDatagram {
+  // Length of datagram payload in bytes (A datagram can be constituted from one
+  // or more packets)
+  size_t length;
+
+  // Location counter in bytes within datagram.
+  size_t loc;
+
+  // Datagram payload
+  uint8_t *payload;
+};
+
+struct ChppTransportState {
+  struct ChppRxStatus rxStatus;         // Rx state and location within
+  struct ChppTransportHeader rxHeader;  // Rx packet header
+  struct ChppTransportFooter rxFooter;  // Rx packet footer (checksum)
+  struct ChppRxDatagram rxDatagram;     // Rx datagram
+};
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -128,14 +178,17 @@ CHPP_PACKED_END
  *
  * TODO: Add sufficient outward facing documentation
  *
- * @param buf Input data
- * @param len Length of input data in bytes
+ * @param context Is used to maintain status. Must be provided, zero
+ * initialized, for each transport layer instance. Cannot be null.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
  *
  * @return true informs the serial port driver that we are waiting for a
  * preamble. This allows the driver to (optionally) filter incoming zeros and
  * save processing
  */
-bool chppRxData(const uint8_t *buf, size_t len);
+bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
+                size_t len);
 
 #ifdef __cplusplus
 }
