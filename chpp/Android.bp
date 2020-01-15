@@ -20,6 +20,7 @@ cc_library_shared {
         "transport.c",
     ],
     local_include_dirs: [
+        "platform/linux/include",
         "include",
     ]
 }
