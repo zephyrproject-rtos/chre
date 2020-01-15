@@ -535,6 +535,10 @@ uint32_t chreWwanGetCapabilities(void);
  * either with successful data or an error status, within
  * CHRE_ASYNC_RESULT_TIMEOUT_NS.
  *
+ * If the airplane mode setting is enabled at the Android level, the CHRE
+ * implementation is expected to return a successful asynchronous result with an
+ * empty cell info list.
+ *
  * @param cookie An opaque value that will be included in the chreAsyncResult
  *        sent in relation to this request.
  *
