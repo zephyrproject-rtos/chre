@@ -43,6 +43,10 @@ ifneq ($(CHRE_ENABLE_ACCEL_CAL), false)
 SLPI_CFLAGS += -DCHRE_ENABLE_ACCEL_CAL
 endif
 
+ifneq ($(CHRE_ENABLE_ASH_DEBUG_DUMP), false)
+SLPI_CFLAGS += -DCHRE_ENABLE_ASH_DEBUG_DUMP
+endif
+
 # SLPI/SMGR-specific Compiler Flags ############################################
 
 # Include paths.
