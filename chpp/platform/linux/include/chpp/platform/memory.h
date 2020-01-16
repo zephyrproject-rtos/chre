@@ -25,11 +25,16 @@ extern "C" {
 
 /**
  * Allocate memory
- *
- * TODO: Move to platform specific injectable interface
  */
 void *chppMalloc(const size_t size) {
   return malloc(size);
+}
+
+/**
+ * Free memory
+ */
+void chppFree(void *ptr) {
+  free(ptr);
 }
 
 /**
@@ -38,6 +43,7 @@ void *chppMalloc(const size_t size) {
  *
  * Sample implementation for systems that don't support realloc():
  *
+ * if (newSize == oldSize) return oldPtr;
  * void *newPtr = NULL;
  * if (newSize == 0) {
  *   free(oldPtr);
@@ -50,8 +56,8 @@ void *chppMalloc(const size_t size) {
  * }
  * return newPtr;
  *
- * TODO: Move to platform specific injectable interface
- * TODO: Store fragments separately (e.g. linked list) and bubble up all of them
+ * TODO: A future enhancement could be to store fragments separately (e.g.
+ * linked list) and bubble up all of them
  */
 void *chppRealloc(void *oldPtr, const size_t newSize, const size_t oldSize) {
   UNUSED_VAR(oldSize);

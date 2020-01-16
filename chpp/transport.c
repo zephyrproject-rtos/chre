@@ -29,8 +29,11 @@
  *  Prototypes
  ***********************************************/
 
-static void chppUpdateRxState(struct ChppTransportState *context,
-                              enum ChppRxState newState);
+static void chppEnqueueTxPacket(struct ChppTransportState *context,
+                                enum ChppErrorCode errorCode);
+
+static void chppSetRxState(struct ChppTransportState *context,
+                           enum ChppRxState newState);
 static size_t chppConsumePreamble(struct ChppTransportState *context,
                                   const uint8_t *buf, size_t len);
 static size_t chppConsumeHeader(struct ChppTransportState *context,
@@ -39,11 +42,37 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
                                  const uint8_t *buf, size_t len);
 static size_t chppConsumeFooter(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len);
-static bool chppValidateChecksum(struct ChppTransportState *context);
+static void chppProcessRxPayload(struct ChppTransportState *context);
+static bool chppRxChecksumIsOk(const struct ChppTransportState *context);
+static enum ChppErrorCode chppRxHeaderCheck(
+    const struct ChppTransportState *context);
 
 /************************************************
  *  Tx
  ***********************************************/
+
+/**
+ * Enqueues an outgoing packet with the specified error code. The error code
+ * refers to the optional reason behind a NACK, if any. An error code of
+ * CHPP_ERROR_NONE indicates that no error was reported (i.e. either an ACK or
+ * an implicit NACK)
+ *
+ * Note that the decision as to wheather to include a payload  will be taken
+ * later, i.e. before the packet is being sent out from the queue. A payload is
+ * expected to be included if there is one or more pending Tx datagrams and we
+ * are not waiting on a pending ACK.
+ *
+ * @param context Is used to maintain status. Must be provided, zero
+ * initialized, for each transport layer instance. Cannot be null.
+ * @param errorCode Error code for the next outgoing packet
+ */
+static void chppEnqueueTxPacket(struct ChppTransportState *context,
+                                enum ChppErrorCode errorCode) {
+  // TODO
+  UNUSED_VAR(errorCode);
+  UNUSED_VAR(context);
+}
+
 /*
 static void chppTxStartReTxTimer(void) {
   // starts / restarts timeout timer for retx of a packet
@@ -66,8 +95,8 @@ static void chppTxStopReTxTimer(void) {
  * initialized, for each transport layer instance. Cannot be null.
  * @param newState Next Rx state
  */
-static void chppUpdateRxState(struct ChppTransportState *context,
-                              enum ChppRxState newState) {
+static void chppSetRxState(struct ChppTransportState *context,
+                           enum ChppRxState newState) {
   LOGD("Changing state from %d to %d", context->rxStatus.state, newState);
   context->rxStatus.loc = 0;
   context->rxStatus.state = newState;
@@ -115,7 +144,7 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
   // Let's see why we exited the above loop
   if (context->rxStatus.loc == CHPP_PREAMBLE_LEN_BYTES) {
     // Complete preamble observed, move on to next state
-    chppUpdateRxState(context, CHPP_STATE_HEADER);
+    chppSetRxState(context, CHPP_STATE_HEADER);
   }
 
   return consumed;
@@ -145,34 +174,47 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
 
   context->rxStatus.loc += bytesToCopy;
   if (context->rxStatus.loc == sizeof(struct ChppTransportHeader)) {
-    // Header copied. Move on
-    // TODO: Sanity check header
+    // Header fully copied. Move on
 
-    if (context->rxHeader.length > 0) {
-      // Payload bearing packet
-      uint8_t *tempPayload;
+    enum ChppErrorCode headerSanity = chppRxHeaderCheck(context);
+    if (headerSanity != CHPP_ERROR_NONE) {
+      // Header fails sanity check. NACK and return to preamble state
+      chppEnqueueTxPacket(context, headerSanity);
+      chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
-      if (context->rxDatagram.length > 0) {
-        // Packet is a continuation of a fragmented datagram
-        tempPayload =
-            chppRealloc(context->rxDatagram.payload,
-                        context->rxDatagram.length + context->rxHeader.length,
-                        context->rxDatagram.length);
+    } else {
+      // Header passes sanity check
+
+      if (context->rxHeader.length == 0) {
+        // Non-payload packet
+        chppSetRxState(context, CHPP_STATE_FOOTER);
+
       } else {
-        // Packet is a new datagram
-        tempPayload = chppMalloc(context->rxHeader.length);
-      }
+        // Payload bearing packet
+        uint8_t *tempPayload;
 
-      if (tempPayload == NULL) {
-        LOGE("OOM for packet %d, len=%u. Previous fragment(s) total len=%zu",
-             context->rxHeader.seq, context->rxHeader.length,
-             context->rxDatagram.length);
+        if (context->rxDatagram.length == 0) {
+          // Packet is a new datagram
+          tempPayload = chppMalloc(context->rxHeader.length);
+        } else {
+          // Packet is a continuation of a fragmented datagram
+          tempPayload =
+              chppRealloc(context->rxDatagram.payload,
+                          context->rxDatagram.length + context->rxHeader.length,
+                          context->rxDatagram.length);
+        }
 
-        // TODO: handle OOM
-      } else {
-        context->rxDatagram.payload = tempPayload;
-        context->rxDatagram.length += context->rxHeader.length;
-        chppUpdateRxState(context, CHPP_STATE_PAYLOAD);
+        if (tempPayload == NULL) {
+          LOGE("OOM for packet# %d, len=%u. Previous fragment(s) total len=%zu",
+               context->rxHeader.seq, context->rxHeader.length,
+               context->rxDatagram.length);
+          chppEnqueueTxPacket(context, CHPP_ERROR_OOM);
+          chppSetRxState(context, CHPP_STATE_PREAMBLE);
+        } else {
+          context->rxDatagram.payload = tempPayload;
+          context->rxDatagram.length += context->rxHeader.length;
+          chppSetRxState(context, CHPP_STATE_PAYLOAD);
+        }
       }
     }
   }
@@ -208,7 +250,7 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
   if (context->rxStatus.loc == context->rxHeader.length) {
     // Payload copied. Move on
 
-    chppUpdateRxState(context, CHPP_STATE_FOOTER);
+    chppSetRxState(context, CHPP_STATE_FOOTER);
   }
 
   return bytesToCopy;
@@ -240,47 +282,133 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
   if (context->rxStatus.loc == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
-    // Check checksum, ACK / NACK / send off datagram accordingly
-    if (!chppValidateChecksum(context)) {
-      // Packet is bad. Roll back and enqueue NACK
-      context->rxDatagram.length -= context->rxHeader.length;
-      context->rxDatagram.loc -= context->rxHeader.length;
+    bool hasPayload = (context->rxHeader.length > 0);
 
-      uint8_t *tempPayload =
-          chppRealloc(context->rxDatagram.payload, context->rxDatagram.length,
-                      context->rxDatagram.length + context->rxHeader.length);
-      if (tempPayload == NULL) {
-        LOGE(
-            "OOM reallocating to discard bad continuation packet %d len=%u. "
-            "Previous fragment(s) total len=%zu",
-            context->rxHeader.seq, context->rxHeader.length,
-            context->rxDatagram.length);
-      } else {
-        context->rxDatagram.payload = tempPayload;
+    if (!chppRxChecksumIsOk(context)) {
+      // Packet is bad. Discard bad payload data (if any) and NACK
+      LOGE("Discarding CHPP packet# %d len=%u because of bad checksum",
+           context->rxHeader.seq, context->rxHeader.length);
+
+      if (hasPayload) {
+        context->rxDatagram.length -= context->rxHeader.length;
+        context->rxDatagram.loc -= context->rxHeader.length;
+
+        if (context->rxDatagram.length == 0) {
+          // Discarding this packet == discarding entire datagram
+          chppFree(context->rxDatagram.payload);
+          context->rxDatagram.payload = NULL;
+
+        } else {
+          // Discardig this packet == discarding part of datagram
+          uint8_t *tempPayload = chppRealloc(
+              context->rxDatagram.payload, context->rxDatagram.length,
+              context->rxDatagram.length + context->rxHeader.length);
+          if (tempPayload == NULL) {
+            LOGE(
+                "OOM discarding bad continuation packet# %d len=%u. Previous "
+                "fragment(s) total len=%zu",
+                context->rxHeader.seq, context->rxHeader.length,
+                context->rxDatagram.length);
+          } else {
+            context->rxDatagram.payload = tempPayload;
+          }
+        }
       }
 
-      // TODO: enqueue NACK
+      chppEnqueueTxPacket(context, CHPP_ERROR_CHECKSUM);
 
     } else {
-      // Packet is good, enqueue ACK
-      // TODO: enqueue ACK
+      // Packet is good. Save received ACK seq number and process payload if any
+      context->txStatus.ackedSeq = context->rxHeader.ackSeq;
 
-      if (!(context->rxHeader.flags &
-            CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM)) {
-        // End of this packet is end of a datagram
-
-        // TODO: do something with the data
-
-        context->rxDatagram.loc = 0;
-        context->rxDatagram.length = 0;
-        free(context->rxDatagram.payload);
-      }  // else, packet is part of a larger datagram
+      if (hasPayload) {
+        chppProcessRxPayload(context);
+      }
     }
 
-    chppUpdateRxState(context, CHPP_STATE_PREAMBLE);
+    // Done with this packet. Wait for next packet
+    chppSetRxState(context, CHPP_STATE_PREAMBLE);
   }
 
   return bytesToCopy;
+}
+
+/**
+ * Process the payload of a validated payload-bearing packet and send out the
+ * ACK
+ *
+ * @param context Is used to maintain status. Must be provided, zero
+ * initialized, for each transport layer instance. Cannot be null.
+ */
+static void chppProcessRxPayload(struct ChppTransportState *context) {
+  if (context->rxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM) {
+    // packet is part of a larger datagram
+    LOGD(
+        "Received continuation packet# %d len=%u. Previous fragment(s) "
+        "total len=%zu",
+        context->rxHeader.seq, context->rxHeader.length,
+        context->rxDatagram.length);
+
+  } else {
+    // End of this packet is end of a datagram
+    LOGD(
+        "Received packet# %d len=%u completing a datagram. Previous "
+        "fragment(s) total len=%zu",
+        context->rxHeader.seq, context->rxHeader.length,
+        context->rxDatagram.length);
+
+    // TODO: do something with the data
+
+    context->rxDatagram.loc = 0;
+    context->rxDatagram.length = 0;
+    chppFree(context->rxDatagram.payload);
+    context->rxDatagram.payload = NULL;
+  }
+
+  // Update next expected sequence number and send ACK
+  context->rxStatus.expectedSeq = context->rxHeader.seq + 1;
+  context->txHeader.ackSeq = context->rxStatus.expectedSeq;
+  chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+}
+
+/**
+ * Validates the checksum of an incoming packet.
+ *
+ * @param context Is used to maintain status. Must be provided, zero
+ * initialized, for each transport layer instance. Cannot be null.
+ *
+ * @return True if and only if the checksum is correct
+ */
+bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
+  // TODO
+  UNUSED_VAR(context);
+
+  LOGE("Blindly assuming checksum is correct");
+  return true;
+}
+
+/**
+ * Performs sanity check on received packet header. Discards packet if header is
+ * obviously corrupt / invalid.
+ *
+ * @param context Is used to maintain status. Must be provided, zero
+ * initialized, for each transport layer instance. Cannot be null.
+ *
+ * @return True if and only if header passes sanity check
+ */
+static enum ChppErrorCode chppRxHeaderCheck(
+    const struct ChppTransportState *context) {
+  enum ChppErrorCode result = CHPP_ERROR_NONE;
+
+  bool invalidSeqNo = (context->rxHeader.seq != context->rxStatus.expectedSeq);
+  bool hasPayload = (context->rxHeader.length > 0);
+  if (invalidSeqNo && hasPayload) {
+    result = CHPP_ERROR_ORDER;
+  }
+
+  // TODO: More sanity checks
+
+  return result;
 }
 
 // Public function
@@ -313,7 +441,7 @@ bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
 
       default:
         LOGE("Invalid state %d", context->rxStatus.state);
-        chppUpdateRxState(context, CHPP_STATE_PREAMBLE);
+        chppSetRxState(context, CHPP_STATE_PREAMBLE);
     }
 
     LOGD("chppRxData consumed %zu of %zu bytes (state = %d)", consumed, len,
@@ -322,12 +450,4 @@ bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
 
   return (context->rxStatus.state == CHPP_STATE_PREAMBLE &&
           context->rxStatus.loc == 0);
-}
-
-bool chppValidateChecksum(struct ChppTransportState *context) {
-  // TODO
-  UNUSED_VAR(context);
-
-  LOGE("Blindly assuming checksum is correct");
-  return true;
 }
