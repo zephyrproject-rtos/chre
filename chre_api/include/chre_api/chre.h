@@ -35,6 +35,7 @@
 #include <chre/nanoapp.h>
 #include <chre/re.h>
 #include <chre/sensor.h>
+#include <chre/toolchain.h>
 #include <chre/version.h>
 #include <chre/wifi.h>
 #include <chre/wwan.h>

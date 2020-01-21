@@ -242,8 +242,14 @@ bool SendMessageToHostTest::sendMessageToHost(
     void *message, uint32_t messageSize, uint32_t reservedMessageType,
     chreMessageFreeFunction *freeCallback) {
   sInMethod = false;
+
+  // Disable deprecation warnings
+  CHRE_DEPRECATED_PREAMBLE
   bool success = chreSendMessageToHost(message, messageSize,
                                        reservedMessageType, freeCallback);
+  // Enable deprecation warnings
+  CHRE_DEPRECATED_EPILOGUE
+
   sInMethod = true;
 
   return success;

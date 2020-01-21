@@ -26,6 +26,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <chre/toolchain.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,7 +37,7 @@ extern "C" {
  * preprocessor defines via the build system.
  *
  * CHRE_MESSAGE_TO_HOST_MAX_SIZE: The maximum size, in bytes, allowed for
- *     a message sent to chreSendMessageToHost().  This must be at least
+ *     a message sent to chreSendMessageToHostEndpoint().  This must be at least
  *     CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE.
  */
 
@@ -331,16 +333,17 @@ typedef void (chreEventCompleteFunction)(uint16_t eventType, void *eventData);
 /**
  * Callback which frees a message.
  *
- * This callback is (optionally) provided to the chreSendMessageToHost() method
- * as a means for freeing the message.  When this callback is invoked,
+ * This callback is (optionally) provided to the chreSendMessageToHostEndpoint()
+ * method as a means for freeing the message.  When this callback is invoked,
  * 'message' is no longer needed and can be released.  Note that this in
  * no way assures that said message did or did not make it to the host, simply
  * that this memory is no longer needed.
  *
- * @param message  The 'message' argument from chreSendMessageToHost().
- * @param messageSize  The 'messageSize' argument from chreSendMessageToHost().
+ * @param message  The 'message' argument from chreSendMessageToHostEndpoint().
+ * @param messageSize  The 'messageSize' argument from
+ *     chreSendMessageToHostEndpoint().
  *
- * @see chreSendMessageToHost
+ * @see chreSendMessageToHostEndpoint
  */
 typedef void (chreMessageFreeFunction)(void *message, size_t messageSize);
 
@@ -389,7 +392,8 @@ bool chreSendEvent(uint16_t eventType, void *eventData,
  */
 bool chreSendMessageToHost(void *message, uint32_t messageSize,
                            uint32_t messageType,
-                           chreMessageFreeFunction *freeCallback);
+                           chreMessageFreeFunction *freeCallback)
+    CHRE_DEPRECATED("Use chreSendMessageToHostEndpoint instead");
 
 /**
  * Send a message to the host, waking it up if it is currently asleep.
@@ -440,8 +444,8 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
  * @returns true if the message was accepted for transmission, false otherwise.
  *     Note that even if this method returns 'false', the 'freeCallback' will
  *     be invoked, if non-NULL.  In either case, the 'freeCallback' may be
- *     invoked directly from within chreSendMessageToHost(), so it's necessary
- *     for nanoapp authors to avoid possible recursion with this.
+ *     invoked directly from within chreSendMessageToHostEndpoint(), so it's
+ *     necessary for nanoapp authors to avoid possible recursion with this.
  *
  * @see chreMessageFreeFunction
  *
