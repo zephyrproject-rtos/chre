@@ -414,7 +414,9 @@ uint32_t chreGnssGetCapabilities(void);
  *
  * This result of this request is delivered asynchronously via an event of type
  * CHRE_EVENT_GNSS_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
- * for more details.
+ * for more details. If the "Location" setting is disabled at the Android level,
+ * the CHRE implementation is expected to return a result with
+ * CHRE_ERROR_FUNCTION_DISABLED.
  *
  * If chreGnssGetCapabilities() returns a value that does not have the
  * CHRE_GNSS_CAPABILITIES_LOCATION flag set, then this method will return false.
@@ -473,7 +475,9 @@ bool chreGnssLocationSessionStopAsync(const void *cookie);
  *
  * This result of this request is delivered asynchronously via an event of type
  * CHRE_EVENT_GNSS_ASYNC_RESULT. Refer to the note in {@link #chreAsyncResult}
- * for more details.
+ * for more details. If the "Location" setting is disabled at the Android level,
+ * the CHRE implementation is expected to return a result with
+ * CHRE_ERROR_FUNCTION_DISABLED.
  *
  * If chreGnssGetCapabilities() returns a value that does not have the
  * CHRE_GNSS_CAPABILITIES_MEASUREMENTS flag set, then this method will return
