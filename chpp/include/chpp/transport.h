@@ -24,8 +24,8 @@
 #include <string.h>
 
 #include "chpp/macros.h"
+#include "chpp/memory.h"
 #include "chpp/platform/log.h"
-#include "chpp/platform/memory.h"
 
 #ifdef __cplusplus
 extern "C" {
