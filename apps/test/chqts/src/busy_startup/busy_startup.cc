@@ -28,7 +28,7 @@
  * o chreSendEvent() [*]
  * o chreTimerSet() [*]
  * o chreSensorFindDefault() and chreSensorConfigure() [*]
- * o chreSendMessageToHost() [**]
+ * o chreSendMessageToHostEndpoint() [**]
  *
  * [*] These require nanoappHandleEvent() to be called successfully in order
  *     to confirm.
