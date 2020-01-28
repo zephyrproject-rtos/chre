@@ -14,58 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_MEMORY_H_
-#define CHPP_MEMORY_H_
+#include "chpp/memory.h"
+#include "chpp/macros.h"
 
-#include <stdlib.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * Allocate memory
- */
 void *chppMalloc(const size_t size) {
   return malloc(size);
 }
 
-/**
- * Free memory
- */
 void chppFree(void *ptr) {
   free(ptr);
 }
 
-/**
- * Reallocate memory.
- * Ideally should use realloc() for systems that efficiently support it.
- *
- * Sample implementation for systems that don't support realloc():
- *
- * if (newSize == oldSize) return oldPtr;
- * void *newPtr = NULL;
- * if (newSize == 0) {
- *   free(oldPtr);
- * } else {
- *   newPtr = malloc(newSize);
- *   if (newPtr) {
- *     newPtr = memcpy(newPtr, oldPtr, MIN(oldSize, newSize));
- *     free(oldPtr);
- *   }
- * }
- * return newPtr;
- *
- * TODO: A future enhancement could be to store fragments separately (e.g.
- * linked list) and bubble up all of them
- */
 void *chppRealloc(void *oldPtr, const size_t newSize, const size_t oldSize) {
   UNUSED_VAR(oldSize);
   return realloc(oldPtr, newSize);
 }
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // CHPP_MEMORY_H_
