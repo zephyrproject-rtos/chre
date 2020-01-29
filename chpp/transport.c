@@ -242,7 +242,7 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
 
   LOGD("Copying %zu bytes of payload", bytesToCopy);
 
-  memcpy(&context->rxDatagram.payload + context->rxDatagram.loc, buf,
+  memcpy(context->rxDatagram.payload + context->rxDatagram.loc, buf,
          bytesToCopy);
   context->rxDatagram.loc += bytesToCopy;
 
