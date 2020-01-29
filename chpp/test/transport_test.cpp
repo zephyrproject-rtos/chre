@@ -30,9 +30,9 @@ constexpr size_t kMaxPacketSize = kMaxChunkSize + CHPP_PREAMBLE_LEN_BYTES +
                                   sizeof(ChppTransportFooter);
 
 // Input sizes to test the entire range of sizes with a few tests
-constexpr int kChunkSizes[] = {0,  1,  2,  3,   4,    5,     6,    7,
-                               8,  9,  10, 20,  30,   40,    51,   60,
-                               70, 80, 90, 100, 1001, 10000, 20000};
+constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
+                               7,  8,   9,   10,   20,    30,   40,
+                               51, 100, 201, 1000, 10001, 20000};
 
 /**
  * Adds a CHPP preamble to the specified location of buf
@@ -48,9 +48,9 @@ void chppAddPreamble(uint8_t *buf, size_t loc) {
 }
 
 /*
- * Test suit for processing the Rx preamble
+ * Test suite for the CHPP Transport Layer
  */
-class PreambleTest : public testing::TestWithParam<int> {
+class TransportTests : public testing::TestWithParam<int> {
  protected:
   ChppTransportState context = {};
   uint8_t buf[kMaxPacketSize] = {};
@@ -59,7 +59,7 @@ class PreambleTest : public testing::TestWithParam<int> {
 /**
  * A series of zeros shouldn't change state from CHPP_STATE_PREAMBLE
  */
-TEST_P(PreambleTest, ZeroInput) {
+TEST_P(TransportTests, ZeroNoPreambleInput) {
   size_t len = static_cast<size_t>(GetParam());
   if (len <= kMaxChunkSize) {
     EXPECT_TRUE(chppRxData(&context, buf, len));
@@ -71,7 +71,7 @@ TEST_P(PreambleTest, ZeroInput) {
  * A preamble after a series of zeros input should change state from
  * CHPP_STATE_PREAMBLE to CHPP_STATE_HEADER
  */
-TEST_P(PreambleTest, ZeroThenPreambleInput) {
+TEST_P(TransportTests, ZeroThenPreambleInput) {
   size_t len = static_cast<size_t>(GetParam());
 
   if (len <= kMaxChunkSize) {
@@ -88,7 +88,41 @@ TEST_P(PreambleTest, ZeroThenPreambleInput) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(PreambleTestRange, PreambleTest,
+/**
+ * Rx Testing with various length payloads of zeros
+ */
+TEST_P(TransportTests, RxPayloadOfZeros) {
+  context.rxStatus.state = CHPP_STATE_HEADER;
+  size_t len = static_cast<size_t>(GetParam());
+
+  if (len <= kMaxChunkSize) {
+    ChppTransportHeader header{};
+    header.flags = 0;
+    header.errorCode = 0;
+    header.ackSeq = 1;
+    header.seq = 0;
+    header.length = len;
+
+    memcpy(buf, &header, sizeof(header));
+
+    // Send header and check for correct state
+    EXPECT_FALSE(chppRxData(&context, buf, sizeof(ChppTransportHeader)));
+    if (len > 0) {
+      EXPECT_EQ(context.rxStatus.state, CHPP_STATE_PAYLOAD);
+    } else {
+      EXPECT_EQ(context.rxStatus.state, CHPP_STATE_FOOTER);
+    }
+
+    // Send payload if any and check for correct state
+    if (len > 0) {
+      EXPECT_FALSE(
+          chppRxData(&context, &buf[sizeof(ChppTransportHeader)], len));
+      EXPECT_EQ(context.rxStatus.state, CHPP_STATE_FOOTER);
+    }
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));
 
 }  // namespace
