@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-cc_library_shared {
-    name: "chpp",
+cc_library_host_static {
+    name: "chre_chpp_linux",
     srcs: [
         "transport.c",
+        "platform/linux/memory.c",
     ],
-    local_include_dirs: [
+    export_include_dirs: [
         "platform/linux/include",
         "include",
-    ]
+    ],
+}
+
+cc_test_host {
+    name: "chre_chpp_linux_tests",
+    srcs: ["test/transport_test.cpp"],
+    static_libs: ["chre_chpp_linux"],
 }
