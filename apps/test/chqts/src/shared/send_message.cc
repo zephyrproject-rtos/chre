@@ -58,8 +58,9 @@ static void freeHeapMessage(void *message, size_t /* messageSize */) {
 static void fatalError() {
   // Attempt to send a context-less failure message, in the hopes that
   // might get through.
-  chreSendMessageToHost(nullptr, 0,
-                        static_cast<uint32_t>(MessageType::kFailure), nullptr);
+  chreSendMessageToHostEndpoint(nullptr, 0,
+                                static_cast<uint32_t>(MessageType::kFailure),
+                                CHRE_HOST_ENDPOINT_BROADCAST, nullptr);
   // Whether or not that made it through, unambigiously fail this test
   // by aborting.
   nanoapp_testing::abort();
