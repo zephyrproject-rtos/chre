@@ -17,8 +17,10 @@ package com.google.android.utils.chre;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import com.google.common.primitives.Floats;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.Assert;
 
@@ -47,9 +49,9 @@ class SensorDatapoint {
    * @param values The array of float values for datapoint.
    */
   /*package*/
-  SensorDatapoint(long timestamp, float[] values, int sensorType) {
-    mTimestamp = timestamp;
-    mValues = values.clone();
+  SensorDatapoint(ChreCrossValidation.SensorDatapoint datapoint, int sensorType) {
+    mTimestamp = datapoint.getTimestampInNs();
+    mValues = Floats.toArray(datapoint.getValuesList());
     mSensorType = sensorType;
     Assert.assertTrue(sensorTypeIsValid(mSensorType));
   }
@@ -81,6 +83,8 @@ class SensorDatapoint {
   /*
    * @param dp1 The first SensorDatapoint object to compare.
    * @param dp2 The second SensorDatapoint object to compare.
+   * @param errorMargin The amount that each value in values array can differ between the two
+   *     datapoints.
    * @return true if the datapoint values are all similar.
    */
   /*package*/
