@@ -1,0 +1,77 @@
+syntax = "proto2";
+
+package chre_cross_validation;
+
+option java_package = "com.google.android.utils.chre";
+option java_outer_classname = "ChreCrossValidation";
+
+// Nanoappp message type can be either host to chre (H2C) or chre to host (C2H)
+enum MessageType {
+  // Reserved for corrupted messages
+  UNDEFINED = 0;
+
+  // H2C: Host telling nanoapp to start collecting sensor data
+  // Payload must be StartCommand message
+  CHRE_CROSS_VALIDATION_START = 1;
+
+  // C2H: Data payload to be validated. This is a batch of data exactly as it
+  // was received from a CHRE API.
+  // Payload must be Data message
+  CHRE_CROSS_VALIDATION_DATA = 2;
+}
+
+// Sensor types are passed in the StartSensorCommand message of CHRE cross
+// validation and SensorDataHeader message. These enum values are the actual
+// values described in the sensor_types.h file of the CHRE API.
+enum SensorType { ACCELEROMETER = 1; }
+
+message StartCommand {
+  oneof command {
+    StartSensorCommand startSensorCommand = 1;
+  }
+}
+
+message StartSensorCommand {
+  optional SensorType sensorType = 1;
+  optional uint64 samplingIntervalInNs = 2;
+  optional uint64 samplingMaxLatencyInNs = 3;
+}
+
+message Data {
+  oneof data {
+    ThreeAxisSensorData threeAxisSensorData = 1;
+  }
+}
+
+/*
+ * Used by all sensor types for nanoapp to host messsage
+ *
+ * Same fields as struct chreSensorDataHeader found in
+ * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
+ */
+message SensorDataHeader {
+  optional SensorType sensorType = 1;
+  optional uint64 baseTimestampInNs = 2;
+  optional uint32 accuracy = 3;
+  optional uint32 readingCount = 4;
+}
+
+/*
+ * Similar structure to struct chreSensorThreeAxisData found in
+ * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
+ */
+message ThreeAxisSensorData {
+  optional SensorDataHeader header = 1;
+  repeated ThreeAxisSensorDatapoint datapoints = 2;
+}
+
+/*
+ * Same fields as struct chreSensorThreeAxisSampleData found in
+ * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
+ */
+message ThreeAxisSensorDatapoint {
+  optional uint32 timestampDeltaInNs = 1;
+  optional float x = 2;
+  optional float y = 3;
+  optional float z = 4;
+}

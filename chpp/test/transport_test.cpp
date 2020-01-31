@@ -113,12 +113,35 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
       EXPECT_EQ(context.rxStatus.state, CHPP_STATE_FOOTER);
     }
 
+    // Correct decoding of packet length
+    EXPECT_EQ(context.rxHeader.length, len);
+    EXPECT_EQ(context.rxDatagram.loc, 0);
+    EXPECT_EQ(context.rxDatagram.length, len);
+
     // Send payload if any and check for correct state
     if (len > 0) {
       EXPECT_FALSE(
           chppRxData(&context, &buf[sizeof(ChppTransportHeader)], len));
       EXPECT_EQ(context.rxStatus.state, CHPP_STATE_FOOTER);
     }
+
+    // Should have complete packet payload by now
+    EXPECT_EQ(context.rxDatagram.loc, len);
+
+    // Send footer and check for correct state
+    EXPECT_TRUE(chppRxData(&context, &buf[sizeof(ChppTransportHeader) + len],
+                           sizeof(ChppTransportFooter)));
+    EXPECT_EQ(context.rxStatus.state, CHPP_STATE_PREAMBLE);
+
+    // Should have reset loc and length for next packet / datagram
+    EXPECT_EQ(context.rxDatagram.loc, 0);
+    EXPECT_EQ(context.rxDatagram.length, 0);
+
+    // If payload packet, expect next packet with incremented sequence #
+    uint8_t seq = header.seq + ((len > 0) ? 1 : 0);
+
+    EXPECT_EQ(context.rxStatus.expectedSeq, seq);
+    EXPECT_EQ(context.txHeader.ackSeq, seq);
   }
 }
 
