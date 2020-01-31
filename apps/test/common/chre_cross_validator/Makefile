@@ -34,6 +34,7 @@ NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 # Source Code ##################################################################
 
 COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
 
