@@ -151,7 +151,9 @@ public class ChreCrossValidatorSensor
 
   @Override
   public void onSensorChanged(SensorEvent event) {
-    // TODO: Implement
+    if (mCollectingData.get()) {
+      mApDatapoints.add(new SensorDatapoint(event));
+    }
   }
 
   @Override
