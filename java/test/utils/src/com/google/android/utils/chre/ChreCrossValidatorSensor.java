@@ -54,6 +54,10 @@ public class ChreCrossValidatorSensor
     }
   }
 
+  // The portion of datapoints that can be thrown away before while still searching for first
+  // datapoints that are similar between CHRE and AP
+  private static final double ALIGNMENT_JUNK_FACTOR = 2 / 3;
+
   // TODO(b/146052784): May need to account for differences in sampling rate and latency from
   // AP side vs CHRE side
   private static final long SAMPLING_INTERVAL_IN_MS = 20;
@@ -109,7 +113,7 @@ public class ChreCrossValidatorSensor
     try {
       dataProto = ChreCrossValidation.Data.parseFrom(message.getMessageBody());
     } catch (InvalidProtocolBufferException e) {
-      setErrorStr("Error parsing protobuff: " + e.toString());
+      setErrorStr("Error parsing protobuff: " + e);
       return;
     }
     if (!dataProto.hasSensorData()) {
@@ -158,7 +162,30 @@ public class ChreCrossValidatorSensor
 
   @Override
   protected void assertApAndChreDataSimilar() throws AssertionError {
-    // TODO: Implement
+    Assert.assertTrue("Did not find any CHRE datapoints", !mChreDatapoints.isEmpty());
+    Assert.assertTrue("Did not find any AP datapoints", !mApDatapoints.isEmpty());
+    alignApAndChreDatapoints();
+    // AP and CHRE datapoints will be same size
+    // TODO(b/146052784): Ensure that CHRE data is the same sampling rate as AP data for comparison
+    for (int i = 0; i < mApDatapoints.size(); i++) {
+      SensorDatapoint apDp = mApDatapoints.get(i);
+      SensorDatapoint chreDp = mChreDatapoints.get(i);
+      String datapointsAssertMsg =
+          String.format("AP and CHRE three axis datapoint values differ on index %d", i)
+          + "\nAP data -> " + apDp + "\nCHRE data -> "
+          + chreDp;
+      String timestampsAssertMsg =
+          String.format("AP and CHRE three axis timestamp values differ on index %d", i)
+          + "\nAP data -> " + apDp + "\nCHRE data -> "
+          + chreDp;
+
+      // TODO(b/146052784): Log full list of datapoints to file on disk on assertion failure so
+      // that there is more insight into the problem then just logging the one pair of datapoints
+      Assert.assertTrue(datapointsAssertMsg,
+          SensorDatapoint.datapointsAreSimilar(apDp, chreDp, mSensorTypeInfo.errorMargin));
+      Assert.assertTrue(timestampsAssertMsg,
+          SensorDatapoint.timestampsAreSimilar(apDp, chreDp));
+    }
   }
 
   @Override
@@ -189,5 +216,45 @@ public class ChreCrossValidatorSensor
     Map<Integer, SensorTypeInfo> map = new HashMap<Integer, SensorTypeInfo>();
     map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER, 3, 0.01f));
     return map;
+  }
+
+  /*
+   * Align the AP and CHRE datapoints by finding the first pair that are similar comparing
+   * linearly from there. Also truncate the end if one list has more datapoints than the other
+   * after this. This is needed because AP and CHRE can start sending data and varying times to
+   * this validator and can also stop sending at various times.
+   */
+  private void alignApAndChreDatapoints() {
+    int matchAp = 0, matchChre = 0;
+    boolean shouldBreak = false;
+    int apIndex = 0, chreIndex = 0;
+    int discardableSize = (int) (mApDatapoints.size() * ALIGNMENT_JUNK_FACTOR);
+    // if the start point of alignment exceeds halfway down either list then this is considered not
+    // enough alignment for datapoints to be valid
+    while (apIndex < discardableSize && chreIndex < discardableSize) {
+      SensorDatapoint apDp = mApDatapoints.get(apIndex);
+      SensorDatapoint chreDp = mChreDatapoints.get(chreIndex);
+      if (SensorDatapoint.timestampsAreSimilar(apDp, chreDp)) {
+        matchAp = apIndex;
+        matchChre = chreIndex;
+        break;
+      }
+      if ((apDp.getTimestamp() < chreDp.getTimestamp()) && (apIndex < discardableSize - 1)) {
+        apIndex++;
+      } else {
+        chreIndex++;
+      }
+    }
+    // If matchAp and matchChre were unchanged than assertApAndChreDataAreSimilar will fail on the
+    // first index Remove the datapoints that came in early on the lists
+    mApDatapoints.removeAll(mApDatapoints.subList(0, matchAp));
+    mChreDatapoints.removeAll(mChreDatapoints.subList(0, matchChre));
+    // Remove the datapoints that came in later on the list that may appear larger
+    if (mApDatapoints.size() > mChreDatapoints.size()) {
+      mApDatapoints.removeAll(mApDatapoints.subList(mChreDatapoints.size(), mApDatapoints.size()));
+    } else if (mChreDatapoints.size() < mApDatapoints.size()) {
+      mChreDatapoints.removeAll(
+          mChreDatapoints.subList(mApDatapoints.size(), mChreDatapoints.size()));
+    }
   }
 }

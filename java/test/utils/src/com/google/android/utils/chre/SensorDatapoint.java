@@ -80,6 +80,24 @@ class SensorDatapoint {
     return Math.abs(dp1.mTimestamp - dp2.mTimestamp) < MAX_TIMESTAMP_DIFF_NS;
   }
 
+  /*package*/
+  long getTimestamp() {
+    return mTimestamp;
+  }
+
+  /*
+   * @return The human readable string representing this datapoint.
+   */
+  @Override
+  public String toString() {
+    String str = String.format("<SensorDatapoint timestamp: %d, values: [ ", mTimestamp);
+    for (float val : mValues) {
+      str += String.format("%f ", val);
+    }
+    str += "]";
+    return str;
+  }
+
   /*
    * @param dp1 The first SensorDatapoint object to compare.
    * @param dp2 The second SensorDatapoint object to compare.
