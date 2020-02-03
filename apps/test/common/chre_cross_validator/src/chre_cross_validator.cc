@@ -129,10 +129,8 @@ void handleStartSensorMessage(
     LOGE("Could not find default sensor for sensorType %" PRIu8, sensorType);
     // TODO(b/146052784): Test other sensor configure modes
   } else {
-    // Used in nanoappEnd to cleanup the correct sensor
-    if (!chreSensorConfigure(gSensorHandle.value(),
-                             CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS, interval,
-                             latency)) {
+    if (!chreSensorConfigure(handle, CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
+                             interval, latency)) {
       LOGE("Error configuring sensor with sensorType %" PRIu8
            ", interval %" PRIu64 "ns, and latency %" PRIu64 "ns",
            sensorType, interval, latency);
