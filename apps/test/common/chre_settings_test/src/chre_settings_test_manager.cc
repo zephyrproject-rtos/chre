@@ -17,7 +17,9 @@
 #include "chre_settings_test_manager.h"
 
 #include <pb_decode.h>
+#include <pb_encode.h>
 
+#include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre_settings_test.nanopb.h"
 #include "chre_settings_test_util.h"
@@ -29,6 +31,8 @@ namespace chre {
 namespace settings_test {
 
 namespace {
+
+constexpr uint32_t kWifiScanningCookie = 0x1234;
 
 bool getFeature(const chre_settings_test_TestCommand &command,
                 Manager::Feature *feature) {
@@ -92,6 +96,28 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
   }
 }
 
+bool Manager::isFeatureSupported(Feature feature) {
+  bool supported = false;
+
+  uint32_t version = chreGetVersion();
+  switch (feature) {
+    case Feature::WIFI_SCANNING: {
+      uint32_t capabilities = chreWifiGetCapabilities();
+      supported = (version >= CHRE_API_VERSION_1_1) &&
+                  ((capabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) != 0);
+      break;
+    }
+    case Feature::WIFI_RTT:
+    case Feature::GNSS_LOCATION:
+    case Feature::GNSS_MEASUREMENT:
+    case Feature::WWAN_CELL_INFO:
+    default:
+      LOGE("Unknown feature %" PRIu8, feature);
+  }
+
+  return supported;
+}
+
 void Manager::handleMessageFromHost(uint32_t senderInstanceId,
                                     const chreMessageFromHostData *hostData) {
   bool success = false;
@@ -128,11 +154,99 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 
 void Manager::handleStartTestMessage(uint16_t hostEndpointId, Feature feature,
                                      FeatureState state) {
-  // TODO: Implement this
+  // If the feature is not supported, treat as success and skip the test.
+  if (!isFeatureSupported(feature)) {
+    sendTestResult(hostEndpointId, true /* success */);
+  } else if (!startTestForFeature(feature)) {
+    sendTestResult(hostEndpointId, false /* success */);
+  } else {
+    mTestSession = TestSession(hostEndpointId, feature, state);
+  }
 }
 
 void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
-  // TODO: Implement this
+  if (mTestSession.has_value()) {
+    // The validation for the correct data w.r.t. the current test session
+    // will be done in the methods called from here.
+    switch (eventType) {
+      case CHRE_EVENT_WIFI_ASYNC_RESULT: {
+        handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+        break;
+      }
+      default:
+        LOGE("Unknown event type %" PRIu16, eventType);
+    }
+  }
+}
+
+bool Manager::startTestForFeature(Feature feature) {
+  bool success = true;
+  switch (feature) {
+    case Feature::WIFI_SCANNING: {
+      success = chreWifiRequestScanAsyncDefault(&kWifiScanningCookie);
+      LOGI("Starting test for WiFi scanning");
+      if (!success) {
+        LOGE("Failed to make on-demand WiFi scanning request");
+      }
+      break;
+    }
+    case Feature::WIFI_RTT:
+    case Feature::GNSS_LOCATION:
+    case Feature::GNSS_MEASUREMENT:
+    case Feature::WWAN_CELL_INFO:
+    default:
+      LOGE("Unknown feature %" PRIu8, feature);
+      success = false;
+  }
+
+  return success;
+}
+
+bool Manager::validateAsyncResult(const chreAsyncResult *result,
+                                  const void *expectedCookie) {
+  bool success = false;
+  if (result->cookie != expectedCookie) {
+    LOGE("Unexpected cookie on scan async result");
+  } else {
+    chreError expectedErrorCode =
+        (mTestSession->featureState == FeatureState::ENABLED)
+            ? CHRE_ERROR_NONE
+            : CHRE_ERROR_FUNCTION_DISABLED;
+
+    if (result->errorCode != expectedErrorCode) {
+      LOGE("Unexpected async result: error code %" PRIu8 " expect %" PRIu8,
+           result->errorCode, expectedErrorCode);
+    } else {
+      success = true;
+    }
+  }
+
+  return success;
+}
+
+void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
+  bool success = false;
+  switch (result->requestType) {
+    case CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN: {
+      if (mTestSession->feature != Feature::WIFI_SCANNING) {
+        LOGE("Unexpected WiFi scan async result: test feature %" PRIu8,
+             mTestSession->feature);
+      } else {
+        success = validateAsyncResult(
+            result, static_cast<const void *>(&kWifiScanningCookie));
+      }
+      break;
+    }
+    default:
+      LOGE("Unexpected request type %" PRIu8, result->requestType);
+  }
+
+  sendTestResult(mTestSession->hostEndpointId, success);
+}
+
+void Manager::sendTestResult(uint16_t hostEndpointId, bool success) {
+  sendTestResultToHost(hostEndpointId, success);
+  mTestSession.reset();
 }
 
 }  // namespace settings_test

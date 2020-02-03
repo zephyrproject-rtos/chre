@@ -22,6 +22,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/optional.h"
 #include "chre/util/singleton.h"
 
 namespace chre {
@@ -53,6 +54,23 @@ class Manager {
                    const void *eventData);
 
  private:
+  struct TestSession {
+    uint16_t hostEndpointId;
+    Feature feature;
+    FeatureState featureState;
+
+    TestSession(uint16_t id, Feature feature, FeatureState state) {
+      this->hostEndpointId = id;
+      this->feature = feature;
+      this->featureState = state;
+    }
+  };
+
+  /**
+   * @return true if the provided feature is supported by CHRE.
+   */
+  bool isFeatureSupported(Feature feature);
+
   /**
    * Handles a message from the host.
    *
@@ -63,7 +81,9 @@ class Manager {
                              const chreMessageFromHostData *hostData);
 
   /**
-   * Initiates the test given a start command from the host.
+   * Initiates the test given a start command from the host. If a test was
+   * already in progress, a new start message will override and start a new
+   * test.
    *
    * @param hostEndpointId The test host endpoint ID.
    * @param feature The feature to test.
@@ -79,6 +99,40 @@ class Manager {
    * @param eventData A pointer to the data.
    */
   void handleDataFromChre(uint16_t eventType, const void *eventData);
+
+  /**
+   * Starts a test for a given feature.
+   *
+   * @param feature The feature to test.
+   *
+   * @return true if the test successfully began.
+   */
+  bool startTestForFeature(Feature feature);
+
+  /**
+   * @param result The async result.
+   * @param expectedCookie The expected cookie value.
+   *
+   * @return true if the async result matches expected values.
+   */
+  bool validateAsyncResult(const chreAsyncResult *result,
+                           const void *expectedCookie);
+
+  /**
+   * @param result The async result provided by CHRE.
+   */
+  void handleWifiAsyncResult(const chreAsyncResult *result);
+
+  /**
+   * End the current test session and sends result to host.
+   *
+   * @param hostEndpointId The host to send the result to.
+   * @param success True if the test succeeded.
+   */
+  void sendTestResult(uint16_t hostEndpointId, bool success);
+
+  //! The current test session.
+  chre::Optional<TestSession> mTestSession;
 };
 
 // The settings test manager singleton.

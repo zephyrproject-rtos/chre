@@ -31,6 +31,11 @@ namespace chre {
 namespace settings_test {
 
 void sendTestResultToHost(uint16_t hostEndpointId, bool success) {
+  // Unspecified endpoint is not allowed in chreSendMessageToHostEndpoint.
+  if (hostEndpointId == CHRE_HOST_ENDPOINT_UNSPECIFIED) {
+    hostEndpointId = CHRE_HOST_ENDPOINT_BROADCAST;
+  }
+
   chre_settings_test_TestResult result =
       chre_settings_test_TestResult_init_default;
   result.has_code = true;
