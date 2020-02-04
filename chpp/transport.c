@@ -57,10 +57,15 @@ static enum ChppErrorCode chppRxHeaderCheck(
  * CHPP_ERROR_NONE indicates that no error was reported (i.e. either an ACK or
  * an implicit NACK)
  *
- * Note that the decision as to wheather to include a payload  will be taken
+ * Note that the decision as to wheather to include a payload will be taken
  * later, i.e. before the packet is being sent out from the queue. A payload is
  * expected to be included if there is one or more pending Tx datagrams and we
- * are not waiting on a pending ACK.
+ * are not waiting on a pending ACK. A (repeat) payload is also included if we
+ * have received a NACK.
+ *
+ * Further note that even for systems with an ACK window greater than one, we
+ * would only need to send an ACK for the last (correct) packet, hence we only
+ * need a queue length of one here.
  *
  * @param context Is used to maintain status. Must be provided and initialized
  * through chppTransportInit for each transport layer instance. Cannot be null.
@@ -68,9 +73,10 @@ static enum ChppErrorCode chppRxHeaderCheck(
  */
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
                                 enum ChppErrorCode errorCode) {
-  // TODO
-  UNUSED_VAR(errorCode);
-  UNUSED_VAR(context);
+  context->txStatus.hasPacketsToSend = true;
+  context->txStatus.errorCodeToSend = errorCode;
+
+  // TODO: Notify Tx Loop
 }
 
 /*
@@ -320,7 +326,20 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
     } else {
       // Packet is good. Save received ACK seq number and process payload if any
-      context->txStatus.ackedSeq = context->rxHeader.ackSeq;
+
+      if (context->txStatus.ackedSeq != context->rxHeader.ackSeq) {
+        // A previously sent packet was ACKed
+
+        context->txStatus.ackedSeq = context->rxHeader.ackSeq;
+
+        // TODO: Notify Tx Loop (to send out next packet, if any)
+      }
+
+      if (context->rxHeader.errorCode != CHPP_ERROR_NONE) {
+        // A previously sent packet was explicitly NACKed. Resend last packet
+
+        chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+      }
 
       if (hasPayload) {
         chppProcessRxPayload(context);

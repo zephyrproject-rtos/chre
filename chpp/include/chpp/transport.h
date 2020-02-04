@@ -155,6 +155,13 @@ struct ChppTxStatus {
   // Last received ACK sequence number (i.e. next expected sequence number for
   // an outgoing payload-bearing packet)
   uint8_t ackedSeq;
+
+  // Does the transport layer have any packets (with or without payload) it
+  // needs to send out?
+  bool hasPacketsToSend;
+
+  // Error code, if any, of the next packet the transport layer will send out.
+  enum ChppErrorCode errorCodeToSend;
 };
 
 struct ChppDatagram {
