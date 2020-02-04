@@ -325,7 +325,9 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppEnqueueTxPacket(context, CHPP_ERROR_CHECKSUM);
 
     } else {
-      // Packet is good. Save received ACK seq number and process payload if any
+      // Packet is good. Save received ACK info and process payload if any
+
+      context->rxStatus.receivedErrorCode = context->rxHeader.errorCode;
 
       if (context->txStatus.ackedSeq != context->rxHeader.ackSeq) {
         // A previously sent packet was ACKed
@@ -489,4 +491,16 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
 
   return (context->rxStatus.state == CHPP_STATE_PREAMBLE &&
           context->rxStatus.loc == 0);
+}
+
+void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
+  chppMutexLock(&context->mutex);
+
+  // Implicit NACK. Set received error code accordingly
+  context->rxStatus.receivedErrorCode = CHPP_ERROR_TIMEOUT;
+
+  // Enqueue Tx packet which will be a retransmission based on the above
+  chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+
+  chppMutexUnlock(&context->mutex);
 }
