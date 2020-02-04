@@ -62,8 +62,8 @@ static enum ChppErrorCode chppRxHeaderCheck(
  * expected to be included if there is one or more pending Tx datagrams and we
  * are not waiting on a pending ACK.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param errorCode Error code for the next outgoing packet
  */
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
@@ -83,6 +83,7 @@ static void chppTxStopReTxTimer(void) {
   // TODO
 }
 */
+
 /************************************************
  *  Rx
  ***********************************************/
@@ -91,8 +92,8 @@ static void chppTxStopReTxTimer(void) {
  * Called any time the Rx state needs to be changed. Ensures that the location
  * counter among that state (rxStatus.loc) is also reset at the same time.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param newState Next Rx state
  */
 static void chppSetRxState(struct ChppTransportState *context,
@@ -103,15 +104,15 @@ static void chppSetRxState(struct ChppTransportState *context,
 }
 
 /**
- * Called by chppRxData to find a preamble (i.e. packet start delimiter) in the
- * incoming data stream.
+ * Called by chppRxDataCb to find a preamble (i.e. packet start delimiter) in
+ * the incoming data stream.
  * Moves the state to CHPP_STATE_HEADER as soon as it has seen a complete
  * preamble.
  * Any future backwards-incompatible versions of CHPP Transport will use a
  * different preamble.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param buf Input data
  * @param len Length of input data in bytes
  *
@@ -122,7 +123,7 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
   size_t consumed = 0;
 
   // TODO: Optimize loop, maybe using memchr() / memcmp() / SIMD, especially if
-  // serial port calling chppRxData does not implement zero filter
+  // serial port calling chppRxDataCb does not implement zero filter
   while (consumed < len && context->rxStatus.loc < CHPP_PREAMBLE_LEN_BYTES) {
     if (buf[consumed] == ((CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES -
                                                   context->rxStatus.loc - 1)) &
@@ -151,12 +152,12 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
 }
 
 /**
- * Called by chppRxData to process the packet header from the incoming data
+ * Called by chppRxDataCb to process the packet header from the incoming data
  * stream.
  * Moves the Rx state to CHPP_STATE_PAYLOAD afterwards.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param buf Input data
  * @param len Length of input data in bytes
  *
@@ -223,12 +224,12 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
 }
 
 /**
- * Called by chppRxData to copy the payload, the length of which is determined
+ * Called by chppRxDataCb to copy the payload, the length of which is determined
  * by the header, from the incoming data stream.
  * Moves the Rx state to CHPP_STATE_FOOTER afterwards.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param buf Input data
  * @param len Length of input data in bytes
  *
@@ -257,12 +258,12 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
 }
 
 /**
- * Called by chppRxData to process the packet footer from the incoming data
+ * Called by chppRxDataCb to process the packet footer from the incoming data
  * stream. Checks checksum, triggering the correct response (ACK / NACK).
  * Moves the Rx state to CHPP_STATE_PREAMBLE afterwards.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param buf Input data
  * @param len Length of input data in bytes
  *
@@ -337,8 +338,8 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
  * Process the payload of a validated payload-bearing packet and send out the
  * ACK
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  */
 static void chppProcessRxPayload(struct ChppTransportState *context) {
   if (context->rxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM) {
@@ -374,8 +375,8 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
 /**
  * Validates the checksum of an incoming packet.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  *
  * @return True if and only if the checksum is correct
  */
@@ -391,8 +392,8 @@ bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
  * Performs sanity check on received packet header. Discards packet if header is
  * obviously corrupt / invalid.
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  *
  * @return True if and only if header passes sanity check
  */
@@ -411,16 +412,33 @@ static enum ChppErrorCode chppRxHeaderCheck(
   return result;
 }
 
-// Public function
-bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
-                size_t len) {
-  LOGD("chppRxData received %zu bytes (state = %d)", len,
-       context->rxStatus.state);
+/************************************************
+ *  Public Functions
+ ***********************************************/
+
+void chppTransportInit(struct ChppTransportState *context) {
+  CHPP_NOT_NULL(context);
+
+  memset(context, 0, sizeof(struct ChppTransportState));
+  chppMutexInit(&context->mutex);
+}
+
+bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
+                  size_t len) {
   CHPP_NOT_NULL(buf);
   CHPP_NOT_NULL(context);
 
+  LOGD("chppRxDataCb received %zu bytes (state = %d)", len,
+       context->rxStatus.state);
+
   size_t consumed = 0;
   while (consumed < len) {
+    chppMutexLock(&context->mutex);
+    // TODO: Investigate fine-grained locking, e.g. separating variables that
+    // are only relevant to a particular path.
+    // Also consider removing some of the finer-grained locks altogether for
+    // non-multithreaded environments with clear documentation.
+
     switch (context->rxStatus.state) {
       case CHPP_STATE_PREAMBLE:
         consumed +=
@@ -444,8 +462,10 @@ bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
         chppSetRxState(context, CHPP_STATE_PREAMBLE);
     }
 
-    LOGD("chppRxData consumed %zu of %zu bytes (state = %d)", consumed, len,
+    LOGD("chppRxDataCb consumed %zu of %zu bytes (state = %d)", consumed, len,
          context->rxStatus.state);
+
+    chppMutexUnlock(&context->mutex);
   }
 
   return (context->rxStatus.state == CHPP_STATE_PREAMBLE &&

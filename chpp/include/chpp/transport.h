@@ -25,6 +25,7 @@
 
 #include "chpp/macros.h"
 #include "chpp/memory.h"
+#include "chpp/mutex.h"
 #include "chpp/platform/log.h"
 
 #ifdef __cplusplus
@@ -178,6 +179,8 @@ struct ChppTransportState {
   struct ChppTransportHeader txHeader;  // Tx packet header
   struct ChppTransportFooter txFooter;  // Tx packet footer (checksum)
   struct ChppDatagram txDatagram;       // Tx datagram
+
+  struct ChppMutex mutex;  // Prevents corruption of this state
 };
 
 /************************************************
@@ -185,17 +188,25 @@ struct ChppTransportState {
  ***********************************************/
 
 /**
+ * Initializes the CHPP transport layer state stored in the parameter context.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+void chppTransportInit(struct ChppTransportState *context);
+
+/**
  * Processes all incoming data on the serial port based on the Rx state.
  * stream. Checks checksum, triggering the correct response (ACK / NACK).
  * Moves the state to CHPP_STATE_PREAMBLE afterwards.
  *
- * TODO: Add requirements, e.g. must not be interrupt context, must always be
- * called from the same thread
+ * TODO: Add requirements, e.g. context must not be modified unless locked via
+ * mutex.
  *
  * TODO: Add sufficient outward facing documentation
  *
- * @param context Is used to maintain status. Must be provided, zero
- * initialized, for each transport layer instance. Cannot be null.
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  *
@@ -203,8 +214,8 @@ struct ChppTransportState {
  * preamble. This allows the driver to (optionally) filter incoming zeros and
  * save processing
  */
-bool chppRxData(struct ChppTransportState *context, const uint8_t *buf,
-                size_t len);
+bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
+                  size_t len);
 
 #ifdef __cplusplus
 }
