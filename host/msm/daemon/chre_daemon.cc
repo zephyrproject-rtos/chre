@@ -64,8 +64,11 @@
 #include "chre_host/socket_server.h"
 #include "generated/chre_slpi.h"
 
+#include <android-base/logging.h>
 #include <json/json.h>
 #include <utils/SystemClock.h>
+
+#include "pw_tokenizer/detokenize.h"
 
 #ifdef CHRE_DAEMON_LOAD_INTO_SENSORSPD
 #include "remote.h"
@@ -74,7 +77,11 @@
 #endif  // CHRE_DAEMON_LOAD_INTO_SENSORSPD
 
 //! The format string to use for logs from the CHRE implementation.
-#define HUB_LOG_FORMAT_STR "Hub (t=%.6f): %s"
+#define HUB_LOG_FORMAT_STR "@ %.3f: [CHRE] %s"
+
+#ifndef UNUSED_VAR
+#define UNUSED_VAR(var) ((void)(var))
+#endif
 
 #ifdef CHRE_DAEMON_LPMA_ENABLED
 #include <android/hardware/soundtrigger/2.0/ISoundTriggerHw.h>
@@ -103,6 +110,8 @@ struct reverse_monitor_thread_data {
   pthread_mutex_t mutex;
   pthread_cond_t cond;
 };
+
+static pw::tokenizer::Detokenizer *gDetokenizer = nullptr;
 
 static void *chre_message_to_host_thread(void *arg);
 static void *chre_monitor_thread(void *arg);
@@ -197,7 +206,59 @@ static void log_buffer(const uint8_t *buffer, size_t size) {
 }
 #endif
 
-static void parseAndEmitLogMessages(unsigned char *message) {
+void emitLogMessage(uint8_t level, float timestampSeconds, const char *log) {
+  switch (level) {
+    case 1:
+      LOGE(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+      break;
+    case 2:
+      LOGW(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+      break;
+    case 3:
+      LOGI(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+      break;
+    case 4:
+      LOGD(HUB_LOG_FORMAT_STR, timestampSeconds, log);
+      break;
+    default:
+      LOGE("Invalid CHRE hub log level, omitting log");
+  }
+}
+
+void parseAndEmitTokenizedLogMessages(unsigned char *message,
+                                      unsigned int messageLen) {
+  if (gDetokenizer != nullptr) {
+    // TODO: Pull out common code from the tokenized/standard log
+    // parser functions when we implement batching for tokenized
+    // logs (b/148873804)
+    constexpr size_t kLogMessageHeaderSize =
+        1 /*logLevel*/ + sizeof(uint64_t) /*timestamp*/;
+
+    const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
+    const auto *logMessage =
+        static_cast<const fbs::LogMessage *>(container->message());
+
+    const flatbuffers::Vector<int8_t> &logData = *logMessage->buffer();
+    const uint8_t *log = reinterpret_cast<const uint8_t *>(logData.data());
+    uint8_t level = *log;
+    ++log;
+
+    uint64_t timestampNanos;
+    memcpy(&timestampNanos, log, sizeof(uint64_t));
+    log += sizeof(uint64_t);
+
+    float timestampSeconds = timestampNanos / 1e9;
+
+    pw::tokenizer::DetokenizedString detokenizedLog =
+        gDetokenizer->Detokenize(log, messageLen - kLogMessageHeaderSize);
+    std::string decodedLog = detokenizedLog.BestStringWithErrors();
+    emitLogMessage(level, timestampSeconds, decodedLog.c_str());
+  } else {
+    // log an error and risk log spam? fail silently? log once?
+  }
+}
+
+void parseAndEmitStandardLogMessages(unsigned char *message) {
   const fbs::MessageContainer *container = fbs::GetMessageContainer(message);
   const auto *logMessage =
       static_cast<const fbs::LogMessage *>(container->message());
@@ -218,28 +279,20 @@ static void parseAndEmitLogMessages(unsigned char *message) {
 
     float timestampSeconds = timestampNanos / 1e9;
 
-    // Log the message.
-    switch (logLevel) {
-      case 1:
-        LOGE(HUB_LOG_FORMAT_STR, timestampSeconds, log);
-        break;
-      case 2:
-        LOGW(HUB_LOG_FORMAT_STR, timestampSeconds, log);
-        break;
-      case 3:
-        LOGI(HUB_LOG_FORMAT_STR, timestampSeconds, log);
-        break;
-      case 4:
-        LOGD(HUB_LOG_FORMAT_STR, timestampSeconds, log);
-        break;
-      default:
-        LOGE("Invalid CHRE hub log level, omitting log");
-    }
-
+    emitLogMessage(logLevel, timestampSeconds, log);
     // Advance the log pointer.
     size_t strLen = strlen(log);
     i += kLogMessageHeaderSize + strLen;
   }
+}
+
+static void parseAndEmitLogMessages(unsigned char *message, size_t messageLen) {
+#ifdef CHRE_USE_TOKENIZED_LOGGING
+  parseAndEmitTokenizedLogMessages(message, messageLen);
+#else
+  UNUSED_VAR(messageLen);
+  parseAndEmitStandardLogMessages(message);
+#endif
 }
 
 static int64_t getTimeOffset(bool *success) {
@@ -843,7 +896,7 @@ static void *chre_message_to_host_thread(void *arg) {
       }
 
       if (messageType == fbs::ChreMessage::LogMessage) {
-        parseAndEmitLogMessages(messageBuffer);
+        parseAndEmitLogMessages(messageBuffer, messageLen);
       } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
         sendTimeSyncMessage(true /* logOnError */);
 #ifdef CHRE_DAEMON_LPMA_ENABLED
@@ -863,7 +916,9 @@ static void *chre_message_to_host_thread(void *arg) {
       }
     } else if (!chre_shutdown_requested) {
       LOGE(
-          "Received an unknown result and no shutdown was requested. Quitting");
+          "Received an unknown result (%d) and no shutdown was requested. "
+          "Quitting",
+          result);
       exit(-1);
     } else {
       // Received an unknown result but a shutdown was requested. Break from the
@@ -914,6 +969,33 @@ void onMessageReceivedFromClient(uint16_t clientId, void *data, size_t length) {
   sendMessageToChre(clientId, data, length);
 }
 
+void logDetokenizerInit() {
+#ifdef CHRE_USE_TOKENIZED_LOGGING
+  constexpr const char *kLogDatabaseFilePath =
+      "/vendor/etc/chre/log_database.bin";
+  std::vector<uint8_t> tokenData;
+  if (readFileContents(kLogDatabaseFilePath, &tokenData)) {
+    pw::tokenizer::TokenDatabase database =
+        pw::tokenizer::TokenDatabase::Create(tokenData);
+    if (database.ok()) {
+      gDetokenizer = new pw::tokenizer::Detokenizer(database);
+      CHECK_EQ(gDetokenizer != nullptr, true);
+    } else {
+      LOGE("CHRE Token database creation not OK");
+    }
+  } else {
+    LOGE("Failed to read CHRE Token database file");
+  }
+#endif
+}
+
+void logDetokenizerDeinit() {
+  if (gDetokenizer != nullptr) {
+    delete gDetokenizer;
+    gDetokenizer = nullptr;
+  }
+}
+
 }  // anonymous namespace
 
 int main() {
@@ -922,6 +1004,8 @@ int main() {
   pthread_t msg_to_host_thread;
 
   ::android::chre::SocketServer server;
+
+  logDetokenizerInit();
 
 #ifdef CHRE_DAEMON_LOAD_INTO_SENSORSPD
   remote_handle remote_handle_fd = 0xFFFFFFFF;
@@ -991,6 +1075,8 @@ int main() {
       }
     }
   }
+
+  logDetokenizerDeinit();
 
   return ret;
 }
