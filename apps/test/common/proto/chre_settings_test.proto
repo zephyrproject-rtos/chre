@@ -1,0 +1,54 @@
+syntax = "proto2";
+
+package chre_settings_test;
+
+option java_package = "com.google.android.utils.chre";
+option java_outer_classname = "ChreSettingsTest";
+
+// Nanoappp message type can be either host to chre (H2C) or chre to host (C2H)
+enum MessageType {
+  // Reserved for corrupted messages
+  UNDEFINED = 0;
+
+  // H2C: A message to start the test.
+  // Payload must be TestCommand.
+  TEST_COMMAND = 1;
+
+  // C2H: A message indicating the test result.
+  TEST_RESULT = 2;
+}
+
+// A message to start the test, providing the feature to test and its state.
+message TestCommand {
+  enum Feature {
+    FEATURE_UNDEFINED = 0;
+    WIFI_SCANNING = 1;
+    WIFI_RTT = 2;
+    GNSS_LOCATION = 3;
+    GNSS_MEASUREMENT = 4;
+    WWAN_CELL_INFO = 5;
+  }
+
+  enum State {
+    STATE_UNDEFINED = 0;
+    ENABLED = 1;
+    DISABLED = 2;
+  }
+
+  // The feature to test.
+  optional Feature feature = 1;
+
+  // The feature state (e.g. enabled or disabled).
+  optional State state = 2;
+}
+
+// A message used to provide the test result.
+message TestResult {
+  enum Code {
+    PASSED = 0;
+    FAILED = 1;
+  }
+
+  optional Code code = 1 [default = FAILED];
+  optional bytes errorMessage = 2;
+}
