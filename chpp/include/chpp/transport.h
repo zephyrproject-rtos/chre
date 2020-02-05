@@ -62,6 +62,15 @@ extern "C" {
 #define CHPP_PREAMBLE_LEN_BYTES 2
 /** @} */
 
+/**
+ * Maximum number of datagrams in the Tx queue.
+ * CHPP will return an error if it is provided with a new Tx datagram when this
+ * queue is full.
+ * To be safe, this should be less than half of the maximum uint8_t value.
+ * Otherwise, ChppTxDatagramQueue should be updated accordingly.
+ */
+#define CHPP_TX_DATAGRAM_QUEUE_LEN 16
+
 /************************************************
  *  Status variables to store context in lieu of global variables (this)
  ***********************************************/
@@ -174,11 +183,24 @@ struct ChppDatagram {
   // or more packets)
   size_t length;
 
-  // Location counter in bytes within datagram.
-  size_t loc;
-
   // Datagram payload
   uint8_t *payload;
+};
+
+struct ChppTxDatagramQueue {
+  // Number of pending datagrams in the queue.
+  uint8_t pending;
+
+  // Index of the datagram at the front of the queue.
+  uint8_t front;
+
+  // Location counter within the front datagram (i.e. the datagram at the front
+  // of the queue), showing how many bytes of this datagram have already been
+  // packetized and processed.
+  size_t loc;
+
+  // Array of datagrams
+  struct ChppDatagram datagram[CHPP_TX_DATAGRAM_QUEUE_LEN];
 };
 
 struct ChppTransportState {
@@ -186,13 +208,15 @@ struct ChppTransportState {
   struct ChppTransportHeader rxHeader;  // Rx packet header
   struct ChppTransportFooter rxFooter;  // Rx packet footer (checksum)
   struct ChppDatagram rxDatagram;       // Rx datagram
+  size_t rxDatagramLoc;                 // Location within datagram
 
-  struct ChppTxStatus txStatus;         // Tx state
-  struct ChppTransportHeader txHeader;  // Tx packet header
-  struct ChppTransportFooter txFooter;  // Tx packet footer (checksum)
-  struct ChppDatagram txDatagram;       // Tx datagram
+  struct ChppTxStatus txStatus;                // Tx state
+  struct ChppTransportHeader txHeader;         // Tx packet header
+  struct ChppTransportFooter txFooter;         // Tx packet footer (checksum)
+  struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
+  size_t txDatagramLoc;                        // Location within front datagram
 
-  struct ChppMutex mutex;  // Prevents corruption of this state
+  struct ChppMutex mutex;  // Prevents corruption of state
 };
 
 /************************************************
@@ -236,6 +260,34 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
  * through chppTransportInit for each transport layer instance. Cannot be null.
  */
 void chppTxTimeoutTimerCb(struct ChppTransportState *context);
+
+/**
+ * Enqueues an outgoing datagram of a specified length. The payload must have
+ * been allocated by the caller using chppMalloc. If enqueueing is successful,
+ * the payload shall be freed only by the transport layer (once it has been sent
+ * out). If enqueueing is unsuccessful, it is up to the sender to decide whether
+ * to free the payload and/or resend it later.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param len Datagram length in bytes.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @return True informs the sender that the datagram was successfully enqueued.
+ * False informs the sender that the queue was full.
+ */
+bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
+                           uint8_t *buf);
+
+/**
+ * Dequeues the datagram at the front of the datagram tx queue, if any, and
+ * frees the payload. Returns false if the queue is empty.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @return True indicates success. False indicates failure, i.e. the queue was
+ * empty.
+ */
+bool chppDequeueTxDatagram(struct ChppTransportState *context);
 
 #ifdef __cplusplus
 }
