@@ -25,6 +25,8 @@ namespace settings_test {
 
 void sendTestResultToHost(uint16_t hostEndpointId, bool success);
 
+void sendEmptyMessageToHost(uint16_t hostEndpointId, uint32_t messageType);
+
 }  // namespace settings_test
 
 }  // namespace chre
