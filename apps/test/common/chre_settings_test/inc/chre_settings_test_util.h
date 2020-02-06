@@ -14,26 +14,19 @@
  * limitations under the License.
  */
 
-#include <chre.h>
-#include <cinttypes>
+#ifndef CHRE_SETTINGS_TEST_UTIL_H_
+#define CHRE_SETTINGS_TEST_UTIL_H_
 
-#include "chre_settings_test_manager.h"
+#include <cinttypes>
 
 namespace chre {
 
-extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {
-  settings_test::ManagerSingleton::get()->handleEvent(senderInstanceId,
-                                                      eventType, eventData);
-}
+namespace settings_test {
 
-extern "C" bool nanoappStart(void) {
-  settings_test::ManagerSingleton::init();
-  return true;
-}
+void sendTestResultToHost(uint16_t hostEndpointId, bool success);
 
-extern "C" void nanoappEnd(void) {
-  settings_test::ManagerSingleton::deinit();
-}
+}  // namespace settings_test
 
 }  // namespace chre
+
+#endif  // CHRE_SETTINGS_TEST_UTIL_H_
