@@ -131,6 +131,18 @@ extern "C" {
 #define CHRE_EVENT_HOST_ASLEEP  UINT16_C(0x0006)
 
 /**
+ * nanoappHandleEvent argument: NULL
+ *
+ * Indicates that CHRE is collecting debug dumps. Nanoapps can call
+ * chreDebugDumpLog() to log their debug data while handling this event.
+ *
+ * @see chreConfigureDebugDumpEvent
+ * @see chreDebugDumpLog
+ * @since v1.4
+ */
+#define CHRE_EVENT_DEBUG_DUMP  UINT16_C(0x0007)
+
+/**
  * First possible value for CHRE_EVENT_SENSOR events.
  *
  * This allows us to separately define our CHRE_EVENT_SENSOR_* events in
@@ -551,6 +563,21 @@ void chreConfigureHostSleepStateEvents(bool enable);
  * @since v1.2
  */
 bool chreIsHostAwake(void);
+
+/**
+ * Configures whether this nanoapp will be notified when CHRE is collecting
+ * debug dumps, via CHRE_EVENT_DEBUG_DUMP. This event is disabled by default,
+ * and if a nanoapp is not interested in logging its debug data, then it does
+ * not need to register for it.
+ *
+ * @param enable true to enable receipt of this event, false to disable.
+ *
+ * @see CHRE_EVENT_DEBUG_DUMP
+ * @see chreDebugDumpLog
+ *
+ * @since v1.4
+ */
+void chreConfigureDebugDumpEvent(bool enable);
 
 #ifdef __cplusplus
 }
