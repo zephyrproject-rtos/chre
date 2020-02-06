@@ -41,7 +41,7 @@
  * TODO(b/146052784): Move start and handle data methods for each cross
  * validation type (sensor[accel, gyro, ...], wifi, gps) to a manager class.
  *
- * TODO(b/146052784): Craete a helper function to get string version of
+ * TODO(b/146052784): Create a helper function to get string version of
  * sensorType for logging.
  */
 
@@ -62,57 +62,60 @@ chre::Optional<uint32_t> gSensorHandle;
 // data back to AP.
 uint16_t gHostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
 
-struct EncodeThreeAxisSensorDatapointsArg {
-  size_t numDatapoints;
-  chreSensorThreeAxisData::chreSensorThreeAxisSampleData *datapoints;
-};
+bool encodeThreeAxisSensorDatapointValues(pb_ostream_t *stream,
+                                          const pb_field_t * /*field*/,
+                                          void *const *arg) {
+  const auto *sensorThreeAxisDataSample = static_cast<
+      const chreSensorThreeAxisData::chreSensorThreeAxisSampleData *>(*arg);
 
-chre_cross_validation_SensorDataHeader makeHeader(
-    const chreSensorDataHeader &headerFromChre) {
-  return chre_cross_validation_SensorDataHeader{
-      .has_baseTimestampInNs = true,
-      .baseTimestampInNs =
-          headerFromChre.baseTimestamp + chreGetEstimatedHostTimeOffset(),
-      .has_sensorType = true,
-      .sensorType = chre_cross_validation_SensorType_ACCELEROMETER,
-      .has_accuracy = true,
-      .accuracy = headerFromChre.accuracy,
-      .has_readingCount = true,
-      .readingCount = headerFromChre.readingCount};
+  for (size_t i = 0; i < 3; i++) {
+    if (!pb_encode_tag_for_field(
+            stream,
+            &chre_cross_validation_SensorDatapoint_fields
+                [chre_cross_validation_SensorDatapoint_values_tag - 1])) {
+      return false;
+    }
+    if (!pb_encode_fixed32(stream, &sensorThreeAxisDataSample->values[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
-chre_cross_validation_ThreeAxisSensorDatapoint makeDatapoint(
+chre_cross_validation_SensorDatapoint makeDatapoint(
     const chreSensorThreeAxisData::chreSensorThreeAxisSampleData
-        &sampleDataFromChre) {
-  return chre_cross_validation_ThreeAxisSensorDatapoint{
-      .has_timestampDeltaInNs = true,
-      .timestampDeltaInNs = sampleDataFromChre.timestampDelta,
-      .has_x = true,
-      .x = sampleDataFromChre.x,
-      .has_y = true,
-      .y = sampleDataFromChre.y,
-      .has_z = true,
-      .z = sampleDataFromChre.z};
+        &sampleDataFromChre,
+    uint64_t currentTimestamp) {
+  return chre_cross_validation_SensorDatapoint{
+      .has_timestampInNs = true,
+      .timestampInNs = currentTimestamp,
+      .values = {.funcs = {.encode = encodeThreeAxisSensorDatapointValues},
+                 .arg = const_cast<
+                     chreSensorThreeAxisData::chreSensorThreeAxisSampleData *>(
+                     &sampleDataFromChre)}};
 }
 
 bool encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
                                      const pb_field_t * /*field*/,
                                      void *const *arg) {
-  const auto *sampleDataArg =
-      static_cast<const EncodeThreeAxisSensorDatapointsArg *>(*arg);
-  for (size_t i = 0; i < sampleDataArg->numDatapoints; i++) {
+  const auto *sensorThreeAxisData =
+      static_cast<const chreSensorThreeAxisData *>(*arg);
+  uint64_t currentTimestamp = sensorThreeAxisData->header.baseTimestamp +
+                              chreGetEstimatedHostTimeOffset();
+  for (size_t i = 0; i < sensorThreeAxisData->header.readingCount; i++) {
+    const chreSensorThreeAxisData::chreSensorThreeAxisSampleData &sampleData =
+        sensorThreeAxisData->readings[i];
+    currentTimestamp += sampleData.timestampDelta;
     if (!pb_encode_tag_for_field(
             stream,
-            &chre_cross_validation_ThreeAxisSensorData_fields
-                [chre_cross_validation_ThreeAxisSensorData_datapoints_tag -
-                 1])) {
+            &chre_cross_validation_SensorData_fields
+                [chre_cross_validation_SensorData_datapoints_tag - 1])) {
       return false;
     }
-    chre_cross_validation_ThreeAxisSensorDatapoint datapoint =
-        makeDatapoint(sampleDataArg->datapoints[i]);
+    chre_cross_validation_SensorDatapoint datapoint =
+        makeDatapoint(sampleData, currentTimestamp);
     if (!pb_encode_submessage(
-            stream, chre_cross_validation_ThreeAxisSensorDatapoint_fields,
-            &datapoint)) {
+            stream, chre_cross_validation_SensorDatapoint_fields, &datapoint)) {
       return false;
     }
   }
@@ -183,24 +186,20 @@ void handleMessageFromHost(uint32_t senderInstanceId,
 }
 
 chre_cross_validation_Data makeAccelSensorData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre,
-    EncodeThreeAxisSensorDatapointsArg *arg) {
-  const chre_cross_validation_SensorDataHeader newHeader =
-      makeHeader(threeAxisDataFromChre->header);
-  *arg = {
-      .numDatapoints = static_cast<size_t>(newHeader.readingCount),
-      .datapoints = (chreSensorThreeAxisData::chreSensorThreeAxisSampleData *)
-                        threeAxisDataFromChre->readings};
-  chre_cross_validation_ThreeAxisSensorData newThreeAxisData = {
-      .has_header = true,
-      .header = newHeader,
-      .datapoints = {.funcs = {.encode = encodeThreeAxisSensorDatapoints},
-                     .arg = arg}};
+    const chreSensorThreeAxisData *threeAxisDataFromChre) {
+  chre_cross_validation_SensorData newThreeAxisData = {
+      .has_sensorType = true,
+      .sensorType = chre_cross_validation_SensorType_ACCELEROMETER,
+      .has_accuracy = true,
+      .accuracy = threeAxisDataFromChre->header.accuracy,
+      .datapoints = {
+          .funcs = {.encode = encodeThreeAxisSensorDatapoints},
+          .arg = const_cast<chreSensorThreeAxisData *>(threeAxisDataFromChre)}};
   chre_cross_validation_Data newData = {
-      .which_data = chre_cross_validation_Data_threeAxisSensorData_tag,
+      .which_data = chre_cross_validation_Data_sensorData_tag,
       .data =
           {
-              .threeAxisSensorData = newThreeAxisData,
+              .sensorData = newThreeAxisData,
           },
   };
   return newData;
@@ -208,11 +207,8 @@ chre_cross_validation_Data makeAccelSensorData(
 
 void handleSensorThreeAxisData(
     const chreSensorThreeAxisData *threeAxisDataFromChre) {
-  // Instantiate arg here so that the memory for arg is not destructed until
-  // message to host is encoded
-  EncodeThreeAxisSensorDatapointsArg arg;
   chre_cross_validation_Data newData =
-      makeAccelSensorData(threeAxisDataFromChre, &arg);
+      makeAccelSensorData(threeAxisDataFromChre);
   size_t encodedSize;
   if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
                            &newData)) {
