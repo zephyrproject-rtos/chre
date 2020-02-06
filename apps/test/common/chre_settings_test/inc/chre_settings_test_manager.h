@@ -125,6 +125,11 @@ class Manager {
   void handleGnssAsyncResult(const chreAsyncResult *result);
 
   /**
+   * @param result The cell info result from CHRE.
+   */
+  void handleWwanCellInfoResult(const chreWwanCellInfoResult *result);
+
+  /**
    * End the current test session and sends result to host.
    *
    * @param hostEndpointId The host to send the result to.
