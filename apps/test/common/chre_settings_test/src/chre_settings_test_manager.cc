@@ -24,7 +24,7 @@
 #include "chre_settings_test.nanopb.h"
 #include "chre_settings_test_util.h"
 
-#define LOG_TAG "ChreSettingsTest"
+#define LOG_TAG "[ChreSettingsTest]"
 
 namespace chre {
 
@@ -33,6 +33,9 @@ namespace settings_test {
 namespace {
 
 constexpr uint32_t kWifiScanningCookie = 0x1234;
+constexpr uint32_t kGnssLocationCookie = 0x3456;
+constexpr uint32_t kGnssMeasurementCookie = 0x4567;
+constexpr uint32_t kWwanCellInfoCookie = 0x5678;
 
 bool getFeature(const chre_settings_test_TestCommand &command,
                 Manager::Feature *feature) {
@@ -107,10 +110,25 @@ bool Manager::isFeatureSupported(Feature feature) {
                   ((capabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) != 0);
       break;
     }
+    case Feature::GNSS_LOCATION: {
+      uint32_t capabilities = chreGnssGetCapabilities();
+      supported = (version >= CHRE_API_VERSION_1_1) &&
+                  ((capabilities & CHRE_GNSS_CAPABILITIES_LOCATION) != 0);
+      break;
+    }
+    case Feature::GNSS_MEASUREMENT: {
+      uint32_t capabilities = chreGnssGetCapabilities();
+      supported = (version >= CHRE_API_VERSION_1_1) &&
+                  ((capabilities & CHRE_GNSS_CAPABILITIES_MEASUREMENTS) != 0);
+      break;
+    }
+    case Feature::WWAN_CELL_INFO: {
+      uint32_t capabilities = chreWwanGetCapabilities();
+      supported = (version >= CHRE_API_VERSION_1_1) &&
+                  ((capabilities & CHRE_WWAN_GET_CELL_INFO) != 0);
+      break;
+    }
     case Feature::WIFI_RTT:
-    case Feature::GNSS_LOCATION:
-    case Feature::GNSS_MEASUREMENT:
-    case Feature::WWAN_CELL_INFO:
     default:
       LOGE("Unknown feature %" PRIu8, feature);
   }
@@ -173,6 +191,15 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
         handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
         break;
       }
+      case CHRE_EVENT_GNSS_ASYNC_RESULT: {
+        handleGnssAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+        break;
+      }
+      case CHRE_EVENT_WWAN_CELL_INFO_RESULT: {
+        handleWwanCellInfoResult(
+            static_cast<const chreWwanCellInfoResult *>(eventData));
+        break;
+      }
       default:
         LOGE("Unknown event type %" PRIu16, eventType);
     }
@@ -184,19 +211,33 @@ bool Manager::startTestForFeature(Feature feature) {
   switch (feature) {
     case Feature::WIFI_SCANNING: {
       success = chreWifiRequestScanAsyncDefault(&kWifiScanningCookie);
-      LOGI("Starting test for WiFi scanning");
-      if (!success) {
-        LOGE("Failed to make on-demand WiFi scanning request");
-      }
+      break;
+    }
+    case Feature::GNSS_LOCATION: {
+      success = chreGnssLocationSessionStartAsync(1000 /* minIntervalMs */,
+                                                  0 /* minTimeToNextFixMs */,
+                                                  &kGnssLocationCookie);
+      break;
+    }
+    case Feature::GNSS_MEASUREMENT: {
+      success = chreGnssMeasurementSessionStartAsync(1000 /* minIntervalMs */,
+                                                     &kGnssMeasurementCookie);
+      break;
+    }
+    case Feature::WWAN_CELL_INFO: {
+      success = chreWwanGetCellInfoAsync(&kWwanCellInfoCookie);
       break;
     }
     case Feature::WIFI_RTT:
-    case Feature::GNSS_LOCATION:
-    case Feature::GNSS_MEASUREMENT:
-    case Feature::WWAN_CELL_INFO:
     default:
       LOGE("Unknown feature %" PRIu8, feature);
-      success = false;
+      return false;
+  }
+
+  if (!success) {
+    LOGE("Failed to make request for test feature %" PRIu8, feature);
+  } else {
+    LOGI("Starting test for feature %" PRIu8, feature);
   }
 
   return success;
@@ -206,7 +247,7 @@ bool Manager::validateAsyncResult(const chreAsyncResult *result,
                                   const void *expectedCookie) {
   bool success = false;
   if (result->cookie != expectedCookie) {
-    LOGE("Unexpected cookie on scan async result");
+    LOGE("Unexpected cookie on async result");
   } else {
     chreError expectedErrorCode =
         (mTestSession->featureState == FeatureState::ENABLED)
@@ -238,7 +279,61 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
       break;
     }
     default:
-      LOGE("Unexpected request type %" PRIu8, result->requestType);
+      LOGE("Unexpected WiFi request type %" PRIu8, result->requestType);
+  }
+
+  sendTestResult(mTestSession->hostEndpointId, success);
+}
+
+void Manager::handleGnssAsyncResult(const chreAsyncResult *result) {
+  bool success = false;
+  switch (result->requestType) {
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START: {
+      if (mTestSession->feature != Feature::GNSS_LOCATION) {
+        LOGE("Unexpected GNSS location async result: test feature %" PRIu8,
+             mTestSession->feature);
+      } else {
+        success = validateAsyncResult(
+            result, static_cast<const void *>(&kGnssLocationCookie));
+        chreGnssLocationSessionStopAsync(&kGnssLocationCookie);
+      }
+      break;
+    }
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START: {
+      if (mTestSession->feature != Feature::GNSS_MEASUREMENT) {
+        LOGE("Unexpected GNSS measurement async result: test feature %" PRIu8,
+             mTestSession->feature);
+      } else {
+        success = validateAsyncResult(
+            result, static_cast<const void *>(&kGnssMeasurementCookie));
+        chreGnssMeasurementSessionStopAsync(&kGnssMeasurementCookie);
+      }
+      break;
+    }
+    default:
+      LOGE("Unexpected GNSS request type %" PRIu8, result->requestType);
+  }
+
+  sendTestResult(mTestSession->hostEndpointId, success);
+}
+
+void Manager::handleWwanCellInfoResult(const chreWwanCellInfoResult *result) {
+  bool success = false;
+  // For WWAN, we treat "DISABLED" as success but with empty results, per
+  // CHRE API requirements.
+  if (mTestSession->feature != Feature::WWAN_CELL_INFO) {
+    LOGE("Unexpected WWAN cell info result: test feature %" PRIu8,
+         mTestSession->feature);
+  } else if (result->cookie != &kWwanCellInfoCookie) {
+    LOGE("Unexpected cookie on WWAN cell info result");
+  } else if (result->errorCode != CHRE_ERROR_NONE) {
+    LOGE("WWAN cell info result failed: error code %" PRIu8, result->errorCode);
+  } else if (mTestSession->featureState == FeatureState::DISABLED &&
+             result->cellInfoCount > 0) {
+    LOGE("WWAN cell info result should be empty when disabled: count %" PRIu8,
+         result->cellInfoCount);
+  } else {
+    success = true;
   }
 
   sendTestResult(mTestSession->hostEndpointId, success);
