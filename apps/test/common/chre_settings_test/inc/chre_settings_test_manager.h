@@ -122,6 +122,12 @@ class Manager {
    * @param result The async result provided by CHRE.
    */
   void handleWifiAsyncResult(const chreAsyncResult *result);
+  void handleGnssAsyncResult(const chreAsyncResult *result);
+
+  /**
+   * @param result The cell info result from CHRE.
+   */
+  void handleWwanCellInfoResult(const chreWwanCellInfoResult *result);
 
   /**
    * End the current test session and sends result to host.
