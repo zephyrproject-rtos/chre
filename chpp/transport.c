@@ -43,6 +43,10 @@ static void chppProcessRxPayload(struct ChppTransportState *context);
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context);
 static enum ChppErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context);
+static void chppRegisterRxAck(struct ChppTransportState *context);
+
+static size_t chppAddPreamble(uint8_t *buf);
+static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
 
 /************************************************
  *  Tx
@@ -73,7 +77,7 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
   context->txStatus.hasPacketsToSend = true;
   context->txStatus.errorCodeToSend = errorCode;
 
-  // TODO: Notify Tx Loop
+  // TODO: Notify chppTransportDoWork
 }
 
 /*
@@ -93,7 +97,8 @@ static void chppTxStopReTxTimer(void) {
 
 /**
  * Called any time the Rx state needs to be changed. Ensures that the location
- * counter among that state (rxStatus.loc) is also reset at the same time.
+ * counter among that state (rxStatus.locInState) is also reset at the same
+ * time.
  *
  * @param context Is used to maintain status. Must be provided and initialized
  * through chppTransportInit for each transport layer instance. Cannot be null.
@@ -102,7 +107,7 @@ static void chppTxStopReTxTimer(void) {
 static void chppSetRxState(struct ChppTransportState *context,
                            enum ChppRxState newState) {
   LOGD("Changing state from %d to %d", context->rxStatus.state, newState);
-  context->rxStatus.loc = 0;
+  context->rxStatus.locInState = 0;
   context->rxStatus.state = newState;
 }
 
@@ -127,26 +132,28 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
 
   // TODO: Optimize loop, maybe using memchr() / memcmp() / SIMD, especially if
   // serial port calling chppRxDataCb does not implement zero filter
-  while (consumed < len && context->rxStatus.loc < CHPP_PREAMBLE_LEN_BYTES) {
-    if (buf[consumed] == ((CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES -
-                                                  context->rxStatus.loc - 1)) &
-                          0xff)) {
+  while (consumed < len &&
+         context->rxStatus.locInState < CHPP_PREAMBLE_LEN_BYTES) {
+    if (buf[consumed] ==
+        ((CHPP_PREAMBLE_DATA >>
+          (CHPP_PREAMBLE_LEN_BYTES - context->rxStatus.locInState - 1)) &
+         0xff)) {
       // Correct byte of preamble observed
-      context->rxStatus.loc++;
+      context->rxStatus.locInState++;
     } else if (buf[consumed] ==
                ((CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1)) & 0xff)) {
       // Previous search failed but first byte of another preamble observed
-      context->rxStatus.loc = 1;
+      context->rxStatus.locInState = 1;
     } else {
       // Continue search for a valid preamble from the start
-      context->rxStatus.loc = 0;
+      context->rxStatus.locInState = 0;
     }
 
     consumed++;
   }
 
   // Let's see why we exited the above loop
-  if (context->rxStatus.loc == CHPP_PREAMBLE_LEN_BYTES) {
+  if (context->rxStatus.locInState == CHPP_PREAMBLE_LEN_BYTES) {
     // Complete preamble observed, move on to next state
     chppSetRxState(context, CHPP_STATE_HEADER);
   }
@@ -168,16 +175,17 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
  */
 static size_t chppConsumeHeader(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len) {
-  CHPP_ASSERT(context->rxStatus.loc < sizeof(struct ChppTransportHeader));
-  size_t bytesToCopy =
-      MIN(len, (sizeof(struct ChppTransportHeader) - context->rxStatus.loc));
+  CHPP_ASSERT(context->rxStatus.locInState <
+              sizeof(struct ChppTransportHeader));
+  size_t bytesToCopy = MIN(
+      len, (sizeof(struct ChppTransportHeader) - context->rxStatus.locInState));
 
   LOGD("Copying %zu bytes of header", bytesToCopy);
-  memcpy(((uint8_t *)&context->rxHeader) + context->rxStatus.loc, buf,
+  memcpy(((uint8_t *)&context->rxHeader) + context->rxStatus.locInState, buf,
          bytesToCopy);
 
-  context->rxStatus.loc += bytesToCopy;
-  if (context->rxStatus.loc == sizeof(struct ChppTransportHeader)) {
+  context->rxStatus.locInState += bytesToCopy;
+  if (context->rxStatus.locInState == sizeof(struct ChppTransportHeader)) {
     // Header fully copied. Move on
 
     enum ChppErrorCode headerSanity = chppRxHeaderCheck(context);
@@ -240,18 +248,18 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
  */
 static size_t chppConsumePayload(struct ChppTransportState *context,
                                  const uint8_t *buf, size_t len) {
-  CHPP_ASSERT(context->rxStatus.loc < context->rxHeader.length);
+  CHPP_ASSERT(context->rxStatus.locInState < context->rxHeader.length);
   size_t bytesToCopy =
-      MIN(len, (context->rxHeader.length - context->rxStatus.loc));
+      MIN(len, (context->rxHeader.length - context->rxStatus.locInState));
 
   LOGD("Copying %zu bytes of payload", bytesToCopy);
 
-  memcpy(context->rxDatagram.payload + context->rxDatagramLoc, buf,
+  memcpy(context->rxDatagram.payload + context->rxStatus.locInDatagram, buf,
          bytesToCopy);
-  context->rxDatagramLoc += bytesToCopy;
+  context->rxStatus.locInDatagram += bytesToCopy;
 
-  context->rxStatus.loc += bytesToCopy;
-  if (context->rxStatus.loc == context->rxHeader.length) {
+  context->rxStatus.locInState += bytesToCopy;
+  if (context->rxStatus.locInState == context->rxHeader.length) {
     // Payload copied. Move on
 
     chppSetRxState(context, CHPP_STATE_FOOTER);
@@ -274,16 +282,17 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
  */
 static size_t chppConsumeFooter(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len) {
-  CHPP_ASSERT(context->rxStatus.loc < sizeof(struct ChppTransportFooter));
-  size_t bytesToCopy =
-      MIN(len, (sizeof(struct ChppTransportFooter) - context->rxStatus.loc));
+  CHPP_ASSERT(context->rxStatus.locInState <
+              sizeof(struct ChppTransportFooter));
+  size_t bytesToCopy = MIN(
+      len, (sizeof(struct ChppTransportFooter) - context->rxStatus.locInState));
 
   LOGD("Copying %zu bytes of footer (checksum)", bytesToCopy);
-  memcpy(((uint8_t *)&context->rxFooter) + context->rxStatus.loc, buf,
+  memcpy(((uint8_t *)&context->rxFooter) + context->rxStatus.locInState, buf,
          bytesToCopy);
 
-  context->rxStatus.loc += bytesToCopy;
-  if (context->rxStatus.loc == sizeof(struct ChppTransportFooter)) {
+  context->rxStatus.locInState += bytesToCopy;
+  if (context->rxStatus.locInState == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
     bool hasPayload = (context->rxHeader.length > 0);
@@ -295,7 +304,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
       if (hasPayload) {
         context->rxDatagram.length -= context->rxHeader.length;
-        context->rxDatagramLoc -= context->rxHeader.length;
+        context->rxStatus.locInDatagram -= context->rxHeader.length;
 
         if (context->rxDatagram.length == 0) {
           // Discarding this packet == discarding entire datagram
@@ -303,7 +312,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
           context->rxDatagram.payload = NULL;
 
         } else {
-          // Discardig this packet == discarding part of datagram
+          // Discarding this packet == discarding part of datagram
           uint8_t *tempPayload = chppRealloc(
               context->rxDatagram.payload, context->rxDatagram.length,
               context->rxDatagram.length + context->rxHeader.length);
@@ -326,17 +335,10 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
       context->rxStatus.receivedErrorCode = context->rxHeader.errorCode;
 
-      if (context->txStatus.ackedSeq != context->rxHeader.ackSeq) {
-        // A previously sent packet was ACKed
+      chppRegisterRxAck(context);
 
-        context->txStatus.ackedSeq = context->rxHeader.ackSeq;
-
-        // TODO: Notify Tx Loop (to send out next packet, if any)
-      }
-
-      if (context->rxHeader.errorCode != CHPP_ERROR_NONE) {
-        // A previously sent packet was explicitly NACKed. Resend last packet
-
+      if (context->txDatagramQueue.pending > 0) {
+        // There are packets to send out (could be new or retx)
         chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
       }
 
@@ -378,7 +380,7 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
 
     // TODO: do something with the data
 
-    context->rxDatagramLoc = 0;
+    context->rxStatus.locInDatagram = 0;
     context->rxDatagram.length = 0;
     chppFree(context->rxDatagram.payload);
     context->rxDatagram.payload = NULL;
@@ -386,7 +388,6 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
 
   // Update next expected sequence number and send ACK
   context->rxStatus.expectedSeq = context->rxHeader.seq + 1;
-  context->txHeader.ackSeq = context->rxStatus.expectedSeq;
   chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
 }
 
@@ -422,12 +423,74 @@ static enum ChppErrorCode chppRxHeaderCheck(
   bool invalidSeqNo = (context->rxHeader.seq != context->rxStatus.expectedSeq);
   bool hasPayload = (context->rxHeader.length > 0);
   if (invalidSeqNo && hasPayload) {
+    // Note: For a future ACK window > 1, might make more sense to keep quiet
+    // instead of flooding the sender with out of order NACKs
     result = CHPP_ERROR_ORDER;
   }
 
   // TODO: More sanity checks
 
   return result;
+}
+
+/**
+ * Registers a received ACK. If an outgoing datagram is fully ACKed, it is
+ * popped from the Tx queue.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+static void chppRegisterRxAck(struct ChppTransportState *context) {
+  if (context->txStatus.ackedSeq != context->rxHeader.ackSeq) {
+    // A previously sent packet was actually ACKed
+    context->txStatus.ackedSeq = context->rxHeader.ackSeq;
+
+    // Process and if necessary pop from Tx datagram queue
+    context->txStatus.ackedLocInDatagram += CHPP_TRANSPORT_MTU_BYTES;
+    if (context->txStatus.ackedLocInDatagram >=
+        context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+            .length) {
+      // We are done with datagram
+
+      context->txStatus.ackedLocInDatagram = 0;
+      context->txStatus.sentLocInDatagram = 0;
+
+      // Note: For a future ACK window >1, we should update which datagram too
+
+      chppDequeueTxDatagram(context);
+    }
+  }  // else {nothing was ACKed}
+}
+
+/**
+ * Adds a CHPP preamble to the beginning of buf
+ *
+ * @param buf The CHPP preamble will be added to buf
+ *
+ * @return Size of the added preamble
+ */
+static size_t chppAddPreamble(uint8_t *buf) {
+  for (size_t i = 0; i < CHPP_PREAMBLE_LEN_BYTES; i++) {
+    buf[i] = (uint8_t)(CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1 - i) &
+                       0xff);
+  }
+  return CHPP_PREAMBLE_LEN_BYTES;
+}
+
+/**
+ * Calculates the checksum on a buffer indicated by buf with length len
+ *
+ * @param buf Pointer to buffer for the ckecksum to be calculated on.
+ * @param len Length of the buffer.
+ *
+ * @return Calculated checksum.
+ */
+static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
+  // TODO
+
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
+  return 1;
 }
 
 /************************************************
@@ -487,7 +550,7 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
   }
 
   return (context->rxStatus.state == CHPP_STATE_PREAMBLE &&
-          context->rxStatus.loc == 0);
+          context->rxStatus.locInState == 0);
 }
 
 void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
@@ -516,10 +579,13 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
     context->txDatagramQueue.datagram[end].payload = buf;
     context->txDatagramQueue.pending++;
 
+    if (context->txDatagramQueue.pending == 1) {
+      // Queue was empty prior. Need to kickstart transmission.
+      chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+    }
+
     success = true;
   }
-
-  chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
 
   chppMutexUnlock(&context->mutex);
 
@@ -528,7 +594,6 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
 
 bool chppDequeueTxDatagram(struct ChppTransportState *context) {
   bool success = false;
-  chppMutexLock(&context->mutex);
 
   if (context->txDatagramQueue.pending > 0) {
     chppFree(context->txDatagramQueue.datagram[context->txDatagramQueue.front]
@@ -542,9 +607,109 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
     context->txDatagramQueue.front++;
     context->txDatagramQueue.front %= CHPP_TX_DATAGRAM_QUEUE_LEN;
 
+    // Note: For a future ACK window >1, we need to update the queue position of
+    // the datagram being sent as well (relative to the front-of-queue). i.e.
+    // context->txStatus.datagramBeingSent--;
+
     success = true;
   }
 
-  chppMutexUnlock(&context->mutex);
   return success;
+}
+
+void chppTransportDoWork(struct ChppTransportState *context) {
+  // Note: For a future ACK window >1, there needs to be a loop outside the lock
+
+  chppMutexLock(&context->mutex);
+
+  if (context->txStatus.hasPacketsToSend) {
+    // There are pending outgoing packets
+
+    // Lock linkLayerMutex before modifying packetToSend
+    chppMutexLock(&context->linkLayerMutex);
+
+    context->packetToSend.length = 0;
+    memset(&context->packetToSend.payload, 0, CHPP_LINK_MTU_BYTES);
+
+    // Add preamble
+    context->packetToSend.length +=
+        chppAddPreamble(&context->packetToSend.payload[0]);
+
+    // Add header
+    struct ChppTransportHeader *txHeader =
+        (struct ChppTransportHeader *)&context->packetToSend
+            .payload[context->packetToSend.length];
+    context->packetToSend.length += sizeof(*txHeader);
+
+    txHeader->errorCode = context->txStatus.errorCodeToSend;
+    txHeader->ackSeq = context->rxStatus.expectedSeq;
+
+    // If applicable, add payload
+    if ((context->txDatagramQueue.pending > 0) &&
+        (context->txStatus.sentSeq == context->txStatus.ackedSeq)) {
+      // Note: For a future ACK window >1, seq # check should be against the
+      // window size.
+
+      // Note: For a future ACK window >1, this is only valid for the
+      // (context->rxStatus.receivedErrorCode != CHPP_ERROR_NONE) case,
+      // i.e. we have registered an explicit or implicit NACK. Else,
+      // txHeader->seq = ++(context->txStatus.sentSeq)
+      txHeader->seq = context->txStatus.ackedSeq + 1;
+      context->txStatus.sentSeq = txHeader->seq;
+
+      size_t remainingBytes =
+          context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+              .length -
+          context->txStatus.sentLocInDatagram;
+
+      if (remainingBytes > CHPP_TRANSPORT_MTU_BYTES) {
+        // Send an unfinished part of a datagram
+        txHeader->flags = CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM;
+        txHeader->length = CHPP_TRANSPORT_MTU_BYTES;
+
+      } else {
+        // Send final (or only) part of a datagram
+        txHeader->flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
+        txHeader->length = remainingBytes;
+      }
+
+      // Copy payload
+      memcpy(&context->packetToSend.payload[context->packetToSend.length],
+             context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+                     .payload +
+                 context->txStatus.sentLocInDatagram,
+             txHeader->length);
+      context->packetToSend.length += txHeader->length;
+
+      context->txStatus.sentLocInDatagram += txHeader->length;
+
+    }  // else {no payload}
+
+    // Note: For a future ACK window >1, this needs to be updated
+    context->txStatus.hasPacketsToSend = false;
+
+    // We are done with context. Unlock mutex ASAP.
+    chppMutexUnlock(&context->mutex);
+
+    // Populate checksum
+    uint32_t *checksum = (uint32_t *)&context->packetToSend
+                             .payload[context->packetToSend.length];
+    context->packetToSend.length += sizeof(*checksum);
+    *checksum = chppCalculateChecksum(context->packetToSend.payload,
+                                      context->packetToSend.length);
+
+    // TODO: Send out notification to function that sends out the packet.
+    // context->linkLayerMutex must be unlocked by the function that is actually
+    // sending out the packet, and only after it is done sending.
+
+    // TODO: Do we even need linkLayerMutex? We'll see once the new approach
+    // to signalling is in.
+
+    // TODO: For now, unlocking here, but remove once above is addressed
+    chppMutexUnlock(&context->linkLayerMutex);
+
+  } else {
+    // There are no pending outgoing packets. Unlock mutex.
+    chppMutexUnlock(&context->mutex);
+  }
 }
