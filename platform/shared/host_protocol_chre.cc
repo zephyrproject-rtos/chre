@@ -108,6 +108,15 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         HostMessageHandlers::handleDebugDumpRequest(hostClientId);
         break;
 
+      case fbs::ChreMessage::SettingChangeMessage: {
+        const auto *settingMessage =
+            static_cast<const fbs::SettingChangeMessage *>(
+                container->message());
+        HostMessageHandlers::handleSettingChangeMessage(
+            settingMessage->setting(), settingMessage->state());
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));

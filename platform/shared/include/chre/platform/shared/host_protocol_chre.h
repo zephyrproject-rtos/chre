@@ -68,6 +68,9 @@ class HostMessageHandlers {
   static void handleTimeSyncMessage(int64_t offset);
 
   static void handleDebugDumpRequest(uint16_t hostClientId);
+
+  static void handleSettingChangeMessage(fbs::Setting setting,
+                                         fbs::SettingState state);
 };
 
 /**

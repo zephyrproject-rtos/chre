@@ -892,4 +892,9 @@ void HostLink::sendLogMessage(const char *logMessage, size_t logMessageSize) {
                          msgBuilder, &logMessageData);
 }
 
+void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
+                                                     fbs::SettingState state) {
+  // TODO: Implement this
+}
+
 }  // namespace chre
