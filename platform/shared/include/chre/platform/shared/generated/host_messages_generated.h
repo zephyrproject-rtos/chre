@@ -45,9 +45,53 @@ struct LowPowerMicAccessRequest;
 
 struct LowPowerMicAccessRelease;
 
+struct SettingChangeMessage;
+
 struct HostAddress;
 
 struct MessageContainer;
+
+/// An enum describing the setting type.
+enum class Setting : int8_t {
+  LOCATION = 1,
+  MIN = LOCATION,
+  MAX = LOCATION
+};
+
+inline const char **EnumNamesSetting() {
+  static const char *names[] = {
+    "LOCATION",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameSetting(Setting e) {
+  const size_t index = static_cast<int>(e) - static_cast<int>(Setting::LOCATION);
+  return EnumNamesSetting()[index];
+}
+
+/// An enum describing the state of a setting.
+enum class SettingState : int8_t {
+  DISABLED = 1,
+  ENABLED = 2,
+  MIN = DISABLED,
+  MAX = ENABLED
+};
+
+inline const char **EnumNamesSettingState() {
+  static const char *names[] = {
+    "DISABLED",
+    "ENABLED",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameSettingState(SettingState e) {
+  const size_t index = static_cast<int>(e) - static_cast<int>(SettingState::DISABLED);
+  return EnumNamesSettingState()[index];
+}
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
@@ -70,8 +114,9 @@ enum class ChreMessage : uint8_t {
   TimeSyncRequest = 15,
   LowPowerMicAccessRequest = 16,
   LowPowerMicAccessRelease = 17,
+  SettingChangeMessage = 18,
   MIN = NONE,
-  MAX = LowPowerMicAccessRelease
+  MAX = SettingChangeMessage
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -94,6 +139,7 @@ inline const char **EnumNamesChreMessage() {
     "TimeSyncRequest",
     "LowPowerMicAccessRequest",
     "LowPowerMicAccessRelease",
+    "SettingChangeMessage",
     nullptr
   };
   return names;
@@ -174,6 +220,10 @@ template<> struct ChreMessageTraits<LowPowerMicAccessRequest> {
 
 template<> struct ChreMessageTraits<LowPowerMicAccessRelease> {
   static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRelease;
+};
+
+template<> struct ChreMessageTraits<SettingChangeMessage> {
+  static const ChreMessage enum_value = ChreMessage::SettingChangeMessage;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -1351,6 +1401,59 @@ inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRele
   return builder_.Finish();
 }
 
+/// Notification from the host that a system setting has changed
+struct SettingChangeMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_SETTING = 4,
+    VT_STATE = 6
+  };
+  /// The setting that has changed
+  Setting setting() const {
+    return static_cast<Setting>(GetField<int8_t>(VT_SETTING, 1));
+  }
+  /// The new setting value
+  SettingState state() const {
+    return static_cast<SettingState>(GetField<int8_t>(VT_STATE, 1));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int8_t>(verifier, VT_SETTING) &&
+           VerifyField<int8_t>(verifier, VT_STATE) &&
+           verifier.EndTable();
+  }
+};
+
+struct SettingChangeMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_setting(Setting setting) {
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_SETTING, static_cast<int8_t>(setting), 1);
+  }
+  void add_state(SettingState state) {
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_STATE, static_cast<int8_t>(state), 1);
+  }
+  SettingChangeMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  SettingChangeMessageBuilder &operator=(const SettingChangeMessageBuilder &);
+  flatbuffers::Offset<SettingChangeMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 2);
+    auto o = flatbuffers::Offset<SettingChangeMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    Setting setting = Setting::LOCATION,
+    SettingState state = SettingState::DISABLED) {
+  SettingChangeMessageBuilder builder_(_fbb);
+  builder_.add_state(state);
+  builder_.add_setting(setting);
+  return builder_.Finish();
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level
 /// structure (root type), so we must wrap it in a table.
@@ -1494,6 +1597,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::LowPowerMicAccessRelease: {
       auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::SettingChangeMessage: {
+      auto ptr = reinterpret_cast<const SettingChangeMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
