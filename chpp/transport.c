@@ -398,7 +398,7 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
  *
  * @return True if and only if the checksum is correct
  */
-bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
+static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
   // TODO
   UNUSED_VAR(context);
 
