@@ -33,6 +33,7 @@ namespace settings_test {
 namespace {
 
 constexpr uint32_t kWifiScanningCookie = 0x1234;
+constexpr uint32_t kWifiRttCookie = 0x2345;
 constexpr uint32_t kGnssLocationCookie = 0x3456;
 constexpr uint32_t kGnssMeasurementCookie = 0x4567;
 constexpr uint32_t kWwanCellInfoCookie = 0x5678;
@@ -82,6 +83,24 @@ bool getFeatureState(const chre_settings_test_TestCommand &command,
   return success;
 }
 
+bool getTestStep(const chre_settings_test_TestCommand &command,
+                 Manager::TestStep *step) {
+  bool success = true;
+  switch (command.step) {
+    case chre_settings_test_TestCommand_Step_SETUP:
+      *step = Manager::TestStep::SETUP;
+      break;
+    case chre_settings_test_TestCommand_Step_START:
+      *step = Manager::TestStep::START;
+      break;
+    default:
+      LOGE("Unknown test step %d", command.step);
+      success = false;
+  }
+
+  return success;
+}
+
 }  // anonymous namespace
 
 void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
@@ -110,6 +129,12 @@ bool Manager::isFeatureSupported(Feature feature) {
                   ((capabilities & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) != 0);
       break;
     }
+    case Feature::WIFI_RTT: {
+      uint32_t capabilities = chreWifiGetCapabilities();
+      supported = (version >= CHRE_API_VERSION_1_2) &&
+                  ((capabilities & CHRE_WIFI_CAPABILITIES_RTT_RANGING) != 0);
+      break;
+    }
     case Feature::GNSS_LOCATION: {
       uint32_t capabilities = chreGnssGetCapabilities();
       supported = (version >= CHRE_API_VERSION_1_1) &&
@@ -128,7 +153,6 @@ bool Manager::isFeatureSupported(Feature feature) {
                   ((capabilities & CHRE_WWAN_GET_CELL_INFO) != 0);
       break;
     }
-    case Feature::WIFI_RTT:
     default:
       LOGE("Unknown feature %" PRIu8, feature);
   }
@@ -157,9 +181,11 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
     } else {
       Feature feature;
       FeatureState state;
+      TestStep step;
       if (getFeature(testCommand, &feature) &&
-          getFeatureState(testCommand, &state)) {
-        handleStartTestMessage(hostData->hostEndpoint, feature, state);
+          getFeatureState(testCommand, &state) &&
+          getTestStep(testCommand, &step)) {
+        handleStartTestMessage(hostData->hostEndpoint, feature, state, step);
         success = true;
       }
     }
@@ -171,14 +197,27 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 }
 
 void Manager::handleStartTestMessage(uint16_t hostEndpointId, Feature feature,
-                                     FeatureState state) {
+                                     FeatureState state, TestStep step) {
   // If the feature is not supported, treat as success and skip the test.
   if (!isFeatureSupported(feature)) {
     sendTestResult(hostEndpointId, true /* success */);
-  } else if (!startTestForFeature(feature)) {
-    sendTestResult(hostEndpointId, false /* success */);
   } else {
-    mTestSession = TestSession(hostEndpointId, feature, state);
+    bool success = false;
+    if (step == TestStep::SETUP) {
+      if (feature != Feature::WIFI_RTT) {
+        LOGE("Unexpected feature %" PRIu8 " for test step", feature);
+      } else {
+        success = chreWifiRequestScanAsyncDefault(&kWifiScanningCookie);
+      }
+    } else {
+      success = startTestForFeature(feature);
+    }
+
+    if (!success) {
+      sendTestResult(hostEndpointId, false /* success */);
+    } else {
+      mTestSession = TestSession(hostEndpointId, feature, state, step);
+    }
   }
 }
 
@@ -189,6 +228,10 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
     switch (eventType) {
       case CHRE_EVENT_WIFI_ASYNC_RESULT: {
         handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+        break;
+      }
+      case CHRE_EVENT_WIFI_SCAN_RESULT: {
+        handleWifiScanResult(static_cast<const chreWifiScanEvent *>(eventData));
         break;
       }
       case CHRE_EVENT_GNSS_ASYNC_RESULT: {
@@ -213,6 +256,16 @@ bool Manager::startTestForFeature(Feature feature) {
       success = chreWifiRequestScanAsyncDefault(&kWifiScanningCookie);
       break;
     }
+    case Feature::WIFI_RTT: {
+      if (!mCachedRangingTarget.has_value()) {
+        LOGE("No cached WiFi RTT ranging target");
+      } else {
+        struct chreWifiRangingParams params = {
+            .targetListLen = 1, .targetList = &mCachedRangingTarget.value()};
+        success = chreWifiRequestRangingAsync(&params, &kWifiRttCookie);
+      }
+      break;
+    }
     case Feature::GNSS_LOCATION: {
       success = chreGnssLocationSessionStartAsync(1000 /* minIntervalMs */,
                                                   0 /* minTimeToNextFixMs */,
@@ -228,7 +281,6 @@ bool Manager::startTestForFeature(Feature feature) {
       success = chreWwanGetCellInfoAsync(&kWwanCellInfoCookie);
       break;
     }
-    case Feature::WIFI_RTT:
     default:
       LOGE("Unknown feature %" PRIu8, feature);
       return false;
@@ -269,6 +321,12 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
   bool success = false;
   switch (result->requestType) {
     case CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN: {
+      if (mTestSession->feature == Feature::WIFI_RTT) {
+        // Ignore validating the scan async response since we only care about
+        // the actual scan event to initiate the RTT request. A failure to
+        // receive the scan response should cause a timeout at the host.
+        return;
+      }
       if (mTestSession->feature != Feature::WIFI_SCANNING) {
         LOGE("Unexpected WiFi scan async result: test feature %" PRIu8,
              mTestSession->feature);
@@ -278,11 +336,51 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
       }
       break;
     }
+    case CHRE_WIFI_REQUEST_TYPE_RANGING: {
+      if (mTestSession->feature != Feature::WIFI_RTT) {
+        LOGE("Unexpected WiFi ranging async result: test feature %" PRIu8,
+             mTestSession->feature);
+      } else {
+        success = validateAsyncResult(
+            result, static_cast<const void *>(&kWifiRttCookie));
+      }
+      break;
+    }
     default:
       LOGE("Unexpected WiFi request type %" PRIu8, result->requestType);
   }
 
   sendTestResult(mTestSession->hostEndpointId, success);
+}
+
+void Manager::handleWifiScanResult(const chreWifiScanEvent *result) {
+  if (mTestSession->feature == Feature::WIFI_RTT &&
+      mTestSession->step == TestStep::SETUP) {
+    if (result->resultCount == 0) {
+      LOGE("Received empty WiFi scan result");
+      sendTestResult(mTestSession->hostEndpointId, false /* success */);
+    } else {
+      chreWifiRangingTarget target;
+      // Try to find an AP with the FTM responder flag set. The RTT ranging
+      // request should still work equivalently even if the flag is not set (but
+      // possibly with an error in the ranging result), so we use the last entry
+      // if none is found.
+      size_t index = result->resultCount - 1;
+      for (uint8_t i = 0; i < result->resultCount - 1; i++) {
+        if ((result->results[i].flags &
+             CHRE_WIFI_SCAN_RESULT_FLAGS_IS_FTM_RESPONDER) != 0) {
+          index = i;
+          break;
+        }
+      }
+      chreWifiRangingTargetFromScanResult(&result->results[index], &target);
+      mCachedRangingTarget = target;
+
+      sendEmptyMessageToHost(
+          mTestSession->hostEndpointId,
+          chre_settings_test_MessageType_TEST_SETUP_COMPLETE);
+    }
+  }
 }
 
 void Manager::handleGnssAsyncResult(const chreAsyncResult *result) {
@@ -342,6 +440,7 @@ void Manager::handleWwanCellInfoResult(const chreWwanCellInfoResult *result) {
 void Manager::sendTestResult(uint16_t hostEndpointId, bool success) {
   sendTestResultToHost(hostEndpointId, success);
   mTestSession.reset();
+  mCachedRangingTarget.reset();
 }
 
 }  // namespace settings_test
