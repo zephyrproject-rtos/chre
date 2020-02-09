@@ -17,11 +17,56 @@
 #include "chre/core/gnss_manager.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/core/settings.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
+
+namespace {
+
+bool getCallbackType(uint16_t eventType, SystemCallbackType *callbackType) {
+  bool success = true;
+  switch (eventType) {
+    case CHRE_EVENT_GNSS_LOCATION: {
+      *callbackType = SystemCallbackType::GnssLocationReportEvent;
+      break;
+    }
+    case CHRE_EVENT_GNSS_DATA: {
+      *callbackType = SystemCallbackType::GnssMeasurementReportEvent;
+      break;
+    }
+    default: {
+      LOGE("Unknown event type %" PRIu16, eventType);
+      success = false;
+    }
+  }
+
+  return success;
+}
+
+bool getReportEventType(SystemCallbackType callbackType, uint16_t *eventType) {
+  bool success = true;
+  switch (callbackType) {
+    case SystemCallbackType::GnssLocationReportEvent: {
+      *eventType = CHRE_EVENT_GNSS_LOCATION;
+      break;
+    }
+    case SystemCallbackType::GnssMeasurementReportEvent: {
+      *eventType = CHRE_EVENT_GNSS_DATA;
+      break;
+    }
+    default: {
+      LOGE("Unknown callback type %" PRIu16, callbackType);
+      success = false;
+    }
+  }
+
+  return success;
+}
+
+}  // anonymous namespace
 
 GnssManager::GnssManager()
     : mLocationSession(CHRE_EVENT_GNSS_LOCATION),
@@ -110,8 +155,24 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 }
 
 void GnssSession::handleReportEvent(void *event) {
-  EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-      mReportEventType, event, freeReportEventCallback);
+  auto callback = [](uint16_t type, void *eventData) {
+    uint16_t reportEventType;
+    if (!getReportEventType(static_cast<SystemCallbackType>(type),
+                            &reportEventType) ||
+        (getSettingState(Setting::LOCATION) == SettingState::DISABLED)) {
+      freeReportEventCallback(reportEventType, eventData);
+    } else {
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          reportEventType, eventData, freeReportEventCallback);
+    }
+  };
+
+  SystemCallbackType type;
+  if (!getCallbackType(mReportEventType, &type)) {
+    freeReportEventCallback(mReportEventType, event);
+  } else {
+    EventLoopManagerSingleton::get()->deferCallback(type, event, callback);
+  }
 }
 
 void GnssSession::onSettingChanged(Setting setting, SettingState state) {
@@ -166,13 +227,19 @@ bool GnssSession::configure(Nanoapp *nanoapp, bool enable,
     success = addRequestToQueue(instanceId, enable, minInterval, cookie);
   } else if (stateTransitionIsRequired(enable, minInterval, hasRequest,
                                        requestIndex)) {
-    success = addRequestToQueue(instanceId, enable, minInterval, cookie);
-    if (success) {
+    if (enable &&
+        getSettingState(Setting::LOCATION) == SettingState::DISABLED) {
+      // Treat as success but post async failure per API.
+      success = postAsyncResultEvent(instanceId, false /* success */, enable,
+                                     minInterval, CHRE_ERROR_FUNCTION_DISABLED,
+                                     cookie);
+    } else if (addRequestToQueue(instanceId, enable, minInterval, cookie)) {
       success = controlPlatform(enable, minInterval, minTimeToNext);
       if (!success) {
         mStateTransitions.pop_back();
-        LOGE("Failed to enable a GNSS session for nanoapp instance %" PRIu32,
-             instanceId);
+        LOGE("Failed to request a GNSS session for nanoapp instance %" PRIu32
+             " enable %d",
+             instanceId, enable);
       }
     }
   } else {
@@ -373,12 +440,21 @@ void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
     if (stateTransitionIsRequired(stateTransition.enable,
                                   stateTransition.minInterval, hasRequest,
                                   requestIndex)) {
-      if (controlPlatform(stateTransition.enable, stateTransition.minInterval,
-                          Milliseconds(0))) {
+      if (stateTransition.enable &&
+          getSettingState(Setting::LOCATION) == SettingState::DISABLED) {
+        postAsyncResultEventFatal(
+            stateTransition.nanoappInstanceId, false /* success */,
+            stateTransition.enable, stateTransition.minInterval,
+            CHRE_ERROR_FUNCTION_DISABLED, stateTransition.cookie);
+        mStateTransitions.pop();
+      } else if (controlPlatform(stateTransition.enable,
+                                 stateTransition.minInterval,
+                                 Milliseconds(0))) {
         break;
       } else {
-        LOGE("Failed to enable a GNSS session for nanoapp instance %" PRIu32,
-             stateTransition.nanoappInstanceId);
+        LOGE("Failed to request a GNSS session for nanoapp instance %" PRIu32
+             " enable %d",
+             stateTransition.nanoappInstanceId, stateTransition.enable);
         postAsyncResultEventFatal(stateTransition.nanoappInstanceId,
                                   false /* success */, stateTransition.enable,
                                   stateTransition.minInterval, CHRE_ERROR,
