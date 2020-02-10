@@ -36,8 +36,8 @@ message TestCommand {
   // The state of this feature at the system level.
   enum State {
     STATE_UNDEFINED = 0;
-    ENABLED = 1;
-    DISABLED = 2;
+    DISABLED = 1;
+    ENABLED = 2;
   }
 
   // The test step for the nanoapp to take.

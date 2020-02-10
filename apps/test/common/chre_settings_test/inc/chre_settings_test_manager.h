@@ -43,8 +43,8 @@ class Manager {
   };
 
   enum class FeatureState : uint8_t {
-    ENABLED = 0,
-    DISABLED,
+    DISABLED = 0,
+    ENABLED,
   };
 
   enum class TestStep : uint8_t {
