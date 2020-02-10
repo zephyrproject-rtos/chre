@@ -54,6 +54,16 @@ class HostLink : public HostLinkBase, public NonCopyable {
    * @return true if the message was successfully queued
    */
   bool sendMessage(const MessageToHost *message);
+
+  /**
+   * Enqueues a log message to be sent to the host.
+   *
+   * @param logMessage Pointer to a buffer that has the log message. Note that
+   * the message might be encoded
+   *
+   * @param logMessageSize length of the log message buffer
+   */
+  void sendLogMessage(const char *logMessage, size_t logMessageSize);
 };
 
 }  // namespace chre
