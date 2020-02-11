@@ -23,6 +23,7 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/core/settings.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
@@ -574,6 +575,38 @@ UniquePtr<Nanoapp> handleLoadNanoappData(
   return nanoapp;
 }
 
+bool getSettingFromFbs(fbs::Setting setting, Setting *chreSetting) {
+  bool success = true;
+  switch (setting) {
+    case fbs::Setting::LOCATION:
+      *chreSetting = Setting::LOCATION;
+      break;
+    default:
+      LOGE("Unknown setting %" PRIu8, setting);
+      success = false;
+  }
+
+  return success;
+}
+
+bool getSettingStateFromFbs(fbs::SettingState state,
+                            SettingState *chreSettingState) {
+  bool success = true;
+  switch (state) {
+    case fbs::SettingState::DISABLED:
+      *chreSettingState = SettingState::DISABLED;
+      break;
+    case fbs::SettingState::ENABLED:
+      *chreSettingState = SettingState::ENABLED;
+      break;
+    default:
+      LOGE("Unknown state %" PRIu8, state);
+      success = false;
+  }
+
+  return success;
+}
+
 /**
  * FastRPC method invoked by the host to block on messages
  *
@@ -894,7 +927,12 @@ void HostLink::sendLogMessage(const char *logMessage, size_t logMessageSize) {
 
 void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
                                                      fbs::SettingState state) {
-  // TODO: Implement this
+  Setting chreSetting;
+  SettingState chreSettingState;
+  if (getSettingFromFbs(setting, &chreSetting) &&
+      getSettingStateFromFbs(state, &chreSettingState)) {
+    postSettingChange(chreSetting, chreSettingState);
+  }
 }
 
 }  // namespace chre

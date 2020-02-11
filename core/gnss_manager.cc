@@ -35,6 +35,11 @@ uint32_t GnssManager::getCapabilities() {
   return mPlatformGnss.getCapabilities();
 }
 
+void GnssManager::onSettingChanged(Setting setting, SettingState state) {
+  mLocationSession.onSettingChanged(setting, state);
+  mMeasurementSession.onSettingChanged(setting, state);
+}
+
 void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nGNSS:");
   mLocationSession.logStateToBuffer(debugDump);
@@ -107,6 +112,10 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 void GnssSession::handleReportEvent(void *event) {
   EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
       mReportEventType, event, freeReportEventCallback);
+}
+
+void GnssSession::onSettingChanged(Setting setting, SettingState state) {
+  // TODO: Implement this
 }
 
 void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
