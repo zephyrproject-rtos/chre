@@ -88,6 +88,7 @@ enum class PendingMessageType {
   TimeSyncRequest,
   LowPowerMicAccessRequest,
   LowPowerMicAccessRelease,
+  EncodedLogMessage,
 };
 
 struct PendingMessage {
@@ -623,6 +624,7 @@ extern "C" int chre_slpi_get_message_to_host(unsigned char *buffer,
       case PendingMessageType::TimeSyncRequest:
       case PendingMessageType::LowPowerMicAccessRequest:
       case PendingMessageType::LowPowerMicAccessRelease:
+      case PendingMessageType::EncodedLogMessage:
         result = generateMessageFromBuilder(pendingMsg.data.builder, buffer,
                                             bufferSize, messageLen);
         break;
@@ -866,6 +868,33 @@ void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
       memoryFree(cbData);
     }
   }
+}
+
+void HostLink::sendLogMessage(const char *logMessage, size_t logMessageSize) {
+  struct LogMessageData {
+    const char *logMsg;
+    size_t logMsgSize;
+  };
+
+  LogMessageData logMessageData;
+
+  logMessageData.logMsg = logMessage;
+  logMessageData.logMsgSize = logMessageSize;
+
+  auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
+    const auto *data = static_cast<const LogMessageData *>(cookie);
+    HostProtocolChre::encodeLogMessages(builder, data->logMsg,
+                                        data->logMsgSize);
+  };
+
+  constexpr size_t kInitialSize = 128;
+  buildAndEnqueueMessage(PendingMessageType::EncodedLogMessage, kInitialSize,
+                         msgBuilder, &logMessageData);
+}
+
+void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
+                                                     fbs::SettingState state) {
+  // TODO: Implement this
 }
 
 }  // namespace chre

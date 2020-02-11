@@ -63,10 +63,55 @@ struct LowPowerMicAccessRequestT;
 struct LowPowerMicAccessRelease;
 struct LowPowerMicAccessReleaseT;
 
+struct SettingChangeMessage;
+struct SettingChangeMessageT;
+
 struct HostAddress;
 
 struct MessageContainer;
 struct MessageContainerT;
+
+/// An enum describing the setting type.
+enum class Setting : int8_t {
+  LOCATION = 1,
+  MIN = LOCATION,
+  MAX = LOCATION
+};
+
+inline const char **EnumNamesSetting() {
+  static const char *names[] = {
+    "LOCATION",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameSetting(Setting e) {
+  const size_t index = static_cast<int>(e) - static_cast<int>(Setting::LOCATION);
+  return EnumNamesSetting()[index];
+}
+
+/// An enum describing the state of a setting.
+enum class SettingState : int8_t {
+  DISABLED = 1,
+  ENABLED = 2,
+  MIN = DISABLED,
+  MAX = ENABLED
+};
+
+inline const char **EnumNamesSettingState() {
+  static const char *names[] = {
+    "DISABLED",
+    "ENABLED",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameSettingState(SettingState e) {
+  const size_t index = static_cast<int>(e) - static_cast<int>(SettingState::DISABLED);
+  return EnumNamesSettingState()[index];
+}
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
@@ -89,8 +134,9 @@ enum class ChreMessage : uint8_t {
   TimeSyncRequest = 15,
   LowPowerMicAccessRequest = 16,
   LowPowerMicAccessRelease = 17,
+  SettingChangeMessage = 18,
   MIN = NONE,
-  MAX = LowPowerMicAccessRelease
+  MAX = SettingChangeMessage
 };
 
 inline const char **EnumNamesChreMessage() {
@@ -113,6 +159,7 @@ inline const char **EnumNamesChreMessage() {
     "TimeSyncRequest",
     "LowPowerMicAccessRequest",
     "LowPowerMicAccessRelease",
+    "SettingChangeMessage",
     nullptr
   };
   return names;
@@ -193,6 +240,10 @@ template<> struct ChreMessageTraits<LowPowerMicAccessRequest> {
 
 template<> struct ChreMessageTraits<LowPowerMicAccessRelease> {
   static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRelease;
+};
+
+template<> struct ChreMessageTraits<SettingChangeMessage> {
+  static const ChreMessage enum_value = ChreMessage::SettingChangeMessage;
 };
 
 struct ChreMessageUnion {
@@ -287,6 +338,10 @@ struct ChreMessageUnion {
   LowPowerMicAccessReleaseT *AsLowPowerMicAccessRelease() {
     return type == ChreMessage::LowPowerMicAccessRelease ?
       reinterpret_cast<LowPowerMicAccessReleaseT *>(table) : nullptr;
+  }
+  SettingChangeMessageT *AsSettingChangeMessage() {
+    return type == ChreMessage::SettingChangeMessage ?
+      reinterpret_cast<SettingChangeMessageT *>(table) : nullptr;
   }
 };
 
@@ -1885,6 +1940,81 @@ inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRele
 
 flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(flatbuffers::FlatBufferBuilder &_fbb, const LowPowerMicAccessReleaseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct SettingChangeMessageT : public flatbuffers::NativeTable {
+  typedef SettingChangeMessage TableType;
+  Setting setting;
+  SettingState state;
+  SettingChangeMessageT()
+      : setting(Setting::LOCATION),
+        state(SettingState::DISABLED) {
+  }
+};
+
+/// Notification from the host that a system setting has changed
+struct SettingChangeMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SettingChangeMessageT NativeTableType;
+  enum {
+    VT_SETTING = 4,
+    VT_STATE = 6
+  };
+  /// The setting that has changed
+  Setting setting() const {
+    return static_cast<Setting>(GetField<int8_t>(VT_SETTING, 1));
+  }
+  bool mutate_setting(Setting _setting) {
+    return SetField(VT_SETTING, static_cast<int8_t>(_setting));
+  }
+  /// The new setting value
+  SettingState state() const {
+    return static_cast<SettingState>(GetField<int8_t>(VT_STATE, 1));
+  }
+  bool mutate_state(SettingState _state) {
+    return SetField(VT_STATE, static_cast<int8_t>(_state));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int8_t>(verifier, VT_SETTING) &&
+           VerifyField<int8_t>(verifier, VT_STATE) &&
+           verifier.EndTable();
+  }
+  SettingChangeMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SettingChangeMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SettingChangeMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SettingChangeMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SettingChangeMessageBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_setting(Setting setting) {
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_SETTING, static_cast<int8_t>(setting), 1);
+  }
+  void add_state(SettingState state) {
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_STATE, static_cast<int8_t>(state), 1);
+  }
+  SettingChangeMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  SettingChangeMessageBuilder &operator=(const SettingChangeMessageBuilder &);
+  flatbuffers::Offset<SettingChangeMessage> Finish() {
+    const auto end = fbb_.EndTable(start_, 2);
+    auto o = flatbuffers::Offset<SettingChangeMessage>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    Setting setting = Setting::LOCATION,
+    SettingState state = SettingState::DISABLED) {
+  SettingChangeMessageBuilder builder_(_fbb);
+  builder_.add_state(state);
+  builder_.add_setting(setting);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flatbuffers::FlatBufferBuilder &_fbb, const SettingChangeMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
@@ -2502,6 +2632,34 @@ inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRele
       _fbb);
 }
 
+inline SettingChangeMessageT *SettingChangeMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new SettingChangeMessageT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void SettingChangeMessage::UnPackTo(SettingChangeMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = setting(); _o->setting = _e; };
+  { auto _e = state(); _o->state = _e; };
+}
+
+inline flatbuffers::Offset<SettingChangeMessage> SettingChangeMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SettingChangeMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSettingChangeMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flatbuffers::FlatBufferBuilder &_fbb, const SettingChangeMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  auto _setting = _o->setting;
+  auto _state = _o->state;
+  return chre::fbs::CreateSettingChangeMessage(
+      _fbb,
+      _setting,
+      _state);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -2606,6 +2764,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::SettingChangeMessage: {
+      auto ptr = reinterpret_cast<const SettingChangeMessage *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -2691,6 +2853,10 @@ inline flatbuffers::NativeTable *ChreMessageUnion::UnPack(const void *obj, ChreM
       auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::SettingChangeMessage: {
+      auto ptr = reinterpret_cast<const SettingChangeMessage *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -2764,6 +2930,10 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
     case ChreMessage::LowPowerMicAccessRelease: {
       auto ptr = reinterpret_cast<const LowPowerMicAccessReleaseT *>(table);
       return CreateLowPowerMicAccessRelease(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::SettingChangeMessage: {
+      auto ptr = reinterpret_cast<const SettingChangeMessageT *>(table);
+      return CreateSettingChangeMessage(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
@@ -2853,6 +3023,11 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::LowPowerMicAccessRelease: {
       auto ptr = reinterpret_cast<LowPowerMicAccessReleaseT *>(table);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::SettingChangeMessage: {
+      auto ptr = reinterpret_cast<SettingChangeMessageT *>(table);
       delete ptr;
       break;
     }

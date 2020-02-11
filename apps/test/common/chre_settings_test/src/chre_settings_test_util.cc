@@ -63,6 +63,17 @@ void sendTestResultToHost(uint16_t hostEndpointId, bool success) {
   }
 }
 
+void sendEmptyMessageToHost(uint16_t hostEndpointId, uint32_t messageType) {
+  // Unspecified endpoint is not allowed in chreSendMessageToHostEndpoint.
+  if (hostEndpointId == CHRE_HOST_ENDPOINT_UNSPECIFIED) {
+    hostEndpointId = CHRE_HOST_ENDPOINT_BROADCAST;
+  }
+
+  chreSendMessageToHostEndpoint(nullptr /* message */, 0 /* messageSize */,
+                                messageType, hostEndpointId,
+                                nullptr /* freeCallback */);
+}
+
 }  // namespace settings_test
 
 }  // namespace chre

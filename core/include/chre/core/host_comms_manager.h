@@ -90,6 +90,16 @@ class HostCommsManager : public NonCopyable {
   void flushMessagesSentByNanoapp(uint64_t appId);
 
   /**
+   * Sends a Log Message to the host over the HostLink
+   * @see HostLink::sendLogMessage
+   *
+   * @param logMessage Buffer containing a (possibly encoded) log message
+   * @param logMessageSize size in bytes of the logMessage buffer
+   */
+
+  void sendLogMessage(const char *logMessage, size_t logMessageSize);
+
+  /**
    * Formulates a MessageToHost using the supplied message contents and passes
    * it to HostLink for transmission to the host.
    *

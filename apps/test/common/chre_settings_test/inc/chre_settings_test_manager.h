@@ -43,8 +43,13 @@ class Manager {
   };
 
   enum class FeatureState : uint8_t {
-    ENABLED = 0,
-    DISABLED,
+    DISABLED = 0,
+    ENABLED,
+  };
+
+  enum class TestStep : uint8_t {
+    SETUP = 0,
+    START,
   };
 
   /**
@@ -58,11 +63,14 @@ class Manager {
     uint16_t hostEndpointId;
     Feature feature;
     FeatureState featureState;
+    TestStep step;
 
-    TestSession(uint16_t id, Feature feature, FeatureState state) {
+    TestSession(uint16_t id, Feature feature, FeatureState state,
+                TestStep step) {
       this->hostEndpointId = id;
       this->feature = feature;
       this->featureState = state;
+      this->step = step;
     }
   };
 
@@ -88,9 +96,10 @@ class Manager {
    * @param hostEndpointId The test host endpoint ID.
    * @param feature The feature to test.
    * @param state The feature state.
+   * @param step The test step.
    */
   void handleStartTestMessage(uint16_t hostEndpointId, Feature feature,
-                              FeatureState state);
+                              FeatureState state, TestStep step);
 
   /**
    * Processes data from CHRE.
@@ -130,6 +139,11 @@ class Manager {
   void handleWwanCellInfoResult(const chreWwanCellInfoResult *result);
 
   /**
+   * @param result The WiFi scan event result.
+   */
+  void handleWifiScanResult(const chreWifiScanEvent *result);
+
+  /**
    * End the current test session and sends result to host.
    *
    * @param hostEndpointId The host to send the result to.
@@ -139,6 +153,9 @@ class Manager {
 
   //! The current test session.
   chre::Optional<TestSession> mTestSession;
+
+  //! The cached target to issue an RTT ranging request.
+  chre::Optional<chreWifiRangingTarget> mCachedRangingTarget;
 };
 
 // The settings test manager singleton.
