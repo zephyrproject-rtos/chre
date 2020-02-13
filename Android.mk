@@ -81,7 +81,6 @@ LOCAL_SHARED_LIBRARIES := \
 # Enable tokenized logging
 ifeq ($(CHRE_USE_TOKENIZED_LOGGING),true)
 LOCAL_CFLAGS += -DCHRE_USE_TOKENIZED_LOGGING
-endif
 PIGWEED_TOKENIZER_DIR = vendor/google_contexthub/chre/external/pigweed
 PIGWEED_TOKENIZER_DIR_RELPATH = ../../$(PIGWEED_TOKENIZER_DIR)
 LOCAL_CFLAGS += -I$(PIGWEED_TOKENIZER_DIR)/pw_polyfill/public
@@ -95,7 +94,7 @@ LOCAL_CFLAGS += -I$(PIGWEED_TOKENIZER_DIR)/pw_span/public
 LOCAL_SRC_FILES += $(PIGWEED_TOKENIZER_DIR_RELPATH)/pw_tokenizer/detokenize.cc
 LOCAL_SRC_FILES += $(PIGWEED_TOKENIZER_DIR_RELPATH)/pw_tokenizer/decode.cc
 LOCAL_SRC_FILES += $(PIGWEED_TOKENIZER_DIR_RELPATH)/pw_varint/varint.cc
-
+endif
 
 ifeq ($(CHRE_DAEMON_LPMA_ENABLED),true)
 LOCAL_SHARED_LIBRARIES += android.hardware.soundtrigger@2.0
