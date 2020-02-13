@@ -211,6 +211,18 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
       flatbuffers::FlatBufferBuilder &builder, uint32_t transactionId,
       uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
       const char *nanoappBinaryName);
+
+  /**
+   * Encodes a message notifying CHRE of a user setting change.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param setting The setting value that the user changed
+   * @param newState The state that the user change the setting to.
+   */
+  static void encodeSettingChangeNotification(
+      flatbuffers::FlatBufferBuilder &builder, ::chre::fbs::Setting setting,
+      ::chre::fbs::SettingState newState);
 };
 
 }  // namespace chre
