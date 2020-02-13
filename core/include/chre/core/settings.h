@@ -27,8 +27,8 @@ enum class Setting : uint8_t {
 };
 
 enum class SettingState : uint8_t {
-  DISABLED = 0,
-  ENABLED,
+  ENABLED = 0,
+  DISABLED,
   SETTING_STATE_MAX,
 };
 
