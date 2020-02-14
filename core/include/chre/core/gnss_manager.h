@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "chre/core/nanoapp.h"
+#include "chre/core/settings.h"
 #include "chre/platform/platform_gnss.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/system/debug_dump.h"
@@ -82,6 +83,14 @@ class GnssSession {
    *        released through the PlatformGnss instance.
    */
   void handleReportEvent(void *event);
+
+  /**
+   * Invoked when the host notifies CHRE of a settings change.
+   *
+   * @param setting The setting that changed.
+   * @param state The new setting state.
+   */
+  void onSettingChanged(Setting setting, SettingState state);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
@@ -351,6 +360,14 @@ class GnssManager : public NonCopyable {
   GnssSession &getMeasurementSession() {
     return mMeasurementSession;
   };
+
+  /**
+   * Invoked when the host notifies CHRE of a settings change.
+   *
+   * @param setting The setting that changed.
+   * @param state The new setting state.
+   */
+  void onSettingChanged(Setting setting, SettingState state);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
