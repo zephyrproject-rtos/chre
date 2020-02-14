@@ -319,32 +319,6 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context);
 bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
                            uint8_t *buf);
 
-/**
- * Dequeues the datagram at the front of the datagram tx queue, if any, and
- * frees the payload. Returns false if the queue is empty.
- *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
- * @return True indicates success. False indicates failure, i.e. the queue was
- * empty.
- */
-bool chppDequeueTxDatagram(struct ChppTransportState *context);
-
-/**
- * Sends out a pending outgoing packet based on a notification from
- * chppEnqueueTxPacket.
- *
- * A payload may or may not be included be according the following:
- * No payload: If Tx datagram queue is empty OR we are waiting on a pending ACK.
- * New payload: If there is one or more pending Tx datagrams and we are not
- * waiting on a pending ACK.
- * Repeat payload: If we haven't received an ACK yet for our previous payload,
- * i.e. we have registered an explicit or implicit NACK.
- *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
- */
-void chppTransportDoWork(struct ChppTransportState *context);
 
 #ifdef __cplusplus
 }
