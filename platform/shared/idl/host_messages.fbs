@@ -229,10 +229,15 @@ table LowPowerMicAccessRequest {}
 table LowPowerMicAccessRelease {}
 
 /// An enum describing the setting type.
-enum Setting : byte { LOCATION = 1 }
+enum Setting : byte {
+  LOCATION = 0,
+}
 
 /// An enum describing the state of a setting.
-enum SettingState : byte { DISABLED = 1, ENABLED }
+enum SettingState : byte {
+  DISABLED = 0,
+  ENABLED,
+}
 
 /// Notification from the host that a system setting has changed
 table SettingChangeMessage {
