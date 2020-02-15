@@ -72,8 +72,10 @@ void postSettingChange(Setting setting, SettingState state) {
     NestedDataPtr<SettingChange> setting;
     setting.dataPtr = data;
     setSettingState(setting.data.setting, setting.data.state);
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
     EventLoopManagerSingleton::get()->getGnssManager().onSettingChanged(
         setting.data.setting, setting.data.state);
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
   };
 
   EventLoopManagerSingleton::get()->deferCallback(

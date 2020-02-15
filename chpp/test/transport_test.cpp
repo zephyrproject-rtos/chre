@@ -119,7 +119,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
 
     // Correct decoding of packet length
     EXPECT_EQ(context.rxHeader.length, len);
-    EXPECT_EQ(context.rxDatagramLoc, 0);
+    EXPECT_EQ(context.rxStatus.locInDatagram, 0);
     EXPECT_EQ(context.rxDatagram.length, len);
 
     // Send payload if any and check for correct state
@@ -130,7 +130,12 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     }
 
     // Should have complete packet payload by now
-    EXPECT_EQ(context.rxDatagramLoc, len);
+    EXPECT_EQ(context.rxStatus.locInDatagram, len);
+
+    // But no ACK yet
+    EXPECT_FALSE(context.txStatus.hasPacketsToSend);
+    EXPECT_EQ(context.txStatus.errorCodeToSend, CHPP_ERROR_NONE);
+    EXPECT_EQ(context.rxStatus.expectedSeq, header.seq);
 
     // Send footer and check for correct state
     EXPECT_TRUE(chppRxDataCb(&context, &buf[sizeof(ChppTransportHeader) + len],
@@ -138,14 +143,36 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     EXPECT_EQ(context.rxStatus.state, CHPP_STATE_PREAMBLE);
 
     // Should have reset loc and length for next packet / datagram
-    EXPECT_EQ(context.rxDatagramLoc, 0);
+    EXPECT_EQ(context.rxStatus.locInDatagram, 0);
     EXPECT_EQ(context.rxDatagram.length, 0);
 
     // If payload packet, expect next packet with incremented sequence #
-    uint8_t seq = header.seq + ((len > 0) ? 1 : 0);
+    // Otherwise, should keep previous sequence #
+    uint8_t nextSeq = header.seq + ((len > 0) ? 1 : 0);
+    EXPECT_EQ(context.rxStatus.expectedSeq, nextSeq);
 
-    EXPECT_EQ(context.rxStatus.expectedSeq, seq);
-    EXPECT_EQ(context.txHeader.ackSeq, seq);
+    // Check for correct ACK crafting if applicable
+    // TODO: This will need updating once signalling goes in
+    if (len > 0) {
+      EXPECT_TRUE(context.txStatus.hasPacketsToSend);
+      EXPECT_EQ(context.txStatus.errorCodeToSend, CHPP_ERROR_NONE);
+      EXPECT_EQ(context.txDatagramQueue.pending, 0);
+
+      chppTransportDoWork(&context);
+
+      struct ChppTransportHeader *txHeader =
+          (struct ChppTransportHeader *)&context.packetToSend
+              .payload[CHPP_PREAMBLE_LEN_BYTES];
+
+      EXPECT_EQ(txHeader->flags, CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM);
+      EXPECT_EQ(txHeader->errorCode, CHPP_ERROR_NONE);
+      EXPECT_EQ(txHeader->ackSeq, nextSeq);
+      EXPECT_EQ(txHeader->length, 0);
+
+      EXPECT_EQ(context.packetToSend.length,
+                CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) +
+                    sizeof(struct ChppTransportFooter));
+    }
   }
 }
 

@@ -42,6 +42,8 @@ extern "C" {
  * @defgroup CHPP_TRANSPORT_FLAG
  * @{
  */
+// This packet concludes a (fragmented or unfragmented) datagram
+#define CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM 0x00
 // Set if packet is part of a fragmented datagram, except for the last fragment
 #define CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM 0x01
 // Set for first packet after bootup or to reset after irrecoverable error
@@ -70,6 +72,21 @@ extern "C" {
  * Otherwise, ChppTxDatagramQueue should be updated accordingly.
  */
 #define CHPP_TX_DATAGRAM_QUEUE_LEN 16
+
+/**
+ * Maximum payload of packets at the link layer.
+ * TODO: Negotiate or advertise MTU
+ */
+#define CHPP_LINK_MTU_BYTES                                              \
+  (1024 + CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) + \
+   sizeof(struct ChppTransportFooter))
+
+/**
+ * Maximum payload of packets at the transport layer.
+ */
+#define CHPP_TRANSPORT_MTU_BYTES                   \
+  (CHPP_LINK_MTU_BYTES - CHPP_PREAMBLE_LEN_BYTES - \
+   sizeof(struct ChppTransportHeader) - sizeof(struct ChppTransportFooter))
 
 /************************************************
  *  Status variables to store context in lieu of global variables (this)
@@ -156,13 +173,16 @@ struct ChppRxStatus {
 
   // Location counter in bytes within each state. Must always be reinitialized
   // to 0 when switching states.
-  size_t loc;
+  size_t locInState;
 
   // Next expected sequence number (for a payload-bearing packet)
   uint8_t expectedSeq;
 
   // Error code, if any, of the last received packet
   enum ChppErrorCode receivedErrorCode;
+
+  // Location counter in bytes within the current Rx datagram.
+  size_t locInDatagram;
 };
 
 struct ChppTxStatus {
@@ -170,12 +190,35 @@ struct ChppTxStatus {
   // an outgoing payload-bearing packet)
   uint8_t ackedSeq;
 
+  // Last sent sequence number (irrespective of whether it has been received /
+  // ACKed or not)
+  uint8_t sentSeq;
+
   // Does the transport layer have any packets (with or without payload) it
   // needs to send out?
   bool hasPacketsToSend;
 
   // Error code, if any, of the next packet the transport layer will send out.
   enum ChppErrorCode errorCodeToSend;
+
+  // How many bytes of the front-of-queue datagram has been sent out
+  size_t sentLocInDatagram;
+
+  // Note: For a future ACK window >1, sentLocInDatagram doesn't always apply to
+  // the front-of-queue datagram. Instead, we need to track the queue position
+  // the datagram being sent as well (relative to the front-of-queue). e.g.
+  // uint8_t datagramBeingSent
+
+  // How many bytes of the front-of-queue datagram has been acked
+  size_t ackedLocInDatagram;
+};
+
+struct PacketToSend {
+  // Length of outgoing packet to the Link Layer
+  size_t length;
+
+  // Payload of outgoing packet to the Link Layer
+  uint8_t payload[CHPP_LINK_MTU_BYTES];
 };
 
 struct ChppDatagram {
@@ -208,15 +251,13 @@ struct ChppTransportState {
   struct ChppTransportHeader rxHeader;  // Rx packet header
   struct ChppTransportFooter rxFooter;  // Rx packet footer (checksum)
   struct ChppDatagram rxDatagram;       // Rx datagram
-  size_t rxDatagramLoc;                 // Location within datagram
 
   struct ChppTxStatus txStatus;                // Tx state
-  struct ChppTransportHeader txHeader;         // Tx packet header
-  struct ChppTransportFooter txFooter;         // Tx packet footer (checksum)
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
-  size_t txDatagramLoc;                        // Location within front datagram
+  struct PacketToSend packetToSend;            // Outgoing packet to Link Layer
 
-  struct ChppMutex mutex;  // Prevents corruption of state
+  struct ChppMutex mutex;           // Lock for transport state (i.e. context)
+  struct ChppMutex linkLayerMutex;  // Lock for the link layer
 };
 
 /************************************************
@@ -288,6 +329,22 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
  * empty.
  */
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
+
+/**
+ * Sends out a pending outgoing packet based on a notification from
+ * chppEnqueueTxPacket.
+ *
+ * A payload may or may not be included be according the following:
+ * No payload: If Tx datagram queue is empty OR we are waiting on a pending ACK.
+ * New payload: If there is one or more pending Tx datagrams and we are not
+ * waiting on a pending ACK.
+ * Repeat payload: If we haven't received an ACK yet for our previous payload,
+ * i.e. we have registered an explicit or implicit NACK.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+void chppTransportDoWork(struct ChppTransportState *context);
 
 #ifdef __cplusplus
 }
