@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "chpp/transport.h"
+#include "transport_test.h"
 
 namespace {
 
