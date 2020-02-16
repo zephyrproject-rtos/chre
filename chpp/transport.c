@@ -16,14 +16,6 @@
 
 #include "chpp/transport.h"
 
-/************************************************
- *  Private Constants
- ***********************************************/
-
-/************************************************
- *  Private Type Definitions
- ***********************************************/
-
 
 /************************************************
  *  Prototypes
@@ -45,54 +37,15 @@ static enum ChppErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context);
 static void chppRegisterRxAck(struct ChppTransportState *context);
 
+static void chppEnqueueTxPacket(struct ChppTransportState *context,
+                                enum ChppErrorCode errorCode);
 static size_t chppAddPreamble(uint8_t *buf);
 static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
+bool chppDequeueTxDatagram(struct ChppTransportState *context);
+void chppTransportDoWork(struct ChppTransportState *context);
 
 /************************************************
- *  Tx
- ***********************************************/
-
-/**
- * Enqueues an outgoing packet with the specified error code. The error code
- * refers to the optional reason behind a NACK, if any. An error code of
- * CHPP_ERROR_NONE indicates that no error was reported (i.e. either an ACK or
- * an implicit NACK)
- *
- * Note that the decision as to wheather to include a payload will be taken
- * later, i.e. before the packet is being sent out from the queue. A payload is
- * expected to be included if there is one or more pending Tx datagrams and we
- * are not waiting on a pending ACK. A (repeat) payload is also included if we
- * have received a NACK.
- *
- * Further note that even for systems with an ACK window greater than one, we
- * would only need to send an ACK for the last (correct) packet, hence we only
- * need a queue length of one here.
- *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
- * @param errorCode Error code for the next outgoing packet
- */
-static void chppEnqueueTxPacket(struct ChppTransportState *context,
-                                enum ChppErrorCode errorCode) {
-  context->txStatus.hasPacketsToSend = true;
-  context->txStatus.errorCodeToSend = errorCode;
-
-  // TODO: Notify chppTransportDoWork
-}
-
-/*
-static void chppTxStartReTxTimer(void) {
-  // starts / restarts timeout timer for retx of a packet
-  // TODO
-}
-
-static void chppTxStopReTxTimer(void) {
-  // TODO
-}
-*/
-
-/************************************************
- *  Rx
+ *  Private Functions
  ***********************************************/
 
 /**
@@ -463,6 +416,34 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
 }
 
 /**
+ * Enqueues an outgoing packet with the specified error code. The error code
+ * refers to the optional reason behind a NACK, if any. An error code of
+ * CHPP_ERROR_NONE indicates that no error was reported (i.e. either an ACK or
+ * an implicit NACK)
+ *
+ * Note that the decision as to wheather to include a payload will be taken
+ * later, i.e. before the packet is being sent out from the queue. A payload is
+ * expected to be included if there is one or more pending Tx datagrams and we
+ * are not waiting on a pending ACK. A (repeat) payload is also included if we
+ * have received a NACK.
+ *
+ * Further note that even for systems with an ACK window greater than one, we
+ * would only need to send an ACK for the last (correct) packet, hence we only
+ * need a queue length of one here.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param errorCode Error code for the next outgoing packet
+ */
+static void chppEnqueueTxPacket(struct ChppTransportState *context,
+                                enum ChppErrorCode errorCode) {
+  context->txStatus.hasPacketsToSend = true;
+  context->txStatus.errorCodeToSend = errorCode;
+
+  // TODO: Notify chppTransportDoWork
+}
+
+/**
  * Adds a CHPP preamble to the beginning of buf
  *
  * @param buf The CHPP preamble will be added to buf
@@ -491,6 +472,151 @@ static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
   UNUSED_VAR(buf);
   UNUSED_VAR(len);
   return 1;
+}
+
+/**
+ * Dequeues the datagram at the front of the datagram tx queue, if any, and
+ * frees the payload. Returns false if the queue is empty.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @return True indicates success. False indicates failure, i.e. the queue was
+ * empty.
+ */
+bool chppDequeueTxDatagram(struct ChppTransportState *context) {
+  bool success = false;
+
+  if (context->txDatagramQueue.pending > 0) {
+    chppFree(context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+                 .payload);
+    context->txDatagramQueue.datagram[context->txDatagramQueue.front].payload =
+        NULL;
+    context->txDatagramQueue.datagram[context->txDatagramQueue.front].length =
+        0;
+
+    context->txDatagramQueue.pending--;
+    context->txDatagramQueue.front++;
+    context->txDatagramQueue.front %= CHPP_TX_DATAGRAM_QUEUE_LEN;
+
+    // Note: For a future ACK window >1, we need to update the queue position of
+    // the datagram being sent as well (relative to the front-of-queue). i.e.
+    // context->txStatus.datagramBeingSent--;
+
+    success = true;
+  }
+
+  return success;
+}
+
+/**
+ * Sends out a pending outgoing packet based on a notification from
+ * chppEnqueueTxPacket.
+ *
+ * A payload may or may not be included be according the following:
+ * No payload: If Tx datagram queue is empty OR we are waiting on a pending ACK.
+ * New payload: If there is one or more pending Tx datagrams and we are not
+ * waiting on a pending ACK.
+ * Repeat payload: If we haven't received an ACK yet for our previous payload,
+ * i.e. we have registered an explicit or implicit NACK.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+void chppTransportDoWork(struct ChppTransportState *context) {
+  // Note: For a future ACK window >1, there needs to be a loop outside the lock
+
+  chppMutexLock(&context->mutex);
+
+  if (context->txStatus.hasPacketsToSend) {
+    // There are pending outgoing packets
+
+    // Lock linkLayerMutex before modifying packetToSend
+    chppMutexLock(&context->linkLayerMutex);
+
+    context->packetToSend.length = 0;
+    memset(&context->packetToSend.payload, 0, CHPP_LINK_MTU_BYTES);
+
+    // Add preamble
+    context->packetToSend.length +=
+        chppAddPreamble(&context->packetToSend.payload[0]);
+
+    // Add header
+    struct ChppTransportHeader *txHeader =
+        (struct ChppTransportHeader *)&context->packetToSend
+            .payload[context->packetToSend.length];
+    context->packetToSend.length += sizeof(*txHeader);
+
+    txHeader->errorCode = context->txStatus.errorCodeToSend;
+    txHeader->ackSeq = context->rxStatus.expectedSeq;
+
+    // If applicable, add payload
+    if ((context->txDatagramQueue.pending > 0) &&
+        (context->txStatus.sentSeq == context->txStatus.ackedSeq)) {
+      // Note: For a future ACK window >1, seq # check should be against the
+      // window size.
+
+      // Note: For a future ACK window >1, this is only valid for the
+      // (context->rxStatus.receivedErrorCode != CHPP_ERROR_NONE) case,
+      // i.e. we have registered an explicit or implicit NACK. Else,
+      // txHeader->seq = ++(context->txStatus.sentSeq)
+      txHeader->seq = context->txStatus.ackedSeq + 1;
+      context->txStatus.sentSeq = txHeader->seq;
+
+      size_t remainingBytes =
+          context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+              .length -
+          context->txStatus.sentLocInDatagram;
+
+      if (remainingBytes > CHPP_TRANSPORT_MTU_BYTES) {
+        // Send an unfinished part of a datagram
+        txHeader->flags = CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM;
+        txHeader->length = CHPP_TRANSPORT_MTU_BYTES;
+
+      } else {
+        // Send final (or only) part of a datagram
+        txHeader->flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
+        txHeader->length = remainingBytes;
+      }
+
+      // Copy payload
+      memcpy(&context->packetToSend.payload[context->packetToSend.length],
+             context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+                     .payload +
+                 context->txStatus.sentLocInDatagram,
+             txHeader->length);
+      context->packetToSend.length += txHeader->length;
+
+      context->txStatus.sentLocInDatagram += txHeader->length;
+
+    }  // else {no payload}
+
+    // Note: For a future ACK window >1, this needs to be updated
+    context->txStatus.hasPacketsToSend = false;
+
+    // We are done with context. Unlock mutex ASAP.
+    chppMutexUnlock(&context->mutex);
+
+    // Populate checksum
+    uint32_t *checksum = (uint32_t *)&context->packetToSend
+                             .payload[context->packetToSend.length];
+    context->packetToSend.length += sizeof(*checksum);
+    *checksum = chppCalculateChecksum(context->packetToSend.payload,
+                                      context->packetToSend.length);
+
+    // TODO: Send out notification to function that sends out the packet.
+    // context->linkLayerMutex must be unlocked by the function that is actually
+    // sending out the packet, and only after it is done sending.
+
+    // TODO: Do we even need linkLayerMutex? We'll see once the new approach
+    // to signalling is in.
+
+    // TODO: For now, unlocking here, but remove once above is addressed
+    chppMutexUnlock(&context->linkLayerMutex);
+
+  } else {
+    // There are no pending outgoing packets. Unlock mutex.
+    chppMutexUnlock(&context->mutex);
+  }
 }
 
 /************************************************
@@ -590,126 +716,4 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
   chppMutexUnlock(&context->mutex);
 
   return success;
-}
-
-bool chppDequeueTxDatagram(struct ChppTransportState *context) {
-  bool success = false;
-
-  if (context->txDatagramQueue.pending > 0) {
-    chppFree(context->txDatagramQueue.datagram[context->txDatagramQueue.front]
-                 .payload);
-    context->txDatagramQueue.datagram[context->txDatagramQueue.front].payload =
-        NULL;
-    context->txDatagramQueue.datagram[context->txDatagramQueue.front].length =
-        0;
-
-    context->txDatagramQueue.pending--;
-    context->txDatagramQueue.front++;
-    context->txDatagramQueue.front %= CHPP_TX_DATAGRAM_QUEUE_LEN;
-
-    // Note: For a future ACK window >1, we need to update the queue position of
-    // the datagram being sent as well (relative to the front-of-queue). i.e.
-    // context->txStatus.datagramBeingSent--;
-
-    success = true;
-  }
-
-  return success;
-}
-
-void chppTransportDoWork(struct ChppTransportState *context) {
-  // Note: For a future ACK window >1, there needs to be a loop outside the lock
-
-  chppMutexLock(&context->mutex);
-
-  if (context->txStatus.hasPacketsToSend) {
-    // There are pending outgoing packets
-
-    // Lock linkLayerMutex before modifying packetToSend
-    chppMutexLock(&context->linkLayerMutex);
-
-    context->packetToSend.length = 0;
-    memset(&context->packetToSend.payload, 0, CHPP_LINK_MTU_BYTES);
-
-    // Add preamble
-    context->packetToSend.length +=
-        chppAddPreamble(&context->packetToSend.payload[0]);
-
-    // Add header
-    struct ChppTransportHeader *txHeader =
-        (struct ChppTransportHeader *)&context->packetToSend
-            .payload[context->packetToSend.length];
-    context->packetToSend.length += sizeof(*txHeader);
-
-    txHeader->errorCode = context->txStatus.errorCodeToSend;
-    txHeader->ackSeq = context->rxStatus.expectedSeq;
-
-    // If applicable, add payload
-    if ((context->txDatagramQueue.pending > 0) &&
-        (context->txStatus.sentSeq == context->txStatus.ackedSeq)) {
-      // Note: For a future ACK window >1, seq # check should be against the
-      // window size.
-
-      // Note: For a future ACK window >1, this is only valid for the
-      // (context->rxStatus.receivedErrorCode != CHPP_ERROR_NONE) case,
-      // i.e. we have registered an explicit or implicit NACK. Else,
-      // txHeader->seq = ++(context->txStatus.sentSeq)
-      txHeader->seq = context->txStatus.ackedSeq + 1;
-      context->txStatus.sentSeq = txHeader->seq;
-
-      size_t remainingBytes =
-          context->txDatagramQueue.datagram[context->txDatagramQueue.front]
-              .length -
-          context->txStatus.sentLocInDatagram;
-
-      if (remainingBytes > CHPP_TRANSPORT_MTU_BYTES) {
-        // Send an unfinished part of a datagram
-        txHeader->flags = CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM;
-        txHeader->length = CHPP_TRANSPORT_MTU_BYTES;
-
-      } else {
-        // Send final (or only) part of a datagram
-        txHeader->flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
-        txHeader->length = remainingBytes;
-      }
-
-      // Copy payload
-      memcpy(&context->packetToSend.payload[context->packetToSend.length],
-             context->txDatagramQueue.datagram[context->txDatagramQueue.front]
-                     .payload +
-                 context->txStatus.sentLocInDatagram,
-             txHeader->length);
-      context->packetToSend.length += txHeader->length;
-
-      context->txStatus.sentLocInDatagram += txHeader->length;
-
-    }  // else {no payload}
-
-    // Note: For a future ACK window >1, this needs to be updated
-    context->txStatus.hasPacketsToSend = false;
-
-    // We are done with context. Unlock mutex ASAP.
-    chppMutexUnlock(&context->mutex);
-
-    // Populate checksum
-    uint32_t *checksum = (uint32_t *)&context->packetToSend
-                             .payload[context->packetToSend.length];
-    context->packetToSend.length += sizeof(*checksum);
-    *checksum = chppCalculateChecksum(context->packetToSend.payload,
-                                      context->packetToSend.length);
-
-    // TODO: Send out notification to function that sends out the packet.
-    // context->linkLayerMutex must be unlocked by the function that is actually
-    // sending out the packet, and only after it is done sending.
-
-    // TODO: Do we even need linkLayerMutex? We'll see once the new approach
-    // to signalling is in.
-
-    // TODO: For now, unlocking here, but remove once above is addressed
-    chppMutexUnlock(&context->linkLayerMutex);
-
-  } else {
-    // There are no pending outgoing packets. Unlock mutex.
-    chppMutexUnlock(&context->mutex);
-  }
 }

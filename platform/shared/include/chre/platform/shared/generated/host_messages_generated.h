@@ -53,7 +53,7 @@ struct MessageContainer;
 
 /// An enum describing the setting type.
 enum class Setting : int8_t {
-  LOCATION = 1,
+  LOCATION = 0,
   MIN = LOCATION,
   MAX = LOCATION
 };
@@ -67,14 +67,14 @@ inline const char **EnumNamesSetting() {
 }
 
 inline const char *EnumNameSetting(Setting e) {
-  const size_t index = static_cast<int>(e) - static_cast<int>(Setting::LOCATION);
+  const size_t index = static_cast<int>(e);
   return EnumNamesSetting()[index];
 }
 
 /// An enum describing the state of a setting.
 enum class SettingState : int8_t {
-  DISABLED = 1,
-  ENABLED = 2,
+  DISABLED = 0,
+  ENABLED = 1,
   MIN = DISABLED,
   MAX = ENABLED
 };
@@ -89,7 +89,7 @@ inline const char **EnumNamesSettingState() {
 }
 
 inline const char *EnumNameSettingState(SettingState e) {
-  const size_t index = static_cast<int>(e) - static_cast<int>(SettingState::DISABLED);
+  const size_t index = static_cast<int>(e);
   return EnumNamesSettingState()[index];
 }
 
@@ -1409,11 +1409,11 @@ struct SettingChangeMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table
   };
   /// The setting that has changed
   Setting setting() const {
-    return static_cast<Setting>(GetField<int8_t>(VT_SETTING, 1));
+    return static_cast<Setting>(GetField<int8_t>(VT_SETTING, 0));
   }
   /// The new setting value
   SettingState state() const {
-    return static_cast<SettingState>(GetField<int8_t>(VT_STATE, 1));
+    return static_cast<SettingState>(GetField<int8_t>(VT_STATE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1427,10 +1427,10 @@ struct SettingChangeMessageBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_setting(Setting setting) {
-    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_SETTING, static_cast<int8_t>(setting), 1);
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_SETTING, static_cast<int8_t>(setting), 0);
   }
   void add_state(SettingState state) {
-    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_STATE, static_cast<int8_t>(state), 1);
+    fbb_.AddElement<int8_t>(SettingChangeMessage::VT_STATE, static_cast<int8_t>(state), 0);
   }
   SettingChangeMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
