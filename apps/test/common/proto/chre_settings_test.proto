@@ -55,7 +55,7 @@ message TestCommand {
 
   // The feature state (e.g. enabled or disabled), only used if the test step is
   // START.
-  optional State state = 2;
+  optional State state = 2 [default = ENABLED];
 
   // The test step.
   optional Step step = 3 [default = START];
