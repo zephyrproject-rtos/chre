@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <chre/toolchain.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -226,6 +228,7 @@ uint32_t chreGetInstanceId(void);
  * @param ...  A variable number of arguments necessary for the given
  *     'formatStr' (there may be no additional arguments for some 'formatStr's).
  */
+CHRE_PRINTF_ATTR(2, 3)
 void chreLog(enum chreLogLevel level, const char *formatStr, ...);
 
 /**
@@ -423,6 +426,7 @@ void chreHeapFree(void *ptr);
  *
  * @since v1.4
  */
+CHRE_PRINTF_ATTR(1, 2)
 void chreDebugDumpLog(const char *formatStr, ...);
 
 #ifdef __cplusplus

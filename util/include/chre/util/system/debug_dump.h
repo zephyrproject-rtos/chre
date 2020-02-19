@@ -20,6 +20,8 @@
 #include <cstdarg>
 #include <cstddef>
 
+#include <chre/toolchain.h>
+
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/unique_ptr.h"
 
