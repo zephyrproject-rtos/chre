@@ -39,8 +39,8 @@ static void chppRegisterRxAck(struct ChppTransportState *context);
 
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
                                 enum ChppErrorCode errorCode);
-static size_t chppAddPreamble(uint8_t *buf);
-static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
+size_t chppAddPreamble(uint8_t *buf);
+uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
 void chppTransportDoWork(struct ChppTransportState *context);
 
@@ -141,10 +141,10 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
   if (context->rxStatus.locInState == sizeof(struct ChppTransportHeader)) {
     // Header fully copied. Move on
 
-    enum ChppErrorCode headerSanity = chppRxHeaderCheck(context);
-    if (headerSanity != CHPP_ERROR_NONE) {
+    enum ChppErrorCode headerCheckResult = chppRxHeaderCheck(context);
+    if (headerCheckResult != CHPP_ERROR_NONE) {
       // Header fails sanity check. NACK and return to preamble state
-      chppEnqueueTxPacket(context, headerSanity);
+      chppEnqueueTxPacket(context, headerCheckResult);
       chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
     } else {
@@ -440,7 +440,8 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
   context->txStatus.hasPacketsToSend = true;
   context->txStatus.errorCodeToSend = errorCode;
 
-  // TODO: Notify chppTransportDoWork
+  // Notifies the main CHPP Transport Layer to run chppTransportDoWork().
+  chppNotifierEvent(&context->notifier);
 }
 
 /**
@@ -450,7 +451,7 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
  *
  * @return Size of the added preamble
  */
-static size_t chppAddPreamble(uint8_t *buf) {
+size_t chppAddPreamble(uint8_t *buf) {
   for (size_t i = 0; i < CHPP_PREAMBLE_LEN_BYTES; i++) {
     buf[i] = (uint8_t)(CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1 - i) &
                        0xff);
@@ -466,7 +467,7 @@ static size_t chppAddPreamble(uint8_t *buf) {
  *
  * @return Calculated checksum.
  */
-static uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
+uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
   // TODO
 
   UNUSED_VAR(buf);
@@ -510,7 +511,7 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
 
 /**
  * Sends out a pending outgoing packet based on a notification from
- * chppEnqueueTxPacket.
+ * chppEnqueueTxPacket().
  *
  * A payload may or may not be included be according the following:
  * No payload: If Tx datagram queue is empty OR we are waiting on a pending ACK.
@@ -525,13 +526,15 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
 void chppTransportDoWork(struct ChppTransportState *context) {
   // Note: For a future ACK window >1, there needs to be a loop outside the lock
 
+  LOGD("chppTransportDoWork start, (state = %d, packets to send = %d)",
+       context->rxStatus.state, context->txStatus.hasPacketsToSend);
   chppMutexLock(&context->mutex);
 
   if (context->txStatus.hasPacketsToSend) {
     // There are pending outgoing packets
 
     // Lock linkLayerMutex before modifying packetToSend
-    chppMutexLock(&context->linkLayerMutex);
+    // chppMutexLock(&context->linkLayerMutex);
 
     context->packetToSend.length = 0;
     memset(&context->packetToSend.payload, 0, CHPP_LINK_MTU_BYTES);
@@ -611,7 +614,7 @@ void chppTransportDoWork(struct ChppTransportState *context) {
     // to signalling is in.
 
     // TODO: For now, unlocking here, but remove once above is addressed
-    chppMutexUnlock(&context->linkLayerMutex);
+    // chppMutexUnlock(&context->linkLayerMutex);
 
   } else {
     // There are no pending outgoing packets. Unlock mutex.
@@ -628,6 +631,7 @@ void chppTransportInit(struct ChppTransportState *context) {
 
   memset(context, 0, sizeof(struct ChppTransportState));
   chppMutexInit(&context->mutex);
+  chppNotifierInit(&context->notifier);
 }
 
 bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
@@ -716,4 +720,14 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
   chppMutexUnlock(&context->mutex);
 
   return success;
+}
+
+void chppWorkThreadStart(struct ChppTransportState *context) {
+  while (chppNotifierWait(&context->notifier)) {
+    chppTransportDoWork(context);
+  }
+}
+
+void chppWorkThreadStop(struct ChppTransportState *context) {
+  chppNotifierExit(&context->notifier);
 }
