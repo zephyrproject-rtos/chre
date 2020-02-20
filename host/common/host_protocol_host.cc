@@ -193,5 +193,14 @@ void HostProtocolHost::encodeLoadNanoappRequestForFile(
   finalize(builder, fbs::ChreMessage::LoadNanoappRequest, request.Union());
 }
 
+void HostProtocolHost::encodeSettingChangeNotification(
+    flatbuffers::FlatBufferBuilder &builder, ::chre::fbs::Setting setting,
+    ::chre::fbs::SettingState newState) {
+  auto notification =
+      fbs::CreateSettingChangeMessage(builder, setting, newState);
+  finalize(builder, fbs::ChreMessage::SettingChangeMessage,
+           notification.Union());
+}
+
 }  // namespace chre
 }  // namespace android
