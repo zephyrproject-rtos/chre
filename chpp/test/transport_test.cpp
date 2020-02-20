@@ -44,6 +44,8 @@ class TransportTests : public testing::TestWithParam<int> {
  protected:
   void SetUp() override {
     chppTransportInit(&context);
+    context.linkParams.index = 1;
+    context.linkParams.sync = true;
   }
 
   ChppTransportState context = {};
@@ -146,7 +148,6 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
       EXPECT_TRUE(context.txStatus.hasPacketsToSend);
       EXPECT_EQ(context.txStatus.errorCodeToSend, CHPP_ERROR_NONE);
       EXPECT_EQ(context.txDatagramQueue.pending, 0);
-      // EXPECT_TRUE(context.notifier.signaled);
 
       // TODO: Find a better way to synchronize test with transport
       // Wait for chppTransportDoWork to finish after it is notified by
@@ -159,7 +160,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
 
       // Check outgoing packet fields
       struct ChppTransportHeader *txHeader =
-          (struct ChppTransportHeader *)&context.packetToSend
+          (struct ChppTransportHeader *)&context.pendingTxPacket
               .payload[CHPP_PREAMBLE_LEN_BYTES];
       EXPECT_EQ(txHeader->flags, CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM);
       EXPECT_EQ(txHeader->errorCode, CHPP_ERROR_NONE);
@@ -167,7 +168,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
       EXPECT_EQ(txHeader->length, 0);
 
       // Check outgoing packet length
-      EXPECT_EQ(context.packetToSend.length,
+      EXPECT_EQ(context.pendingTxPacket.length,
                 CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) +
                     sizeof(struct ChppTransportFooter));
     }

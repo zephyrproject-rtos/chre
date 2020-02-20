@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-cc_library_host_static {
-    name: "chre_chpp_linux",
-    srcs: [
-        "transport.c",
-        "platform/linux/link.c",
-        "platform/linux/memory.c",
-        "platform/linux/notifier.c",
-    ],
-    export_include_dirs: [
-        "platform/linux/include",
-        "include",
-    ],
-}
+#ifndef CHPP_PLATFORM_LINK_H_
+#define CHPP_PLATFORM_LINK_H_
 
-cc_test_host {
-    name: "chre_chpp_linux_tests",
-    srcs: ["test/transport_test.cpp"],
-    static_libs: ["chre_chpp_linux"],
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct ChppPlatformLinkParameters {
+  size_t index;
+  bool sync;
+};
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif  // CHPP_PLATFORM_LINK_H_
