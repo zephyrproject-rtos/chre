@@ -16,6 +16,7 @@
 
 #include "chre/core/event_loop_manager.h"
 
+#include "chre/core/settings.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/memory.h"
 #include "chre/util/lock_guard.h"
@@ -52,6 +53,7 @@ void EventLoopManager::debugDump(DebugDumpWrapper &debugDump) {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   mAudioRequestManager.logStateToBuffer(debugDump);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+  logSettingStateToBuffer(debugDump);
 }
 
 uint32_t EventLoopManager::getNextInstanceId() {
