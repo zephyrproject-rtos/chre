@@ -231,8 +231,9 @@ void handleGnssDataEvent(const chreGnssDataEvent *event) {
 
   const struct chreGnssMeasurement *measurement = event->measurements;
   for (uint8_t i = 0; i < event->measurement_count; i++) {
-    LOGI("%" PRIu8 ": const %" PRIu8 ", cn0 %f", i, measurement->constellation,
-         measurement->c_n0_dbhz);
+    LOGI("%" PRIu8 ": const %" PRIu8 ", cn0 %.2f, freq %.3f MHz", i,
+         measurement->constellation, measurement->c_n0_dbhz,
+         measurement->carrier_frequency_hz / 1e6);
     measurement++;
   }
 }
