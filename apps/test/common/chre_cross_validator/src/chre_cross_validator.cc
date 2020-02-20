@@ -58,6 +58,10 @@ chre::Optional<CrossValidatorType> gCrossValidatorType;
 // sensor type and read when the sensor configuration is being cleaned up.
 chre::Optional<uint32_t> gSensorHandle;
 
+// Set to the current time when start message is received. When a data event is
+// processed it is discarded if its timestamp is before this time.
+chre::Optional<uint64_t> gTimeStart;
+
 // The host endpoint which is read from the start message and used when sending
 // data back to AP.
 uint16_t gHostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
@@ -140,9 +144,15 @@ void handleStartSensorMessage(
     } else {
       gSensorHandle = handle;
       gCrossValidatorType = CrossValidatorType::SENSOR;
+      gTimeStart = chreGetTime();
       LOGD("Sensor with sensor type %" PRIu8 " configured", sensorType);
     }
   }
+}
+
+bool isValidHeader(const chreSensorDataHeader &header) {
+  return header.readingCount > 0 && gTimeStart.has_value() &&
+         header.baseTimestamp > gTimeStart.value();
 }
 
 void handleStartMessage(const chreMessageFromHostData *hostData) {
@@ -207,26 +217,30 @@ chre_cross_validation_Data makeAccelSensorData(
 
 void handleSensorThreeAxisData(
     const chreSensorThreeAxisData *threeAxisDataFromChre) {
-  chre_cross_validation_Data newData =
-      makeAccelSensorData(threeAxisDataFromChre);
-  size_t encodedSize;
-  if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
-                           &newData)) {
-    LOGE("Could not get encoded size of chreSensorThreeAxisData");
+  if (!isValidHeader(threeAxisDataFromChre->header)) {
+    LOGE("Invalid threeAxisData being thrown away");
   } else {
-    pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-    if (buffer == nullptr) {
-      LOG_OOM();
+    chre_cross_validation_Data newData =
+        makeAccelSensorData(threeAxisDataFromChre);
+    size_t encodedSize;
+    if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
+                             &newData)) {
+      LOGE("Could not get encoded size of chreSensorThreeAxisData");
     } else {
-      pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
-      if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &newData)) {
-        LOGE("Could not encode three axis data protobuf");
-      } else if (
-          !chreSendMessageToHostEndpoint(
-              static_cast<void *>(buffer), encodedSize,
-              chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
-              gHostEndpoint, heapFreeMessageCallback)) {
-        LOGE("Could not send message to host");
+      pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
+      if (buffer == nullptr) {
+        LOG_OOM();
+      } else {
+        pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
+        if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &newData)) {
+          LOGE("Could not encode three axis data protobuf");
+        } else if (
+            !chreSendMessageToHostEndpoint(
+                static_cast<void *>(buffer), encodedSize,
+                chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
+                gHostEndpoint, heapFreeMessageCallback)) {
+          LOGE("Could not send message to host");
+        }
       }
     }
   }
