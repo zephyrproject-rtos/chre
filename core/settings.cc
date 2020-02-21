@@ -53,6 +53,21 @@ void setSettingState(Setting setting, SettingState state) {
   }
 }
 
+const char *getSettingStateString(Setting setting) {
+  switch (getSettingState(Setting::LOCATION)) {
+    case SettingState::ENABLED:
+      return "enabled";
+      break;
+    case SettingState::DISABLED:
+      return "disabled";
+      break;
+    default:
+      break;
+  }
+
+  return "unknown";
+}
+
 }  // anonymous namespace
 
 void postSettingChange(Setting setting, SettingState state) {
@@ -90,6 +105,11 @@ SettingState getSettingState(Setting setting) {
 
   LOGE("Unknown setting %" PRIu8, setting);
   return SettingState::SETTING_STATE_MAX;
+}
+
+void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
+  debugDump.print("\nSettings:");
+  debugDump.print("\n Location %s", getSettingStateString(Setting::LOCATION));
 }
 
 }  // namespace chre
