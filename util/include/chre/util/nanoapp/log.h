@@ -29,7 +29,6 @@
 #include <chre/re.h>
 
 #include "chre/util/log_common.h"
-#include "chre/util/toolchain.h"
 
 #ifndef NANOAPP_MINIMUM_LOG_LEVEL
 #error "NANOAPP_MINIMUM_LOG_LEVEL must be defined"
@@ -76,9 +75,5 @@
 #else
 #define LOGD(fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
 #endif
-
-// Apply printf-style compiler warnings to chreLog calls
-CHRE_PRINTF_ATTR(2, 3)
-void chreLog(enum chreLogLevel level, const char *formatStr, ...);
 
 #endif  // CHRE_UTIL_NANOAPP_LOG_H_

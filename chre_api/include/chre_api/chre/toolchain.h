@@ -34,6 +34,10 @@
 
 #define CHRE_DEPRECATED_EPILOGUE _Pragma("GCC diagnostic pop")
 
+// Enable printf-style compiler warnings for mismatched format string and args
+#define CHRE_PRINTF_ATTR(formatPos, argStart) \
+  __attribute__((format(printf, formatPos, argStart)))
+
 #else  // if !defined(__GNUC__) && !defined(__clang__)
 
 #error Need to add support for new compiler

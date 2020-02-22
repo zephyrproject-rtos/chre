@@ -31,7 +31,8 @@ namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
 bool nanoappStart() {
-  chreLog(CHRE_LOG_INFO, "Hello, world from version 0x%08x", chreGetVersion());
+  chreLog(CHRE_LOG_INFO, "Hello, world from version 0x%08" PRIx32,
+          chreGetVersion());
   return true;
 }
 
