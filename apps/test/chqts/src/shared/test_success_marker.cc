@@ -35,7 +35,7 @@ void TestSuccessMarker::markStage(uint32_t stage) {
     sendFatalFailureToHost("markSuccess invalid stage", &stage);
   }
   if ((mFinishedBitmask & finishedBit) == 0) {
-    chreLog(CHRE_LOG_DEBUG, "Stage %d succeeded", stage);
+    chreLog(CHRE_LOG_DEBUG, "Stage %" PRIu32 " succeeded", stage);
     mFinishedBitmask |= finishedBit;
   }
 }
