@@ -34,6 +34,13 @@
 
 #define CHRE_LOG_EPILOGUE _Pragma("GCC diagnostic pop")
 
+// Allows using deprecated APIs locally.
+#define CHRE_DEPRECATED_PREAMBLE \
+  _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+
+#define CHRE_DEPRECATED_EPILOGUE _Pragma("GCC diagnostic pop")
+
 #else  // if !defined(__GNUC__) && !defined(__clang__)
 
 #error Need to add support for new compiler
