@@ -25,6 +25,8 @@
 
 #include <chre.h>
 
+#include "chre/util/toolchain.h"
+
 using nanoapp_testing::MessageType;
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendInternalFailureToHost;
