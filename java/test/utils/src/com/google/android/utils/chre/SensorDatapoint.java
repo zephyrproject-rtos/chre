@@ -28,13 +28,13 @@ public class SensorDatapoint {
   /*package*/
   SensorDatapoint(long timestamp, float[] values) {
     mTimestamp = timestamp;
-    mValues = values.clone();
+    mValues = values;
   }
 
   /*package*/
   SensorDatapoint(SensorEvent sensorEvent) {
     mTimestamp = sensorEvent.timestamp;
-    mValues = sensorEvent.values.clone();
+    mValues = sensorEvent.values;
   }
 
   /*package*/
