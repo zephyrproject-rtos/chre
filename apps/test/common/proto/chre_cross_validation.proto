@@ -39,39 +39,27 @@ message StartSensorCommand {
 
 message Data {
   oneof data {
-    ThreeAxisSensorData threeAxisSensorData = 1;
+    SensorData sensorData = 1;
   }
 }
 
 /*
- * Used by all sensor types for nanoapp to host messsage
- *
- * Same fields as struct chreSensorDataHeader found in
+ * Similar data to structs with naming scheme chreSensor*Data found in
  * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
  */
-message SensorDataHeader {
+message SensorData {
   optional SensorType sensorType = 1;
-  optional uint64 baseTimestampInNs = 2;
-  optional uint32 accuracy = 3;
-  optional uint32 readingCount = 4;
+  optional uint32 accuracy = 2;
+  repeated SensorDatapoint datapoints = 3;
 }
 
 /*
- * Similar structure to struct chreSensorThreeAxisData found in
- * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
+ * Similar data to structs with naming scheme chreSensor*SampleData found in
+ * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h except
+ * that timestampDelta has been replaced with timestampInNs which is an
+ * absolute timestamp instead of the delta relative to the last sample.
  */
-message ThreeAxisSensorData {
-  optional SensorDataHeader header = 1;
-  repeated ThreeAxisSensorDatapoint datapoints = 2;
-}
-
-/*
- * Same fields as struct chreSensorThreeAxisSampleData found in
- * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
- */
-message ThreeAxisSensorDatapoint {
-  optional uint32 timestampDeltaInNs = 1;
-  optional float x = 2;
-  optional float y = 3;
-  optional float z = 4;
+message SensorDatapoint {
+  optional uint64 timestampInNs = 1;
+  repeated float values = 2;
 }
