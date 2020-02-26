@@ -143,8 +143,13 @@ const char *kSeeDataTypes[] = {
   "pressure",
   "ambient_light",
   "proximity",
-  "amd",  // Instant motion
-  "amd",  // Stationary detect shares the same data type as instant motion
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+  // Both instant motion and stationary detect share the same data type.
+  "amd",
+  "amd",
+#else
+  "motion_detect", "stationary_detect",
+#endif
 };
 
 #endif  // CHRE_VARIANT_SUPPLIES_SEE_SENSORS_LIST
@@ -808,7 +813,38 @@ bool PlatformSensor::applyRequest(const SensorRequest& request) {
 
   SeeHelper *seeHelper = getSeeHelperForSensorType(getSensorType());
   bool wasInUImage = slpiInUImage();
-  bool success = seeHelper->makeRequest(req);
+
+  bool success = true;
+
+  // TODO(b/150144912): Merge the two implementations to avoid having separate
+  // code paths.
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+  // Calibration updates are not enabled automatically in the default build.
+  SeeCalHelper *calHelper = seeHelper->getCalHelper();
+
+  const sns_std_suid *suid =
+      calHelper->getCalSuidFromSensorType(getSensorType());
+  bool wereCalUpdatesEnabled = false;
+  if (suid != nullptr) {
+    wereCalUpdatesEnabled = calHelper->areCalUpdatesEnabled(*suid);
+    success = calHelper->configureCalUpdates(*suid, req.enable, *seeHelper);
+  }
+#endif
+
+  if (success) {
+    success = seeHelper->makeRequest(req);
+  }
+
+#ifdef CHRE_SLPI_DEFAULT_BUILD
+  // If any part of the configuration process failed, reset our subscription
+  // for calibration updates to its previous value to attempt to restore state.
+  if (suid != nullptr && !success) {
+    bool areCalUpdatesEnabled = calHelper->areCalUpdatesEnabled(*suid);
+    if (areCalUpdatesEnabled != wereCalUpdatesEnabled) {
+      calHelper->configureCalUpdates(*suid, wereCalUpdatesEnabled, *seeHelper);
+    }
+  }
+#endif
 
   // If we dropped into micro-image during that blocking call to SEE, go back to
   // big image. This won't happen if the calling nanoapp is a big image one, but
