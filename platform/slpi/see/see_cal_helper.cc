@@ -77,16 +77,38 @@ bool SeeCalHelper::getBias(
   return success;
 }
 
-const sns_std_suid& SeeCalHelper::getCalSuidFromSensorType(
-    SensorType sensorType) const {
-  static sns_std_suid suid = sns_suid_sensor_init_zero;
+bool SeeCalHelper::areCalUpdatesEnabled(const sns_std_suid &suid) const {
+  size_t index = getCalIndexFromSuid(suid);
+  if (index < ARRAY_SIZE(mCalInfo)) {
+    return mCalInfo[index].enabled;
+  }
+  return false;
+}
 
+bool SeeCalHelper::configureCalUpdates(const sns_std_suid &suid, bool enable,
+                                       SeeHelper &helper) {
+  bool success = false;
+
+  size_t index = getCalIndexFromSuid(suid);
+  if (index >= ARRAY_SIZE(mCalInfo)) {
+    CHRE_ASSERT(false);
+  } else if ((mCalInfo[index].enabled == enable) ||
+             helper.configureOnChangeSensor(suid, enable)) {
+    success = true;
+    mCalInfo[index].enabled = enable;
+  }
+
+  return success;
+}
+
+const sns_std_suid *SeeCalHelper::getCalSuidFromSensorType(
+    SensorType sensorType) const {
   // Mutex not needed, SUID is not modified after init
   size_t calIndex = getCalIndexFromSensorType(sensorType);
   if (calIndex < ARRAY_SIZE(mCalInfo) && mCalInfo[calIndex].suid.has_value()) {
-    suid = mCalInfo[calIndex].suid.value();
+    return &mCalInfo[calIndex].suid.value();
   }
-  return suid;
+  return nullptr;
 }
 
 bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
@@ -102,10 +124,13 @@ bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
       LOGE("Failed to find sensor '%s'", calType);
     } else {
       mCalInfo[i].suid = suids[0];
+      // The calibrated sensor type uses power on the default build
+#ifndef CHRE_SLPI_DEFAULT_BUILD
       if (!seeHelper.configureOnChangeSensor(suids[0], true /* enable */)) {
         success = false;
         LOGE("Failed to request '%s' data", calType);
       }
+#endif
     }
   }
 
