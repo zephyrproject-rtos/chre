@@ -19,6 +19,7 @@ cc_library_host_static {
     srcs: [
         "transport.c",
         "platform/linux/memory.c",
+        "platform/linux/notifier.c",
     ],
     export_include_dirs: [
         "platform/linux/include",

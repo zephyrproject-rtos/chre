@@ -26,6 +26,7 @@
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/mutex.h"
+#include "chpp/notifier.h"
 #include "chpp/platform/log.h"
 
 #ifdef __cplusplus
@@ -258,6 +259,7 @@ struct ChppTransportState {
 
   struct ChppMutex mutex;           // Lock for transport state (i.e. context)
   struct ChppMutex linkLayerMutex;  // Lock for the link layer
+  struct ChppNotifier notifier;     // Notification for chppTransportDoWork()
 };
 
 /************************************************
@@ -319,6 +321,29 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context);
 bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
                            uint8_t *buf);
 
+/**
+ * Starts the main thread for CHPP's Transport Layer. This thread needs to be
+ * started after the Transport Layer is initialized through chppTransportInit().
+ * Note that a platform may implement this as a new thread or as part of an
+ * existing thread.
+ *
+ * If needed (e.g. for testing and debugging), this thread can be stopped by
+ * calling chppWorkThreadStop().
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+void chppWorkThreadStart(struct ChppTransportState *context);
+
+/**
+ * Stops the main thread for CHPP's Transport Layer that has been started by
+ * calling chppWorkThreadStart(). Stopping this thread may be necessary for
+ * testing and debugging purposes.
+ *
+ * @param context Is used to maintain status. Must be provided and initialized
+ * through chppTransportInit for each transport layer instance. Cannot be null.
+ */
+void chppWorkThreadStop(struct ChppTransportState *context);
 
 #ifdef __cplusplus
 }

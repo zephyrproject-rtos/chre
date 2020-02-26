@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <string.h>
+#include <thread>
 
 #include "chpp/transport.h"
 #include "transport_test.h"
@@ -35,18 +36,6 @@ constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
                                7,  8,   10,  16,   20,    30,   40,
                                51, 100, 201, 1000, 10001, 20000};
 
-/**
- * Adds a CHPP preamble to the specified location of buf
- *
- * @param buf The CHPP preamble will be added to buf
- * @param loc Location of buf where the CHPP preamble will be added
- */
-void chppAddPreamble(uint8_t *buf, size_t loc) {
-  for (size_t i = 0; i < CHPP_PREAMBLE_LEN_BYTES; i++) {
-    buf[loc + i] = static_cast<uint8_t>(
-        CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1 - i) & 0xff);
-  }
-}
 
 /*
  * Test suite for the CHPP Transport Layer
@@ -81,7 +70,7 @@ TEST_P(TransportTests, ZeroThenPreambleInput) {
 
   if (len <= kMaxChunkSize) {
     // Add preamble at the end of buf
-    chppAddPreamble(buf, MAX(0, len - CHPP_PREAMBLE_LEN_BYTES));
+    chppAddPreamble(&buf[MAX(0, len - CHPP_PREAMBLE_LEN_BYTES)]);
 
     if (len >= CHPP_PREAMBLE_LEN_BYTES) {
       EXPECT_FALSE(chppRxDataCb(&context, buf, len));
@@ -99,6 +88,7 @@ TEST_P(TransportTests, ZeroThenPreambleInput) {
 TEST_P(TransportTests, RxPayloadOfZeros) {
   context.rxStatus.state = CHPP_STATE_HEADER;
   size_t len = static_cast<size_t>(GetParam());
+  std::thread t1(chppWorkThreadStart, &context);
 
   if (len <= kMaxChunkSize) {
     ChppTransportHeader header{};
@@ -138,43 +128,60 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     EXPECT_EQ(context.txStatus.errorCodeToSend, CHPP_ERROR_NONE);
     EXPECT_EQ(context.rxStatus.expectedSeq, header.seq);
 
-    // Send footer and check for correct state
+    // Send footer
     EXPECT_TRUE(chppRxDataCb(&context, &buf[sizeof(ChppTransportHeader) + len],
                              sizeof(ChppTransportFooter)));
-    EXPECT_EQ(context.rxStatus.state, CHPP_STATE_PREAMBLE);
 
-    // Should have reset loc and length for next packet / datagram
-    EXPECT_EQ(context.rxStatus.locInDatagram, 0);
-    EXPECT_EQ(context.rxDatagram.length, 0);
-
-    // If payload packet, expect next packet with incremented sequence #
-    // Otherwise, should keep previous sequence #
+    // The next expected packet sequence # should incremented only if the
+    // received packet is payload-bearing.
     uint8_t nextSeq = header.seq + ((len > 0) ? 1 : 0);
     EXPECT_EQ(context.rxStatus.expectedSeq, nextSeq);
 
-    // Check for correct ACK crafting if applicable
-    // TODO: This will need updating once signalling goes in
+    // Check for correct ACK crafting if applicable (i.e. if the received packet
+    // is payload-bearing).
     if (len > 0) {
+      // TODO: Remove later as can cause flaky tests
+      // These are expected to change shortly afterwards, as chppTransportDoWork
+      // is run
       EXPECT_TRUE(context.txStatus.hasPacketsToSend);
       EXPECT_EQ(context.txStatus.errorCodeToSend, CHPP_ERROR_NONE);
       EXPECT_EQ(context.txDatagramQueue.pending, 0);
+      // EXPECT_TRUE(context.notifier.signaled);
 
-      chppTransportDoWork(&context);
+      // TODO: Find a better way to synchronize test with transport
+      // Wait for chppTransportDoWork to finish after it is notified by
+      // chppEnqueueTxPacket to run
+      uint16_t k = 1;
+      while (context.txStatus.hasPacketsToSend || k == 0) {
+        k++;
+      }
+      ASSERT_FALSE(context.txStatus.hasPacketsToSend);  // timeout
 
+      // Check outgoing packet fields
       struct ChppTransportHeader *txHeader =
           (struct ChppTransportHeader *)&context.packetToSend
               .payload[CHPP_PREAMBLE_LEN_BYTES];
-
       EXPECT_EQ(txHeader->flags, CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM);
       EXPECT_EQ(txHeader->errorCode, CHPP_ERROR_NONE);
       EXPECT_EQ(txHeader->ackSeq, nextSeq);
       EXPECT_EQ(txHeader->length, 0);
 
+      // Check outgoing packet length
       EXPECT_EQ(context.packetToSend.length,
                 CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) +
                     sizeof(struct ChppTransportFooter));
     }
+
+    // Check for correct state
+    EXPECT_EQ(context.rxStatus.state, CHPP_STATE_PREAMBLE);
+
+    // Should have reset loc and length for next packet / datagram
+    EXPECT_EQ(context.rxStatus.locInDatagram, 0);
+    EXPECT_EQ(context.rxDatagram.length, 0);
   }
+
+  chppWorkThreadStop(&context);
+  t1.join();
 }
 
 TEST_P(TransportTests, EnqueueDatagrams) {

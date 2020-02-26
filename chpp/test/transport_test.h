@@ -27,6 +27,8 @@ extern "C" {
 
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
 void chppTransportDoWork(struct ChppTransportState *context);
+size_t chppAddPreamble(uint8_t *buf);
+uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }
