@@ -296,19 +296,6 @@ class SeeHelper : public NonCopyable {
   const SnsClientApi *mSnsClientApi = &kDefaultApi;
 
   /**
-   * Get the cached SUID of a calibration sensor that corresponds to the
-   * specified sensorType.
-   *
-   * @param sensorType The sensor type of the calibration sensor.
-   *
-   * @return A constant reference to the calibration sensor's SUID if present.
-   *         Otherwise, a reference to sns_suid_sensor_init_zero is returned.
-   */
-  const sns_std_suid& getCalSuidFromSensorType(SensorType sensorType) const {
-    return mCalHelper->getCalSuidFromSensorType(sensorType);
-  }
-
-  /**
    * A convenience method to send a request and wait for the indication if it's
    * a synchronous one using the default client obtained in init().
    *
