@@ -1,0 +1,118 @@
+/*
+ * Copyright (C) 2020 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <cstdio>
+
+#include "chre_host/log_message_parser_base.h"
+
+namespace android {
+namespace chre {
+
+namespace {
+#if defined(LOG_NDEBUG) || LOG_NDEBUG != 0
+constexpr bool kVerboseLoggingEnabled = true;
+#else
+constexpr bool kVerboseLoggingEnabled = false;
+#endif
+
+enum ChreLogLevel : uint8_t {
+  LOG_LEVEL_ERROR = 0,
+  LOG_LEVEL_WARN = 1,
+  LOG_LEVEL_INFO = 2,
+  LOG_LEVEL_DEBUG = 3
+};
+
+}  // anonymous namespace
+
+ChreLogMessageParserBase::ChreLogMessageParserBase()
+    : mVerboseLoggingEnabled(kVerboseLoggingEnabled) {}
+
+void ChreLogMessageParserBase::dump(const uint8_t *buffer, size_t size) {
+  if (mVerboseLoggingEnabled) {
+    char line[32];
+    char lineChars[32];
+    int offset = 0;
+    int offsetChars = 0;
+
+    size_t orig_size = size;
+    if (size > 128) {
+      size = 128;
+      LOGV("Dumping first 128 bytes of buffer of size %zu", orig_size);
+    } else {
+      LOGV("Dumping buffer of size %zu bytes", size);
+    }
+    for (size_t i = 1; i <= size; ++i) {
+      offset += snprintf(&line[offset], sizeof(line) - offset, "%02x ",
+                         buffer[i - 1]);
+      offsetChars +=
+          snprintf(&lineChars[offsetChars], sizeof(lineChars) - offsetChars,
+                   "%c", (isprint(buffer[i - 1])) ? buffer[i - 1] : '.');
+      if ((i % 8) == 0) {
+        LOGV("  %s\t%s", line, lineChars);
+        offset = 0;
+        offsetChars = 0;
+      } else if ((i % 4) == 0) {
+        offset += snprintf(&line[offset], sizeof(line) - offset, " ");
+      }
+    }
+
+    if (offset > 0) {
+      char tabs[8];
+      char *pos = tabs;
+      while (offset < 28) {
+        *pos++ = '\t';
+        offset += 8;
+      }
+      *pos = '\0';
+      LOGV("  %s%s%s", line, tabs, lineChars);
+    }
+  }
+}
+
+android_LogPriority ChreLogMessageParserBase::chreLogLevelToAndroidLogPriority(
+    uint8_t level) {
+  switch (level) {
+    case LOG_LEVEL_ERROR:
+      return ANDROID_LOG_ERROR;
+    case LOG_LEVEL_WARN:
+      return ANDROID_LOG_WARN;
+    case LOG_LEVEL_INFO:
+      return ANDROID_LOG_INFO;
+    case LOG_LEVEL_DEBUG:
+      return ANDROID_LOG_DEBUG;
+    default:
+      return ANDROID_LOG_SILENT;
+  }
+}
+
+void ChreLogMessageParserBase::emitLogMessage(uint8_t level,
+                                              uint64_t timestampNanos,
+                                              const char *logMessage) {
+  constexpr const char kLogTag[] = "CHRE";
+  constexpr const uint64_t kNanosPerSec = 1e9;
+  constexpr const uint64_t kNanosPerMsec = 1e6;
+
+  uint32_t timeSec = timestampNanos / kNanosPerSec;
+  timestampNanos -= (timeSec * kNanosPerSec);
+
+  uint32_t timeMsec = timestampNanos / kNanosPerMsec;
+
+  android_LogPriority priority = chreLogLevelToAndroidLogPriority(level);
+  LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timeMsec, logMessage);
+}
+
+}  // namespace chre
+}  // namespace android
