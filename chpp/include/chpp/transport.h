@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "chpp/link.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/mutex.h"
@@ -212,9 +213,12 @@ struct ChppTxStatus {
 
   // How many bytes of the front-of-queue datagram has been acked
   size_t ackedLocInDatagram;
+
+  // Whether the link layer is still processing pendingTxPacket
+  bool linkBusy;
 };
 
-struct PacketToSend {
+struct PendingTxPacket {
   // Length of outgoing packet to the Link Layer
   size_t length;
 
@@ -255,11 +259,12 @@ struct ChppTransportState {
 
   struct ChppTxStatus txStatus;                // Tx state
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
-  struct PacketToSend packetToSend;            // Outgoing packet to Link Layer
+  struct PendingTxPacket pendingTxPacket;      // Outgoing packet to Link Layer
 
   struct ChppMutex mutex;           // Lock for transport state (i.e. context)
-  struct ChppMutex linkLayerMutex;  // Lock for the link layer
-  struct ChppNotifier notifier;     // Notification for chppTransportDoWork()
+  struct ChppNotifier notifier;     // Notifier for main thread
+
+  struct ChppPlatformLinkParameters linkParams;  // Corresponding link layer
 };
 
 /************************************************
@@ -268,9 +273,11 @@ struct ChppTransportState {
 
 /**
  * Initializes the CHPP transport layer state stored in the parameter context.
+ * It is necessary to initialize state for each transport layer instance on
+ * every platform. In addition, it is necessary to initialize the values of
+ * context.linkParams for each transport layer instance.
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  */
 void chppTransportInit(struct ChppTransportState *context);
 
@@ -284,8 +291,7 @@ void chppTransportInit(struct ChppTransportState *context);
  *
  * TODO: Add sufficient outward facing documentation
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  *
@@ -299,8 +305,7 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
 /**
  * Callback function for the timer that detects timeouts during transmit
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  */
 void chppTxTimeoutTimerCb(struct ChppTransportState *context);
 
@@ -311,8 +316,7 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context);
  * out). If enqueueing is unsuccessful, it is up to the sender to decide whether
  * to free the payload and/or resend it later.
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  * @param len Datagram length in bytes.
  * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
  * @return True informs the sender that the datagram was successfully enqueued.
@@ -330,8 +334,7 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, size_t len,
  * If needed (e.g. for testing and debugging), this thread can be stopped by
  * calling chppWorkThreadStop().
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  */
 void chppWorkThreadStart(struct ChppTransportState *context);
 
@@ -340,10 +343,23 @@ void chppWorkThreadStart(struct ChppTransportState *context);
  * calling chppWorkThreadStart(). Stopping this thread may be necessary for
  * testing and debugging purposes.
  *
- * @param context Is used to maintain status. Must be provided and initialized
- * through chppTransportInit for each transport layer instance. Cannot be null.
+ * @param context Maintains status for each transport layer instance.
  */
 void chppWorkThreadStop(struct ChppTransportState *context);
+
+/*
+ * Notifies the transport layer that the link layer is done sending the previous
+ * payload (as provided to platformLinkSend() through buf and len) and can
+ * accept more data.
+ *
+ * On systems that implement the link layer Tx asynchronously, where
+ * platformLinkSend() returns False before consuming the payload provided to it
+ * (i.e. buf and len), the platform implementation must call this function after
+ * platformLinkSend() is done with the payload (i.e. buf and len).
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ */
+void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params);
 
 #ifdef __cplusplus
 }

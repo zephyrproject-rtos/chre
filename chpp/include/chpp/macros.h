@@ -17,6 +17,7 @@
 #ifndef CHPP_MACROS_H_
 #define CHPP_MACROS_H_
 
+#include <stddef.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
@@ -42,6 +43,15 @@ extern "C" {
 #ifndef CHPP_NOT_NULL
 #define CHPP_NOT_NULL(var) CHPP_ASSERT((var) != NULL)
 #endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#define check_types_match(t1, t2) ((typeof(t1) *)0 != (typeof(t2) *)0)
+#else
+#define check_types_match(t1, t2) 0
+#endif
+#define container_of(ptr, type, member)             \
+  ((type *)((char *)(ptr)-offsetof(type, member)) + \
+   check_types_match(*(ptr), ((type *)0)->member))
 
 /**
  * Macros for defining (compiler dependent) packed structures
