@@ -25,9 +25,15 @@ import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class ChreCrossValidatorSensor
     extends ChreCrossValidatorBase implements SensorEventListener {
+  // TODO(b/146052784): May need to account for differences in sampling rate and latency from
+  // AP side vs CHRE side
+  private static final long SAMPLING_INTERVAL_IN_MS = 20;
+  private static final long SAMPLING_LATENCY_IN_MS = 0;
+
   private List<SensorDatapoint> mApDatapoints;
   private List<SensorDatapoint> mChreDatapoints;
 
@@ -53,8 +59,17 @@ public class ChreCrossValidatorSensor
 
   @Override
   protected NanoAppMessage makeStartNanoAppMessage() {
-    // TODO: Implement
-    return NanoAppMessage.createMessageToNanoApp(0, 0, new byte[0]);
+    int messageType = ChreCrossValidation.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
+    ChreCrossValidation.StartSensorCommand startSensor =
+        ChreCrossValidation.StartSensorCommand.newBuilder()
+            .setSensorType(ChreCrossValidation.SensorType.forNumber(mSensorType))
+            .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
+            .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
+            .build();
+    ChreCrossValidation.StartCommand startCommand =
+        ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor).build();
+    return NanoAppMessage.createMessageToNanoApp(
+        mNappBinary.getNanoAppId(), messageType, startCommand.toByteArray());
   }
 
   @Override
