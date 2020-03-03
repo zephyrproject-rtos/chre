@@ -15,31 +15,95 @@
  */
 package com.google.android.utils.chre;
 
+import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import org.junit.Assert;
 
 /*
  * Class that all types of sensor datapoints inherit from which supports comparison to another
  * datapoint via a static method. Objects of this type are used in the sensor CHRE cross validator.
  */
-public class SensorDatapoint {
+/*package*/
+class SensorDatapoint {
+  // The chreGetTimeOffset() function promises +/-10ms accuracy to actual AP time so allow this much
+  // leeway for datapoint comparison.
+  private static final long MAX_TIMESTAMP_DIFF_NS = 10000000L;
+  private static final Integer[] VALID_SENSOR_TYPES_ARR = {Sensor.TYPE_ACCELEROMETER};
+  private static final Set<Integer> VALID_SENSOR_TYPES =
+      new HashSet<Integer>(Arrays.asList(VALID_SENSOR_TYPES_ARR));
+
   private long mTimestamp;
   private float[] mValues;
+  private int mSensorType;
 
+  /*
+   * This is the CHRE datapoint ctor. Construct datapoint using a timestamp and float values
+   * that were collected by CHRE.
+   *
+   * @param timestamp The timestamp for datapoint.
+   * @param values The array of float values for datapoint.
+   */
   /*package*/
-  SensorDatapoint(long timestamp, float[] values) {
+  SensorDatapoint(long timestamp, float[] values, int sensorType) {
     mTimestamp = timestamp;
     mValues = values.clone();
+    mSensorType = sensorType;
+    Assert.assertTrue(sensorTypeIsValid(mSensorType));
   }
 
+  /*
+   * This is the AP datapoint ctor. Construct a datapoint using the timestamp and floats observed
+   * from Android framework.
+   *
+   * @param sensorEvent The sensor event that this datapoint info comes from.
+   */
   /*package*/
   SensorDatapoint(SensorEvent sensorEvent) {
     mTimestamp = sensorEvent.timestamp;
     mValues = sensorEvent.values.clone();
+    mSensorType = sensorEvent.sensor.getType();
+    Assert.assertTrue(sensorTypeIsValid(mSensorType));
   }
 
+  /*
+   * @param dp1 The first SensorDatapoint object to compare.
+   * @param dp2 The second SensorDatapoint object to compare.
+   * @return true if the datapoint timestamps are similar.
+   */
   /*package*/
-  static boolean datapointsAreSimilar(SensorDatapoint dp1, SensorDatapoint dp2) {
-    // TODO: Implement
-    return false;
+  static boolean timestampsAreSimilar(SensorDatapoint dp1, SensorDatapoint dp2) {
+    return Math.abs(dp1.mTimestamp - dp2.mTimestamp) < MAX_TIMESTAMP_DIFF_NS;
+  }
+
+  /*
+   * @param dp1 The first SensorDatapoint object to compare.
+   * @param dp2 The second SensorDatapoint object to compare.
+   * @return true if the datapoint values are all similar.
+   */
+  /*package*/
+  static boolean datapointsAreSimilar(SensorDatapoint dp1, SensorDatapoint dp2, float errorMargin) {
+    Assert.assertEquals(dp1.mValues.length, dp2.mValues.length);
+    for (int i = 0; i < dp1.mValues.length; i++) {
+      float val1 = dp1.mValues[i];
+      float val2 = dp2.mValues[i];
+      float diff = Math.abs(val1 - val2);
+      if (diff > errorMargin) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if a sensor type is valid for a SensorDatapoint object.
+   *
+   * @param sensorType The type of sensor found as static ints in android.hardware.Sensor class.
+   * @return true if sensor type is a valid sensor found in VALID_SENSOR_TYPES.
+   */
+  private static boolean sensorTypeIsValid(int sensorType) {
+    return VALID_SENSOR_TYPES.contains(sensorType);
   }
 }
