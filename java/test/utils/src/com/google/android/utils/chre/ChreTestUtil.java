@@ -32,10 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.Assert;
@@ -72,7 +69,7 @@ public class ChreTestUtil {
    * @param fileName the fileName of the nanoapp
    * @return the NanoAppBinary object
    */
-  public NanoAppBinary createNanoAppBinary(String fileName) {
+  public static NanoAppBinary createNanoAppBinary(String fileName) {
     Context context = InstrumentationRegistry.getTargetContext();
 
     InputStream stream = getNanoAppInputStream(context, fileName);
@@ -176,8 +173,7 @@ public class ChreTestUtil {
    *
    * @return The nanoapps loaded currently.
    */
-  /*package*/
-  static List<NanoAppState> queryNanoAppsAssertSuccess(
+  public static List<NanoAppState> queryNanoAppsAssertSuccess(
       ContextHubManager contextHubManager, ContextHubInfo contextHubInfo) {
     ContextHubTransaction<List<NanoAppState>> transaction =
         contextHubManager.queryNanoApps(contextHubInfo);
@@ -203,6 +199,7 @@ public class ChreTestUtil {
       Assert.fail(e.getMessage());
     }
   }
+
   /**
    * Assert that the context hub transaction gets a successful response.
    *
