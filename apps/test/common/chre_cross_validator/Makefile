@@ -34,12 +34,16 @@ NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 # Source Code ##################################################################
 
 COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_manager.cc
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
 
 # Defines
 COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
+
+# Includes
+COMMON_CFLAGS += -I$(NANOAPP_PATH)/inc
 
 # Makefile Includes ############################################################
 
