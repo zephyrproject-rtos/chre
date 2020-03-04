@@ -164,19 +164,24 @@ class Manager {
 
   /**
    * @param threeAxisDataFromChre Three axis sensor data from CHRE.
+   * @param sensorType The sensor type that sent the three axis data.
    *
-   * @return The Data proto message that is ready to be sent to host.
+   * @return The Data proto message that is ready to be sent to host with three
+   * axis data.
    */
-  chre_cross_validation_Data makeAccelSensorData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre);
+  chre_cross_validation_Data makeSensorThreeAxisData(
+      const chreSensorThreeAxisData *threeAxisDataFromChre,
+      chre_cross_validation_SensorType sensorType);
 
   /**
    * Handle sensor three axis data from CHRE.
    *
    * @param threeAxisDataFromChre The data from CHRE to parse.
+   * @param sensorType The sensor type that sent the three axis data.
    */
   void handleSensorThreeAxisData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre);
+      const chreSensorThreeAxisData *threeAxisDataFromChre,
+      chre_cross_validation_SensorType sensorType);
 
   /**
    * Cleanup the manager by tearing down any CHRE API resources that were used
