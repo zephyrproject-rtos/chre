@@ -19,7 +19,8 @@ java_library {
 
     static_libs: [
         "androidx.test.rules",
-        "chrecrossvalidation_java_proto"
+        "chrecrossvalidation_java_proto",
+        "guava",
     ],
 
     sdk_version: "system_current",
