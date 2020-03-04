@@ -32,16 +32,36 @@ namespace cross_validator {
 // TODO(b/146052784): Break up the Manager class into more fine-grained classes
 // to avoid it becoming to complex.
 
+/**
+ * Class to manage a CHRE cross validator nanoapp.
+ */
 class Manager {
  public:
+  /**
+   * Calls the cleanup helper method. This dtor is called on a singleton deinit
+   * call.
+   */
   ~Manager();
 
+  /**
+   * Handle a CHRE event.
+   *
+   * @param senderInstanceId The instand ID that sent the event.
+   * @param eventType The type of the event.
+   * @param eventData The data for the event.
+   */
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                    const void *eventData);
 
  private:
+  /**
+   * The enum that describes the type of cross validator in use.
+   */
   enum class CrossValidatorType { SENSOR };
 
+  /**
+   * Struct to hold the state of the cross validator nanoapp.
+   */
   struct CrossValidatorState {
     // Set upon received start message and read when nanoapp ends to handle
     // cleanup
@@ -66,42 +86,106 @@ class Manager {
           hostEndpoint(hostEndpointIn) {}
   };
 
-  // Unset if start message was not received or error while processing start
-  // message
+  //! The current state of the nanoapp.
+  //! Unset if start message was not received or error while processing start
+  //! message.
   chre::Optional<CrossValidatorState> mCrossValidatorState;
 
+  /**
+   * Encodes the values array of a sensor datapoint proto message. Used as the
+   * encode field of the SenorDatapoint message.
+   *
+   * @param stream The stream to write to.
+   * @param field The field to write to (unused).
+   * @param arg The data passed in order to write to the stream.
+   * @return true if successful.
+   */
   static bool encodeThreeAxisSensorDatapointValues(pb_ostream_t *stream,
                                                    const pb_field_t * /*field*/,
                                                    void *const *arg);
 
+  /**
+   * Make a SensorDatapoint proto message.
+   *
+   * @param sampleDataFromChre The sample data from CHRE.
+   * @param currentTimestamp The current CHRE timestamp.
+   *
+   * @return The SensorDatapoint proto message.
+   */
   static chre_cross_validation_SensorDatapoint makeDatapoint(
       const chreSensorThreeAxisData::chreSensorThreeAxisSampleData
           &sampleDataFromChre,
       uint64_t currentTimestamp);
 
+  /**
+   * Encodes the datapoints into a SensorData message.
+   *
+   * @param stream The stream to write to.
+   * @param field The field to write to (unused).
+   * @param arg The data passed in order to write to the stream.
+   * @return true if successful.
+   */
   static bool encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
                                               const pb_field_t * /*field*/,
                                               void *const *arg);
 
+  /**
+   * Handle a start sensor message.
+   *
+   * @param startSensorCommand The StartSensorCommand proto message received.
+   *
+   * @return true if successful.
+   */
   bool handleStartSensorMessage(
       const chre_cross_validation_StartSensorCommand &startSensorCommand);
 
+  /**
+   * @param header The sensor data header from CHRE sensor data event.
+   *
+   * @return true if header is valid.
+   */
   bool isValidHeader(const chreSensorDataHeader &header);
 
+  /**
+   * Handle a start message from CHRE with the given data from host.
+   *
+   * @param hostData The data from host that has a start message.
+   */
   void handleStartMessage(const chreMessageFromHostData *hostData);
 
+  /**
+   * Handle a message from the host.
+   *
+   * @param senderInstanceId The instance ID of the sender of this message.
+   * @param hostData The data from the host message.
+   */
   void handleMessageFromHost(uint32_t senderInstanceId,
                              const chreMessageFromHostData *hostData);
 
+  /**
+   * @param threeAxisDataFromChre Three axis sensor data from CHRE.
+   *
+   * @return The Data proto message that is ready to be sent to host.
+   */
   chre_cross_validation_Data makeAccelSensorData(
       const chreSensorThreeAxisData *threeAxisDataFromChre);
 
+  /**
+   * Handle sensor three axis data from CHRE.
+   *
+   * @param threeAxisDataFromChre The data from CHRE to parse.
+   */
   void handleSensorThreeAxisData(
       const chreSensorThreeAxisData *threeAxisDataFromChre);
 
+  /**
+   * Cleanup the manager by tearing down any CHRE API resources that were used
+   * during validation.
+   */
   void cleanup();
 };
 
+// The chre cross validator manager singleton.
 typedef chre::Singleton<Manager> ManagerSingleton;
 
 }  // namespace cross_validator
