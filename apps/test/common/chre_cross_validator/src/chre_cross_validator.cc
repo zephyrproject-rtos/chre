@@ -33,6 +33,8 @@
 #include "chre/util/time.h"
 #include "chre_cross_validation.nanopb.h"
 
+#include "chre_cross_validator_manager.h"
+
 #define LOG_TAG "ChreCrossValidator"
 
 /* TODO(b/148481242): Send all errors to host as well as just logging them as
@@ -290,10 +292,12 @@ extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
 }
 
 extern "C" bool nanoappStart(void) {
+  cross_validator::ManagerSingleton::init();
   return true;
 }
 
 extern "C" void nanoappEnd(void) {
+  cross_validator::ManagerSingleton::deinit();
   cleanup();
 }
 
