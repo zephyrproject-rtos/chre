@@ -283,9 +283,12 @@ struct ChppTransportState {
  * transportContext.
  * It is necessary to initialize state for each transport layer instance on
  * every platform.
+ * Each transport layer instance is associated with a single application layer
+ * instance. appContext points to the application layer status struct associated
+ * with this transport layer instance.
  *
- * Note: It is also necessary to initialize the values of context.linkParams for
- * each transport layer instance after calling this function.
+ * Note: After calling this function, it is also necessary to initialize the
+ * platform-specific values of transportContext.linkParams.
  *
  * @param transportContext Maintains status for each transport layer instance.
  * @param appContext The app layer status struct associated with this transport
