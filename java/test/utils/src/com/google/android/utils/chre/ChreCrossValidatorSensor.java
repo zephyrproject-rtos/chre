@@ -153,7 +153,7 @@ public class ChreCrossValidatorSensor
 
   @Override
   protected void unregisterApDataListener() {
-    // TODO: Implement
+    mSensorManager.unregisterListener(this);
   }
 
   @Override
@@ -169,9 +169,7 @@ public class ChreCrossValidatorSensor
   }
 
   @Override
-  public void onAccuracyChanged(Sensor accel, int accuracy) {
-    // TODO: Implement
-  }
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
   /*
    * @param sensorType The sensor type that was passed to the ctor that will be validated.
