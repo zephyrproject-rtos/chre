@@ -15,6 +15,7 @@
  */
 package com.google.android.utils.chre;
 
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -23,12 +24,36 @@ import android.hardware.location.ContextHubInfo;
 import android.hardware.location.ContextHubManager;
 import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
+import androidx.test.InstrumentationRegistry;
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.junit.Assert;
+import org.junit.Assume;
 
 public class ChreCrossValidatorSensor
     extends ChreCrossValidatorBase implements SensorEventListener {
+  /**
+   * Contains the information required for each sensor type to validate data.
+   */
+  private static class SensorTypeInfo {
+    final int sensorType;
+    // The length of the data samples in floats that is expected for a sensor type
+    final int expectedValuesLength;
+    // The amount that each value in the values array of a certain datapoint can differ between AP
+    // and CHRE
+    final float errorMargin;
+
+    SensorTypeInfo(int sensorType, int expectedValuesLength, float errorMargin) {
+      this.sensorType = sensorType;
+      this.expectedValuesLength = expectedValuesLength;
+      this.errorMargin = errorMargin;
+    }
+  }
+
   // TODO(b/146052784): May need to account for differences in sampling rate and latency from
   // AP side vs CHRE side
   private static final long SAMPLING_INTERVAL_IN_MS = 20;
@@ -40,7 +65,9 @@ public class ChreCrossValidatorSensor
   private SensorManager mSensorManager;
   private Sensor mSensor;
 
-  private int mSensorType;
+  private SensorTypeInfo mSensorTypeInfo;
+
+  private static final Map<Integer, SensorTypeInfo> SENSOR_TYPE_TO_INFO = makeSensorTypeToInfoMap();
 
   /*
    * @param contextHubManager The context hub manager that will be passed to super ctor.
@@ -50,11 +77,14 @@ public class ChreCrossValidatorSensor
    *     be one of the int constants starting with TYPE_ defined in android.hardware.Sensor class.
    */
   public ChreCrossValidatorSensor(ContextHubManager contextHubManager,
-      ContextHubInfo contextHubInfo, NanoAppBinary nanoAppBinary, int sensorType) {
+      ContextHubInfo contextHubInfo, NanoAppBinary nanoAppBinary, int sensorType)
+      throws AssertionError {
     super(contextHubManager, contextHubInfo, nanoAppBinary);
     mApDatapoints = new ArrayList<SensorDatapoint>();
     mChreDatapoints = new ArrayList<SensorDatapoint>();
-    mSensorType = sensorType;
+    Assert.assertTrue(String.format("Sensor type %d is not recognized", sensorType),
+        isSensorTypeValid(sensorType));
+    mSensorTypeInfo = SENSOR_TYPE_TO_INFO.get(sensorType);
   }
 
   @Override
@@ -62,9 +92,9 @@ public class ChreCrossValidatorSensor
     int messageType = ChreCrossValidation.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
     ChreCrossValidation.StartSensorCommand startSensor =
         ChreCrossValidation.StartSensorCommand.newBuilder()
-            .setSensorType(ChreCrossValidation.SensorType.forNumber(mSensorType))
             .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
             .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
+            .setSensorType(ChreCrossValidation.SensorType.forNumber(mSensorTypeInfo.sensorType))
             .build();
     ChreCrossValidation.StartCommand startCommand =
         ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor).build();
@@ -74,12 +104,51 @@ public class ChreCrossValidatorSensor
 
   @Override
   protected void parseDataFromNanoAppMessage(NanoAppMessage message) {
-    // TODO: Implement
+    final String kParseDataErrorPrefix = "While parsing data from nanoapp: ";
+    ChreCrossValidation.Data dataProto;
+    try {
+      dataProto = ChreCrossValidation.Data.parseFrom(message.getMessageBody());
+    } catch (InvalidProtocolBufferException e) {
+      setErrorStr("Error parsing protobuff: " + e.toString());
+      return;
+    }
+    if (!dataProto.hasSensorData()) {
+      setErrorStr(kParseDataErrorPrefix + "found non sensor type data");
+    } else {
+      ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
+      int sensorType = sensorData.getSensorType().getNumber();
+      if (sensorType != mSensorTypeInfo.sensorType) {
+        setErrorStr(
+            String.format(kParseDataErrorPrefix + "incorrect sensor type %d when expecting %d",
+                sensorType, mSensorTypeInfo.sensorType));
+      } else {
+        for (ChreCrossValidation.SensorDatapoint datapoint : sensorData.getDatapointsList()) {
+          int valuesLength = datapoint.getValuesList().size();
+          if (valuesLength != mSensorTypeInfo.expectedValuesLength) {
+            setErrorStr(String.format(kParseDataErrorPrefix
+                    + "incorrect sensor datapoints values length %d when expecing %d",
+                sensorType, valuesLength, mSensorTypeInfo.expectedValuesLength));
+            break;
+          }
+          SensorDatapoint newDatapoint = new SensorDatapoint(datapoint, sensorType);
+          mChreDatapoints.add(newDatapoint);
+        }
+      }
+    }
   }
 
   @Override
   protected void registerApDataListener() {
-    // TODO: Implement
+    mSensorManager =
+        (SensorManager) InstrumentationRegistry.getInstrumentation().getContext().getSystemService(
+            Context.SENSOR_SERVICE);
+    Assert.assertNotNull("Sensor manager could not be instantiated.", mSensorManager);
+    mSensor = mSensorManager.getDefaultSensor(mSensorTypeInfo.sensorType);
+    Assume.assumeNotNull(String.format("Sensor could not be instantiated for sensor type %d.",
+                             mSensorTypeInfo.sensorType),
+        mSensor);
+    Assert.assertTrue(mSensorManager.registerListener(
+        this, mSensor, (int) TimeUnit.MILLISECONDS.toMicros(SAMPLING_INTERVAL_IN_MS)));
   }
 
   @Override
@@ -94,11 +163,33 @@ public class ChreCrossValidatorSensor
 
   @Override
   public void onSensorChanged(SensorEvent event) {
-    // TODO: Implement
+    if (mCollectingData.get()) {
+      mApDatapoints.add(new SensorDatapoint(event));
+    }
   }
 
   @Override
   public void onAccuracyChanged(Sensor accel, int accuracy) {
     // TODO: Implement
+  }
+
+  /*
+   * @param sensorType The sensor type that was passed to the ctor that will be validated.
+   * @return true if sensor type is recognized.
+   */
+  private static boolean isSensorTypeValid(int sensorType) {
+    return SENSOR_TYPE_TO_INFO.containsKey(sensorType);
+  }
+
+  /**
+   * Make the sensor type info objects for each sensor type and map from sensor type to those
+   * objects.
+   *
+   * @return The map from sensor type to info for that type.
+   */
+  private static Map<Integer, SensorTypeInfo> makeSensorTypeToInfoMap() {
+    Map<Integer, SensorTypeInfo> map = new HashMap<Integer, SensorTypeInfo>();
+    map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER, 3, 0.01f));
+    return map;
   }
 }

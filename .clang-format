@@ -25,3 +25,9 @@ CommentPragmas: NOLINT:.*
 DerivePointerAlignment: false
 IncludeBlocks: Preserve
 PointerAlignment: Right
+
+---
+Language: Java
+DisableFormat: true
+SortIncludes: false
+---
