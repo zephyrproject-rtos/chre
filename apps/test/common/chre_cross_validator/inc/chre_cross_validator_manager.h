@@ -184,6 +184,13 @@ class Manager {
       chre_cross_validation_SensorType sensorType);
 
   /**
+   * Encode and send data to be validated to host.
+   *
+   * @param data The data to encode and send.
+   */
+  void encodeAndSendDataToHost(const chre_cross_validation_Data &data);
+
+  /**
    * Cleanup the manager by tearing down any CHRE API resources that were used
    * during validation.
    */
