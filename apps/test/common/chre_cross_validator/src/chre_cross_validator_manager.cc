@@ -257,25 +257,29 @@ void Manager::handleSensorThreeAxisData(
   } else {
     chre_cross_validation_Data newData =
         makeSensorThreeAxisData(threeAxisDataFromChre, sensorType);
-    size_t encodedSize;
-    if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
-                             &newData)) {
-      LOGE("Could not get encoded size of chreSensorThreeAxisData");
+    encodeAndSendDataToHost(newData);
+  }
+}
+
+void Manager::encodeAndSendDataToHost(const chre_cross_validation_Data &data) {
+  size_t encodedSize;
+  if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
+                           &data)) {
+    LOGE("Could not get encoded size of data proto message");
+  } else {
+    pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
+    if (buffer == nullptr) {
+      LOG_OOM();
     } else {
-      pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-      if (buffer == nullptr) {
-        LOG_OOM();
-      } else {
-        pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
-        if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &newData)) {
-          LOGE("Could not encode three axis data protobuf");
-        } else if (
-            !chreSendMessageToHostEndpoint(
-                static_cast<void *>(buffer), encodedSize,
-                chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
-                mCrossValidatorState->hostEndpoint, heapFreeMessageCallback)) {
-          LOGE("Could not send message to host");
-        }
+      pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
+      if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &data)) {
+        LOGE("Could not encode data proto message");
+      } else if (
+          !chreSendMessageToHostEndpoint(
+              static_cast<void *>(buffer), encodedSize,
+              chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
+              mCrossValidatorState->hostEndpoint, heapFreeMessageCallback)) {
+        LOGE("Could not send message to host");
       }
     }
   }
