@@ -180,7 +180,7 @@ void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
   if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
     // Default values for everything but hostEndpoint param
     mCrossValidatorState = CrossValidatorState(
-        CrossValidatorType::SENSOR, 0, 0, mCrossValidatorState->hostEndpoint);
+        CrossValidatorType::SENSOR, 0, 0, hostData->hostEndpoint);
   } else {
     // Default values for everything but hostEndpoint param
     mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
