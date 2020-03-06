@@ -17,12 +17,14 @@ package com.google.android.utils.chre;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+
 import com.google.common.primitives.Floats;
+
+import org.junit.Assert;
+
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import org.junit.Assert;
 
 /*
  * Class that all types of sensor datapoints inherit from which supports comparison to another
