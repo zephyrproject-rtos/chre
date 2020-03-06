@@ -23,9 +23,12 @@ import android.hardware.location.ContextHubManager;
 import android.hardware.location.ContextHubTransaction;
 import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppState;
-import android.os.Build;
 import android.os.ParcelFileDescriptor;
+
 import androidx.test.InstrumentationRegistry;
+
+import org.junit.Assert;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,7 +38,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.Assert;
 
 /**
  * A set of helper functions for PTS CHRE tests.
