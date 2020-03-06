@@ -24,15 +24,17 @@ import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
 import android.hardware.location.NanoAppState;
 import android.util.Log;
+
 import androidx.test.InstrumentationRegistry;
+
+import org.junit.Assert;
+import org.junit.Assume;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Assert;
-import org.junit.Assume;
 
 /**
  * Base class for CHRE cross validators objects. Handles the basics of data flow from CHRE nanoapp

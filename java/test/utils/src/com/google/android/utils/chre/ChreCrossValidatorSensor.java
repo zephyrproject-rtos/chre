@@ -24,15 +24,20 @@ import android.hardware.location.ContextHubInfo;
 import android.hardware.location.ContextHubManager;
 import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
+
 import androidx.test.InstrumentationRegistry;
+
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import org.junit.Assert;
+import org.junit.Assume;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Assume;
+
 
 public class ChreCrossValidatorSensor
         extends ChreCrossValidatorBase implements SensorEventListener {
