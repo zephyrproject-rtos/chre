@@ -71,7 +71,8 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     // type for current test.
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
       handleSensorThreeAxisData(
-          static_cast<const chreSensorThreeAxisData *>(eventData));
+          static_cast<const chreSensorThreeAxisData *>(eventData),
+          chre_cross_validation_SensorType_ACCELEROMETER);
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
@@ -179,7 +180,7 @@ void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
   if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
     // Default values for everything but hostEndpoint param
     mCrossValidatorState = CrossValidatorState(
-        CrossValidatorType::SENSOR, 0, 0, mCrossValidatorState->hostEndpoint);
+        CrossValidatorType::SENSOR, 0, 0, hostData->hostEndpoint);
   } else {
     // Default values for everything but hostEndpoint param
     mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
@@ -225,11 +226,12 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
   }
 }
 
-chre_cross_validation_Data Manager::makeAccelSensorData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre) {
+chre_cross_validation_Data Manager::makeSensorThreeAxisData(
+    const chreSensorThreeAxisData *threeAxisDataFromChre,
+    chre_cross_validation_SensorType sensorType) {
   chre_cross_validation_SensorData newThreeAxisData = {
       .has_sensorType = true,
-      .sensorType = chre_cross_validation_SensorType_ACCELEROMETER,
+      .sensorType = sensorType,
       .has_accuracy = true,
       .accuracy = threeAxisDataFromChre->header.accuracy,
       .datapoints = {
@@ -246,33 +248,38 @@ chre_cross_validation_Data Manager::makeAccelSensorData(
 }
 
 void Manager::handleSensorThreeAxisData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre) {
+    const chreSensorThreeAxisData *threeAxisDataFromChre,
+    chre_cross_validation_SensorType sensorType) {
   if (!isValidHeader(threeAxisDataFromChre->header)) {
     LOGE("Invalid threeAxisData being thrown away");
   } else if (!mCrossValidatorState.has_value()) {
     LOGE("Start message not received or invalid when threeAxisData received");
   } else {
     chre_cross_validation_Data newData =
-        makeAccelSensorData(threeAxisDataFromChre);
-    size_t encodedSize;
-    if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
-                             &newData)) {
-      LOGE("Could not get encoded size of chreSensorThreeAxisData");
+        makeSensorThreeAxisData(threeAxisDataFromChre, sensorType);
+    encodeAndSendDataToHost(newData);
+  }
+}
+
+void Manager::encodeAndSendDataToHost(const chre_cross_validation_Data &data) {
+  size_t encodedSize;
+  if (!pb_get_encoded_size(&encodedSize, chre_cross_validation_Data_fields,
+                           &data)) {
+    LOGE("Could not get encoded size of data proto message");
+  } else {
+    pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
+    if (buffer == nullptr) {
+      LOG_OOM();
     } else {
-      pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-      if (buffer == nullptr) {
-        LOG_OOM();
-      } else {
-        pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
-        if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &newData)) {
-          LOGE("Could not encode three axis data protobuf");
-        } else if (
-            !chreSendMessageToHostEndpoint(
-                static_cast<void *>(buffer), encodedSize,
-                chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
-                mCrossValidatorState->hostEndpoint, heapFreeMessageCallback)) {
-          LOGE("Could not send message to host");
-        }
+      pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
+      if (!pb_encode(&ostream, chre_cross_validation_Data_fields, &data)) {
+        LOGE("Could not encode data proto message");
+      } else if (
+          !chreSendMessageToHostEndpoint(
+              static_cast<void *>(buffer), encodedSize,
+              chre_cross_validation_MessageType_CHRE_CROSS_VALIDATION_DATA,
+              mCrossValidatorState->hostEndpoint, heapFreeMessageCallback)) {
+        LOGE("Could not send message to host");
       }
     }
   }
