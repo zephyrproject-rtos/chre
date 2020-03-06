@@ -137,7 +137,7 @@ void StHalLpmaHandler::checkConnectionToStHalServiceLocked() {
 }
 
 bool StHalLpmaHandler::waitOnStHalRequestAndProcess() {
-  SoundModelHandle lpmaHandle;
+  SoundModelHandle lpmaHandle = 0;
   bool noDelayNeeded = true;
   std::unique_lock<std::mutex> lock(mMutex);
 
