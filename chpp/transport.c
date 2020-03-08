@@ -31,6 +31,7 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
                                  const uint8_t *buf, size_t len);
 static size_t chppConsumeFooter(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len);
+static void chppRxAbortPacket(struct ChppTransportState *context);
 static void chppProcessRxPayload(struct ChppTransportState *context);
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context);
 static enum ChppErrorCode chppRxHeaderCheck(
@@ -245,41 +246,14 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
   if (context->rxStatus.locInState == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
-    bool hasPayload = (context->rxHeader.length > 0);
-
     // TODO: Handle duplicate packets (i.e. resent because ACK was lost)
 
     if (!chppRxChecksumIsOk(context)) {
       // Packet is bad. Discard bad payload data (if any) and NACK
+
       LOGE("Discarding CHPP packet# %d len=%u because of bad checksum",
            context->rxHeader.seq, context->rxHeader.length);
-
-      if (hasPayload) {
-        context->rxDatagram.length -= context->rxHeader.length;
-        context->rxStatus.locInDatagram -= context->rxHeader.length;
-
-        if (context->rxDatagram.length == 0) {
-          // Discarding this packet == discarding entire datagram
-          chppFree(context->rxDatagram.payload);
-          context->rxDatagram.payload = NULL;
-
-        } else {
-          // Discarding this packet == discarding part of datagram
-          uint8_t *tempPayload = chppRealloc(
-              context->rxDatagram.payload, context->rxDatagram.length,
-              context->rxDatagram.length + context->rxHeader.length);
-          if (tempPayload == NULL) {
-            LOGE(
-                "OOM discarding bad continuation packet# %d len=%u. Previous "
-                "fragment(s) total len=%zu",
-                context->rxHeader.seq, context->rxHeader.length,
-                context->rxDatagram.length);
-          } else {
-            context->rxDatagram.payload = tempPayload;
-          }
-        }
-      }
-
+      chppRxAbortPacket(context);
       chppEnqueueTxPacket(context, CHPP_ERROR_CHECKSUM);
 
     } else {
@@ -294,7 +268,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
         chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
       }
 
-      if (hasPayload) {
+      if (context->rxHeader.length > 0) {
         chppProcessRxPayload(context);
       }
     }
@@ -304,6 +278,45 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
   }
 
   return bytesToCopy;
+}
+
+/**
+ * Discards of an incomplete Rx packet during receive (e.g. due to a timeout or
+ * bad checksum).
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
+static void chppRxAbortPacket(struct ChppTransportState *context) {
+  if (context->rxHeader.length > 0) {
+    // Packet has a payload we need to discard of
+
+    context->rxDatagram.length -= context->rxHeader.length;
+    context->rxStatus.locInDatagram -= context->rxHeader.length;
+
+    if (context->rxDatagram.length == 0) {
+      // Discarding this packet == discarding entire datagram
+
+      chppFree(context->rxDatagram.payload);
+      context->rxDatagram.payload = NULL;
+
+    } else {
+      // Discarding this packet == discarding part of datagram
+
+      uint8_t *tempPayload =
+          chppRealloc(context->rxDatagram.payload, context->rxDatagram.length,
+                      context->rxDatagram.length + context->rxHeader.length);
+
+      if (tempPayload == NULL) {
+        LOGE(
+            "OOM discarding bad continuation packet# %d len=%u. Previous "
+            "fragment(s) total len=%zu",
+            context->rxHeader.seq, context->rxHeader.length,
+            context->rxDatagram.length);
+      } else {
+        context->rxDatagram.payload = tempPayload;
+      }
+    }
+  }
 }
 
 /**
@@ -717,6 +730,19 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
 
   // Enqueue Tx packet which will be a retransmission based on the above
   chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+
+  chppMutexUnlock(&context->mutex);
+}
+
+void chppRxTimeoutTimerCb(struct ChppTransportState *context) {
+  LOGE("Rx timeout during state %d. Aborting packet# %d len=%u",
+       context->rxStatus.state, context->rxHeader.seq,
+       context->rxHeader.length);
+
+  chppMutexLock(&context->mutex);
+
+  chppRxAbortPacket(context);
+  chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
   chppMutexUnlock(&context->mutex);
 }
