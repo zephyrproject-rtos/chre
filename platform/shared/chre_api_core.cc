@@ -128,4 +128,7 @@ DLL_EXPORT bool chreIsHostAwake() {
       .hostIsAwake();
 }
 
-DLL_EXPORT void chreConfigureDebugDumpEvent(bool /* enable */) {}
+DLL_EXPORT void chreConfigureDebugDumpEvent(bool enable) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  nanoapp->configureDebugDumpEvent(enable);
+}

@@ -54,6 +54,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
   switch (eventType) {
     case CHRE_EVENT_DEBUG_DUMP:
+      LOGI("Receiving debug dump event");
       handleDebugDumpEvent();
       break;
     default:
