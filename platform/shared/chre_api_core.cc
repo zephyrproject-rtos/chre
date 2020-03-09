@@ -127,3 +127,5 @@ DLL_EXPORT bool chreIsHostAwake() {
       .getPowerControlManager()
       .hostIsAwake();
 }
+
+DLL_EXPORT void chreConfigureDebugDumpEvent(bool /* enable */) {}
