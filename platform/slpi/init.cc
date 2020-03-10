@@ -114,6 +114,10 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
   chre::EventLoopManagerSingleton::get()->deferCallback(
       chre::SystemCallbackType::PerformDebugDump, &debugDumpHandle,
       performDebugDumpCallback);
+  // Collect debug data from nanoapps
+  chre::EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+      CHRE_EVENT_DEBUG_DUMP, nullptr /* eventData */,
+      nullptr /* freeCallback */);
 }
 
 /**

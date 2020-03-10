@@ -89,6 +89,14 @@ void Nanoapp::configureHostSleepEvents(bool enable) {
   }
 }
 
+void Nanoapp::configureDebugDumpEvent(bool enable) {
+  if (enable) {
+    registerForBroadcastEvent(CHRE_EVENT_DEBUG_DUMP);
+  } else {
+    unregisterForBroadcastEvent(CHRE_EVENT_DEBUG_DUMP);
+  }
+}
+
 Event *Nanoapp::processNextEvent() {
   Event *event = mEventQueue.pop();
 
