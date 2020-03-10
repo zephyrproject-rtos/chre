@@ -16,6 +16,7 @@
 package com.google.android.chre.test.setting;
 
 import android.app.Instrumentation;
+import android.hardware.location.NanoAppBinary;
 
 import androidx.test.InstrumentationRegistry;
 
@@ -26,7 +27,7 @@ import com.google.android.utils.chre.SettingsUtil;
  * A test to check for behavior when GNSS settings are changed.
  */
 public class ContextHubGnssSettingsTestExecutor {
-    private final ContextHubSettingsTestExecutor mExecutor = new ContextHubSettingsTestExecutor();
+    private final ContextHubSettingsTestExecutor mExecutor;
 
     private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
 
@@ -34,6 +35,10 @@ public class ContextHubGnssSettingsTestExecutor {
             new SettingsUtil(InstrumentationRegistry.getTargetContext());
 
     private boolean mInitialLocationEnabled;
+
+    public ContextHubGnssSettingsTestExecutor(NanoAppBinary binary) {
+        mExecutor = new ContextHubSettingsTestExecutor(binary);
+    }
 
     /**
      * Should be called in a @Before method.
