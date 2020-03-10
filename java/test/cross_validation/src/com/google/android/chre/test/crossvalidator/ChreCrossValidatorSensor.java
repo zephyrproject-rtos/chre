@@ -270,7 +270,10 @@ public class ChreCrossValidatorSensor
     */
     private static Map<Integer, SensorTypeInfo> makeSensorTypeToInfoMap() {
         Map<Integer, SensorTypeInfo> map = new HashMap<Integer, SensorTypeInfo>();
-        map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER, 3, 0.01f));
+        map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER,
+                3 /* expectedValuesLength */, 0.01f /* errorMargin */));
+        map.put(Sensor.TYPE_GYROSCOPE, new SensorTypeInfo(Sensor.TYPE_GYROSCOPE,
+                3 /* expectedValuesLength */, 0.01f /* errorMargin */));
         return map;
     }
 
@@ -280,8 +283,9 @@ public class ChreCrossValidatorSensor
     * @return The map from sensor type to info for that type.
     */
     private static BiMap<Integer, Integer> makeApToChreSensorTypeMap() {
-        BiMap<Integer, Integer> map = HashBiMap.create(1);
+        BiMap<Integer, Integer> map = HashBiMap.create(2);
         map.put(Sensor.TYPE_ACCELEROMETER, 1 /* CHRE_SENSOR_TYPE_ACCELEROMETER */);
+        map.put(Sensor.TYPE_GYROSCOPE, 6 /* CHRE_SENSOR_TYPE_GYROSCOPE */);
         return map;
     }
 
