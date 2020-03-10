@@ -15,7 +15,7 @@
  */
 
 #include "chre/platform/log.h"
-#include "chre/platform/slpi/debug_dump.h"
+#include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/re.h"
 
