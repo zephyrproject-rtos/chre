@@ -200,4 +200,23 @@ bool chreSensorFlushAsync(uint32_t sensorHandle, const void *cookie) {
   return (fptr != nullptr) ? fptr(sensorHandle, cookie) : false;
 }
 
+WEAK_SYMBOL
+void chreConfigureDebugDumpEvent(bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreConfigureDebugDumpEvent);
+  if (fptr != nullptr) {
+    fptr(enable);
+  }
+}
+
+WEAK_SYMBOL
+void chreDebugDumpLog(const char *formatStr, ...) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(platformDso_chreDebugDumpVaLog);
+  if (fptr != nullptr) {
+    va_list args;
+    va_start(args, formatStr);
+    fptr(formatStr, args);
+    va_end(args);
+  }
+}
+
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT

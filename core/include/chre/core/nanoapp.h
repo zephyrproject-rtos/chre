@@ -141,6 +141,14 @@ class Nanoapp : public PlatformNanoapp {
   void configureHostSleepEvents(bool enable);
 
   /**
+   * Configures whether debug dump events will be sent to the nanoapp. Nanoapps
+   * are not sent debug dump events by default.
+   *
+   * @param enable true if events are to be sent, false otherwise.
+   */
+  void configureDebugDumpEvent(bool enable);
+
+  /**
    * Sends the next event in the queue to the nanoapp and returns the processed
    * event. The hasPendingEvent() method should be tested before invoking this.
    *
