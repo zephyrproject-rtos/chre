@@ -18,6 +18,7 @@
 
 #include <chre.h>
 
+#include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
 
 /**
@@ -210,7 +211,7 @@ void chreConfigureDebugDumpEvent(bool enable) {
 
 WEAK_SYMBOL
 void chreDebugDumpLog(const char *formatStr, ...) {
-  auto *fptr = CHRE_NSL_LAZY_LOOKUP(platformDso_chreDebugDumpVaLog);
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chre::platformDso_chreDebugDumpVaLog);
   if (fptr != nullptr) {
     va_list args;
     va_start(args, formatStr);

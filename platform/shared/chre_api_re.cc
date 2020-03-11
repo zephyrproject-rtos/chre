@@ -18,6 +18,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/memory.h"
+#include "chre/platform/shared/debug_dump.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/re.h"
@@ -71,4 +72,17 @@ DLL_EXPORT void chreHeapFree(void *ptr) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   chre::EventLoopManagerSingleton::get()->getMemoryManager().nanoappFree(
       nanoapp, ptr);
+}
+
+DLL_EXPORT void platformDso_chreDebugDumpVaLog(const char *formatStr,
+                                               va_list args) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  if (!nanoapp->isHandlingDebugDumpEvent()) {
+    LOGW("Nanoapp instance %" PRIu32
+         " calling chreDebugDumpLog while not handling "
+         " CHRE_EVENT_DEBUG_DUMP",
+         nanoapp->getInstanceId());
+  } else {
+    chre::platform_chreDebugDumpVaLog(formatStr, args);
+  }
 }
