@@ -15,7 +15,7 @@
  */
 
 #include "chre/platform/log.h"
-#include "chre/platform/slpi/debug_dump.h"
+#include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/re.h"
 
@@ -75,5 +75,12 @@ DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
 #else   // CHRE_USE_FARF_LOGGING
   ashVaLog(ASH_SOURCE_CHRE, chreLogLevelToAshLogLevel(level), formatStr, args);
 #endif  // CHRE_USE_FARF_LOGGING
+  va_end(args);
+}
+
+DLL_EXPORT void chreDebugDumpLog(const char *formatStr, ...) {
+  va_list args;
+  va_start(args, formatStr);
+  chre::platformDso_chreDebugDumpVaLog(formatStr, args);
   va_end(args);
 }

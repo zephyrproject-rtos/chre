@@ -45,12 +45,12 @@ public class ChreCrossValidatorSensor
     * Contains the information required for each sensor type to validate data.
     */
     private static class SensorTypeInfo {
-        final int sensorType;
+        public final int sensorType;
         // The length of the data samples in floats that is expected for a sensor type
-        final int expectedValuesLength;
+        public final int expectedValuesLength;
         // The amount that each value in the values array of a certain datapoint can differ between
         // AP and CHRE
-        final float errorMargin;
+        public final float errorMargin;
 
         SensorTypeInfo(int sensorType, int expectedValuesLength, float errorMargin) {
             this.sensorType = sensorType;

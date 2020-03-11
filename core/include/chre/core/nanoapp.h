@@ -141,6 +141,21 @@ class Nanoapp : public PlatformNanoapp {
   void configureHostSleepEvents(bool enable);
 
   /**
+   * Configures whether debug dump events will be sent to the nanoapp. Nanoapps
+   * are not sent debug dump events by default.
+   *
+   * @param enable true if events are to be sent, false otherwise.
+   */
+  void configureDebugDumpEvent(bool enable);
+
+  /**
+   * @return true if the nanoapp is handling CHRE_EVENT_DEBUG_DUMP.
+   */
+  bool isHandlingDebugDumpEvent() const {
+    return mIsHandlingDebugDumpEvent;
+  }
+
+  /**
    * Sends the next event in the queue to the nanoapp and returns the processed
    * event. The hasPendingEvent() method should be tested before invoking this.
    *
@@ -195,6 +210,9 @@ class Nanoapp : public PlatformNanoapp {
   DynamicVector<uint16_t> mRegisteredEvents;
 
   EventRefQueue mEventQueue;
+
+  //! Whether the nanoapp is handling CHRE_EVENT_DEBUG_DUMP.
+  bool mIsHandlingDebugDumpEvent = false;
 };
 
 }  // namespace chre

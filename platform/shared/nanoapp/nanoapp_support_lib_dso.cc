@@ -18,6 +18,7 @@
 
 #include <chre.h>
 
+#include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
 
 /**
@@ -198,6 +199,25 @@ WEAK_SYMBOL
 bool chreSensorFlushAsync(uint32_t sensorHandle, const void *cookie) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreSensorFlushAsync);
   return (fptr != nullptr) ? fptr(sensorHandle, cookie) : false;
+}
+
+WEAK_SYMBOL
+void chreConfigureDebugDumpEvent(bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreConfigureDebugDumpEvent);
+  if (fptr != nullptr) {
+    fptr(enable);
+  }
+}
+
+WEAK_SYMBOL
+void chreDebugDumpLog(const char *formatStr, ...) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chre::platformDso_chreDebugDumpVaLog);
+  if (fptr != nullptr) {
+    va_list args;
+    va_start(args, formatStr);
+    fptr(formatStr, args);
+    va_end(args);
+  }
 }
 
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT
