@@ -150,16 +150,6 @@ typedef void(debugDumpReadyCbFunc)(void *cookie, const char *debugStr,
  */
 bool triggerDebugDump(debugDumpReadyCbFunc *readyCb, void *cookie);
 
-/**
- * Platform implementation of chreDebugDumpLog.
- *
- * This function implements chreDebugDumpLog, and is called through either the
- * CHRE API or the nanoapp support library.
- *
- * @see chreDebugDumpLog
- */
-void platformDso_chreDebugDumpVaLog(const char *formatStr, va_list args);
-
 }  // namespace chre
 
 #endif  // CHRE_PLATFORM_SLPI_DEBUG_DUMP_H_
