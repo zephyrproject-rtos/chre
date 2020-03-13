@@ -17,7 +17,11 @@
 #ifndef CHRE_PLATFORM_SHARED_DEBUG_DUMP_H_
 #define CHRE_PLATFORM_SHARED_DEBUG_DUMP_H_
 
-#include <cstddef>
+#include <stdarg.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 namespace chre {
 
@@ -44,5 +48,9 @@ void platformDso_chreDebugDumpVaLog(const char *formatStr, va_list args);
 void platform_chreDebugDumpVaLog(const char *formatStr, va_list args);
 
 }  // namespace chre
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // CHRE_PLATFORM_SHARED_DEBUG_DUMP_H_
