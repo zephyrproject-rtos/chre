@@ -146,6 +146,7 @@ bool StHalLpmaHandler::waitOnStHalRequestAndProcess() {
     mRetryCount = 0;
     releaseWakeLock();  // Allow the system to suspend while waiting.
     mCondVar.wait(lock, [this] { return mCondVarPredicate; });
+    mCondVarPredicate = false;
     acquireWakeLock();  // Ensure the system stays up while retrying.
   } else if (mTargetLpmaEnabled && load(lpmaHandle)) {
     mCurrentLpmaEnabled = mTargetLpmaEnabled;
