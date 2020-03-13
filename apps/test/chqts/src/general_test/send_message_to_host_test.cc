@@ -356,7 +356,7 @@ void SendMessageToHostTest::handleEvent(uint32_t senderInstanceId,
                            &dataStruct->messageSize);
   }
   // We don't test dataStruct->message.  We don't require this to be
-  // nullptr.  If a CHRE choses to deal in 0-sized memory blocks, that's
+  // nullptr.  If a CHRE chooses to deal in 0-sized memory blocks, that's
   // acceptable.
 
   // Stage 8 was successful.  Note that other stages might still be waiting
