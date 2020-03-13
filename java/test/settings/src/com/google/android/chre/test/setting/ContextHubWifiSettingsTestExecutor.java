@@ -20,7 +20,7 @@ import android.hardware.location.NanoAppBinary;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.google.android.utils.chre.ChreSettingsTest;
+import com.google.android.chre.nanoapp.proto.ChreSettingsTest;
 import com.google.android.utils.chre.SettingsUtil;
 
 import org.junit.Assert;
