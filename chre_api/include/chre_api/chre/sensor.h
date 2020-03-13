@@ -771,7 +771,7 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *     the sensor.  On success, the sensor will be set to 'interval', or a value
  *     less than 'interval'.  There is a special value
  *     CHRE_SENSOR_INTERVAL_DEFAULT, in which we don't express a preference for
- *     the interval, and allow the sensor to chose what it wants.  Note that
+ *     the interval, and allow the sensor to choose what it wants.  Note that
  *     due to batching, we may receive events less frequently than
  *     'interval'.
  * @param latency  The maximum latency, in nanoseconds, allowed before the
