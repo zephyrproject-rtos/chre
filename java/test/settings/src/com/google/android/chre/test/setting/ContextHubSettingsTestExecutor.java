@@ -27,7 +27,7 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.google.android.utils.chre.ChreSettingsTest;
+import com.google.android.chre.nanoapp.proto.ChreSettingsTest;
 import com.google.android.utils.chre.ChreTestUtil;
 import com.google.protobuf.InvalidProtocolBufferException;
 
