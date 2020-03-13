@@ -24,12 +24,8 @@ void chppProcessPredefinedService(struct ChppAppState *context, uint8_t *buf,
                                   size_t len);
 void chppProcessNegotiatedService(struct ChppAppState *context, uint8_t *buf,
                                   size_t len);
-void chppProcessNonHandle(struct ChppAppState *context, uint8_t *buf,
-                          size_t len);
-void chppProcessLoopback(struct ChppAppState *context, uint8_t *buf,
+bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
                          size_t len);
-void chppProcessDiscovery(struct ChppAppState *context, uint8_t *buf,
-                          size_t len);
 
 /************************************************
  *  Private Functions
@@ -49,15 +45,15 @@ void chppProcessPredefinedService(struct ChppAppState *context, uint8_t *buf,
 
   switch (rxHeader->handle) {
     case CHPP_HANDLE_NONE:
-      chppProcessNonHandle(context, buf, len);
+      chppDispatchNonHandle(context, buf, len);
       break;
 
     case CHPP_HANDLE_LOOPBACK:
-      chppProcessLoopback(context, buf, len);
+      chppDispatchLoopback(context, buf, len);
       break;
 
     case CHPP_HANDLE_DISCOVERY:
-      chppProcessDiscovery(context, buf, len);
+      chppDispatchDiscovery(context, buf, len);
       break;
 
     default:
@@ -67,7 +63,7 @@ void chppProcessPredefinedService(struct ChppAppState *context, uint8_t *buf,
 
 /*
  * Processes an Rx Datagram from the transport layer that is determined to be
- * for a negotiated CHPP service.
+ * for a negotiated CHPP service and with a correct minimum length.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
@@ -82,73 +78,39 @@ void chppProcessNegotiatedService(struct ChppAppState *context, uint8_t *buf,
   UNUSED_VAR(len);
 }
 
-/*
- * Processes an Rx Datagram from the transport layer for systems that are using
- * the optional handleless CHPP communication service. Does not need to be
- * implemented on systems that are not using handleless communication.
- *
- * @param context Maintains status for each app layer instance.
- * @param buf Input data. Cannot be null.
- * @param len Length of input data in bytes.
- */
-void chppProcessNonHandle(struct ChppAppState *context, uint8_t *buf,
-                          size_t len) {
-  UNUSED_VAR(context);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-}
-
-/*
- * Processes an Rx Datagram from the transport layer that is determined to be
- * for the CHPP Loopback Service.
- *
- * @param context Maintains status for each app layer instance.
- * @param buf Input data. Cannot be null.
- * @param len Length of input data in bytes.
- */
-void chppProcessLoopback(struct ChppAppState *context, uint8_t *buf,
+bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
                          size_t len) {
-  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  size_t minLen = SIZE_MAX;
 
-  // Loopback functionality
-  if ((len >= sizeof(rxHeader->handle) + sizeof(rxHeader->type)) &&
-      (rxHeader->type == CHPP_MESSAGE_TYPE_CLIENT_REQUEST)) {
-    // We need to respond to a loopback datagram
+  if (handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
+    // Predefined services
 
-    // Copy received datagram
-    uint8_t *response = chppMalloc(len);
-    memcpy(response, buf, len);
+    switch (handle) {
+      case CHPP_HANDLE_NONE:
+        minLen = sizeof_member(struct ChppAppHeader, handle);
+        break;
 
-    // We are done with buf
-    chppAppProcessDoneCb(context->transportContext, buf);
+      case CHPP_HANDLE_LOOPBACK:
+        minLen = sizeof_member(struct ChppAppHeader, handle) +
+                 sizeof_member(struct ChppAppHeader, type);
+        break;
 
-    // Modify response message type per loopback spec.
-    struct ChppAppHeader *responseHeader = (struct ChppAppHeader *)response;
-    responseHeader->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
+      case CHPP_HANDLE_DISCOVERY:
+        minLen = sizeof(struct ChppAppHeader);
+        break;
 
-    // Send out response datagram
-    if (!chppEnqueueTxDatagram(context->transportContext, response, len)) {
-      LOGE("Tx Queue full. Dropping loopback datagram of %zu bytes", len);
-      chppFree(response);
+      default:
+        LOGE("Invalid predefined service handle %d", handle);
     }
+  } else {
+    // TODO for negotiated services based on their chppServiceObject
+    UNUSED_VAR(context);
   }
-}
 
-/*
- * Processes an Rx Datagram from the transport layer that is determined to be
- * for the CHPP Discovery Service.
- *
- * @param context Maintains status for each app layer instance.
- * @param buf Input data. Cannot be null.
- * @param len Length of input data in bytes.
- */
-void chppProcessDiscovery(struct ChppAppState *context, uint8_t *buf,
-                          size_t len) {
-  // TODO
-
-  UNUSED_VAR(context);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
+  if (len < minLen) {
+    LOGE("Received datagram too short for handle=%d, len=%u", handle, len);
+  }
+  return (len >= minLen);
 }
 
 /************************************************
@@ -167,14 +129,17 @@ void chppAppInit(struct ChppAppState *appContext,
 
 void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                            size_t len) {
-  CHPP_ASSERT(len > 0);
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
-  if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
-    // Predefined Services
-    chppProcessPredefinedService(context, buf, len);
-  } else {
-    // Negotiated Services
-    chppProcessNegotiatedService(context, buf, len);
+  if (chppDatagramLenIsOk(context, rxHeader->handle, len)) {
+    if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
+      // Predefined Services
+      chppProcessPredefinedService(context, buf, len);
+    } else {
+      // Negotiated Services
+      chppProcessNegotiatedService(context, buf, len);
+    }
   }
+
+  chppAppProcessDoneCb(context->transportContext, buf);
 }

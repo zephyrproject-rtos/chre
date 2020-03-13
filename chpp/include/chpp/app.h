@@ -35,6 +35,10 @@
 #include "chpp/memory.h"
 #include "chpp/transport.h"
 
+#include "chpp/services/discovery.h"
+#include "chpp/services/loopback.h"
+#include "chpp/services/nonhandle.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -86,7 +90,7 @@ struct ChppAppHeader {
   // Service Handle
   uint8_t handle;
 
-  // Message Type
+  // Message Type (request/response/notification as detailed in ChppMessageType)
   uint8_t type;
 
   // Transaction ID
@@ -122,9 +126,7 @@ void chppAppInit(struct ChppAppState *appContext,
                  struct ChppTransportState *transportContext);
 
 /*
- * Processes an Rx Ddtagram from the transport layer. This function calls
- * chppAppProcessDoneCb() ASAP when it is done with buf (so it is properly freed
- * by the Transport Layer, etc.).
+ * Processes an Rx Datagram from the transport layer.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.

@@ -22,6 +22,9 @@ cc_library_host_static {
         "platform/linux/link.c",
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
+        "services/discovery.c",
+        "services/loopback.c",
+        "services/nonhandle.c",
     ],
     export_include_dirs: [
         "platform/linux/include",
