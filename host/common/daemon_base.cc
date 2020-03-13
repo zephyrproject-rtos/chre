@@ -1,0 +1,209 @@
+/*
+ * Copyright (C) 2020 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <cstdlib>
+#include <fstream>
+
+#include "chre_host/daemon_base.h"
+#include "chre_host/log.h"
+
+#include <json/json.h>
+
+// Aliased for consistency with the way these symbols are referenced in
+// CHRE-side code
+namespace fbs = ::chre::fbs;
+
+namespace android {
+namespace chre {
+
+void ChreDaemonBase::loadPreloadedNanoapps() {
+  constexpr char kPreloadedNanoappsConfigPath[] =
+      "/vendor/etc/chre/preloaded_nanoapps.json";
+  std::ifstream configFileStream(kPreloadedNanoappsConfigPath);
+
+  Json::Reader reader;
+  Json::Value config;
+  if (!configFileStream) {
+    LOGE("Failed to open config file '%s': %d (%s)",
+         kPreloadedNanoappsConfigPath, errno, strerror(errno));
+  } else if (!reader.parse(configFileStream, config)) {
+    LOGE("Failed to parse nanoapp config file");
+  } else if (!config.isMember("nanoapps") || !config.isMember("source_dir")) {
+    LOGE("Malformed preloaded nanoapps config");
+  } else {
+    const Json::Value &directory = config["source_dir"];
+    for (Json::ArrayIndex i = 0; i < config["nanoapps"].size(); i++) {
+      const Json::Value &nanoapp = config["nanoapps"][i];
+      loadPreloadedNanoapp(directory.asString(), nanoapp.asString(),
+                           static_cast<uint32_t>(i));
+    }
+  }
+}
+
+void ChreDaemonBase::loadPreloadedNanoapp(const std::string &directory,
+                                          const std::string &name,
+                                          uint32_t transactionId) {
+  std::vector<uint8_t> headerBuffer;
+
+  std::string headerFile = directory + "/" + name + ".napp_header";
+
+  // Only create the nanoapp filename as the CHRE framework will load from
+  // within the directory its own binary resides in.
+  std::string nanoappFilename = name + ".so";
+
+  if (readFileContents(headerFile.c_str(), &headerBuffer) &&
+      !loadNanoapp(headerBuffer, nanoappFilename, transactionId)) {
+    LOGE("Failed to load nanoapp: '%s'", name.c_str());
+  }
+}
+
+bool ChreDaemonBase::loadNanoapp(const std::vector<uint8_t> &header,
+                                 const std::string &nanoappName,
+                                 uint32_t transactionId) {
+  // This struct comes from build/build_template.mk and must not be modified.
+  // Refer to that file for more details.
+  struct NanoAppBinaryHeader {
+    uint32_t headerVersion;
+    uint32_t magic;
+    uint64_t appId;
+    uint32_t appVersion;
+    uint32_t flags;
+    uint64_t hwHubType;
+    uint8_t targetChreApiMajorVersion;
+    uint8_t targetChreApiMinorVersion;
+    uint8_t reserved[6];
+  } __attribute__((packed));
+
+  bool success = false;
+  if (header.size() != sizeof(NanoAppBinaryHeader)) {
+    LOGE("Header size mismatch");
+  } else {
+    // The header blob contains the struct above.
+    const auto *appHeader =
+        reinterpret_cast<const NanoAppBinaryHeader *>(header.data());
+
+    // Build the target API version from major and minor.
+    uint32_t targetApiVersion = (appHeader->targetChreApiMajorVersion << 24) |
+                                (appHeader->targetChreApiMinorVersion << 16);
+
+    success = sendNanoappLoad(appHeader->appId, appHeader->appVersion,
+                              targetApiVersion, nanoappName, transactionId);
+  }
+
+  return success;
+}
+
+bool ChreDaemonBase::sendNanoappLoad(uint64_t appId, uint32_t appVersion,
+                                     uint32_t appTargetApiVersion,
+                                     const std::string &appBinaryName,
+                                     uint32_t transactionId) {
+  flatbuffers::FlatBufferBuilder builder;
+  HostProtocolHost::encodeLoadNanoappRequestForFile(
+      builder, transactionId, appId, appVersion, appTargetApiVersion,
+      appBinaryName.c_str());
+
+  bool success = sendMessageToChre(
+      kHostClientIdDaemon, builder.GetBufferPointer(), builder.GetSize());
+
+  if (!success) {
+    LOGE("Failed to send nanoapp filename.");
+  } else {
+    mPreloadedNanoappPendingTransactionIds.push(transactionId);
+  }
+
+  return success;
+}
+
+bool ChreDaemonBase::sendTimeSync(bool logOnError) {
+  bool success = false;
+  int64_t timeOffset = getTimeOffset(&success);
+
+  if (success) {
+    flatbuffers::FlatBufferBuilder builder(64);
+    HostProtocolHost::encodeTimeSyncMessage(builder, timeOffset);
+    success = sendMessageToChre(kHostClientIdDaemon, builder.GetBufferPointer(),
+                                builder.GetSize());
+
+    if (!success && logOnError) {
+      LOGE("Failed to deliver time sync message from host to CHRE");
+    }
+  }
+
+  return success;
+}
+
+bool ChreDaemonBase::sendTimeSyncWithRetry(size_t numRetries,
+                                           useconds_t retryDelayUs,
+                                           bool logOnError) {
+  bool success = false;
+  while (!success && (numRetries-- != 0)) {
+    success = sendTimeSync(logOnError);
+    if (!success) {
+      usleep(retryDelayUs);
+    }
+  }
+  return success;
+}
+
+bool ChreDaemonBase::readFileContents(const char *filename,
+                                      std::vector<uint8_t> *buffer) {
+  bool success = false;
+  std::ifstream file(filename, std::ios::binary | std::ios::ate);
+  if (!file) {
+    LOGE("Couldn't open file '%s': %d (%s)", filename, errno, strerror(errno));
+  } else {
+    ssize_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    buffer->resize(size);
+    if (!file.read(reinterpret_cast<char *>(buffer->data()), size)) {
+      LOGE("Couldn't read from file '%s': %d (%s)", filename, errno,
+           strerror(errno));
+    } else {
+      success = true;
+    }
+  }
+
+  return success;
+}
+
+void ChreDaemonBase::handleDaemonMessage(const uint8_t *message) {
+  std::unique_ptr<fbs::MessageContainerT> container =
+      fbs::UnPackMessageContainer(message);
+  if (container->message.type != fbs::ChreMessage::LoadNanoappResponse) {
+    LOGE("Invalid message from CHRE directed to daemon");
+  } else {
+    const auto *response = container->message.AsLoadNanoappResponse();
+    if (mPreloadedNanoappPendingTransactionIds.empty()) {
+      LOGE("Received nanoapp load response with no pending load");
+    } else if (mPreloadedNanoappPendingTransactionIds.front() !=
+               response->transaction_id) {
+      LOGE("Received nanoapp load response with ID %" PRIu32
+           " expected transaction id %" PRIu32,
+           response->transaction_id,
+           mPreloadedNanoappPendingTransactionIds.front());
+    } else {
+      if (!response->success) {
+        LOGE("Received unsuccessful nanoapp load response with ID %" PRIu32,
+             mPreloadedNanoappPendingTransactionIds.front());
+      }
+      mPreloadedNanoappPendingTransactionIds.pop();
+    }
+  }
+}
+
+}  // namespace chre
+}  // namespace android
