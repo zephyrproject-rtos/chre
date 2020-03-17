@@ -133,7 +133,7 @@ public class ChreCrossValidatorSensor
         } else {
             ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
             int sensorType = sensorData.getSensorType().getNumber();
-            if (sensorType != mSensorTypeInfo.sensorType) {
+            if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(
                         String.format(kParseDataErrorPrefix
                         + "incorrect sensor type %d when expecting %d",
@@ -215,7 +215,13 @@ public class ChreCrossValidatorSensor
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (mCollectingData.get()) {
-            mApDatapointsQueue.add(new SensorDatapoint(event));
+            int sensorType = event.sensor.getType();
+            if (!isSensorTypeCurrent(sensorType)) {
+                setErrorStr(String.format("incorrect sensor type %d when expecting %d",
+                                          sensorType, mSensorTypeInfo.sensorType));
+            } else {
+                mApDatapointsQueue.add(new SensorDatapoint(event));
+            }
         }
     }
 
@@ -237,6 +243,14 @@ public class ChreCrossValidatorSensor
     */
     private static boolean isSensorTypeValid(int sensorType) {
         return SENSOR_TYPE_TO_INFO.containsKey(sensorType);
+    }
+
+    /**
+     * @param sensorType The sensor type received from nanoapp or Android framework.
+     * @return true if sensor type matches current sensor type expected.
+     */
+    private boolean isSensorTypeCurrent(int sensorType) {
+        return sensorType == mSensorTypeInfo.sensorType;
     }
 
     /**
