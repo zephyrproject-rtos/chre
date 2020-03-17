@@ -109,7 +109,7 @@ public class ChreCrossValidatorSensor
                 ChreCrossValidation.StartSensorCommand.newBuilder()
                 .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
                 .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
-                .setSensorType(ChreCrossValidation.SensorType.forNumber(mSensorTypeInfo.sensorType))
+                .setApSensorType(mSensorTypeInfo.sensorType)
                 .build();
         ChreCrossValidation.StartCommand startCommand =
                 ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor)
@@ -132,7 +132,7 @@ public class ChreCrossValidatorSensor
             setErrorStr(kParseDataErrorPrefix + "found non sensor type data");
         } else {
             ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
-            int sensorType = sensorData.getSensorType().getNumber();
+            int sensorType = sensorData.getChreSensorType();
             if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(
                         String.format(kParseDataErrorPrefix
