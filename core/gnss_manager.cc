@@ -58,7 +58,8 @@ bool getReportEventType(SystemCallbackType callbackType, uint16_t *eventType) {
       break;
     }
     default: {
-      LOGE("Unknown callback type %" PRIu16, callbackType);
+      LOGE("Unknown callback type %" PRIu16,
+           static_cast<uint16_t>(callbackType));
       success = false;
     }
   }
@@ -196,11 +197,13 @@ void GnssSession::handleLocationSettingChange(SettingState state) {
   if (chreEnable || chreDisable) {
     if (controlPlatform(chreEnable, mCurrentInterval,
                         Milliseconds(0) /* minTimeToNext */)) {
-      LOGD("Configured GNSS %s: setting state %" PRIu8, mName, state);
+      LOGD("Configured GNSS %s: setting state %" PRIu8, mName,
+           static_cast<uint8_t>(state));
       addSessionRequestLog(CHRE_INSTANCE_ID, mCurrentInterval, chreEnable);
       mInternalRequestPending = true;
     } else {
-      LOGE("Failed to configure GNSS %s: setting state %" PRIu8, mName, state);
+      LOGE("Failed to configure GNSS %s: setting state %" PRIu8, mName,
+           static_cast<uint8_t>(state));
     }
   }
 }

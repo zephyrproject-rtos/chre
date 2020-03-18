@@ -90,3 +90,10 @@ DLL_EXPORT void platformDso_chreDebugDumpVaLog(const char *formatStr,
 }
 
 }  // namespace chre
+
+DLL_EXPORT void chreDebugDumpLog(const char *formatStr, ...) {
+  va_list args;
+  va_start(args, formatStr);
+  chre::platformDso_chreDebugDumpVaLog(formatStr, args);
+  va_end(args);
+}
