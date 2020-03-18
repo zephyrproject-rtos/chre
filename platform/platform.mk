@@ -154,6 +154,7 @@ SIM_CFLAGS += -Iplatform/shared/include
 
 SIM_SRCS += platform/linux/chre_api_re.cc
 SIM_SRCS += platform/linux/context.cc
+SIM_SRCS += platform/linux/debug_dump.cc
 SIM_SRCS += platform/linux/fatal_error.cc
 SIM_SRCS += platform/linux/host_link.cc
 SIM_SRCS += platform/linux/memory.cc
