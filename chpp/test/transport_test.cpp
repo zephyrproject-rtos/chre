@@ -260,8 +260,8 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
 
     memcpy(buf, &header, sizeof(header));
 
-    buf[sizeof(ChppTransportHeader)] = CHPP_DATAGRAM_HANDLE_LOOPBACK;
-    buf[sizeof(ChppTransportHeader) + 1] = CHPP_DATAGRAM_TYPE_CLIENT_REQUEST;
+    buf[sizeof(ChppTransportHeader)] = CHPP_HANDLE_LOOPBACK;
+    buf[sizeof(ChppTransportHeader) + 1] = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
 
     // TODO: Add checksum
 
@@ -315,11 +315,11 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
         EXPECT_EQ(transportContext.pendingTxPacket
                       .payload[CHPP_PREAMBLE_LEN_BYTES +
                                sizeof(struct ChppTransportHeader)],
-                  CHPP_DATAGRAM_HANDLE_LOOPBACK);
+                  CHPP_HANDLE_LOOPBACK);
         EXPECT_EQ(transportContext.pendingTxPacket
                       .payload[CHPP_PREAMBLE_LEN_BYTES +
                                sizeof(struct ChppTransportHeader) + 1],
-                  CHPP_DATAGRAM_TYPE_SERVER_RESPONSE);
+                  CHPP_MESSAGE_TYPE_SERVER_RESPONSE);
       }
     }
 
