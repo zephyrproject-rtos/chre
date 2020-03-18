@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_HOST_LINK_H_
 #define CHRE_PLATFORM_HOST_LINK_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "chre/target_platform/host_link_base.h"
