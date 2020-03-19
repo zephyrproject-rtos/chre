@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,10 @@
  * limitations under the License.
  */
 
-#include "chre/platform/host_link.h"
+#include "chre/platform/shared/debug_dump.h"
 
 namespace chre {
 
-void HostLink::flushMessagesSentByNanoapp(uint64_t appId) {
-  // TODO: implement
-}
-
-bool HostLink::sendMessage(const MessageToHost *message) {
-  // TODO: implement
-  return false;
-}
-
-void HostLink::sendLogMessage(const char *logMessage, size_t logMessageSize) {
-  // TODO: implement
-}
+void platform_chreDebugDumpVaLog(const char *formatStr, va_list args) {}
 
 }  // namespace chre
