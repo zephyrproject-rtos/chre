@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Google LLC.
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.utils.chre;
+
+package com.google.android.chre.test.crossvalidator;
 
 import android.hardware.location.ContextHubClient;
 import android.hardware.location.ContextHubClientCallback;
@@ -26,6 +27,8 @@ import android.hardware.location.NanoAppState;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
+
+import com.google.android.utils.chre.ChreTestUtil;
 
 import org.junit.Assert;
 import org.junit.Assume;
