@@ -26,8 +26,6 @@ import android.hardware.location.NanoAppMessage;
 import android.hardware.location.NanoAppState;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
-
 import com.google.android.utils.chre.ChreTestUtil;
 
 import org.junit.Assert;
@@ -49,6 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 abstract class ChreCrossValidatorBase {
     protected static final String TAG = "ChreCrossValidator";
     private static final long NANO_APP_ID = 0x476f6f6754000002L;
+    private static final long SAMPLING_DURATION_IN_MS = 5000;
 
     private final ContextHubManager mContextHubManager;
     private final ContextHubClient mContextHubClient;
@@ -95,25 +94,49 @@ abstract class ChreCrossValidatorBase {
     }
 
     /**
-    * Loads the CHRE cross validation nanoapp.
-    */
-    public void loadNanoApp() throws AssertionError {
+     * Initialize cross validator in preparation for a call to validate method. Subclasses should
+     * override this method and add any additional init steps after a call to super.init() if
+     * needed. Should be called in @Before methods of tests.
+     */
+    public void init() throws AssertionError {
+        unloadAllNanoApps();
+        // Load cross validator nanoapp
         ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNappBinary);
     }
 
     /**
-    * Unloads the CHRE cross validation nanoapp.
+     * Validate the data from AP and CHRE according to the parameters passed to this cross
+     * validator. Should be called in @Test methods of tests.
+     *
+     * @param samplingDurationInMs The amount of time in milliseconds to collect samples from AP and
+     * CHRE.
+     */
+    public void validate() throws AssertionError {
+        collectDataFromAp();
+        collectDataFromChre();
+        waitForDataSampling();
+        assertApAndChreDataSimilar();
+    }
+
+    /**
+    * Clean up resources allocated for cross validation. Subclasses should override this method and
+    * add any additional deinit steps after a call to super.deinit() if needed. Should be called in
+    * @After methods of tests.
     */
-    public void unloadNanoApp() throws AssertionError {
+    public void deinit() throws AssertionError {
+        mCollectingData.set(false);
+        // Unload cross validator nanoapp
         ChreTestUtil.unloadNanoAppAssertSuccess(
                 mContextHubManager, mContextHubInfo, mNappBinary.getNanoAppId());
+        closeContextHubConnection();
+        unregisterApDataListener();
     }
 
     /**
     * Unloads all nanoapps from device. Call before validating data to ensure no inconsistencies
     * with data received.
     */
-    public void unloadAllNanoApps() {
+    private void unloadAllNanoApps() {
         List<NanoAppState> nanoAppStateList =
                 ChreTestUtil.queryNanoAppsAssertSuccess(mContextHubManager, mContextHubInfo);
 
@@ -127,14 +150,14 @@ abstract class ChreCrossValidatorBase {
     /**
     * Start collecting data from AP
     */
-    public void collectDataFromAp() {
+    private void collectDataFromAp() {
         registerApDataListener();
     }
 
     /**
     * Start collecting data from CHRE
     */
-    public void collectDataFromChre() throws AssertionError {
+    private void collectDataFromChre() throws AssertionError {
         // The info in the start message will inform the nanoapp of which type of
         // data to collect (accel, gyro, gnss, wifi, etc).
         int result = mContextHubClient.sendMessageToNanoApp(makeStartNanoAppMessage());
@@ -148,54 +171,20 @@ abstract class ChreCrossValidatorBase {
     /**
     * Wait for AP and CHRE data to be fully collected or timeouts occur. collectDataFromAp and
     * collectDataFromChre methods should both be called before this.
+    *
+    * @param samplingDurationInMs The amount of time to wait for AP and CHRE to collected data in
+    * ms.
     */
-    public void waitForDataSampling(long samplingDurationInMs) throws AssertionError {
+    private void waitForDataSampling() throws AssertionError {
         mCollectingData.set(true);
         try {
-            mAwaitDataLatch.await(samplingDurationInMs, TimeUnit.MILLISECONDS);
+            mAwaitDataLatch.await(SAMPLING_DURATION_IN_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Assert.fail("await data latch interrupted");
         }
         if (mErrorStr.get() != null) {
             Assert.fail(mErrorStr.get());
-        } else {
-            deinit();
         }
-    }
-
-    /**
-    * @return true if ap and chre data are close enough and no errors occurred in setup
-    */
-    public void assertDataValid() throws AssertionError {
-        assertApAndChreDataSimilar();
-    }
-
-    /**
-    * Clean up open connections and event listeners. Should be called in @After methods of tests.
-    */
-    public void deinit() throws AssertionError {
-        if (mErrorStr.get() != null) {
-            Assert.fail(mErrorStr.get());
-        }
-        mCollectingData.set(false);
-        closeContextHubConnection();
-        unregisterApDataListener();
-    }
-
-    /**
-    * Restrict other applications from accessing sensors. Should be called before validating data.
-    */
-    public void restrictSensors() {
-        ChreTestUtil.executeShellCommand(InstrumentationRegistry.getInstrumentation(),
-                "dumpsys sensorservice restrict ChreCrossValidatorSensor");
-    }
-
-    /**
-    * Unrestrict other applications from accessing sensors. Should be called after validating data.
-    */
-    public void unrestrictSensors() {
-        ChreTestUtil.executeShellCommand(
-                InstrumentationRegistry.getInstrumentation(), "dumpsys sensorservice enable");
     }
 
     // Private helpers below
