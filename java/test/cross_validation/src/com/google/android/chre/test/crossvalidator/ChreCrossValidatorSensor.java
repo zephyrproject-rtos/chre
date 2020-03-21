@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Google LLC.
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.utils.chre;
+package com.google.android.chre.test.crossvalidator;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -27,6 +27,8 @@ import android.hardware.location.NanoAppMessage;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.google.android.chre.nanoapp.proto.ChreCrossValidation;
+import com.google.android.utils.chre.ChreTestUtil;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.Assert;
@@ -189,8 +191,9 @@ public class ChreCrossValidatorSensor
                     + "\nAP data -> " + apDp + "\nCHRE data -> "
                     + chreDp;
 
-            // TODO(b/146052784): Log full list of datapoints to file on disk on assertion failure so
-            // that there is more insight into the problem then just logging the one pair of datapoints
+            // TODO(b/146052784): Log full list of datapoints to file on disk on assertion failure
+            // so that there is more insight into the problem then just logging the one pair of
+            // datapoints
             Assert.assertTrue(datapointsAssertMsg,
                     SensorDatapoint.datapointsAreSimilar(apDp, chreDp,
                     mSensorTypeInfo.errorMargin));
@@ -207,6 +210,18 @@ public class ChreCrossValidatorSensor
         if (mCollectingData.get()) {
             mApDatapoints.add(new SensorDatapoint(event));
         }
+    }
+
+    @Override
+    public void init() throws AssertionError {
+        super.init();
+        restrictSensors();
+    }
+
+    @Override
+    public void deinit() throws AssertionError {
+        super.deinit();
+        unrestrictSensors();
     }
 
     /*
@@ -256,5 +271,21 @@ public class ChreCrossValidatorSensor
                 chreIndex++;
             }
         }
+    }
+
+    /**
+    * Restrict other applications from accessing sensors. Should be called before validating data.
+    */
+    private void restrictSensors() {
+        ChreTestUtil.executeShellCommand(InstrumentationRegistry.getInstrumentation(),
+                "dumpsys sensorservice restrict ChreCrossValidatorSensor");
+    }
+
+    /**
+    * Unrestrict other applications from accessing sensors. Should be called after validating data.
+    */
+    private void unrestrictSensors() {
+        ChreTestUtil.executeShellCommand(
+                InstrumentationRegistry.getInstrumentation(), "dumpsys sensorservice enable");
     }
 }
