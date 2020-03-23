@@ -71,6 +71,8 @@ const char *getSettingStateString(Setting setting) {
 }  // anonymous namespace
 
 void postSettingChange(Setting setting, SettingState state) {
+  LOGD("Posting setting change: setting type %" PRIU8 " state %" PRIu8, setting,
+       state);
   struct SettingChange {
     Setting setting;
     SettingState state;
