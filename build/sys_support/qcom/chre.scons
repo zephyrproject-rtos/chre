@@ -269,6 +269,7 @@ chre_cc_src = [
     "${BUILD_ROOT}/ssc_api/build/${BUILDPATH}/pb/sns_std_type.pb.c",
 
     # Core CHRE framework code
+    "${BUILDPATH}/system/chre/core/debug_dump_manager.cc",
     "${BUILDPATH}/system/chre/core/event.cc",
     "${BUILDPATH}/system/chre/core/event_loop.cc",
     "${BUILDPATH}/system/chre/core/event_loop_manager.cc",
@@ -301,12 +302,12 @@ chre_cc_src = [
     "${BUILDPATH}/system/chre/platform/shared/pal_system_api.cc",
     "${BUILDPATH}/system/chre/platform/shared/system_time.cc",
     "${BUILDPATH}/system/chre/platform/slpi/chre_api_re.cc",
-    "${BUILDPATH}/system/chre/platform/slpi/debug_dump.cc",
     "${BUILDPATH}/system/chre/platform/slpi/host_link.cc",
     "${BUILDPATH}/system/chre/platform/slpi/init.cc",
     "${BUILDPATH}/system/chre/platform/slpi/memory.cc",
     "${BUILDPATH}/system/chre/platform/slpi/memory_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/nanoapp_load_manager.cc",
+    "${BUILDPATH}/system/chre/platform/slpi/platform_debug_dump_manager.cc",
     "${BUILDPATH}/system/chre/platform/slpi/platform_nanoapp.cc",
     "${BUILDPATH}/system/chre/platform/slpi/platform_pal.cc",
     "${BUILDPATH}/system/chre/platform/slpi/platform_sensor_type_helpers.cc",
