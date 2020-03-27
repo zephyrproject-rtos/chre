@@ -46,6 +46,12 @@
 #define CHRE_ASSERT(condition) ((void)(condition))
 #endif  // CHRE_ASSERTIONS_ENABLED
 
+#ifdef __cplusplus
+#define CHRE_ASSERT_NOT_NULL(ptr) CHRE_ASSERT((ptr) != nullptr)
+#else
+#define CHRE_ASSERT_NOT_NULL(ptr) CHRE_ASSERT((ptr) != NULL)
+#endif
+
 #ifdef GTEST
 // Mocks are not supported in standalone mode. Just skip the statement entirely.
 #define EXPECT_CHRE_ASSERT(statement)
