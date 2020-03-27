@@ -24,7 +24,7 @@ namespace chre {
 const StaticNanoappInitFunction kStaticNanoappList[] = {
     // clang-format off
     initializeStaticNanoappAudioWorld,
-    initializeStaticNanoappDebugDumpWorld
+    initializeStaticNanoappDebugDumpWorld,
     initializeStaticNanoappGnssWorld,
     initializeStaticNanoappHelloWorld,
     initializeStaticNanoappMessageWorld,
