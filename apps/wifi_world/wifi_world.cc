@@ -156,11 +156,12 @@ void logChreRangingResult(const chreWifiRangingResult &result) {
     if (result.flags & CHRE_WIFI_RTT_RESULT_HAS_LCI) {
       const chreWifiRangingResult::chreWifiLci lci = result.lci;
       LOGI("  latitude: 0x%" PRIx64 ", %f degs", lci.latitude,
-           lci.latitude / static_cast<float>(1 << 25));
+           static_cast<float>(lci.latitude) / static_cast<float>(1 << 25));
       LOGI("  longitude: 0x%" PRIx64 ", %f degs", lci.longitude,
-           lci.longitude / static_cast<float>(1 << 25));
+           static_cast<float>(lci.longitude) / static_cast<float>(1 << 25));
 
-      float altitude = lci.altitude / static_cast<float>(1 << 8);
+      float altitude =
+          static_cast<float>(lci.altitude) / static_cast<float>(1 << 8);
       if (lci.altitudeType == CHRE_WIFI_LCI_UNCERTAINTY_UNKNOWN) {
         LOGI("  altitude: unknown");
       } else if (lci.altitudeType == CHRE_WIFI_LCI_ALTITUDE_TYPE_METERS) {
