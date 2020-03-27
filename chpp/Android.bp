@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
+
 cc_library_host_static {
     name: "chre_chpp_linux",
+    cflags: [
+        "-DCHPP_SERVICE_ENABLED_WWAN",
+    ],
     srcs: [
         "transport.c",
         "app.c",
+        "services.c",
         "platform/linux/link.c",
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
         "services/discovery.c",
         "services/loopback.c",
         "services/nonhandle.c",
+        "services/wwan.c",
     ],
     export_include_dirs: [
         "platform/linux/include",

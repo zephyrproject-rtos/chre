@@ -17,8 +17,11 @@
 #ifndef CHPP_MACROS_H_
 #define CHPP_MACROS_H_
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+
+#include <bits/types.h>
 
 #ifdef __cplusplus
 extern "C" {

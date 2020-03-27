@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Implementation Notes:
- * Each platform must supply a platform-specific platform_link.h to provide the
- * definitions and a platform-specific link.c to provide the implementation for
- * the definitions in this file.
- * The platform must also initialize the ChppPlatformLinkParameters for each
- * link (context.linkParams).
- */
-
 #ifndef CHPP_APP_H_
 #define CHPP_APP_H_
 
@@ -33,6 +24,7 @@
 
 #include "chpp/macros.h"
 #include "chpp/memory.h"
+#include "chpp/services.h"
 #include "chpp/transport.h"
 
 #include "chpp/services/discovery.h"
@@ -46,6 +38,14 @@ extern "C" {
 /************************************************
  *  Public Definitions
  ***********************************************/
+
+/**
+ * Maximum number of services that can be registered by CHPP (not including
+ * predefined services), if not defined by the build system.
+ */
+#ifndef CHPP_MAX_REGISTERED_SERVICES
+#define CHPP_MAX_REGISTERED_SERVICES 5
+#endif
 
 /**
  * Handle Numbers in ChppAppHeader
@@ -105,8 +105,57 @@ struct ChppAppHeader {
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
+/**
+ * Function type that dispatches incoming datagrams for any particular service
+ */
+typedef void(ChppDispatchFunction)(struct ChppAppState *context, uint8_t *buf,
+                                   size_t len);
+
+/**
+ * Length of a service UUID in bytes
+ */
+#define CHPP_SERVICE_UUID_LEN 16
+#define CHPP_SERVICE_UUID_STRING_LEN (16 * 2 + 4 + 1)
+
+/**
+ * Maximum length of a human-readable service name, per CHPP spec.
+ * (15 ASCII characters + null)
+ */
+#define CHPP_SERVICE_NAME_MAX_LEN (15 + 1)
+
+/**
+ * CHPP definition of a service supported on a server
+ */
+struct ChppService {
+  // UUID of the service.
+  // Must be generated according to RFC 4122, UUID version 4 (random).
+  uint8_t uuid[CHPP_SERVICE_UUID_LEN];
+
+  // Human-readable name of the service for debugging.
+  char name[CHPP_SERVICE_NAME_MAX_LEN];
+
+  // Major version of the service (breaking changes).
+  uint8_t versionMajor;
+
+  // Minor version of the service (backwards compatible changes).
+  uint8_t versionMinor;
+
+  // Patch version of the service (bug fixes).
+  uint16_t versionPatch;
+
+  // Pointer to the function that dispatches incoming datagrams for the service.
+  ChppDispatchFunction *dispatchFunctionPtr;
+
+  // Minimum valid length of datagrams for the service.
+  uint8_t minLength;
+};
+
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
+
+  uint8_t registeredServiceCount;  // Number of services currently registered
+
+  const struct ChppService *registeredServices[CHPP_MAX_REGISTERED_SERVICES];
 };
 
 /************************************************
@@ -125,7 +174,7 @@ struct ChppAppState {
 void chppAppInit(struct ChppAppState *appContext,
                  struct ChppTransportState *transportContext);
 
-/*
+/**
  * Processes an Rx Datagram from the transport layer.
  *
  * @param context Maintains status for each app layer instance.

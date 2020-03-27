@@ -39,7 +39,7 @@ enum ChppDiscoveryCommands {
  *  Private Functions
  ***********************************************/
 
-/*
+/**
  * Processes the Discover All Services command (0x0001)
  *
  * @param context Maintains status for each app layer instance.
@@ -78,16 +78,16 @@ void chppDispatchDiscovery(struct ChppAppState *context, uint8_t *buf,
       break;
 
     case CHPP_MESSAGE_TYPE_SERVER_RESPONSE:
-      // Received discovery query response from server.
+      // Received discovery response from server.
 
-      // TODO
+      // TODO: Register client for discovered services
       UNUSED_VAR(len);
 
       break;
 
     default:
       LOGE(
-          "Received unknown discovery notification: type = %d, command = %#x, "
+          "Received unknown discovery message type: %#x, command = %#x, "
           "transaction = %d",
           rxHeader->type, command, transaction);
   }

@@ -19,7 +19,9 @@
 #include <string.h>
 #include <thread>
 
+#include "chpp/app.h"
 #include "chpp/transport.h"
+
 #include "transport_test.h"
 
 namespace {
@@ -47,6 +49,11 @@ class TransportTests : public testing::TestWithParam<int> {
 
     transportContext.linkParams.index = 1;
     transportContext.linkParams.sync = true;
+
+    // Make sure CHPP has a correct count of the number of registered services
+    // on this platform, (in this case, 1,) as registered in the function
+    // chppRegisterCommonServices().
+    ASSERT_EQ(appContext.registeredServiceCount, 1);
   }
 
   /**
