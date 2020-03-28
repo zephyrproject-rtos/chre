@@ -94,8 +94,8 @@ class FixedSizeBlockingQueue : public NonCopyable {
   const ElementType &operator[](size_t index) const;
 
  private:
-  //! The mutex used to ensure thread-safety.
-  Mutex mMutex;
+  //! The mutex used to ensure thread-safety. Mutable to allow const operator[].
+  mutable Mutex mMutex;
 
   //! The condition variable used to implement the blocking behavior of the
   //! queue.
