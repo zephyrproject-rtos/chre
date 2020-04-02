@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef CHPP_DISCOVERY_H_
 #define CHPP_DISCOVERY_H_
 
@@ -36,6 +35,14 @@ struct ChppAppState *context;
  *  Public Definitions
  ***********************************************/
 
+/**
+ * Commands used by the Discovery Service
+ */
+enum ChppDiscoveryCommands {
+  // Discover all services.
+  CHPP_DISCOVERY_COMMAND_DISCOVER_ALL = 0x0001,
+};
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -45,10 +52,10 @@ struct ChppAppState *context;
  * for the CHPP Discovery Service.
  *
  * @param context Maintains status for each app layer instance.
- * @param buf Input data. Cannot be null.
+ * @param buf Input (request) datagram. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchDiscovery(struct ChppAppState *context, uint8_t *buf,
+void chppDispatchDiscovery(struct ChppAppState *context, const uint8_t *buf,
                            size_t len);
 
 #ifdef __cplusplus

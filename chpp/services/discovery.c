@@ -15,25 +15,25 @@
  */
 
 #include "chpp/services/discovery.h"
+#include "chpp/services.h"
 
 /************************************************
  *  Prototypes
  ***********************************************/
 
 void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              uint8_t transaction);
+                              const struct ChppAppHeader *rxHeader);
 
 /************************************************
  *  Private Definitions
  ***********************************************/
 
-/**
- * Commands used by the Discovery Service
- */
-enum ChppDiscoveryCommands {
-  // Discover all services.
-  CHPP_DISCOVERY_COMMAND_DISCOVER_ALL = 0x0001,
-};
+CHPP_PACKED_START
+struct ChppDiscoveryResponse {
+  struct ChppAppHeader header;
+  struct ChppServiceDescriptor services[];
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
 
 /************************************************
  *  Private Functions
@@ -43,52 +43,83 @@ enum ChppDiscoveryCommands {
  * Processes the Discover All Services command (0x0001)
  *
  * @param context Maintains status for each app layer instance.
- * @param transaction Transaction ID (to be included in the response).
+ * @param requestHeader Request datagram header. Cannot be null.
  */
 void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              uint8_t transaction) {
-  // TODO
+                              const struct ChppAppHeader *requestHeader) {
+  // Allocate response
+  size_t responseLen =
+      sizeof(struct ChppAppHeader) +
+      context->registeredServiceCount * sizeof(struct ChppServiceDescriptor);
 
-  UNUSED_VAR(context);
-  UNUSED_VAR(transaction);
+  struct ChppDiscoveryResponse *response = chppAllocServiceResponseTypedArray(
+      requestHeader, struct ChppDiscoveryResponse,
+      context->registeredServiceCount, services);
+
+  if (response == NULL) {
+    LOGE("OOM allocating Discover All response of %zu bytes", responseLen);
+    CHPP_ASSERT();
+
+  } else {
+    // Populate list of services
+    for (size_t i = 0; i < context->registeredServiceCount; i++) {
+      response->services[i] = context->registeredServices[i]->descriptor;
+    }
+
+    // Send out response datagram
+    if (!chppEnqueueTxDatagram(context->transportContext, (uint8_t *)response,
+                               responseLen)) {
+      LOGE("Tx Queue full. Dropping discovery response datagram of %zu bytes",
+           responseLen);
+      // Deallocate response on error
+      chppFree(response);
+    }
+  }
 }
 
 /************************************************
  *  Public Functions
  ***********************************************/
 
-void chppDispatchDiscovery(struct ChppAppState *context, uint8_t *buf,
+void chppDispatchDiscovery(struct ChppAppState *context, const uint8_t *buf,
                            size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-  uint8_t transaction = rxHeader->transaction;
-  uint16_t command = rxHeader->command;
 
   switch (rxHeader->type) {
-    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST:
-      // Discovery request from client.
+    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
+      // Discovery request from client
 
-      if (command == CHPP_DISCOVERY_COMMAND_DISCOVER_ALL) {
-        // Send back a list of services supported by this platform.
-        chppDiscoveryDiscoverAll(context, transaction);
-
-      } else {
-        LOGE("Received unknown discovery command: %#x, transaction = %d",
-             command, transaction);
+      switch (rxHeader->command) {
+        case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
+          // Send back a list of services supported by this platform.
+          chppDiscoveryDiscoverAll(context, rxHeader);
+          break;
+        }
+        default: {
+          LOGE("Received unknown discovery command: %#x, transaction = %d",
+               rxHeader->command, rxHeader->transaction);
+          break;
+        }
       }
-      break;
 
-    case CHPP_MESSAGE_TYPE_SERVER_RESPONSE:
-      // Received discovery response from server.
+      break;
+    }
+
+    case CHPP_MESSAGE_TYPE_SERVER_RESPONSE: {
+      // Received discovery response from server
 
       // TODO: Register client for discovered services
       UNUSED_VAR(len);
 
       break;
+    }
 
-    default:
+    default: {
       LOGE(
           "Received unknown discovery message type: %#x, command = %#x, "
           "transaction = %d",
-          rxHeader->type, command, transaction);
+          rxHeader->type, rxHeader->command, rxHeader->transaction);
+      break;
+    }
   }
 }

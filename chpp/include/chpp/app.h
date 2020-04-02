@@ -24,7 +24,6 @@
 
 #include "chpp/macros.h"
 #include "chpp/memory.h"
-#include "chpp/services.h"
 #include "chpp/transport.h"
 
 #include "chpp/services/discovery.h"
@@ -118,35 +117,52 @@ typedef void(ChppDispatchFunction)(struct ChppAppState *context, uint8_t *buf,
 #define CHPP_SERVICE_UUID_STRING_LEN (16 * 2 + 4 + 1)
 
 /**
+ * Length of a version number, in bytes.
+ * (uint8_t + uint8_t + uint16_t)
+ */
+#define CHPP_SERVICE_VERSION_LEN (1 + 1 + 2)
+
+/**
  * Maximum length of a human-readable service name, per CHPP spec.
  * (15 ASCII characters + null)
  */
 #define CHPP_SERVICE_NAME_MAX_LEN (15 + 1)
 
 /**
- * CHPP definition of a service supported on a server
+ * CHPP definition of a service descriptor as sent over the wire.
  */
-struct ChppService {
-  // UUID of the service.
-  // Must be generated according to RFC 4122, UUID version 4 (random).
+CHPP_PACKED_START
+struct ChppServiceDescriptor {
+  //! UUID of the service.
+  //! Must be generated according to RFC 4122, UUID version 4 (random).
   uint8_t uuid[CHPP_SERVICE_UUID_LEN];
 
-  // Human-readable name of the service for debugging.
+  //! Human-readable name of the service for debugging.
   char name[CHPP_SERVICE_NAME_MAX_LEN];
 
-  // Major version of the service (breaking changes).
+  //! Major version of the service (breaking changes).
   uint8_t versionMajor;
 
-  // Minor version of the service (backwards compatible changes).
+  //! Minor version of the service (backwards compatible changes).
   uint8_t versionMinor;
 
-  // Patch version of the service (bug fixes).
+  //! Patch version of the service (bug fixes).
   uint16_t versionPatch;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
 
-  // Pointer to the function that dispatches incoming datagrams for the service.
+/**
+ * CHPP definition of a service as supported on a server.
+ */
+struct ChppService {
+  //! Service Descriptor as sent over the wire.
+  struct ChppServiceDescriptor descriptor;
+
+  //! Pointer to the function that dispatches incoming datagrams for the
+  //! service.
   ChppDispatchFunction *dispatchFunctionPtr;
 
-  // Minimum valid length of datagrams for the service.
+  //! Minimum valid length of datagrams for the service.
   uint8_t minLength;
 };
 

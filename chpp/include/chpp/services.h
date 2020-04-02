@@ -39,6 +39,37 @@ struct ChppService;
  *  Public Definitions
  ***********************************************/
 
+/**
+ * Uses chppAllocServiceResponse() to allocate a variable-length response
+ * message of a specific type.
+ *
+ * @param requestHeader client request header, as per
+ * chppAllocServiceResponse().
+ * @param type Type of response which includes an arrayed member.
+ * @param count number of items in the array of arrayField.
+ * @param arrayField The arrayed member field.
+ *
+ * @return Pointer to allocated memory
+ */
+#define chppAllocServiceResponseTypedArray(requestHeader, type, count, \
+                                           arrayField)                 \
+  (type *)chppAllocServiceResponse(                                    \
+      requestHeader,                                                   \
+      sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
+
+/**
+ * Uses chppAllocServiceResponse() to allocate a response message of a specific
+ * type and its corresponding length.
+ *
+ * @param requestHeader client request header, as per
+ * chppAllocServiceResponse().
+ * @param type Type of response.
+ *
+ * @return Pointer to allocated memory
+ */
+#define chppAllocServiceResponseFixed(requestHeader, type) \
+  (type *)chppAllocServiceResponse(requestHeader, sizeof(type))
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -65,9 +96,30 @@ void chppRegisterCommonServices(struct ChppAppState *context);
  *
  * @param context Maintains status for each app layer instance.
  * @param newService The service to be registered on this platform.
+ *
+ * @return Handle number of the registered service, or zero indicating failure.
  */
 void chppRegisterService(struct ChppAppState *context,
                          const struct ChppService *newService);
+
+/**
+ * Allocates a response message of a specified length, populating the (app
+ * layer) server response header accorging to the provided client request (app
+ * layer) header.
+ *
+ * It is expected that for most use cases, the chppAllocServiceResponseFixed()
+ * or chppAllocServiceResponseTypedArray() macros shall be used rather than
+ * calling this function directly.
+ *
+ * @param requestHeader client request header
+ * @param len Length of the response message (including header) in bytes. Note
+ * that the specified length must be at least equal to the lendth of the app
+ * layer header.
+ *
+ * @return Pointer to allocated memory
+ */
+struct ChppAppHeader *chppAllocServiceResponse(
+    const struct ChppAppHeader *requestHeader, size_t len);
 
 #ifdef __cplusplus
 }

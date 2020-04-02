@@ -27,17 +27,17 @@ void chppDispatchWwan(struct ChppAppState *context, uint8_t *buf, size_t len);
  ***********************************************/
 
 static const struct ChppService wwanService = {
-    .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
-             0x0d, 0x0b, 0x0e, 0x0e, 0x0f},
+    .descriptor.uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d,
+                        0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f},
 
     // Human-readable name
-    .name = "WWAN",
+    .descriptor.name = "WWAN",
 
-    .versionMajor = 1,
+    .descriptor.versionMajor = 1,
 
-    .versionMinor = 0,
+    .descriptor.versionMinor = 0,
 
-    .versionPatch = 0,
+    .descriptor.versionPatch = 0,
 
     // Dispatch function pointer
     .dispatchFunctionPtr = &chppDispatchWwan,
