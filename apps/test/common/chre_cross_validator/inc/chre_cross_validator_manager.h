@@ -170,8 +170,7 @@ class Manager {
    * axis data.
    */
   chre_cross_validation_Data makeSensorThreeAxisData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre,
-      chre_cross_validation_SensorType sensorType);
+      const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
    * Handle sensor three axis data from CHRE.
@@ -180,8 +179,7 @@ class Manager {
    * @param sensorType The sensor type that sent the three axis data.
    */
   void handleSensorThreeAxisData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre,
-      chre_cross_validation_SensorType sensorType);
+      const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
    * Encode and send data to be validated to host.
