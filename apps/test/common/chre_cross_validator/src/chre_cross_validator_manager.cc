@@ -72,7 +72,7 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
       handleSensorThreeAxisData(
           static_cast<const chreSensorThreeAxisData *>(eventData),
-          chre_cross_validation_SensorType_ACCELEROMETER);
+          CHRE_SENSOR_TYPE_ACCELEROMETER);
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
@@ -144,7 +144,7 @@ bool Manager::encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
 bool Manager::handleStartSensorMessage(
     const chre_cross_validation_StartSensorCommand &startSensorCommand) {
   bool success = true;
-  uint8_t sensorType = startSensorCommand.sensorType;
+  uint8_t sensorType = startSensorCommand.apSensorType;
   uint64_t interval = startSensorCommand.samplingIntervalInNs;
   uint64_t latency = startSensorCommand.samplingMaxLatencyInNs;
   uint32_t handle;
@@ -227,11 +227,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 }
 
 chre_cross_validation_Data Manager::makeSensorThreeAxisData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre,
-    chre_cross_validation_SensorType sensorType) {
+    const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType) {
   chre_cross_validation_SensorData newThreeAxisData = {
-      .has_sensorType = true,
-      .sensorType = sensorType,
+      .has_chreSensorType = true,
+      .chreSensorType = sensorType,
       .has_accuracy = true,
       .accuracy = threeAxisDataFromChre->header.accuracy,
       .datapoints = {
@@ -248,8 +247,7 @@ chre_cross_validation_Data Manager::makeSensorThreeAxisData(
 }
 
 void Manager::handleSensorThreeAxisData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre,
-    chre_cross_validation_SensorType sensorType) {
+    const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType) {
   if (!isValidHeader(threeAxisDataFromChre->header)) {
     LOGE("Invalid threeAxisData being thrown away");
   } else if (!mCrossValidatorState.has_value()) {
