@@ -34,10 +34,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.junit.Assert;
 import org.junit.Assume;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 
@@ -70,8 +70,11 @@ public class ChreCrossValidatorSensor
     private static final long SAMPLING_INTERVAL_IN_MS = 20;
     private static final long SAMPLING_LATENCY_IN_MS = 0;
 
-    private List<SensorDatapoint> mApDatapoints;
-    private List<SensorDatapoint> mChreDatapoints;
+    private ConcurrentLinkedQueue<SensorDatapoint> mApDatapointsQueue;
+    private ConcurrentLinkedQueue<SensorDatapoint> mChreDatapointsQueue;
+
+    private SensorDatapoint[] mApDatapointsArray;
+    private SensorDatapoint[] mChreDatapointsArray;
 
     private SensorManager mSensorManager;
     private Sensor mSensor;
@@ -92,8 +95,8 @@ public class ChreCrossValidatorSensor
             ContextHubInfo contextHubInfo, NanoAppBinary nanoAppBinary, int sensorType)
             throws AssertionError {
         super(contextHubManager, contextHubInfo, nanoAppBinary);
-        mApDatapoints = new ArrayList<SensorDatapoint>();
-        mChreDatapoints = new ArrayList<SensorDatapoint>();
+        mApDatapointsQueue = new ConcurrentLinkedQueue<SensorDatapoint>();
+        mChreDatapointsQueue = new ConcurrentLinkedQueue<SensorDatapoint>();
         Assert.assertTrue(String.format("Sensor type %d is not recognized", sensorType),
                 isSensorTypeValid(sensorType));
         mSensorTypeInfo = SENSOR_TYPE_TO_INFO.get(sensorType);
@@ -106,7 +109,7 @@ public class ChreCrossValidatorSensor
                 ChreCrossValidation.StartSensorCommand.newBuilder()
                 .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
                 .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
-                .setSensorType(ChreCrossValidation.SensorType.forNumber(mSensorTypeInfo.sensorType))
+                .setApSensorType(mSensorTypeInfo.sensorType)
                 .build();
         ChreCrossValidation.StartCommand startCommand =
                 ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor)
@@ -129,8 +132,8 @@ public class ChreCrossValidatorSensor
             setErrorStr(kParseDataErrorPrefix + "found non sensor type data");
         } else {
             ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
-            int sensorType = sensorData.getSensorType().getNumber();
-            if (sensorType != mSensorTypeInfo.sensorType) {
+            int sensorType = sensorData.getChreSensorType();
+            if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(
                         String.format(kParseDataErrorPrefix
                         + "incorrect sensor type %d when expecting %d",
@@ -146,7 +149,7 @@ public class ChreCrossValidatorSensor
                         break;
                     }
                     SensorDatapoint newDatapoint = new SensorDatapoint(datapoint, sensorType);
-                    mChreDatapoints.add(newDatapoint);
+                    mChreDatapointsQueue.add(newDatapoint);
                 }
             }
         }
@@ -173,15 +176,19 @@ public class ChreCrossValidatorSensor
 
     @Override
     protected void assertApAndChreDataSimilar() throws AssertionError {
-        Assert.assertTrue("Did not find any CHRE datapoints", !mChreDatapoints.isEmpty());
-        Assert.assertTrue("Did not find any AP datapoints", !mApDatapoints.isEmpty());
+        // Copy concurrent queues to arrays so that other threads will not mutate the data being
+        // worked on
+        mApDatapointsArray = mApDatapointsQueue.toArray(new SensorDatapoint[0]);
+        mChreDatapointsArray = mChreDatapointsQueue.toArray(new SensorDatapoint[0]);
+        Assert.assertTrue("Did not find any CHRE datapoints", mChreDatapointsArray.length > 0);
+        Assert.assertTrue("Did not find any AP datapoints", mApDatapointsArray.length > 0);
         alignApAndChreDatapoints();
         // AP and CHRE datapoints will be same size
         // TODO(b/146052784): Ensure that CHRE data is the same sampling rate as AP data for
         // comparison
-        for (int i = 0; i < mApDatapoints.size(); i++) {
-            SensorDatapoint apDp = mApDatapoints.get(i);
-            SensorDatapoint chreDp = mChreDatapoints.get(i);
+        for (int i = 0; i < mApDatapointsArray.length; i++) {
+            SensorDatapoint apDp = mApDatapointsArray[i];
+            SensorDatapoint chreDp = mChreDatapointsArray[i];
             String datapointsAssertMsg =
                     String.format("AP and CHRE three axis datapoint values differ on index %d", i)
                     + "\nAP data -> " + apDp + "\nCHRE data -> "
@@ -208,7 +215,13 @@ public class ChreCrossValidatorSensor
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (mCollectingData.get()) {
-            mApDatapoints.add(new SensorDatapoint(event));
+            int sensorType = event.sensor.getType();
+            if (!isSensorTypeCurrent(sensorType)) {
+                setErrorStr(String.format("incorrect sensor type %d when expecting %d",
+                                          sensorType, mSensorTypeInfo.sensorType));
+            } else {
+                mApDatapointsQueue.add(new SensorDatapoint(event));
+            }
         }
     }
 
@@ -233,6 +246,14 @@ public class ChreCrossValidatorSensor
     }
 
     /**
+     * @param sensorType The sensor type received from nanoapp or Android framework.
+     * @return true if sensor type matches current sensor type expected.
+     */
+    private boolean isSensorTypeCurrent(int sensorType) {
+        return sensorType == mSensorTypeInfo.sensorType;
+    }
+
+    /**
     * Make the sensor type info objects for each sensor type and map from sensor type to those
     * objects.
     *
@@ -254,12 +275,13 @@ public class ChreCrossValidatorSensor
         int matchAp = 0, matchChre = 0;
         int apIndex = 0, chreIndex = 0;
         boolean foundMatch = false;
-        int discardableSize = (int) (mApDatapoints.size() * ALIGNMENT_JUNK_FACTOR);
-        // if the start point of alignment exceeds halfway down either list then this is considered
+        int discardableSize = (int) (Math.min(mApDatapointsArray.length,
+                mChreDatapointsArray.length) * ALIGNMENT_JUNK_FACTOR);
+        // if the start point of alignment exceeds halfway down the AP list then this is considered
         // not enough alignment for datapoints to be valid
         while (apIndex < discardableSize && chreIndex < discardableSize) {
-            SensorDatapoint apDp = mApDatapoints.get(apIndex);
-            SensorDatapoint chreDp = mChreDatapoints.get(chreIndex);
+            SensorDatapoint apDp = mApDatapointsArray[apIndex];
+            SensorDatapoint chreDp = mChreDatapointsArray[chreIndex];
             if (SensorDatapoint.timestampsAreSimilar(apDp, chreDp)) {
                 matchAp = apIndex;
                 matchChre = chreIndex;
@@ -275,16 +297,14 @@ public class ChreCrossValidatorSensor
         Assert.assertTrue("Did not find matching timestamps to align AP and CHRE datapoints.",
                 foundMatch);
         // Remove extraneous datapoints before matching datapoints
-        mApDatapoints.removeAll(mApDatapoints.subList(0, matchAp));
-        mChreDatapoints.removeAll(mChreDatapoints.subList(0, matchChre));
-        // Remove extraneous datapoints from of end of larger list
-        if (mApDatapoints.size() < mChreDatapoints.size()) {
-            mChreDatapoints.removeAll(mChreDatapoints.subList(mApDatapoints.size(),
-                    mChreDatapoints.size() + 1));
-        } else if (mApDatapoints.size() > mChreDatapoints.size()) {
-            mApDatapoints.removeAll(mApDatapoints.subList(mChreDatapoints.size(),
-                    mApDatapoints.size() + 1));
-        }
+        int apStartI = matchAp;
+        int chreStartI = matchChre;
+        int newApLength = mApDatapointsArray.length - apStartI;
+        int newChreLength = mChreDatapointsArray.length - chreStartI;
+        int chreEndI = chreStartI + Math.min(newApLength, newChreLength);
+        int apEndI = apStartI + Math.min(newApLength, newChreLength);
+        mApDatapointsArray = Arrays.copyOfRange(mApDatapointsArray, apStartI, apEndI);
+        mChreDatapointsArray = Arrays.copyOfRange(mChreDatapointsArray, chreStartI, chreEndI);
     }
 
     /**
