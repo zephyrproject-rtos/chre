@@ -20,19 +20,18 @@ enum MessageType {
   CHRE_CROSS_VALIDATION_DATA = 2;
 }
 
-// Sensor types are passed in the StartSensorCommand message of CHRE cross
-// validation and SensorDataHeader message. These enum values are the actual
-// values described in the sensor_types.h file of the CHRE API.
-enum SensorType { ACCELEROMETER = 1; }
-
 message StartCommand {
   oneof command {
     StartSensorCommand startSensorCommand = 1;
   }
 }
 
+/*
+ * apSensorType values defined in Sensor class of
+ * android/frameworks/base/core/java/android/hardware/Sensor.java
+ */
 message StartSensorCommand {
-  optional SensorType sensorType = 1;
+  optional uint32 apSensorType = 1;
   optional uint64 samplingIntervalInNs = 2;
   optional uint64 samplingMaxLatencyInNs = 3;
 }
@@ -48,7 +47,7 @@ message Data {
  * android/system/chre/chre_api/include/chre_api/chre/sensor_types.h
  */
 message SensorData {
-  optional SensorType sensorType = 1;
+  optional uint32 chreSensorType = 1;
   optional uint32 accuracy = 2;
   repeated SensorDatapoint datapoints = 3;
 }
