@@ -66,6 +66,9 @@ class Manager {
     // Set upon received start message and read when nanoapp ends to handle
     // cleanup
     CrossValidatorType crossValidatorType;
+    // Set when start message received and checked against when a sensor data
+    // event from CHRE comes in
+    uint8_t sensorType;
     // Set when start message is received and default sensor is found for
     // requested sensor type and read when the sensor configuration is being
     // cleaned up. Unused in non-sensor type validations
@@ -78,9 +81,10 @@ class Manager {
     uint16_t hostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
 
     CrossValidatorState(CrossValidatorType crossValidatorTypeIn,
-                        uint32_t sensorHandleIn, uint64_t timeStartIn,
-                        uint16_t hostEndpointIn)
+                        uint8_t sensorTypeIn, uint32_t sensorHandleIn,
+                        uint64_t timeStartIn, uint16_t hostEndpointIn)
         : crossValidatorType(crossValidatorTypeIn),
+          sensorType(sensorTypeIn),
           sensorHandle(sensorHandleIn),
           timeStart(timeStartIn),
           hostEndpoint(hostEndpointIn) {}
@@ -170,8 +174,7 @@ class Manager {
    * axis data.
    */
   chre_cross_validation_Data makeSensorThreeAxisData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre,
-      chre_cross_validation_SensorType sensorType);
+      const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
    * Handle sensor three axis data from CHRE.
@@ -180,8 +183,7 @@ class Manager {
    * @param sensorType The sensor type that sent the three axis data.
    */
   void handleSensorThreeAxisData(
-      const chreSensorThreeAxisData *threeAxisDataFromChre,
-      chre_cross_validation_SensorType sensorType);
+      const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
    * Encode and send data to be validated to host.
@@ -189,6 +191,14 @@ class Manager {
    * @param data The data to encode and send.
    */
   void encodeAndSendDataToHost(const chre_cross_validation_Data &data);
+
+  /**
+   * @param sensorType The sensor type received from a CHRE sensor data event.
+   *
+   * @return true if sensorType matches the sensorType of current cross
+   * validator state.
+   */
+  bool sensorTypeIsValid(uint8_t sensorType);
 
   /**
    * Cleanup the manager by tearing down any CHRE API resources that were used

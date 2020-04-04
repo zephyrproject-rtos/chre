@@ -72,7 +72,7 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
       handleSensorThreeAxisData(
           static_cast<const chreSensorThreeAxisData *>(eventData),
-          chre_cross_validation_SensorType_ACCELEROMETER);
+          CHRE_SENSOR_TYPE_ACCELEROMETER);
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
@@ -144,7 +144,7 @@ bool Manager::encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
 bool Manager::handleStartSensorMessage(
     const chre_cross_validation_StartSensorCommand &startSensorCommand) {
   bool success = true;
-  uint8_t sensorType = startSensorCommand.sensorType;
+  uint8_t sensorType = startSensorCommand.apSensorType;
   uint64_t interval = startSensorCommand.samplingIntervalInNs;
   uint64_t latency = startSensorCommand.samplingMaxLatencyInNs;
   uint32_t handle;
@@ -161,9 +161,9 @@ bool Manager::handleStartSensorMessage(
       success = false;
     } else {
       // Copy hostEndpoint param from previous version of cross validator state
-      mCrossValidatorState =
-          CrossValidatorState(CrossValidatorType::SENSOR, handle, chreGetTime(),
-                              mCrossValidatorState->hostEndpoint);
+      mCrossValidatorState = CrossValidatorState(
+          CrossValidatorType::SENSOR, sensorType, handle, chreGetTime(),
+          mCrossValidatorState->hostEndpoint);
       LOGD("Sensor with sensor type %" PRIu8 " configured", sensorType);
     }
   }
@@ -179,12 +179,12 @@ void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
   bool success = true;
   if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
     // Default values for everything but hostEndpoint param
-    mCrossValidatorState = CrossValidatorState(
-        CrossValidatorType::SENSOR, 0, 0, hostData->hostEndpoint);
+    mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
+                                               0, hostData->hostEndpoint);
   } else {
     // Default values for everything but hostEndpoint param
     mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
-                                               CHRE_HOST_ENDPOINT_BROADCAST);
+                                               0, CHRE_HOST_ENDPOINT_BROADCAST);
   }
   pb_istream_t istream = pb_istream_from_buffer(
       static_cast<const pb_byte_t *>(hostData->message), hostData->messageSize);
@@ -227,11 +227,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 }
 
 chre_cross_validation_Data Manager::makeSensorThreeAxisData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre,
-    chre_cross_validation_SensorType sensorType) {
+    const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType) {
   chre_cross_validation_SensorData newThreeAxisData = {
-      .has_sensorType = true,
-      .sensorType = sensorType,
+      .has_chreSensorType = true,
+      .chreSensorType = sensorType,
       .has_accuracy = true,
       .accuracy = threeAxisDataFromChre->header.accuracy,
       .datapoints = {
@@ -248,12 +247,14 @@ chre_cross_validation_Data Manager::makeSensorThreeAxisData(
 }
 
 void Manager::handleSensorThreeAxisData(
-    const chreSensorThreeAxisData *threeAxisDataFromChre,
-    chre_cross_validation_SensorType sensorType) {
+    const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType) {
   if (!isValidHeader(threeAxisDataFromChre->header)) {
     LOGE("Invalid threeAxisData being thrown away");
   } else if (!mCrossValidatorState.has_value()) {
     LOGE("Start message not received or invalid when threeAxisData received");
+  } else if (!sensorTypeIsValid(sensorType)) {
+    LOGE("Unexpected sensor data type %" PRIu8 ", expected %" PRIu8, sensorType,
+         mCrossValidatorState->sensorType);
   } else {
     chre_cross_validation_Data newData =
         makeSensorThreeAxisData(threeAxisDataFromChre, sensorType);
@@ -283,6 +284,10 @@ void Manager::encodeAndSendDataToHost(const chre_cross_validation_Data &data) {
       }
     }
   }
+}
+
+bool Manager::sensorTypeIsValid(uint8_t sensorType) {
+  return sensorType == mCrossValidatorState->sensorType;
 }
 
 }  // namespace cross_validator
