@@ -38,6 +38,11 @@ struct ChppNotifier {
 void chppPlatformNotifierInit(struct ChppNotifier *notifier);
 
 /**
+ * Platform implementation of chppNotifierDeinit()
+ */
+void chppPlatformNotifierDeinit(struct ChppNotifier *notifier);
+
+/**
  * Platform implementation of chppNotifierWait()
  */
 bool chppPlatformNotifierWait(struct ChppNotifier *notifier);
@@ -54,6 +59,10 @@ void chppPlatformNotifierExit(struct ChppNotifier *notifier);
 
 static inline void chppNotifierInit(struct ChppNotifier *notifier) {
   chppPlatformNotifierInit(notifier);
+}
+
+static inline void chppNotifierDeinit(struct ChppNotifier *notifier) {
+  chppPlatformNotifierDeinit(notifier);
 }
 
 static inline bool chppNotifierWait(struct ChppNotifier *notifier) {

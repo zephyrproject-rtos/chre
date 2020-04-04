@@ -181,6 +181,12 @@ void chppAppInit(struct ChppAppState *appContext,
   chppRegisterCommonServices(appContext);
 }
 
+void chppAppDeinit(struct ChppAppState *appContext) {
+  // TODO
+
+  UNUSED_VAR(appContext);
+}
+
 void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                            size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;

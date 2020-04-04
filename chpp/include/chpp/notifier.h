@@ -43,6 +43,13 @@ struct ChppNotifier;
 static void chppNotifierInit(struct ChppNotifier *notifier);
 
 /**
+ * Deinitializes the platform-specific ChppNotifier.
+ *
+ * @param notifier Points to the ChppNotifier being deinitialized.
+ */
+static void chppNotifierDeinit(struct ChppNotifier *notifier);
+
+/**
  * Waits on a platform-specific notifier until it is signaled through
  * chppNotifierEvent() or through chppNotifierExit().
  *

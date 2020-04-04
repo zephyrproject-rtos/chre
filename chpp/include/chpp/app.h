@@ -175,6 +175,14 @@ void chppAppInit(struct ChppAppState *appContext,
                  struct ChppTransportState *transportContext);
 
 /**
+ * Deinitializes the CHPP app layer for e.g. clean shutdown.
+ *
+ * @param appContext A non-null pointer to ChppAppState initialized previously
+ * in chppAppInit().
+ */
+void chppAppDeinit(struct ChppAppState *appContext);
+
+/*
  * Processes an Rx Datagram from the transport layer.
  *
  * @param context Maintains status for each app layer instance.
