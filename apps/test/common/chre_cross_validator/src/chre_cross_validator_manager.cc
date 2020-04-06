@@ -79,6 +79,11 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
           static_cast<const chreSensorThreeAxisData *>(eventData),
           CHRE_SENSOR_TYPE_GYROSCOPE);
       break;
+    case CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_DATA:
+      handleSensorThreeAxisData(
+          static_cast<const chreSensorThreeAxisData *>(eventData),
+          CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD);
+      break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
            " and with eventType %" PRIu16,
