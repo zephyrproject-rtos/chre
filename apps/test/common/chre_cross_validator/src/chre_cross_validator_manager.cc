@@ -144,7 +144,7 @@ bool Manager::encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
 bool Manager::handleStartSensorMessage(
     const chre_cross_validation_StartSensorCommand &startSensorCommand) {
   bool success = true;
-  uint8_t sensorType = startSensorCommand.apSensorType;
+  uint8_t sensorType = startSensorCommand.chreSensorType;
   uint64_t interval = startSensorCommand.samplingIntervalInNs;
   uint64_t latency = startSensorCommand.samplingMaxLatencyInNs;
   uint32_t handle;
@@ -160,7 +160,8 @@ bool Manager::handleStartSensorMessage(
            sensorType, interval, latency);
       success = false;
     } else {
-      // Copy hostEndpoint param from previous version of cross validator state
+      // Copy hostEndpoint param from previous version of cross validator
+      // state
       mCrossValidatorState = CrossValidatorState(
           CrossValidatorType::SENSOR, sensorType, handle, chreGetTime(),
           mCrossValidatorState->hostEndpoint);
