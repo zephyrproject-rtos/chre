@@ -29,6 +29,8 @@ import androidx.test.InstrumentationRegistry;
 
 import com.google.android.chre.nanoapp.proto.ChreCrossValidation;
 import com.google.android.utils.chre.ChreTestUtil;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.Assert;
@@ -47,15 +49,20 @@ public class ChreCrossValidatorSensor
     * Contains the information required for each sensor type to validate data.
     */
     private static class SensorTypeInfo {
-        public final int sensorType;
+        // The AP sensor type value associated with this sensor
+        public final int apSensorType;
+        // The CHRE sensor type value associated with this sensor
+        public final int chreSensorType;
         // The length of the data samples in floats that is expected for a sensor type
         public final int expectedValuesLength;
         // The amount that each value in the values array of a certain datapoint can differ between
         // AP and CHRE
         public final float errorMargin;
 
-        SensorTypeInfo(int sensorType, int expectedValuesLength, float errorMargin) {
-            this.sensorType = sensorType;
+        SensorTypeInfo(int apSensorType, int expectedValuesLength,
+                       float errorMargin) {
+            this.apSensorType = apSensorType;
+            this.chreSensorType = apToChreSensorType(apSensorType);
             this.expectedValuesLength = expectedValuesLength;
             this.errorMargin = errorMargin;
         }
@@ -81,6 +88,8 @@ public class ChreCrossValidatorSensor
 
     private SensorTypeInfo mSensorTypeInfo;
 
+    private static final BiMap<Integer, Integer> AP_TO_CHRE_SENSOR_TYPE =
+            makeApToChreSensorTypeMap();
     private static final Map<Integer, SensorTypeInfo> SENSOR_TYPE_TO_INFO =
             makeSensorTypeToInfoMap();
 
@@ -109,7 +118,7 @@ public class ChreCrossValidatorSensor
                 ChreCrossValidation.StartSensorCommand.newBuilder()
                 .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
                 .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
-                .setApSensorType(mSensorTypeInfo.sensorType)
+                .setChreSensorType(mSensorTypeInfo.chreSensorType)
                 .build();
         ChreCrossValidation.StartCommand startCommand =
                 ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor)
@@ -132,12 +141,12 @@ public class ChreCrossValidatorSensor
             setErrorStr(kParseDataErrorPrefix + "found non sensor type data");
         } else {
             ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
-            int sensorType = sensorData.getChreSensorType();
+            int sensorType = chreToApSensorType(sensorData.getChreSensorType());
             if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(
                         String.format(kParseDataErrorPrefix
                         + "incorrect sensor type %d when expecting %d",
-                        sensorType, mSensorTypeInfo.sensorType));
+                        sensorType, mSensorTypeInfo.apSensorType));
             } else {
                 for (ChreCrossValidation.SensorDatapoint datapoint :
                         sensorData.getDatapointsList()) {
@@ -161,9 +170,9 @@ public class ChreCrossValidatorSensor
                 (SensorManager) InstrumentationRegistry.getInstrumentation().getContext()
                 .getSystemService(Context.SENSOR_SERVICE);
         Assert.assertNotNull("Sensor manager could not be instantiated.", mSensorManager);
-        mSensor = mSensorManager.getDefaultSensor(mSensorTypeInfo.sensorType);
+        mSensor = mSensorManager.getDefaultSensor(mSensorTypeInfo.apSensorType);
         Assume.assumeNotNull(String.format("Sensor could not be instantiated for sensor type %d.",
-                mSensorTypeInfo.sensorType),
+                mSensorTypeInfo.apSensorType),
                 mSensor);
         Assert.assertTrue(mSensorManager.registerListener(
                 this, mSensor, (int) TimeUnit.MILLISECONDS.toMicros(SAMPLING_INTERVAL_IN_MS)));
@@ -218,7 +227,7 @@ public class ChreCrossValidatorSensor
             int sensorType = event.sensor.getType();
             if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(String.format("incorrect sensor type %d when expecting %d",
-                                          sensorType, mSensorTypeInfo.sensorType));
+                                          sensorType, mSensorTypeInfo.apSensorType));
             } else {
                 mApDatapointsQueue.add(new SensorDatapoint(event));
             }
@@ -250,7 +259,7 @@ public class ChreCrossValidatorSensor
      * @return true if sensor type matches current sensor type expected.
      */
     private boolean isSensorTypeCurrent(int sensorType) {
-        return sensorType == mSensorTypeInfo.sensorType;
+        return sensorType == mSensorTypeInfo.apSensorType;
     }
 
     /**
@@ -261,7 +270,25 @@ public class ChreCrossValidatorSensor
     */
     private static Map<Integer, SensorTypeInfo> makeSensorTypeToInfoMap() {
         Map<Integer, SensorTypeInfo> map = new HashMap<Integer, SensorTypeInfo>();
-        map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER, 3, 0.01f));
+        map.put(Sensor.TYPE_ACCELEROMETER, new SensorTypeInfo(Sensor.TYPE_ACCELEROMETER,
+                3 /* expectedValuesLength */, 0.01f /* errorMargin */));
+        map.put(Sensor.TYPE_GYROSCOPE, new SensorTypeInfo(Sensor.TYPE_GYROSCOPE,
+                3 /* expectedValuesLength */, 0.01f /* errorMargin */));
+        map.put(Sensor.TYPE_MAGNETIC_FIELD, new SensorTypeInfo(Sensor.TYPE_MAGNETIC_FIELD,
+                3 /* expectedValuesLength */, 0.01f /* errorMargin */));
+        return map;
+    }
+
+    /**
+    * Make the map from CHRE sensor type values to their AP values.
+    *
+    * @return The map from sensor type to info for that type.
+    */
+    private static BiMap<Integer, Integer> makeApToChreSensorTypeMap() {
+        BiMap<Integer, Integer> map = HashBiMap.create(3);
+        map.put(Sensor.TYPE_ACCELEROMETER, 1 /* CHRE_SENSOR_TYPE_ACCELEROMETER */);
+        map.put(Sensor.TYPE_GYROSCOPE, 6 /* CHRE_SENSOR_TYPE_GYROSCOPE */);
+        map.put(Sensor.TYPE_MAGNETIC_FIELD, 8 /* CHRE_SENSOR_TYPE_MAGNETIC_FIELD */);
         return map;
     }
 
@@ -321,5 +348,18 @@ public class ChreCrossValidatorSensor
     private void unrestrictSensors() {
         ChreTestUtil.executeShellCommand(
                 InstrumentationRegistry.getInstrumentation(), "dumpsys sensorservice enable");
+    }
+
+    /**
+     * @param chreSensorType The CHRE sensor type value.
+     *
+     * @return The AP sensor type value.
+     */
+    private static int chreToApSensorType(int chreSensorType) {
+        return AP_TO_CHRE_SENSOR_TYPE.inverse().get(chreSensorType);
+    }
+
+    private static int apToChreSensorType(int apSensorType) {
+        return AP_TO_CHRE_SENSOR_TYPE.get(apSensorType);
     }
 }
