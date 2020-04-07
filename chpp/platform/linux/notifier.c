@@ -25,6 +25,11 @@ void chppPlatformNotifierInit(struct ChppNotifier *notifier) {
   pthread_cond_init(&notifier->cond, NULL);
 }
 
+void chppPlatformNotifierDeinit(struct ChppNotifier *notifier) {
+  pthread_cond_destroy(&notifier->cond);
+  chppMutexDeinit(&notifier->mutex);
+}
+
 bool chppPlatformNotifierWait(struct ChppNotifier *notifier) {
   chppMutexLock(&notifier->mutex);
 

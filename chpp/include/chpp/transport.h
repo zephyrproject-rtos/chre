@@ -297,6 +297,15 @@ void chppTransportInit(struct ChppTransportState *transportContext,
                        struct ChppAppState *appContext);
 
 /**
+ * Deinitializes the CHPP transport layer and does necessary clean-ups for
+ * e.g. clean shutdown.
+ *
+ * @param transportContext A non-null pointer to ChppTransportState
+ * initialized previously in chppTransportInit().
+ */
+void chppTransportDeinit(struct ChppTransportState *transportContext);
+
+/**
  * Processes all incoming data on the serial port based on the Rx state.
  * stream. Checks checksum, triggering the correct response (ACK / NACK).
  * Moves the state to CHPP_STATE_PREAMBLE afterwards.

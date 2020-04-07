@@ -41,6 +41,13 @@ struct ChppMutex;
 static void chppMutexInit(struct ChppMutex *mutex);
 
 /*
+ * Deinitializes a specified platform-specific mutex.
+ *
+ * @param mutex points to the ChppMutex mutex struct.
+ */
+static void chppMutexDeinit(struct ChppMutex *mutex);
+
+/*
  * Locks a specified platform-specific mutex.
  *
  * @param mutex points to the ChppMutex mutex struct.

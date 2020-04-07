@@ -56,6 +56,11 @@ class TransportTests : public testing::TestWithParam<int> {
     ASSERT_EQ(appContext.registeredServiceCount, 1);
   }
 
+  void TearDown() override {
+    chppAppDeinit(&appContext);
+    chppTransportDeinit(&transportContext);
+  }
+
   /**
    * Wait for chppTransportDoWork() to finish after it is notified by
    * chppEnqueueTxPacket to run.

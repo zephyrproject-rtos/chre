@@ -672,6 +672,15 @@ void chppTransportInit(struct ChppTransportState *transportContext,
   transportContext->appContext = appContext;
 }
 
+void chppTransportDeinit(struct ChppTransportState *transportContext) {
+  CHPP_NOT_NULL(transportContext);
+
+  chppNotifierDeinit(&transportContext->notifier);
+  chppMutexDeinit(&transportContext->mutex);
+
+  // TODO: Do other cleanup
+}
+
 bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
                   size_t len) {
   CHPP_NOT_NULL(buf);
