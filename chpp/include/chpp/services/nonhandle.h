@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Implementation Notes:
- * Each platform must supply a platform-specific platform_link.h to provide the
- * definitions and a platform-specific link.c to provide the implementation for
- * the definitions in this file.
- * The platform must also initialize the ChppPlatformLinkParameters for each
- * link (context.linkParams).
- */
-
 #ifndef CHPP_NONHANDLE_H_
 #define CHPP_NONHANDLE_H_
 

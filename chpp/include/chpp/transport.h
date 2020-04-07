@@ -17,7 +17,6 @@
 #ifndef CHPP_TRANSPORT_H_
 #define CHPP_TRANSPORT_H_
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -268,8 +267,8 @@ struct ChppTransportState {
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
   struct PendingTxPacket pendingTxPacket;      // Outgoing packet to Link Layer
 
-  struct ChppMutex mutex;           // Lock for transport state (i.e. context)
-  struct ChppNotifier notifier;     // Notifier for main thread
+  struct ChppMutex mutex;        // Lock for transport state (i.e. context)
+  struct ChppNotifier notifier;  // Notifier for main thread
 
   struct ChppPlatformLinkParameters linkParams;  // For corresponding link layer
 };
