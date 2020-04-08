@@ -58,6 +58,10 @@ public class ChreCrossValidatorSensor
         // The amount that each value in the values array of a certain datapoint can differ between
         // AP and CHRE
         public final float errorMargin;
+        // The amount of time in ms to inform the AP and CHRE apis to wait between sending samples
+        // from sensor. Not set in ctor because default value must be checked against allowed
+        // range from sensors framework.
+        public long samplingIntervalInMs;
 
         SensorTypeInfo(int apSensorType, int expectedValuesLength,
                        float errorMargin) {
@@ -68,13 +72,14 @@ public class ChreCrossValidatorSensor
         }
     }
 
+    private static final long DEFAULT_SAMPLING_INTERVAL_IN_MS = 20;
+
     // The portion of datapoints that can be thrown away before while still searching for first
     // datapoints that are similar between CHRE and AP
     private static final double ALIGNMENT_JUNK_FACTOR = 2.0 / 3;
 
     // TODO(b/146052784): May need to account for differences in sampling rate and latency from
     // AP side vs CHRE side
-    private static final long SAMPLING_INTERVAL_IN_MS = 20;
     private static final long SAMPLING_LATENCY_IN_MS = 0;
 
     private ConcurrentLinkedQueue<SensorDatapoint> mApDatapointsQueue;
@@ -109,6 +114,19 @@ public class ChreCrossValidatorSensor
         Assert.assertTrue(String.format("Sensor type %d is not recognized", sensorType),
                 isSensorTypeValid(sensorType));
         mSensorTypeInfo = SENSOR_TYPE_TO_INFO.get(sensorType);
+        mSensorManager =
+                (SensorManager) InstrumentationRegistry.getInstrumentation().getContext()
+                .getSystemService(Context.SENSOR_SERVICE);
+        Assert.assertNotNull("Sensor manager could not be instantiated.", mSensorManager);
+        mSensor = mSensorManager.getDefaultSensor(mSensorTypeInfo.apSensorType);
+        Assume.assumeNotNull(String.format("Sensor could not be instantiated for sensor type %d.",
+                mSensorTypeInfo.apSensorType),
+                mSensor);
+        mSensorTypeInfo.samplingIntervalInMs =
+                Math.min(Math.max(
+                        DEFAULT_SAMPLING_INTERVAL_IN_MS,
+                        TimeUnit.MICROSECONDS.toMillis(mSensor.getMinDelay())),
+                TimeUnit.MICROSECONDS.toMillis(mSensor.getMaxDelay()));
     }
 
     @Override
@@ -116,7 +134,8 @@ public class ChreCrossValidatorSensor
         int messageType = ChreCrossValidation.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
         ChreCrossValidation.StartSensorCommand startSensor =
                 ChreCrossValidation.StartSensorCommand.newBuilder()
-                .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_INTERVAL_IN_MS))
+                .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(
+                          mSensorTypeInfo.samplingIntervalInMs))
                 .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
                 .setChreSensorType(mSensorTypeInfo.chreSensorType)
                 .build();
@@ -166,16 +185,9 @@ public class ChreCrossValidatorSensor
 
     @Override
     protected void registerApDataListener() {
-        mSensorManager =
-                (SensorManager) InstrumentationRegistry.getInstrumentation().getContext()
-                .getSystemService(Context.SENSOR_SERVICE);
-        Assert.assertNotNull("Sensor manager could not be instantiated.", mSensorManager);
-        mSensor = mSensorManager.getDefaultSensor(mSensorTypeInfo.apSensorType);
-        Assume.assumeNotNull(String.format("Sensor could not be instantiated for sensor type %d.",
-                mSensorTypeInfo.apSensorType),
-                mSensor);
         Assert.assertTrue(mSensorManager.registerListener(
-                this, mSensor, (int) TimeUnit.MILLISECONDS.toMicros(SAMPLING_INTERVAL_IN_MS)));
+                this, mSensor, (int) TimeUnit.MILLISECONDS.toMicros(
+                mSensorTypeInfo.samplingIntervalInMs)));
     }
 
     @Override
@@ -276,6 +288,8 @@ public class ChreCrossValidatorSensor
                 3 /* expectedValuesLength */, 0.01f /* errorMargin */));
         map.put(Sensor.TYPE_MAGNETIC_FIELD, new SensorTypeInfo(Sensor.TYPE_MAGNETIC_FIELD,
                 3 /* expectedValuesLength */, 0.01f /* errorMargin */));
+        map.put(Sensor.TYPE_PRESSURE, new SensorTypeInfo(Sensor.TYPE_PRESSURE,
+                1 /* expectedValuesLength */, 0.01f /* errorMargin */));
         return map;
     }
 
@@ -285,10 +299,11 @@ public class ChreCrossValidatorSensor
     * @return The map from sensor type to info for that type.
     */
     private static BiMap<Integer, Integer> makeApToChreSensorTypeMap() {
-        BiMap<Integer, Integer> map = HashBiMap.create(3);
+        BiMap<Integer, Integer> map = HashBiMap.create(4);
         map.put(Sensor.TYPE_ACCELEROMETER, 1 /* CHRE_SENSOR_TYPE_ACCELEROMETER */);
         map.put(Sensor.TYPE_GYROSCOPE, 6 /* CHRE_SENSOR_TYPE_GYROSCOPE */);
         map.put(Sensor.TYPE_MAGNETIC_FIELD, 8 /* CHRE_SENSOR_TYPE_MAGNETIC_FIELD */);
+        map.put(Sensor.TYPE_PRESSURE, 10 /* CHRE_SENSOR_TYPE_PRESSURE */);
         return map;
     }
 
