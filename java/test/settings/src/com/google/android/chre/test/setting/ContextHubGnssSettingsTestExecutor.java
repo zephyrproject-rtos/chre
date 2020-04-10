@@ -63,7 +63,7 @@ public class ContextHubGnssSettingsTestExecutor {
      */
     public void tearDown() {
         mExecutor.deinit();
-        mSettingsUtil.setLocationMode(mInitialLocationEnabled, 30 /* timeoutSeconds */);
+        mSettingsUtil.setLocationModeAndSleep(mInitialLocationEnabled, 5000 /* sleepTimeMillis */);
     }
 
     /**
@@ -72,7 +72,7 @@ public class ContextHubGnssSettingsTestExecutor {
      * @param enableFeature True for enable.
      */
     private void runTest(ChreSettingsTest.TestCommand.Feature feature, boolean enableFeature) {
-        mSettingsUtil.setLocationMode(mInitialLocationEnabled, 30 /* timeoutSeconds */);
+        mSettingsUtil.setLocationModeAndSleep(enableFeature, 5000 /* sleepTimeMillis */);
 
         ChreSettingsTest.TestCommand.State state = enableFeature
                 ? ChreSettingsTest.TestCommand.State.ENABLED
