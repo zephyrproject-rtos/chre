@@ -378,6 +378,10 @@ uint32_t PlatformNanoapp::getTargetApiVersion() const {
   return (mAppInfo != nullptr) ? mAppInfo->targetApiVersion : 0;
 }
 
+const char *PlatformNanoapp::getAppName() const {
+  return (mAppInfo != nullptr) ? mAppInfo->name : "Unknown";
+}
+
 bool PlatformNanoapp::isSystemNanoapp() const {
   // Right now, we assume that system nanoapps are always static nanoapps. Since
   // mAppInfo can only be null either prior to loading the app (in which case
