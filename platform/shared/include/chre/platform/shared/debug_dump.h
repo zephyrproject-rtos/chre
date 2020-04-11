@@ -23,31 +23,15 @@
 extern "C" {
 #endif
 
-namespace chre {
-
 /**
  * Platform implementation of chreDebugDumpLog.
  *
  * This function implements chreDebugDumpLog, and is called through either the
- * CHRE API or the nanoapp support library. In addition, it validates the
- * nanoapp is handling CHRE_EVENT_DEBUG_DUMP before logging any debug data.
+ * CHRE API or the nanoapp support library.
  *
  * @see chreDebugDumpLog
- */
-void platformDso_chreDebugDumpVaLog(const char *formatStr, va_list args);
-
-/**
- * Platform implementation of platformDso_chreDebugDumpVaLog.
- *
- * This function is only called through by platformDso_chreDebugDumpVaLog. It
- * only contains debug data logging implementation, but not validation logic.
- *
- * @see chreDebugDumpLog
- * @see platformDso_chreDebugDumpVaLog
  */
 void platform_chreDebugDumpVaLog(const char *formatStr, va_list args);
-
-}  // namespace chre
 
 #ifdef __cplusplus
 }
