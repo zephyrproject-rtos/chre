@@ -90,6 +90,11 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
   uint32_t getTargetApiVersion() const;
 
   /**
+   * Retrieves the human-friendly name for the nanoapp (null-terminated string).
+   */
+  const char *getAppName() const;
+
+  /**
    * Returns true if the nanoapp should not appear in the context hub HAL list
    * of nanoapps, e.g. because it implements some device functionality purely
    * beneath the HAL.
