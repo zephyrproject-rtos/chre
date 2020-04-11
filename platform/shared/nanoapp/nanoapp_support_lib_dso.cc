@@ -211,7 +211,7 @@ void chreConfigureDebugDumpEvent(bool enable) {
 
 WEAK_SYMBOL
 void chreDebugDumpLog(const char *formatStr, ...) {
-  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chre::platformDso_chreDebugDumpVaLog);
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(platform_chreDebugDumpVaLog);
   if (fptr != nullptr) {
     va_list args;
     va_start(args, formatStr);
