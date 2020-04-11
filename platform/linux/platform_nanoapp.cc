@@ -56,6 +56,10 @@ uint32_t PlatformNanoapp::getTargetApiVersion() const {
   return CHRE_API_VERSION;
 }
 
+const char *PlatformNanoapp::getAppName() const {
+  return (mAppInfo != nullptr) ? mAppInfo->name : "Unknown";
+}
+
 bool PlatformNanoapp::isSystemNanoapp() const {
   return (mAppInfo != nullptr && mAppInfo->isSystemNanoapp);
 }
