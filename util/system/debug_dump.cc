@@ -24,13 +24,19 @@ namespace chre {
 
 void DebugDumpWrapper::print(const char *formatStr, ...) {
   va_list argList;
-  size_t sizeOfStr;
   va_start(argList, formatStr);
+  print(formatStr, argList);
+  va_end(argList);
+}
+
+void DebugDumpWrapper::print(const char *formatStr, va_list argList) {
+  va_list argListCopy;
+  va_copy(argListCopy, argList);
+
+  size_t sizeOfStr;
   if (!sizeOfFormattedString(formatStr, argList, &sizeOfStr)) {
-    va_end(argList);
     LOGE("Error getting string size while debug dump printing");
   } else {
-    va_end(argList);
     if (sizeOfStr >= kBuffSize) {
       LOGE(
           "String was too large to fit in a single buffer for debug dump"
@@ -40,13 +46,12 @@ void DebugDumpWrapper::print(const char *formatStr, ...) {
       LOGE("Error allocating buffer in debug dump print");
     } else {
       // String fits into current buffer or created a new buffer successfully
-      va_start(argList, formatStr);
-      if (!insertString(formatStr, argList)) {
+      if (!insertString(formatStr, argListCopy)) {
         LOGE("Error inserting string into buffer in debug dump");
       }
-      va_end(argList);
     }
   }
+  va_end(argListCopy);
 }
 
 bool DebugDumpWrapper::allocNewBuffer() {
