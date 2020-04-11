@@ -106,3 +106,45 @@ TEST(DebugDumpWrapper, EmptyStringAllocsOneBuffer) {
   const auto &buffers = debugDump.getBuffers();
   EXPECT_EQ(buffers.size(), 1);
 }
+
+TEST(DebugDumpWrapper, BuffersClear) {
+  DebugDumpWrapper debugDump(4);
+  const char *str1 = "ab";
+  const char *str2 = "cd";
+  const char *str3 = "ef";
+
+  debugDump.print("%s", str1);
+  debugDump.print("%s", str2);
+  const auto &buffers = debugDump.getBuffers();
+  EXPECT_EQ(buffers.size(), 2);
+  EXPECT_TRUE(strcmp(buffers.front().get(), str1) == 0);
+  EXPECT_TRUE(strcmp(buffers.back().get(), str2) == 0);
+
+  debugDump.clear();
+  EXPECT_EQ(buffers.size(), 0);
+
+  debugDump.print("%s", str3);
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_TRUE(strcmp(buffers.front().get(), str3) == 0);
+}
+
+void printVaList(DebugDumpWrapper *debugDump, const char *formatStr, ...) {
+  va_list args;
+  va_start(args, formatStr);
+  debugDump->print(formatStr, args);
+  va_end(args);
+}
+
+TEST(DebugDumpWrapper, PrintVaListTwoStrings) {
+  DebugDumpWrapper debugDump(5);
+  const char *str1 = "ab";
+  const char *str2 = "cd";
+  printVaList(&debugDump, "%s", str1);
+  printVaList(&debugDump, "%s", str2);
+  const auto &buffers = debugDump.getBuffers();
+  EXPECT_EQ(buffers.size(), 1);
+  char bothStr[5];
+  strcpy(bothStr, str1);
+  strcat(bothStr, str2);
+  EXPECT_TRUE(strcmp(buffers.front().get(), bothStr) == 0);
+}
