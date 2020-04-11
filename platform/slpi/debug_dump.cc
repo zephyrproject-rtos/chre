@@ -17,7 +17,6 @@
 #include "chre/platform/slpi/debug_dump.h"
 
 #include "chre/platform/log.h"
-#include "chre/platform/shared/debug_dump.h"
 
 // Some devices don't have ash/debug.h implemented for them so allow swapping
 // out that implementation with an empty one until an implementation can be
@@ -116,7 +115,5 @@ bool triggerDebugDump(debugDumpReadyCbFunc *readyCb, void *cookie) {
   return true;
 #endif  // CHRE_ENABLE_ASH_DEBUG_DUMP
 }
-
-void platform_chreDebugDumpVaLog(const char *formatStr, va_list args) {}
 
 }  // namespace chre
