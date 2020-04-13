@@ -67,6 +67,16 @@ extern "C" {
 /** @} */
 
 /**
+ * Macros for a specific byte in the CHPP_PREAMBLE.
+ * Using the CHPP_PREAMBLE_BYTE_... macros are preferred due to a reduced risk
+ * of mistakes.
+ */
+#define chppPreambleByte(loc) \
+  ((CHPP_PREAMBLE_DATA >> (8 * (CHPP_PREAMBLE_LEN_BYTES - (loc)-1))) & 0xff)
+#define CHPP_PREAMBLE_BYTE_FIRST chppPreambleByte(0)
+#define CHPP_PREAMBLE_BYTE_SECOND chppPreambleByte(1)
+
+/**
  * Maximum number of datagrams in the Tx queue.
  * CHPP will return an error if it is provided with a new Tx datagram when this
  * queue is full.
