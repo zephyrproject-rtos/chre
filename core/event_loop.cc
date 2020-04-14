@@ -328,23 +328,24 @@ bool EventLoop::currentNanoappIsStopping() const {
 }
 
 void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
-  debugDump.print("\nNanoapps:\n");
+  debugDump.print("\nEvent Loop:\n");
+  debugDump.print("  Max event pool usage: %zu/%zu\n", mMaxEventPoolUsage,
+                  kMaxEventCount);
+
   Nanoseconds timeSince =
       SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
   uint64_t timeSinceMins =
       timeSince.toRawNanoseconds() / kOneMinuteInNanoseconds;
   uint64_t durationMins =
       kIntervalWakeupBucket.toRawNanoseconds() / kOneMinuteInNanoseconds;
-  debugDump.print(" SinceLastBucketCycle=%" PRIu64
-                  "mins BucketDuration=%" PRIu64 "mins\n\n",
+  debugDump.print("  Nanoapp host wakeup tracking: cycled %" PRIu64
+                  "mins ago, bucketDuration=%" PRIu64 "mins\n",
                   timeSinceMins, durationMins);
+
+  debugDump.print("\nNanoapps:\n");
   for (const UniquePtr<Nanoapp> &app : mNanoapps) {
     app->logStateToBuffer(debugDump);
   }
-
-  debugDump.print("\nEvent Loop:\n");
-  debugDump.print("  Max event pool usage: %zu/%zu\n", mMaxEventPoolUsage,
-                  kMaxEventCount);
 }
 
 bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
