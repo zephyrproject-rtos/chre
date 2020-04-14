@@ -231,15 +231,15 @@ bool Manager::isValidHeader(const chreSensorDataHeader &header) {
 
 void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
   bool success = true;
+  uint16_t hostEndpoint;
   if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
-    // Default values for everything but hostEndpoint param
-    mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
-                                               0, hostData->hostEndpoint);
+    hostEndpoint = hostData->hostEndpoint;
   } else {
-    // Default values for everything but hostEndpoint param
-    mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
-                                               0, CHRE_HOST_ENDPOINT_BROADCAST);
+    hostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
   }
+  // Default values for everything but hostEndpoint param
+  mCrossValidatorState =
+      CrossValidatorState(CrossValidatorType::SENSOR, 0, 0, 0, hostEndpoint);
   pb_istream_t istream = pb_istream_from_buffer(
       static_cast<const pb_byte_t *>(hostData->message), hostData->messageSize);
   chre_cross_validation_StartCommand startCommand =
