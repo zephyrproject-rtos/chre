@@ -74,9 +74,12 @@ DLL_EXPORT void chreHeapFree(void *ptr) {
       nanoapp, ptr);
 }
 
-DLL_EXPORT void platform_chreDebugDumpVaLog(const char * /*formatStr*/,
-                                            va_list /*args*/) {
-  // TODO: implement this.
+DLL_EXPORT void platform_chreDebugDumpVaLog(const char *formatStr,
+                                            va_list args) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  chre::EventLoopManagerSingleton::get()
+      ->getDebugDumpManager()
+      .appendNanoappLog(*nanoapp, formatStr, args);
 }
 
 DLL_EXPORT void chreDebugDumpLog(const char *formatStr, ...) {
