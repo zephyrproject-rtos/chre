@@ -103,11 +103,7 @@ Event *Nanoapp::processNextEvent() {
 
   CHRE_ASSERT_LOG(event != nullptr, "Tried delivering event, but queue empty");
   if (event != nullptr) {
-    mIsHandlingDebugDumpEvent =
-        (event->senderInstanceId == kSystemInstanceId) &&
-        (event->eventType == CHRE_EVENT_DEBUG_DUMP);
     handleEvent(event->senderInstanceId, event->eventType, event->eventData);
-    mIsHandlingDebugDumpEvent = false;
   }
 
   return event;
