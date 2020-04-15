@@ -32,11 +32,9 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/mutex.h"
-#include "chre/platform/slpi/debug_dump.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/uimg_util.h"
 #include "chre/util/lock_guard.h"
-#include "chre/util/system/debug_dump.h"
 
 #ifdef CHRE_SLPI_SEE
 #include "chre/platform/slpi/see/island_vote_client.h"
@@ -95,31 +93,6 @@ bool gThreadRunning;
 int gTlsKey;
 bool gTlsKeyValid;
 
-void performDebugDumpCallback(uint16_t /*eventType*/, void *data) {
-  uint32_t handle = *(static_cast<const uint32_t *>(data));
-  chre::DebugDumpWrapper debugDump(chre::debugDumpStrMaxSize);
-  chre::EventLoopManagerSingleton::get()->debugDump(debugDump);
-  for (size_t i = 0; i < debugDump.getBuffers().size() - 1; i++) {
-    const auto &buff = debugDump.getBuffers()[i];
-    chre::commitDebugDump(handle, buff.get(), false /*done*/);
-  }
-  chre::commitDebugDump(handle, debugDump.getBuffers().back().get(),
-                        true /*done*/);
-}
-
-void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
-  static uint32_t debugDumpHandle;
-
-  debugDumpHandle = handle;
-  chre::EventLoopManagerSingleton::get()->deferCallback(
-      chre::SystemCallbackType::PerformDebugDump, &debugDumpHandle,
-      performDebugDumpCallback);
-  // Collect debug data from nanoapps
-  chre::EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-      CHRE_EVENT_DEBUG_DUMP, nullptr /* eventData */,
-      nullptr /* freeCallback */);
-}
-
 /**
  * Entry point for the QuRT thread that runs CHRE.
  *
@@ -128,10 +101,8 @@ void onDebugDumpRequested(void * /*cookie*/, uint32_t handle) {
 void chreThreadEntry(void * /*data*/) {
   EventLoopManagerSingleton::get()->lateInit();
   chre::loadStaticNanoapps();
-  chre::registerDebugDumpCallback("CHRE", onDebugDumpRequested, nullptr);
   EventLoopManagerSingleton::get()->getEventLoop().run();
 
-  chre::unregisterDebugDumpCallback(onDebugDumpRequested);
   chre::deinit();
 #if defined(CHRE_SLPI_SEE) && !defined(IMPORT_CHRE_UTILS)
   chre::IslandVoteClientSingleton::deinit();

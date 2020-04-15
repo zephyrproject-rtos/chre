@@ -28,7 +28,6 @@
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/shared/host_protocol_chre.h"
-#include "chre/platform/slpi/debug_dump.h"
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/nanoapp_load_manager.h"
 #include "chre/platform/slpi/power_control_util.h"
@@ -122,12 +121,6 @@ struct UnloadNanoappCallbackData {
   uint32_t transactionId;
   uint16_t hostClientId;
   bool allowSystemNanoappUnload;
-};
-
-struct DebugDumpCallbackData {
-  uint32_t dataCount;
-  uint16_t hostClientId;
-  bool success;
 };
 
 /**
@@ -388,35 +381,27 @@ void sendDebugDumpData(uint16_t hostClientId, const char *debugStr,
                          kFixedSizePortion + debugStrSize, msgBuilder, &data);
 }
 
-void sendDebugDumpResponse(DebugDumpCallbackData *data) {
+void sendDebugDumpResponse(uint16_t hostClientId, bool success,
+                           uint32_t dataCount) {
+  struct DebugDumpResponseData {
+    uint16_t hostClientId;
+    bool success;
+    uint32_t dataCount;
+  };
+
   auto msgBuilder = [](FlatBufferBuilder &builder, void *cookie) {
-    const auto *cbData = static_cast<const DebugDumpCallbackData *>(cookie);
-    HostProtocolChre::encodeDebugDumpResponse(
-        builder, cbData->hostClientId, cbData->success, cbData->dataCount);
+    const auto *data = static_cast<const DebugDumpResponseData *>(cookie);
+    HostProtocolChre::encodeDebugDumpResponse(builder, data->hostClientId,
+                                              data->success, data->dataCount);
   };
 
   constexpr size_t kInitialSize = 52;
+  DebugDumpResponseData data;
+  data.hostClientId = hostClientId;
+  data.success = success;
+  data.dataCount = dataCount;
   buildAndEnqueueMessage(PendingMessageType::DebugDumpResponse, kInitialSize,
-                         msgBuilder, data);
-}
-
-/**
- * @see debugDumpReadyCbFunc
- */
-void onDebugDumpDataReady(void *cookie, const char *debugStr,
-                          size_t debugStrSize, bool complete) {
-  auto *cbData = static_cast<DebugDumpCallbackData *>(cookie);
-  if (debugStrSize > 0) {
-    sendDebugDumpData(cbData->hostClientId, debugStr, debugStrSize);
-    cbData->dataCount++;
-  }
-
-  if (complete) {
-    sendDebugDumpResponse(cbData);
-
-    // This needs to persist across multiple calls
-    memoryFree(cbData);
-  }
+                         msgBuilder, &data);
 }
 
 void sendFragmentResponse(uint16_t hostClientId, uint32_t transactionId,
@@ -705,6 +690,18 @@ extern "C" int chre_slpi_deliver_message_from_host(const unsigned char *message,
 
 }  // anonymous namespace
 
+void sendDebugDumpResultToHost(uint16_t hostClientId, const char *debugStr,
+                               size_t debugStrSize, bool complete,
+                               uint32_t dataCount) {
+  if (debugStrSize > 0) {
+    sendDebugDumpData(hostClientId, debugStr, debugStrSize);
+  }
+
+  if (complete) {
+    sendDebugDumpResponse(hostClientId, true /*success*/, dataCount);
+  }
+}
+
 void HostLink::flushMessagesSentByNanoapp(uint64_t /*appId*/) {
   // TODO: this is not completely safe since it's timer-based, but should work
   // well enough for the initial implementation. To be fully safe, we'd need
@@ -887,19 +884,11 @@ void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
 }
 
 void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
-  auto *cbData = memoryAlloc<DebugDumpCallbackData>();
-  if (cbData == nullptr) {
-    LOG_OOM();
-  } else {
-    cbData->hostClientId = hostClientId;
-    cbData->dataCount = 0;
-    cbData->success = chre::triggerDebugDump(onDebugDumpDataReady, cbData);
-
-    if (!cbData->success) {
-      LOGE("Couldn't post callback to complete debug dump");
-      sendDebugDumpResponse(cbData);
-      memoryFree(cbData);
-    }
+  if (!chre::EventLoopManagerSingleton::get()
+           ->getDebugDumpManager()
+           .onDebugDumpRequested(hostClientId)) {
+    LOGE("Couldn't trigger debug dump process");
+    sendDebugDumpResponse(hostClientId, false /*success*/, 0 /*dataCount*/);
   }
 }
 

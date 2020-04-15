@@ -16,11 +16,9 @@
 
 #include "chre/core/event_loop_manager.h"
 
-#include "chre/core/settings.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/memory.h"
 #include "chre/util/lock_guard.h"
-#include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
@@ -34,26 +32,6 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
   CHRE_ASSERT_LOG(currentNanoapp, "%s called with no CHRE app context",
                   functionName);
   return currentNanoapp;
-}
-
-void EventLoopManager::debugDump(DebugDumpWrapper &debugDump) {
-  mMemoryManager.logStateToBuffer(debugDump);
-  mEventLoop.handleNanoappWakeupBuckets();
-  mEventLoop.logStateToBuffer(debugDump);
-  mSensorRequestManager.logStateToBuffer(debugDump);
-#ifdef CHRE_GNSS_SUPPORT_ENABLED
-  mGnssManager.logStateToBuffer(debugDump);
-#endif  // CHRE_GNSS_SUPPORT_ENABLED
-#ifdef CHRE_WIFI_SUPPORT_ENABLED
-  mWifiRequestManager.logStateToBuffer(debugDump);
-#endif  // CHRE_WIFI_SUPPORT_ENABLED
-#ifdef CHRE_WWAN_SUPPORT_ENABLED
-  mWwanRequestManager.logStateToBuffer(debugDump);
-#endif  // CHRE_WWAN_SUPPORT_ENABLED
-#ifdef CHRE_AUDIO_SUPPORT_ENABLED
-  mAudioRequestManager.logStateToBuffer(debugDump);
-#endif  // CHRE_AUDIO_SUPPORT_ENABLED
-  logSettingStateToBuffer(debugDump);
 }
 
 uint32_t EventLoopManager::getNextInstanceId() {
