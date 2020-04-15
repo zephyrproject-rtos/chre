@@ -17,9 +17,13 @@
 #ifndef CHRE_CORE_DEBUG_DUMP_MANAGER_H_
 #define CHRE_CORE_DEBUG_DUMP_MANAGER_H_
 
+#include <cstdarg>
 #include <cstdbool>
+#include <cstdint>
 
+#include "chre/core/nanoapp.h"
 #include "chre/platform/platform_debug_dump_manager.h"
+#include "chre/util/optional.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -35,9 +39,22 @@ class DebugDumpManager : public PlatformDebugDumpManager {
    */
   void trigger();
 
+  /**
+   * Helper function to log nanoapp debug dump.
+   */
+  void appendNanoappLog(const Nanoapp &nanoapp, const char *formatStr,
+                        va_list args);
+
  private:
   //! Utility to hold the framework and nanoapp debug dumps.
   DebugDumpWrapper mDebugDump{kDebugDumpStrMaxSize};
+
+  //! Whether the DebugDumpManager is collecting nanoapp debug dumps.
+  bool mCollectingNanoappDebugDumps = false;
+
+  //! Instance ID of the nanoapp that was last logging debug dumps in this
+  //! session.
+  Optional<uint32_t> mLastNanoappId;
 
   /**
    * Collect CHRE framework debug dumps.
@@ -45,9 +62,14 @@ class DebugDumpManager : public PlatformDebugDumpManager {
   void collectFrameworkDebugDumps();
 
   /**
-   * Send collected debug dumps to the host.
+   * Send collected framework debug dumps to the host.
    */
   void sendFrameworkDebugDumps();
+
+  /**
+   * Send collected nanoapp debug dumps to the host.
+   */
+  void sendNanoappDebugDumps();
 };
 
 }  // namespace chre
