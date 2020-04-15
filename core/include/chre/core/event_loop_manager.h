@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_EVENT_LOOP_MANAGER_H_
 #define CHRE_CORE_EVENT_LOOP_MANAGER_H_
 
+#include "chre/core/debug_dump_manager.h"
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_common.h"
 #include "chre/core/gnss_manager.h"
@@ -60,13 +61,6 @@ class EventLoopManager : public NonCopyable {
    *         the context of a nanoapp.
    */
   static Nanoapp *validateChreApiCall(const char *functionName);
-
-  /**
-   * Prints debug dump data into the debugDump object via its buffers.
-   *
-   * @param debugDump the object used to store the buffers for debug dump data
-   */
-  void debugDump(DebugDumpWrapper &debugDump);
 
   /**
    * Leverages the event queue mechanism to schedule a CHRE system callback to
@@ -209,6 +203,14 @@ class EventLoopManager : public NonCopyable {
   }
 
   /**
+   * @return A reference to the debug dump manager. This allows central control
+   *         of the debug dump process.
+   */
+  DebugDumpManager &getDebugDumpManager() {
+    return mDebugDumpManager;
+  }
+
+  /**
    * Performs second-stage initialization of things that are not necessarily
    * required at construction time but need to be completed prior to executing
    * any nanoapps.
@@ -256,6 +258,9 @@ class EventLoopManager : public NonCopyable {
   //! The MemoryManager that handles malloc/free call from nanoapps and also
   //! controls upper limits on the heap allocation amount.
   MemoryManager mMemoryManager;
+
+  //! The DebugDumpManager that handles the debug dump process.
+  DebugDumpManager mDebugDumpManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.
