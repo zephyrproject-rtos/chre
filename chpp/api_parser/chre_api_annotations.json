@@ -1,0 +1,61 @@
+[{
+  "filename": "chre_api/include/chre_api/chre/wwan.h",
+  "includes": [
+    "chre_api/include/chre_api/chre/common.h"
+  ],
+  "output_file": "chpp/include/chpp/services/wwan_types.h",
+  "output_includes": [
+    "chpp/services/common_types.h",
+    "chre_api/chre/wwan.h"
+  ],
+  "struct_info": [
+    {
+      "name": "chreWwanCellInfoResult",
+      "annotations": [
+        {
+          "field": "version",
+          "annotation": "fixed_value",
+          "value": "CHRE_WWAN_CELL_INFO_RESULT_VERSION"
+        },
+        {
+          "field": "errorCode",
+          "annotation": "enum",
+          "enum_type": "chreError"
+        },
+        {
+          "field": "cookie",
+          "annotation": "fixed_value",
+          "value": "0"
+        },
+        {
+          "field": "cookie",
+          "annotation": "rewrite_type",
+          "type_override": "uint32_t"
+        },
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        },
+        {
+          "field": "cells",
+          "annotation": "var_len_array",
+          "length_field": "cellInfoCount"
+        }
+      ]
+    },
+    {
+      "name": "anon_union0",
+      "annotations": [
+        {
+          "field": ".",
+          "annotation": "rename_type",
+          "type_override": "ChppWwanCellInfoPerRat"
+        }
+      ]
+    }
+  ],
+  "root_structs": [
+    "chreWwanCellInfoResult"
+  ]
+}]
