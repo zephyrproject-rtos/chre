@@ -43,6 +43,10 @@ LICENSE_HEADER = """/*
  */
 """
 
+# Paths for output, relative to system/chre
+CHPP_SERVICE_INCLUDE_PATH = "chpp/include/chpp/services"
+CHPP_SERVICE_SOURCE_PATH = "chpp/services"
+
 
 def system_chre_abs_path():
     """Gets the absolute path to the system/chre directory containint this script."""
@@ -52,7 +56,7 @@ def system_chre_abs_path():
     return chre_project_base_dir
 
 
-class StructGenerator:
+class CodeGenerator:
     """Given an ApiParser object, generates a header file with structure definitions in CHPP format.
     """
 
@@ -62,6 +66,13 @@ class StructGenerator:
         """
         self.api = api
         self.json = api.json
+        # Turn "chre_api/include/chre_api/chre/wwan.h" into "wwan"
+        self.service_name = self.json['filename'].split('/')[-1].split('.')[0]
+        self.capitalized_service_name = self.service_name[0].upper() + self.service_name[1:]
+
+    # ----------------------------------------------------------------------------------------------
+    # Header generation methods (plus some methods shared with encoder generation)
+    # ----------------------------------------------------------------------------------------------
 
     def _autogen_notice(self):
         out = []
@@ -74,16 +85,30 @@ class StructGenerator:
         out.append("// time the script is executed\n\n")
         return out
 
-    def _gen_includes(self):
-        """Generates #include directives"""
-        out = ["#include <stdint.h>\n\n"]
+    def _dump_to_file(self, output_filename, contents, dry_run):
+        """Outputs contents to output_filename, or prints contents if dry_run is True"""
+        if dry_run:
+            print("---- {} ----".format(output_filename))
+            print(contents)
+            print("---- end of {} ----\n".format(output_filename))
+        else:
+            with open(output_filename, 'w') as f:
+                f.write(contents)
 
-        includes = ["chpp/macros.h", "chre_api/chre/version.h"]
-        includes.extend(self.json['output_includes'])
-        for incl in sorted(includes):
-            out.append("#include \"{}\"\n".format(incl))
-        out.append("\n")
-        return out
+    def _get_chpp_type_from_chre(self, chre_type):
+        """Given 'chreWwanCellInfo' returns 'struct ChppWwanCellInfo', etc."""
+        prefix = self._get_struct_or_union_prefix(chre_type)
+
+        # First see if we have an explicit name override (e.g. for anonymous types)
+        for annotation in self.api.annotations[chre_type]["."]:
+            if annotation['annotation'] == "rename_type":
+                return prefix + annotation['type_override']
+
+        # Otherwise, use the existing type name, just replace the "chre" prefix with "Chpp"
+        if chre_type.startswith('chre'):
+            return prefix + 'Chpp' + chre_type[4:]
+        else:
+            raise RuntimeError("Couldn't figure out new type name for {}".format(chre_type))
 
     def _get_member_comment(self, member_info):
         for annotation in member_info['annotations']:
@@ -94,34 +119,37 @@ class StructGenerator:
                     annotation['length_field'], self._get_member_type(member_info))
         return ""
 
-    def _get_member_type(self, member_info):
+    def _get_member_type(self, member_info, underlying_vla_type=False):
         """Gets the type specification prefix for a struct/union member.
 
         :param member_info: a dict element from self.api.structs_and_unions[struct]['members']
+        :param underlying_vla_type: (used only for var-len array types) False to output
+            'struct ChppOffset', and True to output the type that ChppOffset references
         :return: type specification string that prefixes the field name, e.g. 'uint8_t'
         """
         # 4 cases to handle:
         #   1) Annotation gives explicit type that we should use
-        #   2) Annotation says this is a variable length array (so use ChppOffset)
-        #   3) This is a struct/union type, so use the renamed type
+        #   2) Annotation says this is a variable length array (so use ChppOffset if
+        #      underlying_vla_type is False)
+        #   3) This is a struct/union type, so use the renamed (CHPP) type name
         #   4) Regular type, e.g. uint32_t, so just use the type spec as-is
         for annotation in member_info['annotations']:
             if annotation['annotation'] == "rewrite_type":
                 return annotation['type_override']
-            elif annotation['annotation'] == "var_len_array":
+            elif not underlying_vla_type and annotation['annotation'] == "var_len_array":
                 return "struct ChppOffset"
 
-        if len(member_info['type'].declarators) > 0 and member_info['type'].declarators[0] == "*":
+        if not underlying_vla_type and len(member_info['type'].declarators) > 0 and \
+                member_info['type'].declarators[0] == "*":
             # This case should either be handled by rewrite_type (e.g. to uint32_t as
             # opaque/ignored), or var_len_array
             raise RuntimeError("Pointer types require annotation\n{}".format(
                 member_info))
 
-        type_spec = member_info['type'].type_spec
-        if type_spec.startswith('struct ') or type_spec.startswith('union '):
-            return self._get_struct_or_union_name(type_spec.split(' ')[1])
+        if member_info['is_nested_type']:
+            return self._get_chpp_type_from_chre(member_info['nested_type_name'])
 
-        return type_spec
+        return member_info['type'].type_spec
 
     def _get_member_type_suffix(self, member_info):
         # If this is an array type, declarators will be a tuple containing a list of a single int
@@ -131,26 +159,26 @@ class StructGenerator:
             return "[{}]".format(member_info['type'].declarators[0][0])
         return ""
 
-    def _get_struct_or_union_name(self, name):
-        prefix = 'struct ' if not self.api.structs_and_unions[name]['is_union'] else 'union '
+    def _get_struct_or_union_prefix(self, chre_type):
+        return 'struct ' if not self.api.structs_and_unions[chre_type]['is_union'] else 'union '
 
-        # First see if we have an explicit name override (e.g. for anonymous types)
-        for annotation in self.api.annotations[name]["."]:
-            if annotation['annotation'] == "rename_type":
-                return prefix + annotation['type_override']
+    def _gen_header_includes(self):
+        """Generates #include directives for use in <service>_types.h"""
+        out = ["#include <stdint.h>\n\n"]
 
-        # Otherwise, use the existing type name, just replace the "chre" prefix with "Chpp"
-        if name.startswith('chre'):
-            return prefix + 'Chpp' + name[4:]
-        else:
-            raise RuntimeError("Couldn't figure out new type name for {}".format(name))
+        includes = ["chpp/macros.h", "chre_api/chre/version.h"]
+        includes.extend(self.json['output_includes'])
+        for incl in sorted(includes):
+            out.append("#include \"{}\"\n".format(incl))
+        out.append("\n")
+        return out
 
     def _gen_struct_or_union(self, name):
         """Generates the definition for a single struct/union type"""
         out = []
         if not name.startswith('anon'):
             out.append("//! See {{@link {}}} for details\n".format(name))
-        out.append("{} {{\n".format(self._get_struct_or_union_name(name)))
+        out.append("{} {{\n".format(self._get_chpp_type_from_chre(name)))
         for member_info in self.api.structs_and_unions[name]['members']:
             out.append("    {} {}{};{}\n".format(self._get_member_type(member_info),
                                                  member_info['name'],
@@ -193,18 +221,97 @@ class StructGenerator:
             sort_helper(self.api.structs_and_unions, node)
         return result
 
+    # ----------------------------------------------------------------------------------------------
+    # Encoder/decoder function generation methods
+    # ----------------------------------------------------------------------------------------------
+
+    def _gen_chpp_sizeof_function(self, chre_type):
+        """Generates a function to determine the encoded size of the CHRE struct, if necessary."""
+        out = []
+
+        # Note that this function *should* work with unions as well, but at the time of writing
+        # it'll only be used with structs, so names, etc. are written with that in mind
+        struct_info = self.api.structs_and_unions[chre_type]
+        if not struct_info['has_vla_member']:
+            # No codegen necessary, just sizeof on the CHPP structure name is sufficient
+            return out
+
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_type)
+        parameter_name = core_type_name[0].lower() + core_type_name[1:]
+        chpp_type_name = self._get_chpp_type_from_chre(chre_type)
+        out.append("//! @return number of bytes required to represent the given\n//! {} as {}\n"
+                   .format(chre_type, chpp_type_name))
+        out.append("static size_t {}(\n        const {}{} *{}) {{\n"
+                   .format(self._get_chpp_sizeof_function_name(chre_type),
+                           self._get_struct_or_union_prefix(chre_type), chre_type,
+                           parameter_name))
+
+        # sizeof(this struct)
+        out.append("    size_t encodedSize = sizeof({});\n".format(chpp_type_name))
+
+        # Plus count * sizeof(type) for each var-len array included in this struct
+        for member_info in self.api.structs_and_unions[chre_type]['members']:
+            for annotation in member_info['annotations']:
+                if annotation['annotation'] == "var_len_array":
+                    # If the VLA field itself contains a VLA, then we'd need to generate a for
+                    # loop to calculate the size of each element individually - I don't think we
+                    # have any of these in the CHRE API today, so leaving this functionality out.
+                    # Also note that to support that case we'd also want to recursively call this
+                    # function to generate sizeof functions for nested fields.
+                    if member_info['is_nested_type'] and \
+                            self.api.structs_and_unions[member_info['nested_type_name']][
+                                'has_vla_member']:
+                        raise RuntimeError(
+                            "Nested variable-length arrays is not currently supported ({} "
+                            "in {})".format(member_info['name'], chre_type))
+
+                    out.append("    encodedSize += {}->{} * sizeof({});\n".format(
+                        parameter_name, annotation['length_field'],
+                        self._get_member_type(member_info, True)))
+
+        out.append("    return encodedSize;\n}\n\n")
+        return out
+
+    def _gen_chpp_sizeof_functions(self):
+        """For each root struct, generate necessary functions to determine their encoded size."""
+        out = []
+        for struct in self.json['root_structs']:
+            out.extend(self._gen_chpp_sizeof_function(struct))
+        return out
+
+    def _gen_conversion_includes(self):
+        """Generates #include directives for the conversion source file"""
+        out = ["#include \"chpp/services/{}_types.h\"\n\n".format(self.service_name)]
+        out.append("#include <stddef.h>\n#include <stdint.h>\n\n")
+        return out
+
+    def _get_chpp_sizeof_function_name(self, chre_struct):
+        """Function name used to compute the encoded size of the given struct at runtime"""
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_struct)
+        return "chpp{}SizeOf{}FromChre".format(self.capitalized_service_name, core_type_name)
+
+    def _strip_prefix_and_service_from_chre_struct_name(self, struct):
+        """Strip 'chre' and service prefix, e.g. 'chreWwanCellResultInfo' -> 'CellResultInfo'"""
+        chre_stripped = struct[4:]
+        upcased_service_name = self.service_name[0].upper() + self.service_name[1:]
+        if not struct.startswith('chre') or not chre_stripped.startswith(upcased_service_name):
+            # If this happens, we need to update the script to handle it. Right we assume struct
+            # naming follows the pattern "chre<Service_name><Thing_name>"
+            raise RuntimeError("Unexpected structure name {}".format(struct))
+
+        return chre_stripped[len(self.service_name):]
+
+    # ----------------------------------------------------------------------------------------------
+    # Public methods
+    # ----------------------------------------------------------------------------------------------
+
     def generate_header_file(self, dry_run=False):
         """Creates a C header file for this API and writes it to the file indicated in the JSON."""
-        self.header = self.generate_header_string()
-        output_file = os.path.join(system_chre_abs_path(), self.json['output_file'])
-
-        if dry_run:
-            print("---- {} ----".format(output_file))
-            print(self.header)
-            print("---- end of {} ----\n".format(output_file))
-        else:
-            with open(output_file, 'w') as f:
-                f.write(self.header)
+        output_file = os.path.join(system_chre_abs_path(),
+                                   CHPP_SERVICE_INCLUDE_PATH,
+                                   self.service_name + "_types.h")
+        header = self.generate_header_string()
+        self._dump_to_file(output_file, header, dry_run)
 
     def generate_header_string(self):
         """Returns a C header with structure definitions for this API."""
@@ -218,12 +325,32 @@ class StructGenerator:
 
         out.append("#ifndef {}\n#define {}\n\n".format(header_guard, header_guard))
         out.extend(self._autogen_notice())
-        out.extend(self._gen_includes())
+        out.extend(self._gen_header_includes())
         out.append("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n")
         out.extend(self._gen_structs_and_unions())
 
         out.append("#ifdef __cplusplus\n}\n#endif\n\n")
         out.append("#endif  // {}\n".format(header_guard))
+        return ''.join(out)
+
+    def generate_conversion_file(self, dry_run=False):
+        """Generates a .c file with functions for encoding CHRE structs into CHPP and vice versa."""
+        contents = self.generate_conversion_string()
+        output_file = os.path.join(system_chre_abs_path(),
+                                   CHPP_SERVICE_SOURCE_PATH,
+                                   self.service_name + "_convert.c")
+        self._dump_to_file(output_file, contents, dry_run)
+
+    def generate_conversion_string(self):
+        """Returns C code for encoding CHRE structs into CHPP and vice versa."""
+        out = [LICENSE_HEADER, "\n"]
+
+        out.extend(self._autogen_notice())
+        out.extend(self._gen_conversion_includes())
+        out.extend(self._gen_chpp_sizeof_functions())
+
+        # TODO: encoding, decoding functions
+
         return ''.join(out)
 
 
@@ -346,7 +473,9 @@ def run(args):
 
     for file in js:
         api_parser = ApiParser(file)
-        StructGenerator(api_parser).generate_header_file(args.dry_run)
+        code_gen = CodeGenerator(api_parser)
+        code_gen.generate_header_file(args.dry_run)
+        code_gen.generate_conversion_file(args.dry_run)
 
 
 if __name__ == "__main__":
