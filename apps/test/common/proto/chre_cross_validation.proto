@@ -34,6 +34,7 @@ message StartSensorCommand {
   optional uint32 chreSensorType = 1;
   optional uint64 samplingIntervalInNs = 2;
   optional uint64 samplingMaxLatencyInNs = 3;
+  optional bool isContinuous = 4;
 }
 
 message Data {

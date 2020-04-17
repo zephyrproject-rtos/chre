@@ -47,7 +47,6 @@ import java.util.concurrent.atomic.AtomicReference;
 abstract class ChreCrossValidatorBase {
     protected static final String TAG = "ChreCrossValidator";
     private static final long NANO_APP_ID = 0x476f6f6754000002L;
-    private static final long SAMPLING_DURATION_IN_MS = 5000;
 
     private final ContextHubManager mContextHubManager;
     private final ContextHubClient mContextHubClient;
@@ -178,7 +177,7 @@ abstract class ChreCrossValidatorBase {
     private void waitForDataSampling() throws AssertionError {
         mCollectingData.set(true);
         try {
-            mAwaitDataLatch.await(SAMPLING_DURATION_IN_MS, TimeUnit.MILLISECONDS);
+            mAwaitDataLatch.await(getAwaitDataTimeoutInMs(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Assert.fail("await data latch interrupted");
         }
@@ -286,4 +285,9 @@ abstract class ChreCrossValidatorBase {
     * @return true if the data from AP and CHRE are considered close enough to be reliable.
     */
     protected abstract void assertApAndChreDataSimilar() throws AssertionError;
+
+    /**
+     * @return The amount of time to wait in milliseconds for data from AP and CHRE.
+     */
+    protected abstract long getAwaitDataTimeoutInMs();
 }
