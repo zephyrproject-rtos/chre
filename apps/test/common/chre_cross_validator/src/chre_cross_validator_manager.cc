@@ -87,6 +87,9 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_SENSOR_PRESSURE_DATA:
       handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
                             CHRE_SENSOR_TYPE_PRESSURE);
+    case CHRE_EVENT_SENSOR_LIGHT_DATA:
+      handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
+                            CHRE_SENSOR_TYPE_LIGHT);
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
