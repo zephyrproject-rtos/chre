@@ -276,7 +276,12 @@ class ApiParser:
             if type_name in self.structs_and_unions:
                 continue
 
-            entry = {'members': [], 'dependencies': set()}
+            entry = {
+                'appears_in': set(),  # Other types this type is nested within
+                'dependencies': set(),  # Types that are nested in this type
+                'has_vla_member': False,  # True if this type or any dependency has a VLA member
+                'members': [],  # Info about each member of this type
+            }
             if type_name in self.parser.defs['structs']:
                 defs = self.parser.defs['structs'][type_name]
                 entry['is_union'] = False
@@ -287,19 +292,47 @@ class ApiParser:
                 raise RuntimeError("Couldn't find {} in parsed structs/unions".format(type_name))
 
             for member_name, member_type, _ in defs['members']:
-                entry['members'].append({
+                member_info = {
                     'name': member_name,
                     'type': member_type,
-                    'annotations': self.annotations[type_name][member_name]
-                })
+                    'annotations': self.annotations[type_name][member_name],
+                    'is_nested_type': False,
+                }
 
                 if member_type.type_spec.startswith('struct ') or \
                         member_type.type_spec.startswith('union '):
+                    member_info['is_nested_type'] = True
                     member_type_name = member_type.type_spec.split(' ')[1]
+                    member_info['nested_type_name'] = member_type_name
                     entry['dependencies'].add(member_type_name)
                     structs_and_unions_to_parse.append(member_type_name)
 
+                entry['members'].append(member_info)
+
+                # Flip a flag if this structure has at least one variable-length array member, which
+                # means that the encoded size can only be computed at runtime
+                if not entry['has_vla_member']:
+                    for annotation in self.annotations[type_name][member_name]:
+                        if annotation['annotation'] == "var_len_array":
+                            entry['has_vla_member'] = True
+
             self.structs_and_unions[type_name] = entry
+
+        # Build reverse linkage of dependency chain (i.e. lookup between a type and the other types
+        # it appears in)
+        for type_name, type_info in self.structs_and_unions.items():
+            for dependency in type_info['dependencies']:
+                self.structs_and_unions[dependency]['appears_in'].add(type_name)
+
+        # Bubble up "has_vla_member" to types each type it appears in, i.e. if this flag is set to
+        # True on a leaf node, then all its ancestors should also have the flag set to True
+        for type_name, type_info in self.structs_and_unions.items():
+            if type_info['has_vla_member']:
+                types_to_mark = list(type_info['appears_in'])
+                while len(types_to_mark) > 0:
+                    type_to_mark = types_to_mark.pop()
+                    self.structs_and_unions[type_to_mark]['has_vla_member'] = True
+                    types_to_mark.extend(list(self.structs_and_unions[type_to_mark]['appears_in']))
 
     def _parse_api(self):
         file_to_parse = self._files_to_parse()
