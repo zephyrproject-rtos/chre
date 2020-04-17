@@ -87,6 +87,9 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_SENSOR_PRESSURE_DATA:
       handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
                             CHRE_SENSOR_TYPE_PRESSURE);
+    case CHRE_EVENT_SENSOR_LIGHT_DATA:
+      handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
+                            CHRE_SENSOR_TYPE_LIGHT);
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
@@ -200,12 +203,25 @@ bool Manager::handleStartSensorMessage(
   uint8_t sensorType = startSensorCommand.chreSensorType;
   uint64_t interval = startSensorCommand.samplingIntervalInNs;
   uint64_t latency = startSensorCommand.samplingMaxLatencyInNs;
+  bool isContinuous = startSensorCommand.isContinuous;
   uint32_t handle;
   if (!chreSensorFindDefault(sensorType, &handle)) {
     LOGE("Could not find default sensor for sensorType %" PRIu8, sensorType);
     success = false;
     // TODO(b/146052784): Test other sensor configure modes
   } else {
+    // If the sensor is on-change or one-shot then the interval from host
+    // message will be 0 which cannot be passed to chreSensorConfigure so set
+    // the interval and latency to default in that case
+    if (!isContinuous) {
+      interval = CHRE_SENSOR_INTERVAL_DEFAULT;
+      latency = CHRE_SENSOR_LATENCY_DEFAULT;
+    }
+    // Copy hostEndpoint param from previous version of cross validator
+    // state
+    mCrossValidatorState = CrossValidatorState(
+        CrossValidatorType::SENSOR, sensorType, handle, chreGetTime(),
+        mCrossValidatorState->hostEndpoint, isContinuous);
     if (!chreSensorConfigure(handle, CHRE_SENSOR_CONFIGURE_MODE_CONTINUOUS,
                              interval, latency)) {
       LOGE("Error configuring sensor with sensorType %" PRIu8
@@ -213,11 +229,6 @@ bool Manager::handleStartSensorMessage(
            sensorType, interval, latency);
       success = false;
     } else {
-      // Copy hostEndpoint param from previous version of cross validator
-      // state
-      mCrossValidatorState = CrossValidatorState(
-          CrossValidatorType::SENSOR, sensorType, handle, chreGetTime(),
-          mCrossValidatorState->hostEndpoint);
       LOGD("Sensor with sensor type %" PRIu8 " configured", sensorType);
     }
   }
@@ -225,8 +236,12 @@ bool Manager::handleStartSensorMessage(
 }
 
 bool Manager::isValidHeader(const chreSensorDataHeader &header) {
-  return header.readingCount > 0 && mCrossValidatorState.has_value() &&
-         header.baseTimestamp > mCrossValidatorState->timeStart;
+  // On-change sensors may send cached values because the data value has not
+  // changed since the test started
+  bool isTimestampValid =
+      !mCrossValidatorState->isContinuous ||
+      header.baseTimestamp < mCrossValidatorState->timeStart;
+  return header.readingCount > 0 && isTimestampValid;
 }
 
 void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
@@ -238,8 +253,8 @@ void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
     hostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
   }
   // Default values for everything but hostEndpoint param
-  mCrossValidatorState =
-      CrossValidatorState(CrossValidatorType::SENSOR, 0, 0, 0, hostEndpoint);
+  mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
+                                             0, hostEndpoint, false);
   pb_istream_t istream = pb_istream_from_buffer(
       static_cast<const pb_byte_t *>(hostData->message), hostData->messageSize);
   chre_cross_validation_StartCommand startCommand =
@@ -364,10 +379,10 @@ void Manager::encodeAndSendDataToHost(const chre_cross_validation_Data &data) {
 
 bool Manager::processSensorData(const chreSensorDataHeader &header,
                                 uint8_t sensorType) {
-  if (!isValidHeader(header)) {
-    LOGE("Invalid data being thrown away");
-  } else if (!mCrossValidatorState.has_value()) {
+  if (!mCrossValidatorState.has_value()) {
     LOGE("Start message not received or invalid when data received");
+  } else if (!isValidHeader(header)) {
+    LOGE("Invalid data being thrown away");
   } else if (!sensorTypeIsValid(sensorType)) {
     LOGE("Unexpected sensor data type %" PRIu8 ", expected %" PRIu8, sensorType,
          mCrossValidatorState->sensorType);
