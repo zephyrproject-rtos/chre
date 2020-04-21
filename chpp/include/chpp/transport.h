@@ -342,8 +342,10 @@ void chppRxTimeoutTimerCb(struct ChppTransportState *context);
 
 /**
  * Enqueues an outgoing datagram of a specified length. The payload must have
- * been allocated by the caller using chppMalloc. If enqueueing is successful,
- * the payload shall be freed by the transport layer once it has been sent out.
+ * been allocated by the caller using chppMalloc.
+ *
+ * If enqueueing is successful, the payload shall be freed by the transport
+ * layer once it has been sent out.
  * If enqueueing is unsuccessful, it is up to the sender to decide whether to
  * free the payload and/or resend it later.
  *

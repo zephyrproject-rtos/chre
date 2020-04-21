@@ -15,6 +15,7 @@
  */
 
 #include "chpp/services.h"
+#include "chpp/app.h"
 #include "chpp/services/wwan.h"
 
 /************************************************
@@ -73,14 +74,27 @@ void chppRegisterService(struct ChppAppState *context,
     context->registeredServiceCount++;
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
-    uuidToStr(newService->uuid, uuidText);
+    uuidToStr(newService->descriptor.uuid, uuidText);
     LOGI(
         "Registered service %d on handle %x with name=%s, UUID=%s, "
         "version=%d.%d.%d, min_len=%d ",
         context->registeredServiceCount,
         context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START,
-        newService->name, uuidText, newService->versionMajor,
-        newService->versionMinor, newService->versionPatch,
-        newService->minLength);
+        newService->descriptor.name, uuidText,
+        newService->descriptor.versionMajor,
+        newService->descriptor.versionMinor,
+        newService->descriptor.versionPatch, newService->minLength);
   }
+}
+
+struct ChppAppHeader *chppAllocServiceResponse(
+    const struct ChppAppHeader *requestHeader, size_t len) {
+  CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
+
+  struct ChppAppHeader *result = chppMalloc(len);
+  if (result) {
+    *result = *requestHeader;
+    result->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
+  }
+  return (void *)result;
 }

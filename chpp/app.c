@@ -15,6 +15,7 @@
  */
 
 #include "chpp/app.h"
+#include "chpp/services.h"
 
 /************************************************
  *  Prototypes

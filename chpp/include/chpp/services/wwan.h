@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/services.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -344,6 +344,79 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   t1.join();
 }
 
+/**
+ * Discovery service
+ */
+TEST_F(TransportTests, DiscoveryService) {
+  transportContext.rxStatus.state = CHPP_STATE_HEADER;
+  size_t len = 0;
+  std::thread t1(chppWorkThreadStart, &transportContext);
+
+  ChppTransportHeader transHeader{};
+  transHeader.flags = 0;
+  transHeader.errorCode = 0;
+  transHeader.ackSeq = 1;
+  transHeader.seq = 0;
+  transHeader.length = sizeof(ChppAppHeader);
+
+  memcpy(&buf[len], &transHeader, sizeof(transHeader));
+  len += sizeof(transHeader);
+
+  ChppAppHeader appHeader{};
+
+  appHeader.handle = CHPP_HANDLE_DISCOVERY;
+  appHeader.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+  appHeader.transaction = 1;
+  appHeader.command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
+
+  memcpy(&buf[len], &appHeader, sizeof(appHeader));
+  len += sizeof(appHeader);
+
+  // TODO: Add checksum
+  len += sizeof(ChppTransportFooter);
+
+  // Send header + payload (if any) + footer
+  EXPECT_TRUE(chppRxDataCb(&transportContext, buf, len));
+
+  // Check for correct state
+  EXPECT_EQ(transportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
+
+  // The next expected packet sequence # should incremented
+  uint8_t nextSeq = transHeader.seq + 1;
+  EXPECT_EQ(transportContext.rxStatus.expectedSeq, nextSeq);
+
+  // Wait for response
+  WaitForTransport(&transportContext);
+
+  // Check response packet fields
+  struct ChppTransportHeader *txHeader =
+      (struct ChppTransportHeader *)&transportContext.pendingTxPacket
+          .payload[CHPP_PREAMBLE_LEN_BYTES];
+
+  // Check response packet parameters
+  EXPECT_EQ(txHeader->errorCode, CHPP_ERROR_NONE);
+  EXPECT_EQ(txHeader->ackSeq, nextSeq);
+
+  // TODO: more tests
+
+  // Check response packet payload
+  EXPECT_EQ(transportContext.pendingTxPacket
+                .payload[CHPP_PREAMBLE_LEN_BYTES +
+                         sizeof(struct ChppTransportHeader)],
+            CHPP_HANDLE_DISCOVERY);
+  EXPECT_EQ(transportContext.pendingTxPacket
+                .payload[CHPP_PREAMBLE_LEN_BYTES +
+                         sizeof(struct ChppTransportHeader) + 1],
+            CHPP_MESSAGE_TYPE_SERVER_RESPONSE);
+
+  // Should have reset loc and length for next packet / datagram
+  EXPECT_EQ(transportContext.rxStatus.locInDatagram, 0);
+  EXPECT_EQ(transportContext.rxDatagram.length, 0);
+
+  chppWorkThreadStop(&transportContext);
+  t1.join();
+}
+
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));
 
