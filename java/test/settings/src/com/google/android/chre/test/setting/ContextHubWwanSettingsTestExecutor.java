@@ -88,7 +88,7 @@ public class ContextHubWwanSettingsTestExecutor {
 
         // Wait for the setting to propagate
         try {
-            Thread.sleep(5000);
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
