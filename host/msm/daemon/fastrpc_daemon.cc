@@ -83,8 +83,12 @@ void FastRpcChreDaemon::deinit() {
     LOGE("Failed to stop CHRE: (err) %d", rc);
   }
 
-  mMonitorThread.join();
-  mMsgToHostThread.join();
+  if (mMonitorThread.has_value()) {
+    mMonitorThread->join();
+  }
+  if (mMsgToHostThread.has_value()) {
+    mMsgToHostThread->join();
+  }
 }
 
 void FastRpcChreDaemon::run() {
@@ -190,7 +194,7 @@ void FastRpcChreDaemon::msgToHostThreadEntry() {
       break;
     } else if (result == CHRE_FASTRPC_SUCCESS && messageLen > 0) {
       onMessageReceived(messageBuffer, messageLen);
-    } else if (wasShutdownRequested()) {
+    } else if (!wasShutdownRequested()) {
       LOGE(
           "Received an unknown result (%d) and no shutdown was requested. "
           "Quitting",

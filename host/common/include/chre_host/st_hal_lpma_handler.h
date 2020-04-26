@@ -72,6 +72,13 @@ class StHalLpmaHandler {
 
   explicit StHalLpmaHandler(bool allowed);
 
+  ~StHalLpmaHandler() {
+    if (mThread.has_value()) {
+      // TODO: Change this to join after adding proper handler
+      mThread->detach();
+    }
+  }
+
   /**
    * If LPMA is enabled, starts a worker thread to load/unload models.
    */
@@ -122,7 +129,7 @@ class StHalLpmaHandler {
   int mRetryCount;
   useconds_t mRetryDelay;
 
-  std::thread mThread;
+  std::optional<std::thread> mThread;
   std::mutex mMutex;
   std::condition_variable mCondVar;
 
