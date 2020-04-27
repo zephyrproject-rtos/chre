@@ -16,13 +16,19 @@
 package com.google.android.utils.chre;
 
 import android.app.Instrumentation;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.LocationManager;
 import android.os.UserHandle;
 
 import androidx.test.InstrumentationRegistry;
 
 import org.junit.Assert;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A class to get or set settings parameters.
@@ -33,6 +39,19 @@ public class SettingsUtil {
     private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
 
     private final LocationManager mLocationManager;
+
+    public class LocationUpdateListener {
+        public CountDownLatch mLocationLatch = new CountDownLatch(1);
+
+        public BroadcastReceiver mLocationSettingReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (LocationManager.MODE_CHANGED_ACTION.equals(intent.getAction())) {
+                    mLocationLatch.countDown();
+                }
+            }
+        };
+    }
 
     public SettingsUtil(Context context) {
         mContext = context;
@@ -82,20 +101,28 @@ public class SettingsUtil {
     /**
      * Sets the location mode on the device.
      * @param enable True to enable location, false to disable it.
-     * @param sleepTimeMillis The amount of time to sleep after changing the setting before
-     *   returning.
+     * @param timeoutSeconds The maximum amount of time in seconds to wait.
      */
-    public void setLocationModeAndSleep(boolean enable, long sleepTimeMillis) {
+    public void setLocationMode(boolean enable, long timeoutSeconds) {
+        LocationUpdateListener listener = new LocationUpdateListener();
+
+        mContext.registerReceiver(
+                listener.mLocationSettingReceiver,
+                new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
         mLocationManager.setLocationEnabledForUser(enable, UserHandle.CURRENT);
 
-        // Wait for the setting to propagate
         try {
-            Thread.sleep(sleepTimeMillis);
+            listener.mLocationLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+
+            // Wait 1 additional second to make sure setting gets propagated to CHRE
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+            Assert.fail("InterruptedException while waiting for location update");
         }
 
         Assert.assertTrue(isLocationEnabled() == enable);
+
+        mContext.unregisterReceiver(listener.mLocationSettingReceiver);
     }
 
     /**
