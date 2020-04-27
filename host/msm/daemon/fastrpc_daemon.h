@@ -81,8 +81,8 @@ class FastRpcChreDaemon : public ChreDaemonBase {
   void onMessageReceived(unsigned char *messageBuffer, size_t messageLen);
 
  private:
-  std::thread mMonitorThread;
-  std::thread mMsgToHostThread;
+  std::optional<std::thread> mMonitorThread;
+  std::optional<std::thread> mMsgToHostThread;
   SocketServer mServer;
   ChreLogMessageParserBase mLogger;
   StHalLpmaHandler mLpmaHandler;
