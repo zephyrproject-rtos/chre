@@ -163,7 +163,7 @@ struct ChppService {
   ChppDispatchFunction *dispatchFunctionPtr;
 
   //! Minimum valid length of datagrams for the service.
-  uint8_t minLength;
+  size_t minLength;
 };
 
 struct ChppAppState {

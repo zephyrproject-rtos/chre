@@ -53,6 +53,6 @@ void chppDispatchLoopback(struct ChppAppState *context, uint8_t *buf,
       chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
     }
   } else {
-    LOGE("Unknown Loopback message type = %d", rxHeader->type);
+    LOGE("Unknown Loopback message type = %" PRIu8, rxHeader->type);
   }
 }

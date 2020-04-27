@@ -143,7 +143,7 @@ void chppDispatchWwan(void *serviceContext, uint8_t *buf, size_t len) {
         default: {  // TODO: handle in common code
           LOGE(
               "Received unknown WWAN client request: command = %#x, "
-              "transaction = %d",
+              "transaction ID = %" PRIu8,
               rxHeader->command, rxHeader->transaction);
 
           // Allocate the response
@@ -168,7 +168,7 @@ void chppDispatchWwan(void *serviceContext, uint8_t *buf, size_t len) {
     case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
       LOGE(
           "Received unknown WWAN client notification: command = %#x, "
-          "transaction = %d",
+          "transaction ID = %" PRIu8,
           rxHeader->command, rxHeader->transaction);
       break;
     }
