@@ -237,11 +237,12 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
           break;
 
         default:
-          // TODO: we should reply back to the client with an error
           LOGE(
               "Received unknown message type: %#x, len = %zu, transaction ID = "
               "%" PRIu8,
               rxHeader->type, len, rxHeader->transaction);
+          chppEnqueueTxErrorDatagram(context->transportContext,
+                                     CHPP_TRANSPORT_ERROR_APPLAYER);
       }
     }
   }

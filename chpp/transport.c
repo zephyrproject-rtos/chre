@@ -170,10 +170,10 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
         }
 
         if (tempPayload == NULL) {
-          LOGE("OOM for packet# %" PRIu8 ", len=%" PRIu16
-               ". Previous fragment(s) total len=%zu",
-               context->rxHeader.seq, context->rxHeader.length,
-               context->rxDatagram.length);
+          LOG_OOM("packet# %" PRIu8 ", len=%" PRIu16
+                  ". Previous fragment(s) total len=%zu",
+                  context->rxHeader.seq, context->rxHeader.length,
+                  context->rxDatagram.length);
           chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_OOM);
           chppSetRxState(context, CHPP_STATE_PREAMBLE);
         } else {
@@ -309,10 +309,9 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
                       context->rxDatagram.length + context->rxHeader.length);
 
       if (tempPayload == NULL) {
-        LOGE("OOM discarding bad continuation packet# %" PRIu8 " len=%" PRIu16
-             ". Previous fragment(s) total len=%zu",
-             context->rxHeader.seq, context->rxHeader.length,
-             context->rxDatagram.length);
+        LOG_OOM("discarding continuation packet# %" PRIu8 ". total len=%zu",
+                context->rxHeader.seq,
+                context->rxDatagram.length + context->rxHeader.length);
       } else {
         context->rxDatagram.payload = tempPayload;
       }
@@ -805,6 +804,25 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
   }
 
   return success;
+}
+
+void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
+                                enum ChppTransportErrorCode errorCode) {
+  switch (errorCode) {
+    case CHPP_TRANSPORT_ERROR_OOM: {
+      LOGD("Enqueueing CHPP_TRANSPORT_ERROR_OOM datagram");
+      break;
+    }
+    case CHPP_TRANSPORT_ERROR_APPLAYER: {
+      LOGD("Enqueueing CHPP_TRANSPORT_ERROR_APPLAYER datagram");
+      break;
+    }
+    default: {
+      // App layer should not invoke any other errors
+      CHPP_ASSERT();
+    }
+  }
+  chppEnqueueTxPacket(context, errorCode);
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {

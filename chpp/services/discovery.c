@@ -60,7 +60,7 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
       context->registeredServiceCount, services);
 
   if (response == NULL) {
-    LOGE("OOM allocating Discover All response of %zu bytes", responseLen);
+    LOG_OOM("DiscoverAll response of %zu bytes", responseLen);
     CHPP_ASSERT(false);
 
   } else {

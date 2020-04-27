@@ -253,8 +253,7 @@ void chppWwanCellInfoResultCallback(struct chreWwanCellInfoResult *result) {
       &requestHeader, struct ChppServiceBasicResponse);
 
   if (response == NULL) {
-    LOGE("OOM allocating WwanGetCellInfoResponseAsync response of %zu bytes",
-         responseLen);
+    LOG_OOM("WwanGetCellInfoResponseAsync response of %zu bytes", responseLen);
     CHPP_ASSERT(false);
   }
 
