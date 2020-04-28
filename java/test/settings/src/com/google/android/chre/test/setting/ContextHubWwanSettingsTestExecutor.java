@@ -67,16 +67,12 @@ public class ContextHubWwanSettingsTestExecutor {
     private void setAirplaneMode(boolean enable) {
         if (enable) {
             ChreTestUtil.executeShellCommand(
-                    mInstrumentation, "settings put global airplane_mode_on 1");
+                    mInstrumentation, "cmd connectivity airplane-mode enable");
         } else {
             ChreTestUtil.executeShellCommand(
-                    mInstrumentation, "settings put global airplane_mode_on 0");
+                    mInstrumentation, "cmd connectivity airplane-mode disable");
         }
         Assert.assertTrue(isAirplaneModeOn() == enable);
-
-        // Trigger broadcast to propagate new setting to the system.
-        ChreTestUtil.executeShellCommand(
-                mInstrumentation, "am broadcast -a android.intent.action.AIRPLANE_MODE");
     }
 
     /**
