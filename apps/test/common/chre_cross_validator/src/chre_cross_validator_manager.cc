@@ -240,7 +240,7 @@ bool Manager::isValidHeader(const chreSensorDataHeader &header) {
   // changed since the test started
   bool isTimestampValid =
       !mCrossValidatorState->isContinuous ||
-      header.baseTimestamp < mCrossValidatorState->timeStart;
+      header.baseTimestamp >= mCrossValidatorState->timeStart;
   return header.readingCount > 0 && isTimestampValid;
 }
 
