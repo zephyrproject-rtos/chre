@@ -19,10 +19,13 @@
 
 // clang-format off
 
+#ifndef FLATBUFFERS_CHRE
+#include <memory>
 #include <string>
+#endif
+
 #include <type_traits>
 #include <vector>
-#include <memory>
 #include <limits>
 
 #if defined(_STLPORT_VERSION) && !defined(FLATBUFFERS_CPP98_STL)
@@ -46,6 +49,7 @@
 // This header provides backwards compatibility for C++98 STLs like stlport.
 namespace flatbuffers {
 
+#ifndef FLATBUFFERS_CHRE
 // Retrieve ::back() from a string in a way that is compatible with pre C++11
 // STLs (e.g stlport).
 inline char& string_back(std::string &value) {
@@ -77,6 +81,7 @@ inline void vector_emplace_back(std::vector<T> *vector, V &&data) {
     vector->emplace_back(std::forward<V>(data));
   #endif  // defined(FLATBUFFERS_CPP98_STL)
 }
+#endif  // FLATBUFFERS_CHRE
 
 #ifndef FLATBUFFERS_CPP98_STL
   #if defined(FLATBUFFERS_TEMPLATES_ALIASES)
@@ -183,6 +188,9 @@ inline void vector_emplace_back(std::vector<T> *vector, V &&data) {
   struct integral_constant : public std::integral_constant<T, v> {};
 #endif  // defined(FLATBUFFERS_TEMPLATES_ALIASES)
 
+// unique_ptr doesn't make an appearance in FLATBUFFERS_CHRE, but if the need
+// arises we could map it into chre::UniquePtr
+#ifndef FLATBUFFERS_CHRE
 #ifndef FLATBUFFERS_CPP98_STL
   #if defined(FLATBUFFERS_TEMPLATES_ALIASES)
     template <class T> using unique_ptr = std::unique_ptr<T>;
@@ -301,6 +309,7 @@ inline void vector_emplace_back(std::vector<T> *vector, V &&data) {
   }
 
 #endif  // !FLATBUFFERS_CPP98_STL
+#endif  // !FLATBUFFERS_CHRE
 
 }  // namespace flatbuffers
 

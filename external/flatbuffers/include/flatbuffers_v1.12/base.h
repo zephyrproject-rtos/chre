@@ -38,18 +38,21 @@
   #include <utility>
 #endif
 
-#include <string>
 #include <type_traits>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <iterator>
+
+#ifndef FLATBUFFERS_CHRE
 #include <memory>
+#include <set>
+#include <string>
+#endif
 
 #ifdef _STLPORT_VERSION
   #define FLATBUFFERS_CPP98_STL
 #endif
-#ifndef FLATBUFFERS_CPP98_STL
+#if !defined(FLATBUFFERS_CPP98_STL) && !defined(FLATBUFFERS_CHRE)
   #include <functional>
 #endif
 

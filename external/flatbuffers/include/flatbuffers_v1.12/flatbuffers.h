@@ -17,6 +17,25 @@
 #ifndef FLATBUFFERS_H_
 #define FLATBUFFERS_H_
 
+/**
+ * @file
+ * A customized version of the FlatBuffers implementation header file targeted
+ * for use within CHRE. This file differs from the mainline FlatBuffers release
+ * via the introduction of the feature flag FLATBUFFERS_CHRE. When defined,
+ * standard library features not used in CHRE are removed or remapped to their
+ * CHRE-specific alternatives. This includes removing support for strings,
+ * replacing std::vector with chre::DynamicVector, use of CHRE_ASSERT, removal
+ * of uses of std::function, etc.
+ */
+
+#ifdef FLATBUFFERS_CHRE
+#include "chre/util/container_support.h"
+#include "chre/util/dynamic_vector.h"
+
+// Before the flatbuffers/base.h include where it's used
+#define FLATBUFFERS_ASSERT CHRE_ASSERT
+#endif
+
 #include "flatbuffers/base.h"
 
 #if defined(FLATBUFFERS_NAN_DEFAULTS)
@@ -62,7 +81,7 @@ inline bool IsInRange(const T &v, const T &low, const T &high) {
 template<typename T> struct Offset {
   uoffset_t o;
   Offset() : o(0) {}
-  Offset(uoffset_t _o) : o(_o) {}
+  Offset(uoffset_t _o) : o(_o) {} // NOLINT(google-explicit-constructor)
   Offset<void> Union() const { return Offset<void>(o); }
   bool IsNull() const { return !o; }
 };
@@ -231,7 +250,9 @@ struct VectorReverseIterator : public std::reverse_iterator<Iterator> {
   }
 };
 
+#ifndef FLATBUFFERS_CHRE
 struct String;
+#endif
 
 // This is used as a helper type for accessing vectors.
 // Vector::data() assumes the vector elements start after the length field.
@@ -273,11 +294,13 @@ template<typename T> class Vector {
     return reinterpret_cast<const U *>(Get(i));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   // If this a vector of unions, this does the cast for you. There's no check
   // to make sure this is actually a string!
   const String *GetAsString(uoffset_t i) const {
     return reinterpret_cast<const String *>(Get(i));
   }
+  #endif
 
   const void *GetStructFromOffset(size_t o) const {
     return reinterpret_cast<const void *>(Data() + o);
@@ -544,6 +567,7 @@ template<typename T, uint16_t length> class Array<Offset<T>, length> {
   uint8_t data_[1];
 };
 
+#ifndef FLATBUFFERS_CHRE
 // Lexicographically compare two strings (possibly containing nulls), and
 // return true if the first is less than the second.
 static inline bool StringLessThan(const char *a_data, uoffset_t a_size,
@@ -580,6 +604,7 @@ static inline std::string GetString(const String *str) {
 static inline const char *GetCstring(const String *str) {
   return str ? str->c_str() : "";
 }
+#endif  // !FLATBUFFERS_CHRE
 
 // Allocator interface. This is flatbuffers-specific and meant only for
 // `vector_downward` usage.
@@ -627,10 +652,20 @@ class Allocator {
 class DefaultAllocator : public Allocator {
  public:
   uint8_t *allocate(size_t size) FLATBUFFERS_OVERRIDE {
-    return new uint8_t[size];
+    #ifndef FLATBUFFERS_CHRE
+      return new uint8_t[size];
+    #else
+      return static_cast<uint8_t *>(chre::memoryAlloc(size));
+    #endif
   }
 
-  void deallocate(uint8_t *p, size_t) FLATBUFFERS_OVERRIDE { delete[] p; }
+  void deallocate(uint8_t *p, size_t) FLATBUFFERS_OVERRIDE {
+    #ifndef FLATBUFFERS_CHRE
+      delete[] p;
+    #else
+      return chre::memoryFree(p);
+    #endif
+  }
 
   static void dealloc(void *p, size_t) { delete[] static_cast<uint8_t *>(p); }
 };
@@ -920,7 +955,7 @@ class vector_downward {
   Allocator *get_custom_allocator() { return allocator_; }
 
   uoffset_t size() const {
-    return static_cast<uoffset_t>(reserved_ - (cur_ - buf_));
+    return static_cast<uoffset_t>(reserved_ - static_cast<size_t>(cur_ - buf_));
   }
 
   uoffset_t scratch_size() const {
@@ -1035,6 +1070,7 @@ inline voffset_t FieldIndexToOffset(voffset_t field_id) {
   return static_cast<voffset_t>((field_id + fixed_fields) * sizeof(voffset_t));
 }
 
+#ifndef FLATBUFFERS_CHRE
 template<typename T, typename Alloc>
 const T *data(const std::vector<T, Alloc> &v) {
   // Eventually the returned pointer gets passed down to memcpy, so
@@ -1048,6 +1084,7 @@ template<typename T, typename Alloc> T *data(std::vector<T, Alloc> &v) {
   static uint8_t t;
   return v.empty() ? reinterpret_cast<T *>(&t) : &v.front();
 }
+#endif
 
 /// @endcond
 
@@ -1084,8 +1121,11 @@ class FlatBufferBuilder {
         finished(false),
         minalign_(1),
         force_defaults_(false),
-        dedup_vtables_(true),
-        string_pool(nullptr) {
+        dedup_vtables_(true) {
+    #ifndef FLATBUFFERS_CHRE
+    string_pool = nullptr;
+    #endif
+
     EndianCheck();
   }
 
@@ -1103,8 +1143,11 @@ class FlatBufferBuilder {
       finished(false),
       minalign_(1),
       force_defaults_(false),
-      dedup_vtables_(true),
-      string_pool(nullptr) {
+      dedup_vtables_(true) {
+    #ifndef FLATBUFFERS_CHRE
+    string_pool = nullptr;
+    #endif
+
     EndianCheck();
     // Default construct and swap idiom.
     // Lack of delegating constructors in vs2010 makes it more verbose than needed.
@@ -1136,11 +1179,15 @@ class FlatBufferBuilder {
     swap(minalign_, other.minalign_);
     swap(force_defaults_, other.force_defaults_);
     swap(dedup_vtables_, other.dedup_vtables_);
+    #ifndef FLATBUFFERS_CHRE
     swap(string_pool, other.string_pool);
+    #endif
   }
 
   ~FlatBufferBuilder() {
+    #ifndef FLATBUFFERS_CHRE
     if (string_pool) delete string_pool;
+    #endif
   }
 
   void Reset() {
@@ -1156,7 +1203,9 @@ class FlatBufferBuilder {
     nested = false;
     finished = false;
     minalign_ = 1;
+    #ifndef FLATBUFFERS_CHRE
     if (string_pool) string_pool->clear();
+    #endif
   }
 
   /// @brief The current size of the serialized buffer, counting from the end.
@@ -1445,6 +1494,7 @@ class FlatBufferBuilder {
   }
   /// @endcond
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Store a string in the buffer, which can contain any binary data.
   /// @param[in] str A const char pointer to the data to be stored as a string.
   /// @param[in] len The number of bytes that should be stored from `str`.
@@ -1556,6 +1606,7 @@ class FlatBufferBuilder {
   Offset<String> CreateSharedString(const String *str) {
     return CreateSharedString(str->c_str(), str->size());
   }
+  #endif  // !FLATBUFFERS_CHRE
 
   /// @cond FLATBUFFERS_INTERNAL
   uoffset_t EndVector(size_t len) {
@@ -1622,6 +1673,7 @@ class FlatBufferBuilder {
     return Offset<Vector<Offset<T>>>(EndVector(len));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize a `std::vector` into a FlatBuffer `vector`.
   /// @tparam T The data type of the `std::vector` elements.
   /// @param v A const reference to the `std::vector` to serialize into the
@@ -1642,9 +1694,31 @@ class FlatBufferBuilder {
     }
     return Offset<Vector<uint8_t>>(EndVector(v.size()));
   }
+  #else  // else if defined(FLATBUFFERS_CHRE)
+  // We need to define this function as it's optionally used in the
+  // Create<Type>Direct() helper functions generated by the FlatBuffer compiler,
+  // however its use at runtime is not supported.
+  template<typename T> Offset<Vector<T>> CreateVector(
+      const std::vector<T>& /* v */) {
+    // std::vector use by FlatBuffers is not supported in CHRE.
+    FLATBUFFERS_ASSERT(false);
+    return 0;
+  }
+
+  /// @brief Serialize a `chre::DynamicVector` into a FlatBuffer `vector`.
+  /// @tparam T The data type of the `chre::DynamicVector` elements.
+  /// @param v A const reference to the `chre::DynamicVector` to serialize into
+  /// the buffer as a `vector`.
+  /// @return Returns a typed `Offset` into the serialized data indicating
+  /// where the vector is stored.
+  template<typename T> Offset<Vector<T>> CreateVector(
+      const chre::DynamicVector<T> &v) {
+    return CreateVector(v.data(), v.size());
+  }
+  #endif  // FLATBUFFERS_CHRE
 
   // clang-format off
-  #ifndef FLATBUFFERS_CPP98_STL
+  #if !defined(FLATBUFFERS_CPP98_STL) && !defined(FLATBUFFERS_CHRE)
   /// @brief Serialize values returned by a function into a FlatBuffer `vector`.
   /// This is a convenience function that takes care of iteration for you.
   /// @tparam T The data type of the `std::vector` elements.
@@ -1661,6 +1735,7 @@ class FlatBufferBuilder {
   #endif
   // clang-format on
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize values returned by a function into a FlatBuffer `vector`.
   /// This is a convenience function that takes care of iteration for you.
   /// @tparam T The data type of the `std::vector` elements.
@@ -1689,6 +1764,7 @@ class FlatBufferBuilder {
     for (size_t i = 0; i < v.size(); i++) offsets[i] = CreateString(v[i]);
     return CreateVector(offsets);
   }
+  #endif  // !FLATBUFFERS_CHRE
 
   /// @brief Serialize an array of structs into a FlatBuffer `vector`.
   /// @tparam T The data type of the struct array elements.
@@ -1704,6 +1780,7 @@ class FlatBufferBuilder {
     return Offset<Vector<const T *>>(EndVector(len));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize an array of native structs into a FlatBuffer `vector`.
   /// @tparam T The data type of the struct array elements.
   /// @tparam S The data type of the native struct array elements.
@@ -1741,6 +1818,7 @@ class FlatBufferBuilder {
     return EndVectorOfStructs<T>(vector_size);
   }
   #endif
+  #endif  // !FLATBUFFERS_CHRE
   // clang-format on
 
   /// @brief Serialize an array of structs into a FlatBuffer `vector`.
@@ -1763,6 +1841,7 @@ class FlatBufferBuilder {
     return EndVectorOfStructs<T>(vector_size);
   }
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Serialize a `std::vector` of structs into a FlatBuffer `vector`.
   /// @tparam T The data type of the `std::vector` struct elements.
   /// @param[in] v A const reference to the `std::vector` of structs to
@@ -1905,6 +1984,7 @@ class FlatBufferBuilder {
       std::vector<Offset<T>> *v) {
     return CreateVectorOfSortedTables(data(*v), v->size());
   }
+  #endif  // !FLATBUFFERS_CHRE
 
   /// @brief Specialized version of `CreateVector` for non-copying use cases.
   /// Write the data any time later to the returned buffer pointer `buf`.
@@ -2042,6 +2122,7 @@ class FlatBufferBuilder {
 
   bool dedup_vtables_;
 
+  #ifndef FLATBUFFERS_CHRE
   struct StringOffsetCompare {
     StringOffsetCompare(const vector_downward &buf) : buf_(&buf) {}
     bool operator()(const Offset<String> &a, const Offset<String> &b) const {
@@ -2056,6 +2137,7 @@ class FlatBufferBuilder {
   // For use with CreateSharedString. Instantiated on first use only.
   typedef std::set<Offset<String>, StringOffsetCompare> StringOffsetMap;
   StringOffsetMap *string_pool;
+  #endif  // !FLATBUFFERS_CHRE
 
  private:
   // Allocates space for a vector of structures.
@@ -2207,6 +2289,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     return VerifyVector(reinterpret_cast<const Vector<T> *>(vec));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   // Verify a pointer (may be NULL) to string.
   bool VerifyString(const String *str) const {
     size_t end;
@@ -2215,6 +2298,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
                     Verify(end, 1) &&           // Must have terminator
                     Check(buf_[end] == '\0'));  // Terminating byte must be 0.
   }
+  #endif
 
   // Common code between vectors and strings.
   bool VerifyVectorOrString(const uint8_t *vec, size_t elem_size,
@@ -2233,6 +2317,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     return Verify(veco, byte_size);
   }
 
+  #ifndef FLATBUFFERS_CHRE
   // Special case for string contents, after the above has been called.
   bool VerifyVectorOfStrings(const Vector<Offset<String>> *vec) const {
     if (vec) {
@@ -2242,6 +2327,7 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     }
     return true;
   }
+  #endif
 
   // Special case for table contents, after the above has been called.
   template<typename T> bool VerifyVectorOfTables(const Vector<Offset<T>> *vec) {
@@ -2592,7 +2678,7 @@ struct NativeTable {};
 /// is being serialized again.
 typedef uint64_t hash_value_t;
 // clang-format off
-#ifdef FLATBUFFERS_CPP98_STL
+#if defined(FLATBUFFERS_CPP98_STL) || defined(FLATBUFFERS_CHRE)
   typedef void (*resolver_function_t)(void **pointer_adr, hash_value_t hash);
   typedef hash_value_t (*rehasher_function_t)(void *pointer);
 #else
