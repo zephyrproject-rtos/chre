@@ -16,7 +16,12 @@
 package com.google.android.chre.test.setting;
 
 import android.app.Instrumentation;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.location.NanoAppBinary;
+import android.net.wifi.WifiManager;
 
 import androidx.test.InstrumentationRegistry;
 
@@ -24,6 +29,9 @@ import com.google.android.chre.nanoapp.proto.ChreSettingsTest;
 import com.google.android.utils.chre.SettingsUtil;
 
 import org.junit.Assert;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A test to check for behavior when WiFi settings are changed.
@@ -33,6 +41,8 @@ public class ContextHubWifiSettingsTestExecutor {
 
     private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
 
+    private final Context mContext = mInstrumentation.getTargetContext();
+
     private final SettingsUtil mSettingsUtil =
             new SettingsUtil(InstrumentationRegistry.getTargetContext());
 
@@ -41,6 +51,30 @@ public class ContextHubWifiSettingsTestExecutor {
     private boolean mInitialWifiScanningAlwaysEnabled;
 
     private boolean mInitialLocationEnabled;
+
+    public class WifiUpdateListener {
+        public WifiUpdateListener(boolean enable) {
+            mEnable = enable;
+        }
+
+        // True if WiFi is expected to become available
+        private final boolean mEnable;
+
+        public CountDownLatch mWifiLatch = new CountDownLatch(1);
+
+        public BroadcastReceiver mWifiUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())) {
+                    int state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, -1);
+                    if ((mEnable && state == WifiManager.WIFI_STATE_ENABLED)
+                            || (!mEnable && state == WifiManager.WIFI_STATE_DISABLED)) {
+                        mWifiLatch.countDown();
+                    }
+                }
+            }
+        };
+    }
 
     public ContextHubWifiSettingsTestExecutor(NanoAppBinary binary) {
         mExecutor = new ContextHubSettingsTestExecutor(binary);
@@ -81,15 +115,24 @@ public class ContextHubWifiSettingsTestExecutor {
      * @param enable true to enable WiFi settings, false to disable it.
      */
     private void setWifiSettings(boolean enable) {
+        WifiUpdateListener wifiUpdateListener = new WifiUpdateListener(enable);
+        mContext.registerReceiver(
+                wifiUpdateListener.mWifiUpdateReceiver,
+                new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION));
+
         mSettingsUtil.setWifiScanningSettings(enable);
         mSettingsUtil.setWifi(enable);
 
-        // Wait for the setting to propagate
         try {
-            Thread.sleep(5000);
+            wifiUpdateListener.mWifiLatch.await(30, TimeUnit.SECONDS);
+
+            // Wait an additional second to ensure setting is propagated to CHRE path
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
+
+        mContext.unregisterReceiver(wifiUpdateListener.mWifiUpdateReceiver);
     }
 
     /**
