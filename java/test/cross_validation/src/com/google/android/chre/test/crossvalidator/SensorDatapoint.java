@@ -15,101 +15,28 @@
  */
 package com.google.android.chre.test.crossvalidator;
 
-import android.hardware.SensorEvent;
-
-import com.google.android.chre.nanoapp.proto.ChreCrossValidation;
-import com.google.common.primitives.Floats;
-
-import org.junit.Assert;
-
 /*
  * Class that all types of sensor datapoints inherit from which supports comparison to another
  * datapoint via a static method. Objects of this type are used in the sensor CHRE cross validator.
  */
 /*package*/
-class SensorDatapoint {
+abstract class SensorDatapoint {
     // The chreGetTimeOffset() function promises +/-10ms accuracy to actual AP time so allow this
     // much leeway for datapoint comparison.
-    private static final long MAX_TIMESTAMP_DIFF_NS = 10000000L;
 
-    private long mTimestamp;
-    private float[] mValues;
-    private int mSensorType;
-
-    /*
-    * This is the CHRE datapoint ctor. Construct datapoint using a timestamp and float values
-    * that were collected by CHRE.
-    *
-    * @param timestamp The timestamp for datapoint.
-    * @param values The array of float values for datapoint.
-    */
-    /*package*/
-    SensorDatapoint(ChreCrossValidation.SensorDatapoint datapoint, int sensorType) {
-        mTimestamp = datapoint.getTimestampInNs();
-        mValues = Floats.toArray(datapoint.getValuesList());
-        mSensorType = sensorType;
-    }
-
-    /*
-    * This is the AP datapoint ctor. Construct a datapoint using the timestamp and floats observed
-    * from Android framework.
-    *
-    * @param sensorEvent The sensor event that this datapoint info comes from.
-    */
-    /*package*/
-    SensorDatapoint(SensorEvent sensorEvent) {
-        mTimestamp = sensorEvent.timestamp;
-        mValues = sensorEvent.values.clone();
-        mSensorType = sensorEvent.sensor.getType();
-    }
-
-    /*
-    * @param dp1 The first SensorDatapoint object to compare.
-    * @param dp2 The second SensorDatapoint object to compare.
-    * @return true if the datapoint timestamps are similar.
-    */
-    /*package*/
-    static boolean timestampsAreSimilar(SensorDatapoint dp1, SensorDatapoint dp2) {
-        return Math.abs(dp1.mTimestamp - dp2.mTimestamp) < MAX_TIMESTAMP_DIFF_NS;
-    }
-
-    /*package*/
-    long getTimestamp() {
-        return mTimestamp;
-    }
+    public long timestamp;
+    public float[] values;
 
     /*
     * @return The human readable string representing this datapoint.
     */
     @Override
     public String toString() {
-        String str = String.format("<SensorDatapoint timestamp: %d, values: [ ", mTimestamp);
-        for (float val : mValues) {
+        String str = String.format("<SensorDatapoint timestamp: %d, values: [ ", timestamp);
+        for (float val : values) {
             str += String.format("%f ", val);
         }
         str += "]";
         return str;
-    }
-
-    /*
-    * @param dp1 The first SensorDatapoint object to compare.
-    * @param dp2 The second SensorDatapoint object to compare.
-    * @param errorMargin The amount that each value in values array can differ between the two
-    *     datapoints.
-    * @return true if the datapoint values are all similar.
-    */
-    /*package*/
-    static boolean datapointsAreSimilar(SensorDatapoint dp1, SensorDatapoint dp2,
-            float errorMargin) {
-        Assert.assertEquals(dp1.mValues.length, dp2.mValues.length);
-        for (int i = 0; i < dp1.mValues.length; i++) {
-            float val1 = dp1.mValues[i];
-            float val2 = dp2.mValues[i];
-            float diff = Math.abs(val1 - val2);
-            if (diff > errorMargin) {
-                return false;
-            }
-        }
-        return true;
     }
 }
