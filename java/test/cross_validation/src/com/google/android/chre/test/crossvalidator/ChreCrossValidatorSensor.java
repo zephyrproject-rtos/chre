@@ -71,6 +71,8 @@ public class ChreCrossValidatorSensor
 
     private static final long MAX_TIMESTAMP_DIFF_NS = 10000000L;
 
+    private static final float AP_PROXIMITY_SENSOR_FAR_DISTANCE_IN_CM = 5f;
+
     private ConcurrentLinkedQueue<ApSensorDatapoint> mApDatapointsQueue;
     private ConcurrentLinkedQueue<ChreSensorDatapoint> mChreDatapointsQueue;
 
@@ -274,6 +276,7 @@ public class ChreCrossValidatorSensor
         map.put(Sensor.TYPE_MAGNETIC_FIELD, new CrossValidatorSensorConfig(3, 0.01f));
         map.put(Sensor.TYPE_PRESSURE, new CrossValidatorSensorConfig(1, 0.01f));
         map.put(Sensor.TYPE_LIGHT, new CrossValidatorSensorConfig(1, 0.01f));
+        map.put(Sensor.TYPE_PROXIMITY, new CrossValidatorSensorConfig(1, 0.01f));
         return map;
     }
 
@@ -290,6 +293,7 @@ public class ChreCrossValidatorSensor
         map.put(Sensor.TYPE_MAGNETIC_FIELD, 8 /* CHRE_SENSOR_TYPE_MAGNETIC_FIELD */);
         map.put(Sensor.TYPE_PRESSURE, 10 /* CHRE_SENSOR_TYPE_PRESSURE */);
         map.put(Sensor.TYPE_LIGHT, 12 /* CHRE_SENSOR_TYPE_LIGHT */);
+        map.put(Sensor.TYPE_PROXIMITY, 13 /* CHRE_SENSOR_TYPE_PROXIMITY */);
         return map;
     }
 
@@ -422,11 +426,23 @@ public class ChreCrossValidatorSensor
             ApSensorDatapoint apDp, ChreSensorDatapoint chreDp, float errorMargin) {
         Assert.assertEquals(apDp.values.length, chreDp.values.length);
         for (int i = 0; i < apDp.values.length; i++) {
-            float val1 = apDp.values[i];
-            float val2 = chreDp.values[i];
-            float diff = Math.abs(val1 - val2);
-            if (diff > errorMargin) {
-                return false;
+            if (apDp.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+                // CHRE proximity values are 0 if near and otherwise are far.
+                boolean chreIsNear = chreDp.values[i] == 0f;
+                // AP proximity values are near if they are less than a constant distance defined in
+                // AP_PROXIMITY_SENSOR_FAR_DISTANCE_IN_CM or less than max value if their max value
+                // is less than this constant and far if it exceeds this constant or is set to the
+                // max value.
+                boolean apIsNear = apDp.values[i] < Math.min(
+                        apDp.sensor.getMaximumRange(), AP_PROXIMITY_SENSOR_FAR_DISTANCE_IN_CM);
+                if (chreIsNear != apIsNear) {
+                    return false;
+                }
+            } else {
+                float diff = Math.abs(apDp.values[i] - chreDp.values[i]);
+                if (diff > errorMargin) {
+                    return false;
+                }
             }
         }
         return true;
