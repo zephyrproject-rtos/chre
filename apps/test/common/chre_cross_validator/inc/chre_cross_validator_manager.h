@@ -29,7 +29,7 @@ namespace chre {
 
 namespace cross_validator {
 
-// TODO(b/146052784): Break up the Manager class into more fine-grained classes
+// TODO(b/154271551): Break up the Manager class into more fine-grained classes
 // to avoid it becoming to complex.
 
 /**
@@ -149,6 +149,18 @@ class Manager {
                                           void *const *arg);
 
   /**
+   * Encodes the datapoints into a SensorData message.
+   *
+   * @param stream The stream to write to.
+   * @param field The field to write to (unused).
+   * @param arg The data passed in order to write to the stream.
+   * @return true if successful.
+   */
+  static bool encodeProximitySensorDatapoints(pb_ostream_t *stream,
+                                              const pb_field_t * /*field*/,
+                                              void *const *arg);
+
+  /**
    * Encodes a single float value into values list of SensorDatapoint object.
    *
    * @param stream The stream to write to.
@@ -159,6 +171,20 @@ class Manager {
   static bool encodeFloatSensorDatapointValue(pb_ostream_t *stream,
                                               const pb_field_t * /*field*/,
                                               void *const *arg);
+
+  /**
+   * Encodes a single promximity value into values list of SensorDatapoint
+   * object, converting the isNear property into 5.0 (false) or 0.0 (true) in
+   * the process.
+   *
+   * @param stream The stream to write to.
+   * @param field The field to write to (unused).
+   * @param arg The data passed in order to write to the stream.
+   * @return true if successful.
+   */
+  static bool encodeProximitySensorDatapointValue(pb_ostream_t *stream,
+                                                  const pb_field_t * /*field*/,
+                                                  void *const *arg);
 
   /**
    * Handle a start sensor message.
@@ -204,7 +230,7 @@ class Manager {
       const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
-   * @param floatDataFromChre Three axis sensor data from CHRE.
+   * @param floatDataFromChre Float sensor data from CHRE.
    * @param sensorType The sensor type that sent the three axis data.
    *
    * @return The Data proto message that is ready to be sent to host with float
@@ -212,6 +238,16 @@ class Manager {
    */
   chre_cross_validation_Data makeSensorFloatData(
       const chreSensorFloatData *floatDataFromChre, uint8_t sensorType);
+
+  /**
+   * @param proximtyDataFromChre Proximity sensor data from CHRE.
+   * @param sensorType The sensor type that sent the three axis data.
+   *
+   * @return The Data proto message that is ready to be sent to host with float
+   * data.
+   */
+  chre_cross_validation_Data makeSensorProximityData(
+      const chreSensorByteData *proximityDataFromChre);
 
   /**
    * Handle sensor three axis data from CHRE.
@@ -230,6 +266,13 @@ class Manager {
    */
   void handleSensorFloatData(const chreSensorFloatData *floatDataFromChre,
                              uint8_t sensorType);
+
+  /**
+   * Handle proximity sensor data from CHRE.
+   *
+   * @param proximityDataFromChre The data to parse.
+   */
+  void handleProximityData(const chreSensorByteData *proximityDataFromChre);
 
   /**
    * Encode and send data to be validated to host.

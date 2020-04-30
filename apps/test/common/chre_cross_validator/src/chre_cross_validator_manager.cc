@@ -87,9 +87,13 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_SENSOR_PRESSURE_DATA:
       handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
                             CHRE_SENSOR_TYPE_PRESSURE);
+      break;
     case CHRE_EVENT_SENSOR_LIGHT_DATA:
       handleSensorFloatData(static_cast<const chreSensorFloatData *>(eventData),
                             CHRE_SENSOR_TYPE_LIGHT);
+      break;
+    case CHRE_EVENT_SENSOR_PROXIMITY_DATA:
+      handleProximityData(static_cast<const chreSensorByteData *>(eventData));
       break;
     default:
       LOGE("Got unknown event type from senderInstanceId %" PRIu32
@@ -144,6 +148,23 @@ bool Manager::encodeFloatSensorDatapointValue(pb_ostream_t *stream,
   return true;
 }
 
+bool Manager::encodeProximitySensorDatapointValue(pb_ostream_t *stream,
+                                                  const pb_field_t * /*field*/,
+                                                  void *const *arg) {
+  const auto *sensorFloatDataSample =
+      static_cast<const chreSensorByteData::chreSensorByteSampleData *>(*arg);
+  if (!pb_encode_tag_for_field(
+          stream, &chre_cross_validation_SensorDatapoint_fields
+                      [chre_cross_validation_SensorDatapoint_values_tag - 1])) {
+    return false;
+  }
+  float isNearFloat = sensorFloatDataSample->isNear ? 0.0 : 1.0;
+  if (!pb_encode_fixed32(stream, &isNearFloat)) {
+    return false;
+  }
+  return true;
+}
+
 bool Manager::encodeThreeAxisSensorDatapoints(pb_ostream_t *stream,
                                               const pb_field_t * /*field*/,
                                               void *const *arg) {
@@ -189,6 +210,33 @@ bool Manager::encodeFloatSensorDatapoints(pb_ostream_t *stream,
     }
     chre_cross_validation_SensorDatapoint datapoint = makeDatapoint(
         encodeFloatSensorDatapointValue, &sampleData, currentTimestamp);
+    if (!pb_encode_submessage(
+            stream, chre_cross_validation_SensorDatapoint_fields, &datapoint)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Manager::encodeProximitySensorDatapoints(pb_ostream_t *stream,
+                                              const pb_field_t * /*field*/,
+                                              void *const *arg) {
+  const auto *sensorProximityData =
+      static_cast<const chreSensorByteData *>(*arg);
+  uint64_t currentTimestamp = sensorProximityData->header.baseTimestamp +
+                              chreGetEstimatedHostTimeOffset();
+  for (size_t i = 0; i < sensorProximityData->header.readingCount; i++) {
+    const chreSensorByteData::chreSensorByteSampleData &sampleData =
+        sensorProximityData->readings[i];
+    currentTimestamp += sampleData.timestampDelta;
+    if (!pb_encode_tag_for_field(
+            stream,
+            &chre_cross_validation_SensorData_fields
+                [chre_cross_validation_SensorData_datapoints_tag - 1])) {
+      return false;
+    }
+    chre_cross_validation_SensorDatapoint datapoint = makeDatapoint(
+        encodeProximitySensorDatapointValue, &sampleData, currentTimestamp);
     if (!pb_encode_submessage(
             stream, chre_cross_validation_SensorDatapoint_fields, &datapoint)) {
       return false;
@@ -335,6 +383,26 @@ chre_cross_validation_Data Manager::makeSensorFloatData(
   return newData;
 }
 
+chre_cross_validation_Data Manager::makeSensorProximityData(
+    const chreSensorByteData *proximityDataFromChre) {
+  chre_cross_validation_SensorData newProximityData = {
+      .has_chreSensorType = true,
+      .chreSensorType = CHRE_SENSOR_TYPE_PROXIMITY,
+      .has_accuracy = true,
+      .accuracy = proximityDataFromChre->header.accuracy,
+      .datapoints = {
+          .funcs = {.encode = encodeProximitySensorDatapoints},
+          .arg = const_cast<chreSensorByteData *>(proximityDataFromChre)}};
+  chre_cross_validation_Data newData = {
+      .which_data = chre_cross_validation_Data_sensorData_tag,
+      .data =
+          {
+              .sensorData = newProximityData,
+          },
+  };
+  return newData;
+}
+
 void Manager::handleSensorThreeAxisData(
     const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType) {
   if (processSensorData(threeAxisDataFromChre->header, sensorType)) {
@@ -349,6 +417,16 @@ void Manager::handleSensorFloatData(
   if (processSensorData(floatDataFromChre->header, sensorType)) {
     chre_cross_validation_Data newData =
         makeSensorFloatData(floatDataFromChre, sensorType);
+    encodeAndSendDataToHost(newData);
+  }
+}
+
+void Manager::handleProximityData(
+    const chreSensorByteData *proximityDataFromChre) {
+  if (processSensorData(proximityDataFromChre->header,
+                        CHRE_SENSOR_TYPE_PROXIMITY)) {
+    chre_cross_validation_Data newData =
+        makeSensorProximityData(proximityDataFromChre);
     encodeAndSendDataToHost(newData);
   }
 }
