@@ -87,16 +87,16 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
   // serial port calling chppRxDataCb does not implement zero filter
   while (consumed < len &&
          context->rxStatus.locInState < CHPP_PREAMBLE_LEN_BYTES) {
-    if (buf[consumed] ==
-        ((CHPP_PREAMBLE_DATA >>
-          (CHPP_PREAMBLE_LEN_BYTES - context->rxStatus.locInState - 1)) &
-         0xff)) {
+    size_t offset = context->rxStatus.locInState;
+    if ((offset == 0 && buf[consumed] == CHPP_PREAMBLE_BYTE_FIRST) ||
+        (offset == 1 && buf[consumed] == CHPP_PREAMBLE_BYTE_SECOND)) {
       // Correct byte of preamble observed
       context->rxStatus.locInState++;
-    } else if (buf[consumed] ==
-               ((CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1)) & 0xff)) {
+
+    } else if (buf[consumed] == CHPP_PREAMBLE_BYTE_FIRST) {
       // Previous search failed but first byte of another preamble observed
       context->rxStatus.locInState = 1;
+
     } else {
       // Continue search for a valid preamble from the start
       context->rxStatus.locInState = 0;
@@ -470,10 +470,8 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
  * @return Size of the added preamble
  */
 size_t chppAddPreamble(uint8_t *buf) {
-  for (size_t i = 0; i < CHPP_PREAMBLE_LEN_BYTES; i++) {
-    buf[i] = (uint8_t)(CHPP_PREAMBLE_DATA >> (CHPP_PREAMBLE_LEN_BYTES - 1 - i) &
-                       0xff);
-  }
+  buf[0] = CHPP_PREAMBLE_BYTE_FIRST;
+  buf[1] = CHPP_PREAMBLE_BYTE_SECOND;
   return CHPP_PREAMBLE_LEN_BYTES;
 }
 

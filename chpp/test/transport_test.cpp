@@ -26,6 +26,10 @@
 
 namespace {
 
+// Preamble as separate bytes for testing
+constexpr uint8_t kChppPreamble0 = 0x68;
+constexpr uint8_t kChppPreamble1 = 0x43;
+
 // Max size of payload sent to chppRxDataCb (bytes)
 constexpr size_t kMaxChunkSize = 20000;
 
@@ -99,8 +103,11 @@ TEST_P(TransportTests, ZeroThenPreambleInput) {
   size_t len = static_cast<size_t>(GetParam());
 
   if (len <= kMaxChunkSize) {
-    // Add preamble at the end of buf
-    chppAddPreamble(&buf[MAX(0, len - CHPP_PREAMBLE_LEN_BYTES)]);
+    // Add preamble at the end of buf, as individual bytes instead of using
+    // chppAddPreamble(&buf[preambleLoc])
+    size_t preambleLoc = MAX(0, len - CHPP_PREAMBLE_LEN_BYTES);
+    buf[preambleLoc] = kChppPreamble0;
+    buf[preambleLoc + 1] = kChppPreamble1;
 
     if (len >= CHPP_PREAMBLE_LEN_BYTES) {
       EXPECT_FALSE(chppRxDataCb(&transportContext, buf, len));
