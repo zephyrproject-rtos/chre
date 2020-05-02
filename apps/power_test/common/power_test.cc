@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "chre/util/nanoapp/callbacks.h"
+#include "chre/util/unique_ptr.h"
 #include "common.h"
 #include "generated/chre_power_test_generated.h"
 #include "request_manager.h"
