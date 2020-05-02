@@ -19,6 +19,7 @@ java_library {
 
     static_libs: [
         "androidx.test.rules",
+        "chre-test-utils",
     ],
 
     sdk_version: "system_current",
