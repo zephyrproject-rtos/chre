@@ -20,7 +20,7 @@
  *  Prototypes
  ***********************************************/
 
-void chppDispatchWwan(struct ChppAppState *context, uint8_t *buf, size_t len);
+void chppDispatchWwan(void *context, uint8_t *buf, size_t len);
 
 /************************************************
  *  Private Definitions
@@ -57,7 +57,7 @@ static const struct ChppService wwanService = {
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchWwan(struct ChppAppState *context, uint8_t *buf, size_t len) {
+void chppDispatchWwan(void *context, uint8_t *buf, size_t len) {
   UNUSED_VAR(context);
   UNUSED_VAR(buf);
   UNUSED_VAR(len);
@@ -68,5 +68,7 @@ void chppDispatchWwan(struct ChppAppState *context, uint8_t *buf, size_t len) {
  ***********************************************/
 
 void chppWwanServiceInit(struct ChppAppState *context) {
-  chppRegisterService(context, &wwanService);
+  UNUSED_VAR(context);
+  UNUSED_VAR(wwanService);
+  // TODO
 }

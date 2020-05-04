@@ -32,9 +32,6 @@
 extern "C" {
 #endif
 
-struct ChppAppState;
-struct ChppService;
-
 /************************************************
  *  Public Definitions
  ***********************************************/
@@ -70,6 +67,63 @@ struct ChppService;
 #define chppAllocServiceResponseFixed(requestHeader, type) \
   (type *)chppAllocServiceResponse(requestHeader, sizeof(type))
 
+/**
+ * Error codes used by services.
+ */
+enum ChppServiceErrorCode {
+  //! Success (no error)
+  CHPP_SERVICE_ERROR_NONE = 0,
+  //! Invalid command
+  CHPP_SERVICE_ERROR_INVALID_COMMAND = 1,
+  //! Invalid argument(s)
+  CHPP_SERVICE_ERROR_INVALID_ARG = 2,
+  //! Busy
+  CHPP_SERVICE_ERROR_BUSY = 3,
+  //! Out of memory
+  CHPP_SERVICE_ERROR_OOM = 4,
+  //! Feature not supported
+  CHPP_SERVICE_ERROR_UNSUPPORTED = 5,
+  //! Timeout
+  CHPP_SERVICE_ERROR_TIMEOUT = 6,
+  //! Functionality disabled (e.g. per user configuration)
+  CHPP_SERVICE_ERROR_DISABLED = 7,
+  //! Rate limit exceeded (try again later)
+  CHPP_SERVICE_ERROR_RATELIMITED = 8,
+  //! Function in use / blocked by another entity (e.g. the AP)
+  CHPP_SERVICE_ERROR_BLOCKED = 9,
+  //! Unspecified failure
+  CHPP_SERVICE_ERROR_UNSPECIFIED = 255
+};
+
+CHPP_PACKED_START
+struct ChppServiceBasicResponse {
+  struct ChppAppHeader header;
+  uint8_t error;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
+/**
+ * Maintains the basic state of a service.
+ * This is expected to be included once in the (context) status variable of each
+ * service.
+ */
+struct ChppServiceState {
+  struct ChppAppState *appContext;  // Pointer to app layer context
+  uint8_t handle;                   // Handle number for this service
+};
+
+/**
+ * Maintains the basic state for each request/response functionality of a
+ * service.
+ * Any number of these may be included in the (context) status variable of a
+ * service (one per every every request/response functionality).
+ */
+struct ChppServiceRRState {
+  uint64_t requestTime;   // Time of the last request
+  uint64_t responseTime;  // Time of the last response
+  uint8_t transaction;    // Transaction ID for the last request/response
+};
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -94,13 +148,15 @@ void chppRegisterCommonServices(struct ChppAppState *context);
  * can specified as CHPP_MAX_REGISTERED_SERVICES by the initialization code.
  * Otherwise, a default value will be used.
  *
- * @param context Maintains status for each app layer instance.
+ * @param appContext Maintains status for each app layer instance.
+ * @param serviceContext Maintains status for each service instance.
  * @param newService The service to be registered on this platform.
  *
- * @return Handle number of the registered service, or zero indicating failure.
+ * @return Handle number of the registered service.
  */
-void chppRegisterService(struct ChppAppState *context,
-                         const struct ChppService *newService);
+uint8_t chppRegisterService(struct ChppAppState *appContext,
+                            void *serviceContext,
+                            const struct ChppService *newService);
 
 /**
  * Allocates a response message of a specified length, populating the (app
@@ -111,7 +167,7 @@ void chppRegisterService(struct ChppAppState *context,
  * or chppAllocServiceResponseTypedArray() macros shall be used rather than
  * calling this function directly.
  *
- * @param requestHeader client request header
+ * @param requestHeader Client request header.
  * @param len Length of the response message (including header) in bytes. Note
  * that the specified length must be at least equal to the lendth of the app
  * layer header.
@@ -120,6 +176,59 @@ void chppRegisterService(struct ChppAppState *context,
  */
 struct ChppAppHeader *chppAllocServiceResponse(
     const struct ChppAppHeader *requestHeader, size_t len);
+
+/**
+ * This function shall be called for all incoming client requests in order to
+ * A) Timestamp them, and
+ * B) Save their Transaction ID
+ * as part of the request/response's ChppServiceRRState struct.
+ *
+ * This function prints an error message if a duplicate request is received
+ * while outstanding request is still pending without a response.
+ *
+ * @param rRState Maintains the basic state for each request/response
+ * functionality of a service.
+ * @param requestHeader Client request header.
+ */
+void chppTimestampRequest(struct ChppServiceRRState *rRState,
+                          struct ChppAppHeader *requestHeader);
+
+/**
+ * This function shall be called for the final server response to a client
+ * request in order to
+ * A) Timestamp them, and
+ * B) Mark them as fulfilled
+ * part of the request/response's ChppServiceRRState struct.
+ *
+ * This function prints an error message if a response is attempted without an
+ * outstanding request.
+ *
+ * For most responses, it is expected that chppSendTimestampedResponseOrFail()
+ * shall be used to both timestamp and send the response in one shot.
+ *
+ * @param rRState Maintains the basic state for each request/response
+ * functionality of a service.
+ */
+void chppTimestampResponse(struct ChppServiceRRState *rRState);
+
+/**
+ * Timestamps a response using chppTimestampResponse() and enqueues it using
+ * chppEnqueueTxDatagramOrFail().
+ *
+ * Refer to their respective documentation for details.
+ *
+ * @param serviceState State of the service sending the response service.
+ * @param rRState Maintains the basic state for each request/response
+ * functionality of a service.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ * False informs the sender that the queue was full and the payload discarded.
+ */
+bool chppSendTimestampedResponseOrFail(struct ChppServiceState *serviceState,
+                                       struct ChppServiceRRState *rRState,
+                                       void *buf, size_t len);
 
 #ifdef __cplusplus
 }

@@ -15,8 +15,9 @@
  */
 
 
-cc_library_host_static {
+cc_library_static {
     name: "chre_chpp_linux",
+    vendor: true,
     cflags: [
         "-DCHPP_SERVICE_ENABLED_WWAN",
     ],
@@ -24,6 +25,7 @@ cc_library_host_static {
         "transport.c",
         "app.c",
         "services.c",
+        "platform/pal_api.c",
         "platform/linux/link.c",
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
@@ -36,7 +38,16 @@ cc_library_host_static {
         "platform/linux/include",
         "include",
     ],
-}
+    header_libs: [
+        "chre_pal",
+        "chre_api",
+    ],
+    export_header_lib_headers: [
+        "chre_pal",
+        "chre_api",
+    ],
+    host_supported: true,
+} 
 
 cc_test_host {
     name: "chre_chpp_linux_tests",

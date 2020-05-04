@@ -22,6 +22,9 @@
  *  Prototypes
  ***********************************************/
 
+void uuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
+               char strOut[CHPP_SERVICE_UUID_STRING_LEN]);
+
 /************************************************
  *  Private Functions
  ***********************************************/
@@ -60,30 +63,37 @@ void chppRegisterCommonServices(struct ChppAppState *context) {
 #endif
 }
 
-void chppRegisterService(struct ChppAppState *context,
-                         const struct ChppService *newService) {
+uint8_t chppRegisterService(struct ChppAppState *appContext,
+                            void *serviceContext,
+                            const struct ChppService *newService) {
   CHPP_NOT_NULL(newService);
 
-  if (context->registeredServiceCount >= CHPP_MAX_REGISTERED_SERVICES) {
+  if (appContext->registeredServiceCount >= CHPP_MAX_REGISTERED_SERVICES) {
     LOGE("Cannot register new service # %d. Already hit maximum",
-         context->registeredServiceCount);
-    CHPP_ASSERT();
+         appContext->registeredServiceCount);
+    return CHPP_HANDLE_NONE;
 
   } else {
-    context->registeredServices[context->registeredServiceCount] = newService;
-    context->registeredServiceCount++;
+    appContext->registeredServices[appContext->registeredServiceCount] =
+        newService;
+    appContext->registeredServiceContexts[appContext->registeredServiceCount] =
+        serviceContext;
+    appContext->registeredServiceCount++;
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     uuidToStr(newService->descriptor.uuid, uuidText);
     LOGI(
         "Registered service %d on handle %x with name=%s, UUID=%s, "
         "version=%d.%d.%d, min_len=%d ",
-        context->registeredServiceCount,
-        context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START,
+        appContext->registeredServiceCount,
+        appContext->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START,
         newService->descriptor.name, uuidText,
         newService->descriptor.versionMajor,
         newService->descriptor.versionMinor,
         newService->descriptor.versionPatch, newService->minLength);
+
+    return appContext->registeredServiceCount +
+           CHPP_HANDLE_NEGOTIATED_RANGE_START;
   }
 }
 
@@ -97,4 +107,49 @@ struct ChppAppHeader *chppAllocServiceResponse(
     result->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
   }
   return (void *)result;
+}
+
+void chppTimestampRequest(struct ChppServiceRRState *rRState,
+                          struct ChppAppHeader *requestHeader) {
+  if (rRState->responseTime == 0 && rRState->requestTime != 0) {
+    LOGE(
+        "Received duplicate request while prior request was outstanding from t "
+        "= %" PRIu64,
+        rRState->requestTime);
+  }
+  rRState->requestTime = chppGetCurrentTime();
+  rRState->responseTime = CHPP_TIME_NONE;
+  rRState->transaction = requestHeader->transaction;
+}
+
+void chppTimestampResponse(struct ChppServiceRRState *rRState) {
+  uint64_t previousResponseTime = rRState->responseTime;
+  rRState->responseTime = chppGetCurrentTime();
+
+  if (rRState->requestTime == 0) {
+    LOGE("Received response at t = %" PRIu64
+         " with no prior outstanding request",
+         rRState->responseTime);
+
+  } else if ((previousResponseTime - rRState->requestTime) > 0) {
+    rRState->responseTime = chppGetCurrentTime();
+    LOGI("Received additional response at t = %" PRIu64
+         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+         rRState->responseTime, rRState->responseTime,
+         rRState->responseTime - rRState->requestTime);
+
+  } else {
+    LOGI("Received initial response at t = %" PRIu64
+         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+         rRState->responseTime, rRState->responseTime,
+         rRState->responseTime - rRState->requestTime);
+  }
+}
+
+bool chppSendTimestampedResponseOrFail(struct ChppServiceState *serviceState,
+                                       struct ChppServiceRRState *rRState,
+                                       void *buf, size_t len) {
+  chppTimestampResponse(rRState);
+  return chppEnqueueTxDatagramOrFail(serviceState->appContext->transportContext,
+                                     buf, len);
 }

@@ -50,16 +50,16 @@ extern "C" {
  * Handle Numbers in ChppAppHeader
  */
 enum ChppHandleNumber {
-  // Handleless communication
+  //! Handleless communication
   CHPP_HANDLE_NONE = 0x00,
 
-  // Loopback Service
+  //! Loopback Service
   CHPP_HANDLE_LOOPBACK = 0x01,
 
-  // Discovery Service
+  //! Discovery Service
   CHPP_HANDLE_DISCOVERY = 0x0F,
 
-  // Negotiated Services (starting from this offset)
+  //! Negotiated Services (starting from this offset)
   CHPP_HANDLE_NEGOTIATED_RANGE_START = 0x10,
 };
 
@@ -67,17 +67,17 @@ enum ChppHandleNumber {
  * Message Types as used in ChppAppHeader
  */
 enum ChppMessageType {
-  // Request from client. Needs response from server.
+  //! Request from client. Needs response from server.
   CHPP_MESSAGE_TYPE_CLIENT_REQUEST = 0,
 
-  // Response from server (with the same Command and Transaction ID as the
-  // client request).
+  //! Response from server (with the same Command and Transaction ID as the
+  //! client request).
   CHPP_MESSAGE_TYPE_SERVER_RESPONSE = 1,
 
-  //  Notification from client. Server shall not respond.
+  //! Notification from client. Server shall not respond.
   CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION = 2,
 
-  // Notification from server. Client shall not respond.
+  //! Notification from server. Client shall not respond.
   CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION = 4,
 };
 
@@ -86,19 +86,20 @@ enum ChppMessageType {
  */
 CHPP_PACKED_START
 struct ChppAppHeader {
-  // Service Handle
+  //! Service Handle
   uint8_t handle;
 
-  // Message Type (request/response/notification as detailed in ChppMessageType)
+  //! Message Type (request/response/notification as detailed in
+  //! ChppMessageType)
   uint8_t type;
 
-  // Transaction ID
+  //! Transaction ID
   uint8_t transaction;
 
-  // Reserved
+  //! Reserved
   uint8_t reserved;
 
-  // Command
+  //! Command
   uint16_t command;
 
 } CHPP_PACKED_ATTR;
@@ -107,18 +108,17 @@ CHPP_PACKED_END
 /**
  * Function type that dispatches incoming datagrams for any particular service
  */
-typedef void(ChppDispatchFunction)(struct ChppAppState *context, uint8_t *buf,
-                                   size_t len);
+typedef void(ChppDispatchFunction)(void *context, uint8_t *buf, size_t len);
 
 /**
- * Length of a service UUID in bytes
+ * Length of a service UUID and its human-readable printed form in bytes
  */
 #define CHPP_SERVICE_UUID_LEN 16
 #define CHPP_SERVICE_UUID_STRING_LEN (16 * 2 + 4 + 1)
 
 /**
- * Length of a version number, in bytes.
- * (uint8_t + uint8_t + uint16_t)
+ * Length of a version number, in bytes (major + minor + revision), per CHPP
+ * spec.
  */
 #define CHPP_SERVICE_VERSION_LEN (1 + 1 + 2)
 
@@ -169,9 +169,13 @@ struct ChppService {
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
 
+  const struct chrePalSystemApi *systemApi;  // Pointing to the PAL system APIs
+
   uint8_t registeredServiceCount;  // Number of services currently registered
 
   const struct ChppService *registeredServices[CHPP_MAX_REGISTERED_SERVICES];
+
+  void *registeredServiceContexts[CHPP_MAX_REGISTERED_SERVICES];
 };
 
 /************************************************

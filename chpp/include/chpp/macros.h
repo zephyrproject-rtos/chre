@@ -21,8 +21,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include <bits/types.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +44,28 @@ extern "C" {
 #ifndef CHPP_NOT_NULL
 #define CHPP_NOT_NULL(var) CHPP_ASSERT((var) != NULL)
 #endif
+
+#ifndef CHPP_DEBUG_ASSERT
+#define CHPP_DEBUG_ASSERT(var) CHPP_ASSERT(var)
+#endif
+
+#if defined(__GNUC__) && __STDC_VERSION__ >= 201112L
+#define CHPP_C11_OR_NEWER
+#endif
+
+#ifdef CHPP_C11_OR_NEWER
+#define CHPP_STATIC_ASSERT _Static_assert
+#else
+#define CHPP_STATIC_ASSERT3(COND, MSG) \
+  typedef char static_assertion_##MSG[(!!(COND)) * 2 - 1]
+#define CHPP_STATIC_ASSERT2(cond, l) \
+  CHPP_STATIC_ASSERT3(cond, static_assertion_at_line_##l)
+#define CHPP_STATIC_ASSERT(cond, msg) CHPP_STATIC_ASSERT2(cond, __LINE__)
+#endif
+
+// TODO: Need platform-based time functionality
+#define chppGetCurrentTime() 1
+#define CHPP_TIME_NONE 0
 
 #if defined(__GNUC__) || defined(__clang__)
 #define check_types_match(t1, t2) ((typeof(t1) *)0 != (typeof(t2) *)0)
