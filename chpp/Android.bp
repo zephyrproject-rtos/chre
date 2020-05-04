@@ -21,6 +21,7 @@ cc_library_static {
     cflags: [
         "-DCHPP_SERVICE_ENABLED_WWAN",
     ],
+    conlyflags: ["-std=c11"],
     srcs: [
         "transport.c",
         "app.c",
@@ -33,6 +34,7 @@ cc_library_static {
         "services/loopback.c",
         "services/nonhandle.c",
         "services/wwan.c",
+        "platform/linux/services/platform_wwan.c",
     ],
     export_include_dirs: [
         "platform/linux/include",

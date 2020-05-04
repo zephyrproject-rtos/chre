@@ -57,7 +57,7 @@ class TransportTests : public testing::TestWithParam<int> {
     // Make sure CHPP has a correct count of the number of registered services
     // on this platform, (in this case, 1,) as registered in the function
     // chppRegisterCommonServices().
-    // ASSERT_EQ(appContext.registeredServiceCount, 1);
+    ASSERT_EQ(appContext.registeredServiceCount, 1);
   }
 
   void TearDown() override {
