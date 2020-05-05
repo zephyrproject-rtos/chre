@@ -615,13 +615,16 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
       .samplingRateHz = static_cast<float>(
           kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
       // Override batch period to 0 for micro-image non-continuous sensors to
-      // ensure one sample per batch.
+      // ensure one sample per batch so that nanoapps do not miss state changes.
       .batchPeriodUs =
+#ifdef CHRE_SLPI_UIMG_ENABLED
           (!sensor.isContinuous() &&
            !isBigImageSensorType(sensor.getSensorType()))
               ? 0
-              : static_cast<uint32_t>(request.getLatency().toRawNanoseconds() /
-                                      kOneMicrosecondInNanoseconds),
+              :
+#endif
+              static_cast<uint32_t>(request.getLatency().toRawNanoseconds() /
+                                    kOneMicrosecondInNanoseconds),
   };
 
   if (req.enable && req.passive && !sensor.isPassiveSupported()) {
