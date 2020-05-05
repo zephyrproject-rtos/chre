@@ -16,6 +16,8 @@
 
 #include "chre/core/sensor_type_helpers.h"
 
+#include <cinttypes>
+
 #include "chre/platform/assert.h"
 
 namespace chre {
@@ -89,6 +91,10 @@ bool SensorTypeHelpers::getBiasEventType(uint8_t sensorType,
 
 size_t SensorTypeHelpers::getLastEventSize(uint8_t sensorType) {
   if (isOnChange(sensorType)) {
+    if (isVendorSensorType(sensorType)) {
+      return getVendorSensorLastEventSize(sensorType);
+    }
+
     switch (sensorType) {
       case CHRE_SENSOR_TYPE_ACCELEROMETER:
       case CHRE_SENSOR_TYPE_GYROSCOPE:
@@ -159,6 +165,32 @@ const char *SensorTypeHelpers::getSensorTypeName(uint8_t sensorType) {
     default:
       CHRE_ASSERT(false);
       return "";
+  }
+}
+
+void SensorTypeHelpers::getLastSample(uint8_t sensorType,
+                                      const ChreSensorData *event,
+                                      ChreSensorData *lastEvent) {
+  if (!isOnChange(sensorType)) {
+    // no op
+    return;
+  }
+
+  if (isVendorSensorType(sensorType)) {
+    getVendorLastSample(sensorType, event, lastEvent);
+  } else {
+    switch (sensorType) {
+      case CHRE_SENSOR_TYPE_LIGHT:
+        copyLastSample<chreSensorFloatData>(&event->floatData,
+                                            &lastEvent->floatData);
+        break;
+      case CHRE_SENSOR_TYPE_PROXIMITY:
+        copyLastSample<chreSensorByteData>(&event->byteData,
+                                           &lastEvent->byteData);
+        break;
+      default:
+        LOGE("Unhandled sensor type %" PRIu8, sensorType);
+    }
   }
 }
 

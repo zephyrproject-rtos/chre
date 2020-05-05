@@ -17,6 +17,8 @@
 #ifndef CHRE_CORE_SENSOR_TYPE_HELPERS_H_
 #define CHRE_CORE_SENSOR_TYPE_HELPERS_H_
 
+#include <cstring>
+
 #include "chre/core/sensor_type.h"
 #include "chre/platform/platform_sensor_type_helpers.h"
 
@@ -95,7 +97,55 @@ class SensorTypeHelpers : public PlatformSensorTypeHelpers {
    * @return A string representation of the sensor type.
    */
   static const char *getSensorTypeName(uint8_t sensorType);
+
+  /**
+   * Extracts the last sample from the suppled event and updates it to the
+   * supplied last event memory as a single-sample event. No-op if not an
+   * on-change sensor.
+   *
+   * @param sensorType The type of this sensor.
+   * @param event A non-null data event of the specified sensorType, must
+   *     contain one more more samples.
+   * @param lastEvent The sensor's last event memory to store the last event
+   *     of an on-change sensor.
+   */
+  static void getLastSample(uint8_t sensorType, const ChreSensorData *event,
+                            ChreSensorData *lastEvent);
+
+  /**
+   * Copies the last data sample from newEvent to lastEvent memory and modifies
+   * its header accordingly.
+   *
+   * @param newEvent Sensor data event of type SensorDataType.
+   * @param lastEvent Single-sample data event of type SensorDataType.
+   */
+  template <typename SensorDataType>
+  static void copyLastSample(const SensorDataType *newEvent,
+                             SensorDataType *lastEvent);
 };
+
+template <typename SensorDataType>
+void SensorTypeHelpers::copyLastSample(const SensorDataType *newEvent,
+                                       SensorDataType *lastEvent) {
+  // Copy header and one sample over to last event memory.
+  memcpy(lastEvent, newEvent, sizeof(SensorDataType));
+
+  // Modify last event if there are more than one samples in the supplied event.
+  if (newEvent->header.readingCount > 1) {
+    // Identify last sample's timestamp.
+    uint64_t sampleTimestampNs = newEvent->header.baseTimestamp;
+    for (size_t i = 0; i < newEvent->header.readingCount; ++i) {
+      sampleTimestampNs += newEvent->readings[i].timestampDelta;
+    }
+
+    // Update last event to match the last data sample.
+    lastEvent->header.baseTimestamp = sampleTimestampNs;
+    lastEvent->header.readingCount = 1;
+    lastEvent->readings[0] =
+        newEvent->readings[newEvent->header.readingCount - 1];
+    lastEvent->readings[0].timestampDelta = 0;
+  }
+}
 
 }  // namespace chre
 
