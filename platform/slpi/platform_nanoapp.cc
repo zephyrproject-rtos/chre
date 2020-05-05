@@ -54,6 +54,8 @@ void rewriteToChreEventType(uint16_t *eventType) {
       (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 7);
   constexpr uint16_t kUncalMagBigImageEventType =
       (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 8);
+  constexpr uint16_t kLightBigImageEventType =
+      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 9);
 
   if (*eventType == kAccelBigImageEventType) {
     *eventType = CHRE_EVENT_SENSOR_ACCELEROMETER_DATA;
@@ -63,6 +65,8 @@ void rewriteToChreEventType(uint16_t *eventType) {
     *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA;
   } else if (*eventType == kUncalMagBigImageEventType) {
     *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA;
+  } else if (*eventType == kLightBigImageEventType) {
+    *eventType = CHRE_EVENT_SENSOR_LIGHT_DATA;
   }
 }
 
@@ -84,6 +88,8 @@ uint8_t getBigImageSensorType(uint8_t sensorType) {
       return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
     case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
       return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
+    case CHRE_SENSOR_TYPE_LIGHT:
+      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
     default:
       return sensorType;
   }

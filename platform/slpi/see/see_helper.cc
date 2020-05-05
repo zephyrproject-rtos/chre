@@ -388,7 +388,8 @@ bool prepSnsClientReq(sns_std_suid suid, uint32_t msgId, void *payload,
     req->request.batching.flush_period = batchPeriodUs + 3000000;
     req->request.payload.funcs.encode = copyPayload;
     req->request.payload.arg = data;
-    req->request.has_is_passive = true, req->request.is_passive = passive,
+    req->request.has_is_passive = true;
+    req->request.is_passive = passive;
 
     *msg = std::move(req);
   }
@@ -864,6 +865,14 @@ void populateEventSample(SeeInfoArg *info, const float *val) {
             reinterpret_cast<chrexSensorVendor8Data *>(data->event.get());
         memcpy(event->readings[index].values, val,
                sizeof(event->readings[index].values));
+        timestampDelta = &event->readings[index].timestampDelta;
+        break;
+      }
+
+      case SensorSampleType::Vendor9: {
+        auto *event =
+            reinterpret_cast<chrexSensorVendor9Data *>(data->event.get());
+        event->readings[index].value = *val;
         timestampDelta = &event->readings[index].timestampDelta;
         break;
       }
@@ -1420,6 +1429,10 @@ void *allocateEvent(uint8_t sensorType, size_t numSamples) {
 
     case SensorSampleType::Vendor8:
       sampleSize = sizeof(chrexSensorVendor8SampleData);
+      break;
+
+    case SensorSampleType::Vendor9:
+      sampleSize = sizeof(chrexSensorVendor9SampleData);
       break;
 #endif  // CHREX_SENSOR_SUPPORT
 
