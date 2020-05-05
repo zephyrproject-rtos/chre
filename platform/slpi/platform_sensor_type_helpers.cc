@@ -81,6 +81,8 @@ const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
       return "Vendor Type 7";
     case CHRE_VENDOR_SENSOR_TYPE(8):
       return "Vendor Type 8";
+    case CHRE_VENDOR_SENSOR_TYPE(9):
+      return "Vendor Type 9";
     default:
       CHRE_ASSERT(false);
       return "";
