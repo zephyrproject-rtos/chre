@@ -38,12 +38,15 @@ constexpr uint8_t kBigImageUncalGyroSensorType =
     (CHRE_SENSOR_TYPE_VENDOR_START + 7);
 constexpr uint8_t kBigImageUncalMagSensorType =
     (CHRE_SENSOR_TYPE_VENDOR_START + 8);
+constexpr uint8_t kBigImageLightSensorType =
+    (CHRE_SENSOR_TYPE_VENDOR_START + 9);
 
 bool isBigImageSensorType(uint8_t sensorType) {
   return (sensorType == kBigImageAccelSensorType ||
           sensorType == kBigImageUncalAccelSensorType ||
           sensorType == kBigImageUncalGyroSensorType ||
-          sensorType == kBigImageUncalMagSensorType);
+          sensorType == kBigImageUncalMagSensorType ||
+          sensorType == kBigImageLightSensorType);
 }
 
 /**
@@ -60,6 +63,8 @@ void rewriteToBigImageSensorType(uint8_t *sensorType) {
     *sensorType = kBigImageUncalGyroSensorType;
   } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD) {
     *sensorType = kBigImageUncalMagSensorType;
+  } else if (*sensorType == CHRE_SENSOR_TYPE_LIGHT) {
+    *sensorType = kBigImageLightSensorType;
   }
 }
 
@@ -77,6 +82,8 @@ void rewriteToChreSensorType(uint8_t *sensorType) {
     *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
   } else if (*sensorType == kBigImageUncalMagSensorType) {
     *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
+  } else if (*sensorType == kBigImageLightSensorType) {
+    *sensorType = CHRE_SENSOR_TYPE_LIGHT;
   }
 }
 }  //  anonymous namespace
