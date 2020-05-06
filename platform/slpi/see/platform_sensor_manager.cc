@@ -87,7 +87,8 @@ bool isBigImageSensorType(uint8_t sensorType) {
   return (sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL ||
           sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL ||
           sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO ||
-          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG);
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG ||
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT);
 }
 
 /**
@@ -107,6 +108,8 @@ bool getBigImageSensorTypeFromDataType(const char *dataType, bool calibrated,
     *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
   } else if (strcmp(dataType, "mag") == 0 && !calibrated) {
     *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
+  } else if (strcmp(dataType, "ambient_light") == 0) {
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
   } else {
     found = false;
   }
@@ -130,6 +133,8 @@ uint8_t getUimgSensorType(uint8_t sensorType) {
       return CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
     case (CHRE_SENSOR_TYPE_VENDOR_START + 8):
       return CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
+    case (CHRE_SENSOR_TYPE_VENDOR_START + 9):
+      return CHRE_SENSOR_TYPE_LIGHT;
     default:
       return sensorType;
   }
@@ -524,13 +529,14 @@ void PlatformSensorManagerBase::getBigImageSensors(
     DynamicVector<Sensor> *sensors) {
   CHRE_ASSERT(sensors);
 
-  // Currently, just adding calibrated accel and uncal accel/gyro/mag as they
-  // are the ones we know that big image nanoapps will need at a different
+  // Currently, just adding calibrated accel, uncal accel/gyro/mag and als as
+  // they are the ones we know that big image nanoapps will need at a different
   // batching rate compared to uimg.
   const char *kBigImageDataTypes[] = {
       "accel",
       "gyro",
       "mag",
+      "ambient_light",
   };
 
   DynamicVector<SuidAttr> nullTemperatureSensorList;
@@ -608,13 +614,17 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
       .passive = sensorModeIsPassive(request.getMode()),
       .samplingRateHz = static_cast<float>(
           kOneSecondInNanoseconds / request.getInterval().toRawNanoseconds()),
-      // Override batch period to 0 for non-continuous sensors to ensure one
-      // sample per batch.
+      // Override batch period to 0 for micro-image non-continuous sensors to
+      // ensure one sample per batch so that nanoapps do not miss state changes.
       .batchPeriodUs =
-          !sensor.isContinuous()
+#ifdef CHRE_SLPI_UIMG_ENABLED
+          (!sensor.isContinuous() &&
+           !isBigImageSensorType(sensor.getSensorType()))
               ? 0
-              : static_cast<uint32_t>(request.getLatency().toRawNanoseconds() /
-                                      kOneMicrosecondInNanoseconds),
+              :
+#endif
+              static_cast<uint32_t>(request.getLatency().toRawNanoseconds() /
+                                    kOneMicrosecondInNanoseconds),
   };
 
   if (req.enable && req.passive && !sensor.isPassiveSupported()) {
