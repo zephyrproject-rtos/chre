@@ -108,7 +108,7 @@ bool getBigImageSensorTypeFromDataType(const char *dataType, bool calibrated,
     *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
   } else if (strcmp(dataType, "mag") == 0 && !calibrated) {
     *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
-  } else if (strcmp(dataType, "ambient_light") == 0) {
+  } else if (strcmp(dataType, "ambient_light") == 0 && calibrated) {
     *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
   } else {
     found = false;
