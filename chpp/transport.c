@@ -33,12 +33,12 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 static void chppRxAbortPacket(struct ChppTransportState *context);
 static void chppProcessRxPayload(struct ChppTransportState *context);
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context);
-static enum ChppErrorCode chppRxHeaderCheck(
+static enum ChppTransportErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context);
 static void chppRegisterRxAck(struct ChppTransportState *context);
 
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
-                                enum ChppErrorCode errorCode);
+                                enum ChppTransportErrorCode errorCode);
 size_t chppAddPreamble(uint8_t *buf);
 uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
@@ -140,8 +140,8 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
   if (context->rxStatus.locInState == sizeof(struct ChppTransportHeader)) {
     // Header fully copied. Move on
 
-    enum ChppErrorCode headerCheckResult = chppRxHeaderCheck(context);
-    if (headerCheckResult != CHPP_ERROR_NONE) {
+    enum ChppTransportErrorCode headerCheckResult = chppRxHeaderCheck(context);
+    if (headerCheckResult != CHPP_TRANSPORT_ERROR_NONE) {
       // Header fails sanity check. NACK and return to preamble state
       chppEnqueueTxPacket(context, headerCheckResult);
       chppSetRxState(context, CHPP_STATE_PREAMBLE);
@@ -172,7 +172,7 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
           LOGE("OOM for packet# %d, len=%u. Previous fragment(s) total len=%zu",
                context->rxHeader.seq, context->rxHeader.length,
                context->rxDatagram.length);
-          chppEnqueueTxPacket(context, CHPP_ERROR_OOM);
+          chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_OOM);
           chppSetRxState(context, CHPP_STATE_PREAMBLE);
         } else {
           context->rxDatagram.payload = tempPayload;
@@ -253,7 +253,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       LOGE("Discarding CHPP packet# %d len=%u because of bad checksum",
            context->rxHeader.seq, context->rxHeader.length);
       chppRxAbortPacket(context);
-      chppEnqueueTxPacket(context, CHPP_ERROR_CHECKSUM);
+      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_CHECKSUM);
 
     } else {
       // Packet is good. Save received ACK info and process payload if any
@@ -264,7 +264,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
       if (context->txDatagramQueue.pending > 0) {
         // There are packets to send out (could be new or retx)
-        chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+        chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
       }
 
       if (context->rxHeader.length > 0) {
@@ -361,7 +361,7 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
     // Send ACK
     if (context->txStatus.sentAckSeq == lastSentAck ||
         context->txDatagramQueue.pending > 0) {
-      chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
     }  // else {We avoid sending a duplicate ACK}
   }
 }
@@ -389,16 +389,16 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
  *
  * @return True if and only if header passes sanity check
  */
-static enum ChppErrorCode chppRxHeaderCheck(
+static enum ChppTransportErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context) {
-  enum ChppErrorCode result = CHPP_ERROR_NONE;
+  enum ChppTransportErrorCode result = CHPP_TRANSPORT_ERROR_NONE;
 
   bool invalidSeqNo = (context->rxHeader.seq != context->rxStatus.expectedSeq);
   bool hasPayload = (context->rxHeader.length > 0);
   if (invalidSeqNo && hasPayload) {
     // Note: For a future ACK window > 1, might make more sense to keep quiet
     // instead of flooding the sender with out of order NACKs
-    result = CHPP_ERROR_ORDER;
+    result = CHPP_TRANSPORT_ERROR_ORDER;
   }
 
   // TODO: More sanity checks
@@ -437,8 +437,8 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
 /**
  * Enqueues an outgoing packet with the specified error code. The error code
  * refers to the optional reason behind a NACK, if any. An error code of
- * CHPP_ERROR_NONE indicates that no error was reported (i.e. either an ACK or
- * an implicit NACK)
+ * CHPP_TRANSPORT_ERROR_NONE indicates that no error was reported (i.e. either
+ * an ACK or an implicit NACK)
  *
  * Note that the decision as to wheather to include a payload will be taken
  * later, i.e. before the packet is being sent out from the queue. A payload is
@@ -454,7 +454,7 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
  * @param errorCode Error code for the next outgoing packet
  */
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
-                                enum ChppErrorCode errorCode) {
+                                enum ChppTransportErrorCode errorCode) {
   context->txStatus.hasPacketsToSend = true;
   context->txStatus.errorCodeToSend = errorCode;
 
@@ -577,8 +577,8 @@ void chppTransportDoWork(struct ChppTransportState *context) {
       // window size.
 
       // Note: For a future ACK window >1, this is only valid for the
-      // (context->rxStatus.receivedErrorCode != CHPP_ERROR_NONE) case,
-      // i.e. we have registered an explicit or implicit NACK. Else,
+      // (context->rxStatus.receivedErrorCode != CHPP_TRANSPORT_ERROR_NONE)
+      // case, i.e. we have registered an explicit or implicit NACK. Else,
       // txHeader->seq = ++(context->txStatus.sentSeq)
       txHeader->seq = context->rxStatus.receivedAckSeq;
       context->txStatus.sentSeq = txHeader->seq;
@@ -732,10 +732,10 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
   chppMutexLock(&context->mutex);
 
   // Implicit NACK. Set received error code accordingly
-  context->rxStatus.receivedErrorCode = CHPP_ERROR_TIMEOUT;
+  context->rxStatus.receivedErrorCode = CHPP_TRANSPORT_ERROR_TIMEOUT;
 
   // Enqueue Tx packet which will be a retransmission based on the above
-  chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
 
   chppMutexUnlock(&context->mutex);
 }
@@ -753,7 +753,7 @@ void chppRxTimeoutTimerCb(struct ChppTransportState *context) {
   chppMutexUnlock(&context->mutex);
 }
 
-bool chppEnqueueTxDatagram(struct ChppTransportState *context, uint8_t *buf,
+bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
                            size_t len) {
   bool success = false;
   chppMutexLock(&context->mutex);
@@ -769,13 +769,38 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, uint8_t *buf,
 
     if (context->txDatagramQueue.pending == 1) {
       // Queue was empty prior. Need to kickstart transmission.
-      chppEnqueueTxPacket(context, CHPP_ERROR_NONE);
+      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
     }
 
     success = true;
   }
 
   chppMutexUnlock(&context->mutex);
+
+  return success;
+}
+
+bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
+                                 size_t len) {
+  bool success = false;
+
+  if (!chppEnqueueTxDatagram(context, buf, len)) {
+    // Queue full. Write appropriate error message and free buf
+    if (len < sizeof(struct ChppAppHeader)) {
+      LOGE("Tx Queue full. Cannot enqueue Tx datagram of %zu bytes", len);
+    } else {
+      struct ChppAppHeader *header = (struct ChppAppHeader *)buf;
+      LOGE(
+          "Tx Queue full. Cannot enqueue Tx datagram of %zu bytes for handle = "
+          "%d, type = %d, transaction = %d, command = %#x",
+          len, header->handle, header->type, header->transaction,
+          header->command);
+    }
+    chppFree(buf);
+
+  } else {
+    success = true;
+  }
 
   return success;
 }

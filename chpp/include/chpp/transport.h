@@ -107,21 +107,21 @@ extern "C" {
 /**
  * Error codes optionally reported in ChppTransportHeader
  */
-enum ChppErrorCode {
-  // No error reported (either ACK or implicit NACK)
-  CHPP_ERROR_NONE = 0,
-  // Checksum failure
-  CHPP_ERROR_CHECKSUM = 1,
-  // Out of memory
-  CHPP_ERROR_OOM = 2,
-  // Busy
-  CHPP_ERROR_BUSY = 3,
-  // Invalid header
-  CHPP_ERROR_HEADER = 4,
-  // Out of order
-  CHPP_ERROR_ORDER = 5,
-  // Timeout (implicit, deduced and used internally only)
-  CHPP_ERROR_TIMEOUT = 0xF,
+enum ChppTransportErrorCode {
+  //! No error reported (either ACK or implicit NACK)
+  CHPP_TRANSPORT_ERROR_NONE = 0,
+  //! Checksum failure
+  CHPP_TRANSPORT_ERROR_CHECKSUM = 1,
+  //! Out of memory
+  CHPP_TRANSPORT_ERROR_OOM = 2,
+  //! Busy
+  CHPP_TRANSPORT_ERROR_BUSY = 3,
+  //! Invalid header
+  CHPP_TRANSPORT_ERROR_HEADER = 4,
+  //! Out of order
+  CHPP_TRANSPORT_ERROR_ORDER = 5,
+  //! Timeout (implicit, deduced and used internally only)
+  CHPP_TRANSPORT_ERROR_TIMEOUT = 0xF,
 };
 
 /**
@@ -133,7 +133,7 @@ struct ChppTransportHeader {
   uint8_t flags;
 
   // Error info (2 nibbles)
-  // LS Nibble: Defined in ChppErrorCode enum
+  // LS Nibble: Defined in enum ChppTransportErrorCode
   // MS Nibble: Reserved
   uint8_t errorCode;
 
@@ -162,87 +162,88 @@ struct ChppTransportFooter {
 CHPP_PACKED_END
 
 enum ChppRxState {
-  // Waiting for, or processing, the preamble (i.e. packet start delimiter)
-  // Moves to CHPP_STATE_HEADER as soon as it has seen a complete preamble.
+  //! Waiting for, or processing, the preamble (i.e. packet start delimiter)
+  //! Moves to CHPP_STATE_HEADER as soon as it has seen a complete preamble.
   CHPP_STATE_PREAMBLE = 0,
 
-  // Processing the packet header. Moves to CHPP_STATE_PAYLOAD after processing
-  // the expected length of the header.
+  //! Processing the packet header. Moves to CHPP_STATE_PAYLOAD after processing
+  //! the expected length of the header.
   CHPP_STATE_HEADER = 1,
 
-  // Copying the packet payload. The payload length is determined by the header.
-  // Moves to CHPP_STATE_FOOTER afterwards.
+  //! Copying the packet payload. The payload length is determined by the
+  //! header.
+  //! Moves to CHPP_STATE_FOOTER afterwards.
   CHPP_STATE_PAYLOAD = 2,
 
-  // Processing the packet footer (checksum) and responding accordingly. Moves
-  // to CHPP_STATE_PREAMBLE afterwards.
+  //! Processing the packet footer (checksum) and responding accordingly. Moves
+  //! to CHPP_STATE_PREAMBLE afterwards.
   CHPP_STATE_FOOTER = 3,
 };
 
 struct ChppRxStatus {
-  // Current receiving state, as described in ChppRxState.
+  //! Current receiving state, as described in ChppRxState.
   enum ChppRxState state;
 
-  // Location counter in bytes within each state. Must always be reinitialized
-  // to 0 when switching states.
+  //! Location counter in bytes within each state. Must always be reinitialized
+  //! to 0 when switching states.
   size_t locInState;
 
-  // Next expected sequence number (for a payload-bearing packet)
+  //! Next expected sequence number (for a payload-bearing packet)
   uint8_t expectedSeq;
 
-  // Error code, if any, of the last received packet
-  enum ChppErrorCode receivedErrorCode;
+  //! Error code, if any, of the last received packet
+  enum ChppTransportErrorCode receivedErrorCode;
 
-  // Location counter in bytes within the current Rx datagram.
+  //! Location counter in bytes within the current Rx datagram.
   size_t locInDatagram;
 
-  // Last received ACK sequence number (i.e. next expected sequence number for
-  // an outgoing payload-bearing packet)
+  //! Last received ACK sequence number (i.e. next expected sequence number for
+  //! an outgoing payload-bearing packet)
   uint8_t receivedAckSeq;
 };
 
 struct ChppTxStatus {
-  // Last sent ACK sequence number (i.e. next expected sequence number for
-  // an incoming payload-bearing packet)
+  //! Last sent ACK sequence number (i.e. next expected sequence number for
+  //! an incoming payload-bearing packet)
   uint8_t sentAckSeq;
 
-  // Last sent sequence number (irrespective of whether it has been received /
-  // ACKed or not)
+  //! Last sent sequence number (irrespective of whether it has been received /
+  //! ACKed or not)
   uint8_t sentSeq;
 
-  // Does the transport layer have any packets (with or without payload) it
-  // needs to send out?
+  //! Does the transport layer have any packets (with or without payload) it
+  //! needs to send out?
   bool hasPacketsToSend;
 
-  // Error code, if any, of the next packet the transport layer will send out.
-  enum ChppErrorCode errorCodeToSend;
+  //! Error code, if any, of the next packet the transport layer will send out.
+  enum ChppTransportErrorCode errorCodeToSend;
 
-  // How many bytes of the front-of-queue datagram has been sent out
+  //! How many bytes of the front-of-queue datagram has been sent out
   size_t sentLocInDatagram;
 
-  // Note: For a future ACK window >1, sentLocInDatagram doesn't always apply to
-  // the front-of-queue datagram. Instead, we need to track the queue position
-  // the datagram being sent as well (relative to the front-of-queue). e.g.
-  // uint8_t datagramBeingSent
+  //! Note: For a future ACK window >1, sentLocInDatagram doesn't always apply
+  //! to the front-of-queue datagram. Instead, we need to track the queue
+  //! position the datagram being sent as well (relative to the front-of-queue).
+  //! e.g. uint8_t datagramBeingSent
 
-  // How many bytes of the front-of-queue datagram has been acked
+  //! How many bytes of the front-of-queue datagram has been acked
   size_t ackedLocInDatagram;
 
-  // Whether the link layer is still processing pendingTxPacket
+  //! Whether the link layer is still processing pendingTxPacket
   bool linkBusy;
 };
 
 struct PendingTxPacket {
-  // Length of outgoing packet to the Link Layer
+  //! Length of outgoing packet to the Link Layer
   size_t length;
 
-  // Payload of outgoing packet to the Link Layer
+  //! Payload of outgoing packet to the Link Layer
   uint8_t payload[CHPP_LINK_TX_MTU_BYTES];
 };
 
 struct ChppDatagram {
-  // Length of datagram payload in bytes (A datagram can be constituted from one
-  // or more packets)
+  //! Length of datagram payload in bytes (A datagram can be constituted from
+  //! one or more packets)
   size_t length;
 
   // Datagram payload
@@ -250,18 +251,18 @@ struct ChppDatagram {
 };
 
 struct ChppTxDatagramQueue {
-  // Number of pending datagrams in the queue.
+  //! Number of pending datagrams in the queue.
   uint8_t pending;
 
-  // Index of the datagram at the front of the queue.
+  //! Index of the datagram at the front of the queue.
   uint8_t front;
 
-  // Location counter within the front datagram (i.e. the datagram at the front
-  // of the queue), showing how many bytes of this datagram have already been
-  // packetized and processed.
+  //! Location counter within the front datagram (i.e. the datagram at the front
+  //! of the queue), showing how many bytes of this datagram have already been
+  //! packetized and processed.
   size_t loc;
 
-  // Array of datagrams
+  //! Array of datagrams
   struct ChppDatagram datagram[CHPP_TX_DATAGRAM_QUEUE_LEN];
 };
 
@@ -366,8 +367,24 @@ void chppRxTimeoutTimerCb(struct ChppTransportState *context);
  * @return True informs the sender that the datagram was successfully enqueued.
  * False informs the sender that the queue was full.
  */
-bool chppEnqueueTxDatagram(struct ChppTransportState *context, uint8_t *buf,
+bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
                            size_t len);
+
+/**
+ * Identical to chppEnqueueTxDatagram() but with the following behaviour if
+ * enqueueing a datagram is unsuccessful:
+ * 1. An error message is printed.
+ * 2. The payload is freed (discarded).
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ * False informs the sender that the queue was full and the payload discarded.
+ */
+bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
+                                 size_t len);
 
 /**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be

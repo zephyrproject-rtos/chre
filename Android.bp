@@ -164,7 +164,9 @@ cc_library_headers {
     vendor: true,
     export_include_dirs: [
         "chre_api/include/chre_api",
-    ]
+        "chre_api/include",
+    ],
+    host_supported: true,
 }
 
 cc_library_headers {
@@ -173,6 +175,21 @@ cc_library_headers {
     export_include_dirs: [
         "external/flatbuffers/include",
     ],
+}
+
+cc_library_headers {
+    name: "chre_pal",
+    vendor: true,
+    export_include_dirs: [
+        "pal/include",
+    ],
+    header_libs: [
+        "chre_api",
+    ],
+    export_header_lib_headers: [
+        "chre_api",
+    ],
+    host_supported: true,
 }
 
 subdirs = [

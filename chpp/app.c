@@ -15,6 +15,7 @@
  */
 
 #include "chpp/app.h"
+#include "chpp/pal_api.h"
 #include "chpp/services.h"
 
 /************************************************
@@ -145,7 +146,7 @@ bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
   }
 
   if (len < minLen) {
-    LOGE("Received datagram too short for handle=%d, len=%u", handle, len);
+    LOGE("Received datagram too short for handle=%d, len=%zu", handle, len);
   }
   return (len >= minLen);
 }
@@ -166,6 +167,22 @@ ChppDispatchFunction *chppDispatchFunctionOfService(
           ->dispatchFunctionPtr);
 }
 
+/**
+ * Returns a pointer to the status struct of a particular negotiated service
+ * handle.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ *
+ * @return Pointer to a function that dispatches incoming datagrams for any
+ * particular service.
+ */
+void *chppContextOfService(struct ChppAppState *appContext, uint8_t handle) {
+  return (appContext
+              ->registeredServiceContexts[handle -
+                                          CHPP_HANDLE_NEGOTIATED_RANGE_START]);
+}
+
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -179,13 +196,15 @@ void chppAppInit(struct ChppAppState *appContext,
 
   appContext->transportContext = transportContext;
 
+  chppPalSystemApiInit(appContext);
+
   chppRegisterCommonServices(appContext);
 }
 
 void chppAppDeinit(struct ChppAppState *appContext) {
   // TODO
 
-  UNUSED_VAR(appContext);
+  chppPalSystemApiDeinit(appContext);
 }
 
 void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
@@ -196,7 +215,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
     if (rxHeader->handle >=
         context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START) {
       LOGE(
-          "Received message for invalid handle: %#x, len = %d, type = %#x, "
+          "Received message for invalid handle: %#x, len = %zu, type = %#x, "
           "transaction = %d",
           rxHeader->handle, len, rxHeader->type, rxHeader->transaction);
     } else if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
@@ -218,8 +237,9 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
         default:
           // TODO: we should reply back to the client with an error
-          LOGE("Received unknown message type: %#x, len = %d, transaction = %d",
-               rxHeader->type, len, rxHeader->transaction);
+          LOGE(
+              "Received unknown message type: %#x, len = %zu, transaction = %d",
+              rxHeader->type, len, rxHeader->transaction);
       }
     }
   }

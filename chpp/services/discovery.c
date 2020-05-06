@@ -28,6 +28,9 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
  *  Private Definitions
  ***********************************************/
 
+/**
+ * Data structure used by the Discovery Response.
+ */
 CHPP_PACKED_START
 struct ChppDiscoveryResponse {
   struct ChppAppHeader header;
@@ -58,7 +61,7 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
 
   if (response == NULL) {
     LOGE("OOM allocating Discover All response of %zu bytes", responseLen);
-    CHPP_ASSERT();
+    CHPP_ASSERT(false);
 
   } else {
     // Populate list of services
@@ -67,13 +70,8 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
     }
 
     // Send out response datagram
-    if (!chppEnqueueTxDatagram(context->transportContext, (uint8_t *)response,
-                               responseLen)) {
-      LOGE("Tx Queue full. Dropping discovery response datagram of %zu bytes",
-           responseLen);
-      // Deallocate response on error
-      chppFree(response);
-    }
+    chppEnqueueTxDatagramOrFail(context->transportContext, response,
+                                responseLen);
   }
 }
 

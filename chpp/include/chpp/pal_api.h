@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,32 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_WWAN_H_
-#define CHPP_WWAN_H_
-
-#include <stddef.h>
-#include <stdint.h>
-
-#include "chpp/app.h"
-#include "chpp/services.h"
+#ifndef CHPP_PAL_API_H_
+#define CHPP_PAL_API_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/************************************************
- *  Public functions
- ***********************************************/
-
 /**
- * Initializes the WWAN (cellular) common service.
+ * Called by the App layer to initialize the PAL system APIs.
  *
  * @param context Maintains status for each app layer instance.
  */
-void chppWwanServiceInit(struct ChppAppState *context);
+void chppPalSystemApiInit(struct ChppAppState *context);
+
+/**
+ * Called by the App layer to deinitialize the PAL system APIs.
+ *
+ * @param context Maintains status for each app layer instance.
+ */
+void chppPalSystemApiDeinit(struct ChppAppState *context);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CHPP_WWAN_H_
+#endif  // CHPP_LOG_H_
