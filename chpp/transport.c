@@ -39,12 +39,14 @@ static void chppRegisterRxAck(struct ChppTransportState *context);
 
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
                                 enum ChppTransportErrorCode errorCode);
-size_t chppAddPreamble(uint8_t *buf);
+static size_t chppAddPreamble(uint8_t *buf);
 uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
-void chppTransportDoWork(struct ChppTransportState *context);
-void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
-                                 const uint8_t *buf, size_t len);
+static void chppTransportDoWork(struct ChppTransportState *context);
+static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
+                                        const uint8_t *buf, size_t len);
+static bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
+                                  size_t len);
 
 /************************************************
  *  Private Functions
@@ -468,7 +470,7 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
  *
  * @return Size of the added preamble
  */
-size_t chppAddPreamble(uint8_t *buf) {
+static size_t chppAddPreamble(uint8_t *buf) {
   buf[0] = CHPP_PREAMBLE_BYTE_FIRST;
   buf[1] = CHPP_PREAMBLE_BYTE_SECOND;
   return CHPP_PREAMBLE_LEN_BYTES;
@@ -536,7 +538,7 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
  *
  * @param context Maintains status for each transport layer instance.
  */
-void chppTransportDoWork(struct ChppTransportState *context) {
+static void chppTransportDoWork(struct ChppTransportState *context) {
   // Note: For a future ACK window >1, there needs to be a loop outside the lock
 
   LOGD("chppTransportDoWork start, (state = %" PRIu8
@@ -647,11 +649,54 @@ void chppTransportDoWork(struct ChppTransportState *context) {
  * @param buf Input data to be copied from.
  * @param len Length of input data in bytes.
  */
-void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
-                                 const uint8_t *buf, size_t len) {
+static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
+                                        const uint8_t *buf, size_t len) {
   CHPP_ASSERT(packet->length + len <= sizeof(packet->payload));
   memcpy(&packet->payload[packet->length], buf, len);
   packet->length += len;
+}
+
+/**
+ * Enqueues an outgoing datagram of a specified length. The payload must have
+ * been allocated by the caller using chppMalloc.
+ *
+ * If enqueueing is successful, the payload will be freed by this function
+ * once it has been sent out.
+ * If enqueueing is unsuccessful, it is up to the caller to decide when or if
+ * to free the payload and/or resend it later.
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ * False informs the sender that the queue was full.
+ */
+static bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
+                                  size_t len) {
+  bool success = false;
+  chppMutexLock(&context->mutex);
+
+  if (context->txDatagramQueue.pending < CHPP_TX_DATAGRAM_QUEUE_LEN) {
+    uint16_t end =
+        (context->txDatagramQueue.front + context->txDatagramQueue.pending) %
+        CHPP_TX_DATAGRAM_QUEUE_LEN;
+
+    context->txDatagramQueue.datagram[end].length = len;
+    context->txDatagramQueue.datagram[end].payload = buf;
+    context->txDatagramQueue.pending++;
+
+    if (context->txDatagramQueue.pending == 1) {
+      // Queue was empty prior. Need to kickstart transmission.
+      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
+    }
+
+    success = true;
+  }
+
+  chppMutexUnlock(&context->mutex);
+
+  return success;
 }
 
 /************************************************
@@ -751,33 +796,6 @@ void chppRxTimeoutTimerCb(struct ChppTransportState *context) {
   chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
   chppMutexUnlock(&context->mutex);
-}
-
-bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
-                           size_t len) {
-  bool success = false;
-  chppMutexLock(&context->mutex);
-
-  if (context->txDatagramQueue.pending < CHPP_TX_DATAGRAM_QUEUE_LEN) {
-    uint16_t end =
-        (context->txDatagramQueue.front + context->txDatagramQueue.pending) %
-        CHPP_TX_DATAGRAM_QUEUE_LEN;
-
-    context->txDatagramQueue.datagram[end].length = len;
-    context->txDatagramQueue.datagram[end].payload = buf;
-    context->txDatagramQueue.pending++;
-
-    if (context->txDatagramQueue.pending == 1) {
-      // Queue was empty prior. Need to kickstart transmission.
-      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
-    }
-
-    success = true;
-  }
-
-  chppMutexUnlock(&context->mutex);
-
-  return success;
 }
 
 bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,

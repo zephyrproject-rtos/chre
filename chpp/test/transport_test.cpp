@@ -228,7 +228,8 @@ TEST_P(TransportTests, EnqueueDatagrams) {
     for (int j = 0; j == CHPP_TX_DATAGRAM_QUEUE_LEN; j++) {
       for (size_t i = 1; i <= len; i++) {
         uint8_t *buf = (uint8_t *)chppMalloc(i + 100);
-        EXPECT_TRUE(chppEnqueueTxDatagram(&transportContext, buf, i + 100));
+        EXPECT_TRUE(
+            chppEnqueueTxDatagramOrFail(&transportContext, buf, i + 100));
 
         EXPECT_EQ(transportContext.txDatagramQueue.pending, i);
         EXPECT_EQ(transportContext.txDatagramQueue.front, fr);
@@ -241,7 +242,7 @@ TEST_P(TransportTests, EnqueueDatagrams) {
       if (transportContext.txDatagramQueue.pending ==
           CHPP_TX_DATAGRAM_QUEUE_LEN) {
         uint8_t *buf = (uint8_t *)chppMalloc(100);
-        EXPECT_FALSE(chppEnqueueTxDatagram(&transportContext, buf, 100));
+        EXPECT_FALSE(chppEnqueueTxDatagramOrFail(&transportContext, buf, 100));
         chppFree(buf);
       }
 
