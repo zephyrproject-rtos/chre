@@ -443,7 +443,7 @@ void GnssSession::postAsyncResultEventFatal(uint32_t instanceId, bool success,
 void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
   bool success = (errorCode == CHRE_ERROR_NONE);
 
-  CHRE_ASSERT_LOG(!mStateTransitions.empty() && !mInternalRequestPending,
+  CHRE_ASSERT_LOG(!mStateTransitions.empty() || mInternalRequestPending,
                   "handleStatusChangeSync called with no transitions");
   if (mInternalRequestPending) {
     // Silently handle internal requests from CHRE, since they are not pushed
