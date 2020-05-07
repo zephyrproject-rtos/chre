@@ -73,8 +73,8 @@ extern "C" {
 #define check_types_match(t1, t2) 0
 #endif
 
-#define container_of(ptr, type, member)             \
-  ((type *)((char *)(ptr)-offsetof(type, member)) + \
+#define container_of(ptr, type, member)                     \
+  ((type *)(void *)((char *)(ptr)-offsetof(type, member)) + \
    check_types_match(*(ptr), ((type *)0)->member))
 
 #define sizeof_member(type, member) (sizeof(((type *)0)->member))
