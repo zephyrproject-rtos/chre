@@ -18,6 +18,12 @@
 #include "chpp/pal_api.h"
 #include "chpp/services.h"
 
+#include "chpp/clients/discovery.h"
+
+#include "chpp/services/discovery.h"
+#include "chpp/services/loopback.h"
+#include "chpp/services/nonhandle.h"
+
 /************************************************
  *  Prototypes
  ***********************************************/
@@ -26,12 +32,18 @@ void chppProcessPredefinedService(struct ChppAppState *context, uint8_t *buf,
                                   size_t len);
 void chppProcessNegotiatedService(struct ChppAppState *context, uint8_t *buf,
                                   size_t len);
+void chppProcessPredefinedClient(struct ChppAppState *context, uint8_t *buf,
+                                 size_t len);
 void chppProcessNegotiatedClient(struct ChppAppState *context, uint8_t *buf,
                                  size_t len);
 bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
                          size_t len);
 ChppDispatchFunction *chppDispatchFunctionOfService(
     struct ChppAppState *context, uint8_t handle);
+ChppDispatchFunction *chppDispatchFunctionOfClient(struct ChppAppState *context,
+                                                   uint8_t handle);
+inline struct ChppService *chppServiceOfHandle(struct ChppAppState *appContext,
+                                               uint8_t handle);
 
 /************************************************
  *  Private Functions
@@ -50,16 +62,12 @@ void chppProcessPredefinedService(struct ChppAppState *context, uint8_t *buf,
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   switch (rxHeader->handle) {
-    case CHPP_HANDLE_NONE:
-      chppDispatchNonHandle(context, buf, len);
-      break;
-
     case CHPP_HANDLE_LOOPBACK:
-      chppDispatchLoopback(context, buf, len);
+      chppDispatchLoopbackService(context, buf, len);
       break;
 
     case CHPP_HANDLE_DISCOVERY:
-      chppDispatchDiscovery(context, buf, len);
+      chppDispatchDiscoveryService(context, buf, len);
       break;
 
     default:
@@ -87,7 +95,33 @@ void chppProcessNegotiatedService(struct ChppAppState *context, uint8_t *buf,
 
 /**
  * Processes an Rx Datagram from the transport layer that is determined to be
- * for a negotiated CHPP client.
+ * for a predefined CHPP client.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+void chppProcessPredefinedClient(struct ChppAppState *context, uint8_t *buf,
+                                 size_t len) {
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+
+  switch (rxHeader->handle) {
+    case CHPP_HANDLE_LOOPBACK:
+      // TODO
+      break;
+
+    case CHPP_HANDLE_DISCOVERY:
+      chppDispatchDiscoveryClient(context, buf, len);
+      break;
+
+    default:
+      LOGE("Invalid predefined service handle %" PRIu8, rxHeader->handle);
+  }
+}
+
+/**
+ * Processes an Rx Datagram from the transport layer that is determined to be
+ * for a negotiated CHPP client and with a correct minimum length.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
@@ -95,11 +129,12 @@ void chppProcessNegotiatedService(struct ChppAppState *context, uint8_t *buf,
  */
 void chppProcessNegotiatedClient(struct ChppAppState *context, uint8_t *buf,
                                  size_t len) {
-  // TODO
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
-  UNUSED_VAR(context);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
+  // Already validated that handle is OK
+  ChppDispatchFunction *dispatchFunc =
+      chppDispatchFunctionOfClient(context, rxHeader->handle);
+  dispatchFunc(context, buf, len);
 }
 
 /**
@@ -134,15 +169,13 @@ bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
         break;
 
       default:
-        LOGE("Invalid predefined service handle %" PRIu8, handle);
+        LOGE("Invalid predefined handle %" PRIu8, handle);
     }
 
   } else {
     // Negotiated services
 
-    minLen =
-        context->registeredServices[handle - CHPP_HANDLE_NEGOTIATED_RANGE_START]
-            ->minLength;  // Reported min datagram length of a service
+    minLen = chppServiceOfHandle(context, handle)->minLength;
   }
 
   if (len < minLen) {
@@ -153,7 +186,7 @@ bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
 }
 
 /**
- * Returns the dispatch function of a particular negotiated service handle.
+ * Returns the service dispatch function of a particular negotiated handle.
  *
  * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
@@ -169,8 +202,7 @@ ChppDispatchFunction *chppDispatchFunctionOfService(
 }
 
 /**
- * Returns a pointer to the status struct of a particular negotiated service
- * handle.
+ * Returns the client dispatch function of a particular negotiated handle.
  *
  * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
@@ -178,7 +210,26 @@ ChppDispatchFunction *chppDispatchFunctionOfService(
  * @return Pointer to a function that dispatches incoming datagrams for any
  * particular service.
  */
-void *chppContextOfService(struct ChppAppState *appContext, uint8_t handle) {
+ChppDispatchFunction *chppDispatchFunctionOfClient(struct ChppAppState *context,
+                                                   uint8_t handle) {
+  // TODO
+
+  UNUSED_VAR(context);
+  UNUSED_VAR(handle);
+  return (NULL);
+}
+
+/**
+ * Returns a pointer to the ChppService struct of a particular negotiated
+ * service handle.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ *
+ * @return Pointer to the ChppService struct of a particular service handle.
+ */
+inline struct ChppService *chppServiceOfHandle(struct ChppAppState *appContext,
+                                               uint8_t handle) {
   return (appContext
               ->registeredServiceContexts[handle -
                                           CHPP_HANDLE_NEGOTIATED_RANGE_START]);
@@ -215,34 +266,43 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
   if (chppDatagramLenIsOk(context, rxHeader->handle, len)) {
     if (rxHeader->handle >=
         context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START) {
-      LOGE("Received message for invalid handle: %" PRIu8
+      LOGE("Received datagram for invalid handle: %" PRIu8
            ", len = %zu, type = %#x, transaction ID = %" PRIu8,
            rxHeader->handle, len, rxHeader->type, rxHeader->transaction);
 
-    } else if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
-      // Predefined Services
-      chppProcessPredefinedService(context, buf, len);
+    } else if (rxHeader->handle == CHPP_HANDLE_NONE) {
+      chppDispatchNonHandle(context, buf, len);
 
     } else {
-      // Negotiated Services
       switch (rxHeader->type) {
         case CHPP_MESSAGE_TYPE_CLIENT_REQUEST:
-        case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION:
-          chppProcessNegotiatedService(context, buf, len);
+        case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
+          if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
+            chppProcessPredefinedService(context, buf, len);
+          } else {
+            chppProcessNegotiatedService(context, buf, len);
+          }
           break;
+        }
 
         case CHPP_MESSAGE_TYPE_SERVER_RESPONSE:
-        case CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION:
-          chppProcessNegotiatedClient(context, buf, len);
+        case CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION: {
+          if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
+            chppProcessPredefinedClient(context, buf, len);
+          } else {
+            chppProcessNegotiatedClient(context, buf, len);
+          }
           break;
+        }
 
-        default:
+        default: {
           LOGE(
               "Received unknown message type: %#x, len = %zu, transaction ID = "
               "%" PRIu8,
               rxHeader->type, len, rxHeader->transaction);
           chppEnqueueTxErrorDatagram(context->transportContext,
                                      CHPP_TRANSPORT_ERROR_APPLAYER);
+        }
       }
     }
   }

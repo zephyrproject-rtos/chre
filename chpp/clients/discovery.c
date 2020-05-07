@@ -14,70 +14,50 @@
  * limitations under the License.
  */
 
-#include "chpp/services/discovery.h"
-#include "chpp/services.h"
+#include "chpp/clients/discovery.h"
 
 /************************************************
  *  Prototypes
  ***********************************************/
 
-void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              const struct ChppAppHeader *rxHeader);
+void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
+                                     const uint8_t *buf, size_t len);
 
 /************************************************
  *  Private Functions
  ***********************************************/
 
 /**
- * Processes the Discover All Services (0x0001) request.
+ * Processes the Discover All Services (0x0001) response.
  *
  * @param context Maintains status for each app layer instance.
- * @param requestHeader Request datagram header. Cannot be null.
+ * @param buf Input (request) datagram. Cannot be null.
+ * @param len Length of input data in bytes.
  */
-void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              const struct ChppAppHeader *requestHeader) {
-  // Allocate response
-  size_t responseLen =
-      sizeof(struct ChppAppHeader) +
-      context->registeredServiceCount * sizeof(struct ChppServiceDescriptor);
+void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
+                                     const uint8_t *buf, size_t len) {
+  // TODO
 
-  struct ChppDiscoveryResponse *response = chppAllocServiceResponseTypedArray(
-      requestHeader, struct ChppDiscoveryResponse,
-      context->registeredServiceCount, services);
-
-  if (response == NULL) {
-    LOG_OOM("DiscoverAll response of %zu bytes", responseLen);
-    CHPP_ASSERT(false);
-
-  } else {
-    // Populate list of services
-    for (size_t i = 0; i < context->registeredServiceCount; i++) {
-      response->services[i] = context->registeredServices[i]->descriptor;
-    }
-
-    // Send out response datagram
-    chppEnqueueTxDatagramOrFail(context->transportContext, response,
-                                responseLen);
-  }
+  UNUSED_VAR(context);
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
 }
 
 /************************************************
  *  Public Functions
  ***********************************************/
 
-void chppDispatchDiscoveryService(struct ChppAppState *context,
-                                  const uint8_t *buf, size_t len) {
-  UNUSED_VAR(len);
+void chppDispatchDiscoveryClient(struct ChppAppState *context,
+                                 const uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   switch (rxHeader->type) {
-    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
-      // Discovery request from client
+    case CHPP_MESSAGE_TYPE_SERVER_RESPONSE: {
+      // Received discovery response from server
 
       switch (rxHeader->command) {
         case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
-          // Send back a list of services supported by this platform.
-          chppDiscoveryDiscoverAll(context, rxHeader);
+          chppDiscoveryProcessDiscoverAll(context, buf, len);
           break;
         }
         default: {

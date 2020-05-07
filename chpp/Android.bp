@@ -33,6 +33,7 @@ cc_library_static {
         "services/discovery.c",
         "services/loopback.c",
         "services/nonhandle.c",
+        "clients/discovery.c",
         "services/wwan.c",
         "platform/linux/services/platform_wwan.c",
     ],

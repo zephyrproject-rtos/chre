@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/services/discovery.h"
 #include "chpp/transport.h"
 
 #include "transport_test.h"

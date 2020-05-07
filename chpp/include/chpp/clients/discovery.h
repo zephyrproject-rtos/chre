@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_SERVICE_DISCOVERY_H_
-#define CHPP_SERVICE_DISCOVERY_H_
+#ifndef CHPP_CLIENT_DISCOVERY_H_
+#define CHPP_CLIENT_DISCOVERY_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -29,8 +29,7 @@
 extern "C" {
 #endif
 
-// Forward declaration
-struct ChppAppState;
+struct ChppAppState *context;
 
 /************************************************
  *  Public functions
@@ -38,17 +37,17 @@ struct ChppAppState;
 
 /*
  * Dispatches an Rx Datagram from the transport layer that is determined to be
- * for the CHPP Discovery Service.
+ * for the CHPP Discovery Client.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input (request) datagram. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchDiscoveryService(struct ChppAppState *context,
-                                  const uint8_t *buf, size_t len);
+void chppDispatchDiscoveryClient(struct ChppAppState *context,
+                                 const uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CHPP_SERVICE_DISCOVERY_H_
+#endif  // CHPP_CLIENT_DISCOVERY_H_

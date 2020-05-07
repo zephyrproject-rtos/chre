@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef CHPP_LOOPBACK_H_
 #define CHPP_LOOPBACK_H_
 
@@ -46,8 +45,8 @@ extern "C" {
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchLoopback(struct ChppAppState *context, uint8_t *buf,
-                          size_t len);
+void chppDispatchLoopbackService(struct ChppAppState *context, uint8_t *buf,
+                                 size_t len);
 
 #ifdef __cplusplus
 }

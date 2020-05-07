@@ -28,8 +28,8 @@
  *  Public Functions
  ***********************************************/
 
-void chppDispatchLoopback(struct ChppAppState *context, uint8_t *buf,
-                          size_t len) {
+void chppDispatchLoopbackService(struct ChppAppState *context, uint8_t *buf,
+                                 size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->type == CHPP_MESSAGE_TYPE_CLIENT_REQUEST) {
