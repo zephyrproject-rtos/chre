@@ -29,7 +29,8 @@
 extern "C" {
 #endif
 
-struct ChppAppState *context;
+// Forward declaration
+struct ChppAppState;
 
 /************************************************
  *  Public Definitions
