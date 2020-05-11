@@ -57,6 +57,15 @@ bool PlatformSensorTypeHelpers::getVendorSensorBiasEventType(
 #endif
 }
 
+size_t PlatformSensorTypeHelpers::getVendorSensorLastEventSize(
+    uint8_t sensorType) {
+#ifdef CHREX_SENSOR_SUPPORT
+  return extension::vendorGetLastEventSize(sensorType);
+#else
+  return 0;
+#endif
+}
+
 const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
     uint8_t sensorType) {
 #ifdef CHREX_SENSOR_SUPPORT
@@ -87,6 +96,14 @@ const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
       CHRE_ASSERT(false);
       return "";
   }
+#endif
+}
+
+void PlatformSensorTypeHelpers::getVendorLastSample(uint8_t sensorType,
+                                                    const ChreSensorData *event,
+                                                    ChreSensorData *lastEvent) {
+#ifdef CHREX_SENSOR_SUPPORT
+  extension::vendorGetLastSample(sensorType, event, lastEvent);
 #endif
 }
 
