@@ -191,12 +191,13 @@ class Sensor : public PlatformSensor {
   }
 
   /**
-   * Copies the supplied event to the sensor's last event and marks last event
-   * valid. This method must be invoked within the CHRE thread before the event
-   * containing the sensor data is delivered to nanoapps.
+   * Extracts the last sample from the supplied event to the sensor's last event
+   * memory and marks last event valid. This method must be invoked within the
+   * CHRE thread before the event containing the sensor data is delivered to
+   * nanoapps.
    *
-   * @param event The pointer to the event to copy from. If nullptr, the last
-   *     event is marked invalid.
+   * @param event The pointer to the event to update from. If nullptr, the last
+   *      event is marked invalid.
    */
   void setLastEvent(ChreSensorData *event);
 
