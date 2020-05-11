@@ -52,10 +52,29 @@ class PlatformSensorTypeHelpers : public PlatformSensorTypeHelpersBase {
                                            uint16_t *eventType);
 
   /**
+   * @return The memory size needed to store the last on-change sample.
+   */
+  static size_t getVendorSensorLastEventSize(uint8_t sensorType);
+
+  /**
    * @param sensorType The vendor sensor type to obtain a string for.
    * @return A string representation of the vendor sensor type.
    */
   static const char *getVendorSensorTypeName(uint8_t sensorType);
+
+  /**
+   * Extracts the last sample from the suppled event and updates it to the
+   * supplied last event memory as a single-sample event.
+   *
+   * @param sensorType The vendor sensor type to get the last sample for.
+   * @param event A non-null data event of the specified sensorType, must
+   *     contain one more more samples.
+   * @param lastEvent The sensor's last event memory to store the last event
+   *     of an on-change sensor.
+   */
+  static void getVendorLastSample(uint8_t sensorType,
+                                  const ChreSensorData *event,
+                                  ChreSensorData *lastEvent);
 };
 
 }  // namespace chre
