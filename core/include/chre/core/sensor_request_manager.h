@@ -444,6 +444,15 @@ class SensorRequestManager : public NonCopyable {
    */
   void addSensorRequestLog(uint32_t nanoappInstanceId, uint8_t sensorType,
                            const SensorRequest &sensorRequest);
+
+  /**
+   * Helper function to make a sensor's maximal request to the platform, and
+   * reset the last event if an on-change sensor is successfully turned off.
+   *
+   * @param sensor The sensor that will be making the request.
+   * @return true if the platform accepted the request.
+   */
+  bool configurePlatformSensor(Sensor &sensor);
 };
 
 }  // namespace chre
