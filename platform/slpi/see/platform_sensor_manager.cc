@@ -627,11 +627,6 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
                                     kOneMicrosecondInNanoseconds),
   };
 
-  if (req.enable && req.passive && !sensor.isPassiveSupported()) {
-    LOGD("Promoting sensor %" PRIu8 " passive request to active",
-         sensor.getSensorType());
-  }
-
   SeeHelper &seeHelper = getSeeHelperForSensorType(sensor.getSensorType());
   bool wasInUImage = slpiInUImage();
 
@@ -686,7 +681,7 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
     if (sensor.getSamplingStatus(&status)) {
       // If passive request is not supported by this SEE sensor, it won't be
       // dynamically enabled/disabled and its status stays the same as set here.
-      if (!sensor.isPassiveSupported()) {
+      if (!sensor.supportsPassiveMode()) {
         status.enabled = req.enable;
       }
       status.latency = req.batchPeriodUs * kOneMicrosecondInNanoseconds;
