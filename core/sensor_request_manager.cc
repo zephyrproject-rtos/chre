@@ -32,6 +32,7 @@ bool isSensorRequestValid(const Sensor &sensor,
   bool isRequestOneShot = sensorModeIsOneShot(sensorRequest.getMode());
   bool isRequestOff = sensorRequest.getMode() == SensorMode::Off;
   uint64_t requestedInterval = sensorRequest.getInterval().toRawNanoseconds();
+  bool isRequestPassive = sensorModeIsPassive(sensorRequest.getMode());
 
   bool success = false;
   if (requestedInterval < sensor.getMinInterval()) {
@@ -39,6 +40,8 @@ bool isSensorRequestValid(const Sensor &sensor,
          requestedInterval, sensor.getMinInterval());
   } else if (!isRequestOff && isRequestOneShot != sensor.isOneShot()) {
     LOGE("Invalid request type for sensor reporting mode");
+  } else if (isRequestPassive && !sensor.supportsPassiveMode()) {
+    LOGE("Passive mode not supported");
   } else {
     success = true;
   }

@@ -41,10 +41,6 @@ class PlatformSensorBase {
   void initBase(uint8_t sensorType, uint64_t minInterval,
                 const char *sensorName, bool passiveSupported);
 
-  bool isPassiveSupported() {
-    return mPassiveSupported;
-  }
-
   //! Stores the last received sampling status from SEE for this sensor making
   //! it easier to dedup updates that come in later from SEE.
   SeeHelperCallbackInterface::SamplingStatusData mLastReceivedSamplingStatus{};
