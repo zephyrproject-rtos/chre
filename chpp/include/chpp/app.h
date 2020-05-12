@@ -74,7 +74,7 @@ enum ChppMessageType {
   CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION = 2,
 
   //! Notification from server. Client shall not respond.
-  CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION = 4,
+  CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION = 3,
 };
 
 /**
@@ -154,9 +154,13 @@ struct ChppService {
   //! Service Descriptor as sent over the wire.
   struct ChppServiceDescriptor descriptor;
 
-  //! Pointer to the function that dispatches incoming datagrams for the
+  //! Pointer to the function that dispatches incoming client requests for the
   //! service.
-  ChppDispatchFunction *dispatchFunctionPtr;
+  ChppDispatchFunction *requestDispatchFunctionPtr;
+
+  //! Pointer to the function that dispatches incoming client notifications for
+  //! the service.
+  ChppDispatchFunction *notificationDispatchFunctionPtr;
 
   //! Minimum valid length of datagrams for the service.
   size_t minLength;

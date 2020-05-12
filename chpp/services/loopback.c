@@ -17,42 +17,26 @@
 #include "chpp/services/loopback.h"
 
 /************************************************
- *  Prototypes
- ***********************************************/
-
-/************************************************
- *  Private Functions
- ***********************************************/
-
-/************************************************
  *  Public Functions
  ***********************************************/
 
-void chppDispatchLoopbackService(struct ChppAppState *context, uint8_t *buf,
-                                 size_t len) {
-  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
+                                       uint8_t *buf, size_t len) {
+  uint8_t *response = chppMalloc(len);
+  if (response == NULL) {
+    LOG_OOM("Loopback response of %zu bytes", len);
+    chppEnqueueTxErrorDatagram(context->transportContext,
+                               CHPP_TRANSPORT_ERROR_OOM);
 
-  if (rxHeader->type == CHPP_MESSAGE_TYPE_CLIENT_REQUEST) {
-    // We need to respond to a loopback datagram
-
-    uint8_t *response = chppMalloc(len);
-    if (response == NULL) {
-      LOG_OOM("Loopback response of %zu bytes", len);
-      chppEnqueueTxErrorDatagram(context->transportContext,
-                                 CHPP_TRANSPORT_ERROR_OOM);
-
-    } else {
-      // Copy received datagram
-      memcpy(response, buf, len);
-
-      // Modify response message type per loopback spec.
-      struct ChppAppHeader *responseHeader = (struct ChppAppHeader *)response;
-      responseHeader->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
-
-      // Send out response datagram
-      chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
-    }
   } else {
-    LOGE("Unknown Loopback message type = %" PRIu8, rxHeader->type);
+    // Copy received datagram
+    memcpy(response, buf, len);
+
+    // Modify response message type per loopback spec.
+    struct ChppAppHeader *responseHeader = (struct ChppAppHeader *)response;
+    responseHeader->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
+
+    // Send out response datagram
+    chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
   }
 }

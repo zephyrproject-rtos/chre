@@ -37,15 +37,15 @@ struct ChppAppState;
  ***********************************************/
 
 /*
- * Dispatches an Rx Datagram from the transport layer that is determined to be
- * for the CHPP Discovery Service.
+ * Dispatches a client request that is determined to be for the CHPP Discovery
+ * Service.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input (request) datagram. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchDiscoveryService(struct ChppAppState *context,
-                                  const uint8_t *buf, size_t len);
+void chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
+                                        const uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }
