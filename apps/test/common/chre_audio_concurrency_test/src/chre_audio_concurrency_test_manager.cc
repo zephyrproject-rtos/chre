@@ -19,6 +19,7 @@
 #include <pb_decode.h>
 
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/time.h"
 #include "chre_audio_concurrency_test.nanopb.h"
 #include "send_message.h"
 
@@ -26,6 +27,7 @@
 
 namespace chre {
 
+using test_shared::sendEmptyMessageToHost;
 using test_shared::sendTestResultToHost;
 
 namespace audio_concurrency_test {
@@ -61,21 +63,49 @@ bool getTestStep(const chre_audio_concurrency_test_TestCommand &command,
 
 }  // anonymous namespace
 
+Manager::~Manager() {
+  if (mAudioEnabled) {
+    chreAudioConfigureSource(kAudioHandle, false /* enable */,
+                             0 /* bufferDuration */, 0 /* deliveryInterval */);
+  }
+}
+
 bool Manager::handleTestCommandMessage(uint16_t hostEndpointId, TestStep step) {
   bool success = true;
 
   // Treat as success if CHRE audio is unsupported
-  if (!isTestSupported()) {
+  // TODO: Use all available audio sources
+  if (!isTestSupported() || !chreAudioGetSource(kAudioHandle, &mAudioSource)) {
     sendTestResultToHost(hostEndpointId, kTestResultMessageType,
                          true /* success */);
   } else {
+    success = false;
     if (step == TestStep::ENABLE_AUDIO) {
-      // TODO: Enable audio
+      if (!chreAudioConfigureSource(kAudioHandle, true /* enable */,
+                                    mAudioSource.minBufferDuration,
+                                    mAudioSource.minBufferDuration)) {
+        LOGE("Failed to configure audio source");
+      } else {
+        mAudioEnabled = true;
+        // Start a timer to ensure we receive the first audio data event
+        // quickly. Since it may take some time to load the sound model, choose
+        // a reasonably long timeout.
+        mTimerHandle = chreTimerSet(10 * kOneSecondInNanoseconds,
+                                    nullptr /* cookie */, true /* oneShot */);
+        if (mTimerHandle == CHRE_TIMER_INVALID) {
+          LOGE("Failed to set audio enabled timer");
+        } else {
+          success = true;
+        }
+      }
     } else if (step == TestStep::VERIFY_AUDIO_RESUME) {
       // TODO: Verify audio resumes
     }
 
-    // TODO: Save test state
+    if (success) {
+      mTestSession = TestSession(hostEndpointId, step);
+      LOGI("Starting test step %" PRIu8, mTestSession->step);
+    }
   }
 
   return success;
@@ -112,12 +142,66 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
   }
 }
 
+void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
+  switch (eventType) {
+    case CHRE_EVENT_AUDIO_DATA:
+      handleAudioDataEvent(static_cast<const chreAudioDataEvent *>(eventData));
+      break;
+
+    case CHRE_EVENT_TIMER:
+      handleTimer();
+      break;
+
+    case CHRE_EVENT_AUDIO_SAMPLING_CHANGE:
+      /* ignore */
+      break;
+
+    default:
+      LOGE("Unexpected event type %" PRIu16, eventType);
+  }
+}
+
+void Manager::handleTimer() {
+  // TODO: Timeout failure
+}
+
+void Manager::handleAudioDataEvent(const chreAudioDataEvent *data) {
+  if (mTestSession.has_value()) {
+    switch (mTestSession->step) {
+      case TestStep::ENABLE_AUDIO: {
+        if (mTimerHandle != CHRE_TIMER_INVALID) {
+          chreTimerCancel(mTimerHandle);
+          mTimerHandle = CHRE_TIMER_INVALID;
+        }
+        sendEmptyMessageToHost(
+            mTestSession->hostEndpointId,
+            chre_audio_concurrency_test_MessageType_TEST_AUDIO_ENABLED);
+
+        // Reset the test session to avoid sending multiple TEST_AUDIO_ENABLED
+        // messages to the host, while we wait for the next step.
+        mTestSession.reset();
+        break;
+      }
+
+      case TestStep::VERIFY_AUDIO_RESUME: {
+        // TODO:
+      }
+
+      default:
+        LOGE("Unexpected test step %" PRIu8, mTestSession->step);
+        break;
+    }
+  }
+}
+
 void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                           const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     handleMessageFromHost(
         senderInstanceId,
         static_cast<const chreMessageFromHostData *>(eventData));
+  } else if (senderInstanceId == CHRE_INSTANCE_ID) {
+    handleDataFromChre(eventType, eventData);
   } else {
     LOGW("Got unknown event type from senderInstanceId %" PRIu32
          " and with eventType %" PRIu16,
