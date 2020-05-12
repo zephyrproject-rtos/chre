@@ -42,4 +42,14 @@ const char *PlatformSensorTypeHelpers::getVendorSensorTypeName(
   return "";
 }
 
+size_t PlatformSensorTypeHelpers::getVendorSensorLastEventSize(
+    uint8_t sensorType) {
+  return 0;
+}
+
+void PlatformSensorTypeHelpers::getVendorLastSample(uint8_t sensorType,
+                                                    const ChreSensorData *event,
+                                                    ChreSensorData *lastEvent) {
+}
+
 }  // namespace chre

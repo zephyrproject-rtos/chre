@@ -66,22 +66,10 @@ class Sensor : public PlatformSensor {
   }
 
   /**
-   * Obtains a reference to the latest request that has been accepted by the
-   * platform.
-   *
-   * @return A const reference to the SensorRequest.
+   * @return A const reference to the maximal request.
    */
-  const SensorRequest &getRequest() const {
-    return mSensorRequest;
-  }
-
-  /**
-   * Sets the request of this sensor that's been accepted by the platform.
-   *
-   * @param request The new request for this sensor.
-   */
-  void setRequest(const SensorRequest &request) {
-    mSensorRequest = request;
+  const SensorRequest &getMaximalRequest() const {
+    return mSensorRequests.getCurrentMaximalRequest();
   }
 
   /**
@@ -191,14 +179,22 @@ class Sensor : public PlatformSensor {
   }
 
   /**
-   * Copies the supplied event to the sensor's last event and marks last event
-   * valid. This method must be invoked within the CHRE thread before the event
-   * containing the sensor data is delivered to nanoapps.
+   * Extracts the last sample from the supplied event to the sensor's last event
+   * memory and marks last event valid. This method must be invoked within the
+   * CHRE thread before the event containing the sensor data is delivered to
+   * nanoapps.
    *
-   * @param event The pointer to the event to copy from. If nullptr, the last
-   *     event is marked invalid.
+   * @param event The pointer to the event to update from. If nullptr, the last
+   *      event is marked invalid.
    */
   void setLastEvent(ChreSensorData *event);
+
+  /**
+   * Marks the last event invalid.
+   */
+  void clearLastEvent() {
+    mLastEventValid = false;
+  }
 
   /**
    * Gets the current status of this sensor in the CHRE API format.
@@ -235,9 +231,6 @@ class Sensor : public PlatformSensor {
   //! allocated to store the sensor data for this particular sensor (a.k.a.
   //! don't attempt to use other fields in this union).
   ChreSensorData *mLastEvent = nullptr;
-
-  //! The most recent sensor request accepted by the platform.
-  SensorRequest mSensorRequest;
 
   //! The multiplexer for all requests for this sensor.
   SensorRequestMultiplexer mSensorRequests;

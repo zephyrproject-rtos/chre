@@ -680,10 +680,6 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
   }
 
   if (success) {
-    if (request.getMode() == SensorMode::Off) {
-      sensor.setLastEvent(nullptr);
-    }
-
     // TODO: remove setSamplingStatus when .latency is available in status
     // update from SEE.
     struct chreSensorSamplingStatus status;

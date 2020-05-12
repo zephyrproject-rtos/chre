@@ -47,39 +47,29 @@ bool isSensorRequestValid(const Sensor &sensor,
 
 /**
  * A helper function that updates the last event of a sensor in the main thread.
- * Platform should call this function only for an on-change sensor.
  *
- * @param sensorHandle The sensor handle corresponding to the sensor this event
- *     is from.
  * @param eventData A non-null pointer to the sensor's CHRE event data.
  */
-void updateLastEvent(uint32_t sensorHandle, void *eventData) {
+void updateLastEvent(void *eventData) {
   CHRE_ASSERT(eventData);
 
-  auto *sensorData = static_cast<const ChreSensorData *>(eventData);
-  if (sensorData->header.readingCount != 1) {
-    // TODO: better error handling when there are more than one samples.
-    LOGE("%" PRIu16 " samples in an event for on-change sensor %" PRIu32,
-         sensorData->header.readingCount, sensorHandle);
-  } else {
-    auto callback = [](uint16_t /* type */, void *data) {
-      auto *sensorData = static_cast<ChreSensorData *>(data);
-      Sensor *sensor =
-          EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
-              sensorData->header.sensorHandle);
+  auto callback = [](uint16_t /* type */, void *data) {
+    auto *sensorData = static_cast<ChreSensorData *>(data);
+    Sensor *sensor =
+        EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+            sensorData->header.sensorHandle);
 
-      // Mark last event as valid only if the sensor is enabled. Event data
-      // may arrive after sensor is disabled.
-      if (sensor != nullptr &&
-          sensor->getRequest().getMode() != SensorMode::Off) {
-        sensor->setLastEvent(sensorData);
-      }
-    };
+    // Mark last event as valid only if the sensor is enabled. Event data may
+    // arrive after sensor is disabled.
+    if (sensor != nullptr &&
+        sensor->getMaximalRequest().getMode() != SensorMode::Off) {
+      sensor->setLastEvent(sensorData);
+    }
+  };
 
-    // Schedule a deferred callback.
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::SensorLastEventUpdate, eventData, callback);
-  }
+  // Schedule a deferred callback.
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::SensorLastEventUpdate, eventData, callback);
 }
 
 void sensorDataEventFree(uint16_t eventType, void *eventData) {
@@ -347,7 +337,8 @@ bool SensorRequestManager::configureBiasEvents(Nanoapp *nanoapp,
     if (sensor.getBiasEventType(&eventType)) {
       uint64_t currentLatency = 0;
       if (enable) {
-        currentLatency = sensor.getRequest().getLatency().toRawNanoseconds();
+        currentLatency =
+            sensor.getMaximalRequest().getLatency().toRawNanoseconds();
       }
       success = mPlatformSensorManager.configureBiasEvents(sensor, enable,
                                                            currentLatency);
@@ -462,7 +453,7 @@ void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
     mPlatformSensorManager.releaseSensorDataEvent(event);
   } else {
     if (mSensors[sensorHandle].isOnChange()) {
-      updateLastEvent(sensorHandle, event);
+      updateLastEvent(event);
     }
 
     uint16_t eventType =
@@ -678,8 +669,7 @@ bool SensorRequestManager::addRequest(Sensor &sensor,
     success = false;
     LOG_OOM();
   } else if (*requestChanged) {
-    success = mPlatformSensorManager.configureSensor(
-        sensor, multiplexer.getCurrentMaximalRequest());
+    success = configurePlatformSensor(sensor);
     if (!success) {
       // Remove the newly added request since the platform failed to handle
       // it. The sensor is expected to maintain the existing request so there is
@@ -706,8 +696,7 @@ bool SensorRequestManager::updateRequest(Sensor &sensor, size_t updateIndex,
   SensorRequest previousRequest = multiplexer.getRequests()[updateIndex];
   multiplexer.updateRequest(updateIndex, request, requestChanged);
   if (*requestChanged) {
-    success = mPlatformSensorManager.configureSensor(
-        sensor, multiplexer.getCurrentMaximalRequest());
+    success = configurePlatformSensor(sensor);
     if (!success) {
       // Roll back the request since sending it to the sensor failed. The
       // request will roll back to the previous maximal. The sensor is
@@ -731,8 +720,7 @@ bool SensorRequestManager::removeRequest(Sensor &sensor, size_t removeIndex,
   bool success = true;
   sensor.getRequestMultiplexer().removeRequest(removeIndex, requestChanged);
   if (*requestChanged) {
-    success = mPlatformSensorManager.configureSensor(
-        sensor, sensor.getRequestMultiplexer().getCurrentMaximalRequest());
+    success = configurePlatformSensor(sensor);
     if (!success) {
       LOGE("SensorRequestManager failed to remove a request");
 
@@ -756,8 +744,7 @@ bool SensorRequestManager::removeAllRequests(Sensor &sensor) {
 
   bool success = true;
   if (requestChanged) {
-    SensorRequest emptyRequest;
-    success = mPlatformSensorManager.configureSensor(sensor, emptyRequest);
+    success = configurePlatformSensor(sensor);
 
     if (!success) {
       LOGE("SensorRequestManager failed to remove all request");
@@ -836,6 +823,22 @@ bool SensorRequestManager::doMakeFlushRequest(Sensor &sensor) {
   uint32_t flushRequestId;
   bool success = mPlatformSensorManager.flush(sensor, &flushRequestId);
   sensor.setFlushRequestPending(success);
+  return success;
+}
+
+bool SensorRequestManager::configurePlatformSensor(Sensor &sensor) {
+  bool success = false;
+  const SensorRequest &request = sensor.getMaximalRequest();
+  if (!mPlatformSensorManager.configureSensor(sensor, request)) {
+    LOGE("Failed to make platform sensor request");
+  } else {
+    success = true;
+
+    // Reset last event if an on-change sensor is turned off.
+    if (request.getMode() == SensorMode::Off) {
+      sensor.clearLastEvent();
+    }
+  }
   return success;
 }
 
