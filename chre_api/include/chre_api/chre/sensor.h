@@ -450,14 +450,14 @@ enum chreSensorConfigureMode {
          CHRE_SENSOR_CONFIGURE_RAW_REPORT_ONE_SHOT),
 
     /**
-     * Get events from a sensor that are generated for other apps.
+     * Get events from a sensor that are generated for any client in the system.
      *
-     * This is considered passive because the sensor will not be powered
-     * on for the sake of our nanoapp.  If and only if another app in
-     * the system has requested this sensor power on will we get events.
+     * This is considered passive because the sensor will not be powered on for
+     * the sake of our nanoapp.  If and only if another client in the system has
+     * requested this sensor power on will we get events.
      *
-     * This can be useful for something which is interested in seeing data,
-     * but not interested enough to be responsible for powering on the sensor.
+     * This can be useful for something which is interested in seeing data, but
+     * not interested enough to be responsible for powering on the sensor.
      *
      * Power: Do not power the sensor on our behalf.
      * Reporting: Continuous.  Send each event as it comes.
@@ -466,10 +466,11 @@ enum chreSensorConfigureMode {
         CHRE_SENSOR_CONFIGURE_RAW_REPORT_CONTINUOUS,
 
     /**
-     * Get a single event from a sensor that is generated for other apps.
+     * Get a single event from a sensor that is generated for any client in the
+     * system.
      *
-     * See CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS for more details
-     * on what be "passive" means.
+     * See CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS for more details on
+     * what the "passive" means.
      *
      * Power: Do not power the sensor on our behalf.
      * Reporting: One shot.  Send only the next event and then be DONE.
@@ -522,7 +523,7 @@ struct chreSensorInfo {
      * A value of 1 indicates this is on-change.  0 indicates this is not
      * on-change.
      */
-    uint8_t isOnChange        : 1;
+    uint8_t isOnChange          : 1;
 
     /**
      * Flag indicating if this sensor is one-shot.
@@ -533,7 +534,7 @@ struct chreSensorInfo {
      * A value of 1 indicates this is one-shot.  0 indicates this is not
      * on-change.
      */
-    uint8_t isOneShot         : 1;
+    uint8_t isOneShot           : 1;
 
     /**
      * Flag indicating if this sensor supports reporting bias info events.
@@ -546,9 +547,22 @@ struct chreSensorInfo {
      *
      * @since v1.3
      */
-    uint8_t reportsBiasEvents : 1;
+    uint8_t reportsBiasEvents   : 1;
 
-    uint8_t unusedFlags       : 5;
+    /**
+     * Flag indicating if this sensor supports passive mode requests.
+     *
+     * This field will be set to 0 when running on CHRE API versions prior to
+     * v1.4, and must be ignored (i.e. does not mean passive mode requests are
+     * not supported).
+     *
+     * @see chreSensorConfigure
+     *
+     * @since v1.4
+     */
+    uint8_t supportsPassiveMode : 1;
+  
+    uint8_t unusedFlags         : 4;
 
     /**
      * The minimum sampling interval supported by this sensor, in nanoseconds.
@@ -753,9 +767,14 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *   [we cancelled myHandle before it ever triggered an event]
  * </code>
  *
- * Note that while PASSIVE modes, by definition, don't express
- * an interest in powering the sensor, DONE is still necessary
- * to silence the event reporting.
+ * Note that while PASSIVE modes, by definition, don't express an interest in
+ * powering the sensor, DONE is still necessary to silence the event reporting.
+ * Starting with CHRE API v1.4, for sensors that do not support passive mode, a
+ * request with mode set to CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_CONTINUOUS or
+ * CHRE_SENSOR_CONFIGURE_MODE_PASSIVE_ONE_SHOT will be rejected. CHRE API
+ * versions 1.3 and older implicitly assume that passive mode is supported
+ * across all sensors, however this is not necessarily the case. Clients can
+ * call chreSensorInfo to identify whether a sensor supports passive mode.
  *
  * When a calibrated sensor (e.g. CHRE_SENSOR_TYPE_ACCELEROMETER) is
  * successfully enabled through this method and if bias delivery is supported,
