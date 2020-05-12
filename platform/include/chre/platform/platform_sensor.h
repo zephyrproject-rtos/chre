@@ -53,6 +53,11 @@ class PlatformSensor : public PlatformSensorBase, public NonCopyable {
   bool reportsBiasEvents() const;
 
   /**
+   * @return Whether this sensor supports passive requests.
+   */
+  bool supportsPassiveMode() const;
+
+  /**
    * Returns a descriptive name (e.g. type and model) for this sensor.
    *
    * @return A pointer to a string with storage duration at least as long as the
