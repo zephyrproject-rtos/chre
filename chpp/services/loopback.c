@@ -37,9 +37,9 @@ void chppDispatchLoopback(struct ChppAppState *context, uint8_t *buf,
 
     uint8_t *response = chppMalloc(len);
     if (response == NULL) {
-      LOGE("OOM crafting loopback message len = %zu", len);
-
-      // TODO: we should reply back to the client with an error
+      LOG_OOM("Loopback response of %zu bytes", len);
+      chppEnqueueTxErrorDatagram(context->transportContext,
+                                 CHPP_TRANSPORT_ERROR_OOM);
 
     } else {
       // Copy received datagram
@@ -53,6 +53,6 @@ void chppDispatchLoopback(struct ChppAppState *context, uint8_t *buf,
       chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
     }
   } else {
-    LOGE("Unknown Loopback message type = %d", rxHeader->type);
+    LOGE("Unknown Loopback message type = %" PRIu8, rxHeader->type);
   }
 }

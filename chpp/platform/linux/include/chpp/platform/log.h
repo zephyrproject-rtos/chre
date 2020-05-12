@@ -39,6 +39,9 @@ extern "C" {
 #define LOGI(fmt, ...) CHPP_LINUX_LOG("I", "96", fmt, ##__VA_ARGS__)
 #define LOGD(fmt, ...) CHPP_LINUX_LOG("D", "97", fmt, ##__VA_ARGS__)
 
+#define LOG_OOM(fmt, ...) \
+  CHPP_LINUX_LOG("E", "91", "CHPP OOM: " fmt, ##__VA_ARGS__)
+
 #ifdef __cplusplus
 }
 #endif

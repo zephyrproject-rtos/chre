@@ -69,7 +69,7 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
   CHPP_NOT_NULL(newService);
 
   if (appContext->registeredServiceCount >= CHPP_MAX_REGISTERED_SERVICES) {
-    LOGE("Cannot register new service # %d. Already hit maximum",
+    LOGE("Cannot register new service # %" PRIu8 ". Already hit maximum",
          appContext->registeredServiceCount);
     return CHPP_HANDLE_NONE;
 
@@ -83,8 +83,9 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     uuidToStr(newService->descriptor.uuid, uuidText);
     LOGI(
-        "Registered service %d on handle %x with name=%s, UUID=%s, "
-        "version=%d.%d.%d, min_len=%d ",
+        "Registered service %" PRIu8 " on handle %" PRIu8
+        " with name=%s, UUID=%s, "
+        "version=%" PRIu8 ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
         appContext->registeredServiceCount,
         appContext->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START,
         newService->descriptor.name, uuidText,

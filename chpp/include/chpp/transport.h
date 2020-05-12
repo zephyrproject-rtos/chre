@@ -120,6 +120,8 @@ enum ChppTransportErrorCode {
   CHPP_TRANSPORT_ERROR_HEADER = 4,
   //! Out of order
   CHPP_TRANSPORT_ERROR_ORDER = 5,
+  //! Message incomprehensible at App Layer
+  CHPP_TRANSPORT_ERROR_APPLAYER = 6,
   //! Timeout (implicit, deduced and used internally only)
   CHPP_TRANSPORT_ERROR_TIMEOUT = 0xF,
 };
@@ -385,6 +387,16 @@ bool chppEnqueueTxDatagram(struct ChppTransportState *context, void *buf,
  */
 bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
                                  size_t len);
+
+/**
+ * Enables the App Layer to enqueue an outgoing error datagram, for example for
+ * an OOM situation over the wire.
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @param errorCode Error code to be sent
+ */
+void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
+                                enum ChppTransportErrorCode errorCode);
 
 /**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be

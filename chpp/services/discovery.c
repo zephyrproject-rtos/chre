@@ -60,7 +60,7 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
       context->registeredServiceCount, services);
 
   if (response == NULL) {
-    LOGE("OOM allocating Discover All response of %zu bytes", responseLen);
+    LOG_OOM("DiscoverAll response of %zu bytes", responseLen);
     CHPP_ASSERT(false);
 
   } else {
@@ -94,8 +94,10 @@ void chppDispatchDiscovery(struct ChppAppState *context, const uint8_t *buf,
           break;
         }
         default: {
-          LOGE("Received unknown discovery command: %#x, transaction = %d",
-               rxHeader->command, rxHeader->transaction);
+          LOGE(
+              "Received unknown discovery command: %#x, transaction ID = "
+              "%" PRIu8,
+              rxHeader->command, rxHeader->transaction);
           break;
         }
       }
@@ -113,10 +115,9 @@ void chppDispatchDiscovery(struct ChppAppState *context, const uint8_t *buf,
     }
 
     default: {
-      LOGE(
-          "Received unknown discovery message type: %#x, command = %#x, "
-          "transaction = %d",
-          rxHeader->type, rxHeader->command, rxHeader->transaction);
+      LOGE("Received unknown discovery message type: %" PRIu8
+           ", command = %#x, transaction ID = %" PRIu8,
+           rxHeader->type, rxHeader->command, rxHeader->transaction);
       break;
     }
   }
