@@ -561,7 +561,7 @@ struct chreSensorInfo {
      * @since v1.4
      */
     uint8_t supportsPassiveMode : 1;
-  
+
     uint8_t unusedFlags         : 4;
 
     /**
