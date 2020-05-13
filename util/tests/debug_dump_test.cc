@@ -58,7 +58,15 @@ TEST(DebugDumpWrapper, TooLargeOfStringToFit) {
   const char *str = "a";
   debugDump.print("%s", str);
   const auto &buffers = debugDump.getBuffers();
-  EXPECT_TRUE(buffers.empty());
+
+  // One null-terminated buffer will be created for an empty wrapper.
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_TRUE(strcmp(buffers.back().get(), "") == 0);
+
+  // Once there's a buffer, it won't be updated.
+  debugDump.print("%s", str);
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_TRUE(strcmp(buffers.back().get(), "") == 0);
 }
 
 TEST(DebugDumpWrapper, TooLargeOfStringWithPartlyFilledBuffer) {
