@@ -92,24 +92,15 @@ class DebugDumpWrapper {
    * @param formatStr The format string with format specifiers.
    * @param argList The variable list of arguments to be inserted into
    *    formatStr.
-   *
-   * @return true on success.
-   */
-  bool insertString(const char *formatStr, va_list argList);
-
-  /**
-   * Place the size of the final formatted string into sizeOfStr.
-   *
-   * @param formatStr The format string with format specifiers.
-   * @param argList The variable list of arugments to be inserted into
-   *    formatStr.
+   * @param sizeValid The pointer to a variable that will indicate whether
+   *    the value stored in sizeOfStr is valid.
    * @param sizeOfStr The pointer to a variable that will be filled with the
-   *    size of the final string on success.
+   *    size of the string, not including the null terminator.
    *
    * @return true on success.
    */
-  static bool sizeOfFormattedString(const char *formatStr, va_list argList,
-                                    size_t *sizeOfStr);
+  bool insertString(const char *formatStr, va_list argList, bool *sizeValid,
+                    size_t *sizeOfStr);
 };
 
 }  // namespace chre
