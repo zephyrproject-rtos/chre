@@ -66,7 +66,7 @@ void palSystemApiLog(enum chreLogLevel level, const char *formatStr, ...) {
 void chppPalSystemApiInit(struct ChppAppState *context) {
   // Initialize the CHRE System API with function implementations provided
   // above.
-  const struct chrePalSystemApi chrePalSystemApi = {
+  static const struct chrePalSystemApi chrePalSystemApi = {
       .version = CHRE_PAL_SYSTEM_API_CURRENT_VERSION,
       .getCurrentTime = palSystemApiGetCurrentTime,
       .log = palSystemApiLog,
