@@ -37,3 +37,31 @@ java_library {
     },
     sdk_version: "system_current",
 }
+
+java_library {
+    name: "chre_audio_concurrency_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./chre_audio_concurrency_test.proto",
+    ],
+    proto: {
+        type: "lite",
+        // Include protos in this directory
+        local_include_dirs: [
+            ".",
+        ],
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
+    name: "chre_test_common_java_proto",
+    host_supported: true,
+    srcs: [
+        "./chre_test_common.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
