@@ -19,33 +19,6 @@
 #include "chpp/services/wwan.h"
 
 /************************************************
- *  Prototypes
- ***********************************************/
-
-void uuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
-               char strOut[CHPP_SERVICE_UUID_STRING_LEN]);
-
-/************************************************
- *  Private Functions
- ***********************************************/
-
-/**
- * Convert UUID to a human-readable, null-terminated string.
- *
- * @param uuid Input UUID
- * @param strOut Output null-terminated string
- */
-void uuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
-               char strOut[CHPP_SERVICE_UUID_STRING_LEN]) {
-  sprintf(
-      strOut,
-      "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-      uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
-      uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14],
-      uuid[15]);
-}
-
-/************************************************
  *  Public Functions
  ***********************************************/
 
@@ -81,7 +54,7 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
     appContext->registeredServiceCount++;
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
-    uuidToStr(newService->descriptor.uuid, uuidText);
+    chppUuidToStr(newService->descriptor.uuid, uuidText);
     LOGI(
         "Registered service %" PRIu8 " on handle %" PRIu8
         " with name=%s, UUID=%s, "
@@ -105,14 +78,15 @@ struct ChppAppHeader *chppAllocServiceResponse(
   struct ChppAppHeader *result = chppMalloc(len);
   if (result) {
     *result = *requestHeader;
-    result->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
+    result->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
   }
   return (void *)result;
 }
 
-void chppTimestampRequest(struct ChppServiceRRState *rRState,
-                          struct ChppAppHeader *requestHeader) {
-  if (rRState->responseTime == 0 && rRState->requestTime != 0) {
+void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
+                                 struct ChppAppHeader *requestHeader) {
+  if (rRState->responseTime == CHPP_TIME_NONE &&
+      rRState->requestTime != CHPP_TIME_NONE) {
     LOGE(
         "Received duplicate request while prior request was outstanding from t "
         "= %" PRIu64,
@@ -123,24 +97,23 @@ void chppTimestampRequest(struct ChppServiceRRState *rRState,
   rRState->transaction = requestHeader->transaction;
 }
 
-void chppTimestampResponse(struct ChppServiceRRState *rRState) {
+void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState) {
   uint64_t previousResponseTime = rRState->responseTime;
   rRState->responseTime = chppGetCurrentTime();
 
-  if (rRState->requestTime == 0) {
-    LOGE("Received response at t = %" PRIu64
+  if (rRState->requestTime == CHPP_TIME_NONE) {
+    LOGE("Sending response at t = %" PRIu64
          " with no prior outstanding request",
          rRState->responseTime);
 
-  } else if ((previousResponseTime - rRState->requestTime) > 0) {
-    rRState->responseTime = chppGetCurrentTime();
-    LOGI("Received additional response at t = %" PRIu64
+  } else if (previousResponseTime != CHPP_TIME_NONE) {
+    LOGW("Sending additional response at t = %" PRIu64
          " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
          rRState->responseTime, rRState->responseTime,
          rRState->responseTime - rRState->requestTime);
 
   } else {
-    LOGI("Received initial response at t = %" PRIu64
+    LOGI("Sending initial response at t = %" PRIu64
          " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
          rRState->responseTime, rRState->responseTime,
          rRState->responseTime - rRState->requestTime);
@@ -148,9 +121,9 @@ void chppTimestampResponse(struct ChppServiceRRState *rRState) {
 }
 
 bool chppSendTimestampedResponseOrFail(struct ChppServiceState *serviceState,
-                                       struct ChppServiceRRState *rRState,
+                                       struct ChppRequestResponseState *rRState,
                                        void *buf, size_t len) {
-  chppTimestampResponse(rRState);
+  chppServiceTimestampResponse(rRState);
   return chppEnqueueTxDatagramOrFail(serviceState->appContext->transportContext,
                                      buf, len);
 }

@@ -342,7 +342,7 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
         EXPECT_EQ(transportContext.pendingTxPacket
                       .payload[CHPP_PREAMBLE_LEN_BYTES +
                                sizeof(struct ChppTransportHeader) + 1],
-                  CHPP_MESSAGE_TYPE_SERVER_RESPONSE);
+                  CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
       }
     }
 
@@ -418,7 +418,7 @@ TEST_F(TransportTests, DiscoveryService) {
   EXPECT_EQ(transportContext.pendingTxPacket
                 .payload[CHPP_PREAMBLE_LEN_BYTES +
                          sizeof(struct ChppTransportHeader) + 1],
-            CHPP_MESSAGE_TYPE_SERVER_RESPONSE);
+            CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
 
   // Should have reset loc and length for next packet / datagram
   EXPECT_EQ(transportContext.rxStatus.locInDatagram, 0);

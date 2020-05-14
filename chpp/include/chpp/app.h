@@ -63,18 +63,18 @@ enum ChppHandleNumber {
  * Message Types as used in ChppAppHeader
  */
 enum ChppMessageType {
-  //! Request from client. Needs response from server.
+  //! Request from client. Needs response from service.
   CHPP_MESSAGE_TYPE_CLIENT_REQUEST = 0,
 
-  //! Response from server (with the same Command and Transaction ID as the
+  //! Response from service (with the same Command and Transaction ID as the
   //! client request).
-  CHPP_MESSAGE_TYPE_SERVER_RESPONSE = 1,
+  CHPP_MESSAGE_TYPE_SERVICE_RESPONSE = 1,
 
-  //! Notification from client. Server shall not respond.
+  //! Notification from client. Service shall not respond.
   CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION = 2,
 
-  //! Notification from server. Client shall not respond.
-  CHPP_MESSAGE_TYPE_SERVER_NOTIFICATION = 3,
+  //! Notification from service. Client shall not respond.
+  CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION = 3,
 };
 
 /**
@@ -166,6 +166,55 @@ struct ChppService {
   size_t minLength;
 };
 
+/**
+ * CHPP definition of a client descriptor.
+ */
+struct ChppClientDescriptor {
+  //! UUID of the client.
+  //! Must be generated according to RFC 4122, UUID version 4 (random).
+  uint8_t uuid[CHPP_SERVICE_UUID_LEN];
+
+  //! Major version of the client (breaking changes).
+  uint8_t versionMajor;
+
+  //! Minor version of the client (backwards compatible changes).
+  uint8_t versionMinor;
+
+  //! Patch version of the client (bug fixes).
+  uint16_t versionPatch;
+};
+
+/**
+ * CHPP definition of a client.
+ */
+struct ChppClient {
+  //! Client descriptor.
+  struct ChppClientDescriptor descriptor;
+
+  //! Pointer to the function that dispatches incoming service responses for the
+  //! client.
+  ChppDispatchFunction *responseDispatchFunctionPtr;
+
+  //! Pointer to the function that dispatches incoming service notifications for
+  //! the client.
+  ChppDispatchFunction *notificationDispatchFunctionPtr;
+
+  //! Minimum valid length of datagrams for the service.
+  size_t minLength;
+};
+
+/**
+ * Maintains the basic state for each request/response functionality of a
+ * client or service.
+ * Any number of these may be included in the (context) status variable of a
+ * client or service (one per every every request/response functionality).
+ */
+struct ChppRequestResponseState {
+  uint64_t requestTime;   // Time of the last request
+  uint64_t responseTime;  // Time of the last response
+  uint8_t transaction;    // Transaction ID for the last request/response
+};
+
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
 
@@ -211,6 +260,15 @@ void chppAppDeinit(struct ChppAppState *appContext);
  */
 void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                            size_t len);
+
+/**
+ * Convert UUID to a human-readable, null-terminated string.
+ *
+ * @param uuid Input UUID
+ * @param strOut Output null-terminated string
+ */
+void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
+                   char strOut[CHPP_SERVICE_UUID_STRING_LEN]);
 
 #ifdef __cplusplus
 }
