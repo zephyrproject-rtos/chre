@@ -28,12 +28,10 @@ import android.util.Log;
 
 import com.google.android.utils.chre.ChreTestUtil;
 
-import org.junit.Assert;
 import org.junit.Assume;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,13 +47,13 @@ abstract class ChreCrossValidatorBase {
     private static final long NANO_APP_ID = 0x476f6f6754000002L;
 
     private final ContextHubManager mContextHubManager;
-    private final ContextHubClient mContextHubClient;
+    protected final ContextHubClient mContextHubClient;
     private final ContextHubInfo mContextHubInfo;
     protected final NanoAppBinary mNappBinary;
 
-    private final CountDownLatch mAwaitDataLatch = new CountDownLatch(1);
+    protected final CountDownLatch mAwaitDataLatch = new CountDownLatch(1);
 
-    private final AtomicReference<String> mErrorStr = new AtomicReference<String>();
+    protected final AtomicReference<String> mErrorStr = new AtomicReference<String>();
     protected AtomicBoolean mCollectingData = new AtomicBoolean(false);
 
     /**
@@ -110,12 +108,7 @@ abstract class ChreCrossValidatorBase {
      * @param samplingDurationInMs The amount of time in milliseconds to collect samples from AP and
      * CHRE.
      */
-    public void validate() throws AssertionError {
-        collectDataFromAp();
-        collectDataFromChre();
-        waitForDataSampling();
-        assertApAndChreDataSimilar();
-    }
+    public abstract void validate() throws AssertionError;
 
     /**
     * Clean up resources allocated for cross validation. Subclasses should override this method and
@@ -147,49 +140,6 @@ abstract class ChreCrossValidatorBase {
     }
 
     /**
-    * Start collecting data from AP
-    */
-    private void collectDataFromAp() {
-        registerApDataListener();
-    }
-
-    /**
-    * Start collecting data from CHRE
-    */
-    private void collectDataFromChre() throws AssertionError {
-        // The info in the start message will inform the nanoapp of which type of
-        // data to collect (accel, gyro, gnss, wifi, etc).
-        int result = mContextHubClient.sendMessageToNanoApp(makeStartNanoAppMessage());
-        if (result != ContextHubTransaction.RESULT_SUCCESS) {
-            Assert.fail("Collect data from CHRE failed with result "
-                    + contextHubTransactionResultToString(result)
-                    + " while trying to send start message.");
-        }
-    }
-
-    /**
-    * Wait for AP and CHRE data to be fully collected or timeouts occur. collectDataFromAp and
-    * collectDataFromChre methods should both be called before this.
-    *
-    * @param samplingDurationInMs The amount of time to wait for AP and CHRE to collected data in
-    * ms.
-    */
-    private void waitForDataSampling() throws AssertionError {
-        mCollectingData.set(true);
-        try {
-            mAwaitDataLatch.await(getAwaitDataTimeoutInMs(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail("await data latch interrupted");
-        }
-        if (mErrorStr.get() != null) {
-            Assert.fail(mErrorStr.get());
-        }
-        mCollectingData.set(false);
-    }
-
-    // Private helpers below
-
-    /**
     * Close the context hub client connection.
     */
     private void closeContextHubConnection() {
@@ -208,30 +158,9 @@ abstract class ChreCrossValidatorBase {
     }
 
     /**
-    * Waits on a CountDownLatch or assert if it timed out or was interrupted.
-    *
-    * @param latch                       the CountDownLatch
-    * @param timeout                     the timeout duration
-    * @param unit                        the timeout unit
-    * @param timeoutErrorMessage         the message to display on timeout assert
-    * @param interruptedExceptionMessage the message to display on InterruptedException assert
-    */
-    private static void awaitCountDownLatchAssertOnFailure(CountDownLatch latch, long timeout,
-            TimeUnit unit, String timeoutErrorMessage, String interruptedExceptionMessage) {
-        boolean result = false;
-        try {
-            result = latch.await(timeout, unit);
-        } catch (InterruptedException e) {
-            Assert.fail(interruptedExceptionMessage);
-        }
-
-        Assert.assertTrue(timeoutErrorMessage, result);
-    }
-
-    /**
     * @return the name of the context hub result.
     */
-    private static String contextHubTransactionResultToString(int result) {
+    protected static String contextHubTransactionResultToString(int result) {
         switch (result) {
             case ContextHubTransaction.RESULT_SUCCESS:
                 return "RESULT_SUCCESS";
@@ -259,11 +188,6 @@ abstract class ChreCrossValidatorBase {
     // Methods below implemented by concrete subclasses
 
     /**
-    * @return The nanoapp message used to start the data collection in chre
-    */
-    protected abstract NanoAppMessage makeStartNanoAppMessage();
-
-    /**
     * Extract the specific data that a cross validation test needs from
     * a nanoapp message and save it for future comparison.
     *
@@ -272,22 +196,7 @@ abstract class ChreCrossValidatorBase {
     protected abstract void parseDataFromNanoAppMessage(NanoAppMessage message);
 
     /**
-    * Registers this object to listen for data from the AP using the framework APIs.
-    */
-    protected abstract void registerApDataListener();
-
-    /**
     * Unregister any AP-side Data Event listeners.
     */
     protected abstract void unregisterApDataListener();
-
-    /**
-    * @return true if the data from AP and CHRE are considered close enough to be reliable.
-    */
-    protected abstract void assertApAndChreDataSimilar() throws AssertionError;
-
-    /**
-     * @return The amount of time to wait in milliseconds for data from AP and CHRE.
-     */
-    protected abstract long getAwaitDataTimeoutInMs();
 }
