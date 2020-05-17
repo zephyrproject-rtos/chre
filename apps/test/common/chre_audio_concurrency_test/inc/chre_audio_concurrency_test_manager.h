@@ -89,6 +89,18 @@ class Manager {
   void handleTimer();
 
   /**
+   * @param durationSeconds The duration of the timeout timer.
+   *
+   * @return True if the timer was set successfully.
+   */
+  bool setTimeoutTimer(size_t durationSeconds);
+
+  /**
+   * Cancels the timeout timer, if pending.
+   */
+  void cancelTimeoutTimer();
+
+  /**
    * @param data The audio data.
    */
   void handleAudioDataEvent(const chreAudioDataEvent *data);
