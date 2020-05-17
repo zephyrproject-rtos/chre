@@ -34,6 +34,14 @@ namespace test_shared {
 void sendTestResultToHost(uint16_t hostEndpointId, uint32_t messageType,
                           bool success);
 
+/**
+ * Sends a message to the host with an empty payload.
+ *
+ * @param hostEndpointId The endpoint Id of the host to send the message to.
+ * @param messageType The message type.
+ */
+void sendEmptyMessageToHost(uint16_t hostEndpointId, uint32_t messageType);
+
 }  // namespace test_shared
 
 }  // namespace chre
