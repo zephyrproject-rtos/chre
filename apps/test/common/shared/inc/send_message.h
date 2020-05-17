@@ -14,26 +14,28 @@
  * limitations under the License.
  */
 
-#include <chre.h>
-#include <cinttypes>
+#ifndef CHRE_TEST_SHARED_SEND_MESSAGE_H_
+#define CHRE_TEST_SHARED_SEND_MESSAGE_H_
 
-#include "chre_audio_concurrency_test_manager.h"
+#include <cinttypes>
 
 namespace chre {
 
-extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {
-  audio_concurrency_test::ManagerSingleton::get()->handleEvent(
-      senderInstanceId, eventType, eventData);
-}
+namespace test_shared {
 
-extern "C" bool nanoappStart(void) {
-  audio_concurrency_test::ManagerSingleton::init();
-  return true;
-}
+/**
+ * Sends a test result to the host using the chre_test_common.TestResult
+ * message.
+ *
+ * @param hostEndpointId The endpoint ID of the host to send the result to.
+ * @param messageType The message type to associate with the test result.
+ * @param success True if the test succeeded.
+ */
+void sendTestResultToHost(uint16_t hostEndpointId, uint32_t messageType,
+                          bool success);
 
-extern "C" void nanoappEnd(void) {
-  audio_concurrency_test::ManagerSingleton::deinit();
-}
+}  // namespace test_shared
 
 }  // namespace chre
+
+#endif  // CHRE_TEST_SHARED_SEND_MESSAGE_H_
