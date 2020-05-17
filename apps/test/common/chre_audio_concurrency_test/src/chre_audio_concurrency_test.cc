@@ -17,15 +17,23 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre_audio_concurrency_test_manager.h"
+
 namespace chre {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {}
+                                   uint16_t eventType, const void *eventData) {
+  audio_concurrency_test::ManagerSingleton::get()->handleEvent(
+      senderInstanceId, eventType, eventData);
+}
 
 extern "C" bool nanoappStart(void) {
+  audio_concurrency_test::ManagerSingleton::init();
   return true;
 }
 
-extern "C" void nanoappEnd(void) {}
+extern "C" void nanoappEnd(void) {
+  audio_concurrency_test::ManagerSingleton::deinit();
+}
 
 }  // namespace chre
