@@ -20,6 +20,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/optional.h"
 #include "chre/util/singleton.h"
 
 namespace chre {
@@ -36,6 +37,8 @@ class Manager {
     VERIFY_AUDIO_RESUME,
   };
 
+  ~Manager();
+
   /**
    * Handles an event from CHRE. Semantics are the same as nanoappHandleEvent.
    */
@@ -43,6 +46,16 @@ class Manager {
                    const void *eventData);
 
  private:
+  struct TestSession {
+    uint16_t hostEndpointId;
+    TestStep step;
+
+    TestSession(uint16_t id, TestStep step) {
+      this->hostEndpointId = id;
+      this->step = step;
+    }
+  };
+
   /**
    * Handles a message from the host.
    *
@@ -61,6 +74,39 @@ class Manager {
    * @return true if the message was handled correctly.
    */
   bool handleTestCommandMessage(uint16_t hostEndpointId, TestStep step);
+
+  /**
+   * Processes data from CHRE.
+   *
+   * @param eventType The event type as defined by CHRE.
+   * @param eventData A pointer to the data.
+   */
+  void handleDataFromChre(uint16_t eventType, const void *eventData);
+
+  /**
+   * Handles a CHRE timer event.
+   */
+  void handleTimer();
+
+  /**
+   * @param data The audio data.
+   */
+  void handleAudioDataEvent(const chreAudioDataEvent *data);
+
+  // Use the first audio source available for this test.
+  static constexpr uint32_t kAudioHandle = 0;
+
+  //! The audio source to use for this test.
+  struct chreAudioSource mAudioSource;
+
+  //! The current test session.
+  Optional<TestSession> mTestSession;
+
+  //! The handle of the timer to check timeout.
+  uint32_t mTimerHandle = CHRE_TIMER_INVALID;
+
+  //! True if CHRE audio is enabled for this nanoapp.
+  bool mAudioEnabled = false;
 };
 
 // The audio concurrency test manager singleton.
