@@ -21,10 +21,24 @@ NANOAPP_NAME_STRING = \"Chre\ Audio\ Concurrency\ Test\"
 NANOAPP_VERSION = 0x00000001
 
 NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_audio_concurrency_test
+TEST_SHARED_PATH = $(CHRE_PREFIX)/apps/test/common/shared
+
+# Protobuf Sources #############################################################
+
+NANOPB_EXTENSION = nanopb
+
+NANOPB_SRCS += $(NANOAPP_PATH)/../proto/chre_audio_concurrency_test.proto
+NANOPB_SRCS += $(NANOAPP_PATH)/../proto/chre_test_common.proto
+NANOPB_PROTO_PATH = $(NANOAPP_PATH)/../proto
+NANOPB_INCLUDES = $(NANOPB_PROTO_PATH)
+NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 
 # Source Code ##################################################################
 
 COMMON_SRCS += $(NANOAPP_PATH)/src/chre_audio_concurrency_test.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/chre_audio_concurrency_test_manager.cc
+COMMON_SRCS += $(TEST_SHARED_PATH)/src/send_message.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
 
@@ -33,6 +47,7 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 
 # Includes
 COMMON_CFLAGS += -I$(NANOAPP_PATH)/inc
+COMMON_CFLAGS += -I$(TEST_SHARED_PATH)/inc
 
 # Makefile Includes ############################################################
 
