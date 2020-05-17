@@ -68,6 +68,20 @@ void sendTestResultToHost(uint16_t hostEndpointId, uint32_t messageType,
   }
 }
 
+void sendEmptyMessageToHost(uint16_t hostEndpointId, uint32_t messageType) {
+  // Unspecified endpoint is not allowed in chreSendMessageToHostEndpoint.
+  if (hostEndpointId == CHRE_HOST_ENDPOINT_UNSPECIFIED) {
+    hostEndpointId = CHRE_HOST_ENDPOINT_BROADCAST;
+    LOGE("Unspecified endpoint ID is not allowed");
+    // TODO: Send failure message to host
+    return;
+  }
+
+  chreSendMessageToHostEndpoint(nullptr /* message */, 0 /* messageSize */,
+                                messageType, hostEndpointId,
+                                nullptr /* freeCallback */);
+}
+
 }  // namespace test_shared
 
 }  // namespace chre
