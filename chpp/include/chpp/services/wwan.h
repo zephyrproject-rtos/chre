@@ -36,11 +36,11 @@ extern "C" {
  ***********************************************/
 
 /**
- * Called by the App layer to initialize the WWAN (cellular) common service.
+ * Called by the App layer to register the WWAN (cellular) common service.
  *
  * @param appContext Maintains status for each app layer instance.
  */
-void chppWwanServiceInit(struct ChppAppState *appContext);
+void chppRegisterWwanService(struct ChppAppState *appContext);
 
 #ifdef __cplusplus
 }

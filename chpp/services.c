@@ -51,15 +51,15 @@ void uuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
 
 void chppRegisterCommonServices(struct ChppAppState *context) {
 #ifdef CHPP_SERVICE_ENABLED_WWAN
-  chppWwanServiceInit(context);
+  chppRegisterWwanService(context);
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_WLAN
-  chppWlanServiceInit(context);
+  chppRegisterWlanService(context);
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS
-  chppGnssServiceInit(context);
+  chppRegisterGnssService(context);
 #endif
 }
 
