@@ -38,15 +38,15 @@ extern "C" {
  ***********************************************/
 
 /*
- * Processes an Rx Datagram from the transport layer that is determined to be
- * for the CHPP Loopback Service.
+ * Processes an client request Rx datagram from the transport layer that is
+ * determined to be for the CHPP Loopback Service.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchLoopbackService(struct ChppAppState *context, uint8_t *buf,
-                                 size_t len);
+void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
+                                       uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }

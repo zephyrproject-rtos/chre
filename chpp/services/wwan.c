@@ -21,7 +21,8 @@
  *  Prototypes
  ***********************************************/
 
-void chppDispatchWwan(void *serviceContext, uint8_t *buf, size_t len);
+static void chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
+                                    size_t len);
 
 /************************************************
  *  Private Definitions
@@ -43,8 +44,11 @@ static const struct ChppService wwanServiceConfig = {
 
     .descriptor.versionPatch = 0,
 
-    // Dispatch function pointer
-    .dispatchFunctionPtr = &chppDispatchWwan,
+    // Client request dispatch function pointer
+    .requestDispatchFunctionPtr = &chppDispatchWwanRequest,
+
+    // Client notification dispatch function pointer
+    .notificationDispatchFunctionPtr = NULL,  // Not supported
 
     // Min length is the entire header
     .minLength = sizeof(struct ChppAppHeader),
@@ -98,18 +102,20 @@ enum ChppWwanCommands {
  *  Prototypes
  ***********************************************/
 
-void chppWwanGetCapabilities(struct ChppWwanServiceState *wwanServiceContext,
-                             struct ChppAppHeader *requestHeader);
-void chppWwanGetCellInfoAsync(struct ChppWwanServiceState *wwanServiceContext,
-                              struct ChppAppHeader *requestHeader);
+static void chppWwanGetCapabilities(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader);
+static void chppWwanGetCellInfoAsync(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader);
 
 /************************************************
  *  Private Functions
  ***********************************************/
 
 /**
- * Dispatches an Rx Datagram from the transport layer that is determined to be
- * for the WWAN service (e.g. a WWAN request from a client).
+ * Dispatches a client request from the transport layer that is determined to be
+ * for the WWAN service.
  *
  * This function is called from the app layer using its function pointer given
  * during service registration.
@@ -118,66 +124,46 @@ void chppWwanGetCellInfoAsync(struct ChppWwanServiceState *wwanServiceContext,
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchWwan(void *serviceContext, uint8_t *buf, size_t len) {
+static void chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
+                                    size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct ChppWwanServiceState *wwanServiceContext =
       (struct ChppWwanServiceState *)serviceContext;
 
   UNUSED_VAR(len);
 
-  switch (rxHeader->type) {  // TODO: separate request / notification callbacks
-    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
-      switch (rxHeader->command) {
-        case CHPP_WWAN_GET_CAPABILITIES: {
-          chppTimestampRequest(&wwanServiceContext->getCapabilities, rxHeader);
-          chppWwanGetCapabilities(wwanServiceContext, rxHeader);
-          break;
-        }
-
-        case CHPP_WWAN_GET_CELLINFO_ASYNC: {
-          chppTimestampRequest(&wwanServiceContext->getCellInfoAsync, rxHeader);
-          chppWwanGetCellInfoAsync(wwanServiceContext, rxHeader);
-          break;
-        }
-
-        default: {  // TODO: handle in common code
-          LOGE(
-              "Received unknown WWAN client request: command = %#x, "
-              "transaction ID = %" PRIu8,
-              rxHeader->command, rxHeader->transaction);
-
-          // Allocate the response
-          struct ChppServiceBasicResponse *response =
-              chppAllocServiceResponseFixed(rxHeader,
-                                            struct ChppServiceBasicResponse);
-
-          // Populate the response
-          response->error = CHPP_SERVICE_ERROR_INVALID_COMMAND;
-
-          // Send out response datagram
-          chppEnqueueTxDatagramOrFail(
-              wwanServiceContext->service.appContext->transportContext,
-              response, sizeof(*response));
-
-          break;
-        }
-      }
+  switch (rxHeader->command) {
+    case CHPP_WWAN_GET_CAPABILITIES: {
+      chppTimestampRequest(&wwanServiceContext->getCapabilities, rxHeader);
+      chppWwanGetCapabilities(wwanServiceContext, rxHeader);
       break;
     }
 
-    case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
-      LOGE(
-          "Received unknown WWAN client notification: command = %#x, "
-          "transaction ID = %" PRIu8,
-          rxHeader->command, rxHeader->transaction);
+    case CHPP_WWAN_GET_CELLINFO_ASYNC: {
+      chppTimestampRequest(&wwanServiceContext->getCellInfoAsync, rxHeader);
+      chppWwanGetCellInfoAsync(wwanServiceContext, rxHeader);
       break;
     }
 
     default: {  // TODO: handle in common code
       LOGE(
-          "WWAN service received unknown message type = %#x, "
-          "command = %#x, transaction = %d",
-          rxHeader->type, rxHeader->command, rxHeader->transaction);
+          "Received unknown WWAN client request: command = %#x, "
+          "transaction ID = %" PRIu8,
+          rxHeader->command, rxHeader->transaction);
+
+      // Allocate the response
+      struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
+          rxHeader, struct ChppServiceBasicResponse);
+
+      // Populate the response
+      response->error = CHPP_SERVICE_ERROR_INVALID_COMMAND;
+
+      // Send out response datagram
+      chppEnqueueTxDatagramOrFail(
+          wwanServiceContext->service.appContext->transportContext, response,
+          sizeof(*response));
+
+      break;
     }
   }
 }
@@ -188,8 +174,9 @@ void chppDispatchWwan(void *serviceContext, uint8_t *buf, size_t len) {
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
  */
-void chppWwanGetCapabilities(struct ChppWwanServiceState *wwanServiceContext,
-                             struct ChppAppHeader *requestHeader) {
+static void chppWwanGetCapabilities(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader) {
   // Allocate the response
   struct ChppWwanGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
@@ -218,8 +205,9 @@ void chppWwanGetCapabilities(struct ChppWwanServiceState *wwanServiceContext,
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
  */
-void chppWwanGetCellInfoAsync(struct ChppWwanServiceState *wwanServiceContext,
-                              struct ChppAppHeader *requestHeader) {
+static void chppWwanGetCellInfoAsync(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader) {
   // Register for callback
   if (!gWwanServiceContext.api->requestCellInfo()) {
     // Error occurred, send a synchronous error response

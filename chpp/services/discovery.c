@@ -21,8 +21,8 @@
  *  Prototypes
  ***********************************************/
 
-void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              const struct ChppAppHeader *rxHeader);
+static void chppDiscoveryDiscoverAll(struct ChppAppState *context,
+                                     const struct ChppAppHeader *rxHeader);
 
 /************************************************
  *  Private Functions
@@ -34,8 +34,8 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
  * @param context Maintains status for each app layer instance.
  * @param requestHeader Request datagram header. Cannot be null.
  */
-void chppDiscoveryDiscoverAll(struct ChppAppState *context,
-                              const struct ChppAppHeader *requestHeader) {
+static void chppDiscoveryDiscoverAll(
+    struct ChppAppState *context, const struct ChppAppHeader *requestHeader) {
   // Allocate response
   size_t responseLen =
       sizeof(struct ChppAppHeader) +
@@ -65,37 +65,22 @@ void chppDiscoveryDiscoverAll(struct ChppAppState *context,
  *  Public Functions
  ***********************************************/
 
-void chppDispatchDiscoveryService(struct ChppAppState *context,
-                                  const uint8_t *buf, size_t len) {
+void chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
+                                        const uint8_t *buf, size_t len) {
   UNUSED_VAR(len);
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
-  switch (rxHeader->type) {
-    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
-      // Discovery request from client
-
-      switch (rxHeader->command) {
-        case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
-          // Send back a list of services supported by this platform.
-          chppDiscoveryDiscoverAll(context, rxHeader);
-          break;
-        }
-        default: {
-          LOGE(
-              "Received unknown discovery command: %#x, transaction ID = "
-              "%" PRIu8,
-              rxHeader->command, rxHeader->transaction);
-          break;
-        }
-      }
-
+  switch (rxHeader->command) {
+    case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
+      // Send back a list of services supported by this platform.
+      chppDiscoveryDiscoverAll(context, rxHeader);
       break;
     }
-
     default: {
-      LOGE("Received unknown discovery message type: %" PRIu8
-           ", command = %#x, transaction ID = %" PRIu8,
-           rxHeader->type, rxHeader->command, rxHeader->transaction);
+      LOGE(
+          "Received unknown discovery command: %#x, transaction ID = "
+          "%" PRIu8,
+          rxHeader->command, rxHeader->transaction);
       break;
     }
   }
