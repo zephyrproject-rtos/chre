@@ -110,6 +110,8 @@ class BasicSensorTestBase : public Test {
   chreSensorSamplingStatus mOriginalStatus;
   chreSensorSamplingStatus mNewStatus;
 
+  bool mSupportsPassiveMode = true;
+
   void startTest();
   void finishTest();
   void checkPassiveConfigure();
