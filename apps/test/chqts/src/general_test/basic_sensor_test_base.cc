@@ -117,25 +117,45 @@ void BasicSensorTestBase::checkPassiveConfigure() {
     //     usage, but there's still the complication of other nanoapps in
     //     the system.
   } else {
-    if (!chreSensorConfigure(mSensorHandle, mode, CHRE_SENSOR_INTERVAL_DEFAULT,
-                             kOneSecondInNanoseconds)) {
+    bool configureSuccess =
+        chreSensorConfigure(mSensorHandle, mode, CHRE_SENSOR_INTERVAL_DEFAULT,
+                            kOneSecondInNanoseconds);
+    if (mSupportsPassiveMode && !configureSuccess) {
       sendFatalFailureToHost(
           "chreSensorConfigure() failed passive with default interval and "
           "non-default latency");
-    }
-    if (!isOneShotSensor() &&
-        !chreSensorConfigure(mSensorHandle, mode, kOneSecondInNanoseconds,
-                             CHRE_SENSOR_LATENCY_DEFAULT)) {
+    } else if (!mSupportsPassiveMode && configureSuccess) {
       sendFatalFailureToHost(
-          "chreSensorConfigure() failed passive with non-default interval and "
-          "default latency");
+          "chreSensorConfigure() accepted passive with default interval and "
+          "non-default latency");
     }
-    if (!isOneShotSensor() &&
-        !chreSensorConfigure(mSensorHandle, mode, kOneSecondInNanoseconds,
-                             kOneSecondInNanoseconds)) {
-      sendFatalFailureToHost(
-          "chreSensorConfigure() failed passive with "
-          "non-default interval and latency");
+
+    if (!isOneShotSensor()) {
+      configureSuccess =
+          chreSensorConfigure(mSensorHandle, mode, kOneSecondInNanoseconds,
+                              CHRE_SENSOR_LATENCY_DEFAULT);
+      if (mSupportsPassiveMode && !configureSuccess) {
+        sendFatalFailureToHost(
+            "chreSensorConfigure() failed passive with non-default interval "
+            "and default latency");
+      } else if (!mSupportsPassiveMode && configureSuccess) {
+        sendFatalFailureToHost(
+            "chreSensorConfigure() accepted passive with non-default "
+            "interval and default latency");
+      }
+
+      configureSuccess =
+          chreSensorConfigure(mSensorHandle, mode, kOneSecondInNanoseconds,
+                              kOneSecondInNanoseconds);
+      if (mSupportsPassiveMode && !configureSuccess) {
+        sendFatalFailureToHost(
+            "chreSensorConfigure() failed passive with non-default interval "
+            "and latency");
+      } else if (!mSupportsPassiveMode && configureSuccess) {
+        sendFatalFailureToHost(
+            "chreSensorConfigure() accepted passive with non-default interval "
+            "and latency");
+      }
     }
   }
 }
@@ -170,6 +190,11 @@ void BasicSensorTestBase::startTest() {
   if (info.isOneShot != isOneShotSensor()) {
     sendFatalFailureToHost(
         "chreSensorInfo::isOneShot is opposite of what we expected");
+  }
+  if (mApiVersion >= CHRE_API_VERSION_1_4) {
+    mSupportsPassiveMode = info.supportsPassiveMode;
+  } else if (info.supportsPassiveMode != 0) {
+    sendFatalFailureToHost("chreSensorInfo::supportsPassiveMode should be 0");
   }
 
   if (!chreGetSensorSamplingStatus(mSensorHandle, &mOriginalStatus)) {
