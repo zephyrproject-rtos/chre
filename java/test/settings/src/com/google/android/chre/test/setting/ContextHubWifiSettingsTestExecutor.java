@@ -126,8 +126,8 @@ public class ContextHubWifiSettingsTestExecutor {
         try {
             wifiUpdateListener.mWifiLatch.await(30, TimeUnit.SECONDS);
 
-            // Wait an additional second to ensure setting is propagated to CHRE path
-            Thread.sleep(1000);
+            // Wait a few seconds to ensure setting is propagated to CHRE path
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
