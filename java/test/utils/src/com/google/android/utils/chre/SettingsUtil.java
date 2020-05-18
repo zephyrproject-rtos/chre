@@ -104,25 +104,27 @@ public class SettingsUtil {
      * @param timeoutSeconds The maximum amount of time in seconds to wait.
      */
     public void setLocationMode(boolean enable, long timeoutSeconds) {
-        LocationUpdateListener listener = new LocationUpdateListener();
+        if (isLocationEnabled() != enable) {
+            LocationUpdateListener listener = new LocationUpdateListener();
 
-        mContext.registerReceiver(
-                listener.mLocationSettingReceiver,
-                new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
-        mLocationManager.setLocationEnabledForUser(enable, UserHandle.CURRENT);
+            mContext.registerReceiver(
+                    listener.mLocationSettingReceiver,
+                    new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
+            mLocationManager.setLocationEnabledForUser(enable, UserHandle.CURRENT);
 
-        try {
-            listener.mLocationLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+            try {
+                listener.mLocationLatch.await(timeoutSeconds, TimeUnit.SECONDS);
 
-            // Wait 1 additional second to make sure setting gets propagated to CHRE
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Assert.fail("InterruptedException while waiting for location update");
+                // Wait 1 additional second to make sure setting gets propagated to CHRE
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Assert.fail("InterruptedException while waiting for location update");
+            }
+
+            Assert.assertTrue(isLocationEnabled() == enable);
+
+            mContext.unregisterReceiver(listener.mLocationSettingReceiver);
         }
-
-        Assert.assertTrue(isLocationEnabled() == enable);
-
-        mContext.unregisterReceiver(listener.mLocationSettingReceiver);
     }
 
     /**
