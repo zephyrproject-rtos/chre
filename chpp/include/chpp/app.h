@@ -43,6 +43,19 @@ extern "C" {
 #endif
 
 /**
+ * Maximum number of clients that can be registered by CHPP (not including
+ * predefined clients), if not defined by the build system.
+ */
+#ifndef CHPP_MAX_REGISTERED_CLIENTS
+#define CHPP_MAX_REGISTERED_CLIENTS 5
+#endif
+
+/**
+ * Default value for reserved fields.
+ */
+#define CHPP_RESERVED 0
+
+/**
  * Handle Numbers in ChppAppHeader
  */
 enum ChppHandleNumber {
@@ -78,6 +91,34 @@ enum ChppMessageType {
 };
 
 /**
+ * Error codes used by the app layer / clients / services.
+ */
+enum ChppAppErrorCode {
+  //! Success (no error)
+  CHPP_APP_ERROR_NONE = 0,
+  //! Invalid command
+  CHPP_APP_ERROR_INVALID_COMMAND = 1,
+  //! Invalid argument(s)
+  CHPP_APP_ERROR_INVALID_ARG = 2,
+  //! Busy
+  CHPP_APP_ERROR_BUSY = 3,
+  //! Out of memory
+  CHPP_APP_ERROR_OOM = 4,
+  //! Feature not supported
+  CHPP_APP_ERROR_UNSUPPORTED = 5,
+  //! Timeout
+  CHPP_APP_ERROR_TIMEOUT = 6,
+  //! Functionality disabled (e.g. per user configuration)
+  CHPP_APP_ERROR_DISABLED = 7,
+  //! Rate limit exceeded (try again later)
+  CHPP_APP_ERROR_RATELIMITED = 8,
+  //! Function in use / blocked by another entity (e.g. the AP)
+  CHPP_APP_ERROR_BLOCKED = 9,
+  //! Unspecified failure
+  CHPP_APP_ERROR_UNSPECIFIED = 255
+};
+
+/**
  * CHPP Application Layer header
  */
 CHPP_PACKED_START
@@ -104,7 +145,7 @@ CHPP_PACKED_END
 /**
  * Function type that dispatches incoming datagrams for any particular service
  */
-typedef void(ChppDispatchFunction)(void *context, uint8_t *buf, size_t len);
+typedef bool(ChppDispatchFunction)(void *context, uint8_t *buf, size_t len);
 
 /**
  * Length of a service UUID and its human-readable printed form in bytes
@@ -225,7 +266,20 @@ struct ChppAppState {
   const struct ChppService *registeredServices[CHPP_MAX_REGISTERED_SERVICES];
 
   void *registeredServiceContexts[CHPP_MAX_REGISTERED_SERVICES];
+
+  uint8_t registeredClientCount;  // Number of services currently registered
+
+  const struct ChppClient *registeredClients[CHPP_MAX_REGISTERED_CLIENTS];
+
+  void *registeredClientContexts[CHPP_MAX_REGISTERED_CLIENTS];
 };
+
+CHPP_PACKED_START
+struct ChppServiceBasicResponse {
+  struct ChppAppHeader header;
+  uint8_t error;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
 
 /************************************************
  *  Public functions

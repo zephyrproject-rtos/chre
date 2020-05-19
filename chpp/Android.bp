@@ -26,6 +26,7 @@ cc_library_static {
         "transport.c",
         "app.c",
         "services.c",
+        "clients.c",
         "platform/pal_api.c",
         "platform/linux/link.c",
         "platform/linux/memory.c",
@@ -36,6 +37,7 @@ cc_library_static {
         "clients/discovery.c",
         "services/wwan.c",
         "services/wwan_convert.c",
+        "clients/wwan.c",
         "platform/linux/services/platform_wwan.c",
     ],
     export_include_dirs: [

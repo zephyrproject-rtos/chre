@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_WWAN_SERVICE_H_
-#define CHPP_WWAN_SERVICE_H_
+#ifndef CHPP_WWAN_CLIENT_H_
+#define CHPP_WWAN_CLIENT_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "chpp/app.h"
-#include "chpp/services.h"
+#include "chpp/clients.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,14 +36,14 @@ extern "C" {
  ***********************************************/
 
 /**
- * Called by the App layer to register the WWAN (cellular) common service.
+ * Called by the App layer to register the WWAN (cellular) common client.
  *
  * @param appContext Maintains status for each app layer instance.
  */
-void chppRegisterWwanService(struct ChppAppState *appContext);
+void chppRegisterWwanClient(struct ChppAppState *appContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CHPP_WWAN_SERVICE_H_
+#endif  // CHPP_WWAN_CLIENT_H_

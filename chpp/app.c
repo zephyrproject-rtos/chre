@@ -43,6 +43,15 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                                               enum ChppMessageType type);
 static inline const struct ChppService *chppServiceOfHandle(
     struct ChppAppState *appContext, uint8_t handle);
+static inline const struct ChppClient *chppClientOfHandle(
+    struct ChppAppState *appContext, uint8_t handle);
+static inline void *chppServiceContextOfHandle(struct ChppAppState *appContext,
+                                               uint8_t handle);
+static inline void *chppClientContextOfHandle(struct ChppAppState *appContext,
+                                              uint8_t handle);
+static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
+                                              uint8_t handle,
+                                              enum ChppMessageType type);
 
 /************************************************
  *  Private Functions
@@ -212,22 +221,21 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                                               enum ChppMessageType type) {
   switch (type) {
     case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
-      return (chppServiceOfHandle(context, handle)->requestDispatchFunctionPtr);
+      return chppServiceOfHandle(context, handle)->requestDispatchFunctionPtr;
       break;
     }
     case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE: {
-      // TODO
-      return (NULL);
+      return chppClientOfHandle(context, handle)->responseDispatchFunctionPtr;
       break;
     }
     case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
-      return (chppServiceOfHandle(context, handle)
-                  ->notificationDispatchFunctionPtr);
+      return chppServiceOfHandle(context, handle)
+          ->notificationDispatchFunctionPtr;
       break;
     }
     case CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION: {
-      // TODO
-      return (NULL);
+      return chppClientOfHandle(context, handle)
+          ->notificationDispatchFunctionPtr;
       break;
     }
     default: {
@@ -243,15 +251,99 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
  * Returns a pointer to the ChppService struct of a particular negotiated
  * service handle.
  *
- * @param context Maintains status for each app layer instance.
+ * @param appContext Maintains status for each app layer instance.
  * @param handle Handle number for the service.
  *
  * @return Pointer to the ChppService struct of a particular service handle.
  */
 static inline const struct ChppService *chppServiceOfHandle(
     struct ChppAppState *appContext, uint8_t handle) {
-  return (appContext->registeredServices[handle -
-                                         CHPP_HANDLE_NEGOTIATED_RANGE_START]);
+  return appContext
+      ->registeredServices[handle - CHPP_HANDLE_NEGOTIATED_RANGE_START];
+}
+
+/**
+ * Returns a pointer to the ChppClient struct of a particular negotiated
+ * handle. Returns null if a client doesn't exist for the handle.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ *
+ * @return Pointer to the ChppClient struct matched to a particular handle.
+ */
+static inline const struct ChppClient *chppClientOfHandle(
+    struct ChppAppState *appContext, uint8_t handle) {
+  // TODO
+  UNUSED_VAR(appContext);
+  UNUSED_VAR(handle);
+  return NULL;
+}
+
+/**
+ * Returns a pointer to the service struct of a particular negotiated service
+ * handle.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ *
+ * @return Pointer to the context struct of the service.
+ */
+static inline void *chppServiceContextOfHandle(struct ChppAppState *appContext,
+                                               uint8_t handle) {
+  return appContext
+      ->registeredServiceContexts[handle - CHPP_HANDLE_NEGOTIATED_RANGE_START];
+}
+
+/**
+ * Returns a pointer to the client struct of a particular negotiated client
+ * handle.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ *
+ * @return Pointer to the ChppService struct of the client.
+ */
+static inline void *chppClientContextOfHandle(struct ChppAppState *appContext,
+                                              uint8_t handle) {
+  // TODO
+  UNUSED_VAR(appContext);
+  UNUSED_VAR(handle);
+  return NULL;
+}
+
+/**
+ * Returns a pointer to the client/service struct of a particular negotiated
+ * client/service handle.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param handle Handle number for the service.
+ * @param type Message type (indicates if this is for a client or service).
+ *
+ * @return Pointer to the client/service struct of the service handle.
+ */
+static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
+                                              uint8_t handle,
+                                              enum ChppMessageType type) {
+  switch (type) {
+    case CHPP_MESSAGE_TYPE_CLIENT_REQUEST:
+    case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
+      return chppServiceContextOfHandle(appContext, handle);
+      break;
+    }
+    case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE:
+    case CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION: {
+      return chppClientContextOfHandle(appContext, handle);
+      break;
+    }
+    default: {
+      LOGE(
+          "Cannot provide context for unknown message type = %#x (handle = "
+          "%" PRIu8 ")",
+          type, handle);
+      chppEnqueueTxErrorDatagram(appContext->transportContext,
+                                 CHPP_TRANSPORT_ERROR_APPLAYER);
+    }
+  }
 }
 
 /************************************************
@@ -330,12 +422,34 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
       ChppDispatchFunction *dispatchFunc =
           chppGetDispatchFunction(context, rxHeader->handle, rxHeader->type);
 
+      void *clientServiceContext = chppClientServiceContextOfHandle(
+          context, rxHeader->handle, rxHeader->type);
+
       if (dispatchFunc == NULL) {
         LOGE("Negotiated handle = %" PRIu8
              " does not support Rx message type = %" PRIu8,
              rxHeader->handle, rxHeader->type);
-      } else {
-        dispatchFunc(context, buf, len);
+      } else if (clientServiceContext == NULL) {
+        LOGE("Client/service for negotiated handle = %" PRIu8
+             " and message type = %" PRIu8 " is missing context",
+             rxHeader->handle, rxHeader->type);
+      } else if (dispatchFunc(clientServiceContext, buf, len) == false) {
+        LOGE("Received unknown message type  = %" PRIu8 " for handle = %" PRIu8
+             ", command = %#x, transaction ID = %" PRIu8,
+             rxHeader->type, rxHeader->handle, rxHeader->command,
+             rxHeader->transaction);
+
+        // Allocate the response
+        struct ChppServiceBasicResponse *response =
+            chppAllocServiceResponseFixed(rxHeader,
+                                          struct ChppServiceBasicResponse);
+
+        // Populate the response
+        response->error = CHPP_APP_ERROR_INVALID_COMMAND;
+
+        // Send out response datagram
+        chppEnqueueTxDatagramOrFail(context->transportContext, response,
+                                    sizeof(*response));
       }
     }
   }

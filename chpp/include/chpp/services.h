@@ -68,41 +68,6 @@ extern "C" {
   (type *)chppAllocServiceResponse(requestHeader, sizeof(type))
 
 /**
- * Error codes used by services.
- */
-enum ChppServiceErrorCode {
-  //! Success (no error)
-  CHPP_SERVICE_ERROR_NONE = 0,
-  //! Invalid command
-  CHPP_SERVICE_ERROR_INVALID_COMMAND = 1,
-  //! Invalid argument(s)
-  CHPP_SERVICE_ERROR_INVALID_ARG = 2,
-  //! Busy
-  CHPP_SERVICE_ERROR_BUSY = 3,
-  //! Out of memory
-  CHPP_SERVICE_ERROR_OOM = 4,
-  //! Feature not supported
-  CHPP_SERVICE_ERROR_UNSUPPORTED = 5,
-  //! Timeout
-  CHPP_SERVICE_ERROR_TIMEOUT = 6,
-  //! Functionality disabled (e.g. per user configuration)
-  CHPP_SERVICE_ERROR_DISABLED = 7,
-  //! Rate limit exceeded (try again later)
-  CHPP_SERVICE_ERROR_RATELIMITED = 8,
-  //! Function in use / blocked by another entity (e.g. the AP)
-  CHPP_SERVICE_ERROR_BLOCKED = 9,
-  //! Unspecified failure
-  CHPP_SERVICE_ERROR_UNSPECIFIED = 255
-};
-
-CHPP_PACKED_START
-struct ChppServiceBasicResponse {
-  struct ChppAppHeader header;
-  uint8_t error;
-} CHPP_PACKED_ATTR;
-CHPP_PACKED_END
-
-/**
  * Maintains the basic state of a service.
  * This is expected to be included once in the (context) status variable of each
  * service.
@@ -147,9 +112,9 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
                             const struct ChppService *newService);
 
 /**
- * Allocates a response message of a specified length, populating the (app
- * layer) service response header accorging to the provided client request (app
- * layer) header.
+ * Allocates a service response message of a specified length, populating the
+ * (app layer) service response header accorging to the provided client request
+ * (app layer) header.
  *
  * It is expected that for most use cases, the chppAllocServiceResponseFixed()
  * or chppAllocServiceResponseTypedArray() macros shall be used rather than
@@ -200,8 +165,8 @@ void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
 void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState);
 
 /**
- * Timestamps a response using chppServiceTimestampResponse() and enqueues it
- * using chppEnqueueTxDatagramOrFail().
+ * Timestamps a server response using chppServiceTimestampResponse() and
+ * enqueues it using chppEnqueueTxDatagramOrFail().
  *
  * Refer to their respective documentation for details.
  *
