@@ -721,10 +721,15 @@ bool PlatformSensorManager::getThreeAxisBias(
         PlatformSensorTypeHelpers::toCalibratedSensorType(sensorType);
 #endif
     if (!calHelper->getBias(calSensorType, bias)) {
-      // Set to zero value + unknown accuracy per CHRE API requirements.
+      // Set to zero bias + unknown accuracy per CHRE API requirements.
       memset(bias, 0, sizeof(chreSensorThreeAxisData));
+      bias->header.readingCount = 1;
       bias->header.accuracy = CHRE_SENSOR_ACCURACY_UNKNOWN;
     }
+
+    // Overwrite sensorHandle to match the request type.
+    getSensorRequestManager().getSensorHandle(sensorType,
+                                              &bias->header.sensorHandle);
   }
 
   return success;
