@@ -93,12 +93,21 @@ class Manager {
    *
    * @return True if the timer was set successfully.
    */
-  bool setTimeoutTimer(size_t durationSeconds);
+  bool setTimeoutTimer(uint32_t durationSeconds);
 
   /**
    * Cancels the timeout timer, if pending.
    */
   void cancelTimeoutTimer();
+
+  /**
+   * Performs a check on the audio data.
+   *
+   * @param data The audio data.
+   *
+   * @return true if the audio data is valid.
+   */
+  bool validateAudioDataEvent(const chreAudioDataEvent *data);
 
   /**
    * @param data The audio data.
