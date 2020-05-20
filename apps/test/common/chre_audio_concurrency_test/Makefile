@@ -18,7 +18,7 @@ endif
 NANOAPP_NAME = chre_audio_concurrency_test
 NANOAPP_ID = 0x476f6f6754000004
 NANOAPP_NAME_STRING = \"Chre\ Audio\ Concurrency\ Test\"
-NANOAPP_VERSION = 0x00000001
+NANOAPP_VERSION = 0x00000002
 
 NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_audio_concurrency_test
 TEST_SHARED_PATH = $(CHRE_PREFIX)/apps/test/common/shared
