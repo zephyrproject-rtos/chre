@@ -165,7 +165,7 @@ void Manager::handleTimer() {
   }
 }
 
-bool Manager::setTimeoutTimer(size_t durationSeconds) {
+bool Manager::setTimeoutTimer(uint32_t durationSeconds) {
   mTimerHandle = chreTimerSet(durationSeconds * kOneSecondInNanoseconds,
                               nullptr /* cookie */, true /* oneShot */);
   if (mTimerHandle == CHRE_TIMER_INVALID) {
@@ -182,34 +182,63 @@ void Manager::cancelTimeoutTimer() {
   }
 }
 
+bool Manager::validateAudioDataEvent(const chreAudioDataEvent *data) {
+  bool ulaw8 = false;
+  if (data->format == CHRE_AUDIO_DATA_FORMAT_8_BIT_U_LAW) {
+    ulaw8 = true;
+  } else if (data->format != CHRE_AUDIO_DATA_FORMAT_16_BIT_SIGNED_PCM) {
+    LOGE("Invalid format %" PRIu8, data->format);
+    return false;
+  }
+
+  // Verify that the audio data is not all zeroes
+  uint32_t numZeroes = 0;
+  for (uint32_t i = 0; i < data->sampleCount; i++) {
+    numZeroes +=
+        ulaw8 ? (data->samplesULaw8[i] == 0) : (data->samplesS16[i] == 0);
+  }
+  bool dataValid = numZeroes != data->sampleCount;
+
+  // Verify that timestamp increases
+  static uint64_t lastTimestamp = 0;
+  bool timestampValid = data->timestamp > lastTimestamp;
+  lastTimestamp = data->timestamp;
+
+  return dataValid && timestampValid;
+}
+
 void Manager::handleAudioDataEvent(const chreAudioDataEvent *data) {
   if (mTestSession.has_value()) {
-    switch (mTestSession->step) {
-      case TestStep::ENABLE_AUDIO: {
-        cancelTimeoutTimer();
-        sendEmptyMessageToHost(
-            mTestSession->hostEndpointId,
-            chre_audio_concurrency_test_MessageType_TEST_AUDIO_ENABLED);
+    if (!validateAudioDataEvent(data)) {
+      sendTestResultToHost(mTestSession->hostEndpointId, kTestResultMessageType,
+                           false /* success */);
+      mTestSession.reset();
+    } else {
+      switch (mTestSession->step) {
+        case TestStep::ENABLE_AUDIO: {
+          cancelTimeoutTimer();
+          sendEmptyMessageToHost(
+              mTestSession->hostEndpointId,
+              chre_audio_concurrency_test_MessageType_TEST_AUDIO_ENABLED);
 
-        // Reset the test session to avoid sending multiple TEST_AUDIO_ENABLED
-        // messages to the host, while we wait for the next step.
-        mTestSession.reset();
+          // Reset the test session to avoid sending multiple TEST_AUDIO_ENABLED
+          // messages to the host, while we wait for the next step.
+          mTestSession.reset();
+          break;
+        }
 
-        // TODO: Perform sanity check on audio data
-        break;
+        case TestStep::VERIFY_AUDIO_RESUME: {
+          cancelTimeoutTimer();
+          sendTestResultToHost(mTestSession->hostEndpointId,
+                               kTestResultMessageType, true /* success */);
+          mTestSession.reset();
+          break;
+        }
+
+        default:
+          LOGE("Unexpected test step %" PRIu8, mTestSession->step);
+          break;
       }
-
-      case TestStep::VERIFY_AUDIO_RESUME: {
-        cancelTimeoutTimer();
-        sendTestResultToHost(mTestSession->hostEndpointId,
-                             kTestResultMessageType, true /* success */);
-        mTestSession.reset();
-        break;
-      }
-
-      default:
-        LOGE("Unexpected test step %" PRIu8, mTestSession->step);
-        break;
     }
   }
 }
