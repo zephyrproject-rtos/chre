@@ -18,7 +18,7 @@ endif
 NANOAPP_NAME = pts_audio_enable_disable_test
 NANOAPP_ID = 0x476f6f6754100000
 NANOAPP_NAME_STRING = \"Pts\ Audio\ Enable\ Disable\ Test\"
-NANOAPP_VERSION = 0x00000001
+NANOAPP_VERSION = 0x00000002
 
 NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/pts/audio_enable_disable_test
 
