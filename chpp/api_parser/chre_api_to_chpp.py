@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-# Note: originally written against pyclibrary v0.1.4 and Python 3.7+
-
 import argparse
 import json
 import os.path

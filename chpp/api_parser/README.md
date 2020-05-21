@@ -16,3 +16,9 @@ TODO: add schema definition/documentation for `chre_api_annotations.json`
 
 TODO: add serialization format description (fixed header + offset from
 beginning of payload + size)
+
+## Requirements
+
+Written to Python 3.8.2, but most versions of Python 3 should work.
+
+Requires pyclibrary - see requirements.txt.
