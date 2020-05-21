@@ -118,7 +118,7 @@ class CodeGenerator:
         return ""
 
     def _get_member_type(self, member_info, underlying_vla_type=False):
-        """Gets the type specification prefix for a struct/union member.
+        """Gets the CHPP type specification prefix for a struct/union member.
 
         :param member_info: a dict element from self.api.structs_and_unions[struct]['members']
         :param underlying_vla_type: (used only for var-len array types) False to output
@@ -223,6 +223,25 @@ class CodeGenerator:
     # Encoder/decoder function generation methods
     # ----------------------------------------------------------------------------------------------
 
+    def _get_chpp_sizeof_call(self, member_info):
+        """Returns invocation used to determine the size of the provided member when encoded.
+
+        Will be either sizeof(<type in CHPP struct>) or a function call if the member contains a VLA
+        :param chre_struct: CHRE source structure name
+        :return: string
+        """
+        type_name = None
+        if member_info['is_nested_type']:
+            chre_type = member_info['nested_type_name']
+            if self.api.structs_and_unions[chre_type]['has_vla_member']:
+                return "{}(in->{})".format(self._get_chpp_sizeof_function_name(chre_type),
+                                           member_info['name'])
+            else:
+                type_name = self._get_chpp_type_from_chre(chre_type)
+        else:
+            type_name = member_info['type'].type_spec
+        return "sizeof({})".format(type_name)
+
     def _gen_chpp_sizeof_function(self, chre_type):
         """Generates a function to determine the encoded size of the CHRE struct, if necessary."""
         out = []
@@ -288,6 +307,122 @@ class CodeGenerator:
         core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_struct)
         return "chpp{}SizeOf{}FromChre".format(self.capitalized_service_name, core_type_name)
 
+    def _get_encoding_function_name(self, chre_type):
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_type)
+        return "chpp{}Convert{}FromChre".format(self.capitalized_service_name, core_type_name)
+
+    def _gen_encoding_function_signature(self, chre_type):
+        out = []
+        out.append("void {}(\n".format(self._get_encoding_function_name(chre_type)))
+        out.append("        const {}{} *in,\n".format(
+            self._get_struct_or_union_prefix(chre_type), chre_type, ))
+        out.append("        {} *out".format(self._get_chpp_type_from_chre(chre_type)))
+        if self.api.structs_and_unions[chre_type]['has_vla_member']:
+            out.append(",\n")
+            out.append("        uint8_t *payload,\n")
+            out.append("        size_t payloadSize,\n")
+            out.append("        uint16_t *vlaOffset")
+        out.append(")")
+        return out
+
+    def _get_assignment_statement_for_field(self, member_info, in_vla_loop=False):
+        """Returns a statement to assign the provided member
+
+        :param member_info:
+        :param in_vla_loop: True if we're currently inside a loop and should append [i]
+        :return: assignment statement as a string
+        """
+        array_index = "[i]" if in_vla_loop else ""
+        output_accessor = "" if in_vla_loop else "out->"
+
+        output_variable = "{}{}{}".format(output_accessor, member_info['name'], array_index)
+        input_variable = "in->{}{}".format(member_info['name'], array_index)
+
+        if member_info['is_nested_type']:
+            # Use encoding function
+            chre_type = member_info['nested_type_name']
+            has_vla_member = self.api.structs_and_unions[chre_type]['has_vla_member']
+            vla_params = ", payload, payloadSize, vlaOffset" if has_vla_member else ""
+            return "{}(&{}, &{}{});\n".format(
+                self._get_encoding_function_name(chre_type), input_variable, output_variable,
+                vla_params)
+        else:
+            # Regular assignment
+            return "{} = {};\n".format(output_variable, input_variable)
+
+    def _gen_vla_encoding(self, member_info, annotation):
+        out = []
+
+        variable_name = member_info['name']
+        chpp_type = self._get_member_type(member_info, True)
+        out.append("\n    {} *{} = ({} *) &payload[*vlaOffset];\n".format(
+            chpp_type, variable_name, chpp_type))
+        out.append("    out->{}.offset = *vlaOffset;\n".format(member_info['name']))
+        out.append("    out->{}.length = in->{} * {};\n".format(
+            member_info['name'], annotation['length_field'],
+            self._get_chpp_sizeof_call(member_info)))
+        out.append("    *vlaOffset += out->{}.length;\n".format(member_info['name']))
+        out.append("    CHPP_ASSERT(*vlaOffset <= payloadSize);\n\n")
+
+        out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
+            annotation['length_field'], variable_name))
+        out.append("        {}".format(
+            self._get_assignment_statement_for_field(member_info, True)))
+        out.append("    }\n")
+
+        return out
+
+    def _gen_encoding_function(self, chre_type, already_generated):
+        out = []
+
+        for dependency in self.api.structs_and_unions[chre_type]['dependencies']:
+            if dependency not in already_generated:
+                out.extend(self._gen_encoding_function(dependency, already_generated))
+
+        if chre_type in already_generated:
+            return out
+        already_generated.add(chre_type)
+
+        out.append("static ")
+        out.extend(self._gen_encoding_function_signature(chre_type))
+        out.append(" {\n")
+
+        if self.api.structs_and_unions[chre_type]['is_union']:
+            out.append("// TODO: proper union support\n#if 0\n")
+
+        for member_info in self.api.structs_and_unions[chre_type]['members']:
+            generated_by_annotation = False
+            for annotation in member_info['annotations']:
+                if annotation['annotation'] == "fixed_value":
+                    out.append("    out->{} = {};\n".format(member_info['name'],
+                                                            annotation['value']))
+                    generated_by_annotation = True
+                    break
+                elif annotation['annotation'] == "enum":
+                    # TODO: generate range verification code?
+                    pass
+                elif annotation['annotation'] == "var_len_array":
+                    out.extend(self._gen_vla_encoding(member_info, annotation))
+                    generated_by_annotation = True
+                    break
+
+            if not generated_by_annotation:
+                out.append("    {}".format(self._get_assignment_statement_for_field(member_info)))
+
+        if self.api.structs_and_unions[chre_type]['is_union']:
+            out.append("#endif\n")
+
+        out.append("}\n\n")
+        return out
+
+    def _gen_encoding_functions(self):
+        out = []
+        already_generated = set()
+        for struct in self.json['root_structs']:
+            out.extend(self._gen_encoding_function(struct, already_generated))
+
+        return out
+
     def _strip_prefix_and_service_from_chre_struct_name(self, struct):
         """Strip 'chre' and service prefix, e.g. 'chreWwanCellResultInfo' -> 'CellResultInfo'"""
         chre_stripped = struct[4:]
@@ -327,6 +462,8 @@ class CodeGenerator:
         out.append("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n")
         out.extend(self._gen_structs_and_unions())
 
+        # TODO: function prototypes for encoding, decoding
+
         out.append("#ifdef __cplusplus\n}\n#endif\n\n")
         out.append("#endif  // {}\n".format(header_guard))
         return ''.join(out)
@@ -346,8 +483,9 @@ class CodeGenerator:
         out.extend(self._autogen_notice())
         out.extend(self._gen_conversion_includes())
         out.extend(self._gen_chpp_sizeof_functions())
+        out.extend(self._gen_encoding_functions())
 
-        # TODO: encoding, decoding functions
+        # TODO: root structure allocation + encoding, decoding functions
 
         return ''.join(out)
 

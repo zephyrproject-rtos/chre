@@ -45,12 +45,30 @@
       ]
     },
     {
-      "name": "anon_union0",
+      "name": "chreWwanCellInfo",
       "annotations": [
         {
-          "field": ".",
-          "annotation": "rename_type",
-          "type_override": "ChppWwanCellInfoPerRat"
+          "field": "cellInfoType",
+          "annotation": "enum",
+          "enum_type": "chreWwanCellInfoType"
+        },
+        {
+          "field": "CellInfo",
+          "annotation": "union_variant",
+          "discriminator": "cellInfoType",
+          "mapping": [
+            ["CHRE_WWAN_CELL_INFO_TYPE_GSM", "gsm"],
+            ["CHRE_WWAN_CELL_INFO_TYPE_CDMA", "cdma"],
+            ["CHRE_WWAN_CELL_INFO_TYPE_LTE", "lte"],
+            ["CHRE_WWAN_CELL_INFO_TYPE_WCDMA", "wcdma"],
+            ["CHRE_WWAN_CELL_INFO_TYPE_TD_SCDMA", "tdscdma"],
+            ["CHRE_WWAN_CELL_INFO_TYPE_NR", "nr"]
+          ]
+        },
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
         }
       ]
     }
