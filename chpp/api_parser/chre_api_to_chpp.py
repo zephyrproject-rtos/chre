@@ -167,7 +167,7 @@ class CodeGenerator:
 
     def _gen_header_includes(self):
         """Generates #include directives for use in <service>_types.h"""
-        out = ["#include <stdint.h>\n\n"]
+        out = ["#include <stdbool.h>\n#include <stdint.h>\n\n"]
 
         includes = ["chpp/macros.h", "chre_api/chre/version.h"]
         includes.extend(self.json['output_includes'])
@@ -228,11 +228,11 @@ class CodeGenerator:
     # Encoder/decoder function generation methods
     # ----------------------------------------------------------------------------------------------
 
-    def _get_chpp_sizeof_call(self, member_info):
+    def _get_chpp_member_sizeof_call(self, member_info):
         """Returns invocation used to determine the size of the provided member when encoded.
 
         Will be either sizeof(<type in CHPP struct>) or a function call if the member contains a VLA
-        :param chre_struct: CHRE source structure name
+        :param member_info: a dict element from self.api.structs_and_unions[struct]['members']
         :return: string
         """
         type_name = None
@@ -303,7 +303,9 @@ class CodeGenerator:
 
     def _gen_conversion_includes(self):
         """Generates #include directives for the conversion source file"""
-        out = ["#include \"chpp/services/{}_types.h\"\n\n".format(self.service_name)]
+        out = ["#include \"chpp/macros.h\"\n"
+               "#include \"chpp/memory.h\"\n"
+               "#include \"chpp/services/{}_types.h\"\n\n".format(self.service_name)]
         out.append("#include <stddef.h>\n#include <stdint.h>\n#include <string.h>\n\n")
         return out
 
@@ -320,7 +322,7 @@ class CodeGenerator:
         out = []
         out.append("void {}(\n".format(self._get_encoding_function_name(chre_type)))
         out.append("        const {}{} *in,\n".format(
-            self._get_struct_or_union_prefix(chre_type), chre_type, ))
+            self._get_struct_or_union_prefix(chre_type), chre_type))
         out.append("        {} *out".format(self._get_chpp_type_from_chre(chre_type)))
         if self.api.structs_and_unions[chre_type]['has_vla_member']:
             out.append(",\n")
@@ -365,9 +367,10 @@ class CodeGenerator:
         out.append("    out->{}.offset = *vlaOffset;\n".format(member_info['name']))
         out.append("    out->{}.length = in->{} * {};\n".format(
             member_info['name'], annotation['length_field'],
-            self._get_chpp_sizeof_call(member_info)))
+            self._get_chpp_member_sizeof_call(member_info)))
         out.append("    *vlaOffset += out->{}.length;\n".format(member_info['name']))
-        out.append("    CHPP_ASSERT(*vlaOffset <= payloadSize);\n\n")
+        out.append("    CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
+                   "    UNUSED_VAR(payloadSize);\n\n")
 
         out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
             annotation['length_field'], variable_name))
@@ -419,7 +422,7 @@ class CodeGenerator:
                 out.append("    {}".format(self._get_assignment_statement_for_field(member_info)))
 
         if self.api.structs_and_unions[chre_type]['is_union']:
-            out.append("#endif\n")
+            out.append("#endif\n\n")
 
         out.append("}\n\n")
         return out
@@ -442,6 +445,93 @@ class CodeGenerator:
             raise RuntimeError("Unexpected structure name {}".format(struct))
 
         return chre_stripped[len(self.service_name):]
+
+    # ----------------------------------------------------------------------------------------------
+    # Memory allocation generation methods
+    # ----------------------------------------------------------------------------------------------
+
+    def _get_chpp_sizeof_call(self, chre_type):
+        """Returns invocation used to determine the size of the provided CHRE struct after encoding.
+
+        Like _get_chpp_member_sizeof_call(), except for a top-level type assigned to the variable
+        "in" rather than a member within a structure (e.g. a VLA field)
+        :param chre_type: CHRE type name
+        :return: string
+        """
+        if self.api.structs_and_unions[chre_type]['has_vla_member']:
+            return "{}(in)".format(self._get_chpp_sizeof_function_name(chre_type))
+        else:
+            return "sizeof({})".format(self._get_chpp_type_from_chre(chre_type))
+
+    def _get_encode_allocation_function_name(self, chre_type):
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_type)
+        return "chpp{}{}FromChre".format(self.capitalized_service_name, core_type_name)
+
+    def _gen_encode_allocation_function_signature(self, chre_type, gen_docs=False):
+        out = []
+        if gen_docs:
+            out.append("/**\n"
+                       " * Converts from given CHRE structure to serialized CHPP type\n"
+                       " *\n"
+                       " * @param in Fully-formed CHRE structure\n"
+                       " * @param out Upon success, will point to a buffer allocated with "
+                       "chppMalloc().\n"
+                       " * It is the responsibility of the caller to free this buffer via "
+                       "chppFree().\n"
+                       " * @param outSize Upon success, will be set to the size of the output "
+                       "buffer,\n"
+                       " * in bytes\n"
+                       " * @return true on success, false if memory allocation failed\n"
+                       " */\n")
+        out.append("bool {}(\n".format(self._get_encode_allocation_function_name(chre_type)))
+        out.append("        const {}{} *in,\n".format(
+            self._get_struct_or_union_prefix(chre_type), chre_type))
+        out.append("        {} **out,\n".format(self._get_chpp_type_from_chre(chre_type)))
+        out.append("        size_t *outSize)")
+        return out
+
+    def _gen_encode_allocation_function(self, chre_type):
+        out = []
+
+        out.extend(self._gen_encode_allocation_function_signature(chre_type))
+        out.append(" {\n")
+        out.append("    CHPP_NOT_NULL(out);\n")
+        out.append("    CHPP_NOT_NULL(outSize);\n\n")
+        out.append("    size_t payloadSize = {};\n".format(self._get_chpp_sizeof_call(chre_type)))
+        out.append("    *out = chppMalloc(payloadSize);\n".format(
+            self._get_chpp_type_from_chre(chre_type)))
+
+        out.append("    if (*out != NULL) {\n")
+
+        struct_info = self.api.structs_and_unions[chre_type]
+        if struct_info['has_vla_member']:
+            out.append("        uint8_t *payload = (uint8_t *) *out;\n")
+            out.append("        uint16_t vlaOffset = sizeof({});\n".format(
+                self._get_chpp_type_from_chre(chre_type)))
+
+        out.append("        {}(in, *out".format(self._get_encoding_function_name(chre_type)))
+        if struct_info['has_vla_member']:
+            out.append(", payload, payloadSize, &vlaOffset")
+        out.append(");\n")
+        out.append("        *outSize = payloadSize;\n")
+        out.append("        return true;\n")
+        out.append("    }\n")
+
+        out.append("    return false;\n}\n")
+        return out
+
+    def _gen_encode_allocation_functions(self):
+        out = []
+        for chre_type in self.json['root_structs']:
+            out.extend(self._gen_encode_allocation_function(chre_type))
+        return out
+
+    def _gen_encode_allocation_function_signatures(self):
+        out = []
+        for chre_type in self.json['root_structs']:
+            out.extend(self._gen_encode_allocation_function_signature(chre_type, True))
+            out.append(";\n\n")
+        return out
 
     # ----------------------------------------------------------------------------------------------
     # Public methods
@@ -471,7 +561,10 @@ class CodeGenerator:
         out.append("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n")
         out.extend(self._gen_structs_and_unions())
 
-        # TODO: function prototypes for encoding, decoding
+        out.append("\n// Encoding functions (CHRE --> CHPP)\n\n")
+        out.extend(self._gen_encode_allocation_function_signatures())
+
+        # TODO: function prototypes for decoding
 
         out.append("#ifdef __cplusplus\n}\n#endif\n\n")
         out.append("#endif  // {}\n".format(header_guard))
@@ -493,8 +586,9 @@ class CodeGenerator:
         out.extend(self._gen_conversion_includes())
         out.extend(self._gen_chpp_sizeof_functions())
         out.extend(self._gen_encoding_functions())
+        out.extend(self._gen_encode_allocation_functions())
 
-        # TODO: root structure allocation + encoding, decoding functions
+        # TODO: allocation + decoding functions (for CHPP to CHRE direction)
 
         return ''.join(out)
 
