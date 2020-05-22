@@ -332,18 +332,25 @@ class CodeGenerator:
         out.append(")")
         return out
 
-    def _get_assignment_statement_for_field(self, member_info, in_vla_loop=False):
+    def _get_assignment_statement_for_field(self, member_info, in_vla_loop=False,
+                                            containing_field_name=None):
         """Returns a statement to assign the provided member
 
         :param member_info:
         :param in_vla_loop: True if we're currently inside a loop and should append [i]
+        :param containing_field_name: Additional member name to use to access the target field, or
+        None; for example the normal case is "out->field = in->field", but if we're generating
+        assignments in the parent conversion function (e.g. as used for union variants), we need to
+        do "out->nested_field.field = in->nested_field.field"
         :return: assignment statement as a string
         """
         array_index = "[i]" if in_vla_loop else ""
         output_accessor = "" if in_vla_loop else "out->"
+        containing_field = containing_field_name + "." if containing_field_name is not None else ""
 
-        output_variable = "{}{}{}".format(output_accessor, member_info['name'], array_index)
-        input_variable = "in->{}{}".format(member_info['name'], array_index)
+        output_variable = "{}{}{}{}".format(output_accessor, containing_field, member_info['name'],
+                                            array_index)
+        input_variable = "in->{}{}{}".format(containing_field, member_info['name'], array_index)
 
         if member_info['is_nested_type']:
             # Use encoding function
@@ -380,23 +387,71 @@ class CodeGenerator:
 
         return out
 
+    def _gen_union_variant_conversion_code(self, member_info, annotation):
+        """Generates a switch statement to convert the "active"/"used" field within a union.
+
+        Handles cases where a union has multiple types, but there's another peer/adjacent field
+        which tells you which field in the union is to be used. Outputs code like this:
+        switch (in->{discriminator field}) {
+            case {first discriminator value associated with a fields}:
+                {conversion code for the field associated with this discriminator value}
+                ...
+        :param chre_type: CHRE type of the union
+        :param annotation: Reference to JSON annotation data with the discriminator mapping data
+        :return: list of strings
+        """
+        out = []
+        chre_type = member_info['nested_type_name']
+        struct_info = self.api.structs_and_unions[chre_type]
+
+        # Start off by zeroing out the union field so any padding is set to a consistent value
+        out.append("    memset(&out->{}, 0, sizeof(out->{}));\n".format(member_info['name'],
+                                                                        member_info['name']))
+
+        # Next, generate the switch statement that will copy over the proper values
+        out.append("    switch (in->{}) {{\n".format(annotation['discriminator']))
+        for value, field_name in annotation['mapping']:
+            out.append("        case {}:\n".format(value))
+
+            found = False
+            for nested_member_info in struct_info['members']:
+                if nested_member_info['name'] == field_name:
+                    out.append("            {}".format(
+                        self._get_assignment_statement_for_field(
+                            nested_member_info, containing_field_name=member_info['name'])))
+                    found = True
+                    break
+
+            if not found:
+                raise RuntimeError("Invalid mapping - couldn't find target field {} in struct {}"
+                                   .format(field_name, chre_type))
+
+            out.append("            break;\n")
+
+        out.append("        default:\n"
+                   "            CHPP_ASSERT(false);\n"
+                   "    }\n")
+
+        return out
+
     def _gen_encoding_function(self, chre_type, already_generated):
         out = []
 
-        for dependency in self.api.structs_and_unions[chre_type]['dependencies']:
+        struct_info = self.api.structs_and_unions[chre_type]
+        for dependency in struct_info['dependencies']:
             if dependency not in already_generated:
                 out.extend(self._gen_encoding_function(dependency, already_generated))
 
-        if chre_type in already_generated:
+        # Skip if we've already generated code for this type, or if it's a union (in which case we
+        # handle the assignment in the parent structure to enable support for discrimination of
+        # which field in the union to use)
+        if chre_type in already_generated or struct_info['is_union']:
             return out
         already_generated.add(chre_type)
 
         out.append("static ")
         out.extend(self._gen_encoding_function_signature(chre_type))
         out.append(" {\n")
-
-        if self.api.structs_and_unions[chre_type]['is_union']:
-            out.append("// TODO: proper union support\n#if 0\n")
 
         for member_info in self.api.structs_and_unions[chre_type]['members']:
             generated_by_annotation = False
@@ -417,12 +472,13 @@ class CodeGenerator:
                     out.extend(self._gen_vla_encoding(member_info, annotation))
                     generated_by_annotation = True
                     break
+                elif annotation['annotation'] == "union_variant":
+                    out.extend(self._gen_union_variant_conversion_code(member_info, annotation))
+                    generated_by_annotation = True
+                    break
 
             if not generated_by_annotation:
                 out.append("    {}".format(self._get_assignment_statement_for_field(member_info)))
-
-        if self.api.structs_and_unions[chre_type]['is_union']:
-            out.append("#endif\n\n")
 
         out.append("}\n\n")
         return out
