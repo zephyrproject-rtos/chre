@@ -71,6 +71,16 @@
           "value": "0"
         }
       ]
+    },
+    {
+      "name": "chreWwanCellIdentityGsm",
+      "annotations": [
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        }
+      ]
     }
   ],
   "root_structs": [

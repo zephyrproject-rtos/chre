@@ -93,6 +93,14 @@ class CodeGenerator:
             with open(output_filename, 'w') as f:
                 f.write(contents)
 
+    def _is_array_type(self, type_info):
+        # If this is an array type, declarators will be a tuple containing a list of
+        # a single int element giving the size of the array
+        return len(type_info.declarators) == 1 and isinstance(type_info.declarators[0], list)
+
+    def _get_array_len(self, type_info):
+        return type_info.declarators[0][0]
+
     def _get_chpp_type_from_chre(self, chre_type):
         """Given 'chreWwanCellInfo' returns 'struct ChppWwanCellInfo', etc."""
         prefix = self._get_struct_or_union_prefix(chre_type)
@@ -150,11 +158,8 @@ class CodeGenerator:
         return member_info['type'].type_spec
 
     def _get_member_type_suffix(self, member_info):
-        # If this is an array type, declarators will be a tuple containing a list of a single int
-        # element giving the size of the array
-        declarators = member_info['type'].declarators
-        if len(declarators) == 1 and isinstance(declarators[0], list):
-            return "[{}]".format(member_info['type'].declarators[0][0])
+        if self._is_array_type(member_info['type']):
+            return "[{}]".format(self._get_array_len(member_info['type']))
         return ""
 
     def _get_struct_or_union_prefix(self, chre_type):
@@ -299,7 +304,7 @@ class CodeGenerator:
     def _gen_conversion_includes(self):
         """Generates #include directives for the conversion source file"""
         out = ["#include \"chpp/services/{}_types.h\"\n\n".format(self.service_name)]
-        out.append("#include <stddef.h>\n#include <stdint.h>\n\n")
+        out.append("#include <stddef.h>\n#include <stdint.h>\n#include <string.h>\n\n")
         return out
 
     def _get_chpp_sizeof_function_name(self, chre_struct):
@@ -394,8 +399,12 @@ class CodeGenerator:
             generated_by_annotation = False
             for annotation in member_info['annotations']:
                 if annotation['annotation'] == "fixed_value":
-                    out.append("    out->{} = {};\n".format(member_info['name'],
-                                                            annotation['value']))
+                    if self._is_array_type(member_info['type']):
+                        out.append("    memset(&out->{}, {}, sizeof(out->{}));\n".format(
+                            member_info['name'], annotation['value'], member_info['name']))
+                    else:
+                        out.append("    out->{} = {};\n".format(member_info['name'],
+                                                                annotation['value']))
                     generated_by_annotation = True
                     break
                 elif annotation['annotation'] == "enum":
