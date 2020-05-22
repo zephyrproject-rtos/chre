@@ -35,6 +35,7 @@ cc_library_static {
         "services/nonhandle.c",
         "clients/discovery.c",
         "services/wwan.c",
+        "services/wwan_convert.c",
         "platform/linux/services/platform_wwan.c",
     ],
     export_include_dirs: [
@@ -50,10 +51,16 @@ cc_library_static {
         "chre_api",
     ],
     host_supported: true,
-} 
+}
 
 cc_test_host {
     name: "chre_chpp_linux_tests",
     srcs: ["test/transport_test.cpp"],
+    static_libs: ["chre_chpp_linux"],
+}
+
+cc_test_host {
+    name: "chre_chpp_convert_tests",
+    srcs: ["test/wwan_convert_test.cpp"],
     static_libs: ["chre_chpp_linux"],
 }
