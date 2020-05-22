@@ -371,12 +371,16 @@ class CodeGenerator:
         chpp_type = self._get_member_type(member_info, True)
         out.append("\n    {} *{} = ({} *) &payload[*vlaOffset];\n".format(
             chpp_type, variable_name, chpp_type))
-        out.append("    out->{}.offset = *vlaOffset;\n".format(member_info['name']))
         out.append("    out->{}.length = in->{} * {};\n".format(
             member_info['name'], annotation['length_field'],
             self._get_chpp_member_sizeof_call(member_info)))
-        out.append("    *vlaOffset += out->{}.length;\n".format(member_info['name']))
-        out.append("    CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
+        out.append("    if (out->{}.length > 0) {{\n".format(member_info['name']))
+        out.append("        out->{}.offset = *vlaOffset;\n".format(member_info['name']))
+        out.append("        *vlaOffset += out->{}.length;\n".format(member_info['name']))
+        out.append("    } else {\n")
+        out.append("        out->{}.offset = 0;\n".format(member_info['name']))
+        out.append("    }\n"
+                   "    CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
                    "    UNUSED_VAR(payloadSize);\n\n")
 
         out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
