@@ -28,13 +28,13 @@
  *  Prototypes
  ***********************************************/
 
-static void chppProcessPredefinedClientRequest(struct ChppAppState *context,
+static bool chppProcessPredefinedClientRequest(struct ChppAppState *context,
                                                uint8_t *buf, size_t len);
-static void chppProcessPredefinedServiceResponse(struct ChppAppState *context,
+static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
                                                  uint8_t *buf, size_t len);
-static void chppProcessPredefinedClientNotification(
+static bool chppProcessPredefinedClientNotification(
     struct ChppAppState *context, uint8_t *buf, size_t len);
-static void chppProcessPredefinedServiceNotification(
+static bool chppProcessPredefinedServiceNotification(
     struct ChppAppState *context, uint8_t *buf, size_t len);
 static bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
                                 size_t len);
@@ -64,26 +64,39 @@ static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
+ *
+ * @return False if handle is invalid. True otherwise
  */
-static void chppProcessPredefinedClientRequest(struct ChppAppState *context,
+static bool chppProcessPredefinedClientRequest(struct ChppAppState *context,
                                                uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool handleValid = true;
+  bool dispatchResult = true;
 
   switch (rxHeader->handle) {
-    case CHPP_HANDLE_LOOPBACK:
-      chppDispatchLoopbackClientRequest(context, buf, len);
+    case CHPP_HANDLE_LOOPBACK: {
+      dispatchResult = chppDispatchLoopbackClientRequest(context, buf, len);
       break;
+    }
 
-    case CHPP_HANDLE_DISCOVERY:
-      chppDispatchDiscoveryClientRequest(context, buf, len);
+    case CHPP_HANDLE_DISCOVERY: {
+      dispatchResult = chppDispatchDiscoveryClientRequest(context, buf, len);
       break;
+    }
 
-    default:
-      LOGE(
-          "Client request received for an invalid predefined service handle "
-          "%" PRIu8,
-          rxHeader->handle);
+    default: {
+      handleValid = false;
+    }
   }
+
+  if (dispatchResult == false) {
+    LOGE("Handle = %" PRIu8
+         " received unknown client request command = %#x, transaction ID = "
+         "%" PRIu8,
+         rxHeader->handle, rxHeader->command, rxHeader->transaction);
+  }
+
+  return handleValid;
 }
 
 /**
@@ -93,26 +106,39 @@ static void chppProcessPredefinedClientRequest(struct ChppAppState *context,
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
+ *
+ * @return False if handle is invalid. True otherwise
  */
-static void chppProcessPredefinedServiceResponse(struct ChppAppState *context,
+static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
                                                  uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool handleValid = true;
+  bool dispatchResult = true;
 
   switch (rxHeader->handle) {
-    case CHPP_HANDLE_LOOPBACK:
+    case CHPP_HANDLE_LOOPBACK: {
       // TODO
       break;
+    }
 
-    case CHPP_HANDLE_DISCOVERY:
-      chppDispatchDiscoveryClient(context, buf, len);
+    case CHPP_HANDLE_DISCOVERY: {
+      dispatchResult = chppDispatchDiscoveryServiceResponse(context, buf, len);
       break;
+    }
 
-    default:
-      LOGE(
-          "Service response received for an invalid predefined service handle "
-          "%" PRIu8,
-          rxHeader->handle);
+    default: {
+      handleValid = false;
+    }
   }
+
+  if (dispatchResult == false) {
+    LOGE("Handle = %" PRIu8
+         " received unknown server response command = %#x, transaction ID = "
+         "%" PRIu8,
+         rxHeader->handle, rxHeader->command, rxHeader->transaction);
+  }
+
+  return handleValid;
 }
 
 /**
@@ -122,18 +148,24 @@ static void chppProcessPredefinedServiceResponse(struct ChppAppState *context,
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
+ *
+ * @return False if handle is invalid. True otherwise
  */
-static void chppProcessPredefinedClientNotification(
+static bool chppProcessPredefinedClientNotification(
     struct ChppAppState *context, uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool handleValid = true;
+  bool dispatchResult = true;
 
   // No predefined services support these yet
-  LOGE("Predefined service handle %" PRIu8
-       " does not support client notifications",
-       rxHeader->handle);
+  handleValid = false;
 
   UNUSED_VAR(context);
   UNUSED_VAR(len);
+  UNUSED_VAR(rxHeader);
+  UNUSED_VAR(dispatchResult);
+
+  return handleValid;
 }
 /**
  * Processes a service notification that is determined to be for a predefined
@@ -142,18 +174,24 @@ static void chppProcessPredefinedClientNotification(
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
+ *
+ * @return False if handle is invalid. True otherwise
  */
-static void chppProcessPredefinedServiceNotification(
+static bool chppProcessPredefinedServiceNotification(
     struct ChppAppState *context, uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool handleValid = true;
+  bool dispatchResult = true;
 
   // No predefined clients support these yet
-  LOGE("Predefined client handle %" PRIu8
-       " does not support service notifications",
-       rxHeader->handle);
+  handleValid = false;
 
   UNUSED_VAR(context);
   UNUSED_VAR(len);
+  UNUSED_VAR(rxHeader);
+  UNUSED_VAR(dispatchResult);
+
+  return handleValid;
 }
 
 /**
@@ -389,21 +427,23 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
     } else if (rxHeader->handle < CHPP_HANDLE_NEGOTIATED_RANGE_START) {
       // Predefined services / clients
 
+      bool success = true;
+
       switch (rxHeader->type) {
         case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
-          chppProcessPredefinedClientRequest(context, buf, len);
+          success = chppProcessPredefinedClientRequest(context, buf, len);
           break;
         }
         case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
-          chppProcessPredefinedClientNotification(context, buf, len);
+          success = chppProcessPredefinedClientNotification(context, buf, len);
           break;
         }
         case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE: {
-          chppProcessPredefinedServiceResponse(context, buf, len);
+          success = chppProcessPredefinedServiceResponse(context, buf, len);
           break;
         }
         case CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION: {
-          chppProcessPredefinedServiceNotification(context, buf, len);
+          success = chppProcessPredefinedServiceNotification(context, buf, len);
           break;
         }
         default: {
@@ -414,6 +454,15 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
           chppEnqueueTxErrorDatagram(context->transportContext,
                                      CHPP_TRANSPORT_ERROR_APPLAYER);
         }
+      }
+
+      if (success == false) {
+        LOGE("Predefined client/service with handle = %" PRIu8
+             " does not support message type = %#x (len = %zu, transaction ID "
+             "= %" PRIu8 ")",
+             rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
+        chppEnqueueTxErrorDatagram(context->transportContext,
+                                   CHPP_TRANSPORT_ERROR_APPLAYER);
       }
 
     } else {

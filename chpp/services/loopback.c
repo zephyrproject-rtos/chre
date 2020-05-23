@@ -20,7 +20,7 @@
  *  Public Functions
  ***********************************************/
 
-void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
+bool chppDispatchLoopbackClientRequest(struct ChppAppState *context,
                                        uint8_t *buf, size_t len) {
   uint8_t *response = chppMalloc(len);
   if (response == NULL) {
@@ -39,4 +39,6 @@ void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
     // Send out response datagram
     chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
   }
+
+  return true;
 }

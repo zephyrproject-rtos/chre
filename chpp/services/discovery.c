@@ -65,10 +65,11 @@ static void chppDiscoveryDiscoverAll(
  *  Public Functions
  ***********************************************/
 
-void chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
+bool chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
                                         const uint8_t *buf, size_t len) {
   UNUSED_VAR(len);
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool success = true;
 
   switch (rxHeader->command) {
     case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
@@ -77,11 +78,8 @@ void chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
       break;
     }
     default: {
-      LOGE(
-          "Received unknown discovery command: %#x, transaction ID = "
-          "%" PRIu8,
-          rxHeader->command, rxHeader->transaction);
-      break;
+      success = false;
     }
   }
+  return success;
 }

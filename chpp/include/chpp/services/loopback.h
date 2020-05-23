@@ -45,7 +45,7 @@ extern "C" {
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
+bool chppDispatchLoopbackClientRequest(struct ChppAppState *context,
                                        uint8_t *buf, size_t len);
 
 #ifdef __cplusplus

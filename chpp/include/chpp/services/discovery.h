@@ -44,7 +44,7 @@ struct ChppAppState;
  * @param buf Input (request) datagram. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
+bool chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
                                         const uint8_t *buf, size_t len);
 
 #ifdef __cplusplus

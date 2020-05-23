@@ -47,36 +47,20 @@ void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
  *  Public Functions
  ***********************************************/
 
-void chppDispatchDiscoveryClient(struct ChppAppState *context,
-                                 const uint8_t *buf, size_t len) {
+bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
+                                          const uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  bool success = true;
 
-  switch (rxHeader->type) {
-    case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE: {
-      // Received discovery response from service
-
-      switch (rxHeader->command) {
-        case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
-          chppDiscoveryProcessDiscoverAll(context, buf, len);
-          break;
-        }
-        default: {
-          LOGE(
-              "Received unknown discovery command: %#x, transaction ID = "
-              "%" PRIu8,
-              rxHeader->command, rxHeader->transaction);
-          break;
-        }
-      }
-
+  switch (rxHeader->command) {
+    case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {
+      chppDiscoveryProcessDiscoverAll(context, buf, len);
       break;
     }
-
     default: {
-      LOGE("Received unknown discovery message type: %" PRIu8
-           ", command = %#x, transaction ID = %" PRIu8,
-           rxHeader->type, rxHeader->command, rxHeader->transaction);
+      success = false;
       break;
     }
   }
+  return success;
 }
