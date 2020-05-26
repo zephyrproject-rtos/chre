@@ -93,6 +93,8 @@ class CodeGenerator:
             with open(output_filename, 'w') as f:
                 f.write(contents)
 
+            # TODO: run clang-format on the output
+
     def _is_array_type(self, type_info):
         # If this is an array type, declarators will be a tuple containing a list of
         # a single int element giving the size of the array
@@ -183,7 +185,7 @@ class CodeGenerator:
             out.append("//! See {{@link {}}} for details\n".format(name))
         out.append("{} {{\n".format(self._get_chpp_type_from_chre(name)))
         for member_info in self.api.structs_and_unions[name]['members']:
-            out.append("    {} {}{};{}\n".format(self._get_member_type(member_info),
+            out.append("  {} {}{};{}\n".format(self._get_member_type(member_info),
                                                  member_info['name'],
                                                  self._get_member_type_suffix(member_info),
                                                  self._get_member_comment(member_info)))
@@ -269,7 +271,7 @@ class CodeGenerator:
                            parameter_name))
 
         # sizeof(this struct)
-        out.append("    size_t encodedSize = sizeof({});\n".format(chpp_type_name))
+        out.append("  size_t encodedSize = sizeof({});\n".format(chpp_type_name))
 
         # Plus count * sizeof(type) for each var-len array included in this struct
         for member_info in self.api.structs_and_unions[chre_type]['members']:
@@ -287,11 +289,11 @@ class CodeGenerator:
                             "Nested variable-length arrays is not currently supported ({} "
                             "in {})".format(member_info['name'], chre_type))
 
-                    out.append("    encodedSize += {}->{} * sizeof({});\n".format(
+                    out.append("  encodedSize += {}->{} * sizeof({});\n".format(
                         parameter_name, annotation['length_field'],
                         self._get_member_type(member_info, True)))
 
-        out.append("    return encodedSize;\n}\n\n")
+        out.append("  return encodedSize;\n}\n\n")
         return out
 
     def _gen_chpp_sizeof_functions(self):
@@ -321,14 +323,14 @@ class CodeGenerator:
     def _gen_encoding_function_signature(self, chre_type):
         out = []
         out.append("void {}(\n".format(self._get_encoding_function_name(chre_type)))
-        out.append("        const {}{} *in,\n".format(
+        out.append("    const {}{} *in,\n".format(
             self._get_struct_or_union_prefix(chre_type), chre_type))
-        out.append("        {} *out".format(self._get_chpp_type_from_chre(chre_type)))
+        out.append("    {} *out".format(self._get_chpp_type_from_chre(chre_type)))
         if self.api.structs_and_unions[chre_type]['has_vla_member']:
             out.append(",\n")
-            out.append("        uint8_t *payload,\n")
-            out.append("        size_t payloadSize,\n")
-            out.append("        uint16_t *vlaOffset")
+            out.append("    uint8_t *payload,\n")
+            out.append("    size_t payloadSize,\n")
+            out.append("    uint16_t *vlaOffset")
         out.append(")")
         return out
 
@@ -371,23 +373,23 @@ class CodeGenerator:
         chpp_type = self._get_member_type(member_info, True)
         out.append("\n    {} *{} = ({} *) &payload[*vlaOffset];\n".format(
             chpp_type, variable_name, chpp_type))
-        out.append("    out->{}.length = in->{} * {};\n".format(
+        out.append("  out->{}.length = in->{} * {};\n".format(
             member_info['name'], annotation['length_field'],
             self._get_chpp_member_sizeof_call(member_info)))
-        out.append("    if (out->{}.length > 0) {{\n".format(member_info['name']))
-        out.append("        out->{}.offset = *vlaOffset;\n".format(member_info['name']))
-        out.append("        *vlaOffset += out->{}.length;\n".format(member_info['name']))
-        out.append("    } else {\n")
-        out.append("        out->{}.offset = 0;\n".format(member_info['name']))
-        out.append("    }\n"
-                   "    CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
-                   "    UNUSED_VAR(payloadSize);\n\n")
+        out.append("  if (out->{}.length > 0) {{\n".format(member_info['name']))
+        out.append("    out->{}.offset = *vlaOffset;\n".format(member_info['name']))
+        out.append("    *vlaOffset += out->{}.length;\n".format(member_info['name']))
+        out.append("  } else {\n")
+        out.append("    out->{}.offset = 0;\n".format(member_info['name']))
+        out.append("  }\n"
+                   "  CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
+                   "  UNUSED_VAR(payloadSize);\n\n")
 
-        out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
+        out.append("  for (size_t i = 0; i < in->{}; i++) {{\n".format(
             annotation['length_field'], variable_name))
-        out.append("        {}".format(
+        out.append("    {}".format(
             self._get_assignment_statement_for_field(member_info, True)))
-        out.append("    }\n")
+        out.append("  }\n")
 
         return out
 
@@ -409,18 +411,18 @@ class CodeGenerator:
         struct_info = self.api.structs_and_unions[chre_type]
 
         # Start off by zeroing out the union field so any padding is set to a consistent value
-        out.append("    memset(&out->{}, 0, sizeof(out->{}));\n".format(member_info['name'],
+        out.append("  memset(&out->{}, 0, sizeof(out->{}));\n".format(member_info['name'],
                                                                         member_info['name']))
 
         # Next, generate the switch statement that will copy over the proper values
-        out.append("    switch (in->{}) {{\n".format(annotation['discriminator']))
+        out.append("  switch (in->{}) {{\n".format(annotation['discriminator']))
         for value, field_name in annotation['mapping']:
-            out.append("        case {}:\n".format(value))
+            out.append("    case {}:\n".format(value))
 
             found = False
             for nested_member_info in struct_info['members']:
                 if nested_member_info['name'] == field_name:
-                    out.append("            {}".format(
+                    out.append("      {}".format(
                         self._get_assignment_statement_for_field(
                             nested_member_info, containing_field_name=member_info['name'])))
                     found = True
@@ -430,11 +432,11 @@ class CodeGenerator:
                 raise RuntimeError("Invalid mapping - couldn't find target field {} in struct {}"
                                    .format(field_name, chre_type))
 
-            out.append("            break;\n")
+            out.append("      break;\n")
 
-        out.append("        default:\n"
-                   "            CHPP_ASSERT(false);\n"
-                   "    }\n")
+        out.append("    default:\n"
+                   "      CHPP_ASSERT(false);\n"
+                   "  }\n")
 
         return out
 
@@ -462,10 +464,10 @@ class CodeGenerator:
             for annotation in member_info['annotations']:
                 if annotation['annotation'] == "fixed_value":
                     if self._is_array_type(member_info['type']):
-                        out.append("    memset(&out->{}, {}, sizeof(out->{}));\n".format(
+                        out.append("  memset(&out->{}, {}, sizeof(out->{}));\n".format(
                             member_info['name'], annotation['value'], member_info['name']))
                     else:
-                        out.append("    out->{} = {};\n".format(member_info['name'],
+                        out.append("  out->{} = {};\n".format(member_info['name'],
                                                                 annotation['value']))
                     generated_by_annotation = True
                     break
@@ -482,7 +484,7 @@ class CodeGenerator:
                     break
 
             if not generated_by_annotation:
-                out.append("    {}".format(self._get_assignment_statement_for_field(member_info)))
+                out.append("  {}".format(self._get_assignment_statement_for_field(member_info)))
 
         out.append("}\n\n")
         return out
@@ -544,10 +546,10 @@ class CodeGenerator:
                        " * @return true on success, false if memory allocation failed\n"
                        " */\n")
         out.append("bool {}(\n".format(self._get_encode_allocation_function_name(chre_type)))
-        out.append("        const {}{} *in,\n".format(
+        out.append("    const {}{} *in,\n".format(
             self._get_struct_or_union_prefix(chre_type), chre_type))
-        out.append("        {} **out,\n".format(self._get_chpp_type_from_chre(chre_type)))
-        out.append("        size_t *outSize)")
+        out.append("    {} **out,\n".format(self._get_chpp_type_from_chre(chre_type)))
+        out.append("    size_t *outSize)")
         return out
 
     def _gen_encode_allocation_function(self, chre_type):
@@ -555,29 +557,29 @@ class CodeGenerator:
 
         out.extend(self._gen_encode_allocation_function_signature(chre_type))
         out.append(" {\n")
-        out.append("    CHPP_NOT_NULL(out);\n")
-        out.append("    CHPP_NOT_NULL(outSize);\n\n")
-        out.append("    size_t payloadSize = {};\n".format(self._get_chpp_sizeof_call(chre_type)))
-        out.append("    *out = chppMalloc(payloadSize);\n".format(
+        out.append("  CHPP_NOT_NULL(out);\n")
+        out.append("  CHPP_NOT_NULL(outSize);\n\n")
+        out.append("  size_t payloadSize = {};\n".format(self._get_chpp_sizeof_call(chre_type)))
+        out.append("  *out = chppMalloc(payloadSize);\n".format(
             self._get_chpp_type_from_chre(chre_type)))
 
-        out.append("    if (*out != NULL) {\n")
+        out.append("  if (*out != NULL) {\n")
 
         struct_info = self.api.structs_and_unions[chre_type]
         if struct_info['has_vla_member']:
-            out.append("        uint8_t *payload = (uint8_t *) *out;\n")
-            out.append("        uint16_t vlaOffset = sizeof({});\n".format(
+            out.append("    uint8_t *payload = (uint8_t *) *out;\n")
+            out.append("    uint16_t vlaOffset = sizeof({});\n".format(
                 self._get_chpp_type_from_chre(chre_type)))
 
-        out.append("        {}(in, *out".format(self._get_encoding_function_name(chre_type)))
+        out.append("    {}(in, *out".format(self._get_encoding_function_name(chre_type)))
         if struct_info['has_vla_member']:
             out.append(", payload, payloadSize, &vlaOffset")
         out.append(");\n")
-        out.append("        *outSize = payloadSize;\n")
-        out.append("        return true;\n")
-        out.append("    }\n")
+        out.append("    *outSize = payloadSize;\n")
+        out.append("    return true;\n")
+        out.append("  }\n")
 
-        out.append("    return false;\n}\n")
+        out.append("  return false;\n}\n")
         return out
 
     def _gen_encode_allocation_functions(self):
