@@ -47,7 +47,7 @@ CHPP_SERVICE_SOURCE_PATH = "chpp/services"
 
 
 def system_chre_abs_path():
-    """Gets the absolute path to the system/chre directory containint this script."""
+    """Gets the absolute path to the system/chre directory containing this script."""
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # Assuming we're at system/chre/chpp/api_parser (i.e. up 2 to get to system/chre)
     chre_project_base_dir = os.path.normpath(script_dir + "/../..")
@@ -83,7 +83,7 @@ class CodeGenerator:
         out.append("// time the script is executed\n\n")
         return out
 
-    def _dump_to_file(self, output_filename, contents, dry_run):
+    def _dump_to_file(self, output_filename, contents, dry_run, skip_clang_fomat):
         """Outputs contents to output_filename, or prints contents if dry_run is True"""
         if dry_run:
             print("---- {} ----".format(output_filename))
@@ -93,7 +93,12 @@ class CodeGenerator:
             with open(output_filename, 'w') as f:
                 f.write(contents)
 
-            # TODO: run clang-format on the output
+            if not skip_clang_fomat:
+                clang_format_path = os.path.normpath(
+                    "../../../../prebuilts/clang/host/linux-x86/clang-stable/bin/clang-format")
+                args = [clang_format_path, '-i', output_filename]
+                result = subprocess.run(args)
+                result.check_returncode()
 
     def _is_array_type(self, type_info):
         # If this is an array type, declarators will be a tuple containing a list of
@@ -599,13 +604,16 @@ class CodeGenerator:
     # Public methods
     # ----------------------------------------------------------------------------------------------
 
-    def generate_header_file(self, dry_run=False):
+    def generate_header_file(self, dry_run=False, skip_clang_format=False):
         """Creates a C header file for this API and writes it to the file indicated in the JSON."""
-        output_file = os.path.join(system_chre_abs_path(),
-                                   CHPP_SERVICE_INCLUDE_PATH,
-                                   self.service_name + "_types.h")
+        filename = self.service_name + "_types.h"
+        if not dry_run:
+            print("Generating {} ... ".format(filename), end='', flush=True)
+        output_file = os.path.join(system_chre_abs_path(), CHPP_SERVICE_INCLUDE_PATH, filename)
         header = self.generate_header_string()
-        self._dump_to_file(output_file, header, dry_run)
+        self._dump_to_file(output_file, header, dry_run, skip_clang_format)
+        if not dry_run:
+            print("done")
 
     def generate_header_string(self):
         """Returns a C header with structure definitions for this API."""
@@ -632,13 +640,16 @@ class CodeGenerator:
         out.append("#endif  // {}\n".format(header_guard))
         return ''.join(out)
 
-    def generate_conversion_file(self, dry_run=False):
+    def generate_conversion_file(self, dry_run=False, skip_clang_format=False):
         """Generates a .c file with functions for encoding CHRE structs into CHPP and vice versa."""
+        filename = self.service_name + "_convert.c"
+        if not dry_run:
+            print("Generating {} ... ".format(filename), end='', flush=True)
         contents = self.generate_conversion_string()
-        output_file = os.path.join(system_chre_abs_path(),
-                                   CHPP_SERVICE_SOURCE_PATH,
-                                   self.service_name + "_convert.c")
-        self._dump_to_file(output_file, contents, dry_run)
+        output_file = os.path.join(system_chre_abs_path(), CHPP_SERVICE_SOURCE_PATH, filename)
+        self._dump_to_file(output_file, contents, dry_run, skip_clang_format)
+        if not dry_run:
+            print("done")
 
     def generate_conversion_string(self):
         """Returns C code for encoding CHRE structs into CHPP and vice versa."""
@@ -769,19 +780,24 @@ class ApiParser:
 
 
 def run(args):
+    print("Parsing ... ", end='', flush=True)
     with open('chre_api_annotations.json') as f:
         js = json.load(f)
 
     for file in js:
         api_parser = ApiParser(file)
         code_gen = CodeGenerator(api_parser)
-        code_gen.generate_header_file(args.dry_run)
-        code_gen.generate_conversion_file(args.dry_run)
+        print("done")
+        code_gen.generate_header_file(args.dry_run, args.skip_clang_format)
+        code_gen.generate_conversion_file(args.dry_run, args.skip_clang_format)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate CHPP serialization code from CHRE APIs.')
     parser.add_argument('-n', dest='dry_run', action='store_true',
                         help='Print the output instead of writing to a file')
+    parser.add_argument('--skip-clang-format', dest='skip_clang_format', action='store_true',
+                        help='Skip running clang-format on the output files (doesn\'t apply to dry '
+                             'runs)')
     args = parser.parse_args()
     run(args)
