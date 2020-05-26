@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_NANOAPP_LOAD_MANAGER_H_
-#define CHRE_PLATFORM_SLPI_NANOAPP_LOAD_MANAGER_H_
+#ifndef CHRE_PLATFORM_SHARED_NANOAPP_LOAD_MANAGER_H_
+#define CHRE_PLATFORM_SHARED_NANOAPP_LOAD_MANAGER_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -140,4 +140,4 @@ class NanoappLoadManager : public NonCopyable {
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_NANOAPP_LOAD_MANAGER_H_
+#endif  // CHRE_PLATFORM_SHARED_NANOAPP_LOAD_MANAGER_H_
