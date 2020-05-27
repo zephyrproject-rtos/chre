@@ -52,8 +52,8 @@ void chppDispatchDiscoveryClient(struct ChppAppState *context,
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   switch (rxHeader->type) {
-    case CHPP_MESSAGE_TYPE_SERVER_RESPONSE: {
-      // Received discovery response from server
+    case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE: {
+      // Received discovery response from service
 
       switch (rxHeader->command) {
         case CHPP_DISCOVERY_COMMAND_DISCOVER_ALL: {

@@ -112,18 +112,6 @@ struct ChppServiceState {
   uint8_t handle;                   // Handle number for this service
 };
 
-/**
- * Maintains the basic state for each request/response functionality of a
- * service.
- * Any number of these may be included in the (context) status variable of a
- * service (one per every every request/response functionality).
- */
-struct ChppServiceRRState {
-  uint64_t requestTime;   // Time of the last request
-  uint64_t responseTime;  // Time of the last response
-  uint8_t transaction;    // Transaction ID for the last request/response
-};
-
 /************************************************
  *  Public functions
  ***********************************************/
@@ -160,7 +148,7 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
 
 /**
  * Allocates a response message of a specified length, populating the (app
- * layer) server response header accorging to the provided client request (app
+ * layer) service response header accorging to the provided client request (app
  * layer) header.
  *
  * It is expected that for most use cases, the chppAllocServiceResponseFixed()
@@ -181,7 +169,7 @@ struct ChppAppHeader *chppAllocServiceResponse(
  * This function shall be called for all incoming client requests in order to
  * A) Timestamp them, and
  * B) Save their Transaction ID
- * as part of the request/response's ChppServiceRRState struct.
+ * as part of the request/response's ChppRequestResponseState struct.
  *
  * This function prints an error message if a duplicate request is received
  * while outstanding request is still pending without a response.
@@ -190,15 +178,15 @@ struct ChppAppHeader *chppAllocServiceResponse(
  * functionality of a service.
  * @param requestHeader Client request header.
  */
-void chppTimestampRequest(struct ChppServiceRRState *rRState,
-                          struct ChppAppHeader *requestHeader);
+void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
+                                 struct ChppAppHeader *requestHeader);
 
 /**
- * This function shall be called for the final server response to a client
+ * This function shall be called for the final service response to a client
  * request in order to
  * A) Timestamp them, and
  * B) Mark them as fulfilled
- * part of the request/response's ChppServiceRRState struct.
+ * part of the request/response's ChppRequestResponseState struct.
  *
  * This function prints an error message if a response is attempted without an
  * outstanding request.
@@ -209,11 +197,11 @@ void chppTimestampRequest(struct ChppServiceRRState *rRState,
  * @param rRState Maintains the basic state for each request/response
  * functionality of a service.
  */
-void chppTimestampResponse(struct ChppServiceRRState *rRState);
+void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState);
 
 /**
- * Timestamps a response using chppTimestampResponse() and enqueues it using
- * chppEnqueueTxDatagramOrFail().
+ * Timestamps a response using chppServiceTimestampResponse() and enqueues it
+ * using chppEnqueueTxDatagramOrFail().
  *
  * Refer to their respective documentation for details.
  *
@@ -227,7 +215,7 @@ void chppTimestampResponse(struct ChppServiceRRState *rRState);
  * False informs the sender that the queue was full and the payload discarded.
  */
 bool chppSendTimestampedResponseOrFail(struct ChppServiceState *serviceState,
-                                       struct ChppServiceRRState *rRState,
+                                       struct ChppRequestResponseState *rRState,
                                        void *buf, size_t len);
 
 #ifdef __cplusplus

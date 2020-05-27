@@ -34,7 +34,7 @@ void chppDispatchLoopbackClientRequest(struct ChppAppState *context,
 
     // Modify response message type per loopback spec.
     struct ChppAppHeader *responseHeader = (struct ChppAppHeader *)response;
-    responseHeader->type = CHPP_MESSAGE_TYPE_SERVER_RESPONSE;
+    responseHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
 
     // Send out response datagram
     chppEnqueueTxDatagramOrFail(context->transportContext, response, len);
