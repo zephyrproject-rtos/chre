@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/slpi/nanoapp_load_manager.h"
+#include "chre/platform/shared/nanoapp_load_manager.h"
 
 namespace chre {
 
