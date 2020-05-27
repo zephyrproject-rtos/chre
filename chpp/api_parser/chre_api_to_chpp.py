@@ -381,20 +381,25 @@ class CodeGenerator:
         out.append("  out->{}.length = in->{} * {};\n".format(
             member_info['name'], annotation['length_field'],
             self._get_chpp_member_sizeof_call(member_info)))
-        out.append("  if (out->{}.length > 0) {{\n".format(member_info['name']))
+
+        out.append("  CHPP_ASSERT(*vlaOffset + out->{}.length <= payloadSize);\n".format(
+            member_info['name']))
+        out.append("  if (out->{}.length > 0 &&\n"
+                   "      *vlaOffset + out->{}.length <= payloadSize) {{\n".format(
+            member_info['name'], member_info['name']))
+
         out.append("    out->{}.offset = *vlaOffset;\n".format(member_info['name']))
         out.append("    *vlaOffset += out->{}.length;\n".format(member_info['name']))
+
+        out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
+            annotation['length_field'], variable_name))
+        out.append("      {}".format(
+            self._get_assignment_statement_for_field(member_info, True)))
+        out.append("    }\n")
+
         out.append("  } else {\n")
         out.append("    out->{}.offset = 0;\n".format(member_info['name']))
-        out.append("  }\n"
-                   "  CHPP_ASSERT(*vlaOffset <= payloadSize);\n"
-                   "  UNUSED_VAR(payloadSize);\n\n")
-
-        out.append("  for (size_t i = 0; i < in->{}; i++) {{\n".format(
-            annotation['length_field'], variable_name))
-        out.append("    {}".format(
-            self._get_assignment_statement_for_field(member_info, True)))
-        out.append("  }\n")
+        out.append("  }\n");
 
         return out
 
