@@ -39,10 +39,9 @@ static const struct ChppService wwanServiceConfig = {
     // Human-readable name
     .descriptor.name = "WWAN",
 
+    // Version
     .descriptor.versionMajor = 1,
-
     .descriptor.versionMinor = 0,
-
     .descriptor.versionPatch = 0,
 
     // Client request dispatch function pointer

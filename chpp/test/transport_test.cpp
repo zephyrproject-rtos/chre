@@ -43,6 +43,9 @@ constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
                                7,  8,   10,  16,   20,    30,   40,
                                51, 100, 201, 1000, 10001, 20000};
 
+// Number of services
+constexpr int kServiceCount = 1;
+
 /*
  * Test suite for the CHPP Transport Layer
  */
@@ -58,7 +61,7 @@ class TransportTests : public testing::TestWithParam<int> {
     // Make sure CHPP has a correct count of the number of registered services
     // on this platform, (in this case, 1,) as registered in the function
     // chppRegisterCommonServices().
-    ASSERT_EQ(appContext.registeredServiceCount, 1);
+    ASSERT_EQ(appContext.registeredServiceCount, kServiceCount);
   }
 
   void TearDown() override {
@@ -78,6 +81,42 @@ class TransportTests : public testing::TestWithParam<int> {
       k++;
     }
     ASSERT_FALSE(transportContext->txStatus.hasPacketsToSend);  // timeout
+  }
+
+  /**
+   * Validates a ChppTestResponse. Since the error field within the
+   * ChppServiceBasicResponse struct is optional (and not used for common
+   * services), this function returns the error field to be checked if desired,
+   * depending on the service.
+   *
+   * @param buf Buffer containing response.
+   * @param ackSeq Ack sequence to be verified.
+   * @param handle Handle number to be verified
+   * @param transactionID Transaction ID to be verified.
+   *
+   * @return The error field within the ChppServiceBasicResponse struct that is
+   * used by some but not all services.
+   */
+  uint8_t validateChppTestResponse(void *buf, uint8_t ackSeq, uint8_t handle,
+                                   uint8_t transactionID) {
+    struct ChppTestResponse *response = (ChppTestResponse *)buf;
+
+    // Check preamble
+    EXPECT_EQ(response->preamble0, kChppPreamble0);
+    EXPECT_EQ(response->preamble1, kChppPreamble1);
+
+    // Check response transport headers
+    EXPECT_EQ(response->transportHeader.errorCode, CHPP_TRANSPORT_ERROR_NONE);
+    EXPECT_EQ(response->transportHeader.ackSeq, ackSeq);
+
+    // Check response app headers
+    EXPECT_EQ(response->basicResponse.header.handle, handle);
+    EXPECT_EQ(response->basicResponse.header.type,
+              CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
+    EXPECT_EQ(response->basicResponse.header.transaction, transactionID);
+
+    // Return optional response error to be checked if desired
+    return response->basicResponse.error;
   }
 
   ChppTransportState transportContext = {};
@@ -356,13 +395,19 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
 }
 
 /**
- * Discovery service
+ * Discovery service + Transaction ID
  */
-TEST_F(TransportTests, DiscoveryService) {
-  transportContext.rxStatus.state = CHPP_STATE_HEADER;
-  size_t len = 0;
+TEST_P(TransportTests, DiscoveryService) {
+  uint8_t transactionID = static_cast<size_t>(GetParam());
+
   std::thread t1(chppWorkThreadStart, &transportContext);
 
+  // Preamble
+  buf[0] = kChppPreamble0;
+  buf[1] = kChppPreamble1;
+  size_t len = 2;
+
+  // Transport header
   ChppTransportHeader transHeader{};
   transHeader.flags = 0;
   transHeader.errorCode = 0;
@@ -373,11 +418,11 @@ TEST_F(TransportTests, DiscoveryService) {
   memcpy(&buf[len], &transHeader, sizeof(transHeader));
   len += sizeof(transHeader);
 
+  // App header
   ChppAppHeader appHeader{};
-
   appHeader.handle = CHPP_HANDLE_DISCOVERY;
   appHeader.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
-  appHeader.transaction = 1;
+  appHeader.transaction = transactionID;
   appHeader.command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
 
   memcpy(&buf[len], &appHeader, sizeof(appHeader));
@@ -390,40 +435,57 @@ TEST_F(TransportTests, DiscoveryService) {
   EXPECT_TRUE(chppRxDataCb(&transportContext, buf, len));
 
   // Check for correct state
-  EXPECT_EQ(transportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
-
-  // The next expected packet sequence # should incremented
   uint8_t nextSeq = transHeader.seq + 1;
   EXPECT_EQ(transportContext.rxStatus.expectedSeq, nextSeq);
+  EXPECT_EQ(transportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
 
   // Wait for response
   WaitForTransport(&transportContext);
-
-  // Check response packet fields
-  struct ChppTransportHeader *txHeader =
-      (struct ChppTransportHeader *)&transportContext.pendingTxPacket
-          .payload[CHPP_PREAMBLE_LEN_BYTES];
-
-  // Check response packet parameters
-  EXPECT_EQ(txHeader->errorCode, CHPP_TRANSPORT_ERROR_NONE);
-  EXPECT_EQ(txHeader->ackSeq, nextSeq);
-
-  // TODO: more tests
-
-  // Check response packet payload
-  EXPECT_EQ(transportContext.pendingTxPacket
-                .payload[CHPP_PREAMBLE_LEN_BYTES +
-                         sizeof(struct ChppTransportHeader)],
-            CHPP_HANDLE_DISCOVERY);
-  EXPECT_EQ(transportContext.pendingTxPacket
-                .payload[CHPP_PREAMBLE_LEN_BYTES +
-                         sizeof(struct ChppTransportHeader) + 1],
-            CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
 
   // Should have reset loc and length for next packet / datagram
   EXPECT_EQ(transportContext.rxStatus.locInDatagram, 0);
   EXPECT_EQ(transportContext.rxDatagram.length, 0);
 
+  // Validate response
+  validateChppTestResponse(transportContext.pendingTxPacket.payload, nextSeq,
+                           CHPP_HANDLE_DISCOVERY, transactionID);
+  size_t responseLoc = sizeof(ChppTestResponse) -
+                       sizeof(uint8_t);  // no error field for common services
+
+  // Decode discovery response
+  ChppServiceDescriptor *services = (ChppServiceDescriptor *)&transportContext
+                                        .pendingTxPacket.payload[responseLoc];
+  responseLoc += kServiceCount * sizeof(ChppServiceDescriptor);
+
+  // Check total length (and implicit service count)
+  EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
+                             sizeof(ChppAppHeader) +
+                             kServiceCount * sizeof(ChppServiceDescriptor));
+
+  // Check service configuration response
+  static const ChppServiceDescriptor wwanServiceDescriptor = {
+      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
+               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+
+      // Human-readable name
+      .name = "WWAN",
+
+      // Version
+      .versionMajor = 1,
+      .versionMinor = 0,
+      .versionPatch = 0,
+  };
+  EXPECT_EQ(std::memcmp(services[0].uuid, wwanServiceDescriptor.uuid,
+                        sizeof(wwanServiceDescriptor.uuid)),
+            0);
+  EXPECT_EQ(std::memcmp(services[0].name, wwanServiceDescriptor.name,
+                        sizeof(wwanServiceDescriptor.name)),
+            0);
+  EXPECT_EQ(services[0].versionMajor, wwanServiceDescriptor.versionMajor);
+  EXPECT_EQ(services[0].versionMinor, wwanServiceDescriptor.versionMinor);
+  EXPECT_EQ(services[0].versionPatch, wwanServiceDescriptor.versionPatch);
+
+  // Cleanup
   chppWorkThreadStop(&transportContext);
   t1.join();
 }
