@@ -81,7 +81,6 @@ include $(CHRE_PREFIX)/build/common.mk
 
 # CHRE Implementation includes.
 include $(CHRE_PREFIX)/apps/apps.mk
-include $(CHRE_PREFIX)/ash/ash.mk
 include $(CHRE_PREFIX)/chre_api/chre_api.mk
 include $(CHRE_PREFIX)/core/core.mk
 include $(CHRE_PREFIX)/external/external.mk
