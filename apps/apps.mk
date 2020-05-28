@@ -24,7 +24,6 @@ ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
 include apps/wwan_world/wwan_world.mk
 endif
 
-include apps/ash_world/ash_world.mk
 include apps/debug_dump_world/debug_dump_world.mk
 include apps/hello_world/hello_world.mk
 include apps/host_awake_world/host_awake_world.mk
