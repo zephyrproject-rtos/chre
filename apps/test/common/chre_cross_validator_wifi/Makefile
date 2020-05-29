@@ -35,6 +35,7 @@ NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 
 COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_wifi.cc
 COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_wifi_manager.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/wifi_scan_result.cc
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
