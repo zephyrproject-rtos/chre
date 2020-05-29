@@ -117,15 +117,18 @@ void Manager::handleDataMessage(const chreMessageFromHostData *hostData) {
       pb_istream_from_buffer(reinterpret_cast<const pb_byte_t *>(
                                  const_cast<const void *>(hostData->message)),
                              hostData->messageSize);
-  chre_cross_validation_wifi_WifiScanResult scanResult =
-      chre_cross_validation_wifi_WifiScanResult_init_default;
-  if (!pb_decode(&stream, chre_cross_validation_wifi_WifiScanResult_fields,
-                 &scanResult)) {
-    LOGE("Could not decode wifi scan result from AP");
+  WifiScanResult scanResult(&stream);
+  uint8_t scanResultIndex = scanResult.getResultIndex();
+  mApScanResultsSize = scanResult.getTotalNumResults();
+  if (scanResultIndex > mApScanResultsSize) {
+    LOGE("AP scan result index is greater than scan results size");
   } else {
-    mApDataCollectionDone = true;
-    if (mChreDataCollectionDone) {
-      compareAndSendResultToHost();
+    mApScanResults[scanResultIndex] = scanResult;
+    if (scanResult.isLastMessage()) {
+      mApDataCollectionDone = true;
+      if (mChreDataCollectionDone) {
+        compareAndSendResultToHost();
+      }
     }
   }
 }
@@ -140,6 +143,7 @@ void Manager::handleWifiScanResult(const chreWifiScanEvent *event) {
     }
     mNumResultsProcessed += event->resultCount;
     if (mNumResultsProcessed >= event->resultTotal) {
+      mChreScanResultsSize = mChreScanResultsI;
       mChreDataCollectionDone = true;
       if (mApDataCollectionDone) {
         compareAndSendResultToHost();
@@ -156,23 +160,20 @@ void Manager::compareAndSendResultToHost() {
   if (errMsg == nullptr) {
     LOG_OOM();
   } else {
-    bool success = true;
-    if (mApScanResultsI != mChreScanResultsI) {
+    // Logging all info about the scan results for debug purposes
+    if (mApScanResultsSize != mChreScanResultsSize) {
       testResult = makeTestResultProtoMessage(
           false, "There is a different number of AP and CHRE scan results.");
-      LOGE(
-          "There is a different number of AP and CHRE scan results. AP = "
-          "%" PRIu8 ", CHRE = %" PRIu8,
-          mApScanResultsI, mChreScanResultsI);
-      success = false;
+      LOGE("AP and CHRE wifi scan result counts differ, AP = %" PRIu8
+           ", CHRE = %" PRIu8,
+           mApScanResultsSize, mChreScanResultsSize);
     } else {
-      for (uint8_t i = 0; i < mApScanResultsI; i++) {
+      for (uint8_t i = 0; i < mApScanResultsSize; i++) {
         if (!WifiScanResult::areEqual(mApScanResults[i], mChreScanResults[i])) {
           testResult = makeTestResultProtoMessage(
               false, "One of the AP and CHRE scan results are not equal.");
           LOGE("The AP and CHRE scan results are not equal on index %" PRIu8,
                i);
-          success = false;
         }
       }
     }
@@ -235,7 +236,6 @@ void Manager::encodeAndSendMessageToHost(const void *message,
 }
 
 void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
-  LOGI("handleWifiAsyncResult method");
   chre_test_common_TestResult testResult;
   if (result->requestType == CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR) {
     if (mStep != chre_cross_validation_wifi_Step_SETUP) {
@@ -252,13 +252,13 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
         testResult = makeTestResultProtoMessage(
             false, "Wifi scan monitoring setup failed async.");
       }
-      encodeAndSendMessageToHost(static_cast<void *>(&testResult),
-                                 chre_test_common_TestResult_fields);
     }
   } else {
     testResult = makeTestResultProtoMessage(
         false, "Unknown chre async result type received");
   }
+  encodeAndSendMessageToHost(static_cast<void *>(&testResult),
+                             chre_test_common_TestResult_fields);
 }
 
 }  // namespace cross_validator_wifi

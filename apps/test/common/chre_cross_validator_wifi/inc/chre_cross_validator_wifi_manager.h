@@ -68,8 +68,10 @@ class Manager {
 
   //! The current index that cross validator should assign to when a new scan
   //! result comes in.
-  uint8_t mApScanResultsI = 0;
   uint8_t mChreScanResultsI = 0;
+
+  uint8_t mChreScanResultsSize = 0;
+  uint8_t mApScanResultsSize = 0;
 
   //! The number of wifi scan results processed from CHRE apis
   uint8_t mNumResultsProcessed = 0;
