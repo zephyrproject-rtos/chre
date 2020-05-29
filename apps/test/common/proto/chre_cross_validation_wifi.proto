@@ -36,3 +36,17 @@ enum Step {
 message StepStartCommand {
   optional Step step = 1;
 }
+
+/*
+ * The fields that are common between the AP framework ScanResult object @
+ * //frameworks/base/wifi/java/android/net/wifi/ScanResult.java
+ * and the chreWifiScanResult in the WiFi CHRE API @
+ * //system/chre/chre_api/include/chre_api/chre/wifi.h
+ */
+message WifiScanResult {
+  // The total number of results that will be sent from AP.
+  optional uint32 totalNumResults = 1;
+  // The index of this result in relation to the entire set of results.
+  // [0 - totalNumResults)
+  optional uint32 resultIndex = 2;
+}
