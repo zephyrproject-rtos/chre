@@ -18,6 +18,7 @@
 #define CHRE_CROSS_VALIDATOR_WIFI_MANAGER_H_
 
 #include <cinttypes>
+#include <cstdint>
 
 #include <chre.h>
 #include <pb_common.h>
@@ -28,6 +29,8 @@
 
 #include "chre_cross_validation_wifi.nanopb.h"
 #include "chre_test_common.nanopb.h"
+
+#include "wifi_scan_result.h"
 
 namespace chre {
 
@@ -57,6 +60,23 @@ class Manager {
 
   //! Struct that holds some information about the state of the cross validator
   CrossValidatorState mCrossValidatorState;
+
+  // TODO: Find a better max scan results val
+  static constexpr uint8_t kMaxScanResults = UINT8_MAX;
+  WifiScanResult mApScanResults[kMaxScanResults];
+  WifiScanResult mChreScanResults[kMaxScanResults];
+
+  //! The current index that cross validator should assign to when a new scan
+  //! result comes in.
+  uint8_t mApScanResultsI = 0;
+  uint8_t mChreScanResultsI = 0;
+
+  //! The number of wifi scan results processed from CHRE apis
+  uint8_t mNumResultsProcessed = 0;
+
+  //! Bools indicating that data collection is complete for each side
+  bool mApDataCollectionDone = false;
+  bool mChreDataCollectionDone = false;
 
   /**
    * Handle a message from the host.
@@ -92,6 +112,24 @@ class Manager {
    */
   void encodeAndSendMessageToHost(const void *message,
                                   const pb_field_t *fields);
+  /**
+   * Handle a wifi scan result data message sent from AP.
+   *
+   * @param hostData The message.
+   */
+  void handleDataMessage(const chreMessageFromHostData *hostData);
+
+  /**
+   * Handle a wifi scan result event from a CHRE event.
+   *
+   * @param event the wifi scan event from CHRE api.
+   */
+  void handleWifiScanResult(const chreWifiScanEvent *event);
+
+  /**
+   * Compare the AP and CHRE wifi scan results and send test result to host.
+   */
+  void compareAndSendResultToHost();
 
   /**
    * Setup WiFi scan monitoring from CHRE apis.
