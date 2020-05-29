@@ -28,8 +28,6 @@ import android.util.Log;
 
 import com.google.android.utils.chre.ChreTestUtil;
 
-import org.junit.Assume;
-
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,14 +42,13 @@ import java.util.concurrent.atomic.AtomicReference;
 /*package*/
 abstract class ChreCrossValidatorBase {
     protected static final String TAG = "ChreCrossValidator";
-    private static final long NANO_APP_ID = 0x476f6f6754000002L;
 
     private final ContextHubManager mContextHubManager;
     protected final ContextHubClient mContextHubClient;
     private final ContextHubInfo mContextHubInfo;
     protected final NanoAppBinary mNappBinary;
 
-    protected final CountDownLatch mAwaitDataLatch = new CountDownLatch(1);
+    protected CountDownLatch mAwaitDataLatch = new CountDownLatch(1);
 
     protected final AtomicReference<String> mErrorStr = new AtomicReference<String>();
     protected AtomicBoolean mCollectingData = new AtomicBoolean(false);
@@ -68,9 +65,6 @@ abstract class ChreCrossValidatorBase {
     /*package*/
     ChreCrossValidatorBase(ContextHubManager contextHubManager, ContextHubInfo contextHubInfo,
               NanoAppBinary nanoAppBinary) {
-        Assume.assumeTrue("Nanoapp given to cross validator is not the designated chre cross"
-                + " validation nanoapp.",
-                nanoAppBinary.getNanoAppId() == NANO_APP_ID);
         mContextHubManager = contextHubManager;
         mContextHubInfo = contextHubInfo;
         mNappBinary = nanoAppBinary;
