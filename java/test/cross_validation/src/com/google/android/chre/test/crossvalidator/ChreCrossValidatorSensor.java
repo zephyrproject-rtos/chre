@@ -144,10 +144,9 @@ public class ChreCrossValidatorSensor
         int messageType = ChreCrossValidation.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
         ChreCrossValidation.StartSensorCommand startSensor =
                 ChreCrossValidation.StartSensorCommand.newBuilder()
-                .setSamplingIntervalInNs(TimeUnit.MILLISECONDS.toNanos(
-                          mSamplingIntervalInMs))
-                .setSamplingMaxLatencyInNs(TimeUnit.MILLISECONDS.toNanos(SAMPLING_LATENCY_IN_MS))
                 .setChreSensorType(getChreSensorType())
+                .setIntervalInMs(mSamplingIntervalInMs)
+                .setLatencyInMs(SAMPLING_LATENCY_IN_MS)
                 .setIsContinuous(sensorIsContinuous())
                 .build();
         ChreCrossValidation.StartCommand startCommand =
