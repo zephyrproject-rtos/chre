@@ -61,6 +61,8 @@ public class ChreCrossValidatorSensor
         }
     }
 
+    private static final long NANO_APP_ID = 0x476f6f6754000002L;
+
     private static final long AWAIT_DATA_TIMEOUT_CONTINUOUS_IN_MS = 5000;
     private static final long AWAIT_DATA_TIMEOUT_ON_CHANGE_ONE_SHOT_IN_MS = 1000;
 
@@ -104,6 +106,9 @@ public class ChreCrossValidatorSensor
             ContextHubInfo contextHubInfo, NanoAppBinary nanoAppBinary, int apSensorType)
             throws AssertionError {
         super(contextHubManager, contextHubInfo, nanoAppBinary);
+        Assert.assertTrue("Nanoapp given to cross validator is not the designated chre cross"
+                + " validation nanoapp.",
+                nanoAppBinary.getNanoAppId() == NANO_APP_ID);
         mApDatapointsQueue = new ConcurrentLinkedQueue<ApSensorDatapoint>();
         mChreDatapointsQueue = new ConcurrentLinkedQueue<ChreSensorDatapoint>();
         Assert.assertTrue(String.format("Sensor type %d is not recognized", apSensorType),
