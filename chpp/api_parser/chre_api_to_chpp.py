@@ -367,6 +367,10 @@ class CodeGenerator:
             return "{}(&{}, &{}{});\n".format(
                 self._get_encoding_function_name(chre_type), input_variable, output_variable,
                 vla_params)
+        elif self._is_array_type(member_info['type']):
+            # Array of primitive type (e.g. uint32_t[8]) - use memcpy
+            return "memcpy({}, {}, sizeof({}));\n".format(output_variable, input_variable,
+                                                          output_variable)
         else:
             # Regular assignment
             return "{} = {};\n".format(output_variable, input_variable)
