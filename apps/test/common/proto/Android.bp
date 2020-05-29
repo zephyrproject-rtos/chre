@@ -27,6 +27,18 @@ java_library {
 }
 
 java_library {
+    name: "chrecrossvalidation_wifi_java_proto",
+    host_supported: true,
+    srcs: [
+        "./chre_cross_validation_wifi.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
     name: "chre_settings_test_java_proto",
     host_supported: true,
     srcs: [
