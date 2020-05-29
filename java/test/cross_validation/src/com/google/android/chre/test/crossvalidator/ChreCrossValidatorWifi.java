@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
-    private static final long AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS = 1000; // 1 sec
+    private static final long AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS = 3000; // 3 sec
 
     private static final long NANO_APP_ID = 0x476f6f6754000005L;
 
@@ -85,11 +85,13 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
      * Wait for setup message from CHRE or CHRE_ERROR
      */
     private void waitForStepResult() {
+        mCollectingData.set(true);
         try {
             mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Assert.fail("Interrupted while awaiting " + getCurrentStepName() + " step");
         }
+        mCollectingData.set(false);
         mAwaitDataLatch = new CountDownLatch(1);
         Assert.assertTrue("Timed out while waiting for step result in " + getCurrentStepName()
                 + " step", mDidReceiveNanoAppMessage.get());
