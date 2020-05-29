@@ -304,6 +304,7 @@ void chppRegisterWwanClient(struct ChppAppState *appContext) {
   UNUSED_VAR(wwanClientConfig);
 }
 
+#ifdef CHPP_CLIENT_ENABLED_WWAN
 const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalWwanApi api = {
       .moduleVersion = CHRE_PAL_WWAN_API_V1_4,
@@ -325,3 +326,4 @@ const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion) {
     return &api;
   }
 }
+#endif

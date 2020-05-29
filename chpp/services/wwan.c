@@ -184,7 +184,6 @@ static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
     LOGE("WWAN PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
     response->error = CHPP_APP_ERROR_UNSPECIFIED;
-
   } else {
     response->error = CHPP_APP_ERROR_NONE;
   }
@@ -234,7 +233,7 @@ static void chppWwanServiceGetCapabilities(
                                     struct ChppWwanGetCapabilitiesResponse);
 
   // Populate the response
-  response->capabilities = gWwanServiceContext.api->getCapabilities();
+  response->capabilities = wwanServiceContext->api->getCapabilities();
   response->common.error = CHPP_APP_ERROR_NONE;
 
   // Timestamp and send out response datagram
@@ -260,7 +259,7 @@ static void chppWwanServiceGetCellInfoAsync(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
   // Register for callback
-  if (!gWwanServiceContext.api->requestCellInfo()) {
+  if (!wwanServiceContext->api->requestCellInfo()) {
     // Error occurred, send a synchronous error response
     struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
         requestHeader, struct ChppServiceBasicResponse);
