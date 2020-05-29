@@ -34,10 +34,12 @@ import androidx.test.InstrumentationRegistry;
 import com.google.android.chre.nanoapp.proto.ChreCrossValidationWifi;
 import com.google.android.chre.nanoapp.proto.ChreCrossValidationWifi.Step;
 import com.google.android.chre.nanoapp.proto.ChreTestCommon;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.Assert;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -174,10 +176,11 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
 
     private NanoAppMessage makeWifiScanResultMessage(ScanResult result, int totalNumResults,
                                                      int resultIndex) {
-        ChreCrossValidationWifi.WifiScanResult scanResult = ChreCrossValidationWifi.WifiScanResult
-                .newBuilder().setTotalNumResults(totalNumResults).setResultIndex(resultIndex)
-                .build();
         int messageType = ChreCrossValidationWifi.MessageType.SCAN_RESULT_VALUE;
+        ChreCrossValidationWifi.WifiScanResult scanResult = ChreCrossValidationWifi.WifiScanResult
+                .newBuilder().setSsid(result.SSID)
+                .setBssid(ByteString.copyFrom(bssidToBytes(result.BSSID)))
+                .setTotalNumResults(totalNumResults).setResultIndex(resultIndex).build();
         NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
                 mNappBinary.getNanoAppId(), messageType, scanResult.toByteArray());
         return message;
@@ -237,6 +240,12 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
             default:
                 return "UNKNOWN";
         }
+    }
+
+    private static byte[] bssidToBytes(String bssid) {
+        // the ScanResult.BSSID field comes in format ff:ff:ff:ff:ff and needs to be converted to
+        // bytes in order to be compared to CHRE bssid
+        return (new BigInteger(bssid.replace(":" , ""), 16)).toByteArray();
     }
 
     // TODO: Implement this method
