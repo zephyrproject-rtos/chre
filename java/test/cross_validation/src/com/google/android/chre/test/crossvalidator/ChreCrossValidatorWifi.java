@@ -60,6 +60,8 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
     private BroadcastReceiver mWifiScanReceiver;
 
     private AtomicBoolean mWifiScanResultsCompareFinalResult = new AtomicBoolean(false);
+    private AtomicReference<String> mWifiScanResultsCompareFinalErrorMessage =
+            new AtomicReference<String>(null);
 
     public ChreCrossValidatorWifi(
             ContextHubManager contextHubManager, ContextHubInfo contextHubInfo,
@@ -205,7 +207,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
                 Log.i(TAG, getCurrentStepName() + " step success");
             } else {
                 setErrorStr(getCurrentStepName() + " step failed: "
-                        + testResult.getErrorMessage());
+                        + testResult.getErrorMessage().toStringUtf8());
             }
         } else { // mStep.get() == Step.INIT
             setErrorStr("Received a step result message when no phase set yet.");
