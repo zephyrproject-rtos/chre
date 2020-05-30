@@ -16,16 +16,23 @@
 
 #include <chre.h>
 #include <cinttypes>
+#include "chre_cross_validator_wifi_manager.h"
 
 namespace chre {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {}
+                                   uint16_t eventType, const void *eventData) {
+  cross_validator_wifi::ManagerSingleton::get()->handleEvent(
+      senderInstanceId, eventType, eventData);
+}
 
 extern "C" bool nanoappStart(void) {
+  cross_validator_wifi::ManagerSingleton::init();
   return true;
 }
 
-extern "C" void nanoappEnd(void) {}
+extern "C" void nanoappEnd(void) {
+  cross_validator_wifi::ManagerSingleton::deinit();
+}
 
 }  // namespace chre
