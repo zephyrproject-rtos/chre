@@ -16,13 +16,10 @@
 
 #include "chre/pal/gnss.h"
 
-#include "chre/util/macros.h"
 #include "chre/util/memory.h"
 #include "chre/util/unique_ptr.h"
 
-#include <atomic>
 #include <chrono>
-#include <cstring>
 #include <future>
 #include <thread>
 
