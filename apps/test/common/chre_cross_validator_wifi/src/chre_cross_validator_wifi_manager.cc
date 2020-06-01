@@ -155,11 +155,11 @@ void Manager::handleWifiScanResult(const chreWifiScanEvent *event) {
 void Manager::compareAndSendResultToHost() {
   constexpr uint16_t kMaxSizeErrMsg = 1000;
   char *errMsg = static_cast<char *>(chreHeapAlloc(kMaxSizeErrMsg));
-  memset(errMsg, 0, kMaxSizeErrMsg);
   chre_test_common_TestResult testResult;
   if (errMsg == nullptr) {
     LOG_OOM();
   } else {
+    memset(errMsg, 0, kMaxSizeErrMsg);
     // Logging all info about the scan results for debug purposes
     if (mApScanResultsSize != mChreScanResultsSize) {
       testResult = makeTestResultProtoMessage(
