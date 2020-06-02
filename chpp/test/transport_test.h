@@ -21,6 +21,15 @@
 extern "C" {
 #endif
 
+CHPP_PACKED_START
+struct ChppTestResponse {
+  char preamble0;
+  char preamble1;
+  struct ChppTransportHeader transportHeader;
+  struct ChppServiceBasicResponse basicResponse;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
 /************************************************
  *  Functions necessary for unit testing
  ***********************************************/
