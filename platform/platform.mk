@@ -286,8 +286,8 @@ GOOGLETEST_CFLAGS += -Iplatform/slpi/include
 
 # GoogleTest Source Files ######################################################
 
-GOOGLETEST_SRCS += platform/linux/assert.cc
-GOOGLETEST_SRCS += platform/linux/audio_source.cc
-GOOGLETEST_SRCS += platform/linux/platform_audio.cc
+GOOGLETEST_COMMON_SRCS += platform/linux/assert.cc
+GOOGLETEST_COMMON_SRCS += platform/linux/audio_source.cc
+GOOGLETEST_COMMON_SRCS += platform/linux/platform_audio.cc
 GOOGLETEST_SRCS += platform/slpi/smgr/platform_sensor_util.cc
 GOOGLETEST_SRCS += platform/slpi/smgr/tests/platform_sensor_util_test.cc
