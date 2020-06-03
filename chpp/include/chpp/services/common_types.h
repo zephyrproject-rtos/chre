@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-#include <chpp/macros.h>
+#include "chpp/macros.h"
 
 /**
  * When CHRE API structures are converted to CHPP wire format structures, this
@@ -56,7 +56,7 @@ struct ChppOffset {
 
   //! Size of the array, in bytes
   uint16_t length;
-} CHPP_PACKED;
+} CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
 #endif  // CHPP_SERVICES_COMMON_TYPES_H_
