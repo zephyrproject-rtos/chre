@@ -3,7 +3,6 @@
   "includes": [
     "chre_api/include/chre_api/chre/common.h"
   ],
-  "output_file": "chpp/include/chpp/services/wwan_types.h",
   "output_includes": [
     "chpp/services/common_types.h",
     "chre_api/chre/wwan.h"
@@ -92,7 +91,6 @@
   "includes": [
     "chre_api/include/chre_api/chre/common.h"
   ],
-  "output_file": "chpp/include/chpp/services/wifi_types.h",
   "output_includes": [
     "chpp/services/common_types.h",
     "chre_api/chre/wifi.h"

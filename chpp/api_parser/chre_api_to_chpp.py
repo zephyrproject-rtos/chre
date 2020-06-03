@@ -630,9 +630,7 @@ class CodeGenerator:
         # concatenate once at the end
         out = [LICENSE_HEADER]
 
-        header_guard = "CHPP_"
-        header_guard += self.json['output_file'].split("/")[-1].split(".")[0].upper()
-        header_guard += "_H_"
+        header_guard = "CHPP_{}_TYPES_H_".format(self.service_name.upper())
 
         out.append("#ifndef {}\n#define {}\n\n".format(header_guard, header_guard))
         out.extend(self._autogen_notice())
