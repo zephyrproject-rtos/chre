@@ -127,9 +127,25 @@
           "value": "0"
         }
       ]
+    },
+    {
+      "name": "chreWifiScanParams",
+      "annotations": [
+        {
+          "field": "frequencyList",
+          "annotation": "var_len_array",
+          "length_field": "frequencyListLen"
+        },
+        {
+          "field": "ssidList",
+          "annotation": "var_len_array",
+          "length_field": "ssidListLen"
+        }
+      ]
     }
   ],
   "root_structs": [
-    "chreWifiScanEvent"
+    "chreWifiScanEvent",
+    "chreWifiScanParams"
   ]
 }]
