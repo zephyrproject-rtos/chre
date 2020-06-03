@@ -58,7 +58,7 @@ class CodeGenerator:
     """Given an ApiParser object, generates a header file with structure definitions in CHPP format.
     """
 
-    def __init__(self, api):
+    def __init__(self, api, commit_hash):
         """
         :param api: ApiParser object
         """
@@ -67,7 +67,7 @@ class CodeGenerator:
         # Turn "chre_api/include/chre_api/chre/wwan.h" into "wwan"
         self.service_name = self.json['filename'].split('/')[-1].split('.')[0]
         self.capitalized_service_name = self.service_name[0].upper() + self.service_name[1:]
-        self.commit_hash = subprocess.getoutput('git describe --always --long --dirty')
+        self.commit_hash = commit_hash
 
     # ----------------------------------------------------------------------------------------------
     # Header generation methods (plus some methods shared with encoder generation)
@@ -191,9 +191,9 @@ class CodeGenerator:
         out.append("{} {{\n".format(self._get_chpp_type_from_chre(name)))
         for member_info in self.api.structs_and_unions[name]['members']:
             out.append("  {} {}{};{}\n".format(self._get_member_type(member_info),
-                                                 member_info['name'],
-                                                 self._get_member_type_suffix(member_info),
-                                                 self._get_member_comment(member_info)))
+                                               member_info['name'],
+                                               self._get_member_type_suffix(member_info),
+                                               self._get_member_comment(member_info)))
 
         out.append("} CHPP_PACKED_ATTR;\n\n")
         return out
@@ -380,7 +380,7 @@ class CodeGenerator:
 
         variable_name = member_info['name']
         chpp_type = self._get_member_type(member_info, True)
-        out.append("\n    {} *{} = ({} *) &payload[*vlaOffset];\n".format(
+        out.append("\n  {} *{} = ({} *) &payload[*vlaOffset];\n".format(
             chpp_type, variable_name, chpp_type))
         out.append("  out->{}.length = in->{} * {};\n".format(
             member_info['name'], annotation['length_field'],
@@ -426,7 +426,7 @@ class CodeGenerator:
 
         # Start off by zeroing out the union field so any padding is set to a consistent value
         out.append("  memset(&out->{}, 0, sizeof(out->{}));\n".format(member_info['name'],
-                                                                        member_info['name']))
+                                                                      member_info['name']))
 
         # Next, generate the switch statement that will copy over the proper values
         out.append("  switch (in->{}) {{\n".format(annotation['discriminator']))
@@ -482,7 +482,7 @@ class CodeGenerator:
                             member_info['name'], annotation['value'], member_info['name']))
                     else:
                         out.append("  out->{} = {};\n".format(member_info['name'],
-                                                                annotation['value']))
+                                                              annotation['value']))
                     generated_by_annotation = True
                     break
                 elif annotation['annotation'] == "enum":
@@ -593,7 +593,7 @@ class CodeGenerator:
         out.append("    return true;\n")
         out.append("  }\n")
 
-        out.append("  return false;\n}\n")
+        out.append("  return false;\n}\n\n")
         return out
 
     def _gen_encode_allocation_functions(self):
@@ -789,13 +789,24 @@ class ApiParser:
 
 
 def run(args):
-    print("Parsing ... ", end='', flush=True)
     with open('chre_api_annotations.json') as f:
         js = json.load(f)
 
+    commit_hash = subprocess.getoutput("git describe --always --long --dirty --exclude '*'")
     for file in js:
+        if args.file_filter:
+            matched = False
+            for matcher in args.file_filter:
+                if matcher in file['filename']:
+                    matched = True
+                    break
+            if not matched:
+                print("Skipping {} - doesn't match filter(s) {}".format(file['filename'],
+                                                                        args.file_filter))
+                continue
+        print("Parsing {} ... ".format(file['filename']), end='', flush=True)
         api_parser = ApiParser(file)
-        code_gen = CodeGenerator(api_parser)
+        code_gen = CodeGenerator(api_parser, commit_hash)
         print("done")
         code_gen.generate_header_file(args.dry_run, args.skip_clang_format)
         code_gen.generate_conversion_file(args.dry_run, args.skip_clang_format)
@@ -808,5 +819,9 @@ if __name__ == "__main__":
     parser.add_argument('--skip-clang-format', dest='skip_clang_format', action='store_true',
                         help='Skip running clang-format on the output files (doesn\'t apply to dry '
                              'runs)')
+    parser.add_argument('file_filter', nargs='*',
+                        help='Filters the input files (filename field in the JSON) to generate a '
+                             'subset of the typical output, e.g. "wifi" to just generate conversion'
+                             ' routines for wifi.h')
     args = parser.parse_args()
     run(args)
