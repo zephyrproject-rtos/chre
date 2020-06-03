@@ -93,6 +93,7 @@ void validateScanEvent(const chreWifiScanEvent &chreEvent) {
     EXPECT_EQ(chppEvent->results.offset, baseOffset);
     EXPECT_EQ(chppEvent->results.length,
               chppEvent->resultCount * sizeof(ChppWifiScanResult));
+    baseOffset += chppEvent->results.length;
 
     const ChppWifiScanResult *chppAp =
         (const ChppWifiScanResult *)((const uint8_t *)chppEvent +
@@ -107,6 +108,68 @@ void validateScanEvent(const chreWifiScanEvent &chreEvent) {
   }
 
   chppFree(chppEvent);
+}
+
+void validateScanParams(const chreWifiScanParams &chreParams) {
+  ChppWifiScanParams *chppParams = nullptr;
+  size_t outputSize = 999;
+  bool result =
+      chppWifiScanParamsFromChre(&chreParams, &chppParams, &outputSize);
+  ASSERT_TRUE(result);
+  ASSERT_NE(chppParams, nullptr);
+
+  size_t expectedSize = sizeof(ChppWifiScanParams) +
+                        chreParams.frequencyListLen * sizeof(uint32_t) +
+                        chreParams.ssidListLen * sizeof(ChppWifiSsidListItem);
+  EXPECT_EQ(outputSize, expectedSize);
+
+  EXPECT_EQ(chppParams->scanType, chreParams.scanType);
+  EXPECT_EQ(chppParams->maxScanAgeMs, chreParams.maxScanAgeMs);
+  EXPECT_EQ(chppParams->frequencyListLen, chreParams.frequencyListLen);
+  EXPECT_EQ(chppParams->ssidListLen, chreParams.ssidListLen);
+  EXPECT_EQ(chppParams->radioChainPref, chreParams.radioChainPref);
+
+  uint16_t baseOffset = sizeof(ChppWifiScanParams);
+  if (chreParams.frequencyListLen > 0) {
+    EXPECT_EQ(chppParams->frequencyList.offset, baseOffset);
+    EXPECT_EQ(chppParams->frequencyList.length,
+              chppParams->frequencyListLen * sizeof(uint32_t));
+    baseOffset += chppParams->frequencyList.length;
+
+    const uint32_t *chppFrequencyList =
+        (const uint32_t *)((const uint8_t *)chppParams +
+                           chppParams->frequencyList.offset);
+    for (size_t i = 0; i < chppParams->frequencyListLen; i++) {
+      SCOPED_TRACE(i);
+      EXPECT_EQ(chppFrequencyList[i], chreParams.frequencyList[i]);
+    }
+  } else {
+    EXPECT_EQ(chppParams->frequencyList.offset, 0);
+    EXPECT_EQ(chppParams->frequencyList.length, 0);
+  }
+
+  if (chreParams.ssidListLen > 0) {
+    EXPECT_EQ(chppParams->ssidList.offset, baseOffset);
+    EXPECT_EQ(chppParams->ssidList.length,
+              chppParams->ssidListLen * sizeof(ChppWifiSsidListItem));
+    baseOffset += chppParams->ssidList.length;
+
+    const ChppWifiSsidListItem *chppSsidList =
+        (const ChppWifiSsidListItem *)((const uint8_t *)chppParams +
+                                       chppParams->ssidList.offset);
+    for (size_t i = 0; i < chppParams->ssidListLen; i++) {
+      SCOPED_TRACE(i);
+      EXPECT_EQ(chppSsidList[i].ssidLen, chreParams.ssidList[i].ssidLen);
+      EXPECT_EQ(std::memcmp(chppSsidList[i].ssid, chreParams.ssidList[i].ssid,
+                            sizeof(chppSsidList[i].ssid)),
+                0);
+    }
+  } else {
+    EXPECT_EQ(chppParams->ssidList.offset, 0);
+    EXPECT_EQ(chppParams->ssidList.length, 0);
+  }
+
+  chppFree(chppParams);
 }
 
 }  // anonymous namespace
@@ -223,4 +286,72 @@ TEST(WifiConvert, TwoResultsWithFreqList) {
   // clang-format on
 
   validateScanEvent(chreEvent);
+}
+
+TEST(WifiConvert, DefaultScanParams) {
+  // From chreWifiRequestScanAsyncDefault
+  struct chreWifiScanParams params = {};
+  params.scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE;
+  params.maxScanAgeMs = 5000;  // 5 seconds
+  params.frequencyListLen = 0;
+  params.ssidListLen = 0;
+  params.radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
+
+  validateScanParams(params);
+}
+
+TEST(WifiConvert, ScanParamsWithFreqList) {
+  uint32_t freqList[] = {1234, 3456};
+  struct chreWifiScanParams chreParams = {
+      .scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE_PLUS_PASSIVE_DFS,
+      .maxScanAgeMs = 9999,
+      .frequencyListLen = 2,
+      .frequencyList = freqList,
+      .ssidListLen = 0,
+      .ssidList = nullptr,
+      .radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_LOW_POWER,
+  };
+
+  validateScanParams(chreParams);
+}
+
+TEST(WifiConvert, ScanParamsWithSsidList) {
+  // clang-format off
+  chreWifiSsidListItem ssidList[] = {
+      {.ssidLen = 4, .ssid = {0xde, 0xad, 0xbe, 0xef}},
+      {.ssidLen = 2, .ssid = {':', ')'}}
+  };
+  // clang-format on
+  struct chreWifiScanParams chreParams = {
+      .scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE_PLUS_PASSIVE_DFS,
+      .maxScanAgeMs = 9999,
+      .frequencyListLen = 0,
+      .frequencyList = nullptr,
+      .ssidListLen = 2,
+      .ssidList = ssidList,
+      .radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_LOW_POWER,
+  };
+
+  validateScanParams(chreParams);
+}
+
+TEST(WifiConvert, ScanParamsWithBothLists) {
+  uint32_t freqList[] = {1234, 3456, 5678};
+  // clang-format off
+  chreWifiSsidListItem ssidList[] = {
+      {.ssidLen = 4, .ssid = {0xde, 0xad, 0xbe, 0xef}},
+      {.ssidLen = 3, .ssid = {':', '-', ')'}}
+  };
+  // clang-format on
+  struct chreWifiScanParams chreParams = {
+      .scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE_PLUS_PASSIVE_DFS,
+      .maxScanAgeMs = 9999,
+      .frequencyListLen = 3,
+      .frequencyList = freqList,
+      .ssidListLen = 2,
+      .ssidList = ssidList,
+      .radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_LOW_POWER,
+  };
+
+  validateScanParams(chreParams);
 }
