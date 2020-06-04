@@ -48,6 +48,11 @@ constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
 // Number of services
 constexpr int kServiceCount = 1;
 
+// Basic response minimum packet length
+constexpr int kMinResponsePacketLength =
+    CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
+    sizeof(ChppServiceBasicResponse) + sizeof(ChppTransportFooter);
+
 /*
  * Test suite for the CHPP Transport Layer
  */
@@ -574,18 +579,20 @@ TEST_P(TransportTests, DiscoveryService) {
   // Validate response
   validateChppTestResponse(mTransportContext.pendingTxPacket.payload, nextSeq,
                            CHPP_HANDLE_DISCOVERY, transactionID);
-  size_t responseLoc = sizeof(ChppTestResponse) -
-                       sizeof(uint8_t);  // no error field for common services
+  size_t responseLoc = sizeof(ChppTestResponse);
 
   // Decode discovery response
   ChppServiceDescriptor *services = (ChppServiceDescriptor *)&mTransportContext
                                         .pendingTxPacket.payload[responseLoc];
   responseLoc += kServiceCount * sizeof(ChppServiceDescriptor);
 
+  // TODO: Verify checksum
+  responseLoc += sizeof(ChppTransportFooter);
+
   // Check total length (and implicit service count)
-  EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
-                             sizeof(ChppAppHeader) +
+  EXPECT_EQ(responseLoc, kMinResponsePacketLength +
                              kServiceCount * sizeof(ChppServiceDescriptor));
+  EXPECT_EQ(mTransportContext.pendingTxPacket.length, responseLoc);
 
   // Check service configuration response
   static const ChppServiceDescriptor wwanServiceDescriptor = {
