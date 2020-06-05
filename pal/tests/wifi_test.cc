@@ -18,6 +18,7 @@
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/log.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/shared/pal_system_api.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/lock_guard.h"
@@ -127,8 +128,7 @@ TEST(PalWifiTest, ScanAsyncTest) {
       .scanEventCallback = chrePalScanEventCallback,
       .rangingEventCallback = chrePalRangingEventCallback,
   };
-  // TODO: Supply systemApi
-  ASSERT_TRUE(api->open(nullptr /* systemApi */, &kCallbacks));
+  ASSERT_TRUE(api->open(&chre::gChrePalSystemApi, &kCallbacks));
 
   // Request a WiFi scan
   chre::LockGuard<chre::Mutex> lock(gMutex);
