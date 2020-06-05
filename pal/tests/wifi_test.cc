@@ -34,9 +34,13 @@ using ::chre::Nanoseconds;
 using ::chre::Seconds;
 using ::chre::SystemTime;
 
+// TODO: Move these as a part of the test fixture
 uint8_t gErrorCode = CHRE_ERROR_LAST;
 uint32_t gNumScanResultCount = 0;
 bool gLastScanEventReceived = false;
+
+//! A list to store the scan results
+chre::DynamicVector<chreWifiScanEvent *> gScanEventList;
 
 //! Mutex to protect global variables
 chre::Mutex gMutex;
@@ -90,15 +94,9 @@ void chrePalScanEventCallback(struct chreWifiScanEvent *event) {
   if (event == nullptr) {
     LOGE("Got null scan event");
   } else {
-    // TODO: Sanity check values, push values onto a vector
-    // so that validation can occur on the main test thread
-    for (uint8_t i = 0; i < event->resultCount; i++) {
-      const chreWifiScanResult &result = event->results[i];
-      logChreWifiResult(result);
-    }
-
     {
       chre::LockGuard<chre::Mutex> lock(gMutex);
+      gScanEventList.push_back(event);
       gNumScanResultCount += event->resultCount;
       gLastScanEventReceived = (gNumScanResultCount == event->resultTotal);
     }
@@ -168,6 +166,15 @@ TEST_F(PalWifiTest, ScanAsyncTest) {
   end = SystemTime::getMonotonicTime() + kTimeoutNs;
   while (!gLastScanEventReceived && SystemTime::getMonotonicTime() < end) {
     gCondVar.wait_for(gMutex, kTimeoutNs);
+  }
+
+  for (auto *event : gScanEventList) {
+    // TODO: Sanity check values
+    for (uint8_t i = 0; i < event->resultCount; i++) {
+      const chreWifiScanResult &result = event->results[i];
+      logChreWifiResult(result);
+    }
+    api_->releaseScanEvent(event);
   }
 
   EXPECT_TRUE(gLastScanEventReceived);
