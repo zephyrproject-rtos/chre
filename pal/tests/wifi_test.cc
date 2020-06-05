@@ -35,7 +35,7 @@ using ::chre::Seconds;
 using ::chre::SystemTime;
 
 uint8_t gErrorCode = CHRE_ERROR_LAST;
-uint32_t gNumScanEvents = 0;
+uint32_t gNumScanResultCount = 0;
 bool gLastScanEventReceived = false;
 
 //! Mutex to protect global variables
@@ -83,9 +83,7 @@ void chrePalScanResponseCallback(bool pending, uint8_t errorCode) {
        errorCode);
   chre::LockGuard<chre::Mutex> lock(gMutex);
   gErrorCode = errorCode;
-
-  // TODO: Verify async result is received within required
-  // CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS timeout
+  gCondVar.notify_one();
 }
 
 void chrePalScanEventCallback(struct chreWifiScanEvent *event) {
@@ -101,8 +99,8 @@ void chrePalScanEventCallback(struct chreWifiScanEvent *event) {
 
     {
       chre::LockGuard<chre::Mutex> lock(gMutex);
-      gNumScanEvents += event->resultCount;
-      gLastScanEventReceived = (gNumScanEvents == event->resultTotal);
+      gNumScanResultCount += event->resultCount;
+      gLastScanEventReceived = (gNumScanResultCount == event->resultTotal);
     }
 
     gCondVar.notify_one();
@@ -144,8 +142,7 @@ class PalWifiTest : public ::testing::Test {
 TEST_F(PalWifiTest, ScanAsyncTest) {
   // Request a WiFi scan
   chre::LockGuard<chre::Mutex> lock(gMutex);
-  gErrorCode = CHRE_ERROR_LAST;
-  gNumScanEvents = 0;
+  gNumScanResultCount = 0;
   gLastScanEventReceived = false;
 
   struct chreWifiScanParams params = {};
@@ -156,15 +153,23 @@ TEST_F(PalWifiTest, ScanAsyncTest) {
   params.radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
   ASSERT_TRUE(api_->requestScan(&params));
 
-  // Since the CHRE API only poses timeout requirements on the async response,
-  // place a timeout longer than the CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS.
-  const Nanoseconds kTimeoutNs = Nanoseconds(Seconds(60));
+  const Nanoseconds kTimeoutNs = Nanoseconds(CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS);
   Nanoseconds end = SystemTime::getMonotonicTime() + kTimeoutNs;
+  gErrorCode = CHRE_ERROR_LAST;
+  while (gErrorCode == CHRE_ERROR_LAST &&
+         SystemTime::getMonotonicTime() < end) {
+    gCondVar.wait_for(gMutex, kTimeoutNs);
+  }
+  ASSERT_LT(SystemTime::getMonotonicTime(), end);
+  ASSERT_EQ(gErrorCode, CHRE_ERROR_NONE);
+
+  // The CHRE API only poses timeout requirements on the async response. Use
+  // the same timeout to receive the scan results to avoid blocking forever.
+  end = SystemTime::getMonotonicTime() + kTimeoutNs;
   while (!gLastScanEventReceived && SystemTime::getMonotonicTime() < end) {
     gCondVar.wait_for(gMutex, kTimeoutNs);
   }
 
-  EXPECT_EQ(gErrorCode, CHRE_ERROR_NONE);
   EXPECT_TRUE(gLastScanEventReceived);
-  EXPECT_GT(gNumScanEvents, 0);
+  EXPECT_GT(gNumScanResultCount, 0);
 }
