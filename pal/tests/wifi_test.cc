@@ -113,23 +113,35 @@ void chrePalRangingEventCallback(uint8_t errorCode,
                                  struct chreWifiRangingEvent *event) {
   // TODO:
 }
+
+class PalWifiTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    api_ = chrePalWifiGetApi(CHRE_PAL_WIFI_API_CURRENT_VERSION);
+    ASSERT_NE(api_, nullptr);
+    EXPECT_EQ(api_->moduleVersion, CHRE_PAL_WIFI_API_CURRENT_VERSION);
+
+    // Open the PAL API
+    static const struct chrePalWifiCallbacks kCallbacks = {
+        .scanMonitorStatusChangeCallback =
+            chrePalScanMonitorStatusChangeCallback,
+        .scanResponseCallback = chrePalScanResponseCallback,
+        .scanEventCallback = chrePalScanEventCallback,
+        .rangingEventCallback = chrePalRangingEventCallback,
+    };
+    ASSERT_TRUE(api_->open(&chre::gChrePalSystemApi, &kCallbacks));
+  }
+
+  void TearDown() override {
+    api_->close();
+  }
+
+  const struct chrePalWifiApi *api_;
+};
+
 }  // anonymous namespace
 
-TEST(PalWifiTest, ScanAsyncTest) {
-  const struct chrePalWifiApi *api =
-      chrePalWifiGetApi(CHRE_PAL_WIFI_API_CURRENT_VERSION);
-  ASSERT_NE(api, nullptr);
-  EXPECT_EQ(api->moduleVersion, CHRE_PAL_WIFI_API_CURRENT_VERSION);
-
-  // Open the PAL API
-  static const struct chrePalWifiCallbacks kCallbacks = {
-      .scanMonitorStatusChangeCallback = chrePalScanMonitorStatusChangeCallback,
-      .scanResponseCallback = chrePalScanResponseCallback,
-      .scanEventCallback = chrePalScanEventCallback,
-      .rangingEventCallback = chrePalRangingEventCallback,
-  };
-  ASSERT_TRUE(api->open(&chre::gChrePalSystemApi, &kCallbacks));
-
+TEST_F(PalWifiTest, ScanAsyncTest) {
   // Request a WiFi scan
   chre::LockGuard<chre::Mutex> lock(gMutex);
   gErrorCode = CHRE_ERROR_LAST;
@@ -142,9 +154,7 @@ TEST(PalWifiTest, ScanAsyncTest) {
   params.frequencyListLen = 0;
   params.ssidListLen = 0;
   params.radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
-  // TODO: Change below to ASSERT_TRUE, and modify test so that
-  // api->close() is always called.
-  EXPECT_TRUE(api->requestScan(&params));
+  ASSERT_TRUE(api_->requestScan(&params));
 
   // Since the CHRE API only poses timeout requirements on the async response,
   // place a timeout longer than the CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS.
@@ -157,6 +167,4 @@ TEST(PalWifiTest, ScanAsyncTest) {
   EXPECT_EQ(gErrorCode, CHRE_ERROR_NONE);
   EXPECT_TRUE(gLastScanEventReceived);
   EXPECT_GT(gNumScanEvents, 0);
-
-  api->close();
 }
