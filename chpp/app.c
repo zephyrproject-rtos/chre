@@ -15,6 +15,7 @@
  */
 
 #include "chpp/app.h"
+
 #include "chpp/pal_api.h"
 #include "chpp/services.h"
 
@@ -403,11 +404,15 @@ void chppAppInit(struct ChppAppState *appContext,
   chppPalSystemApiInit(appContext);
 
   chppRegisterCommonServices(appContext);
+
+  // chppRegisterCommonClients(appContext);
 }
 
 void chppAppDeinit(struct ChppAppState *appContext) {
   // TODO
 
+  // chppDeregisterCommonClients(appContext);
+  chppDeregisterCommonServices(appContext);
   chppPalSystemApiDeinit(appContext);
 }
 

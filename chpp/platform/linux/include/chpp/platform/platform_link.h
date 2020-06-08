@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+#define CHPP_PLATFORM_LINK_TX_MTU_BYTES 1280
+#define CHPP_PLATFORM_LINK_RX_MTU_BYTES 1280
+
+#define CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS 1000
+
 struct ChppPlatformLinkParameters {
   size_t index;
   bool sync;

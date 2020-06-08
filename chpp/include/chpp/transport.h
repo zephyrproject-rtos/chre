@@ -89,9 +89,10 @@ extern "C" {
  * Maximum payload of packets at the link layer.
  * TODO: Negotiate or advertise MTU
  */
-#define CHPP_LINK_TX_MTU_BYTES                                           \
-  (1024 + CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) + \
-   sizeof(struct ChppTransportFooter))
+#define CHPP_LINK_TX_MTU_BYTES                                               \
+  MAX(CHPP_PLATFORM_LINK_TX_MTU_BYTES,                                       \
+      (1024 + CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) + \
+       sizeof(struct ChppTransportFooter)))
 
 /**
  * Maximum payload of packets at the transport layer.
@@ -105,7 +106,8 @@ extern "C" {
  ***********************************************/
 
 /**
- * Error codes optionally reported in ChppTransportHeader
+ * Error codes optionally reported in ChppTransportHeader (Least significant
+ * nibble of int8_t packetCode).
  */
 enum ChppTransportErrorCode {
   //! No error reported (either ACK or implicit NACK)
@@ -127,28 +129,42 @@ enum ChppTransportErrorCode {
 };
 
 /**
+ * Packet attributes in ChppTransportHeader (Most significant nibble of int8_t
+ * packetCode).
+ */
+#define CHPP_TRANSPORT_ATTR_VALUE(value) (((value)&0x0f) << 4)
+#define CHPP_TRANSPORT_ATTR_MASK MOST_SIGNIFICANT_NIBBLE
+enum ChppTransportPacketAttributes {
+  //! None
+  CHPP_TRANSPORT_ATTR_NONE = CHPP_TRANSPORT_ATTR_VALUE(0),
+  //! Reset
+  CHPP_TRANSPORT_ATTR_RESET = CHPP_TRANSPORT_ATTR_VALUE(1),
+  //! Reset Ack
+  CHPP_TRANSPORT_ATTR_RESET_ACK = CHPP_TRANSPORT_ATTR_VALUE(2),
+};
+
+/**
  * CHPP Transport Layer header (not including the preamble)
  */
 CHPP_PACKED_START
 struct ChppTransportHeader {
-  // Flags bitmap, defined as CHPP_TRANSPORT_FLAG_...
+  //! Flags bitmap, defined as CHPP_TRANSPORT_FLAG_...
   uint8_t flags;
 
-  // Error info (2 nibbles)
-  // LS Nibble: Defined in enum ChppTransportErrorCode
-  // MS Nibble: Reserved
-  uint8_t errorCode;
+  //! LS Nibble: Defined in enum ChppTransportErrorCode
+  //! MS Nibble: Defined in enum ChppTransportPacketAttributes
+  uint8_t packetCode;
 
-  // Next expected sequence number for a payload-bearing packet
+  //! Next expected sequence number for a payload-bearing packet
   uint8_t ackSeq;
 
-  // Sequence number
+  //! Sequence number
   uint8_t seq;
 
-  // Payload length in bytes (not including header / footer)
+  //! Payload length in bytes (not including header / footer)
   uint16_t length;
 
-  // Reserved? TBD
+  //! Reserved
   uint16_t reserved;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
@@ -182,6 +198,38 @@ enum ChppRxState {
   CHPP_STATE_FOOTER = 3,
 };
 
+enum ChppResetState {
+  CHPP_RESET_STATE_RESETTING = 0,  //! Reset in progress
+  CHPP_RESET_STATE_NONE = 1,       //! Not in the middle of a reset
+};
+
+/**
+ * Payload that is sent along reset and reset-ack packets. This may be used to
+ * advertise the configuration parameters of this CHPP instance, and/or set the
+ * configuration parameters of the remote side (TODO).
+ */
+CHPP_PACKED_START
+struct ChppTransportConfiguration {
+  //! Major version of CHPP (breaking changes).
+  uint8_t versionMajor;
+
+  //! Minor version of CHPP (backwards compatible changes).
+  uint8_t versionMinor;
+
+  //! Patch version of CHPP (bug fixes).
+  uint16_t versionPatch;
+
+  //! Receive MTU size.
+  uint16_t rxMtu;
+
+  //! Max outstanding packet window size (1 for current implementation).
+  uint16_t windowSize;
+
+  //! Transport layer timeout in milliseconds (i.e. to receive ACK).
+  uint16_t timeoutInMs;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
 struct ChppRxStatus {
   //! Current receiving state, as described in ChppRxState.
   enum ChppRxState state;
@@ -193,8 +241,8 @@ struct ChppRxStatus {
   //! Next expected sequence number (for a payload-bearing packet)
   uint8_t expectedSeq;
 
-  //! Error code, if any, of the last received packet
-  enum ChppTransportErrorCode receivedErrorCode;
+  //! Packet (error) code, if any, of the last received packet
+  uint8_t receivedPacketCode;
 
   //! Location counter in bytes within the current Rx datagram.
   size_t locInDatagram;
@@ -218,7 +266,7 @@ struct ChppTxStatus {
   bool hasPacketsToSend;
 
   //! Error code, if any, of the next packet the transport layer will send out.
-  enum ChppTransportErrorCode errorCodeToSend;
+  uint8_t packetCodeToSend;
 
   //! How many bytes of the front-of-queue datagram has been sent out
   size_t sentLocInDatagram;
@@ -280,8 +328,9 @@ struct ChppTransportState {
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
   struct PendingTxPacket pendingTxPacket;      // Outgoing packet to Link Layer
 
-  struct ChppMutex mutex;        // Lock for transport state (i.e. context)
-  struct ChppNotifier notifier;  // Notifier for main thread
+  struct ChppMutex mutex;          // Lock for transport state (i.e. context)
+  struct ChppNotifier notifier;    // Notifier for main thread
+  enum ChppResetState resetState;  // Maintains state of a reset
 
   struct ChppPlatformLinkParameters linkParams;  // For corresponding link layer
 };
@@ -376,10 +425,10 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
  * an OOM situation over the wire.
  *
  * @param context Maintains status for each transport layer instance.
- * @param errorCode Error code to be sent
+ * @param packetCode Error code and packet attributes to be sent.
  */
 void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
-                                enum ChppTransportErrorCode errorCode);
+                                uint8_t packetCode);
 
 /**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be
@@ -429,6 +478,22 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params);
  * @param buf Pointer to the buf given to chppProcessRxDatagram. Cannot be null.
  */
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
+
+/**
+ * Sends a reset or reset-ack packet over the link in order to reset the remote
+ * side or inform the counterpart of a reset, respectively. The transport
+ * layer's configuration is sent as the payload of the reset packet.
+ *
+ * This function should only be used immediately after initialization, for
+ * example upon boot (to send a reset), or when a reset packet is received and
+ * acted upon (to send a reset-ack).
+ *
+ * @param transportContext Maintains status for each transport layer instance.
+ * @param resetType Distinguishes a reset from a reset-ack, as defined in the
+ * ChppTransportPacketAttributes struct.
+ */
+void chppTransportSendReset(struct ChppTransportState *context,
+                            enum ChppTransportPacketAttributes resetType);
 
 #ifdef __cplusplus
 }

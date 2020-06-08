@@ -55,6 +55,17 @@ struct ChppPlatformLinkParameters;
 bool chppPlatformLinkSend(struct ChppPlatformLinkParameters *params,
                           uint8_t *buf, size_t len);
 
+/*
+ * Platform-specific function to reset a non-synchronous link, where the link
+ * implementation is responsible for calling chppLinkSendDoneCb() after
+ * processing the contents of buf and len. For such links, a reset called before
+ * chppLinkSendDoneCb() indicates to the link to abort sending out buf, and that
+ * the contents of buf and len will become invalid.
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ */
+void chppPlatformLinkReset(struct ChppPlatformLinkParameters *params);
+
 #ifdef __cplusplus
 }
 #endif

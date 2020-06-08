@@ -25,3 +25,8 @@ bool chppPlatformLinkSend(struct ChppPlatformLinkParameters *params,
   UNUSED_VAR(len);
   return params->sync;
 }
+
+void chppPlatformLinkReset(struct ChppPlatformLinkParameters *params) {
+  // TODO
+  UNUSED_VAR(params);
+}

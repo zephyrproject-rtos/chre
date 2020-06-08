@@ -42,6 +42,13 @@ extern "C" {
  */
 void chppRegisterWwanService(struct ChppAppState *appContext);
 
+/**
+ * Called by the App layer to deregister the WWAN (cellular) common service.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ */
+void chppDeregisterWwanService(struct ChppAppState *appContext);
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,7 @@
  */
 
 #include "chpp/services/discovery.h"
+
 #include "chpp/services.h"
 
 /************************************************

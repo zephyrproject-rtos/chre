@@ -88,6 +88,15 @@ struct ChppClientState {
 void chppRegisterCommonClients(struct ChppAppState *context);
 
 /**
+ * Deregisters common clients with the CHPP app layer. These clients are enabled
+ * by CHPP_CLIENT_ENABLED_xxxx definitions. This function is automatically
+ * called by chppAppDeinit().
+ *
+ * @param context Maintains status for each app layer instance.
+ */
+void chppDeregisterCommonClients(struct ChppAppState *context);
+
+/**
  * Registers a new client on CHPP. This function is to be called by the
  * platform initialization code for every non-common client available on a
  * server (if any), i.e. except those that are registered through

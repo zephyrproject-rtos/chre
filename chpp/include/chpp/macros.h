@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+#define MOST_SIGNIFICANT_NIBBLE 0xf0
+#define LEAST_SIGNIFICANT_NIBBLE 0x0f
+
 #ifndef UNUSED_VAR
 #define UNUSED_VAR(var) ((void)(var))
 #endif

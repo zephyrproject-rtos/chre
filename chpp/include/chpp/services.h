@@ -87,9 +87,17 @@ struct ChppServiceState {
  * called by chppAppInit().
  *
  * @param context Maintains status for each app layer instance.
- * @param newService The service to be registered on this platform.
  */
 void chppRegisterCommonServices(struct ChppAppState *context);
+
+/**
+ * Deregisters common services with the CHPP app layer. These services are
+ * enabled by CHPP_SERVICE_ENABLED_xxxx definitions. This function is
+ * automatically called by chppAppInit().
+ *
+ * @param context Maintains status for each app layer instance.
+ */
+void chppDeregisterCommonServices(struct ChppAppState *context);
 
 /**
  * Registers a new service on CHPP. This function is to be called by the

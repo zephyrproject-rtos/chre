@@ -15,6 +15,7 @@
  */
 
 #include "chpp/clients/wwan.h"
+
 #include "chpp/app.h"
 #include "chpp/common/wwan.h"
 #include "chre/pal/wwan.h"
@@ -302,6 +303,12 @@ void chppRegisterWwanClient(struct ChppAppState *appContext) {
 
   UNUSED_VAR(appContext);
   UNUSED_VAR(wwanClientConfig);
+}
+
+void chppDeregisterWwanClient(struct ChppAppState *appContext) {
+  // TODO
+
+  UNUSED_VAR(appContext);
 }
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN

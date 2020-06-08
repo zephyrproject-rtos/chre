@@ -15,6 +15,7 @@
  */
 
 #include "chpp/clients.h"
+
 #include "chpp/clients/wwan.h"
 
 /************************************************
@@ -41,6 +42,21 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
 
 #ifdef CHPP_CLIENT_ENABLED_GNSS
   chppRegisterGnssClient(context);
+#endif
+}
+
+void chppDeregisterCommonClients(struct ChppAppState *context) {
+  UNUSED_VAR(context);
+#ifdef CHPP_CLIENT_ENABLED_WWAN
+  chppDeregisterWwanClient(context);
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_WLAN
+  chppDeregisterWlanClient(context);
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_GNSS
+  chppDeregisterGnssClient(context);
 #endif
 }
 

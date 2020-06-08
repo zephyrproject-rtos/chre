@@ -15,6 +15,7 @@
  */
 
 #include "chpp/services/wwan.h"
+
 #include "chpp/common/wwan.h"
 #include "chre/pal/wwan.h"
 
@@ -327,4 +328,10 @@ void chppRegisterWwanService(struct ChppAppState *appContext) {
         appContext, (void *)&gWwanServiceContext, &wwanServiceConfig);
     CHPP_DEBUG_ASSERT(gWwanServiceContext.service.handle);
   }
+}
+
+void chppDeregisterWwanService(struct ChppAppState *appContext) {
+  // TODO
+
+  UNUSED_VAR(appContext);
 }

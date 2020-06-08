@@ -15,6 +15,7 @@
  */
 
 #include "chpp/services.h"
+
 #include "chpp/app.h"
 #include "chpp/services/wwan.h"
 
@@ -33,6 +34,20 @@ void chppRegisterCommonServices(struct ChppAppState *context) {
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS
   chppRegisterGnssService(context);
+#endif
+}
+
+void chppDeregisterCommonServices(struct ChppAppState *context) {
+#ifdef CHPP_SERVICE_ENABLED_WWAN
+  chppDeregisterWwanService(context);
+#endif
+
+#ifdef CHPP_SERVICE_ENABLED_WLAN
+  chppDeregisterWlanService(context);
+#endif
+
+#ifdef CHPP_SERVICE_ENABLED_GNSS
+  chppDeregisterGnssService(context);
 #endif
 }
 

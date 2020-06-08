@@ -64,6 +64,7 @@ class TransportTests : public testing::TestWithParam<int> {
 
     mTransportContext.linkParams.index = 1;
     mTransportContext.linkParams.sync = true;
+    mTransportContext.resetState = CHPP_RESET_STATE_NONE;
 
     // Make sure CHPP has a correct count of the number of registered services
     // on this platform, (in this case, 1,) as registered in the function
@@ -89,7 +90,7 @@ class TransportTests : public testing::TestWithParam<int> {
  */
 void WaitForTransport(struct ChppTransportState *transportContext) {
   volatile uint16_t k = 1;
-  while (transportContext->txStatus.hasPacketsToSend || k == 0) {
+  while (transportContext->txStatus.hasPacketsToSend || k > 0) {
     k++;
   }
   ASSERT_FALSE(transportContext->txStatus.hasPacketsToSend);  // timeout
@@ -122,7 +123,7 @@ uint8_t validateChppTestResponse(void *buf, uint8_t ackSeq, uint8_t handle,
   EXPECT_EQ(response->preamble1, kChppPreamble1);
 
   // Check response transport headers
-  EXPECT_EQ(response->transportHeader.errorCode, CHPP_TRANSPORT_ERROR_NONE);
+  EXPECT_EQ(response->transportHeader.packetCode, CHPP_TRANSPORT_ERROR_NONE);
   EXPECT_EQ(response->transportHeader.ackSeq, ackSeq);
 
   // Check response app headers
@@ -165,7 +166,7 @@ ChppTransportHeader *addTransportHeaderToBuf(uint8_t *buf, size_t *location) {
   static const ChppTransportHeader transHeader = {
       // Default values for initial, minimum size request packet
       .flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM,
-      .errorCode = CHPP_TRANSPORT_ERROR_NONE,
+      .packetCode = CHPP_TRANSPORT_ERROR_NONE,
       .ackSeq = 1,
       .seq = 0,
       .length = sizeof(ChppAppHeader),
@@ -319,7 +320,10 @@ TEST_P(TransportTests, ZeroThenPreambleInput) {
 TEST_P(TransportTests, RxPayloadOfZeros) {
   mTransportContext.rxStatus.state = CHPP_STATE_HEADER;
   size_t len = static_cast<size_t>(GetParam());
+
+  mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
 
   if (len <= kMaxChunkSize) {
     size_t loc = 0;
@@ -351,9 +355,6 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     EXPECT_EQ(mTransportContext.rxStatus.locInDatagram, len);
 
     // But no ACK yet
-    EXPECT_FALSE(mTransportContext.txStatus.hasPacketsToSend);
-    EXPECT_EQ(mTransportContext.txStatus.errorCodeToSend,
-              CHPP_TRANSPORT_ERROR_NONE);
     EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, transHeader->seq);
 
     // Send footer
@@ -373,7 +374,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
       // These are expected to change shortly afterwards, as chppTransportDoWork
       // is run
       // EXPECT_TRUE(mTransportContext.txStatus.hasPacketsToSend);
-      EXPECT_EQ(mTransportContext.txStatus.errorCodeToSend,
+      EXPECT_EQ(mTransportContext.txStatus.packetCodeToSend,
                 CHPP_TRANSPORT_ERROR_NONE);
       EXPECT_EQ(mTransportContext.txDatagramQueue.pending, 0);
 
@@ -384,7 +385,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
           (struct ChppTransportHeader *)&mTransportContext.pendingTxPacket
               .payload[CHPP_PREAMBLE_LEN_BYTES];
       EXPECT_EQ(txHeader->flags, CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM);
-      EXPECT_EQ(txHeader->errorCode, CHPP_TRANSPORT_ERROR_NONE);
+      EXPECT_EQ(txHeader->packetCode, CHPP_TRANSPORT_ERROR_NONE);
       EXPECT_EQ(txHeader->ackSeq, nextSeq);
       EXPECT_EQ(txHeader->length, 0);
 
@@ -460,7 +461,10 @@ TEST_P(TransportTests, EnqueueDatagrams) {
 TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   mTransportContext.rxStatus.state = CHPP_STATE_HEADER;
   size_t len = static_cast<size_t>(GetParam());
+
+  mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
 
   if (len <= kMaxChunkSize) {
     // Transport header
@@ -510,7 +514,7 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
 
       // Check response packet parameters
       EXPECT_EQ(txHeader->flags, flags);
-      EXPECT_EQ(txHeader->errorCode, CHPP_TRANSPORT_ERROR_NONE);
+      EXPECT_EQ(txHeader->packetCode, CHPP_TRANSPORT_ERROR_NONE);
       EXPECT_EQ(txHeader->ackSeq, nextSeq);
       EXPECT_EQ(txHeader->length, mtu_len);
 
@@ -548,7 +552,9 @@ TEST_P(TransportTests, DiscoveryService) {
   uint8_t transactionID = static_cast<size_t>(GetParam());
   size_t len = 0;
 
+  mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
 
   // Preamble
   addPreambleToBuf(mBuf, &len);
@@ -626,7 +632,10 @@ TEST_P(TransportTests, DiscoveryService) {
  * WWAN service Open and GetCapabilities.
  */
 TEST_F(TransportTests, WwanOpen) {
+  mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
   uint8_t ackSeq = 1;
   uint8_t seq = 0;
   uint8_t handle = CHPP_HANDLE_NEGOTIATED_RANGE_START;
