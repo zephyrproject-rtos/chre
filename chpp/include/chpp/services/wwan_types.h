@@ -226,7 +226,8 @@ CHPP_PACKED_END
  *
  * @param in Fully-formed CHRE structure
  * @param out Upon success, will point to a buffer allocated with chppMalloc().
- * It is the responsibility of the caller to free this buffer via chppFree().
+ * It is the responsibility of the caller to free this buffer via chppFree() or
+ * CHPP_FREE_AND_NULLIFY().
  * @param outSize Upon success, will be set to the size of the output buffer,
  * in bytes
  * @return true on success, false if memory allocation failed

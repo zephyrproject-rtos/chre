@@ -300,8 +300,7 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
     if (context->rxDatagram.length == 0) {
       // Discarding this packet == discarding entire datagram
 
-      chppFree(context->rxDatagram.payload);
-      context->rxDatagram.payload = NULL;
+      CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
 
     } else {
       // Discarding this packet == discarding part of datagram
@@ -504,10 +503,9 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
   bool success = false;
 
   if (context->txDatagramQueue.pending > 0) {
-    chppFree(context->txDatagramQueue.datagram[context->txDatagramQueue.front]
-                 .payload);
-    context->txDatagramQueue.datagram[context->txDatagramQueue.front].payload =
-        NULL;
+    CHPP_FREE_AND_NULLIFY(
+        context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+            .payload);
     context->txDatagramQueue.datagram[context->txDatagramQueue.front].length =
         0;
 
@@ -815,7 +813,7 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
           len, header->handle, header->type, header->transaction,
           header->command);
     }
-    chppFree(buf);
+    CHPP_FREE_AND_NULLIFY(buf);
 
   } else {
     success = true;
@@ -866,5 +864,5 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params) {
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
   UNUSED_VAR(context);
 
-  chppFree(buf);
+  CHPP_FREE_AND_NULLIFY(buf);
 }

@@ -99,6 +99,12 @@ extern "C" {
 #error Unrecognized compiler
 #endif
 
+#define CHPP_FREE_AND_NULLIFY(p) \
+  do {                           \
+    chppFree(p);                 \
+    (p) = NULL;                  \
+  } while (0)
+
 #ifdef __cplusplus
 }
 #endif
