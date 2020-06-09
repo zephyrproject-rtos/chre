@@ -45,8 +45,10 @@ void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
       break;
     case CHRE_EVENT_WIFI_ASYNC_RESULT:
       handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+      break;
     case CHRE_EVENT_WIFI_SCAN_RESULT:
       handleWifiScanResult(static_cast<const chreWifiScanEvent *>(eventData));
+      break;
     default:
       LOGE("Unknown message type %" PRIu16 "received when handling event",
            eventType);
@@ -134,20 +136,15 @@ void Manager::handleDataMessage(const chreMessageFromHostData *hostData) {
 }
 
 void Manager::handleWifiScanResult(const chreWifiScanEvent *event) {
-  if (event->resultTotal == 0) {
-    // TODO: Find out why this happens and how to deal with it.
-    LOGD("event->resultTotal was 0. Ignoring this event.");
-  } else {
-    for (uint8_t i = 0; i < event->resultCount; i++) {
-      mChreScanResults[mChreScanResultsI++] = WifiScanResult(event->results[i]);
-    }
-    mNumResultsProcessed += event->resultCount;
-    if (mNumResultsProcessed >= event->resultTotal) {
-      mChreScanResultsSize = mChreScanResultsI;
-      mChreDataCollectionDone = true;
-      if (mApDataCollectionDone) {
-        compareAndSendResultToHost();
-      }
+  for (uint8_t i = 0; i < event->resultCount; i++) {
+    mChreScanResults[mChreScanResultsI++] = WifiScanResult(event->results[i]);
+  }
+  mNumResultsProcessed += event->resultCount;
+  if (mNumResultsProcessed >= event->resultTotal) {
+    mChreScanResultsSize = mChreScanResultsI;
+    mChreDataCollectionDone = true;
+    if (mApDataCollectionDone) {
+      compareAndSendResultToHost();
     }
   }
 }
