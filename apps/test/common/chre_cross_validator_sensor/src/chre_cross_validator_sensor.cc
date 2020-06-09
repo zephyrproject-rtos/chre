@@ -21,7 +21,7 @@
  * given in start message.
  */
 
-#include "chre_cross_validator_manager.h"
+#include "chre_cross_validator_sensor_manager.h"
 
 /* TODO(b/148481242): Send all errors to host as well as just logging them as
  * errors.
@@ -34,17 +34,17 @@ namespace chre {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
                                    uint16_t eventType, const void *eventData) {
-  cross_validator::ManagerSingleton::get()->handleEvent(senderInstanceId,
-                                                        eventType, eventData);
+  cross_validator_sensor::ManagerSingleton::get()->handleEvent(
+      senderInstanceId, eventType, eventData);
 }
 
 extern "C" bool nanoappStart(void) {
-  cross_validator::ManagerSingleton::init();
+  cross_validator_sensor::ManagerSingleton::init();
   return true;
 }
 
 extern "C" void nanoappEnd(void) {
-  cross_validator::ManagerSingleton::deinit();
+  cross_validator_sensor::ManagerSingleton::deinit();
 }
 
 }  // namespace chre
