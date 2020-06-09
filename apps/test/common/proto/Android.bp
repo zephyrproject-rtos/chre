@@ -15,10 +15,10 @@
 //
 
 java_library {
-    name: "chrecrossvalidation_java_proto",
+    name: "chrecrossvalidation_sensor_java_proto",
     host_supported: true,
     srcs: [
-        "./chre_cross_validation.proto",
+        "./chre_cross_validation_sensor.proto",
     ],
     proto: {
         type: "lite",
