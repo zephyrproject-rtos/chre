@@ -15,7 +15,7 @@
  */
 package com.google.android.chre.test.crossvalidator;
 
-import com.google.android.chre.nanoapp.proto.ChreCrossValidation;
+import com.google.android.chre.nanoapp.proto.ChreCrossValidationSensor;
 import com.google.common.primitives.Floats;
 
 /*package*/
@@ -29,7 +29,7 @@ class ChreSensorDatapoint extends SensorDatapoint {
     * @param datapoint The chre cross validation proto message for datapoint from CHRE.
     */
     /*package*/
-    ChreSensorDatapoint(ChreCrossValidation.SensorDatapoint datapoint) {
+    ChreSensorDatapoint(ChreCrossValidationSensor.SensorDatapoint datapoint) {
         timestamp = datapoint.getTimestampInNs();
         values = Floats.toArray(datapoint.getValuesList());
     }

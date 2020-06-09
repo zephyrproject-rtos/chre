@@ -28,7 +28,7 @@ import android.hardware.location.NanoAppMessage;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.google.android.chre.nanoapp.proto.ChreCrossValidation;
+import com.google.android.chre.nanoapp.proto.ChreCrossValidationSensor;
 import com.google.android.utils.chre.ChreTestUtil;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -141,17 +141,17 @@ public class ChreCrossValidatorSensor
     * @return The nanoapp message used to start the data collection in chre
     */
     private NanoAppMessage makeStartNanoAppMessage() {
-        int messageType = ChreCrossValidation.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
-        ChreCrossValidation.StartSensorCommand startSensor =
-                ChreCrossValidation.StartSensorCommand.newBuilder()
+        int messageType = ChreCrossValidationSensor.MessageType.CHRE_CROSS_VALIDATION_START_VALUE;
+        ChreCrossValidationSensor.StartSensorCommand startSensor =
+                ChreCrossValidationSensor.StartSensorCommand.newBuilder()
                 .setChreSensorType(getChreSensorType())
                 .setIntervalInMs(mSamplingIntervalInMs)
                 .setLatencyInMs(SAMPLING_LATENCY_IN_MS)
                 .setIsContinuous(sensorIsContinuous())
                 .build();
-        ChreCrossValidation.StartCommand startCommand =
-                ChreCrossValidation.StartCommand.newBuilder().setStartSensorCommand(startSensor)
-                .build();
+        ChreCrossValidationSensor.StartCommand startCommand =
+                ChreCrossValidationSensor.StartCommand.newBuilder()
+                .setStartSensorCommand(startSensor).build();
         return NanoAppMessage.createMessageToNanoApp(
                 mNappBinary.getNanoAppId(), messageType, startCommand.toByteArray());
     }
@@ -159,9 +159,9 @@ public class ChreCrossValidatorSensor
     @Override
     protected void parseDataFromNanoAppMessage(NanoAppMessage message) {
         final String kParseDataErrorPrefix = "While parsing data from nanoapp: ";
-        ChreCrossValidation.Data dataProto;
+        ChreCrossValidationSensor.Data dataProto;
         try {
-            dataProto = ChreCrossValidation.Data.parseFrom(message.getMessageBody());
+            dataProto = ChreCrossValidationSensor.Data.parseFrom(message.getMessageBody());
         } catch (InvalidProtocolBufferException e) {
             setErrorStr("Error parsing protobuff: " + e);
             return;
@@ -169,7 +169,7 @@ public class ChreCrossValidatorSensor
         if (!dataProto.hasSensorData()) {
             setErrorStr(kParseDataErrorPrefix + "found non sensor type data");
         } else {
-            ChreCrossValidation.SensorData sensorData = dataProto.getSensorData();
+            ChreCrossValidationSensor.SensorData sensorData = dataProto.getSensorData();
             int sensorType = chreToApSensorType(sensorData.getChreSensorType());
             if (!isSensorTypeCurrent(sensorType)) {
                 setErrorStr(
@@ -177,7 +177,7 @@ public class ChreCrossValidatorSensor
                         + "incorrect sensor type %d when expecting %d",
                         sensorType, mSensor.getType()));
             } else {
-                for (ChreCrossValidation.SensorDatapoint datapoint :
+                for (ChreCrossValidationSensor.SensorDatapoint datapoint :
                         sensorData.getDatapointsList()) {
                     int valuesLength = datapoint.getValuesList().size();
                     if (valuesLength != mSensorConfig.expectedValuesLength) {
