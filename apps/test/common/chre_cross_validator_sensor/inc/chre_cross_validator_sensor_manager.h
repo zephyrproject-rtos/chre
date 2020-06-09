@@ -20,14 +20,14 @@
 #include <chre.h>
 #include <pb_encode.h>
 
-#include "chre_cross_validation.nanopb.h"
+#include "chre_cross_validation_sensor.nanopb.h"
 
 #include "chre/util/optional.h"
 #include "chre/util/singleton.h"
 
 namespace chre {
 
-namespace cross_validator {
+namespace cross_validator_sensor {
 
 // TODO(b/154271551): Break up the Manager class into more fine-grained classes
 // to avoid it becoming to complex.
@@ -107,7 +107,7 @@ class Manager {
    *
    * @return The SensorDatapoint proto message.
    */
-  static chre_cross_validation_SensorDatapoint makeDatapoint(
+  static chre_cross_validation_sensor_SensorDatapoint makeDatapoint(
       bool (*encodeFunc)(pb_ostream_t *, const pb_field_t *, void *const *),
       const void *sampleDataFromChre, uint64_t currentTimestamp);
 
@@ -194,7 +194,8 @@ class Manager {
    * @return true if successful.
    */
   bool handleStartSensorMessage(
-      const chre_cross_validation_StartSensorCommand &startSensorCommand);
+      const chre_cross_validation_sensor_StartSensorCommand
+          &startSensorCommand);
 
   /**
    * @param header The sensor data header from CHRE sensor data event.
@@ -226,7 +227,7 @@ class Manager {
    * @return The Data proto message that is ready to be sent to host with three
    * axis data.
    */
-  chre_cross_validation_Data makeSensorThreeAxisData(
+  chre_cross_validation_sensor_Data makeSensorThreeAxisData(
       const chreSensorThreeAxisData *threeAxisDataFromChre, uint8_t sensorType);
 
   /**
@@ -236,7 +237,7 @@ class Manager {
    * @return The Data proto message that is ready to be sent to host with float
    * data.
    */
-  chre_cross_validation_Data makeSensorFloatData(
+  chre_cross_validation_sensor_Data makeSensorFloatData(
       const chreSensorFloatData *floatDataFromChre, uint8_t sensorType);
 
   /**
@@ -246,7 +247,7 @@ class Manager {
    * @return The Data proto message that is ready to be sent to host with float
    * data.
    */
-  chre_cross_validation_Data makeSensorProximityData(
+  chre_cross_validation_sensor_Data makeSensorProximityData(
       const chreSensorByteData *proximityDataFromChre);
 
   /**
@@ -279,7 +280,7 @@ class Manager {
    *
    * @param data The data to encode and send.
    */
-  void encodeAndSendDataToHost(const chre_cross_validation_Data &data);
+  void encodeAndSendDataToHost(const chre_cross_validation_sensor_Data &data);
 
   /**
    * Determine if nanoapp is ready to process new sensor data.
@@ -310,7 +311,7 @@ class Manager {
 // The chre cross validator manager singleton.
 typedef chre::Singleton<Manager> ManagerSingleton;
 
-}  // namespace cross_validator
+}  // namespace cross_validator_sensor
 
 }  // namespace chre
 
