@@ -433,7 +433,7 @@ TEST_P(TransportTests, EnqueueDatagrams) {
         uint8_t *mBuf = (uint8_t *)chppMalloc(100);
         EXPECT_FALSE(
             chppEnqueueTxDatagramOrFail(&mTransportContext, mBuf, 100));
-        chppFree(mBuf);
+        CHPP_FREE_AND_NULLIFY(mBuf);
       }
 
       for (size_t i = len; i > 0; i--) {

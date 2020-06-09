@@ -553,7 +553,7 @@ class CodeGenerator:
                        " * @param out Upon success, will point to a buffer allocated with "
                        "chppMalloc().\n"
                        " * It is the responsibility of the caller to free this buffer via "
-                       "chppFree().\n"
+                       "chppFree() or CHPP_FREE_AND_NULLIFY().\n"
                        " * @param outSize Upon success, will be set to the size of the output "
                        "buffer,\n"
                        " * in bytes\n"
