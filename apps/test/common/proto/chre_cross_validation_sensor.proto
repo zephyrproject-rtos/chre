@@ -1,9 +1,9 @@
 syntax = "proto2";
 
-package chre_cross_validation;
+package chre_cross_validation_sensor;
 
 option java_package = "com.google.android.chre.nanoapp.proto";
-option java_outer_classname = "ChreCrossValidation";
+option java_outer_classname = "ChreCrossValidationSensor";
 
 // Nanoappp message type can be either host to chre (H2C) or chre to host (C2H)
 enum MessageType {

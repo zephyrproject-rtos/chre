@@ -15,26 +15,26 @@ endif
 
 # Nanoapp Configuration ########################################################
 
-NANOAPP_NAME = chre_cross_validator
+NANOAPP_NAME = chre_cross_validator_sensor
 NANOAPP_ID = 0x476f6f6754000002
-NANOAPP_NAME_STRING = \"Chre\ Cross\ Validator\"
+NANOAPP_NAME_STRING = \"Chre\ Cross\ Validator\ Sensor\"
 NANOAPP_VERSION = 0x00000001
 
-NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_cross_validator
+NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_cross_validator_sensor
 
 # Protobuf Sources #############################################################
 
 NANOPB_EXTENSION = nanopb
 
-NANOPB_SRCS += $(NANOAPP_PATH)/../proto/chre_cross_validation.proto
+NANOPB_SRCS += $(NANOAPP_PATH)/../proto/chre_cross_validation_sensor.proto
 NANOPB_PROTO_PATH = $(NANOAPP_PATH)/../proto
 NANOPB_INCLUDES = $(NANOPB_PROTO_PATH)
 NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 
 # Source Code ##################################################################
 
-COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator.cc
-COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_manager.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_sensor.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/chre_cross_validator_sensor_manager.cc
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
