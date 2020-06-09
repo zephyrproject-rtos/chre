@@ -20,7 +20,7 @@ java_library {
     static_libs: [
         "chre-test-utils",
         "androidx.test.rules",
-        "chrecrossvalidation_java_proto",
+        "chrecrossvalidation_sensor_java_proto",
         "chrecrossvalidation_wifi_java_proto",
         "chre_test_common_java_proto",
         "guava",
