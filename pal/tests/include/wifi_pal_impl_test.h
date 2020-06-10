@@ -22,6 +22,7 @@
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/optional.h"
+#include "chre/util/time.h"
 #include "gtest/gtest.h"
 
 namespace wifi_pal_impl_test {
@@ -49,6 +50,20 @@ class PalWifiTest : public ::testing::Test {
    */
   void validateWifiScanEvent(const chreWifiScanEvent &event);
 
+  /**
+   * Prepares for a subsequent PAL API call that expects an async response.
+   */
+  void prepareForAsyncResponse() {
+    errorCode_ = CHRE_ERROR_LAST;
+  }
+
+  /**
+   * Waits for an async response by the PAL implementation (e.g. via scan
+   * response/monitor status change callback), and asserts that a success
+   * error code was received.
+   */
+  void waitForAsyncResponseAssertSuccess(chre::Nanoseconds timeoutNs);
+
   //! The pointer to the CHRE PAL implementation API
   const struct chrePalWifiApi *api_;
 
@@ -69,6 +84,9 @@ class PalWifiTest : public ::testing::Test {
 
   //! The last scan event index received, UINT8_MAX if invalid
   uint8_t lastEventIndex_;
+
+  //! True if scan monitoring is currently enabled
+  bool scanMonitorEnabled_ = false;
 
   //! Mutex to protect class variables
   chre::Mutex mutex_;
