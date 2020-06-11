@@ -352,11 +352,11 @@ public class ChreCrossValidatorSensor
         if (mApDatapointsArray[0].timestamp < mChreDatapointsArray[0].timestamp) {
             matchChre = 0;
             matchAp = indexOfFirstClosestDatapoint((SensorDatapoint[]) mApDatapointsArray,
-                                                   shorterDpLength, mChreDatapointsArray[0]);
+                                                   mChreDatapointsArray[0]);
         } else {
             matchAp = 0;
             matchChre = indexOfFirstClosestDatapoint((SensorDatapoint[]) mChreDatapointsArray,
-                                                     shorterDpLength, mApDatapointsArray[0]);
+                                                     mApDatapointsArray[0]);
         }
         Assert.assertTrue("Did not find matching timestamps to align AP and CHRE datapoints.",
                           (matchAp != -1 && matchChre != -1));
@@ -365,8 +365,9 @@ public class ChreCrossValidatorSensor
         int chreStartI = matchChre;
         int newApLength = mApDatapointsArray.length - apStartI;
         int newChreLength = mChreDatapointsArray.length - chreStartI;
-        int chreEndI = chreStartI + Math.min(newApLength, newChreLength);
-        int apEndI = apStartI + Math.min(newApLength, newChreLength);
+        int minLength = Math.min(newApLength, newChreLength);
+        int chreEndI = chreStartI + minLength;
+        int apEndI = apStartI + minLength;
         mApDatapointsArray = Arrays.copyOfRange(mApDatapointsArray, apStartI, apEndI);
         mChreDatapointsArray = Arrays.copyOfRange(mChreDatapointsArray, chreStartI, chreEndI);
     }
@@ -418,13 +419,12 @@ public class ChreCrossValidatorSensor
 
     /**
      * @param datapoints Array of dataoints to compare timestamps to laterDp
-     * @param shorterLength Length of shorter datapoints array
      * @param laterDp SensorDatapoint whose timestamp will be compared to the datapoints in array
      *    to find the first pair that match.
      */
-    private int indexOfFirstClosestDatapoint(SensorDatapoint[] sensorDatapoints, int shorterLength,
+    private int indexOfFirstClosestDatapoint(SensorDatapoint[] sensorDatapoints,
                                              SensorDatapoint laterDp) {
-        for (int i = 0; i < shorterLength; i++) {
+        for (int i = 0; i < sensorDatapoints.length; i++) {
             if (datapointTimestampsAreSimilar(sensorDatapoints[i], laterDp)) {
                 return i;
             }
