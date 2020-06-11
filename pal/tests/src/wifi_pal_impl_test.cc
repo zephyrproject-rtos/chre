@@ -25,6 +25,12 @@
 
 #include <cinttypes>
 
+// Flag to require on-demand WiFi scanning to be enabled for the test to pass.
+// Set to false to allow tests to pass on disabled platforms.
+#ifndef PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED
+#define PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED true
+#endif
+
 namespace {
 
 using ::chre::Nanoseconds;
@@ -167,6 +173,16 @@ void PalWifiTest::validateWifiScanEvent(const chreWifiScanEvent &event) {
 }
 
 TEST_F(PalWifiTest, ScanAsyncTest) {
+#if PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED
+  ASSERT_EQ(api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN,
+            CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN);
+#else
+  if ((api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) !=
+      CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
+    GTEST_SKIP();
+  }
+#endif
+
   // Request a WiFi scan
   chre::LockGuard<chre::Mutex> lock(mutex_);
 
