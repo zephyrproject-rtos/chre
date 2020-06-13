@@ -21,6 +21,7 @@
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/optional.h"
 #include "gtest/gtest.h"
 
 namespace wifi_pal_impl_test {
@@ -41,6 +42,13 @@ class PalWifiTest : public ::testing::Test {
 
   void TearDown() override;
 
+  /**
+   * Validates an incoming WiFi scan event.
+   *
+   * @param event The WiFi scan event.
+   */
+  void validateWifiScanEvent(const chreWifiScanEvent &event);
+
   //! The pointer to the CHRE PAL implementation API
   const struct chrePalWifiApi *api_;
 
@@ -55,6 +63,12 @@ class PalWifiTest : public ::testing::Test {
 
   //! A list to store the scan results
   chre::DynamicVector<chreWifiScanEvent *> scanEventList_;
+
+  //! Stores active scan params
+  chre::Optional<chreWifiScanParams> scanParams_;
+
+  //! The last scan event index received, UINT8_MAX if invalid
+  uint8_t lastEventIndex_;
 
   //! Mutex to protect class variables
   chre::Mutex mutex_;
