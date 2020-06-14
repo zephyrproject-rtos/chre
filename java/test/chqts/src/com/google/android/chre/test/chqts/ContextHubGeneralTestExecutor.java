@@ -45,9 +45,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * - MessageType.SUCCESS received from the Nanoapp by this infrastructure.
  * - A call to ContextHubGeneralTestExecutor.pass() by the test code.
  *
+ * NOTE: A test must extend this class and define the handleNanoappMessage() function to handle
+ * specific messages for the test.
+ *
  * TODO: Refactor this class to be able to be invoked for < P builds.
  */
-public class ContextHubGeneralTestExecutor extends ContextHubClientCallback {
+public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCallback {
     public static final String TAG = "ContextHubGeneralTestExecutor";
 
     private final NanoAppBinary mNanoAppBinary;
@@ -79,10 +82,10 @@ public class ContextHubGeneralTestExecutor extends ContextHubClientCallback {
         if (message.getNanoAppId() == mNanoAppId) {
             NanoAppMessage realMessage = hackMessageFromNanoApp(message);
 
-            int messageType = message.getMessageType();
+            int messageType = realMessage.getMessageType();
             ContextHubTestConstants.MessageType messageEnum =
                     ContextHubTestConstants.MessageType.fromInt(messageType, "");
-            byte[] data = message.getMessageBody();
+            byte[] data = realMessage.getMessageBody();
 
             switch (messageEnum) {
                 case INVALID_MESSAGE_TYPE:  // fall-through
@@ -109,7 +112,7 @@ public class ContextHubGeneralTestExecutor extends ContextHubClientCallback {
                     break;
 
                 default:
-                    // TODO: Handle specific message
+                    handleMessageFromNanoApp(messageEnum, data);
             }
         }
     }
@@ -176,6 +179,14 @@ public class ContextHubGeneralTestExecutor extends ContextHubClientCallback {
 
         mInitialized = false;
     }
+
+    /**
+     * Handles a message specific for a test.
+     * @param type The message type.
+     * @param data The message body.
+     */
+    protected abstract void handleMessageFromNanoApp(
+            ContextHubTestConstants.MessageType type, byte[] data);
 
     private void unloadAllNanoApps() {
         List<NanoAppState> stateList =
