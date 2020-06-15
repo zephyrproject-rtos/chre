@@ -146,4 +146,60 @@
     "chreWifiScanEvent",
     "chreWifiScanParams"
   ]
+},
+{
+  "filename": "chre_api/include/chre_api/chre/gnss.h",
+  "includes": [
+    "chre_api/include/chre_api/chre/common.h"
+  ],
+  "output_includes": [
+    "chpp/services/common_types.h",
+    "chre_api/chre/gnss.h"
+  ],
+  "struct_info": [
+    {
+      "name": "chreGnssDataEvent",
+      "annotations": [
+        {
+          "field": "version",
+          "annotation": "fixed_value",
+          "value": "CHRE_GNSS_DATA_EVENT_VERSION"
+        },
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        },
+        {
+          "field": "measurements",
+          "annotation": "var_len_array",
+          "length_field": "measurement_count"
+        }
+      ]
+    },
+    {
+      "name": "chreGnssLocationEvent",
+      "annotations": [
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "chreGnssClock",
+      "annotations": [
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        }
+      ]
+    }
+  ],
+  "root_structs": [
+    "chreGnssDataEvent",
+    "chreGnssLocationEvent"
+  ]
 }]
