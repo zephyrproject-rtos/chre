@@ -35,6 +35,7 @@ cc_library_static {
         "services/loopback.c",
         "services/nonhandle.c",
         "clients/discovery.c",
+        "services/gnss_convert.c",
         "services/wifi_convert.c",
         "services/wwan.c",
         "services/wwan_convert.c",
