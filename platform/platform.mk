@@ -191,7 +191,7 @@ SIM_SRCS += platform/shared/system_time.cc
 
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
-SIM_SRCS += platform/shared/pal_gnss_stub.cc
+SIM_SRCS += platform/linux/pal_gnss.cc
 SIM_SRCS += platform/shared/platform_gnss.cc
 endif
 
