@@ -630,37 +630,7 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
   SeeHelper &seeHelper = getSeeHelperForSensorType(sensor.getSensorType());
   bool wasInUImage = slpiInUImage();
 
-  bool success = true;
-
-  // TODO(b/150144912): Merge the two implementations to avoid having separate
-  // code paths.
-#ifdef CHRE_SLPI_DEFAULT_BUILD
-  // Calibration updates are not enabled automatically in the default build.
-  SeeCalHelper *calHelper = seeHelper.getCalHelper();
-
-  const sns_std_suid *suid =
-      calHelper->getCalSuidFromSensorType(sensor.getSensorType());
-  bool wereCalUpdatesEnabled = false;
-  if (suid != nullptr) {
-    wereCalUpdatesEnabled = calHelper->areCalUpdatesEnabled(*suid);
-    success = calHelper->configureCalUpdates(*suid, req.enable, seeHelper);
-  }
-#endif
-
-  if (success) {
-    success = seeHelper.makeRequest(req);
-  }
-
-#ifdef CHRE_SLPI_DEFAULT_BUILD
-  // If any part of the configuration process failed, reset our subscription
-  // for calibration updates to its previous value to attempt to restore state.
-  if (suid != nullptr && !success) {
-    bool areCalUpdatesEnabled = calHelper->areCalUpdatesEnabled(*suid);
-    if (areCalUpdatesEnabled != wereCalUpdatesEnabled) {
-      calHelper->configureCalUpdates(*suid, wereCalUpdatesEnabled, seeHelper);
-    }
-  }
-#endif
+  bool success = seeHelper.makeRequest(req);
 
   // If we dropped into micro-image during that blocking call to SEE, go back
   // to big image. This won't happen if the calling nanoapp is a big image one,
@@ -691,12 +661,35 @@ bool PlatformSensorManager::configureSensor(Sensor &sensor,
   return success;
 }
 
-bool PlatformSensorManager::configureBiasEvents(const Sensor & /* sensor */,
-                                                bool /* enable */,
+bool PlatformSensorManager::configureBiasEvents(const Sensor &sensor,
+                                                bool enable,
                                                 uint64_t /* latencyNs */) {
-  // TODO: Allow enabling / disabling bias events rather than enabling all
-  // bias sensors at init.
-  return true;
+  // Big-image sensor types will be mapped into micro-image sensors so assume
+  // using mSeeHelper is OK.
+  SeeCalHelper *calHelper = mSeeHelper.getCalHelper();
+
+  // Map the current sensor type into a micro-image type first if it's not one
+  // already and then make sure it's the calibrated sensor type since
+  // SeeCalHelper only knows about calibration types.
+  uint8_t mappedSensorType = sensor.getSensorType();
+  PlatformSensorTypeHelpers::rewriteToChreSensorType(&mappedSensorType);
+  mappedSensorType =
+      PlatformSensorTypeHelpers::toCalibratedSensorType(mappedSensorType);
+
+  const sns_std_suid *suid =
+      calHelper->getCalSuidFromSensorType(mappedSensorType);
+  bool success = false;
+  if (suid != nullptr) {
+    if (enable != calHelper->areCalUpdatesEnabled(*suid)) {
+      success = calHelper->configureCalUpdates(*suid, enable, mSeeHelper);
+    } else {
+      // Return true since updates are already configured to the right state.
+      // This can happen when configuring big-image sensors since they currently
+      // map to the micro-image sensor type which may already be enabled.
+      success = true;
+    }
+  }
+  return success;
 }
 
 bool PlatformSensorManager::getThreeAxisBias(
