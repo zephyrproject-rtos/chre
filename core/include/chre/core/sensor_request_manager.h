@@ -449,10 +449,18 @@ class SensorRequestManager : public NonCopyable {
    * Helper function to make a sensor's maximal request to the platform, and
    * reset the last event if an on-change sensor is successfully turned off.
    *
-   * @param sensor The sensor that will be making the request.
-   * @return true if the platform accepted the request.
+   * If either bias update configuration or sensor data configuration fails,
+   * this entire method will fail. When this method fails, any previous
+   * configuration will be restored on a best-effort basis.
+   *
+   * @param sensor The sensor that will be configured.
+   * @param prevSensorRequest The previous sensor request that was made for the
+   *     given sensor.
+   * @return true if both configuring the platform for bias updates and for
+   *     sensor data succeeded.
    */
-  bool configurePlatformSensor(Sensor &sensor);
+  bool configurePlatformSensor(Sensor &sensor,
+                               const SensorRequest &prevSensorRequest);
 };
 
 }  // namespace chre

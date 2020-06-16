@@ -66,6 +66,13 @@ class Sensor : public PlatformSensor {
   }
 
   /**
+   * @return true if the sensor has bias updates enabled.
+   */
+  bool biasEventsEnabled() const {
+    return mSensorRequests.getCurrentMaximalRequest().getBiasUpdatesRequested();
+  }
+
+  /**
    * @return A const reference to the maximal request.
    */
   const SensorRequest &getMaximalRequest() const {
