@@ -28,8 +28,8 @@ void chppRegisterCommonServices(struct ChppAppState *context) {
   chppRegisterWwanService(context);
 #endif
 
-#ifdef CHPP_SERVICE_ENABLED_WLAN
-  chppRegisterWlanService(context);
+#ifdef CHPP_SERVICE_ENABLED_WIFI
+  chppRegisterWifiService(context);
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS
@@ -42,8 +42,8 @@ void chppDeregisterCommonServices(struct ChppAppState *context) {
   chppDeregisterWwanService(context);
 #endif
 
-#ifdef CHPP_SERVICE_ENABLED_WLAN
-  chppDeregisterWlanService(context);
+#ifdef CHPP_SERVICE_ENABLED_WIFI
+  chppDeregisterWifiService(context);
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS

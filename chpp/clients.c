@@ -36,8 +36,8 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
   chppRegisterWwanClient(context);
 #endif
 
-#ifdef CHPP_CLIENT_ENABLED_WLAN
-  chppRegisterWlanClient(context);
+#ifdef CHPP_CLIENT_ENABLED_WIFI
+  chppRegisterWifiClient(context);
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_GNSS
@@ -51,8 +51,8 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
   chppDeregisterWwanClient(context);
 #endif
 
-#ifdef CHPP_CLIENT_ENABLED_WLAN
-  chppDeregisterWlanClient(context);
+#ifdef CHPP_CLIENT_ENABLED_WIFI
+  chppDeregisterWifiClient(context);
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_GNSS
