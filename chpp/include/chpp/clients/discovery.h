@@ -33,7 +33,7 @@ extern "C" {
  *  Public functions
  ***********************************************/
 
-/*
+/**
  * Dispatches an Rx Datagram from the transport layer that is determined to be
  * for the CHPP Discovery Client.
  *
@@ -43,6 +43,16 @@ extern "C" {
  */
 bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
                                           const uint8_t *buf, size_t len);
+
+/**
+ * Initiates a CHPP service discovery from the client side, in order to send a
+ * CHPP_DISCOVERY_COMMAND_DISCOVER_ALL client request to a server. It is
+ * expected that this function be called upon initialization, after sending or
+ * receiving a reset-ack.
+ *
+ * @param context Maintains status for each app layer instance.
+ */
+void chppInitiateDiscovery(struct ChppAppState *context);
 
 #ifdef __cplusplus
 }

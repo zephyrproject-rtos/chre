@@ -66,23 +66,20 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
         newService;
     appContext->registeredServiceContexts[appContext->registeredServiceCount] =
         serviceContext;
-    appContext->registeredServiceCount++;
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     chppUuidToStr(newService->descriptor.uuid, uuidText);
-    CHPP_LOGI(
-        "Registered service %" PRIu8 " on handle %" PRIu8
-        " with name=%s, UUID=%s, "
-        "version=%" PRIu8 ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
-        appContext->registeredServiceCount,
-        appContext->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START,
-        newService->descriptor.name, uuidText,
-        newService->descriptor.versionMajor,
-        newService->descriptor.versionMinor,
-        newService->descriptor.versionPatch, newService->minLength);
+    CHPP_LOGI("Registered service # %" PRIu8 " on handle %" PRIu8
+              " with name=%s, UUID=%s, "
+              "version=%" PRIu8 ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
+              appContext->registeredServiceCount,
+              CHPP_SERVICE_HANDLE_OF_INDEX(appContext->registeredServiceCount),
+              newService->descriptor.name, uuidText,
+              newService->descriptor.versionMajor,
+              newService->descriptor.versionMinor,
+              newService->descriptor.versionPatch, newService->minLength);
 
-    return appContext->registeredServiceCount +
-           CHPP_HANDLE_NEGOTIATED_RANGE_START;
+    return CHPP_SERVICE_HANDLE_OF_INDEX(appContext->registeredServiceCount++);
   }
 }
 

@@ -32,6 +32,7 @@
 
 void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   chppRegisterWwanClient(context);
 #endif
@@ -63,11 +64,28 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
                         const struct ChppClient *newClient) {
   CHPP_NOT_NULL(newClient);
-  UNUSED_VAR(appContext);
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(newClient);
 
-  // TODO
+  if (appContext->registeredClientCount >= CHPP_MAX_REGISTERED_CLIENTS) {
+    CHPP_LOGE("Cannot register new client # %" PRIu8 ". Already hit maximum",
+              appContext->registeredClientCount);
+
+  } else {
+    appContext->registeredClients[appContext->registeredClientCount] =
+        newClient;
+    appContext->registeredClientContexts[appContext->registeredClientCount] =
+        clientContext;
+
+    char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
+    chppUuidToStr(newClient->descriptor.uuid, uuidText);
+    CHPP_LOGI("Registered client # %" PRIu8 " with UUID=%s, version=%" PRIu8
+              ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
+              appContext->registeredClientCount, uuidText,
+              newClient->descriptor.versionMajor,
+              newClient->descriptor.versionMinor,
+              newClient->descriptor.versionPatch, newClient->minLength);
+
+    appContext->registeredClientCount++;
+  }
 }
 
 struct ChppAppHeader *chppAllocClientRequest(

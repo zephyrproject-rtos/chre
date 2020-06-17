@@ -17,6 +17,7 @@
 #include "chpp/transport.h"
 
 #include "chpp/app.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/link.h"
 
 /************************************************
@@ -276,7 +277,8 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppReset(context, context->appContext);
       chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
 
-      // TODO: Initiate discovery (client)
+      // Initiate discovery (client)
+      chppInitiateDiscovery(context->appContext);
 
     } else if ((context->rxHeader.packetCode & CHPP_TRANSPORT_ATTR_MASK) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
@@ -289,7 +291,8 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
       // TODO: Configure transport layer based on (optional) received config
 
-      // TODO: Initiate discovery (client)
+      // Initiate discovery (client)
+      chppInitiateDiscovery(context->appContext);
 
     } else if (context->resetState == CHPP_RESET_STATE_RESETTING) {
       CHPP_LOGE(

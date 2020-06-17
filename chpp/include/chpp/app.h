@@ -24,6 +24,7 @@
 
 #include "chpp/macros.h"
 #include "chpp/memory.h"
+
 #include "chpp/transport.h"
 
 #ifdef __cplusplus
@@ -51,9 +52,23 @@ extern "C" {
 #endif
 
 /**
+ * Maximum number of services that can be discovered by CHPP (not including
+ * predefined services), if not defined by the build system.
+ */
+#ifndef CHPP_MAX_DISCOVERED_SERVICES
+#define CHPP_MAX_DISCOVERED_SERVICES \
+  MAX(CHPP_MAX_REGISTERED_SERVICES, CHPP_MAX_REGISTERED_CLIENTS)
+#endif
+
+/**
  * Default value for reserved fields.
  */
 #define CHPP_RESERVED 0
+
+/**
+ * Client index number when there is no matching client
+ */
+#define CHPP_CLIENT_INDEX_NONE 0xff
 
 /**
  * Handle Numbers in ChppAppHeader
@@ -143,9 +158,21 @@ struct ChppAppHeader {
 CHPP_PACKED_END
 
 /**
- * Function type that dispatches incoming datagrams for any particular service
+ * Function type that dispatches incoming datagrams for any client or service
  */
 typedef bool(ChppDispatchFunction)(void *context, uint8_t *buf, size_t len);
+
+/**
+ * Function type that initializes a client and assigns it its handle number
+ */
+typedef bool(ChppClientInitFunction)(void *context, uint8_t handle,
+                                     uint8_t versionMajor, uint8_t versionMinor,
+                                     uint16_t versionPatch);
+
+/**
+ * Function type that deinitializes a client.
+ */
+typedef void(ChppClientDeinitFunction)(void *context);
 
 /**
  * Length of a service UUID and its human-readable printed form in bytes
@@ -240,6 +267,13 @@ struct ChppClient {
   //! the client.
   ChppDispatchFunction *notificationDispatchFunctionPtr;
 
+  //! Pointer to the function that initializes the client (after it is matched
+  //! with a service at discovery) and assigns it its handle number.
+  ChppClientInitFunction *initFunctionPtr;
+
+  //! Pointer to the function that deinitializes the client.
+  ChppClientDeinitFunction *deinitFunctionPtr;
+
   //! Minimum valid length of datagrams for the service.
   size_t minLength;
 };
@@ -272,6 +306,9 @@ struct ChppAppState {
   const struct ChppClient *registeredClients[CHPP_MAX_REGISTERED_CLIENTS];
 
   void *registeredClientContexts[CHPP_MAX_REGISTERED_CLIENTS];
+
+  uint8_t
+      clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
 };
 
 CHPP_PACKED_START
@@ -280,6 +317,12 @@ struct ChppServiceBasicResponse {
   uint8_t error;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
+
+#define CHPP_SERVICE_INDEX_OF_HANDLE(handle) \
+  ((handle)-CHPP_HANDLE_NEGOTIATED_RANGE_START)
+
+#define CHPP_SERVICE_HANDLE_OF_INDEX(index) \
+  ((index) + CHPP_HANDLE_NEGOTIATED_RANGE_START)
 
 /************************************************
  *  Public functions

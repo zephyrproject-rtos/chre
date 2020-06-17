@@ -20,6 +20,7 @@ cc_library_static {
     vendor: true,
     cflags: [
         "-DCHPP_SERVICE_ENABLED_WWAN",
+        "-DCHPP_CLIENT_ENABLED_WWAN",
     ],
     conlyflags: ["-std=c11"],
     srcs: [

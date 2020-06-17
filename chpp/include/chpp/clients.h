@@ -74,6 +74,18 @@ struct ChppClientState {
   uint8_t transaction;              // Next Transaction ID to be used
 };
 
+#ifdef CHPP_CLIENT_ENABLED_CHRE_WWAN
+#define CHPP_CLIENT_ENABLED_WWAN
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_CHRE_WIFI
+#define CHPP_CLIENT_ENABLED_WIFI
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_CHRE_GNSS
+#define CHPP_CLIENT_ENABLED_GNSS
+#endif
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -101,6 +113,10 @@ void chppDeregisterCommonClients(struct ChppAppState *context);
  * platform initialization code for every non-common client available on a
  * server (if any), i.e. except those that are registered through
  * chppRegisterCommonClients().
+ *
+ * Registered clients are matched with discovered services during discovery.
+ * When a match succeeds, the client's initialization function (pointer) is
+ * called, assigning them their handle number.
  *
  * Note that the maximum number of clients that can be registered on a platform
  * can specified as CHPP_MAX_REGISTERED_CLIENTS by the initialization code.

@@ -16,11 +16,11 @@
 
 #include "chpp/app.h"
 
+#include "chpp/clients.h"
 #include "chpp/pal_api.h"
 #include "chpp/services.h"
 
 #include "chpp/clients/discovery.h"
-
 #include "chpp/services/discovery.h"
 #include "chpp/services/loopback.h"
 #include "chpp/services/nonhandle.h"
@@ -293,64 +293,68 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
  * Returns a pointer to the ChppService struct of a particular negotiated
  * service handle.
  *
- * @param appContext Maintains status for each app layer instance.
+ * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
  *
  * @return Pointer to the ChppService struct of a particular service handle.
  */
 static inline const struct ChppService *chppServiceOfHandle(
-    struct ChppAppState *appContext, uint8_t handle) {
-  return appContext
-      ->registeredServices[handle - CHPP_HANDLE_NEGOTIATED_RANGE_START];
+    struct ChppAppState *context, uint8_t handle) {
+  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
+                    context->registeredServiceCount);
+  return context->registeredServices[CHPP_SERVICE_INDEX_OF_HANDLE(handle)];
 }
 
 /**
  * Returns a pointer to the ChppClient struct of a particular negotiated
  * handle. Returns null if a client doesn't exist for the handle.
  *
- * @param appContext Maintains status for each app layer instance.
+ * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
  *
  * @return Pointer to the ChppClient struct matched to a particular handle.
  */
 static inline const struct ChppClient *chppClientOfHandle(
-    struct ChppAppState *appContext, uint8_t handle) {
-  // TODO
-  UNUSED_VAR(appContext);
-  UNUSED_VAR(handle);
-  return NULL;
+    struct ChppAppState *context, uint8_t handle) {
+  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
+                    context->registeredClientCount);
+  return context->registeredClients[context->clientIndexOfServiceIndex
+                                        [CHPP_SERVICE_INDEX_OF_HANDLE(handle)]];
 }
 
 /**
  * Returns a pointer to the service struct of a particular negotiated service
  * handle.
  *
- * @param appContext Maintains status for each app layer instance.
+ * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
  *
  * @return Pointer to the context struct of the service.
  */
-static inline void *chppServiceContextOfHandle(struct ChppAppState *appContext,
+static inline void *chppServiceContextOfHandle(struct ChppAppState *context,
                                                uint8_t handle) {
-  return appContext
-      ->registeredServiceContexts[handle - CHPP_HANDLE_NEGOTIATED_RANGE_START];
+  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
+                    context->registeredServiceCount);
+  return context
+      ->registeredServiceContexts[CHPP_SERVICE_INDEX_OF_HANDLE(handle)];
 }
 
 /**
  * Returns a pointer to the client struct of a particular negotiated client
  * handle.
  *
- * @param appContext Maintains status for each app layer instance.
+ * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
  *
  * @return Pointer to the ChppService struct of the client.
  */
-static inline void *chppClientContextOfHandle(struct ChppAppState *appContext,
+static inline void *chppClientContextOfHandle(struct ChppAppState *context,
                                               uint8_t handle) {
-  // TODO
-  UNUSED_VAR(appContext);
-  UNUSED_VAR(handle);
-  return NULL;
+  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
+                    context->registeredClientCount);
+  return context
+      ->registeredClientContexts[context->clientIndexOfServiceIndex
+                                     [CHPP_SERVICE_INDEX_OF_HANDLE(handle)]];
 }
 
 /**
@@ -405,13 +409,13 @@ void chppAppInit(struct ChppAppState *appContext,
 
   chppRegisterCommonServices(appContext);
 
-  // chppRegisterCommonClients(appContext);
+  chppRegisterCommonClients(appContext);
 }
 
 void chppAppDeinit(struct ChppAppState *appContext) {
   // TODO
 
-  // chppDeregisterCommonClients(appContext);
+  chppDeregisterCommonClients(appContext);
   chppDeregisterCommonServices(appContext);
   chppPalSystemApiDeinit(appContext);
 }
@@ -422,7 +426,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
   if (chppDatagramLenIsOk(context, rxHeader->handle, len)) {
     if (rxHeader->handle >=
-        context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START) {
+        CHPP_SERVICE_HANDLE_OF_INDEX(context->registeredServiceCount)) {
       CHPP_LOGE("Received datagram for invalid handle: %" PRIu8
                 ", len = %zu, type = %#x, transaction ID = %" PRIu8,
                 rxHeader->handle, len, rxHeader->type, rxHeader->transaction);
