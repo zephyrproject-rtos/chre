@@ -20,8 +20,7 @@
 #include "chre/pal/gnss.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
-#include "chre/util/dynamic_vector.h"
-#include "chre/util/optional.h"
+#include "chre/util/fixed_size_vector.h"
 #include "chre/util/time.h"
 #include "gtest/gtest.h"
 
@@ -65,6 +64,11 @@ class PalGnssTest : public ::testing::Test {
 
   //! True if location session is currently enabled
   bool locationSessionEnabled_ = false;
+
+  //! A list to store the location events
+  static constexpr size_t kLocationEventArraySize = 5;
+  chre::FixedSizeVector<chreGnssLocationEvent *, kLocationEventArraySize>
+      locationEventVector_;
 
   //! Mutex to protect class variables
   chre::Mutex mutex_;
