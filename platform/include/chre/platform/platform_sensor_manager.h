@@ -64,6 +64,9 @@ class PlatformSensorManager : public PlatformSensorManagerBase {
    * TODO(b/142958445): Make the above modification to the request before it
    * reaches the platform code.
    *
+   * If the sensor was previously configured, but the new request fails to be
+   * processed, the previous configuration must remain in place.
+   *
    * @param sensor One of the sensors provided by getSensors().
    * @param request The new request that contains the details about how the
    *     sensor should be configured.
