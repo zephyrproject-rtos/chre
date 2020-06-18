@@ -836,8 +836,7 @@ void PlatformSensorManagerBase::onSensorBiasEvent(
     } else {
       // Posts newly allocated event for the uncalibrated type
       postSensorBiasEvent(
-          PlatformSensorTypeHelpers::toUncalibratedSensorType(sensorType),
-          *biasData);
+          SensorTypeHelpers::toUncalibratedSensorType(sensorType), *biasData);
 
       getSensorRequestManager().handleBiasEvent(sensorHandle,
                                                 biasData.release());

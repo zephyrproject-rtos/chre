@@ -168,6 +168,22 @@ const char *SensorTypeHelpers::getSensorTypeName(uint8_t sensorType) {
   }
 }
 
+uint8_t SensorTypeHelpers::toUncalibratedSensorType(uint8_t sensorType) {
+  switch (sensorType) {
+    case CHRE_SENSOR_TYPE_ACCELEROMETER:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER;
+    case CHRE_SENSOR_TYPE_GYROSCOPE:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
+    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
+      return CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
+    default:
+      /* empty */
+      break;
+  }
+
+  return sensorType;
+}
+
 void SensorTypeHelpers::getLastSample(uint8_t sensorType,
                                       const ChreSensorData *event,
                                       ChreSensorData *lastEvent) {
