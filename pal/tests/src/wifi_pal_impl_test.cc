@@ -24,8 +24,8 @@
 
 #include <cinttypes>
 
-// Flag to require on-demand WiFi scanning to be enabled for the test to pass.
-// Set to false to allow tests to pass on disabled platforms.
+// Flag to require on-demand WiFi scanning capability to be enabled for the test
+// to pass. Set to false to allow tests to pass on disabled platforms.
 #ifndef PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED
 #define PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED true
 #endif
@@ -34,6 +34,8 @@
 #ifndef PAL_IMPL_TEST_WIFI_SCAN_MONITORING_REQUIRED
 #define PAL_IMPL_TEST_WIFI_SCAN_MONITORING_REQUIRED true
 #endif
+
+namespace wifi_pal_impl_test {
 
 namespace {
 
@@ -107,8 +109,6 @@ void logChreWifiResult(const chreWifiScanResult &result) {
 }
 
 }  // anonymous namespace
-
-namespace wifi_pal_impl_test {
 
 void PalWifiTest::SetUp() {
   api_ = chrePalWifiGetApi(CHRE_PAL_WIFI_API_CURRENT_VERSION);
@@ -200,12 +200,13 @@ void PalWifiTest::waitForAsyncResponseAssertSuccess(
 }
 
 TEST_F(PalWifiTest, ScanAsyncTest) {
+  bool hasOnDemandScanCapability =
+      (api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) ==
+      CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN;
 #if PAL_IMPL_TEST_WIFI_ON_DEMAND_SCAN_REQUIRED
-  ASSERT_EQ(api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN,
-            CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN);
+  ASSERT_TRUE(hasOnDemandScanCapability);
 #else
-  if ((api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) !=
-      CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
+  if (!hasOnDemandScanCapability) {
     GTEST_SKIP();
   }
 #endif
@@ -250,12 +251,13 @@ TEST_F(PalWifiTest, ScanAsyncTest) {
 // Note: This test only verifies that the scan monitor succeeds according
 // to the async response.
 TEST_F(PalWifiTest, ScanMonitorTest) {
+  bool hasScanMonitoringCapability =
+      (api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) ==
+      CHRE_WIFI_CAPABILITIES_SCAN_MONITORING;
 #if PAL_IMPL_TEST_WIFI_SCAN_MONITORING_REQUIRED
-  ASSERT_EQ(api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING,
-            CHRE_WIFI_CAPABILITIES_SCAN_MONITORING);
+  ASSERT_TRUE(hasScanMonitoringCapability);
 #else
-  if ((api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) !=
-      CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
+  if (!hasScanMonitoringCapability) {
     GTEST_SKIP();
   }
 #endif
