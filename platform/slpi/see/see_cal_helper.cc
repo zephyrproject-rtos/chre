@@ -123,13 +123,6 @@ bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper &seeHelper) {
       LOGE("Failed to find sensor '%s'", calType);
     } else {
       mCalInfo[i].suid = suids[0];
-
-#ifndef CHRE_SLPI_DEFAULT_BUILD
-      if (!seeHelper.configureOnChangeSensor(suids[0], true /* enable */)) {
-        success = false;
-        LOGE("Failed to request '%s' data", calType);
-      }
-#endif
     }
   }
 

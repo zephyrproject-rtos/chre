@@ -192,4 +192,21 @@ bool PlatformSensorTypeHelpersBase::reportsBias(uint8_t sensorType) {
   }
 }
 
+void PlatformSensorTypeHelpersBase::rewriteToChreSensorType(
+    uint8_t *sensorType) {
+  CHRE_ASSERT(sensorType);
+
+  if (*sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL) {
+    *sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
+  } else if (*sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL) {
+    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER;
+  } else if (*sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO) {
+    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
+  } else if (*sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG) {
+    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
+  } else if (*sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT) {
+    *sensorType = CHRE_SENSOR_TYPE_LIGHT;
+  }
+}
+
 }  // namespace chre

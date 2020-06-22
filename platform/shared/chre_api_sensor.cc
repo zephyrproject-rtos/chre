@@ -16,6 +16,7 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/sensor_request.h"
+#include "chre/core/sensor_type_helpers.h"
 #include "chre/util/macros.h"
 #include "chre/util/time.h"
 #include "chre_api/chre/sensor.h"
@@ -30,23 +31,12 @@ using chre::getSensorModeFromEnum;
 
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
 namespace {
-constexpr uint8_t kBigImageAccelSensorType =
-    (CHRE_SENSOR_TYPE_VENDOR_START + 3);
-constexpr uint8_t kBigImageUncalAccelSensorType =
-    (CHRE_SENSOR_TYPE_VENDOR_START + 6);
-constexpr uint8_t kBigImageUncalGyroSensorType =
-    (CHRE_SENSOR_TYPE_VENDOR_START + 7);
-constexpr uint8_t kBigImageUncalMagSensorType =
-    (CHRE_SENSOR_TYPE_VENDOR_START + 8);
-constexpr uint8_t kBigImageLightSensorType =
-    (CHRE_SENSOR_TYPE_VENDOR_START + 9);
-
 bool isBigImageSensorType(uint8_t sensorType) {
-  return (sensorType == kBigImageAccelSensorType ||
-          sensorType == kBigImageUncalAccelSensorType ||
-          sensorType == kBigImageUncalGyroSensorType ||
-          sensorType == kBigImageUncalMagSensorType ||
-          sensorType == kBigImageLightSensorType);
+  return (sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL ||
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL ||
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO ||
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG ||
+          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT);
 }
 
 /**
@@ -56,36 +46,18 @@ void rewriteToBigImageSensorType(uint8_t *sensorType) {
   CHRE_ASSERT(sensorType);
 
   if (*sensorType == CHRE_SENSOR_TYPE_ACCELEROMETER) {
-    *sensorType = kBigImageAccelSensorType;
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL;
   } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER) {
-    *sensorType = kBigImageUncalAccelSensorType;
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL;
   } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE) {
-    *sensorType = kBigImageUncalGyroSensorType;
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
   } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD) {
-    *sensorType = kBigImageUncalMagSensorType;
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
   } else if (*sensorType == CHRE_SENSOR_TYPE_LIGHT) {
-    *sensorType = kBigImageLightSensorType;
+    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
   }
 }
 
-/**
- * Rewrites a big-image sensorType to its regular CHRE counterpart.
- */
-void rewriteToChreSensorType(uint8_t *sensorType) {
-  CHRE_ASSERT(sensorType);
-
-  if (*sensorType == kBigImageAccelSensorType) {
-    *sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
-  } else if (*sensorType == kBigImageUncalAccelSensorType) {
-    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER;
-  } else if (*sensorType == kBigImageUncalGyroSensorType) {
-    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE;
-  } else if (*sensorType == kBigImageUncalMagSensorType) {
-    *sensorType = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD;
-  } else if (*sensorType == kBigImageLightSensorType) {
-    *sensorType = CHRE_SENSOR_TYPE_LIGHT;
-  }
-}
 }  //  anonymous namespace
 #endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
 
@@ -132,7 +104,8 @@ DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
     // implementation here.
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
     if (!nanoapp->isUimgApp()) {
-      rewriteToChreSensorType(&info->sensorType);
+      chre::PlatformSensorTypeHelpers::rewriteToChreSensorType(
+          &info->sensorType);
     }
 #endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   }

@@ -84,6 +84,12 @@ class PlatformSensorTypeHelpersBase {
    * @return Whether the given sensor type reports bias events.
    */
   static bool reportsBias(uint8_t sensorType);
+
+  /**
+   * Rewrites a big-image sensorType to its regular CHRE counterpart leaving
+   * regular CHRE sensor types unchanged.
+   */
+  static void rewriteToChreSensorType(uint8_t *sensorType);
 };
 
 }  // namespace chre
