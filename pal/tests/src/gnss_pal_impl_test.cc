@@ -25,6 +25,9 @@
 
 // Flag to require GNSS location sessions capability to be enabled for the test
 // to pass. Set to false to allow tests to pass on disabled platforms.
+// Note that it is required to run this test where location can be acquired.
+// The constants kGnssLocationEventTimeoutNs and kLocationEventArraySize
+// may be tuned if applicable.
 #ifndef PAL_IMPL_TEST_GNSS_LOCATION_REQUIRED
 #define PAL_IMPL_TEST_GNSS_LOCATION_REQUIRED true
 #endif
@@ -43,6 +46,9 @@ gnss_pal_impl_test::PalGnssTest *gTest = nullptr;
 //! Timeout as specified by the CHRE API
 const Nanoseconds kGnssAsyncResultTimeoutNs =
     Nanoseconds(CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS);
+
+//! Timeout to wait for kLocationEventArraySize location events.
+const Nanoseconds kGnssLocationEventTimeoutNs = Seconds(60);
 
 void chrePalRequestStateResync() {
   if (gTest != nullptr) {
@@ -74,6 +80,36 @@ void chrePalMeasurementEventCallback(struct chreGnssDataEvent *event) {
   }
 }
 
+void logLocationEvent(const struct chreGnssLocationEvent &event) {
+  LOGI("Received location: %" PRId32 ", %" PRId32, event.latitude_deg_e7,
+       event.longitude_deg_e7);
+  LOGI("  timestamp (ms): %" PRIu64, event.timestamp);
+  LOGI("  altitude (m): %f", event.altitude);
+  LOGI("  speed (m/s): %f", event.speed);
+  LOGI("  bearing (deg): %f", event.bearing);
+  LOGI("  accuracy: %f", event.accuracy);
+  LOGI("  flags: 0x%" PRIx16, event.flags);
+  LOGI("  altitude_accuracy: %f", event.altitude_accuracy);
+  LOGI("  speed_accuracy: %f", event.speed_accuracy);
+  LOGI("  bearing_accuracy: %f", event.bearing_accuracy);
+}
+
+void validateLocationEvent(const struct chreGnssLocationEvent &event) {
+  static uint64_t sLastTimestampNs = 0;
+  EXPECT_GE(event.timestamp, sLastTimestampNs);
+  sLastTimestampNs = event.timestamp;
+  if (event.flags & CHRE_GPS_LOCATION_HAS_LAT_LONG) {
+    EXPECT_GE(event.latitude_deg_e7, -90 * 1e7);
+    EXPECT_LE(event.latitude_deg_e7, 90 * 1e7);
+    EXPECT_GE(event.longitude_deg_e7, -180 * 1e7);
+    EXPECT_LE(event.longitude_deg_e7, 180 * 1e7);
+  }
+  if (event.flags & CHRE_GPS_LOCATION_HAS_BEARING) {
+    EXPECT_GE(event.bearing, 0);
+    EXPECT_LT(event.bearing, 360);  // [0, 360) per API
+  }
+}
+
 }  // anonymous namespace
 
 void PalGnssTest::SetUp() {
@@ -94,6 +130,7 @@ void PalGnssTest::SetUp() {
 
   errorCode_ = CHRE_ERROR_LAST;
   locationSessionEnabled_ = false;
+  locationEventVector_.resize(0);
 }
 
 void PalGnssTest::TearDown() {
@@ -109,6 +146,10 @@ void PalGnssTest::locationStatusChangeCallback(bool enabled,
                                                uint8_t errorCode) {
   LOGI("Received location status change with enabled %d error %" PRIu8, enabled,
        errorCode);
+  if (errorCode == CHRE_ERROR_LAST) {
+    LOGE("Received CHRE_ERROR_LAST");
+    errorCode = CHRE_ERROR;
+  }
   chre::LockGuard<chre::Mutex> lock(mutex_);
   errorCode_ = errorCode;
   locationSessionEnabled_ = enabled;
@@ -116,7 +157,14 @@ void PalGnssTest::locationStatusChangeCallback(bool enabled,
 }
 
 void PalGnssTest::locationEventCallback(struct chreGnssLocationEvent *event) {
-  // TODO:
+  LOGI("Received location event");
+  chre::LockGuard<chre::Mutex> lock(mutex_);
+  if (!locationEventVector_.full()) {
+    locationEventVector_.push_back(event);
+    if (locationEventVector_.full()) {
+      condVar_.notify_one();
+    }
+  }
 }
 
 void PalGnssTest::measurementStatusChangeCallback(bool enabled,
@@ -130,12 +178,11 @@ void PalGnssTest::measurementEventCallback(struct chreGnssDataEvent *event) {
 
 void PalGnssTest::waitForAsyncResponseAssertSuccess(
     chre::Nanoseconds timeoutNs) {
-  Nanoseconds end = SystemTime::getMonotonicTime() + timeoutNs;
-  while (errorCode_ == CHRE_ERROR_LAST &&
-         SystemTime::getMonotonicTime() < end) {
-    condVar_.wait_for(mutex_, timeoutNs);
+  bool waitSuccess = true;
+  while (errorCode_ == CHRE_ERROR_LAST && waitSuccess) {
+    waitSuccess = condVar_.wait_for(mutex_, timeoutNs);
   }
-  ASSERT_LT(SystemTime::getMonotonicTime(), end);
+  ASSERT_TRUE(waitSuccess);
   ASSERT_EQ(errorCode_, CHRE_ERROR_NONE);
 }
 
@@ -159,7 +206,16 @@ TEST_F(PalGnssTest, LocationSessionTest) {
   waitForAsyncResponseAssertSuccess(kGnssAsyncResultTimeoutNs);
   ASSERT_TRUE(locationSessionEnabled_);
 
-  // TODO: Wait for location data
+  bool waitSuccess = true;
+  while (!locationEventVector_.full() && waitSuccess) {
+    waitSuccess = condVar_.wait_for(mutex_, kGnssLocationEventTimeoutNs);
+  }
+
+  for (size_t i = 0; i < locationEventVector_.size(); i++) {
+    logLocationEvent(*locationEventVector_[i]);
+    validateLocationEvent(*locationEventVector_[i]);
+    api_->releaseLocationEvent(locationEventVector_[i]);
+  }
 
   prepareForAsyncResponse();
   ASSERT_TRUE(api_->controlLocationSession(
