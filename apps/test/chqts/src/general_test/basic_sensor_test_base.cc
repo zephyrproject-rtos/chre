@@ -65,6 +65,13 @@ uint64_t getEventDuration(const chreSensorThreeAxisData *event) {
 
   return duration;
 }
+
+bool isBiasEventType(uint16_t eventType) {
+  return (eventType == CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO) ||
+         (eventType == CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO) ||
+         (eventType == CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO);
+}
+
 }  // anonymous namespace
 
 BasicSensorTestBase::BasicSensorTestBase()
@@ -292,14 +299,18 @@ void BasicSensorTestBase::finishTest() {
 }
 
 void BasicSensorTestBase::sanityCheckHeader(const chreSensorDataHeader *header,
-                                            bool modifyTimestamps,
+                                            uint16_t eventType,
                                             uint64_t eventDuration) {
   if (header->sensorHandle != mSensorHandle) {
     sendFatalFailureToHost("SensorDataHeader for wrong handle",
                            &header->sensorHandle);
   }
 
-  if (!isOnChangeSensor()) {
+  // Bias and on-change sensor events may have timestamps from before any of our
+  // requests started since they aren't generated in response to requests. For
+  // these types of events, only ensure the provided timestamp is less than the
+  // current time.
+  if (!isOnChangeSensor() && !isBiasEventType(eventType)) {
     // An on-change sensor is supposed to send its current state, which
     // could be timestamped in the past.  Everything else should be
     // getting recent data.
@@ -339,10 +350,13 @@ void BasicSensorTestBase::sanityCheckHeader(const chreSensorDataHeader *header,
         (header->baseTimestamp > mDoneTimestamp)) {
       sendFatalFailureToHost("SensorDataHeader is from after DONE");
     }
-    if (modifyTimestamps) {
-      *timeToUpdate = header->baseTimestamp;
-    }
+    *timeToUpdate = header->baseTimestamp;
   }
+
+  if (header->baseTimestamp > chreGetTime()) {
+    sendFatalFailureToHost("SensorDataHeader is in the future");
+  }
+
   if (header->readingCount == 0) {
     sendFatalFailureToHost("SensorDataHeader has readingCount of 0");
   }
@@ -376,7 +390,7 @@ void BasicSensorTestBase::handleBiasEvent(
   if (expectedSensorType != getSensorType()) {
     sendFatalFailureToHost("Unexpected bias event:", &eType);
   }
-  sanityCheckHeader(&eventData->header, false, getEventDuration(eventData));
+  sanityCheckHeader(&eventData->header, eventType, getEventDuration(eventData));
 
   // TODO: Sanity check the eventData.  This check is out-of-scope for
   //     Android N testing.
@@ -408,7 +422,8 @@ void BasicSensorTestBase::handleSamplingChangeEvent(
   }
 }
 
-void BasicSensorTestBase::handleSensorDataEvent(const void *eventData) {
+void BasicSensorTestBase::handleSensorDataEvent(uint16_t eventType,
+                                                const void *eventData) {
   if ((mState == State::kPreStart) || (mState == State::kPreConfigure)) {
     sendFatalFailureToHost("SensorDataEvent sent too early.");
   }
@@ -417,8 +432,8 @@ void BasicSensorTestBase::handleSensorDataEvent(const void *eventData) {
   // check it, even though in theory we're done testing.
   uint64_t eventDuration =
       getEventDuration(static_cast<const chreSensorThreeAxisData *>(eventData));
-  sanityCheckHeader(static_cast<const chreSensorDataHeader *>(eventData), true,
-                    eventDuration);
+  sanityCheckHeader(static_cast<const chreSensorDataHeader *>(eventData),
+                    eventType, eventDuration);
 
   // Send to the sensor itself for any additional checks of actual data.
   confirmDataIsSane(eventData);
@@ -458,14 +473,13 @@ void BasicSensorTestBase::handleEvent(uint32_t senderInstanceId,
     sendFatalFailureToHost("Got NULL eventData for event:", &eType);
 
   } else if (eventType == dataEventType) {
-    handleSensorDataEvent(eventData);
+    handleSensorDataEvent(eventType, eventData);
 
   } else if (eventType == CHRE_EVENT_SENSOR_SAMPLING_CHANGE) {
     handleSamplingChangeEvent(
         static_cast<const chreSensorSamplingStatusEvent *>(eventData));
 
-  } else if ((eventType == CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO) ||
-             (eventType == CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO)) {
+  } else if (isBiasEventType(eventType)) {
     handleBiasEvent(eventType,
                     static_cast<const chreSensorThreeAxisData *>(eventData));
 
