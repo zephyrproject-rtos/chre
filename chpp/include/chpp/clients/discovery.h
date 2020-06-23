@@ -29,8 +29,6 @@
 extern "C" {
 #endif
 
-struct ChppAppState *context;
-
 /************************************************
  *  Public functions
  ***********************************************/
