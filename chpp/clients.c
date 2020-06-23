@@ -85,11 +85,11 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
                                 struct ChppAppHeader *requestHeader) {
   if (rRState->responseTime == CHPP_TIME_NONE &&
       rRState->requestTime != CHPP_TIME_NONE) {
-    LOGE("Sending duplicate request with transaction ID = %" PRIu64
-         " while prior request with transaction ID = %" PRIu8
-         " was outstanding from t = %" PRIu8,
-         rRState->requestTime, requestHeader->transaction,
-         rRState->transaction);
+    CHPP_LOGE("Sending duplicate request with transaction ID = %" PRIu64
+              " while prior request with transaction ID = %" PRIu8
+              " was outstanding from t = %" PRIu8,
+              rRState->requestTime, requestHeader->transaction,
+              rRState->transaction);
   }
   rRState->requestTime = chppGetCurrentTime();
   rRState->responseTime = CHPP_TIME_NONE;
@@ -102,30 +102,31 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
   rRState->responseTime = chppGetCurrentTime();
 
   if (rRState->requestTime == CHPP_TIME_NONE) {
-    LOGE("Received response at t = %" PRIu64
-         " with no prior outstanding request",
-         rRState->responseTime);
+    CHPP_LOGE("Received response at t = %" PRIu64
+              " with no prior outstanding request",
+              rRState->responseTime);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
     rRState->responseTime = chppGetCurrentTime();
-    LOGW("Received additional response at t = %" PRIu64
-         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
-         rRState->responseTime, rRState->responseTime,
-         rRState->responseTime - rRState->requestTime);
+    CHPP_LOGW("Received additional response at t = %" PRIu64
+              " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+              rRState->responseTime, rRState->responseTime,
+              rRState->responseTime - rRState->requestTime);
 
   } else {
-    LOGI("Received initial response at t = %" PRIu64
-         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
-         rRState->responseTime, rRState->responseTime,
-         rRState->responseTime - rRState->requestTime);
+    CHPP_LOGI("Received initial response at t = %" PRIu64
+              " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+              rRState->responseTime, rRState->responseTime,
+              rRState->responseTime - rRState->requestTime);
   }
 
   // TODO: Also check for timeout
   if (responseHeader->transaction != rRState->transaction) {
-    LOGE("Received a response at t = %" PRIu64 " with transaction ID = %" PRIu8
-         " for a different outstanding request with transaction ID = %" PRIu8,
-         rRState->responseTime, responseHeader->transaction,
-         rRState->transaction);
+    CHPP_LOGE(
+        "Received a response at t = %" PRIu64 " with transaction ID = %" PRIu8
+        " for a different outstanding request with transaction ID = %" PRIu8,
+        rRState->responseTime, responseHeader->transaction,
+        rRState->transaction);
     return false;
   } else {
     return true;

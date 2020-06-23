@@ -34,12 +34,12 @@ extern "C" {
   printf("\e[" color "m%s %s:%d\t" fmt "\e[0m\n", level, __FILENAME__, \
          __LINE__, ##__VA_ARGS__)
 
-#define LOGE(fmt, ...) CHPP_LINUX_LOG("E", "91", fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) CHPP_LINUX_LOG("W", "93", fmt, ##__VA_ARGS__)
-#define LOGI(fmt, ...) CHPP_LINUX_LOG("I", "96", fmt, ##__VA_ARGS__)
-#define LOGD(fmt, ...) CHPP_LINUX_LOG("D", "97", fmt, ##__VA_ARGS__)
+#define CHPP_LOGE(fmt, ...) CHPP_LINUX_LOG("E", "91", fmt, ##__VA_ARGS__)
+#define CHPP_LOGW(fmt, ...) CHPP_LINUX_LOG("W", "93", fmt, ##__VA_ARGS__)
+#define CHPP_LOGI(fmt, ...) CHPP_LINUX_LOG("I", "96", fmt, ##__VA_ARGS__)
+#define CHPP_LOGD(fmt, ...) CHPP_LINUX_LOG("D", "97", fmt, ##__VA_ARGS__)
 
-#define LOG_OOM(fmt, ...) \
+#define CHPP_LOG_OOM(fmt, ...) \
   CHPP_LINUX_LOG("E", "91", "CHPP OOM: " fmt, ##__VA_ARGS__)
 
 #ifdef __cplusplus

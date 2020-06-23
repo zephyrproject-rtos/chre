@@ -46,7 +46,7 @@ static void chppDiscoveryDiscoverAll(
       context->registeredServiceCount, services);
 
   if (response == NULL) {
-    LOG_OOM("DiscoverAll response of %zu bytes", responseLen);
+    CHPP_LOG_OOM("DiscoverAll response of %zu bytes", responseLen);
     CHPP_ASSERT(false);
 
   } else {

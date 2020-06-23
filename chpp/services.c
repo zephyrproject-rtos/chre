@@ -42,8 +42,8 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
   CHPP_NOT_NULL(newService);
 
   if (appContext->registeredServiceCount >= CHPP_MAX_REGISTERED_SERVICES) {
-    LOGE("Cannot register new service # %" PRIu8 ". Already hit maximum",
-         appContext->registeredServiceCount);
+    CHPP_LOGE("Cannot register new service # %" PRIu8 ". Already hit maximum",
+              appContext->registeredServiceCount);
     return CHPP_HANDLE_NONE;
 
   } else {
@@ -55,7 +55,7 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     chppUuidToStr(newService->descriptor.uuid, uuidText);
-    LOGI(
+    CHPP_LOGI(
         "Registered service %" PRIu8 " on handle %" PRIu8
         " with name=%s, UUID=%s, "
         "version=%" PRIu8 ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
@@ -87,7 +87,7 @@ void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
                                  struct ChppAppHeader *requestHeader) {
   if (rRState->responseTime == CHPP_TIME_NONE &&
       rRState->requestTime != CHPP_TIME_NONE) {
-    LOGE(
+    CHPP_LOGE(
         "Received duplicate request while prior request was outstanding from t "
         "= %" PRIu64,
         rRState->requestTime);
@@ -102,21 +102,21 @@ void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState) {
   rRState->responseTime = chppGetCurrentTime();
 
   if (rRState->requestTime == CHPP_TIME_NONE) {
-    LOGE("Sending response at t = %" PRIu64
-         " with no prior outstanding request",
-         rRState->responseTime);
+    CHPP_LOGE("Sending response at t = %" PRIu64
+              " with no prior outstanding request",
+              rRState->responseTime);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
-    LOGW("Sending additional response at t = %" PRIu64
-         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
-         rRState->responseTime, rRState->responseTime,
-         rRState->responseTime - rRState->requestTime);
+    CHPP_LOGW("Sending additional response at t = %" PRIu64
+              " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+              rRState->responseTime, rRState->responseTime,
+              rRState->responseTime - rRState->requestTime);
 
   } else {
-    LOGI("Sending initial response at t = %" PRIu64
-         " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
-         rRState->responseTime, rRState->responseTime,
-         rRState->responseTime - rRState->requestTime);
+    CHPP_LOGI("Sending initial response at t = %" PRIu64
+              " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+              rRState->responseTime, rRState->responseTime,
+              rRState->responseTime - rRState->requestTime);
   }
 }
 

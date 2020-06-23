@@ -90,10 +90,11 @@ static bool chppProcessPredefinedClientRequest(struct ChppAppState *context,
   }
 
   if (dispatchResult == false) {
-    LOGE("Handle = %" PRIu8
-         " received unknown client request command = %#x, transaction ID = "
-         "%" PRIu8,
-         rxHeader->handle, rxHeader->command, rxHeader->transaction);
+    CHPP_LOGE(
+        "Handle = %" PRIu8
+        " received unknown client request command = %#x, transaction ID = "
+        "%" PRIu8,
+        rxHeader->handle, rxHeader->command, rxHeader->transaction);
   }
 
   return handleValid;
@@ -132,10 +133,11 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
   }
 
   if (dispatchResult == false) {
-    LOGE("Handle = %" PRIu8
-         " received unknown server response command = %#x, transaction ID = "
-         "%" PRIu8,
-         rxHeader->handle, rxHeader->command, rxHeader->transaction);
+    CHPP_LOGE(
+        "Handle = %" PRIu8
+        " received unknown server response command = %#x, transaction ID = "
+        "%" PRIu8,
+        rxHeader->handle, rxHeader->command, rxHeader->transaction);
   }
 
   return handleValid;
@@ -226,7 +228,7 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
         break;
 
       default:
-        LOGE("Invalid predefined handle %" PRIu8, handle);
+        CHPP_LOGE("Invalid predefined handle %" PRIu8, handle);
     }
 
   } else {
@@ -236,8 +238,8 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
   }
 
   if (len < minLen) {
-    LOGE("Received datagram too short for handle=%" PRIu8 ", len=%zu", handle,
-         len);
+    CHPP_LOGE("Received datagram too short for handle=%" PRIu8 ", len=%zu",
+              handle, len);
   }
   return (len >= minLen);
 }
@@ -277,8 +279,9 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
       break;
     }
     default: {
-      LOGE("Cannot dispatch unknown message type = %#x (handle = %" PRIu8 ")",
-           type, handle);
+      CHPP_LOGE("Cannot dispatch unknown message type = %#x (handle = %" PRIu8
+                ")",
+                type, handle);
       chppEnqueueTxErrorDatagram(context->transportContext,
                                  CHPP_TRANSPORT_ERROR_APPLAYER);
     }
@@ -374,7 +377,7 @@ static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
       break;
     }
     default: {
-      LOGE(
+      CHPP_LOGE(
           "Cannot provide context for unknown message type = %#x (handle = "
           "%" PRIu8 ")",
           type, handle);
@@ -415,9 +418,9 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
   if (chppDatagramLenIsOk(context, rxHeader->handle, len)) {
     if (rxHeader->handle >=
         context->registeredServiceCount + CHPP_HANDLE_NEGOTIATED_RANGE_START) {
-      LOGE("Received datagram for invalid handle: %" PRIu8
-           ", len = %zu, type = %#x, transaction ID = %" PRIu8,
-           rxHeader->handle, len, rxHeader->type, rxHeader->transaction);
+      CHPP_LOGE("Received datagram for invalid handle: %" PRIu8
+                ", len = %zu, type = %#x, transaction ID = %" PRIu8,
+                rxHeader->handle, len, rxHeader->type, rxHeader->transaction);
 
     } else if (rxHeader->handle == CHPP_HANDLE_NONE) {
       // Non-handle based communication
@@ -447,7 +450,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
           break;
         }
         default: {
-          LOGE(
+          CHPP_LOGE(
               "Received unknown message type = %#x for predefined handle  = "
               "%" PRIu8 " len = %zu, transaction ID = %" PRIu8,
               rxHeader->type, rxHeader->handle, len, rxHeader->transaction);
@@ -457,10 +460,11 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
       }
 
       if (success == false) {
-        LOGE("Predefined client/service with handle = %" PRIu8
-             " does not support message type = %#x (len = %zu, transaction ID "
-             "= %" PRIu8 ")",
-             rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
+        CHPP_LOGE(
+            "Predefined client/service with handle = %" PRIu8
+            " does not support message type = %#x (len = %zu, transaction ID "
+            "= %" PRIu8 ")",
+            rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
         chppEnqueueTxErrorDatagram(context->transportContext,
                                    CHPP_TRANSPORT_ERROR_APPLAYER);
       }
@@ -475,18 +479,19 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
           context, rxHeader->handle, rxHeader->type);
 
       if (dispatchFunc == NULL) {
-        LOGE("Negotiated handle = %" PRIu8
-             " does not support Rx message type = %" PRIu8,
-             rxHeader->handle, rxHeader->type);
+        CHPP_LOGE("Negotiated handle = %" PRIu8
+                  " does not support Rx message type = %" PRIu8,
+                  rxHeader->handle, rxHeader->type);
       } else if (clientServiceContext == NULL) {
-        LOGE("Client/service for negotiated handle = %" PRIu8
-             " and message type = %" PRIu8 " is missing context",
-             rxHeader->handle, rxHeader->type);
+        CHPP_LOGE("Client/service for negotiated handle = %" PRIu8
+                  " and message type = %" PRIu8 " is missing context",
+                  rxHeader->handle, rxHeader->type);
       } else if (dispatchFunc(clientServiceContext, buf, len) == false) {
-        LOGE("Received unknown message type  = %" PRIu8 " for handle = %" PRIu8
-             ", command = %#x, transaction ID = %" PRIu8,
-             rxHeader->type, rxHeader->handle, rxHeader->command,
-             rxHeader->transaction);
+        CHPP_LOGE("Received unknown message type  = %" PRIu8
+                  " for handle = %" PRIu8
+                  ", command = %#x, transaction ID = %" PRIu8,
+                  rxHeader->type, rxHeader->handle, rxHeader->command,
+                  rxHeader->transaction);
 
         // Allocate the response
         struct ChppServiceBasicResponse *response =

@@ -181,7 +181,7 @@ static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
   if (!wwanServiceContext->api->open(
           wwanServiceContext->service.appContext->systemApi, &palCallbacks)) {
     // initialization failed
-    LOGE("WWAN PAL API initialization failed");
+    CHPP_LOGE("WWAN PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
     response->error = CHPP_APP_ERROR_UNSPECIFIED;
   } else {
@@ -292,7 +292,8 @@ static void chppWwanServiceCellInfoResultCallback(
       &requestHeader, struct ChppServiceBasicResponse);
 
   if (response == NULL) {
-    LOG_OOM("WwanGetCellInfoResponseAsync response of %zu bytes", responseLen);
+    CHPP_LOG_OOM("WwanGetCellInfoResponseAsync response of %zu bytes",
+                 responseLen);
     CHPP_ASSERT(false);
   }
 
@@ -315,7 +316,7 @@ void chppRegisterWwanService(struct ChppAppState *appContext) {
   // Initialize platform
   gWwanServiceContext.api = chrePalWwanGetApi(CHRE_PAL_WWAN_API_V1_4);
   if (gWwanServiceContext.api == NULL) {
-    LOGE(
+    CHPP_LOGE(
         "WWAN PAL API version not compatible with CHPP. Cannot register WWAN "
         "service");
     CHPP_DEBUG_ASSERT(false);

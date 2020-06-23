@@ -49,17 +49,17 @@ void palSystemApiLog(enum chreLogLevel level, const char *formatStr, ...) {
 
   switch (level) {
     case CHRE_LOG_ERROR:
-      LOGE(PAL_LOG_FORMAT_STR, logBuf);
+      CHPP_LOGE(PAL_LOG_FORMAT_STR, logBuf);
       break;
     case CHRE_LOG_WARN:
-      LOGW(PAL_LOG_FORMAT_STR, logBuf);
+      CHPP_LOGW(PAL_LOG_FORMAT_STR, logBuf);
       break;
     case CHRE_LOG_INFO:
-      LOGI(PAL_LOG_FORMAT_STR, logBuf);
+      CHPP_LOGI(PAL_LOG_FORMAT_STR, logBuf);
       break;
     case CHRE_LOG_DEBUG:
     default:
-      LOGD(PAL_LOG_FORMAT_STR, logBuf);
+      CHPP_LOGD(PAL_LOG_FORMAT_STR, logBuf);
   }
 }
 
