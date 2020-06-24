@@ -491,10 +491,12 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
         CHPP_LOGE("Negotiated handle = %" PRIu8
                   " does not support Rx message type = %" PRIu8,
                   rxHeader->handle, rxHeader->type);
+
       } else if (clientServiceContext == NULL) {
         CHPP_LOGE("Client/service for negotiated handle = %" PRIu8
                   " and message type = %" PRIu8 " is missing context",
                   rxHeader->handle, rxHeader->type);
+
       } else if (dispatchFunc(clientServiceContext, buf, len) == false) {
         CHPP_LOGE("Received unknown message type  = %" PRIu8
                   " for handle = %" PRIu8
@@ -513,6 +515,15 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
         // Send out response datagram
         chppEnqueueTxDatagramOrFail(context->transportContext, response,
                                     sizeof(*response));
+
+      } else if (rxHeader->type == CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
+        struct ChppClientState *clientContext =
+            (struct ChppClientState *)clientServiceContext;
+
+        if (clientContext->waitingForResponse) {
+          // Dispatched a synchronous response successfully. Notify client
+          chppNotifierEvent(&clientContext->responseNotifier);
+        }
       }
     }
   }
