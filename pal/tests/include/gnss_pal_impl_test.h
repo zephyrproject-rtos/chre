@@ -65,10 +65,15 @@ class PalGnssTest : public ::testing::Test {
   //! True if location session is currently enabled
   bool locationSessionEnabled_ = false;
 
+  //! True if location session is currently enabled
+  bool measurementSessionEnabled_ = false;
+
   //! A list to store the location events
-  static constexpr size_t kLocationEventArraySize = 5;
-  chre::FixedSizeVector<chreGnssLocationEvent *, kLocationEventArraySize>
+  static constexpr size_t kEventArraySize = 5;
+  chre::FixedSizeVector<chreGnssLocationEvent *, kEventArraySize>
       locationEventVector_;
+  chre::FixedSizeVector<chreGnssDataEvent *, kEventArraySize>
+      measurementEventVector_;
 
   //! Mutex to protect class variables
   chre::Mutex mutex_;
