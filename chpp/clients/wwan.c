@@ -17,6 +17,7 @@
 #include "chpp/clients/wwan.h"
 
 #include "chpp/app.h"
+#include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chre/pal/wwan.h"
 
@@ -37,9 +38,8 @@ static void chppWwanClientDeinit(void *clientContext);
 /**
  * Configuration parameters for this client
  */
-static const struct ChppClient wwanClientConfig = {
-    .descriptor.uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d,
-                        0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+static const struct ChppClient kWwanClientConfig = {
+    .descriptor.uuid = CHPP_UUID_WWAN_STANDARD,
 
     // Version
     .descriptor.version.major = 1,
@@ -339,7 +339,7 @@ void chppWwanClientReleaseCellInfoResult() {
 void chppRegisterWwanClient(struct ChppAppState *appContext) {
   gWwanClientContext.client.appContext = appContext;
   chppRegisterClient(appContext, (void *)&gWwanClientContext,
-                     &wwanClientConfig);
+                     &kWwanClientConfig);
 }
 
 void chppDeregisterWwanClient(struct ChppAppState *appContext) {

@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chpp/services/discovery.h"
 #include "chpp/transport.h"
@@ -637,8 +638,7 @@ TEST_P(TransportTests, DiscoveryService) {
 
   // Check service configuration response
   static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
-               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+      .uuid = CHPP_UUID_WWAN_STANDARD,
 
       // Human-readable name
       .name = "WWAN",
@@ -753,8 +753,7 @@ TEST_F(TransportTests, Discovery) {
 
   // Service descriptor
   static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
-               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},
+      .uuid = CHPP_UUID_WWAN_STANDARD,
 
       // Human-readable name
       .name = "WWAN",

@@ -16,6 +16,7 @@
 
 #include "chpp/services/wwan.h"
 
+#include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chre/pal/wwan.h"
 
@@ -33,9 +34,8 @@ static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
 /**
  * Configuration parameters for this service
  */
-static const struct ChppService wwanServiceConfig = {
-    .descriptor.uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d,
-                        0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+static const struct ChppService kWwanServiceConfig = {
+    .descriptor.uuid = CHPP_UUID_WWAN_STANDARD,
 
     // Human-readable name
     .descriptor.name = "WWAN",
@@ -325,7 +325,7 @@ void chppRegisterWwanService(struct ChppAppState *appContext) {
     // Register service
     gWwanServiceContext.service.appContext = appContext;
     gWwanServiceContext.service.handle = chppRegisterService(
-        appContext, (void *)&gWwanServiceContext, &wwanServiceConfig);
+        appContext, (void *)&gWwanServiceContext, &kWwanServiceConfig);
     CHPP_DEBUG_ASSERT(gWwanServiceContext.service.handle);
   }
 }
