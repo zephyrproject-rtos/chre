@@ -85,10 +85,10 @@ static uint8_t chppFindMatchingClient(struct ChppAppState *context,
  */
 static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
                                             const uint8_t *buf, size_t len) {
-  CHPP_DEBUG_ASSERT(len >= sizeof(struct ChppServiceBasicResponse));
+  CHPP_DEBUG_ASSERT(len >= sizeof(struct ChppAppHeader));
 
   struct ChppDiscoveryResponse *response = (struct ChppDiscoveryResponse *)buf;
-  size_t servicesLen = len - sizeof(struct ChppServiceBasicResponse);
+  size_t servicesLen = len - sizeof(struct ChppAppHeader);
   uint8_t serviceCount = servicesLen / sizeof(struct ChppServiceDescriptor);
 
   if (servicesLen != serviceCount * sizeof(struct ChppServiceDescriptor)) {

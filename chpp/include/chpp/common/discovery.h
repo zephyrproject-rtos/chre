@@ -34,7 +34,7 @@ extern "C" {
  */
 CHPP_PACKED_START
 struct ChppDiscoveryResponse {
-  struct ChppServiceBasicResponse common;
+  struct ChppAppHeader header;
   struct ChppServiceDescriptor services[];
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END

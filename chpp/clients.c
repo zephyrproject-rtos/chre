@@ -106,7 +106,6 @@ struct ChppAppHeader *chppAllocClientRequest(
     result->handle = clientState->handle;
     result->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
     result->transaction = clientState->transaction;
-    result->reserved = CHPP_RESERVED;
 
     clientState->transaction++;
   }

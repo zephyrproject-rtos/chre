@@ -171,8 +171,8 @@ static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
 static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
                                 struct ChppAppHeader *requestHeader) {
   // Allocate the response
-  struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
-      requestHeader, struct ChppServiceBasicResponse);
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
   // Initialize service
   static const struct chrePalWwanCallbacks palCallbacks = {
@@ -205,8 +205,8 @@ static void chppWwanServiceClose(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
   // Allocate the response
-  struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
-      requestHeader, struct ChppServiceBasicResponse);
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
   // Deinitialize service
   wwanServiceContext->api->close();
@@ -235,7 +235,7 @@ static void chppWwanServiceGetCapabilities(
 
   // Populate the response
   response->capabilities = wwanServiceContext->api->getCapabilities();
-  response->common.error = CHPP_APP_ERROR_NONE;
+  response->header.error = CHPP_APP_ERROR_NONE;
 
   // Timestamp and send out response datagram
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
@@ -262,8 +262,8 @@ static void chppWwanServiceGetCellInfoAsync(
   // Register for callback
   if (!wwanServiceContext->api->requestCellInfo()) {
     // Error occurred, send a synchronous error response
-    struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
-        requestHeader, struct ChppServiceBasicResponse);
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
     response->error = CHPP_APP_ERROR_UNSPECIFIED;
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                       &wwanServiceContext->getCellInfoAsync,
@@ -288,9 +288,9 @@ static void chppWwanServiceCellInfoResultCallback(
 
   // Craft response per parser script
   // TODO, this is a placeholder
-  size_t responseLen = sizeof(struct ChppServiceBasicResponse) + 0 + 0;
-  struct ChppServiceBasicResponse *response = chppAllocServiceResponseFixed(
-      &requestHeader, struct ChppServiceBasicResponse);
+  size_t responseLen = sizeof(struct ChppAppHeader) + 0 + 0;
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(&requestHeader, struct ChppAppHeader);
 
   if (response == NULL) {
     CHPP_LOG_OOM("WwanGetCellInfoResponseAsync response of %zu bytes",
