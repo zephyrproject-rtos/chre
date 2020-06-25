@@ -69,6 +69,8 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
 
     private AtomicReference<String> mErrorString = new AtomicReference<>(null);
 
+    private long mThreadId;
+
     public ContextHubGeneralTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
         mContextHubManager = manager;
@@ -94,8 +96,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
                     // These are univeral failure conditions for all tests.
                     // If they have data, it's expected to be an ASCII string.
                     String errorString = new String(data, Charset.forName("US-ASCII"));
-                    mErrorString.set(errorString);
-                    mCountDownLatch.countDown();
+                    fail(errorString);
                     break;
 
                 case SKIPPED:
@@ -129,6 +130,8 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         unloadAllNanoApps();
         ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNanoAppBinary);
 
+        mErrorString.set(null);
+
         mInitialized = true;
     }
 
@@ -136,14 +139,9 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
      * Run the test.
      */
     public void run(ContextHubTestConstants.TestNames testName, long timeoutSeconds) {
+        mThreadId = Thread.currentThread().getId();
         mCountDownLatch = new CountDownLatch(1);
-        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
-                mNanoAppId, testName.asInt(), new byte[0]);
-
-        int result = mContextHubClient.sendMessageToNanoApp(hackMessageToNanoApp(message));
-        if (result != ContextHubTransaction.RESULT_SUCCESS) {
-            Assert.fail("Failed to send message: result = " + result);
-        }
+        sendMessageToNanoAppOrFail(testName.asInt(), new byte[0] /* data */);
 
         boolean success = false;
         try {
@@ -153,9 +151,6 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         }
 
         Assert.assertTrue("Test timed out", success);
-        if (mErrorString.get() != null) {
-            Assert.fail(mErrorString.get());
-        }
     }
 
     /**
@@ -178,6 +173,37 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         mContextHubClient = null;
 
         mInitialized = false;
+
+        if (mErrorString.get() != null) {
+            Assert.fail(mErrorString.get());
+        }
+    }
+
+    /**
+     * Sends a message to the test nanoapp.
+     * @param type The message type.
+     * @param data The message payload.
+     */
+    protected void sendMessageToNanoAppOrFail(int type, byte [] data) {
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNanoAppId, type, data);
+
+        int result = mContextHubClient.sendMessageToNanoApp(hackMessageToNanoApp(message));
+        if (result != ContextHubTransaction.RESULT_SUCCESS) {
+            fail("Failed to send message: result = " + result);
+        }
+    }
+
+    /**
+     * @param errorMessage The error message to display
+     */
+    protected void fail(String errorMessage) {
+        if (Thread.currentThread().getId() == mThreadId) {
+            Assert.fail(errorMessage);
+        } else {
+            mErrorString.set(errorMessage);
+            mCountDownLatch.countDown();
+        }
     }
 
     /**
