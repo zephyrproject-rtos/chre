@@ -171,20 +171,24 @@ $$($$(1)_HEADER): $$(OUT)/$$$(1) $$($$$(1)_DIRS)
 # Compile ######################################################################
 
 $$($$(1)_CPP_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cpp
-	$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
-	    -o $$@
+	@echo " [CPP] $$<"
+	$(V)$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c \
+		$$< -o $$@
 
 $$($$(1)_CC_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
-	$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
-	    -o $$@
+	@echo " [CC] $$<"
+	$(V)$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c \
+		$$< -o $$@
 
 $$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
-	$(3) $(COMMON_C_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
-	    -o $$@
+	@echo " [C] $$<"
+	$(V)$(3) $(COMMON_C_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
+		-o $$@
 
 $$($$(1)_S_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.S
-	$(3) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
-	    -o $$@
+	@echo " [AS] $$<"
+	$(V)$(3) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
+		-o $$@
 
 # Archive ######################################################################
 
@@ -194,7 +198,7 @@ $$$(1)_ARFLAGS = $(COMMON_ARFLAGS) \
 
 $$($$(1)_AR): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_OBJS) \
               $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS) $$($$(1)_S_OBJS)
-	$(7) $$($$$(1)_ARFLAGS) $$@ $$(filter %.o, $$^)
+	$(V)$(7) $$($$$(1)_ARFLAGS) $$@ $$(filter %.o, $$^)
 
 # Link #########################################################################
 
@@ -202,43 +206,43 @@ $$($$(1)_SO): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_DEPS) \
               $$($$(1)_CPP_DEPS) $$($$(1)_C_DEPS) $$($$(1)_S_DEPS) \
               $$($$(1)_CC_OBJS) $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS) \
               $$($$(1)_S_OBJS)
-	$(5) $(4) -o $$@ $(11) $$(filter %.o, $$^) $(12)
+	$(V)$(5) $(4) -o $$@ $(11) $$(filter %.o, $$^) $(12)
 
 $$($$(1)_BIN): $$(OUT)/$$$(1) $$($$$(1)_DIRS) $$($$(1)_CC_DEPS) \
                $$($$(1)_CPP_DEPS) $$($$(1)_C_DEPS) $$($$(1)_S_DEPS) \
                $$($$(1)_CC_OBJS) $$($$(1)_CPP_OBJS) $$($$(1)_C_OBJS) \
                $$($$(1)_S_OBJS)
-	$(3) -o $$@ $(11) $$(filter %.o, $$^) $(12) $(10)
+	$(V)$(3) -o $$@ $(11) $$(filter %.o, $$^) $(12) $(10)
 
 # Output Directories ###########################################################
 
 $$($$$(1)_DIRS):
-	mkdir -p $$@
+	$(V)mkdir -p $$@
 
 $$(OUT)/$$$(1):
-	mkdir -p $$@
+	$(V)mkdir -p $$@
 
 # Automatic Dependency Resolution ##############################################
 
 $$($$(1)_CC_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cc
-	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
-	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
+	$(V)mkdir -p $$(dir $$@)
+	$(V)$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
+		-DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 
 $$($$(1)_CPP_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.cpp
-	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
-	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
+	$(V)mkdir -p $$(dir $$@)
+	$(V)$(3) $(DEP_CFLAGS) $(COMMON_CXX_CFLAGS) \
+		-DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 
 $$($$(1)_C_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.c
-	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) \
-	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
+	$(V)mkdir -p $$(dir $$@)
+	$(V)$(3) $(DEP_CFLAGS) $(COMMON_C_CFLAGS) \
+		-DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 
 $$($$(1)_S_DEPS): $(OUT)/$$($$(1)_OBJS_DIR)/%.d: %.S
-	mkdir -p $$(dir $$@)
-	$(3) $(DEP_CFLAGS) \
-	    -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
+	$(V)mkdir -p $$(dir $$@)
+	$(V)$(3) $(DEP_CFLAGS) \
+		-DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< -o $$@
 
 # Include generated dependency files if they are in the requested build target.
 # This avoids dependency generation from occuring for a debug target when a
