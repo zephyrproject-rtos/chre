@@ -27,9 +27,7 @@
 static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
                                      size_t len);
 static bool chppWwanClientInit(void *clientContext, uint8_t handle,
-                               uint8_t serviceVersionMajor,
-                               uint8_t serviceVersionMinor,
-                               uint16_t serviceVersionPatch);
+                               struct ChppVersion serviceVersion);
 static void chppWwanClientDeinit(void *clientContext);
 
 /************************************************
@@ -43,11 +41,10 @@ static const struct ChppClient wwanClientConfig = {
     .descriptor.uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d,
                         0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
 
-    .descriptor.versionMajor = 1,
-
-    .descriptor.versionMinor = 0,
-
-    .descriptor.versionPatch = 0,
+    // Version
+    .descriptor.version.major = 1,
+    .descriptor.version.minor = 0,
+    .descriptor.version.patch = 0,
 
     // Server response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWwanResponse,
@@ -159,19 +156,13 @@ static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
  *
  * @param clientContext Maintains status for each client instance.
  * @param handle Handle number for this client.
- * @param versionMajor Major version of the matched service
- * @param versionMinor Minor version of the matched service
- * @param versionPatch Patch version of the matched service
+ * @param serviceVersion Version of the matched service
  *
  * @return True if client is successfully initialized
  */
 static bool chppWwanClientInit(void *clientContext, uint8_t handle,
-                               uint8_t serviceVersionMajor,
-                               uint8_t serviceVersionMinor,
-                               uint16_t serviceVersionPatch) {
-  UNUSED_VAR(serviceVersionMajor);
-  UNUSED_VAR(serviceVersionMinor);
-  UNUSED_VAR(serviceVersionPatch);
+                               struct ChppVersion serviceVersion) {
+  UNUSED_VAR(serviceVersion);
 
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;

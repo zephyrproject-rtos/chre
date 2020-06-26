@@ -41,9 +41,9 @@ static const struct ChppService wwanServiceConfig = {
     .descriptor.name = "WWAN",
 
     // Version
-    .descriptor.versionMajor = 1,
-    .descriptor.versionMinor = 0,
-    .descriptor.versionPatch = 0,
+    .descriptor.version.major = 1,
+    .descriptor.version.minor = 0,
+    .descriptor.version.patch = 0,
 
     // Client request dispatch function pointer
     .requestDispatchFunctionPtr = &chppDispatchWwanRequest,

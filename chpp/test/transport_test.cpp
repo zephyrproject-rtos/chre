@@ -644,9 +644,9 @@ TEST_P(TransportTests, DiscoveryService) {
       .name = "WWAN",
 
       // Version
-      .versionMajor = 1,
-      .versionMinor = 0,
-      .versionPatch = 0,
+      .version.major = 1,
+      .version.minor = 0,
+      .version.patch = 0,
   };
   EXPECT_EQ(std::memcmp(services[0].uuid, wwanServiceDescriptor.uuid,
                         sizeof(wwanServiceDescriptor.uuid)),
@@ -654,9 +654,9 @@ TEST_P(TransportTests, DiscoveryService) {
   EXPECT_EQ(std::memcmp(services[0].name, wwanServiceDescriptor.name,
                         sizeof(wwanServiceDescriptor.name)),
             0);
-  EXPECT_EQ(services[0].versionMajor, wwanServiceDescriptor.versionMajor);
-  EXPECT_EQ(services[0].versionMinor, wwanServiceDescriptor.versionMinor);
-  EXPECT_EQ(services[0].versionPatch, wwanServiceDescriptor.versionPatch);
+  EXPECT_EQ(services[0].version.major, wwanServiceDescriptor.version.major);
+  EXPECT_EQ(services[0].version.minor, wwanServiceDescriptor.version.minor);
+  EXPECT_EQ(services[0].version.patch, wwanServiceDescriptor.version.patch);
 
   // Cleanup
   chppWorkThreadStop(&mTransportContext);
@@ -760,9 +760,9 @@ TEST_F(TransportTests, Discovery) {
       .name = "WWAN",
 
       // Version
-      .versionMajor = 1,
-      .versionMinor = 0,
-      .versionPatch = 0,
+      .version.major = 1,
+      .version.minor = 0,
+      .version.patch = 0,
   };
   memcpy(&mBuf[len], &wwanServiceDescriptor, sizeof(ChppServiceDescriptor));
   len += sizeof(ChppServiceDescriptor);
