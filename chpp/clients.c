@@ -80,9 +80,9 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
     CHPP_LOGI("Registered client # %" PRIu8 " with UUID=%s, version=%" PRIu8
               ".%" PRIu8 ".%" PRIu16 ", min_len=%zu ",
               appContext->registeredClientCount, uuidText,
-              newClient->descriptor.versionMajor,
-              newClient->descriptor.versionMinor,
-              newClient->descriptor.versionPatch, newClient->minLength);
+              newClient->descriptor.version.major,
+              newClient->descriptor.version.minor,
+              newClient->descriptor.version.patch, newClient->minLength);
 
     appContext->registeredClientCount++;
   }

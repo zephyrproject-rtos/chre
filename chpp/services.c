@@ -75,9 +75,9 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
               appContext->registeredServiceCount,
               CHPP_SERVICE_HANDLE_OF_INDEX(appContext->registeredServiceCount),
               newService->descriptor.name, uuidText,
-              newService->descriptor.versionMajor,
-              newService->descriptor.versionMinor,
-              newService->descriptor.versionPatch, newService->minLength);
+              newService->descriptor.version.major,
+              newService->descriptor.version.minor,
+              newService->descriptor.version.patch, newService->minLength);
 
     return CHPP_SERVICE_HANDLE_OF_INDEX(appContext->registeredServiceCount++);
   }

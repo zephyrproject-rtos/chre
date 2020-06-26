@@ -1008,9 +1008,9 @@ void chppTransportSendReset(struct ChppTransportState *context,
       chppMalloc(sizeof(struct ChppTransportConfiguration));
 
   // CHPP transport version
-  config->versionMajor = 1;
-  config->versionMinor = 0;
-  config->versionPatch = 0;
+  config->version.major = 1;
+  config->version.minor = 0;
+  config->version.patch = 0;
 
   // Rx MTU size
   config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
