@@ -207,6 +207,41 @@ ChppAppHeader *addAppHeaderToBuf(uint8_t *buf, size_t *location) {
 }
 
 /**
+ * Adds a basic response  (i.e. app header + error) with default values to
+ * a certain location in a buffer, and increases the location accordingly, to
+ * account for the length of the added app header.
+ *
+ * @param buf Buffer.
+ * @param location Location to add the app header, which its value will be
+ * increased accordingly.
+ *
+ * @return Pointer to the added app header (e.g. to modify its fields).
+ */
+ChppServiceBasicResponse *addBasicResponseToBuf(uint8_t *buf,
+                                                size_t *location) {
+  size_t oldLoc = *location;
+
+  static const ChppServiceBasicResponse basicResponse = {
+      // This is a service response
+      .header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE,
+
+      // Default values for handle, transaction number, and command. To be
+      // updated later as necessary
+      .header.handle = CHPP_HANDLE_NEGOTIATED_RANGE_START,
+      .header.transaction = 0,
+      .header.command = 0,
+
+      // No error
+      .error = CHPP_APP_ERROR_NONE,
+  };
+
+  memcpy(&buf[*location], &basicResponse, sizeof(ChppServiceBasicResponse));
+  *location += sizeof(ChppServiceBasicResponse);
+
+  return (ChppServiceBasicResponse *)&buf[oldLoc];
+}
+
+/**
  * Adds a transport footer to a certain location in a buffer, and increases the
  * location accordingly, to account for the length of the added preamble.
  *
@@ -693,6 +728,69 @@ TEST_F(TransportTests, WwanOpen) {
   chppWorkThreadStop(&mTransportContext);
   t1.join();
 }
+
+/**
+ * Discovery client.
+ */
+TEST_F(TransportTests, Discovery) {
+  size_t len = 0;
+
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  // Preamble
+  addPreambleToBuf(mBuf, &len);
+
+  // Transport header
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
+
+  // App header
+  ChppServiceBasicResponse *basicResponse = addBasicResponseToBuf(mBuf, &len);
+  basicResponse->header.handle = CHPP_HANDLE_DISCOVERY;
+  basicResponse->header.command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
+  basicResponse->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+
+  // Service descriptor
+  static const ChppServiceDescriptor wwanServiceDescriptor = {
+      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
+               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},
+
+      // Human-readable name
+      .name = "WWAN",
+
+      // Version
+      .versionMajor = 1,
+      .versionMinor = 0,
+      .versionPatch = 0,
+  };
+  memcpy(&mBuf[len], &wwanServiceDescriptor, sizeof(ChppServiceDescriptor));
+  len += sizeof(ChppServiceDescriptor);
+
+  transHeader->length =
+      len - sizeof(ChppTransportHeader) - CHPP_PREAMBLE_LEN_BYTES;
+
+  // Add checksum
+  addTransportFooterToBuf(mBuf, &len);
+
+  // Initialize clientIndexOfServiceIndex[0] to see if it correctly updated upon
+  // discovery
+  mAppContext.clientIndexOfServiceIndex[0] = CHPP_CLIENT_INDEX_NONE;
+
+  // Send header + payload (if any) + footer
+  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
+
+  EXPECT_EQ(mAppContext.clientIndexOfServiceIndex[0], 0);
+
+  // Check for correct state
+  uint8_t nextSeq = transHeader->seq + 1;
+  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
+
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}  // namespace
 
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));
