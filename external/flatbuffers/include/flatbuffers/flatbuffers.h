@@ -250,9 +250,7 @@ struct VectorReverseIterator : public std::reverse_iterator<Iterator> {
   }
 };
 
-#ifndef FLATBUFFERS_CHRE
 struct String;
-#endif
 
 // This is used as a helper type for accessing vectors.
 // Vector::data() assumes the vector elements start after the length field.
@@ -567,7 +565,6 @@ template<typename T, uint16_t length> class Array<Offset<T>, length> {
   uint8_t data_[1];
 };
 
-#ifndef FLATBUFFERS_CHRE
 // Lexicographically compare two strings (possibly containing nulls), and
 // return true if the first is less than the second.
 static inline bool StringLessThan(const char *a_data, uoffset_t a_size,
@@ -578,7 +575,9 @@ static inline bool StringLessThan(const char *a_data, uoffset_t a_size,
 
 struct String : public Vector<char> {
   const char *c_str() const { return reinterpret_cast<const char *>(Data()); }
+  #ifndef FLATBUFFERS_CHRE
   std::string str() const { return std::string(c_str(), size()); }
+  #endif  // !FLATBUFFERS_CHRE
 
   // clang-format off
   #ifdef FLATBUFFERS_HAS_STRING_VIEW
@@ -593,18 +592,19 @@ struct String : public Vector<char> {
   }
 };
 
+#ifndef FLATBUFFERS_CHRE
 // Convenience function to get std::string from a String returning an empty
 // string on null pointer.
 static inline std::string GetString(const String *str) {
   return str ? str->str() : "";
 }
+#endif  // !FLATBUFFERS_CHRE
 
 // Convenience function to get char* from a String returning an empty string on
 // null pointer.
 static inline const char *GetCstring(const String *str) {
   return str ? str->c_str() : "";
 }
-#endif  // !FLATBUFFERS_CHRE
 
 // Allocator interface. This is flatbuffers-specific and meant only for
 // `vector_downward` usage.
@@ -1494,7 +1494,6 @@ class FlatBufferBuilder {
   }
   /// @endcond
 
-  #ifndef FLATBUFFERS_CHRE
   /// @brief Store a string in the buffer, which can contain any binary data.
   /// @param[in] str A const char pointer to the data to be stored as a string.
   /// @param[in] len The number of bytes that should be stored from `str`.
@@ -1522,6 +1521,7 @@ class FlatBufferBuilder {
     return CreateString(str, strlen(str));
   }
 
+  #ifndef FLATBUFFERS_CHRE
   /// @brief Store a string in the buffer, which can contain any binary data.
   /// @param[in] str A const reference to a std::string to store in the buffer.
   /// @return Returns the offset in the buffer where the string starts.
@@ -2289,7 +2289,6 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     return VerifyVector(reinterpret_cast<const Vector<T> *>(vec));
   }
 
-  #ifndef FLATBUFFERS_CHRE
   // Verify a pointer (may be NULL) to string.
   bool VerifyString(const String *str) const {
     size_t end;
@@ -2298,7 +2297,6 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
                     Verify(end, 1) &&           // Must have terminator
                     Check(buf_[end] == '\0'));  // Terminating byte must be 0.
   }
-  #endif
 
   // Common code between vectors and strings.
   bool VerifyVectorOrString(const uint8_t *vec, size_t elem_size,
