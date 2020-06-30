@@ -27,6 +27,9 @@ the wire to a different processor in the system. The general process for
  1. Flatten the structure by replacing pointers to nested structures/arrays with
     a ChppOffset which describes the location in the payload where the nested
     data resides.
+ 1. A CHPP application layer header is allocated for convenience when used in
+    CHPP. The header values need to be set by CHPP and they are not zeroed out.
+    The header length is not included in the offset calculation.
 
 ChppOffset is a collection of a 16-bit offset from the beginning of the payload,
 and a length. While we could implicitly derive the offset, the length cannot
