@@ -170,22 +170,22 @@ $$($$(1)_HEADER): $$(OUT)/$$$(1) $$($$$(1)_DIRS)
 
 # Compile ######################################################################
 
-$$($$(1)_CPP_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cpp
+$$($$(1)_CPP_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cpp $(MAKEFILE_LIST)
 	@echo " [CPP] $$<"
 	$(V)$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c \
 		$$< -o $$@
 
-$$($$(1)_CC_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc
+$$($$(1)_CC_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.cc $(MAKEFILE_LIST)
 	@echo " [CC] $$<"
 	$(V)$(3) $(COMMON_CXX_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c \
 		$$< -o $$@
 
-$$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c
+$$($$(1)_C_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.c $(MAKEFILE_LIST)
 	@echo " [C] $$<"
 	$(V)$(3) $(COMMON_C_CFLAGS) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
 		-o $$@
 
-$$($$(1)_S_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.S
+$$($$(1)_S_OBJS): $(OUT)/$$($$(1)_OBJS_DIR)/%.o: %.S $(MAKEFILE_LIST)
 	@echo " [AS] $$<"
 	$(V)$(3) -DCHRE_FILENAME=\"$$(notdir $$<)\" $(2) -c $$< \
 		-o $$@
