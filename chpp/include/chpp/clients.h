@@ -72,6 +72,9 @@ struct ChppClientState {
   struct ChppAppState *appContext;  // Pointer to app layer context
   uint8_t handle;                   // Handle number for this client
   uint8_t transaction;              // Next Transaction ID to be used
+
+  bool waitingForResponse;               // For sync. request/responses
+  struct ChppNotifier responseNotifier;  // For sync. request/responses
 };
 
 #ifdef CHPP_CLIENT_ENABLED_CHRE_WWAN
@@ -89,6 +92,22 @@ struct ChppClientState {
 /************************************************
  *  Public functions
  ***********************************************/
+
+/**
+ * Initializes a client. This function must be called when a client is matched
+ * with a service during discovery to provides its handle number.
+ *
+ * @param clientContext Maintains status for each client instance.
+ * @param handle Handle number for this client.
+ */
+void chppClientInit(struct ChppClientState *clientContext, uint8_t handle);
+
+/**
+ * Deinitializes a client.
+ *
+ * @param clientContext Maintains status for each client instance.
+ */
+void chppClientDeinit(struct ChppClientState *clientContext);
 
 /**
  * Registers common clients with the CHPP app layer. These clients are enabled
@@ -216,6 +235,26 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
 bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
                                       struct ChppRequestResponseState *rRState,
                                       void *buf, size_t len);
+
+/**
+ * Similar to chppSendTimestampedRequestOrFail() but blocks execution until a
+ * response is received. Used for synchronous requests.
+ *
+ * In order to use this function, clientState->responseNotifier must have been
+ * initialized using chppNotifierInit() upon initialization of the client.
+ *
+ * @param clientState State of the client sending the client request.
+ * @param rRState Maintains the basic state for each request/response
+ * functionality of a client.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ * False informs the sender that the queue was full and the payload discarded.
+ */
+bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
+                                       struct ChppRequestResponseState *rRState,
+                                       void *buf, size_t len);
 
 #ifdef __cplusplus
 }

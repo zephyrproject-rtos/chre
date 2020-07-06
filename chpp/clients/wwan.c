@@ -17,6 +17,7 @@
 #include "chpp/clients/wwan.h"
 
 #include "chpp/app.h"
+#include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chre/pal/wwan.h"
 
@@ -37,9 +38,8 @@ static void chppWwanClientDeinit(void *clientContext);
 /**
  * Configuration parameters for this client
  */
-static const struct ChppClient wwanClientConfig = {
-    .descriptor.uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d,
-                        0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+static const struct ChppClient kWwanClientConfig = {
+    .descriptor.uuid = CHPP_UUID_WWAN_STANDARD,
 
     // Version
     .descriptor.version.major = 1,
@@ -156,9 +156,9 @@ static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
  *
  * @param clientContext Maintains status for each client instance.
  * @param handle Handle number for this client.
- * @param serviceVersion Version of the matched service
+ * @param serviceVersion Version of the matched service.
  *
- * @return True if client is successfully initialized
+ * @return True if client is compatible and successfully initialized.
  */
 static bool chppWwanClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion) {
@@ -166,7 +166,7 @@ static bool chppWwanClientInit(void *clientContext, uint8_t handle,
 
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;
-  wwanClientContext->client.handle = handle;
+  chppClientInit(&wwanClientContext->client, handle);
 
   return true;
 }
@@ -177,9 +177,9 @@ static bool chppWwanClientInit(void *clientContext, uint8_t handle,
  * @param clientContext Maintains status for each client instance.
  */
 static void chppWwanClientDeinit(void *clientContext) {
-  // TODO
-
-  UNUSED_VAR(clientContext);
+  struct ChppWwanClientState *wwanClientContext =
+      (struct ChppWwanClientState *)clientContext;
+  chppClientDeinit(&wwanClientContext->client);
 }
 
 /**
@@ -259,12 +259,10 @@ bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   struct ChppAppHeader *request =
       chppAllocClientRequestCommand(&gWwanClientContext.client, CHPP_WWAN_OPEN);
 
-  chppSendTimestampedRequestOrFail(&gWwanClientContext.client,
-                                   &gWwanClientContext.open, request,
-                                   sizeof(struct ChppAppHeader));
-
-  // TODO: Wait for response
-  return true;
+  // Send request and wait for service response
+  return chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                           &gWwanClientContext.open, request,
+                                           sizeof(struct ChppAppHeader));
 }
 
 /**
@@ -298,15 +296,14 @@ uint32_t chppWwanClientGetCapabilities() {
     struct ChppAppHeader *request = chppAllocClientRequestCommand(
         &gWwanClientContext.client, CHPP_WWAN_GET_CAPABILITIES);
 
-    if (chppSendTimestampedRequestOrFail(
+    // Send request and wait for response
+    if (chppSendTimestampedRequestAndWait(
             &gWwanClientContext.client, &gWwanClientContext.getCapabilities,
             request, sizeof(struct ChppAppHeader)) == false) {
       // Could not send out request
       return CHRE_WWAN_CAPABILITIES_NONE;
 
     } else {
-      // TODO: Wait for response
-
       return gWwanClientContext.capabilities;
     }
   }
@@ -342,7 +339,7 @@ void chppWwanClientReleaseCellInfoResult() {
 void chppRegisterWwanClient(struct ChppAppState *appContext) {
   gWwanClientContext.client.appContext = appContext;
   chppRegisterClient(appContext, (void *)&gWwanClientContext,
-                     &wwanClientConfig);
+                     &kWwanClientConfig);
 }
 
 void chppDeregisterWwanClient(struct ChppAppState *appContext) {

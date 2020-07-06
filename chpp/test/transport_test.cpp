@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chpp/services/discovery.h"
 #include "chpp/transport.h"
@@ -51,7 +52,7 @@ constexpr int kServiceCount = 1;
 // Basic response minimum packet length
 constexpr int kMinResponsePacketLength =
     CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
-    sizeof(ChppServiceBasicResponse) + sizeof(ChppTransportFooter);
+    sizeof(ChppAppHeader) + sizeof(ChppTransportFooter);
 
 /*
  * Test suite for the CHPP Transport Layer
@@ -102,17 +103,17 @@ void WaitForTransport(struct ChppTransportState *transportContext) {
 
 /**
  * Validates a ChppTestResponse. Since the error field within the
- * ChppServiceBasicResponse struct is optional (and not used for common
- * services), this function returns the error field to be checked if desired,
- * depending on the service.
+ * ChppAppHeader struct is optional (and not used for common services), this
+ * function returns the error field to be checked if desired, depending on the
+ * service.
  *
  * @param buf Buffer containing response.
  * @param ackSeq Ack sequence to be verified.
  * @param handle Handle number to be verified
  * @param transactionID Transaction ID to be verified.
  *
- * @return The error field within the ChppServiceBasicResponse struct that is
- * used by some but not all services.
+ * @return The error field within the ChppAppHeader struct that is used by some
+ * but not all services.
  */
 uint8_t validateChppTestResponse(void *buf, uint8_t ackSeq, uint8_t handle,
                                  uint8_t transactionID) {
@@ -127,13 +128,12 @@ uint8_t validateChppTestResponse(void *buf, uint8_t ackSeq, uint8_t handle,
   EXPECT_EQ(response->transportHeader.ackSeq, ackSeq);
 
   // Check response app headers
-  EXPECT_EQ(response->basicResponse.header.handle, handle);
-  EXPECT_EQ(response->basicResponse.header.type,
-            CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
-  EXPECT_EQ(response->basicResponse.header.transaction, transactionID);
+  EXPECT_EQ(response->appHeader.handle, handle);
+  EXPECT_EQ(response->appHeader.type, CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
+  EXPECT_EQ(response->appHeader.transaction, transactionID);
 
   // Return optional response error to be checked if desired
-  return response->basicResponse.error;
+  return response->appHeader.error;
 }
 
 /**
@@ -193,52 +193,18 @@ ChppAppHeader *addAppHeaderToBuf(uint8_t *buf, size_t *location) {
   size_t oldLoc = *location;
 
   static const ChppAppHeader appHeader = {
-      // Default values for initial, minimum size request packet
+      // Default values - to be updated later as necessary
       .handle = CHPP_HANDLE_NEGOTIATED_RANGE_START,
       .type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST,
       .transaction = 0,
       .command = 0,
+      .error = CHPP_APP_ERROR_NONE,
   };
 
   memcpy(&buf[*location], &appHeader, sizeof(appHeader));
   *location += sizeof(appHeader);
 
   return (ChppAppHeader *)&buf[oldLoc];
-}
-
-/**
- * Adds a basic response  (i.e. app header + error) with default values to
- * a certain location in a buffer, and increases the location accordingly, to
- * account for the length of the added app header.
- *
- * @param buf Buffer.
- * @param location Location to add the app header, which its value will be
- * increased accordingly.
- *
- * @return Pointer to the added app header (e.g. to modify its fields).
- */
-ChppServiceBasicResponse *addBasicResponseToBuf(uint8_t *buf,
-                                                size_t *location) {
-  size_t oldLoc = *location;
-
-  static const ChppServiceBasicResponse basicResponse = {
-      // This is a service response
-      .header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE,
-
-      // Default values for handle, transaction number, and command. To be
-      // updated later as necessary
-      .header.handle = CHPP_HANDLE_NEGOTIATED_RANGE_START,
-      .header.transaction = 0,
-      .header.command = 0,
-
-      // No error
-      .error = CHPP_APP_ERROR_NONE,
-  };
-
-  memcpy(&buf[*location], &basicResponse, sizeof(ChppServiceBasicResponse));
-  *location += sizeof(ChppServiceBasicResponse);
-
-  return (ChppServiceBasicResponse *)&buf[oldLoc];
 }
 
 /**
@@ -309,7 +275,7 @@ void openService(ChppTransportState *transportContext, uint8_t *buf,
   // Check response length
   EXPECT_EQ(sizeof(ChppTestResponse), CHPP_PREAMBLE_LEN_BYTES +
                                           sizeof(ChppTransportHeader) +
-                                          sizeof(ChppServiceBasicResponse));
+                                          sizeof(ChppAppHeader));
   EXPECT_EQ(transportContext->pendingTxPacket.length,
             sizeof(ChppTestResponse) + sizeof(ChppTransportFooter));
 }
@@ -637,8 +603,7 @@ TEST_P(TransportTests, DiscoveryService) {
 
   // Check service configuration response
   static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
-               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},  // TODO
+      .uuid = CHPP_UUID_WWAN_STANDARD,
 
       // Human-readable name
       .name = "WWAN",
@@ -746,15 +711,14 @@ TEST_F(TransportTests, Discovery) {
   ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
 
   // App header
-  ChppServiceBasicResponse *basicResponse = addBasicResponseToBuf(mBuf, &len);
-  basicResponse->header.handle = CHPP_HANDLE_DISCOVERY;
-  basicResponse->header.command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
-  basicResponse->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+  ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
+  appHeader->handle = CHPP_HANDLE_DISCOVERY;
+  appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
+  appHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
 
   // Service descriptor
   static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = {0x0d, 0x0e, 0x0a, 0x0d, 0x0b, 0x0e, 0x0e, 0x0f, 0x0d, 0x0e, 0x0a,
-               0x0d, 0x0b, 0x0e, 0x0e, 0x0f},
+      .uuid = CHPP_UUID_WWAN_STANDARD,
 
       // Human-readable name
       .name = "WWAN",

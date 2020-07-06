@@ -260,7 +260,7 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context, uint8_t handle,
 ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                                               uint8_t handle,
                                               enum ChppMessageType type) {
-  switch (type) {
+  switch (CHPP_APP_GET_MESSAGE_TYPE(type)) {
     case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
       return chppServiceOfHandle(context, handle)->requestDispatchFunctionPtr;
       break;
@@ -285,6 +285,7 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                 type, handle);
       chppEnqueueTxErrorDatagram(context->transportContext,
                                  CHPP_TRANSPORT_ERROR_APPLAYER);
+      return NULL;
     }
   }
 }
@@ -370,7 +371,7 @@ static inline void *chppClientContextOfHandle(struct ChppAppState *context,
 static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
                                               uint8_t handle,
                                               enum ChppMessageType type) {
-  switch (type) {
+  switch (CHPP_APP_GET_MESSAGE_TYPE(type)) {
     case CHPP_MESSAGE_TYPE_CLIENT_REQUEST:
     case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
       return chppServiceContextOfHandle(appContext, handle);
@@ -388,6 +389,7 @@ static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
           type, handle);
       chppEnqueueTxErrorDatagram(appContext->transportContext,
                                  CHPP_TRANSPORT_ERROR_APPLAYER);
+      return NULL;
     }
   }
 }
@@ -441,7 +443,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
       bool success = true;
 
-      switch (rxHeader->type) {
+      switch (CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type)) {
         case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
           success = chppProcessPredefinedClientRequest(context, buf, len);
           break;
@@ -481,20 +483,22 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
     } else {
       // Negotiated services / clients
 
-      ChppDispatchFunction *dispatchFunc =
-          chppGetDispatchFunction(context, rxHeader->handle, rxHeader->type);
+      ChppDispatchFunction *dispatchFunc = chppGetDispatchFunction(
+          context, rxHeader->handle, CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type));
 
       void *clientServiceContext = chppClientServiceContextOfHandle(
-          context, rxHeader->handle, rxHeader->type);
+          context, rxHeader->handle, CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type));
 
       if (dispatchFunc == NULL) {
         CHPP_LOGE("Negotiated handle = %" PRIu8
                   " does not support Rx message type = %" PRIu8,
                   rxHeader->handle, rxHeader->type);
+
       } else if (clientServiceContext == NULL) {
         CHPP_LOGE("Client/service for negotiated handle = %" PRIu8
                   " and message type = %" PRIu8 " is missing context",
                   rxHeader->handle, rxHeader->type);
+
       } else if (dispatchFunc(clientServiceContext, buf, len) == false) {
         CHPP_LOGE("Received unknown message type  = %" PRIu8
                   " for handle = %" PRIu8
@@ -503,9 +507,8 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                   rxHeader->transaction);
 
         // Allocate the response
-        struct ChppServiceBasicResponse *response =
-            chppAllocServiceResponseFixed(rxHeader,
-                                          struct ChppServiceBasicResponse);
+        struct ChppAppHeader *response =
+            chppAllocServiceResponseFixed(rxHeader, struct ChppAppHeader);
 
         // Populate the response
         response->error = CHPP_APP_ERROR_INVALID_COMMAND;
@@ -513,6 +516,16 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
         // Send out response datagram
         chppEnqueueTxDatagramOrFail(context->transportContext, response,
                                     sizeof(*response));
+
+      } else if (CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type) ==
+                 CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
+        struct ChppClientState *clientContext =
+            (struct ChppClientState *)clientServiceContext;
+
+        if (clientContext->waitingForResponse) {
+          // Dispatched a synchronous response successfully. Notify client
+          chppNotifierEvent(&clientContext->responseNotifier);
+        }
       }
     }
   }

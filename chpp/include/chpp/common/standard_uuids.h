@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_COMMON_DISCOVERY_H_
-#define CHPP_COMMON_DISCOVERY_H_
+#ifndef CHPP_STANDARD_UUIDS_H_
+#define CHPP_STANDARD_UUIDS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -26,29 +26,20 @@ extern "C" {
 #endif
 
 /************************************************
- *  Public Definitions
+ *  Standard Client / Service UUID Definitions
  ***********************************************/
 
 /**
- * Data structure used by the Discovery Response.
+ * WWAN
  */
-CHPP_PACKED_START
-struct ChppDiscoveryResponse {
-  struct ChppAppHeader header;
-  struct ChppServiceDescriptor services[];
-} CHPP_PACKED_ATTR;
-CHPP_PACKED_END
-
-/**
- * Commands used by the Discovery Service
- */
-enum ChppDiscoveryCommands {
-  // Discover all services.
-  CHPP_DISCOVERY_COMMAND_DISCOVER_ALL = 0x0001,
-};
+#define CHPP_UUID_WWAN_STANDARD                                             \
+  {                                                                         \
+    0x1f, 0x56, 0x3d, 0xf2, 0x5d, 0x07, 0x49, 0x87, 0xba, 0x2b, 0xb3, 0x0e, \
+        0xf2, 0x3d, 0x11, 0x28                                              \
+  }
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CHPP_COMMON_DISCOVERY_H_
+#endif  // CHPP_STANDARD_UUIDS_H_

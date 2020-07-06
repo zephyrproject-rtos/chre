@@ -61,6 +61,15 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 #endif
 }
 
+void chppClientInit(struct ChppClientState *clientContext, uint8_t handle) {
+  clientContext->handle = handle;
+  chppNotifierInit(&clientContext->responseNotifier);
+}
+
+void chppClientDeinit(struct ChppClientState *clientContext) {
+  chppNotifierDeinit(&clientContext->responseNotifier);
+}
+
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
                         const struct ChppClient *newClient) {
   CHPP_NOT_NULL(newClient);
@@ -97,7 +106,6 @@ struct ChppAppHeader *chppAllocClientRequest(
     result->handle = clientState->handle;
     result->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
     result->transaction = clientState->transaction;
-    result->reserved = CHPP_RESERVED;
 
     clientState->transaction++;
   }
@@ -174,4 +182,20 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
   chppClientTimestampRequest(rRState, buf);
   return chppEnqueueTxDatagramOrFail(clientState->appContext->transportContext,
                                      buf, len);
+}
+
+bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
+                                       struct ChppRequestResponseState *rRState,
+                                       void *buf, size_t len) {
+  clientState->waitingForResponse = true;
+
+  bool result =
+      chppSendTimestampedRequestOrFail(clientState, rRState, buf, len);
+  if (result) {
+    chppNotifierWait(&clientState->responseNotifier);  // TODO: Add timeout
+  }
+
+  clientState->waitingForResponse = false;
+
+  return result;
 }

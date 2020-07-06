@@ -39,7 +39,7 @@ static void chppDiscoveryDiscoverAll(
     struct ChppAppState *context, const struct ChppAppHeader *requestHeader) {
   // Allocate response
   size_t responseLen =
-      sizeof(struct ChppServiceBasicResponse) +
+      sizeof(struct ChppAppHeader) +
       context->registeredServiceCount * sizeof(struct ChppServiceDescriptor);
 
   struct ChppDiscoveryResponse *response = chppAllocServiceResponseTypedArray(
@@ -51,7 +51,7 @@ static void chppDiscoveryDiscoverAll(
     CHPP_ASSERT(false);
 
   } else {
-    response->common.error = CHPP_APP_ERROR_NONE;
+    response->header.error = CHPP_APP_ERROR_NONE;
 
     // Populate list of services
     for (size_t i = 0; i < context->registeredServiceCount; i++) {
