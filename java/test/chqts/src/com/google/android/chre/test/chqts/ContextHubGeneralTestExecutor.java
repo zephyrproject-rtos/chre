@@ -206,6 +206,18 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         }
     }
 
+    protected ContextHubManager getContextHubManager() {
+        return mContextHubManager;
+    }
+
+    protected ContextHubInfo getContextHubInfo() {
+        return mContextHubInfo;
+    }
+
+    protected long getNanoAppId() {
+        return mNanoAppId;
+    }
+
     /**
      * Handles a message specific for a test.
      * @param type The message type.

@@ -208,6 +208,28 @@ public class ChreTestUtil {
     }
 
     /**
+     * Queries for the nanoapp version.
+     *
+     * @param contextHubManager The ContextHubManager to use.
+     * @param contextHubInfo    The ContextHubInfo describing the Context Hub to query.
+     * @param nanoAppId         The ID of the nanoapp to get the version for.
+     * @return The nanoapp version.
+     */
+    public static int getNanoAppVersion(ContextHubManager contextHubManager,
+            ContextHubInfo contextHubInfo, long nanoAppId) {
+        List<NanoAppState> stateList = queryNanoAppsAssertSuccess(contextHubManager,
+                contextHubInfo);
+        for (NanoAppState state : stateList) {
+            if (state.getNanoAppId() == nanoAppId) {
+                return (int) state.getNanoAppVersion();
+            }
+        }
+
+        Assert.fail("Could not query for nanoapp with ID 0x" + Long.toHexString(nanoAppId));
+        return -1;
+    }
+
+    /**
      * @param closeable The object to close.
      */
     private static void closeOrAssert(AutoCloseable closeable) {
