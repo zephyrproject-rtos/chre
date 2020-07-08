@@ -29,12 +29,15 @@ TEST(WwanConvert, EncodeErrorCode) {
       .cells = nullptr,
   };
 
-  ChppWwanCellInfoResult *chpp = nullptr;
+  ChppWwanCellInfoResultWithHeader *chppWithHeader = nullptr;
   size_t outputSize = 999;
-  bool result = chppWwanCellInfoResultFromChre(&chreResult, &chpp, &outputSize);
+  bool result =
+      chppWwanCellInfoResultFromChre(&chreResult, &chppWithHeader, &outputSize);
   ASSERT_TRUE(result);
-  ASSERT_NE(chpp, nullptr);
-  EXPECT_EQ(outputSize, sizeof(ChppWwanCellInfoResult));
+  ASSERT_NE(chppWithHeader, nullptr);
+  EXPECT_EQ(outputSize, sizeof(ChppWwanCellInfoResultWithHeader));
+
+  ChppWwanCellInfoResult *chpp = &chppWithHeader->payload;
   EXPECT_EQ(chpp->version, CHRE_WWAN_CELL_INFO_RESULT_VERSION);
   EXPECT_EQ(chpp->errorCode, chreResult.errorCode);
   EXPECT_EQ(chpp->cellInfoCount, chreResult.cellInfoCount);
@@ -43,7 +46,7 @@ TEST(WwanConvert, EncodeErrorCode) {
   EXPECT_EQ(chpp->cells.offset, 0);
   EXPECT_EQ(chpp->cells.length, 0);
 
-  chppFree(chpp);
+  chppFree(chppWithHeader);
 }
 
 TEST(WwanConvert, SingleCell) {
@@ -82,13 +85,16 @@ TEST(WwanConvert, SingleCell) {
   };
   // clang-format on
 
-  ChppWwanCellInfoResult *chpp = nullptr;
+  ChppWwanCellInfoResultWithHeader *chppWithHeader = nullptr;
   size_t outputSize = 999;
-  bool result = chppWwanCellInfoResultFromChre(&chreResult, &chpp, &outputSize);
+  bool result =
+      chppWwanCellInfoResultFromChre(&chreResult, &chppWithHeader, &outputSize);
   ASSERT_TRUE(result);
-  ASSERT_NE(chpp, nullptr);
-  EXPECT_EQ(outputSize,
-            sizeof(ChppWwanCellInfoResult) + sizeof(ChppWwanCellInfo));
+  ASSERT_NE(chppWithHeader, nullptr);
+  EXPECT_EQ(outputSize, sizeof(ChppWwanCellInfoResultWithHeader) +
+                            sizeof(ChppWwanCellInfo));
+
+  ChppWwanCellInfoResult *chpp = &chppWithHeader->payload;
   EXPECT_EQ(chpp->errorCode, chreResult.errorCode);
   EXPECT_EQ(chpp->cellInfoCount, chreResult.cellInfoCount);
   EXPECT_EQ(chpp->cells.offset, sizeof(ChppWwanCellInfoResult));
@@ -128,7 +134,7 @@ TEST(WwanConvert, SingleCell) {
   EXPECT_EQ(chppCell->CellInfo.lte.signalStrengthLte.timingAdvance,
             chreCell.CellInfo.lte.signalStrengthLte.timingAdvance);
 
-  chppFree(chpp);
+  chppFree(chppWithHeader);
 }
 
 TEST(WwanConvert, TwoCells) {
@@ -191,13 +197,16 @@ TEST(WwanConvert, TwoCells) {
   };
   // clang-format on
 
-  ChppWwanCellInfoResult *chpp = nullptr;
+  ChppWwanCellInfoResultWithHeader *chppWithHeader = nullptr;
   size_t outputSize = 999;
-  bool result = chppWwanCellInfoResultFromChre(&chreResult, &chpp, &outputSize);
+  bool result =
+      chppWwanCellInfoResultFromChre(&chreResult, &chppWithHeader, &outputSize);
   ASSERT_TRUE(result);
-  ASSERT_NE(chpp, nullptr);
-  EXPECT_EQ(outputSize,
-            sizeof(ChppWwanCellInfoResult) + 2 * sizeof(ChppWwanCellInfo));
+  ASSERT_NE(chppWithHeader, nullptr);
+  EXPECT_EQ(outputSize, sizeof(ChppWwanCellInfoResultWithHeader) +
+                            2 * sizeof(ChppWwanCellInfo));
+
+  ChppWwanCellInfoResult *chpp = &chppWithHeader->payload;
   EXPECT_EQ(chpp->errorCode, chreResult.errorCode);
   EXPECT_EQ(chpp->cellInfoCount, chreResult.cellInfoCount);
   EXPECT_EQ(chpp->cells.offset, sizeof(ChppWwanCellInfoResult));
@@ -271,5 +280,5 @@ TEST(WwanConvert, TwoCells) {
   memset(zeros, 0, sizePastEnd);
   EXPECT_EQ(memcmp(pastEnd, zeros, sizeof(zeros)), 0);
 
-  chppFree(chpp);
+  chppFree(chppWithHeader);
 }

@@ -48,17 +48,19 @@ void validateScanResult(const ChppWifiScanResult &chppAp,
 }
 
 void validateScanEvent(const chreWifiScanEvent &chreEvent) {
-  ChppWifiScanEvent *chppEvent = nullptr;
+  ChppWifiScanEventWithHeader *chppWithHeader = nullptr;
   size_t outputSize = 999;
-  bool result = chppWifiScanEventFromChre(&chreEvent, &chppEvent, &outputSize);
+  bool result =
+      chppWifiScanEventFromChre(&chreEvent, &chppWithHeader, &outputSize);
   ASSERT_TRUE(result);
-  ASSERT_NE(chppEvent, nullptr);
+  ASSERT_NE(chppWithHeader, nullptr);
 
-  size_t expectedSize = sizeof(ChppWifiScanEvent) +
+  size_t expectedSize = sizeof(ChppWifiScanEventWithHeader) +
                         chreEvent.scannedFreqListLen * sizeof(uint32_t) +
                         chreEvent.resultCount * sizeof(ChppWifiScanResult);
   EXPECT_EQ(outputSize, expectedSize);
 
+  ChppWifiScanEvent *chppEvent = &chppWithHeader->payload;
   EXPECT_EQ(chppEvent->version, CHRE_WIFI_SCAN_EVENT_VERSION);
   EXPECT_EQ(chppEvent->resultCount, chreEvent.resultCount);
   EXPECT_EQ(chppEvent->resultTotal, chreEvent.resultTotal);
@@ -107,22 +109,23 @@ void validateScanEvent(const chreWifiScanEvent &chreEvent) {
     EXPECT_EQ(chppEvent->results.length, 0);
   }
 
-  chppFree(chppEvent);
+  chppFree(chppWithHeader);
 }
 
 void validateScanParams(const chreWifiScanParams &chreParams) {
-  ChppWifiScanParams *chppParams = nullptr;
+  ChppWifiScanParamsWithHeader *chppWithHeader = nullptr;
   size_t outputSize = 999;
   bool result =
-      chppWifiScanParamsFromChre(&chreParams, &chppParams, &outputSize);
+      chppWifiScanParamsFromChre(&chreParams, &chppWithHeader, &outputSize);
   ASSERT_TRUE(result);
-  ASSERT_NE(chppParams, nullptr);
+  ASSERT_NE(chppWithHeader, nullptr);
 
-  size_t expectedSize = sizeof(ChppWifiScanParams) +
+  size_t expectedSize = sizeof(ChppWifiScanParamsWithHeader) +
                         chreParams.frequencyListLen * sizeof(uint32_t) +
                         chreParams.ssidListLen * sizeof(ChppWifiSsidListItem);
   EXPECT_EQ(outputSize, expectedSize);
 
+  ChppWifiScanParams *chppParams = &chppWithHeader->payload;
   EXPECT_EQ(chppParams->scanType, chreParams.scanType);
   EXPECT_EQ(chppParams->maxScanAgeMs, chreParams.maxScanAgeMs);
   EXPECT_EQ(chppParams->frequencyListLen, chreParams.frequencyListLen);
@@ -169,7 +172,7 @@ void validateScanParams(const chreWifiScanParams &chreParams) {
     EXPECT_EQ(chppParams->ssidList.length, 0);
   }
 
-  chppFree(chppParams);
+  chppFree(chppWithHeader);
 }
 
 }  // anonymous namespace
