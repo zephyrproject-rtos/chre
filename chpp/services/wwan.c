@@ -18,6 +18,7 @@
 
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
+#include "chpp/services/wwan_types.h"
 #include "chre/pal/wwan.h"
 
 /************************************************
@@ -271,6 +272,12 @@ static void chppWwanServiceGetCellInfoAsync(
   }
 }
 
+/**
+ * PAL callback to provide the result of a prior Request Cell Info
+ * (cellInfoResultCallback).
+ *
+ * @param result Scan results.
+ */
 static void chppWwanServiceCellInfoResultCallback(
     struct chreWwanCellInfoResult *result) {
   // Recover state
@@ -279,32 +286,29 @@ static void chppWwanServiceCellInfoResultCallback(
   struct ChppWwanServiceState *wwanServiceContext =
       container_of(rRState, struct ChppWwanServiceState, getCellInfoAsync);
 
-  // Recreate request header
-  struct ChppAppHeader requestHeader = {
-      .handle = wwanServiceContext->service.handle,
-      .transaction = rRState->transaction,
-      .command = CHPP_WWAN_GET_CELLINFO_ASYNC,
-  };
-
   // Craft response per parser script
-  // TODO, this is a placeholder
-  size_t responseLen = sizeof(struct ChppAppHeader) + 0 + 0;
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(&requestHeader, struct ChppAppHeader);
+  struct ChppWwanCellInfoResultWithHeader *response;
+  size_t responseLen;
+  if (!chppWwanCellInfoResultFromChre(result, &response, &responseLen)) {
+    // Parser failed
+    CHPP_LOGE(
+        "chppWwanCellInfoResultFromChre failed (OOM?). Transaction ID = "
+        "%" PRIu8,
+        rRState->transaction);
+    // TODO: consider sending an error response if this fails
 
-  if (response == NULL) {
-    CHPP_LOG_OOM("WwanGetCellInfoResponseAsync response of %zu bytes",
-                 responseLen);
-    CHPP_ASSERT(false);
+  } else {
+    // Populate response header
+    response->header.handle = wwanServiceContext->service.handle;
+    response->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+    response->header.transaction = rRState->transaction;
+    response->header.error = CHPP_APP_ERROR_NONE;
+    response->header.command = CHPP_WWAN_GET_CELLINFO_ASYNC;
+
+    // Timestamp and send out response datagram
+    chppSendTimestampedResponseOrFail(&wwanServiceContext->service, rRState,
+                                      response, responseLen);
   }
-
-  // Populate remaining parts of response per parser script
-  // TODO, this is a placeholder
-  response->error = CHPP_APP_ERROR_NONE;
-
-  // Timestamp and send out response datagram
-  chppSendTimestampedResponseOrFail(&wwanServiceContext->service, rRState,
-                                    response, responseLen);
 
   gWwanServiceContext.api->releaseCellInfoResult(result);
 }
