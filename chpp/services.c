@@ -17,6 +17,7 @@
 #include "chpp/services.h"
 
 #include "chpp/app.h"
+#include "chpp/services/wifi.h"
 #include "chpp/services/wwan.h"
 
 /************************************************
@@ -91,6 +92,7 @@ struct ChppAppHeader *chppAllocServiceResponse(
   if (result) {
     *result = *requestHeader;
     result->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+    result->error = CHPP_APP_ERROR_NONE;
   }
   return (void *)result;
 }
