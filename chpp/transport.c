@@ -958,7 +958,7 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
     }
     default: {
       // App layer should not invoke any other errors
-      CHPP_ASSERT();
+      CHPP_ASSERT(false);
     }
   }
   chppEnqueueTxPacket(context, packetCode);
