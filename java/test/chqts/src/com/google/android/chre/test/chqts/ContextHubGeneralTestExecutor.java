@@ -181,10 +181,11 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
 
     /**
      * Sends a message to the test nanoapp.
+     *
      * @param type The message type.
      * @param data The message payload.
      */
-    protected void sendMessageToNanoAppOrFail(int type, byte [] data) {
+    protected void sendMessageToNanoAppOrFail(int type, byte[] data) {
         NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
                 mNanoAppId, type, data);
 
@@ -198,9 +199,29 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
      * @param errorMessage The error message to display
      */
     protected void fail(String errorMessage) {
+        assertTrue(errorMessage, false /* condition */);
+    }
+
+    /**
+     * Semantics the same as Assert.assertEquals.
+     */
+    protected <T> void assertEquals(String errorMessage, T expected, T actual) {
         if (Thread.currentThread().getId() == mThreadId) {
-            Assert.fail(errorMessage);
-        } else {
+            Assert.assertEquals(errorMessage, expected, actual);
+        } else if ((expected == null && actual != null) || (expected != null && !expected.equals(
+                actual))) {
+            mErrorString.set(errorMessage + ": " + expected + " != " + actual);
+            mCountDownLatch.countDown();
+        }
+    }
+
+    /**
+     * Semantics the same as Assert.assertTrue.
+     */
+    protected void assertTrue(String errorMessage, boolean condition) {
+        if (Thread.currentThread().getId() == mThreadId) {
+            Assert.assertTrue(errorMessage, condition);
+        } else if (!condition) {
             mErrorString.set(errorMessage);
             mCountDownLatch.countDown();
         }
@@ -220,6 +241,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
 
     /**
      * Handles a message specific for a test.
+     *
      * @param type The message type.
      * @param data The message body.
      */
@@ -236,7 +258,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
     }
 
     // TODO: Remove this hack
-    private NanoAppMessage hackMessageToNanoApp(NanoAppMessage message) {
+    protected NanoAppMessage hackMessageToNanoApp(NanoAppMessage message) {
         // For NYC, we are not able to assume that the messageType correctly
         // makes it to the nanoapp.  So we put it, in little endian, as the
         // first four bytes of the message.
@@ -250,7 +272,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
     }
 
     // TODO: Remove this hack
-    private NanoAppMessage hackMessageFromNanoApp(NanoAppMessage message) {
+    protected NanoAppMessage hackMessageFromNanoApp(NanoAppMessage message) {
         // For now, our nanohub HAL and JNI code end up not sending across the
         // message type of the user correctly.  So our testing protocol hacks
         // around this by putting the message type in the first four bytes of
