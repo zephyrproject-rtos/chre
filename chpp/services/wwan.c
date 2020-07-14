@@ -238,6 +238,9 @@ static void chppWwanServiceGetCapabilities(
   response->capabilities = wwanServiceContext->api->getCapabilities();
   response->header.error = CHPP_APP_ERROR_NONE;
 
+  CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
+            response->capabilities, sizeof(*response));
+
   // Timestamp and send out response datagram
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->getCapabilities,

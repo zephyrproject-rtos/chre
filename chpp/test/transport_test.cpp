@@ -21,8 +21,10 @@
 
 #include "chpp/app.h"
 #include "chpp/common/standard_uuids.h"
+#include "chpp/common/wifi.h"
 #include "chpp/common/wwan.h"
 #include "chpp/services/discovery.h"
+#include "chpp/services/wifi_types.h"
 #include "chpp/transport.h"
 #include "chre/pal/wwan.h"
 
@@ -47,7 +49,7 @@ constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
                                51, 100, 201, 1000, 10001, 20000};
 
 // Number of services
-constexpr int kServiceCount = 1;
+constexpr int kServiceCount = 2;
 
 // Basic response minimum packet length
 constexpr int kMinResponsePacketLength =
@@ -655,6 +657,7 @@ TEST_F(TransportTests, WwanOpen) {
 
   // App header
   ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
+  appHeader->handle = handle;
   appHeader->transaction = transactionID;
   appHeader->command = CHPP_WWAN_GET_CAPABILITIES;
 
@@ -681,11 +684,79 @@ TEST_F(TransportTests, WwanOpen) {
   // Validate capabilities
   uint32_t *capabilities =
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
-  responseLoc += kServiceCount * sizeof(uint32_t);
+  responseLoc += sizeof(uint32_t);
 
   EXPECT_EQ(*capabilities, CHRE_WWAN_GET_CELL_INFO);
 
-  // Check total length (and implicit service count)
+  // Check total length
+  EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
+                             sizeof(ChppWwanGetCapabilitiesResponse));
+
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
+ * WiFi service Open and GetCapabilities.
+ */
+TEST_F(TransportTests, WifiOpen) {
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  uint8_t ackSeq = 1;
+  uint8_t seq = 0;
+  uint8_t handle = CHPP_HANDLE_NEGOTIATED_RANGE_START + 1;
+  uint8_t transactionID = 0;
+  size_t len = 0;
+
+  openService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
+              transactionID++);
+
+  // Preamble
+  addPreambleToBuf(mBuf, &len);
+
+  // Transport header
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
+  transHeader->ackSeq = ackSeq;
+  transHeader->seq = seq;
+
+  // App header
+  ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
+  appHeader->handle = handle;
+  appHeader->transaction = transactionID;
+  appHeader->command = CHPP_WIFI_GET_CAPABILITIES;
+
+  // Add checksum
+  addTransportFooterToBuf(mBuf, &len);
+
+  // Send header + payload (if any) + footer
+  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
+
+  // Check for correct state
+  uint8_t nextSeq = transHeader->seq + 1;
+  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
+
+  // Wait for response
+  WaitForTransport(&mTransportContext);
+
+  // Validate common response fields
+  EXPECT_EQ(validateChppTestResponse(mTransportContext.pendingTxPacket.payload,
+                                     nextSeq, handle, transactionID),
+            CHPP_APP_ERROR_NONE);
+  size_t responseLoc = sizeof(ChppTestResponse);
+
+  // Validate capabilities
+  uint32_t *capabilities =
+      (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
+  responseLoc += sizeof(uint32_t);
+
+  EXPECT_EQ(*capabilities, CHRE_WIFI_CAPABILITIES_SCAN_MONITORING |
+                               CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN);
+
+  // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
                              sizeof(ChppWwanGetCapabilitiesResponse));
 

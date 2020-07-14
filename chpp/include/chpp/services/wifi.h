@@ -14,38 +14,43 @@
  * limitations under the License.
  */
 
-#ifndef CHPP_STANDARD_UUIDS_H_
-#define CHPP_STANDARD_UUIDS_H_
+#ifndef CHPP_WIFI_SERVICE_H_
+#define CHPP_WIFI_SERVICE_H_
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+
+#include "chpp/app.h"
+#include "chpp/services.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /************************************************
- *  Standard Client / Service UUID Definitions
+ *  Public Definitions
+ ***********************************************/
+
+/************************************************
+ *  Public functions
  ***********************************************/
 
 /**
- * WWAN
+ * Called by the App layer to register the WiFi (WLAN) common service.
+ *
+ * @param appContext Maintains status for each app layer instance.
  */
-#define CHPP_UUID_WWAN_STANDARD                                             \
-  {                                                                         \
-    0x1f, 0x56, 0x3d, 0xf2, 0x5d, 0x07, 0x49, 0x87, 0xba, 0x2b, 0xb3, 0x0e, \
-        0xf2, 0x3d, 0x11, 0x28                                              \
-  }
+void chppRegisterWifiService(struct ChppAppState *appContext);
 
-#define CHPP_UUID_WIFI_STANDARD                                             \
-  {                                                                         \
-    0x24, 0x2c, 0x25, 0xaa, 0xc8, 0x2b, 0x40, 0xf1, 0xb8, 0x42, 0x6b, 0xdc, \
-        0x8c, 0x46, 0xa1, 0xb6                                              \
-  }
+/**
+ * Called by the App layer to deregister the WiFi (WLAN) common service.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ */
+void chppDeregisterWifiService(struct ChppAppState *appContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CHPP_STANDARD_UUIDS_H_
+#endif  // CHPP_WIFI_SERVICE_H_
