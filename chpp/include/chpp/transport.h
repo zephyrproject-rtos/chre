@@ -473,8 +473,10 @@ void chppWorkThreadStop(struct ChppTransportState *context);
  * platformLinkSend() is done with the payload (i.e. buf and len).
  *
  * @param params Platform-specific struct with link details / parameters.
+ * @param error Indicates success or failure type.
  */
-void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params);
+void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
+                        enum ChppLinkErrorCode error);
 
 /*
  * Notifies the transport layer that the app layer is done with the previous

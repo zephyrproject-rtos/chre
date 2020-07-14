@@ -34,6 +34,29 @@
 extern "C" {
 #endif
 
+/**
+ * Error codes used by the link layer.
+ */
+enum ChppLinkErrorCode {
+  //! No error - data queued to be sent asynchronously
+  CHPP_LINK_ERROR_NONE_QUEUED = 0,
+
+  //! No error - data successfully sent
+  CHPP_LINK_ERROR_NONE_SENT = 1,
+
+  //! Timeout
+  CHPP_LINK_ERROR_TIMEOUT = 2,
+
+  //! Busy
+  CHPP_LINK_ERROR_BUSY = 3,
+
+  //! Out of memory
+  CHPP_LINK_ERROR_OOM = 4,
+
+  //! Unspecified failure
+  CHPP_LINK_ERROR_UNSPECIFIED = 255
+};
+
 /*
  * Platform-specific struct with link details / parameters.
  */
@@ -60,14 +83,16 @@ void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params);
  * @param buf Data to be sent.
  * @param len Length of the data to be sent in bytes.
  *
- * @return True if the platform implementation for this function is synchronous,
- * i.e. it is done with buf and len once the function returns. A return value of
- * False indicates that this function is implemented asynchronously. In this
- * case, it is up to the platform implementation to call chppLinkSendDoneCb()
- * after processing the contents of buf and len.
+ * @return CHPP_LINK_ERROR_NONE_SENT if the platform implementation for this
+ * function is synchronous, i.e. it is done with buf and len once the function
+ * returns. A return value of CHPP_LINK_ERROR_NONE_QUEUED indicates that this
+ * function is implemented asynchronously. In this case, it is up to the
+ * platform implementation to call chppLinkSendDoneCb() after processing the
+ * contents of buf and len. Otherwise, an error code is returned per enum
+ * ChppLinkErrorCode.
  */
-bool chppPlatformLinkSend(struct ChppPlatformLinkParameters *params,
-                          uint8_t *buf, size_t len);
+enum ChppLinkErrorCode chppPlatformLinkSend(
+    struct ChppPlatformLinkParameters *params, uint8_t *buf, size_t len);
 
 /*
  * Platform-specific function to reset a non-synchronous link, where the link

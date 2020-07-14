@@ -25,13 +25,13 @@ void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params) {
   UNUSED_VAR(params);
 }
 
-bool chppPlatformLinkSend(struct ChppPlatformLinkParameters *params,
-                          uint8_t *buf, size_t len) {
+enum ChppLinkErrorCode chppPlatformLinkSend(
+    struct ChppPlatformLinkParameters *params, uint8_t *buf, size_t len) {
   // TODO
   UNUSED_VAR(params);
   UNUSED_VAR(buf);
   UNUSED_VAR(len);
-  return params->sync;
+  return CHPP_LINK_ERROR_NONE_SENT;
 }
 
 void chppPlatformLinkReset(struct ChppPlatformLinkParameters *params) {

@@ -134,11 +134,11 @@ Each application layer instance is associated with a single transport layer inst
 This function is the interface between the CHPP Transport layer and the communications link’s Rx path (e.g. from the UART driver). This function is called when any data is received at the serial interface. The data is provided through a pointer to *buf, with its length specified as len.
 The return value from chppRxData(*buf, len) can optionally be used at the communications link driver to improve performance. When the return value is true, the driver may stop sending all-zero payloads (e.g. as might happen when a serial link is idle).
 
-## bool chppPlatformLinkSend(*params, *buf, len)
+## enum ChppLinkErrorCode chppPlatformLinkSend(\*params, \*buf, len)
 
 This function is the interface between the CHPP Transport layer and the communications link’s Tx path (e.g. to the UART driver). This function is called when any data should be sent to the serial interface. The data is provided through a pointer to \*buf, with its length specified as len. The struct params is platform-specific and should include link details and parameters as initialized by the implementation.
 Both synchronous and asynchronous implementations of this function are supported. A synchronous implementation refers to one where chppPlatformLinkSend() is done with buf and len when it returns (i.e. the caller can free or reuse buf and len). An asynchronous implementation refers to one where chppPlatformLinkSend() returns before completely consuming buf and len (e.g. the send is completed at a later time). In this case, it is up to the platform implementation to call chppLinkSendDoneCb() after processing the contents of buf and len.
-This function should return True for a synchronous implementation and false for an asynchronous implementation.
+This function returns CHPP_LINK_ERROR_NONE_SENT if the platform implementation for this function is synchronous and CHPP_LINK_ERROR_NONE_QUEUED if it is implemented asynchronously. It can also return an error code from enum ChppLinkErrorCode.
 
 ## void chppLinkSendDoneCb(\*params)
 

@@ -687,13 +687,15 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     chppMutexUnlock(&context->mutex);
 
     // Send out the packet
-    if (chppPlatformLinkSend(&context->linkParams,
-                             context->pendingTxPacket.payload,
-                             context->pendingTxPacket.length)) {
-      // Platform implementation for platformLinkSend() is synchronous.
-      // Otherwise, it is up to the platform implementation to call
-      // chppLinkSendDoneCb() after processing the contents of pendingTxPacket.
-      chppLinkSendDoneCb(&context->linkParams);
+    enum ChppLinkErrorCode error = chppPlatformLinkSend(
+        &context->linkParams, context->pendingTxPacket.payload,
+        context->pendingTxPacket.length);
+
+    if (error != CHPP_LINK_ERROR_NONE_QUEUED) {
+      // Platform implementation for platformLinkSend() is synchronous or an
+      // error occurred. In either case, we should call chppLinkSendDoneCb()
+      // here to release the contents of pendingTxPacket.
+      chppLinkSendDoneCb(&context->linkParams, error);
     }  // else {Platform implementation for platformLinkSend() is asynchronous}
 
   } else {
@@ -997,7 +999,14 @@ void chppWorkThreadStop(struct ChppTransportState *context) {
   chppNotifierSignal(&context->notifier, CHPP_SIGNAL_EXIT);
 }
 
-void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params) {
+void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
+                        enum ChppLinkErrorCode error) {
+  if (error != CHPP_LINK_ERROR_NONE_SENT) {
+    CHPP_LOGE(
+        "chppLinkSendDoneCb() indicates async send failure with error %" PRIu8,
+        error);
+  }
+
   struct ChppTransportState *context =
       container_of(params, struct ChppTransportState, linkParams);
 
