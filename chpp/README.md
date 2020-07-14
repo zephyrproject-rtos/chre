@@ -30,29 +30,24 @@ CHPP supports checksum based ARQ. CHPP supports implicit NACKs, and optionally s
 
 # Transport Layer Packetization
 
-CHPP packets consist of a 2-byte preamble (packet start delimiter) and 8 bytes of header information. The header is followed by zero or more bytes of application-layer payload, and subsequently a 4-byte packet footer. Defined as a structure (ChppTransportHeader in transport.h), the CHPP transport header is as follows:
+CHPP packets consist of a 2-byte preamble (packet start delimiter) and 8 bytes of header information. The header is followed by zero or more bytes of application-layer payload, typically starting with a 6-byte app header, and ends with a 4-byte packet footer. Defined as a structure (ChppTransportHeader in transport.h), the CHPP transport header is as follows:
 
-- uint16_t preamble;
-- uint8_t seq;
-- uint8_t ack;
-- uint8_t flags;
-- uint8_t codes;
-- uint16_t payload_length;
-- uint16_t reserved;
+- Preamble
+
+  - uint16_t preamble;
+
+- Transport Header
+
+  - uint8_t flags;
+  - uint8_t packetCode;
+  - uint8_t ackSeq;
+  - uint8_t seq;
+  - uint16_t length;
+  - uint16_t reserved;
 
 ## Preamble
 
 CHPP packets use a two-byte preamble as the packet start delimiter. If the receiving side is not actively within a packet, it assumes a packet starts whenever it sees the preamble. For the current version of CHPP, the preamble is 0x6843 (“Ch” in ASCII as a little endian 16-bit integer). For future versions, e.g. for a non-point-to-point version of CHPP, we expect only the LSB to change.
-
-## Sequence Number
-
-Provides the 8-bit sequence number of this packet. Note that fragmented messages have multiple sequence numbers, one for each fragment.
-
-## ACK Sequence Number
-
-The ack sequence number provides the next expected packets, effectively acknowledging all packets up to (n-1). The 1-byte ack allows for (optional, future) support of group ACKs (up to a window size of 127 packets). Note that fragmented messages have multiple sequence numbers, one for each fragment.
-The ack may be sent as part of a packet with or without a payload. In the latter case, the payload length would be set to zero.
-If an ACK is not received after a predetermined timeout, or an implicit NACK is received (through an ACK of a lower sequence number), the unacknowledged packet(s) shall be retransmitted.
 
 ## Packet Flags
 
@@ -84,9 +79,20 @@ Error reporting is a recommended feature and can help with debugging and potenti
 ### Attributes (higher nibble)
 
 - 0x0: Regular Packet
-- 0x1: Reset. The reset code is used at bootup to indicate that readiness, as well as to reset the state to post-bootup state in case of irrecoverable errors. If set, this indicates that the sending endpoint is requesting initialization of the CHPP protocol. The first packet sent after bootup always has this flag set, and endpoints may send a packet with this flag to attempt to recover from protocol failures. Upon receipt, the endpoint resets all its state, for example dropping any packets awaiting transmission, and resetting its service state.
+- 0x1: Reset. The reset code is used at bootup to indicate that readiness, as well as to reset the state to post-bootup state in case of irrecoverable errors. If set, this indicates that the sending endpoint is requesting initialization of the CHPP protocol. The first packet sent after bootup always has this flag set, and endpoints may send a packet with this flag to attempt to recover from protocol failures. Upon receipt, the endpoint resets all its state, for example dropping any packets awaiting transmission, and resetting its service state. It then responds with a reset-ack.
   A reset packet may optionally populate the Error Reporting entry with the reason behind the reset.
   A reset packet has an optional configuration payload [TBD].
+- 0x2 Reset-ack. Similar to reset, but sent as a response to reset, as described above.
+
+## ACK Sequence Number
+
+The ack sequence number provides the next expected packets, effectively acknowledging all packets up to (n-1). The 1-byte ack allows for (optional, future) support of group ACKs (up to a window size of 127 packets). Note that fragmented messages have multiple sequence numbers, one for each fragment.
+The ack may be sent as part of a packet with or without a payload. In the latter case, the payload length would be set to zero.
+If an ACK is not received after a predetermined timeout, or an implicit NACK is received (through an ACK of a lower sequence number), the unacknowledged packet(s) shall be retransmitted.
+
+## Sequence Number
+
+Provides the 8-bit sequence number of this packet. Note that fragmented messages have multiple sequence numbers, one for each fragment.
 
 ## Length
 
@@ -95,7 +101,7 @@ A value of 0 indicates no payload, which is useful in cases where only transport
 
 ## Payload
 
-The optional payload immediately follows a non-zero payload length. Its contents are described in the Application Layer section.
+The optional payload immediately follows a non-zero payload length. Its contents are described in the Application Layer section. It typically begins with an app layer header.
 
 ## Checksum
 
@@ -149,7 +155,7 @@ Stops the main thread for CHPP's Transport Layer that has been started by callin
 
 # Application Layer Messaging
 
-CHPP Application Layer datagrams typically have a 6-byte header consisting of 2 bytes of preamble and 6 bytes of header information. Zero or more bytes of application-layer payload follows, then a 4-byte packet footer. Defined as a structure, the CHPP transport header looks like this:
+CHPP Application Layer datagrams typically have a 6-byte header. This is followed by zero or more bytes of application-layer payload. Both the header and payload are counted in the transport layer payload length. The transport layer 4-byte packet footer follows. Defined as a structure, the CHPP transport header looks like this:
 
 - uint8_t handle;
 - uint8_t type;
@@ -192,7 +198,7 @@ CHPP’s built-in basic services take advantage of reserved handle numbers, rang
 
 ## Handleless Communication Service (0x00)
 
-The handle 0x00 is reserved for use cases that do not need the flexibility provided by handles and services.
+The handle 0x00 is reserved for use cases that do not need the flexibility provided by handles and avoid the need for discovery.
 
 ## Loopback Testing Service (0x01)
 
@@ -201,8 +207,12 @@ The client requesting the loopback must set the handle to 0x01, and the message 
 
 ## Discovery Service (0x0f)
 
-[TBD]
+Service Discovery is mapps a 8-bit handle to a number of coexisting services. In response to a discovery command, the discovery service responds with a list of available services (UUID + name + version) on the device. The first service in the list corresponds to handle 0x10, and so on.
 
 # CHPP Predefined Service Protocols
 
-[TBD]
+CHPP supports the following services using the CHRE PAL. The standard UUIDs for these services are defined in common/standard_uuids.h.
+
+- WWAN
+- WiFi
+- GNSS
