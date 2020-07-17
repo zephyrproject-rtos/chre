@@ -82,10 +82,23 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         private final NanoAppBinary mNanoAppBinary;
         private final ContextHubTestConstants.TestNames mTestName;
 
+        // Set to false if the nanoapp should not be loaded at init. An example of why this may be
+        // needed are for nanoapps that are loaded in the middle of the test execution, but still
+        // needs to be included in this test executor (e.g. deliver messages from it).
+        private final boolean mLoadAtInit;
+
         public GeneralTestNanoApp(NanoAppBinary nanoAppBinary,
                 ContextHubTestConstants.TestNames testName) {
             mTestName = testName;
             mNanoAppBinary = nanoAppBinary;
+            mLoadAtInit = true;
+        }
+
+        public GeneralTestNanoApp(NanoAppBinary nanoAppBinary,
+                ContextHubTestConstants.TestNames testName, boolean loadAtInit) {
+            mTestName = testName;
+            mNanoAppBinary = nanoAppBinary;
+            mLoadAtInit = loadAtInit;
         }
 
         public NanoAppBinary getNanoAppBinary() {
@@ -94,6 +107,10 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
 
         public ContextHubTestConstants.TestNames getTestName() {
             return mTestName;
+        }
+
+        public boolean loadAtInit() {
+            return mLoadAtInit;
         }
     }
 
@@ -162,8 +179,10 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         unloadAllNanoApps();
 
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
-            ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo,
-                    test.getNanoAppBinary());
+            if (test.loadAtInit()) {
+                ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo,
+                        test.getNanoAppBinary());
+            }
         }
 
         mErrorString.set(null);
@@ -179,8 +198,10 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         mCountDownLatch = new CountDownLatch(1);
 
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
-            sendMessageToNanoAppOrFail(test.getNanoAppBinary().getNanoAppId(),
-                    test.getTestName().asInt(), new byte[0] /* data */);
+            if (test.loadAtInit()) {
+                sendMessageToNanoAppOrFail(test.getNanoAppBinary().getNanoAppId(),
+                        test.getTestName().asInt(), new byte[0] /* data */);
+            }
         }
 
         boolean success = false;
