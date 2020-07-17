@@ -25,12 +25,13 @@ import android.hardware.location.NanoAppBinary;
 public class ContextHubSimpleGeneralTestExecutor extends ContextHubGeneralTestExecutor {
 
     public ContextHubSimpleGeneralTestExecutor(ContextHubManager manager, ContextHubInfo info,
-            NanoAppBinary binary) {
-        super(manager, info, binary);
+            NanoAppBinary binary, ContextHubTestConstants.TestNames testName) {
+        super(manager, info, new GeneralTestNanoApp(binary, testName));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         // No specific messages for simple "general" tests.
         fail("Unexpected message type " + type);
     }

@@ -39,11 +39,13 @@ public class ContextHubSimpleHeapAllocTestExecutor extends ContextHubGeneralTest
 
     public ContextHubSimpleHeapAllocTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
-        super(manager, info, binary);
+        super(manager, info, new GeneralTestNanoApp(binary,
+                ContextHubTestConstants.TestNames.SIMPLE_HEAP_ALLOC));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         if (type != ContextHubTestConstants.MessageType.CONTINUE) {
             fail("Unexpected message type " + type);
             return;
@@ -57,6 +59,7 @@ public class ContextHubSimpleHeapAllocTestExecutor extends ContextHubGeneralTest
                 0, data.length);
 
         byte[] emptyData = new byte[0];
-        sendMessageToNanoAppOrFail(ContextHubTestConstants.MessageType.CONTINUE.asInt(), emptyData);
+        sendMessageToNanoAppOrFail(nanoAppId, ContextHubTestConstants.MessageType.CONTINUE.asInt(),
+                emptyData);
     }
 }

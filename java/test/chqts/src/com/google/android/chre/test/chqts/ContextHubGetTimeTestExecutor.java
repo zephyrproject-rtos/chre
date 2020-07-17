@@ -67,11 +67,13 @@ public class ContextHubGetTimeTestExecutor extends ContextHubGeneralTestExecutor
 
     public ContextHubGetTimeTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
-        super(manager, info, binary);
+        super(manager, info,
+                new GeneralTestNanoApp(binary, ContextHubTestConstants.TestNames.GET_TIME));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         if (type != ContextHubTestConstants.MessageType.CONTINUE) {
             fail("Unexpected message type " + type);
             return;
@@ -93,7 +95,8 @@ public class ContextHubGetTimeTestExecutor extends ContextHubGeneralTestExecutor
                 @Override
                 public void run() {
                     byte[] emptyData = new byte[0];
-                    sendMessageToNanoAppOrFail(ContextHubTestConstants.MessageType.CONTINUE.asInt(),
+                    sendMessageToNanoAppOrFail(nanoAppId,
+                            ContextHubTestConstants.MessageType.CONTINUE.asInt(),
                             emptyData);
                 }
             }, SLEEP_DURATION_MILLISECONDS);

@@ -33,13 +33,16 @@ import java.nio.ByteOrder;
  * app to host: SUCCESS
  */
 public class ContextHubEstimatedHostTimeTestExecutor extends ContextHubGeneralTestExecutor {
+
     public ContextHubEstimatedHostTimeTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
-        super(manager, info, binary);
+        super(manager, info, new GeneralTestNanoApp(binary,
+                ContextHubTestConstants.TestNames.ESTIMATED_HOST_TIME));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         if (type != ContextHubTestConstants.MessageType.CONTINUE) {
             fail("Unexpected message type " + type);
         } else {
@@ -47,7 +50,8 @@ public class ContextHubEstimatedHostTimeTestExecutor extends ContextHubGeneralTe
                     .order(ByteOrder.LITTLE_ENDIAN)
                     .putLong(SystemClock.elapsedRealtimeNanos());
 
-            sendMessageToNanoAppOrFail(ContextHubTestConstants.MessageType.CONTINUE.asInt(),
+            sendMessageToNanoAppOrFail(nanoAppId,
+                    ContextHubTestConstants.MessageType.CONTINUE.asInt(),
                     buffer.array());
         }
     }
