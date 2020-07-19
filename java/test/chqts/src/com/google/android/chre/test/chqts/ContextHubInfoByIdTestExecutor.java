@@ -37,12 +37,13 @@ public class ContextHubInfoByIdTestExecutor extends ContextHubGeneralTestExecuto
     private boolean mFirstMessage = true;
 
     public ContextHubInfoByIdTestExecutor(ContextHubManager manager, ContextHubInfo info,
-            NanoAppBinary binary) {
-        super(manager, info, binary);
+            NanoAppBinary binary, ContextHubTestConstants.TestNames testName) {
+        super(manager, info, new GeneralTestNanoApp(binary, testName));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         if (type != ContextHubTestConstants.MessageType.CONTINUE) {
             fail("Unexpected message type " + type);
             return;
@@ -50,12 +51,12 @@ public class ContextHubInfoByIdTestExecutor extends ContextHubGeneralTestExecuto
 
         int version =
                 ChreTestUtil.getNanoAppVersion(getContextHubManager(), getContextHubInfo(),
-                        getNanoAppId());
+                        nanoAppId);
         ByteBuffer buffer = ByteBuffer.allocate(4)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .putInt(version);
 
-        sendMessageToNanoAppOrFail(ContextHubTestConstants.MessageType.CONTINUE.asInt(),
+        sendMessageToNanoAppOrFail(nanoAppId, ContextHubTestConstants.MessageType.CONTINUE.asInt(),
                 buffer.array());
     }
 }

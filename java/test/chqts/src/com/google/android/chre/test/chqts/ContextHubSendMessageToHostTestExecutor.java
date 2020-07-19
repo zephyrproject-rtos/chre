@@ -67,11 +67,13 @@ public class ContextHubSendMessageToHostTestExecutor extends ContextHubGeneralTe
 
     public ContextHubSendMessageToHostTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
-        super(manager, info, binary);
+        super(manager, info, new GeneralTestNanoApp(binary,
+                ContextHubTestConstants.TestNames.SEND_MESSAGE_TO_HOST));
     }
 
     @Override
-    protected void handleMessageFromNanoApp(ContextHubTestConstants.MessageType type, byte[] data) {
+    protected void handleMessageFromNanoApp(long nanoAppId,
+            ContextHubTestConstants.MessageType type, byte[] data) {
         if (type != ContextHubTestConstants.MessageType.CONTINUE) {
             fail("Unexpected message type " + type);
             return;
@@ -98,7 +100,7 @@ public class ContextHubSendMessageToHostTestExecutor extends ContextHubGeneralTe
 
             case 7:
                 checkLargeData(data);
-                sendEmptyMessage();
+                sendEmptyMessage(nanoAppId);
                 break;
 
             case 6:  // fall-through
@@ -178,9 +180,9 @@ public class ContextHubSendMessageToHostTestExecutor extends ContextHubGeneralTe
         }
     }
 
-    private void sendEmptyMessage() {
+    private void sendEmptyMessage(long nanoAppId) {
         // Note that ContextHubManager/Client requires this to be non-null
-        sendMessageToNanoAppOrFail(ContextHubTestConstants.MessageType.CONTINUE.asInt(),
+        sendMessageToNanoAppOrFail(nanoAppId, ContextHubTestConstants.MessageType.CONTINUE.asInt(),
                 new byte[0]);
     }
 }
