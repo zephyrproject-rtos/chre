@@ -108,11 +108,7 @@ public class ChreTestUtil {
     }
 
     /**
-     * Loads a nanoapp and asserts success.
-     *
-     * @param manager       The ContextHubManager to use to load the nanoapp.
-     * @param info          The ContextHubInfo describing the Context Hub to load the nanoapp to.
-     * @param nanoAppBinary The nanoapp binary to load.
+     * Same as loadNanoApp(), but asserts that it succeeds.
      */
     public static void loadNanoAppAssertSuccess(
             ContextHubManager manager, ContextHubInfo info, NanoAppBinary nanoAppBinary) {
@@ -122,13 +118,14 @@ public class ChreTestUtil {
     }
 
     /**
-     * Unloads a nanoapp and asserts success.
+     * Unloads a nanoapp.
      *
      * @param manager   The ContextHubManager to use to unload the nanoapp.
      * @param info      The ContextHubInfo describing the Context Hub to unload the nanoapp from.
-     * @param nanoAppId The nanoapp to unload.
+     * @param nanoAppId The 64-bit ID of the nanoapp to unload.
+     * @return true if the unload succeeded.
      */
-    public static void unloadNanoAppAssertSuccess(
+    public static boolean unloadNanoApp(
             ContextHubManager manager, ContextHubInfo info, long nanoAppId) {
         ContextHubTransaction<Void> txn = manager.unloadNanoApp(info, nanoAppId);
         ContextHubTransaction.Response<Void> resp = null;
@@ -138,8 +135,15 @@ public class ChreTestUtil {
             Assert.fail(e.getMessage());
         }
 
-        if (resp != null && resp.getResult() != ContextHubTransaction.RESULT_SUCCESS) {
-            Assert.fail("Failed to unload nanoapp: result = " + resp.getResult());
+        return resp != null && resp.getResult() == ContextHubTransaction.RESULT_SUCCESS;
+    }
+    /**
+     * Same as unloadNanoApp(), but asserts that it succeeds.
+     */
+    public static void unloadNanoAppAssertSuccess(
+            ContextHubManager manager, ContextHubInfo info, long nanoAppId) {
+        if (!unloadNanoApp(manager, info, nanoAppId)) {
+            Assert.fail("Failed to unload nanoapp");
         }
     }
 
