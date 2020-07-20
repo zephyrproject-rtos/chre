@@ -230,7 +230,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         // TODO: If the nanoapp aborted (i.e. test failed), wait for CHRE reset or nanoapp abort
         // callback, and otherwise assert unload success.
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
-            mContextHubManager.unloadNanoApp(mContextHubInfo,
+            ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo,
                     test.getNanoAppBinary().getNanoAppId());
         }
 
