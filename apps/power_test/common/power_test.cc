@@ -17,6 +17,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/flatbuffers/helpers.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/unique_ptr.h"
 #include "common.h"
@@ -29,7 +30,6 @@ namespace {
 #endif  // CHRE_NANOAPP_INTERNAL
 
 using chre::power_test::MessageType;
-using flatbuffers::FlatBufferBuilder;
 
 /**
  * Responds to a host request indicating whether the request was successfully
@@ -39,16 +39,16 @@ using flatbuffers::FlatBufferBuilder;
  * @param hostEndpoint the host endpoint that sent the request to the nanoapp
  */
 void sendResponseMessageToHost(bool success, uint16_t hostEndpoint) {
-  auto builder = chre::MakeUnique<FlatBufferBuilder>();
+  auto builder = chre::MakeUnique<chre::ChreFlatBufferBuilder>();
   if (builder.isNull()) {
     LOG_OOM();
   } else {
     builder->Finish(
         chre::power_test::CreateNanoappResponseMessage(*builder, success));
 
-    // CHRE's version of flatbuffers doesn't allow releasing the underlying
-    // buffer from the builder so copy it into a new buffer to be sent to the
-    // host.
+    // TODO: Modify this logic to remove the buffer copy now that the latest
+    // version of flatbuffers allows releasing the underlying buffer from the
+    // builder.
     size_t bufferCopySize = builder->GetSize();
     void *buffer = chreHeapAlloc(bufferCopySize);
     if (buffer == nullptr) {

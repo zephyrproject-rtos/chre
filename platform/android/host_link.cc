@@ -18,6 +18,7 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/shared/host_protocol_common.h"
+#include "chre/util/flatbuffers/helpers.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/version.h"
 #include "chre_host/generated/host_messages_generated.h"
@@ -60,7 +61,7 @@ void sendFlatbufferToHost(T &message, uint16_t hostClientId) {
   container.message.Set(std::move(message));
   container.host_addr.reset(new fbs::HostAddress(hostClientId));
 
-  flatbuffers::FlatBufferBuilder builder;
+  ChreFlatBufferBuilder builder;
   auto containerOffset = CreateMessageContainer(builder, &container, nullptr);
   builder.Finish(containerOffset);
 
