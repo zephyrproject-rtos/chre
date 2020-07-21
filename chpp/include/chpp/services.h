@@ -37,6 +37,31 @@ extern "C" {
  ***********************************************/
 
 /**
+ * Uses chppAllocServiceNotification() to allocate a variable-length response
+ * message of a specific type.
+ *
+ * @param type Type of notification which includes an arrayed member.
+ * @param count number of items in the array of arrayField.
+ * @param arrayField The arrayed member field.
+ *
+ * @return Pointer to allocated memory
+ */
+#define chppAllocServiceNotificationTypedArray(type, count, arrayField) \
+  (type *)chppAllocServiceNotification(                                 \
+      sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
+
+/**
+ * Uses chppAllocServiceNotification() to allocate a response message of a
+ * specific type and its corresponding length.
+ *
+ * @param type Type of notification.
+ *
+ * @return Pointer to allocated memory
+ */
+#define chppAllocServiceNotificationFixed(type) \
+  (type *)chppAllocServiceNotification(sizeof(type))
+
+/**
  * Uses chppAllocServiceResponse() to allocate a variable-length response
  * message of a specific type.
  *
@@ -118,6 +143,22 @@ void chppDeregisterCommonServices(struct ChppAppState *context);
 uint8_t chppRegisterService(struct ChppAppState *appContext,
                             void *serviceContext,
                             const struct ChppService *newService);
+
+/**
+ * Allocates a service notification of a specified length.
+ *
+ * It is expected that for most use cases, the
+ * chppAllocServiceNotificationFixed() or
+ * chppAllocServiceNotificationTypedArray() macros shall be used rather than
+ * calling this function directly.
+ *
+ * @param len Length of the notification (including header) in bytes. Note
+ * that the specified length must be at least equal to the lendth of the app
+ * layer header.
+ *
+ * @return Pointer to allocated memory
+ */
+struct ChppAppHeader *chppAllocServiceNotification(size_t len);
 
 /**
  * Allocates a service response message of a specified length, populating the

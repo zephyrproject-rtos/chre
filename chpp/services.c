@@ -84,6 +84,18 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
   }
 }
 
+struct ChppAppHeader *chppAllocServiceNotification(size_t len) {
+  CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
+
+  struct ChppAppHeader *result = chppMalloc(len);
+  if (result) {
+    result->type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    result->transaction = 0;
+    result->error = CHPP_APP_ERROR_NONE;
+  }
+  return result;
+}
+
 struct ChppAppHeader *chppAllocServiceResponse(
     const struct ChppAppHeader *requestHeader, size_t len) {
   CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
@@ -94,7 +106,7 @@ struct ChppAppHeader *chppAllocServiceResponse(
     result->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
     result->error = CHPP_APP_ERROR_NONE;
   }
-  return (void *)result;
+  return result;
 }
 
 void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
