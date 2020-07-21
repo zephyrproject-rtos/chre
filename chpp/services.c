@@ -17,6 +17,7 @@
 #include "chpp/services.h"
 
 #include "chpp/app.h"
+#include "chpp/services/gnss.h"
 #include "chpp/services/wifi.h"
 #include "chpp/services/wwan.h"
 
