@@ -772,6 +772,15 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
 }
 
 /**
+ * Resets the transport state, maintaining the link layer parameters.
+ */
+static void chppResetTransportContext(struct ChppTransportState *context) {
+  struct ChppPlatformLinkParameters params = context->linkParams;
+  memset(context, 0, sizeof(struct ChppTransportState));
+  context->linkParams = params;
+}
+
+/**
  * Re-initializes the CHPP transport and app layer states, e.g. when receiving a
  * reset packet.
  *
@@ -812,9 +821,7 @@ static void chppReset(struct ChppTransportState *transportContext,
   }
 
   // Reset Transport Layer
-  struct ChppPlatformLinkParameters linkParams = transportContext->linkParams;
-  memset(transportContext, 0, sizeof(struct ChppTransportState));
-  transportContext->linkParams = linkParams;
+  chppResetTransportContext(transportContext);
 
   // Initialize app layer
   chppAppInit(appContext, transportContext);
@@ -831,15 +838,17 @@ void chppTransportInit(struct ChppTransportState *transportContext,
   CHPP_NOT_NULL(transportContext);
   CHPP_NOT_NULL(appContext);
 
-  memset(transportContext, 0, sizeof(struct ChppTransportState));
+  chppResetTransportContext(transportContext);
   chppMutexInit(&transportContext->mutex);
   chppNotifierInit(&transportContext->notifier);
   transportContext->appContext = appContext;
+  chppPlatformLinkInit(&transportContext->linkParams);
 }
 
 void chppTransportDeinit(struct ChppTransportState *transportContext) {
   CHPP_NOT_NULL(transportContext);
 
+  chppPlatformLinkDeinit(&transportContext->linkParams);
   chppNotifierDeinit(&transportContext->notifier);
   chppMutexDeinit(&transportContext->mutex);
 

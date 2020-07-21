@@ -39,6 +39,20 @@ extern "C" {
  */
 struct ChppPlatformLinkParameters;
 
+/**
+ * Platform-specific function to initialize the link layer.
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ */
+void chppPlatformLinkInit(struct ChppPlatformLinkParameters *params);
+
+/**
+ * Platform-specific function to deinitialize the link layer (e.g. clean exit).
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ */
+void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params);
+
 /*
  * Platform-specific function to send Tx data over to the link layer.
  *
