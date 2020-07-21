@@ -28,8 +28,7 @@ extern "C" {
 struct ChppNotifier {
   pthread_cond_t cond;     // Condition variable
   struct ChppMutex mutex;  // Platform-specific mutex
-  bool signaled;           // Whether a notification has occurred
-  bool shouldExit;         // Whether the thread should exit
+  uint32_t signal;
 };
 
 /**
@@ -45,17 +44,12 @@ void chppPlatformNotifierDeinit(struct ChppNotifier *notifier);
 /**
  * Platform implementation of chppNotifierWait()
  */
-bool chppPlatformNotifierWait(struct ChppNotifier *notifier);
+uint32_t chppPlatformNotifierWait(struct ChppNotifier *notifier);
 
 /**
- * Platform implementation of chppNotifierEvent()
+ * Platform implementation of chppNotifierSignal()
  */
-void chppPlatformNotifierEvent(struct ChppNotifier *notifier);
-
-/**
- * Platform implementation of chppNotifierExit()
- */
-void chppPlatformNotifierExit(struct ChppNotifier *notifier);
+void chppPlatformNotifierSignal(struct ChppNotifier *notifier, uint32_t signal);
 
 static inline void chppNotifierInit(struct ChppNotifier *notifier) {
   chppPlatformNotifierInit(notifier);
@@ -65,16 +59,13 @@ static inline void chppNotifierDeinit(struct ChppNotifier *notifier) {
   chppPlatformNotifierDeinit(notifier);
 }
 
-static inline bool chppNotifierWait(struct ChppNotifier *notifier) {
+static inline uint32_t chppNotifierWait(struct ChppNotifier *notifier) {
   return chppPlatformNotifierWait(notifier);
 }
 
-static inline void chppNotifierEvent(struct ChppNotifier *notifier) {
-  chppPlatformNotifierEvent(notifier);
-}
-
-static inline void chppNotifierExit(struct ChppNotifier *notifier) {
-  chppPlatformNotifierExit(notifier);
+static inline void chppNotifierSignal(struct ChppNotifier *notifier,
+                                      uint32_t signal) {
+  chppPlatformNotifierSignal(notifier, signal);
 }
 
 #ifdef __cplusplus
