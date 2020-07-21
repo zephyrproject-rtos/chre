@@ -20,10 +20,12 @@
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/common/gnss.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
 #include "chpp/common/wwan.h"
 #include "chpp/services/discovery.h"
+#include "chpp/services/gnss_types.h"
 #include "chpp/services/wifi_types.h"
 #include "chpp/transport.h"
 #include "chre/pal/wwan.h"
@@ -49,7 +51,7 @@ constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
                                51, 100, 201, 1000, 10001, 20000};
 
 // Number of services
-constexpr int kServiceCount = 2;
+constexpr int kServiceCount = 3;
 
 // Basic response minimum packet length
 constexpr int kMinResponsePacketLength =
@@ -235,27 +237,24 @@ void addTransportFooterToBuf(uint8_t *buf, size_t *location) {
  * @param seq Sequence number of the packet to be sent out.
  * @param handle Handle of the service to be opened.
  * @param transactionID Transaction ID for the open request.
+ * @param command Open command.
  */
 void openService(ChppTransportState *transportContext, uint8_t *buf,
                  uint8_t ackSeq, uint8_t seq, uint8_t handle,
-                 uint8_t transactionID) {
+                 uint8_t transactionID, uint16_t command) {
   size_t len = 0;
 
-  // Preamble
   addPreambleToBuf(buf, &len);
 
-  // Transport header
   ChppTransportHeader *transHeader = addTransportHeaderToBuf(buf, &len);
   transHeader->ackSeq = ackSeq;
   transHeader->seq = seq;
 
-  // App header
   ChppAppHeader *appHeader = addAppHeaderToBuf(buf, &len);
   appHeader->handle = handle;
   appHeader->transaction = transactionID;
-  appHeader->command = CHPP_WWAN_OPEN;
+  appHeader->command = command;
 
-  // Add checksum
   addTransportFooterToBuf(buf, &len);
 
   // Send header + payload (if any) + footer
@@ -280,6 +279,52 @@ void openService(ChppTransportState *transportContext, uint8_t *buf,
                                           sizeof(ChppAppHeader));
   EXPECT_EQ(transportContext->pendingTxPacket.length,
             sizeof(ChppTestResponse) + sizeof(ChppTransportFooter));
+}
+
+/**
+ * Sends a command to a service and checks for errors.
+ *
+ * @param transportContext Transport layer context.
+ * @param buf Buffer.
+ * @param ackSeq Ack sequence of the packet to be sent out
+ * @param seq Sequence number of the packet to be sent out.
+ * @param handle Handle of the service to be opened.
+ * @param transactionID Transaction ID for the open request.
+ * @param command Command to be sent.
+ */
+void sendCommandToService(ChppTransportState *transportContext, uint8_t *buf,
+                          uint8_t ackSeq, uint8_t seq, uint8_t handle,
+                          uint8_t transactionID, uint16_t command) {
+  size_t len = 0;
+
+  addPreambleToBuf(buf, &len);
+
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(buf, &len);
+  transHeader->ackSeq = ackSeq;
+  transHeader->seq = seq;
+
+  ChppAppHeader *appHeader = addAppHeaderToBuf(buf, &len);
+  appHeader->handle = handle;
+  appHeader->transaction = transactionID;
+  appHeader->command = command;
+
+  addTransportFooterToBuf(buf, &len);
+
+  // Send header + payload (if any) + footer
+  EXPECT_TRUE(chppRxDataCb(transportContext, buf, len));
+
+  // Check for correct state
+  uint8_t nextSeq = transHeader->seq + 1;
+  EXPECT_EQ(transportContext->rxStatus.expectedSeq, nextSeq);
+  EXPECT_EQ(transportContext->rxStatus.state, CHPP_STATE_PREAMBLE);
+
+  // Wait for response
+  WaitForTransport(transportContext);
+
+  // Validate common response fields
+  EXPECT_EQ(validateChppTestResponse(transportContext->pendingTxPacket.payload,
+                                     nextSeq, handle, transactionID),
+            CHPP_APP_ERROR_NONE);
 }
 
 /**
@@ -470,7 +515,6 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   WaitForTransport(&mTransportContext);
 
   if (len <= kMaxChunkSize) {
-    // Transport header
     size_t loc = 0;
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
     transHeader->length = len;
@@ -559,19 +603,15 @@ TEST_P(TransportTests, DiscoveryService) {
   std::thread t1(chppWorkThreadStart, &mTransportContext);
   WaitForTransport(&mTransportContext);
 
-  // Preamble
   addPreambleToBuf(mBuf, &len);
 
-  // Transport header
   ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
 
-  // App header
   ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
   appHeader->handle = CHPP_HANDLE_DISCOVERY;
   appHeader->transaction = transactionID;
   appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
 
-  // Add checksum
   addTransportFooterToBuf(mBuf, &len);
 
   // Send header + payload (if any) + footer
@@ -645,40 +685,14 @@ TEST_F(TransportTests, WwanOpen) {
   size_t len = 0;
 
   openService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
-              transactionID++);
+              transactionID++, CHPP_WWAN_OPEN);
 
-  // Preamble
   addPreambleToBuf(mBuf, &len);
 
-  // Transport header
-  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
-  transHeader->ackSeq = ackSeq;
-  transHeader->seq = seq;
+  uint16_t command = CHPP_WWAN_GET_CAPABILITIES;
+  sendCommandToService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
+                       transactionID++, command);
 
-  // App header
-  ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
-  appHeader->handle = handle;
-  appHeader->transaction = transactionID;
-  appHeader->command = CHPP_WWAN_GET_CAPABILITIES;
-
-  // Add checksum
-  addTransportFooterToBuf(mBuf, &len);
-
-  // Send header + payload (if any) + footer
-  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
-
-  // Check for correct state
-  uint8_t nextSeq = transHeader->seq + 1;
-  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
-  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
-
-  // Wait for response
-  WaitForTransport(&mTransportContext);
-
-  // Validate common response fields
-  EXPECT_EQ(validateChppTestResponse(mTransportContext.pendingTxPacket.payload,
-                                     nextSeq, handle, transactionID),
-            CHPP_APP_ERROR_NONE);
   size_t responseLoc = sizeof(ChppTestResponse);
 
   // Validate capabilities
@@ -709,43 +723,14 @@ TEST_F(TransportTests, WifiOpen) {
   uint8_t seq = 0;
   uint8_t handle = CHPP_HANDLE_NEGOTIATED_RANGE_START + 1;
   uint8_t transactionID = 0;
-  size_t len = 0;
 
   openService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
-              transactionID++);
+              transactionID++, CHPP_WIFI_OPEN);
 
-  // Preamble
-  addPreambleToBuf(mBuf, &len);
+  uint16_t command = CHPP_WIFI_GET_CAPABILITIES;
+  sendCommandToService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
+                       transactionID++, command);
 
-  // Transport header
-  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
-  transHeader->ackSeq = ackSeq;
-  transHeader->seq = seq;
-
-  // App header
-  ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
-  appHeader->handle = handle;
-  appHeader->transaction = transactionID;
-  appHeader->command = CHPP_WIFI_GET_CAPABILITIES;
-
-  // Add checksum
-  addTransportFooterToBuf(mBuf, &len);
-
-  // Send header + payload (if any) + footer
-  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
-
-  // Check for correct state
-  uint8_t nextSeq = transHeader->seq + 1;
-  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
-  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
-
-  // Wait for response
-  WaitForTransport(&mTransportContext);
-
-  // Validate common response fields
-  EXPECT_EQ(validateChppTestResponse(mTransportContext.pendingTxPacket.payload,
-                                     nextSeq, handle, transactionID),
-            CHPP_APP_ERROR_NONE);
   size_t responseLoc = sizeof(ChppTestResponse);
 
   // Validate capabilities
@@ -766,6 +751,50 @@ TEST_F(TransportTests, WifiOpen) {
 }
 
 /**
+ * GNSS service Open and GetCapabilities.
+ */
+TEST_F(TransportTests, GnssOpen) {
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  uint8_t ackSeq = 1;
+  uint8_t seq = 0;
+  uint8_t handle = CHPP_HANDLE_NEGOTIATED_RANGE_START + 2;
+  uint8_t transactionID = 0;
+  size_t len = 0;
+
+  openService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
+              transactionID++, CHPP_GNSS_OPEN);
+
+  addPreambleToBuf(mBuf, &len);
+
+  uint16_t command = CHPP_GNSS_GET_CAPABILITIES;
+  sendCommandToService(&mTransportContext, mBuf, ackSeq++, seq++, handle,
+                       transactionID++, command);
+
+  size_t responseLoc = sizeof(ChppTestResponse);
+
+  // Validate capabilities
+  uint32_t *capabilities =
+      (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
+  responseLoc += sizeof(uint32_t);
+
+  EXPECT_EQ(*capabilities,
+            CHRE_GNSS_CAPABILITIES_LOCATION |
+                CHRE_GNSS_CAPABILITIES_MEASUREMENTS |
+                CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER);
+
+  // Check total length
+  EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
+                             sizeof(ChppGnssGetCapabilitiesResponse));
+
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
  * Discovery client.
  */
 TEST_F(TransportTests, Discovery) {
@@ -775,19 +804,15 @@ TEST_F(TransportTests, Discovery) {
   std::thread t1(chppWorkThreadStart, &mTransportContext);
   WaitForTransport(&mTransportContext);
 
-  // Preamble
   addPreambleToBuf(mBuf, &len);
 
-  // Transport header
   ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
 
-  // App header
   ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
   appHeader->handle = CHPP_HANDLE_DISCOVERY;
   appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
   appHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
 
-  // Service descriptor
   static const ChppServiceDescriptor wwanServiceDescriptor = {
       .uuid = CHPP_UUID_WWAN_STANDARD,
 
@@ -805,7 +830,6 @@ TEST_F(TransportTests, Discovery) {
   transHeader->length =
       len - sizeof(ChppTransportHeader) - CHPP_PREAMBLE_LEN_BYTES;
 
-  // Add checksum
   addTransportFooterToBuf(mBuf, &len);
 
   // Initialize clientIndexOfServiceIndex[0] to see if it correctly updated upon
