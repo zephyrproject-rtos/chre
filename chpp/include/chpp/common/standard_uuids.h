@@ -26,11 +26,11 @@ extern "C" {
 #endif
 
 /************************************************
- *  Standard Client / Service UUID Definitions
+ * Client / Service UUID v4 Definitions
  ***********************************************/
 
 /**
- * WWAN
+ * Standard WWAN UUID
  */
 #define CHPP_UUID_WWAN_STANDARD                                             \
   {                                                                         \
@@ -38,10 +38,22 @@ extern "C" {
         0xf2, 0x3d, 0x11, 0x28                                              \
   }
 
+/**
+ * Standard WiFi UUID
+ */
 #define CHPP_UUID_WIFI_STANDARD                                             \
   {                                                                         \
     0x24, 0x2c, 0x25, 0xaa, 0xc8, 0x2b, 0x40, 0xf1, 0xb8, 0x42, 0x6b, 0xdc, \
         0x8c, 0x46, 0xa1, 0xb6                                              \
+  }
+
+/**
+ * Standard GNSS UUID
+ */
+#define CHPP_UUID_GNSS_STANDARD                                             \
+  {                                                                         \
+    0x3a, 0x64, 0x11, 0xa2, 0x50, 0x5b, 0x44, 0x42, 0xaf, 0xdb, 0x41, 0x8e, \
+        0x3a, 0x74, 0xfa, 0xf4                                              \
   }
 
 #ifdef __cplusplus
