@@ -341,7 +341,11 @@ struct ChppTransportState {
   struct ChppNotifier notifier;    // Notifier for main thread
   enum ChppResetState resetState;  // Maintains state of a reset
 
+  //! This MUST be the last field in the ChppTransportState structure, otherwise
+  //! chppResetTransportContext() will not work properly.
   struct ChppPlatformLinkParameters linkParams;  // For corresponding link layer
+
+  // !!! DO NOT ADD ANY NEW FIELDS HERE - ADD THEM BEFORE linkParams !!!
 };
 
 /************************************************
