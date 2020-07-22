@@ -171,18 +171,15 @@ static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
  */
 static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
                                 struct ChppAppHeader *requestHeader) {
-  // Allocate the response
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
-  // Initialize service
   static const struct chrePalWwanCallbacks palCallbacks = {
       .cellInfoResultCallback = chppWwanServiceCellInfoResultCallback,
   };
 
   if (!wwanServiceContext->api->open(
           wwanServiceContext->service.appContext->systemApi, &palCallbacks)) {
-    // initialization failed
     CHPP_LOGE("WWAN PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
     response->error = CHPP_APP_ERROR_UNSPECIFIED;
@@ -190,7 +187,6 @@ static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
     response->error = CHPP_APP_ERROR_NONE;
   }
 
-  // Timestamp and send out response datagram
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->open, response,
                                     sizeof(*response));
@@ -205,14 +201,11 @@ static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
 static void chppWwanServiceClose(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
-  // Allocate the response
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
-  // Deinitialize service
   wwanServiceContext->api->close();
 
-  // Timestamp and send out response datagram
   response->error = CHPP_APP_ERROR_NONE;
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->close, response,
@@ -229,19 +222,16 @@ static void chppWwanServiceClose(
 static void chppWwanServiceGetCapabilities(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
-  // Allocate the response
   struct ChppWwanGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppWwanGetCapabilitiesResponse);
 
-  // Populate the response
   response->capabilities = wwanServiceContext->api->getCapabilities();
   response->header.error = CHPP_APP_ERROR_NONE;
 
   CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
             response->capabilities, sizeof(*response));
 
-  // Timestamp and send out response datagram
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->getCapabilities,
                                     response, sizeof(*response));
@@ -293,7 +283,6 @@ static void chppWwanServiceCellInfoResultCallback(
   struct ChppWwanCellInfoResultWithHeader *response;
   size_t responseLen;
   if (!chppWwanCellInfoResultFromChre(result, &response, &responseLen)) {
-    // Parser failed
     CHPP_LOGE(
         "chppWwanCellInfoResultFromChre failed (OOM?). Transaction ID = "
         "%" PRIu8,
@@ -301,14 +290,12 @@ static void chppWwanServiceCellInfoResultCallback(
     // TODO: consider sending an error response if this fails
 
   } else {
-    // Populate response header
     response->header.handle = wwanServiceContext->service.handle;
     response->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
     response->header.transaction = rRState->transaction;
     response->header.error = CHPP_APP_ERROR_NONE;
     response->header.command = CHPP_WWAN_GET_CELLINFO_ASYNC;
 
-    // Timestamp and send out response datagram
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service, rRState,
                                       response, responseLen);
   }
@@ -321,15 +308,15 @@ static void chppWwanServiceCellInfoResultCallback(
  ***********************************************/
 
 void chppRegisterWwanService(struct ChppAppState *appContext) {
-  // Initialize platform
   gWwanServiceContext.api = chrePalWwanGetApi(CHRE_PAL_WWAN_API_V1_4);
+
   if (gWwanServiceContext.api == NULL) {
     CHPP_LOGE(
         "WWAN PAL API version not compatible with CHPP. Cannot register WWAN "
         "service");
     CHPP_DEBUG_ASSERT(false);
+
   } else {
-    // Register service
     gWwanServiceContext.service.appContext = appContext;
     gWwanServiceContext.service.handle = chppRegisterService(
         appContext, (void *)&gWwanServiceContext, &kWwanServiceConfig);
