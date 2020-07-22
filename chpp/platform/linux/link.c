@@ -34,6 +34,12 @@ enum ChppLinkErrorCode chppPlatformLinkSend(
   return CHPP_LINK_ERROR_NONE_SENT;
 }
 
+void chppPlatformLinkDoWork(struct ChppPlatformLinkParameters *params,
+                            uint32_t signal) {
+  UNUSED_VAR(params);
+  UNUSED_VAR(signal);
+}
+
 void chppPlatformLinkReset(struct ChppPlatformLinkParameters *params) {
   // TODO
   UNUSED_VAR(params);
