@@ -14,23 +14,29 @@
  * limitations under the License.
  */
 
+#include "transport_test.h"
+
 #include <gtest/gtest.h>
-#include <stdio.h>
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/common/discovery.h"
 #include "chpp/common/gnss.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
 #include "chpp/common/wwan.h"
+#include "chpp/macros.h"
+#include "chpp/memory.h"
 #include "chpp/services/discovery.h"
 #include "chpp/services/gnss_types.h"
 #include "chpp/services/wifi_types.h"
 #include "chpp/transport.h"
 #include "chre/pal/wwan.h"
-
-#include "transport_test.h"
 
 namespace {
 

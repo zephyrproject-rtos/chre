@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-#include <stdbool.h>
+#include "chpp/platform/platform_notifier.h"
 
-#include "chpp/macros.h"
-#include "chpp/memory.h"
-#include "chpp/notifier.h"
+#include <pthread.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "chpp/mutex.h"
 
 void chppPlatformNotifierInit(struct ChppNotifier *notifier) {
   chppMutexInit(&notifier->mutex);

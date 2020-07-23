@@ -17,10 +17,6 @@
 #ifndef CHPP_STANDARD_UUIDS_H_
 #define CHPP_STANDARD_UUIDS_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

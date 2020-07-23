@@ -20,13 +20,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
-
-#include "chpp/platform/log.h"
 
 #include "chpp/app.h"
 #include "chpp/macros.h"
-#include "chpp/memory.h"
+#include "chpp/notifier.h"
 
 #ifdef __cplusplus
 extern "C" {

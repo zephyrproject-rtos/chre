@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
+#include "chpp/pal_api.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
 #include "chpp/app.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
-#include "chpp/pal_api.h"
+#include "chpp/platform/log.h"
 #include "chre/pal/system.h"
 #include "chre_api/chre/re.h"
 

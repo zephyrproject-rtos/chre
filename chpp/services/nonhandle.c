@@ -16,6 +16,12 @@
 
 #include "chpp/services/nonhandle.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "chpp/app.h"
+#include "chpp/macros.h"
+
 /************************************************
  *  Prototypes
  ***********************************************/

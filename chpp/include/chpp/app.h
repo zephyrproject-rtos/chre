@@ -20,11 +20,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "chpp/macros.h"
-#include "chpp/memory.h"
-
 #include "chpp/transport.h"
 
 #ifdef __cplusplus

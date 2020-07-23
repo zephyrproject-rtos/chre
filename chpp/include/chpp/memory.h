@@ -17,7 +17,7 @@
 #ifndef CHPP_MEMORY_H_
 #define CHPP_MEMORY_H_
 
-#include <stdlib.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {

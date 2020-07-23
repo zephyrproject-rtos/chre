@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "chpp/common/gnss.h"
-#include "chpp/services/gnss.h"
+#include "chpp/macros.h"
 #include "chre/pal/gnss.h"
 
 static const struct chrePalSystemApi *gSystemApi;

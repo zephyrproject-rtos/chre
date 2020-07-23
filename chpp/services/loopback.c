@@ -16,6 +16,16 @@
 
 #include "chpp/services/loopback.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "chpp/app.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
+#include "chpp/transport.h"
+
 /************************************************
  *  Public Functions
  ***********************************************/

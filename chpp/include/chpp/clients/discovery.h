@@ -17,13 +17,11 @@
 #ifndef CHPP_CLIENT_DISCOVERY_H_
 #define CHPP_CLIENT_DISCOVERY_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "chpp/app.h"
-#include "chpp/common/discovery.h"
-#include "chpp/platform/log.h"
 
 #ifdef __cplusplus
 extern "C" {

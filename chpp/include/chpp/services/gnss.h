@@ -17,11 +17,7 @@
 #ifndef CHPP_GNSS_SERVICE_H_
 #define CHPP_GNSS_SERVICE_H_
 
-#include <stddef.h>
-#include <stdint.h>
-
 #include "chpp/app.h"
-#include "chpp/services.h"
 
 #ifdef __cplusplus
 extern "C" {

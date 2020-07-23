@@ -17,20 +17,15 @@
 #ifndef CHPP_SERVICE_DISCOVERY_H_
 #define CHPP_SERVICE_DISCOVERY_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "chpp/app.h"
-#include "chpp/common/discovery.h"
-#include "chpp/platform/log.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// Forward declaration
-struct ChppAppState;
 
 /************************************************
  *  Public functions

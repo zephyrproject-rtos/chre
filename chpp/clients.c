@@ -16,7 +16,17 @@
 
 #include "chpp/clients.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "chpp/app.h"
 #include "chpp/clients/wwan.h"
+#include "chpp/macros.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
+#include "chpp/transport.h"
 
 /************************************************
  *  Prototypes

@@ -16,6 +16,18 @@
 
 #include "chpp/clients/discovery.h"
 
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "chpp/app.h"
+#include "chpp/common/discovery.h"
+#include "chpp/macros.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
+#include "chpp/transport.h"
+
 /************************************************
  *  Prototypes
  ***********************************************/

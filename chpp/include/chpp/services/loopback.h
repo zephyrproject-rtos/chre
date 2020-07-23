@@ -17,13 +17,11 @@
 #ifndef CHPP_LOOPBACK_H_
 #define CHPP_LOOPBACK_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "chpp/app.h"
-
-#include "chpp/platform/log.h"
 
 #ifdef __cplusplus
 extern "C" {

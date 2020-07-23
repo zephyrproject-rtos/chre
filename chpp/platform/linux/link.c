@@ -15,6 +15,10 @@
  */
 
 #include "chpp/link.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
 #include "chpp/macros.h"
 
 void chppPlatformLinkInit(struct ChppPlatformLinkParameters *params) {

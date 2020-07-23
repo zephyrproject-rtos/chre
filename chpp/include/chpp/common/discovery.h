@@ -17,9 +17,8 @@
 #ifndef CHPP_COMMON_DISCOVERY_H_
 #define CHPP_COMMON_DISCOVERY_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
+#include "chpp/app.h"
+#include "chpp/macros.h"
 
 #ifdef __cplusplus
 extern "C" {

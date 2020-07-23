@@ -16,10 +16,23 @@
 
 #include "chpp/transport.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "chpp/app.h"
 #include "chpp/clients/discovery.h"
 #include "chpp/link.h"
+#include "chpp/macros.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
 #include "chpp/transport_signals.h"
+
+//! Signals to use in ChppNotifier in this program.
+#define CHPP_SIGNAL_EXIT UINT32_C(1 << 0)
+#define CHPP_SIGNAL_TRANSPORT_EVENT UINT32_C(1 << 1)
 
 /************************************************
  *  Prototypes

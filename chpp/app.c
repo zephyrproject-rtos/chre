@@ -16,13 +16,20 @@
 
 #include "chpp/app.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "chpp/clients.h"
-#include "chpp/pal_api.h"
-#include "chpp/services.h"
-
 #include "chpp/clients/discovery.h"
+#include "chpp/macros.h"
+#include "chpp/notifier.h"
+#include "chpp/pal_api.h"
+#include "chpp/platform/log.h"
+#include "chpp/services.h"
 #include "chpp/services/discovery.h"
 #include "chpp/services/loopback.h"
 #include "chpp/services/nonhandle.h"

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "chpp/common/wwan.h"
 #include "chpp/services/wwan.h"
 #include "chre/pal/wwan.h"

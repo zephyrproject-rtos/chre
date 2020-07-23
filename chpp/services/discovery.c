@@ -16,7 +16,16 @@
 
 #include "chpp/services/discovery.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "chpp/app.h"
+#include "chpp/common/discovery.h"
+#include "chpp/macros.h"
+#include "chpp/platform/log.h"
 #include "chpp/services.h"
+#include "chpp/transport.h"
 
 /************************************************
  *  Prototypes

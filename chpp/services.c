@@ -16,10 +16,18 @@
 
 #include "chpp/services.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "chpp/app.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
 #include "chpp/services/gnss.h"
 #include "chpp/services/wifi.h"
 #include "chpp/services/wwan.h"
+#include "chpp/transport.h"
 
 /************************************************
  *  Public Functions

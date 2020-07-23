@@ -16,8 +16,17 @@
 
 #include "chpp/services/wwan.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
+#include "chpp/macros.h"
+#include "chpp/memory.h"
+#include "chpp/platform/log.h"
+#include "chpp/services.h"
 #include "chpp/services/wwan_types.h"
 #include "chre/pal/wwan.h"
 

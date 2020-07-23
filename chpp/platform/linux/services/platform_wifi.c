@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "chpp/common/wifi.h"
+#include "chpp/macros.h"
 #include "chpp/services/wifi.h"
 #include "chre/pal/wifi.h"
 

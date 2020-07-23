@@ -18,9 +18,7 @@
 #define CHPP_WIFI_COMMON_H_
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "chpp/app.h"
 #include "chpp/macros.h"

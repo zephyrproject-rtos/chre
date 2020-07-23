@@ -17,6 +17,8 @@
 #ifndef CHPP_PAL_API_H_
 #define CHPP_PAL_API_H_
 
+#include "chpp/app.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

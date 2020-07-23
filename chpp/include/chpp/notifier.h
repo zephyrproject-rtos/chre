@@ -24,15 +24,15 @@
 #ifndef CHPP_SYNC_H_
 #define CHPP_SYNC_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <inttypes.h>
-
 /*
- * Platform-specific condition variable struct that enables the
- * platform-specific funcions defined here.
+ * Platform-specific condition variable struct defined in the platform's
+ * platform_notifier.h that enables the funcions defined here.
  */
 struct ChppNotifier;
 

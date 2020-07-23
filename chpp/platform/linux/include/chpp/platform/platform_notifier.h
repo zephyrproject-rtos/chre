@@ -18,6 +18,7 @@
 #define CHPP_PLATFORM_SYNC_H_
 
 #include <pthread.h>
+#include <stdint.h>
 
 #include "chpp/mutex.h"
 

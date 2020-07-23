@@ -16,8 +16,15 @@
 
 #include "chpp/services/gnss.h"
 
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "chpp/common/gnss.h"
 #include "chpp/common/standard_uuids.h"
+#include "chpp/macros.h"
+#include "chpp/platform/log.h"
+#include "chpp/services.h"
 #include "chpp/services/gnss_types.h"
 #include "chre/pal/gnss.h"
 

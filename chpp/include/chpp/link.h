@@ -26,7 +26,6 @@
 #ifndef CHPP_LINK_H_
 #define CHPP_LINK_H_
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 

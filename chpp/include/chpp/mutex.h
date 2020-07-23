@@ -29,7 +29,8 @@ extern "C" {
 #endif
 
 /*
- * Platform-specific mutex struct.
+ * Platform-specific mutex struct, defined in the platform's platform_mutex.h
+ * file.
  */
 struct ChppMutex;
 

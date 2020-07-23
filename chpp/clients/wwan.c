@@ -16,9 +16,13 @@
 
 #include "chpp/clients/wwan.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "chpp/app.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
+#include "chpp/macros.h"
 #include "chre/pal/wwan.h"
 
 /************************************************
