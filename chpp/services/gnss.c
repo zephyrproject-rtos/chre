@@ -578,7 +578,7 @@ static void chppGnssServiceMeasurementEventCallback(
  ***********************************************/
 
 void chppRegisterGnssService(struct ChppAppState *appContext) {
-  gGnssServiceContext.api = chrePalGnssGetApi(CHRE_PAL_GNSS_API_V1_2);
+  gGnssServiceContext.api = chrePalGnssGetApi(CHPP_PAL_GNSS_API_VERSION);
 
   if (gGnssServiceContext.api == NULL) {
     CHPP_LOGE(

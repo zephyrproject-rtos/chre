@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "chpp/common/gnss.h"
 #include "chpp/services/gnss.h"
 #include "chre/pal/gnss.h"
 
@@ -74,7 +75,7 @@ static bool gnssPalConfigurePassiveLocationListener(bool enable) {
 #ifdef CHPP_SERVICE_ENABLED_GNSS
 const struct chrePalGnssApi *chrePalGnssGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalGnssApi api = {
-      .moduleVersion = CHRE_PAL_GNSS_API_V1_4,
+      .moduleVersion = CHPP_PAL_GNSS_API_VERSION,
       .open = gnssPalOpen,
       .close = gnssPalClose,
       .getCapabilities = gnssPalGetCapabilities,
@@ -87,9 +88,8 @@ const struct chrePalGnssApi *chrePalGnssGetApi(uint32_t requestedApiVersion) {
   };
 
   CHPP_STATIC_ASSERT(
-      CHRE_PAL_GNSS_API_CURRENT_VERSION == CHRE_PAL_GNSS_API_V1_4,
-      "A newer CHRE PAL API version is available, consider updating this "
-      "file");
+      CHRE_PAL_GNSS_API_CURRENT_VERSION == CHPP_PAL_GNSS_API_VERSION,
+      "A newer CHRE PAL API version is available. Please update.");
 
   if (!CHRE_PAL_VERSIONS_ARE_COMPATIBLE(api.moduleVersion,
                                         requestedApiVersion)) {

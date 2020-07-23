@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "chpp/common/wwan.h"
 #include "chpp/services/wwan.h"
 #include "chre/pal/wwan.h"
 
@@ -63,7 +64,7 @@ static void wwanPalReleaseCellInfoResult(
 #ifdef CHPP_SERVICE_ENABLED_WWAN
 const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalWwanApi api = {
-      .moduleVersion = CHRE_PAL_WWAN_API_V1_4,
+      .moduleVersion = CHPP_PAL_WWAN_API_VERSION,
       .open = wwanPalOpen,
       .close = wwanPalClose,
       .getCapabilities = wwanPalGetCapabilities,
@@ -72,8 +73,8 @@ const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion) {
   };
 
   CHPP_STATIC_ASSERT(
-      CHRE_PAL_WWAN_API_CURRENT_VERSION == CHRE_PAL_WWAN_API_V1_4,
-      "A newer CHRE PAL API version is available, consider updating this file");
+      CHRE_PAL_WWAN_API_CURRENT_VERSION == CHPP_PAL_WWAN_API_VERSION,
+      "A newer CHRE PAL API version is available. Please update.");
 
   if (!CHRE_PAL_VERSIONS_ARE_COMPATIBLE(api.moduleVersion,
                                         requestedApiVersion)) {

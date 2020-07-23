@@ -17,9 +17,13 @@
 #ifndef CHPP_WWAN_COMMON_H_
 #define CHPP_WWAN_COMMON_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "chpp/app.h"
+#include "chpp/macros.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +32,8 @@ extern "C" {
 /************************************************
  *  Public Definitions
  ***********************************************/
+
+#define CHPP_PAL_WWAN_API_VERSION CHRE_PAL_WWAN_API_V1_4
 
 /**
  * Data structure used by the Get Capabilities Response.
