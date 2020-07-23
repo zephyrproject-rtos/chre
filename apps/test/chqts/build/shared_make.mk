@@ -17,7 +17,7 @@ NANOAPP_DIR_NAME ?= $(NANOAPP_NAME)
 NANOAPP_SRC_PATH = ../../src
 
 SHARED_LIB_FILES = abort.cc \
-  dumb_allocator.cc \
+  chunk_allocator.cc \
   nano_endian.cc \
   nano_string.cc \
   send_message.cc \

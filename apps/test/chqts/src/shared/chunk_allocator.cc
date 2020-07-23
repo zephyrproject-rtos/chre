@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include <shared/dumb_allocator.h>
+#include <shared/chunk_allocator.h>
 
 #include <shared/nano_string.h>
 
 namespace nanoapp_testing {
 
-DumbAllocatorBase::DumbAllocatorBase(size_t allocSize, size_t slotCount,
-                                     uint8_t *rawMemory)
+ChunkAllocatorBase::ChunkAllocatorBase(size_t allocSize, size_t slotCount,
+                                       uint8_t *rawMemory)
     : mAllocSize(allocSize),
       mSlotCount(slotCount),
       mRawMemory(rawMemory),
@@ -33,7 +33,7 @@ DumbAllocatorBase::DumbAllocatorBase(size_t allocSize, size_t slotCount,
   memset(mRawMemory, 0xCD, mSlotCount * mAllocSize);
 }
 
-void *DumbAllocatorBase::alloc(size_t bytes) {
+void *ChunkAllocatorBase::alloc(size_t bytes) {
   if (bytes > mAllocSize) {
     // Oversized for our allocator.
     return nullptr;
@@ -53,7 +53,7 @@ void *DumbAllocatorBase::alloc(size_t bytes) {
   return mRawMemory + (slot * mAllocSize);
 }
 
-bool DumbAllocatorBase::free(void *pointer) {
+bool ChunkAllocatorBase::free(void *pointer) {
   size_t slot;
   if (!getSlot(pointer, &slot)) {
     return false;
@@ -62,12 +62,12 @@ bool DumbAllocatorBase::free(void *pointer) {
   return true;
 }
 
-bool DumbAllocatorBase::contains(const void *pointer) const {
+bool ChunkAllocatorBase::contains(const void *pointer) const {
   size_t slot;
   return getSlot(pointer, &slot);
 }
 
-bool DumbAllocatorBase::getSlot(const void *pointer, size_t *slot) const {
+bool ChunkAllocatorBase::getSlot(const void *pointer, size_t *slot) const {
   const uint8_t *ptr = static_cast<const uint8_t *>(pointer);
   if (ptr < mRawMemory) {
     // Out of range.

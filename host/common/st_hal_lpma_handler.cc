@@ -85,7 +85,7 @@ bool StHalLpmaHandler::load(SoundModelHandle &lpmaHandle) {
   soundModel.vendorUuid.variantAndClockSeqHigh = 0x8CB0;
 
   memcpy(&soundModel.vendorUuid.node[0], kUuidNode, sizeof(kUuidNode));
-  soundModel.data.resize(1);  // Insert a dummy byte to bypass HAL NULL checks.
+  soundModel.data.resize(1);  // Insert an empty byte to bypass HAL NULL checks.
 
   bool loaded = false;
   checkConnectionToStHalServiceLocked();

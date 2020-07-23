@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-#include <shared/dumb_allocator.h>
+#include <shared/chunk_allocator.h>
 
 #include <gtest/gtest.h>
 
 static constexpr size_t kAllocSize = 128;
 static constexpr size_t kSlotCount = 5;
 
-typedef nanoapp_testing::DumbAllocator<kAllocSize, kSlotCount> DA;
+typedef nanoapp_testing::ChunkAllocator<kAllocSize, kSlotCount> DA;
 
 static void ExpectGoodAlloc(const DA &da, const void *ptr) {
   EXPECT_NE(nullptr, ptr);
   EXPECT_TRUE(da.contains(ptr));
 }
 
-TEST(DumbAllocatorTests, SimpleAlloc) {
+TEST(ChunkAllocatorTests, SimpleAlloc) {
   DA da;
   void *ptr = da.alloc(kAllocSize);
   ExpectGoodAlloc(da, ptr);
   EXPECT_TRUE(da.free(ptr));
 }
 
-TEST(DumbAllocatorTests, AllocsAfterFree) {
+TEST(ChunkAllocatorTests, AllocsAfterFree) {
   DA da;
   void *ptrs[kSlotCount];
   for (size_t i = 0; i < kSlotCount; i++) {
@@ -61,7 +61,7 @@ TEST(DumbAllocatorTests, AllocsAfterFree) {
   }
 }
 
-TEST(DumbAllocatorTests, ContainsIsFalseForBadPtrs) {
+TEST(ChunkAllocatorTests, ContainsIsFalseForBadPtrs) {
   DA da;
   uint8_t *ptr = static_cast<uint8_t *>(da.alloc(kAllocSize));
   ASSERT_NE(nullptr, ptr);
@@ -70,13 +70,13 @@ TEST(DumbAllocatorTests, ContainsIsFalseForBadPtrs) {
   EXPECT_FALSE(da.contains(nullptr));
 }
 
-TEST(DumbAllocatorTests, FailLargeAllocations) {
+TEST(ChunkAllocatorTests, FailLargeAllocations) {
   DA da;
   EXPECT_EQ(nullptr, da.alloc(kAllocSize + 1));
   EXPECT_EQ(nullptr, da.alloc(kAllocSize * 2));
 }
 
-TEST(DumbAllocatorTests, SucceedSmallAllocations) {
+TEST(ChunkAllocatorTests, SucceedSmallAllocations) {
   DA da;
   ExpectGoodAlloc(da, da.alloc(kAllocSize - 1));
   ExpectGoodAlloc(da, da.alloc(1));

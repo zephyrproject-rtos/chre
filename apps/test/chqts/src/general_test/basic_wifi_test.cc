@@ -47,18 +47,18 @@ namespace general_test {
 
 namespace {
 
-//! A dummy cookie to pass into the enable configure scan monitoring async
+//! A fake/unused cookie to pass into the enable configure scan monitoring async
 //! request.
 constexpr uint32_t kEnableScanMonitoringCookie = 0x1337;
 
-//! A dummy cookie to pass into the disable configure scan monitoring async
-//! request.
+//! A fake/unused cookie to pass into the disable configure scan monitoring
+//! async request.
 constexpr uint32_t kDisableScanMonitoringCookie = 0x1338;
 
-//! A dummy cookie to pass into request ranging async.
+//! A fake/unused cookie to pass into request ranging async.
 constexpr uint32_t kRequestRangingCookie = 0xefac;
 
-//! A dummy cookie to pass into request scan async.
+//! A fake/unused cookie to pass into request scan async.
 constexpr uint32_t kOnDemandScanCookie = 0xcafe;
 
 //! Starting frequency of band 2.4 GHz

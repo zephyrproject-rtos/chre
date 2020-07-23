@@ -27,9 +27,9 @@ namespace {
 constexpr int kMaxTestCapacity = 10;
 int gDestructorCount[kMaxTestCapacity];
 
-class Dummy {
+class DestructorCounter {
  public:
-  ~Dummy() {
+  ~DestructorCounter() {
     if (mValue >= 0) {
       gDestructorCount[mValue]++;
     }
@@ -424,7 +424,7 @@ TEST(DynamicVector, FindWithElements) {
 TEST(DynamicVector, EraseDestructorCalled) {
   resetDestructorCounts();
 
-  DynamicVector<Dummy> vector;
+  DynamicVector<DestructorCounter> vector;
   vector.reserve(4);
   for (size_t i = 0; i < 4; ++i) {
     vector.emplace_back();
@@ -456,7 +456,7 @@ TEST(DynamicVector, EraseDestructorCalled) {
 TEST(DynamicVector, Clear) {
   resetDestructorCounts();
 
-  DynamicVector<Dummy> vector;
+  DynamicVector<DestructorCounter> vector;
   vector.reserve(4);
   for (size_t i = 0; i < 4; ++i) {
     vector.emplace_back();

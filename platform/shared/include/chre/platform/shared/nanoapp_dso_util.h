@@ -22,8 +22,8 @@
 namespace chre {
 
 /**
- * Performs sanity checks on the app info structure included in a dynamically
- * loaded nanoapp.
+ * Performs consistency checks on the app info structure included in a
+ * dynamically loaded nanoapp.
  *
  * @param expectedAppId The app ID passed alongside the binary
  * @param expectedAppVersion The app version number passed alongside the binary

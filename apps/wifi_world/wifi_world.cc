@@ -38,13 +38,14 @@ namespace {
 
 namespace {
 
-//! A dummy cookie to pass into the configure scan monitoring async request.
+//! A fake/unused cookie to pass into the configure scan monitoring async
+//! request.
 constexpr uint32_t kScanMonitoringCookie = 0x1337;
 
-//! A dummy cookie to pass into on-demand scan async request.
+//! A fake/unused cookie to pass into on-demand scan async request.
 constexpr uint32_t kOnDemandScanCookie = 0xcafe;
 
-//! A dummy cookie to pass into ranging async request.
+//! A fake/unused cookie to pass into ranging async request.
 constexpr uint32_t kRangingCookie = 0xbeef;
 
 //! The interval for on-demand wifi scans.

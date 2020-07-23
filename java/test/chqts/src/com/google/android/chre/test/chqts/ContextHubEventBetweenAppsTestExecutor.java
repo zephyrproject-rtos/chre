@@ -26,7 +26,7 @@ import java.nio.ByteOrder;
 /**
  * Verify sending a CHRE event between two nanoapps.
  *
- * We also sanity check that we get the correct nanoApp IDs and sane nanoApp instance IDs.
+ * We also check that we get the correct nanoApp IDs and sane nanoApp instance IDs.
  *
  * Protocol:
  * There are two nanoapps here, so we'll talk in term of app0 and app1.
@@ -106,7 +106,7 @@ public class ContextHubEventBetweenAppsTestExecutor extends ContextHubGeneralTes
         assertTrue("Both nanoapps given identical instance IDs",
                 mAppInfo[0].instanceId != mAppInfo[1].instanceId);
 
-        // Sanity checks pass.  We'll send the data down.
+        // Consistency checks pass.  We'll send the data down.
         buffer = ByteBuffer.allocate(4)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .putInt(mAppInfo[0].instanceId);
