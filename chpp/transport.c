@@ -777,9 +777,7 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
  * Resets the transport state, maintaining the link layer parameters.
  */
 static void chppResetTransportContext(struct ChppTransportState *context) {
-  struct ChppPlatformLinkParameters params = context->linkParams;
-  memset(context, 0, sizeof(struct ChppTransportState));
-  context->linkParams = params;
+  memset(context, 0, offsetof(struct ChppTransportState, linkParams));
 }
 
 /**
