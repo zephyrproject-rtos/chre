@@ -491,28 +491,32 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
               " and message type = %" PRIu8 " is missing context",
               rxHeader->handle, rxHeader->type);
 
-  } else if (dispatchFunc(clientServiceContext, buf, len) == false) {
-    CHPP_LOGE("Received unknown message type  = %" PRIu8 " for handle = %" PRIu8
-              ", command = %#x, transaction ID = %" PRIu8,
-              rxHeader->type, rxHeader->handle, rxHeader->command,
-              rxHeader->transaction);
+  } else {
+    enum ChppAppErrorCode error = dispatchFunc(clientServiceContext, buf, len);
+    if (error != CHPP_APP_ERROR_NONE) {
+      CHPP_LOGE("Dispatching RX datagram failed with error code = %" PRIx16
+                " for handle = %" PRIx8 ", message type  = %" PRIx8
+                ", transaction ID = %" PRIu8 ", command = %" PRIx16,
+                error, rxHeader->handle, rxHeader->type, rxHeader->transaction,
+                rxHeader->command);
 
-    struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(rxHeader, struct ChppAppHeader);
-    response->error = CHPP_APP_ERROR_INVALID_COMMAND;
-    chppEnqueueTxDatagramOrFail(context->transportContext, response,
-                                sizeof(*response));
+      struct ChppAppHeader *response =
+          chppAllocServiceResponseFixed(rxHeader, struct ChppAppHeader);
+      response->error = error;
+      chppEnqueueTxDatagramOrFail(context->transportContext, response,
+                                  sizeof(*response));
 
-  } else if (CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type) ==
-             CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
-    // Datagram is a service response. Check for synchronous operation and
-    // notify waiting client if needed.
-    struct ChppClientState *clientContext =
-        (struct ChppClientState *)clientServiceContext;
+    } else if (CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type) ==
+               CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
+      // Datagram is a service response. Check for synchronous operation and
+      // notify waiting client if needed.
+      struct ChppClientState *clientContext =
+          (struct ChppClientState *)clientServiceContext;
 
-    if (clientContext->waitingForResponse) {
-      chppNotifierSignal(&clientContext->responseNotifier,
-                         CHPP_SIGNAL_CLIENT_EVENT);
+      if (clientContext->waitingForResponse) {
+        chppNotifierSignal(&clientContext->responseNotifier,
+                           CHPP_SIGNAL_CLIENT_EVENT);
+      }
     }
   }
 }

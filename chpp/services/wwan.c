@@ -34,8 +34,8 @@
  *  Prototypes
  ***********************************************/
 
-static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
-                                    size_t len);
+static enum ChppAppErrorCode chppDispatchWwanRequest(void *serviceContext,
+                                                     uint8_t *buf, size_t len);
 
 /************************************************
  *  Private Definitions
@@ -95,17 +95,19 @@ struct ChppWwanServiceState gWwanServiceContext;
  *  Prototypes
  ***********************************************/
 
-static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
-                                struct ChppAppHeader *requestHeader);
-static void chppWwanServiceClose(
+static enum ChppAppErrorCode chppWwanServiceOpen(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader);
-static void chppWwanServiceGetCapabilities(
+static enum ChppAppErrorCode chppWwanServiceClose(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader);
-static void chppWwanServiceGetCellInfoAsync(
+static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader);
+static enum ChppAppErrorCode chppWwanServiceGetCellInfoAsync(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader);
+
 static void chppWwanServiceCellInfoResultCallback(
     struct chreWwanCellInfoResult *result);
 
@@ -115,7 +117,8 @@ static void chppWwanServiceCellInfoResultCallback(
 
 /**
  * Dispatches a client request from the transport layer that is determined to be
- * for the WWAN service.
+ * for the WWAN service. If the result of the dispatch is an error, this
+ * function responds to the client with the same error.
  *
  * This function is called from the app layer using its function pointer given
  * during service registration.
@@ -124,51 +127,62 @@ static void chppWwanServiceCellInfoResultCallback(
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  *
- * @return False indicates error (unknown command).
+ * @return Indicates the result of this function call.
  */
-static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
-                                    size_t len) {
+static enum ChppAppErrorCode chppDispatchWwanRequest(void *serviceContext,
+                                                     uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct ChppWwanServiceState *wwanServiceContext =
       (struct ChppWwanServiceState *)serviceContext;
-  bool success = true;
+  struct ChppRequestResponseState *rRState;
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+  bool dispatched = true;
 
   UNUSED_VAR(len);
 
   switch (rxHeader->command) {
     case CHPP_WWAN_OPEN: {
-      chppServiceTimestampRequest(&wwanServiceContext->open, rxHeader);
-      chppWwanServiceOpen(wwanServiceContext, rxHeader);
+      rRState = &wwanServiceContext->open;
+      chppServiceTimestampRequest(rRState, rxHeader);
+      error = chppWwanServiceOpen(wwanServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WWAN_CLOSE: {
-      chppServiceTimestampRequest(&wwanServiceContext->close, rxHeader);
-      chppWwanServiceClose(wwanServiceContext, rxHeader);
+      rRState = &wwanServiceContext->close;
+      chppServiceTimestampRequest(rRState, rxHeader);
+      error = chppWwanServiceClose(wwanServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WWAN_GET_CAPABILITIES: {
-      chppServiceTimestampRequest(&wwanServiceContext->getCapabilities,
-                                  rxHeader);
-      chppWwanServiceGetCapabilities(wwanServiceContext, rxHeader);
+      rRState = &wwanServiceContext->getCapabilities;
+      chppServiceTimestampRequest(rRState, rxHeader);
+      error = chppWwanServiceGetCapabilities(wwanServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WWAN_GET_CELLINFO_ASYNC: {
-      chppServiceTimestampRequest(&wwanServiceContext->getCellInfoAsync,
-                                  rxHeader);
-      chppWwanServiceGetCellInfoAsync(wwanServiceContext, rxHeader);
+      rRState = &wwanServiceContext->getCellInfoAsync;
+      chppServiceTimestampRequest(rRState, rxHeader);
+      error = chppWwanServiceGetCellInfoAsync(wwanServiceContext, rxHeader);
       break;
     }
 
     default: {
-      success = false;
+      dispatched = false;
+      error = CHPP_APP_ERROR_INVALID_COMMAND;
       break;
     }
   }
 
-  return success;
+  if (dispatched == true && error != CHPP_APP_ERROR_NONE) {
+    // Request was dispatched but an error was returned. Close out
+    // chppServiceTimestampRequest()
+    chppServiceTimestampResponse(rRState);
+  }
+
+  return error;
 }
 
 /**
@@ -177,28 +191,33 @@ static bool chppDispatchWwanRequest(void *serviceContext, uint8_t *buf,
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
+ *
+ * @return Indicates the result of this function call.
  */
-static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
-                                struct ChppAppHeader *requestHeader) {
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-
+static enum ChppAppErrorCode chppWwanServiceOpen(
+    struct ChppWwanServiceState *wwanServiceContext,
+    struct ChppAppHeader *requestHeader) {
   static const struct chrePalWwanCallbacks palCallbacks = {
       .cellInfoResultCallback = chppWwanServiceCellInfoResultCallback,
   };
+
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   if (!wwanServiceContext->api->open(
           wwanServiceContext->service.appContext->systemApi, &palCallbacks)) {
     CHPP_LOGE("WWAN PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
-    response->error = CHPP_APP_ERROR_UNSPECIFIED;
+    error = CHPP_APP_ERROR_UNSPECIFIED;
+
   } else {
-    response->error = CHPP_APP_ERROR_NONE;
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                      &wwanServiceContext->open, response,
+                                      sizeof(*response));
   }
 
-  chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                    &wwanServiceContext->open, response,
-                                    sizeof(*response));
+  return error;
 }
 
 /**
@@ -206,19 +225,21 @@ static void chppWwanServiceOpen(struct ChppWwanServiceState *wwanServiceContext,
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
+ *
+ * @return Indicates the result of this function call.
  */
-static void chppWwanServiceClose(
+static enum ChppAppErrorCode chppWwanServiceClose(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-
   wwanServiceContext->api->close();
 
-  response->error = CHPP_APP_ERROR_NONE;
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->close, response,
                                     sizeof(*response));
+
+  return CHPP_APP_ERROR_NONE;
 }
 
 /**
@@ -227,8 +248,10 @@ static void chppWwanServiceClose(
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
+ *
+ * @return Indicates the result of this function call.
  */
-static void chppWwanServiceGetCapabilities(
+static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
   struct ChppWwanGetCapabilitiesResponse *response =
@@ -236,7 +259,6 @@ static void chppWwanServiceGetCapabilities(
                                     struct ChppWwanGetCapabilitiesResponse);
 
   response->capabilities = wwanServiceContext->api->getCapabilities();
-  response->header.error = CHPP_APP_ERROR_NONE;
 
   CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
             response->capabilities, sizeof(*response));
@@ -244,6 +266,8 @@ static void chppWwanServiceGetCapabilities(
   chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                     &wwanServiceContext->getCapabilities,
                                     response, sizeof(*response));
+
+  return CHPP_APP_ERROR_NONE;
 }
 
 /**
@@ -258,20 +282,23 @@ static void chppWwanServiceGetCapabilities(
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
+ *
+ * @return Indicates the result of this function call.
  */
-static void chppWwanServiceGetCellInfoAsync(
+static enum ChppAppErrorCode chppWwanServiceGetCellInfoAsync(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
-  // Register for callback
+  UNUSED_VAR(requestHeader);
+
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
   if (!wwanServiceContext->api->requestCellInfo()) {
-    // Error occurred, send a synchronous error response
-    struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    response->error = CHPP_APP_ERROR_UNSPECIFIED;
-    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                      &wwanServiceContext->getCellInfoAsync,
-                                      response, sizeof(*response));
+    CHPP_LOGE(
+        "WWAN requestCellInfo PAL API failed. Unable to register for callback");
+    error = CHPP_APP_ERROR_UNSPECIFIED;
   }
+
+  return error;
 }
 
 /**
