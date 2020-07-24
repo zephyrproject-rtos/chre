@@ -308,7 +308,7 @@ static void chppWwanServiceCellInfoResultCallback(
  ***********************************************/
 
 void chppRegisterWwanService(struct ChppAppState *appContext) {
-  gWwanServiceContext.api = chrePalWwanGetApi(CHRE_PAL_WWAN_API_V1_4);
+  gWwanServiceContext.api = chrePalWwanGetApi(CHPP_PAL_WWAN_API_VERSION);
 
   if (gWwanServiceContext.api == NULL) {
     CHPP_LOGE(
