@@ -19,10 +19,7 @@
 #include "chpp/app.h"
 #include "chpp/clients/discovery.h"
 #include "chpp/link.h"
-
-//! Signals to use in ChppNotifier in this program.
-#define CHPP_SIGNAL_EXIT UINT32_C(1 << 0)
-#define CHPP_SIGNAL_TRANSPORT_EVENT UINT32_C(1 << 1)
+#include "chpp/transport_signals.h"
 
 /************************************************
  *  Prototypes
@@ -519,7 +516,7 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
             packetCode);
 
   // Notifies the main CHPP Transport Layer to run chppTransportDoWork().
-  chppNotifierSignal(&context->notifier, CHPP_SIGNAL_TRANSPORT_EVENT);
+  chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EVENT);
 }
 
 /**
@@ -984,17 +981,31 @@ void chppWorkThreadStart(struct ChppTransportState *context) {
   while (true) {
     uint32_t signal = chppNotifierWait(&context->notifier);
 
-    if (signal & CHPP_SIGNAL_EXIT) {
+    if (signal & CHPP_TRANSPORT_SIGNAL_EXIT) {
       break;
     }
-    if (signal & CHPP_SIGNAL_TRANSPORT_EVENT) {
+    if (signal & CHPP_TRANSPORT_SIGNAL_EVENT) {
       chppTransportDoWork(context);
+    }
+    if (signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK) {
+      chppPlatformLinkDoWork(&context->linkParams,
+                             signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
     }
   }
 }
 
 void chppWorkThreadStop(struct ChppTransportState *context) {
-  chppNotifierSignal(&context->notifier, CHPP_SIGNAL_EXIT);
+  chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EXIT);
+}
+
+void chppWorkThreadSignalFromLink(struct ChppPlatformLinkParameters *params,
+                                  uint32_t signal) {
+  struct ChppTransportState *context =
+      container_of(params, struct ChppTransportState, linkParams);
+
+  CHPP_ASSERT((signal & ~(CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK)) == 0);
+  chppNotifierSignal(&context->notifier,
+                     signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
 }
 
 void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
@@ -1010,7 +1021,7 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
 
   context->txStatus.linkBusy = false;
   if (context->txStatus.hasPacketsToSend) {
-    chppNotifierSignal(&context->notifier, CHPP_SIGNAL_TRANSPORT_EVENT);
+    chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EVENT);
   }
 }
 

@@ -458,6 +458,17 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
 void chppWorkThreadStart(struct ChppTransportState *context);
 
 /**
+ * Signals the main thread for CHPP's Transport Layer to perform some work. This
+ * method should only be called from the link layer.
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ * @param signal The signal that describes the work to be performed. Only bits
+ * specified by CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK can be set.
+ */
+void chppWorkThreadSignalFromLink(struct ChppPlatformLinkParameters *params,
+                                  uint32_t signal);
+
+/**
  * Stops the main thread for CHPP's Transport Layer that has been started by
  * calling chppWorkThreadStart(). Stopping this thread may be necessary for
  * testing and debugging purposes.

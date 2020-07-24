@@ -94,6 +94,20 @@ void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params);
 enum ChppLinkErrorCode chppPlatformLinkSend(
     struct ChppPlatformLinkParameters *params, uint8_t *buf, size_t len);
 
+/**
+ * Platform-specific function to perform a task from the main CHPP transport
+ * work thread. The task can be specified by the signal argument, which is
+ * triggered by previous call[s] to chppWorkThreadSignalFromLink(). An example
+ * of the type of work that can be performed is processing RX data from the
+ * physical layer.
+ *
+ * @param params Platform-specific struct with link details / parameters.
+ * @param signal The signal that describes the work to be performed. Only bits
+ * specified by CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK can be set.
+ */
+void chppPlatformLinkDoWork(struct ChppPlatformLinkParameters *params,
+                            uint32_t signal);
+
 /*
  * Platform-specific function to reset a non-synchronous link, where the link
  * implementation is responsible for calling chppLinkSendDoneCb() after
