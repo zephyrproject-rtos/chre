@@ -969,8 +969,8 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
 }
 
 void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
-                                uint8_t packetCode) {
-  switch (packetCode) {
+                                enum ChppTransportErrorCode errorCode) {
+  switch (errorCode) {
     case CHPP_TRANSPORT_ERROR_OOM: {
       CHPP_LOGD("Enqueueing CHPP_TRANSPORT_ERROR_OOM datagram");
       break;
@@ -984,7 +984,7 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
       CHPP_ASSERT(false);
     }
   }
-  chppEnqueueTxPacket(context, packetCode);
+  chppEnqueueTxPacket(context, errorCode & CHPP_TRANSPORT_ERROR_MASK);
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {

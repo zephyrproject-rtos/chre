@@ -105,6 +105,7 @@ extern "C" {
  * Error codes optionally reported in ChppTransportHeader (Least significant
  * nibble of int8_t packetCode).
  */
+#define CHPP_TRANSPORT_ERROR_MASK LEAST_SIGNIFICANT_NIBBLE
 enum ChppTransportErrorCode {
   //! No error reported (either ACK or implicit NACK)
   CHPP_TRANSPORT_ERROR_NONE = 0,
@@ -436,10 +437,10 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
  * an OOM situation over the wire.
  *
  * @param context Maintains status for each transport layer instance.
- * @param packetCode Error code and packet attributes to be sent.
+ * @param errorCode Error code to be sent.
  */
 void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
-                                uint8_t packetCode);
+                                enum ChppTransportErrorCode errorCode);
 
 /**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be
