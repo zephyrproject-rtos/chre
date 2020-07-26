@@ -415,7 +415,7 @@ void chppTxTimeoutTimerCb(struct ChppTransportState *context);
 void chppRxTimeoutTimerCb(struct ChppTransportState *context);
 
 /**
- * Enqueues an outgoing datagram of a specified length and ffrees the payload
+ * Enqueues an outgoing datagram of a specified length and frees the payload
  * asynchronously after it is sent. The payload must have been allocated by the
  * caller using chppMalloc.
  *
