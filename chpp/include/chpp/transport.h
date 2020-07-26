@@ -504,22 +504,6 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
  */
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
 
-/**
- * Sends a reset or reset-ack packet over the link in order to reset the remote
- * side or inform the counterpart of a reset, respectively. The transport
- * layer's configuration is sent as the payload of the reset packet.
- *
- * This function should only be used immediately after initialization, for
- * example upon boot (to send a reset), or when a reset packet is received and
- * acted upon (to send a reset-ack).
- *
- * @param transportContext Maintains status for each transport layer instance.
- * @param resetType Distinguishes a reset from a reset-ack, as defined in the
- * ChppTransportPacketAttributes struct.
- */
-void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType);
-
 #ifdef __cplusplus
 }
 #endif
