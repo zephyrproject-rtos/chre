@@ -105,6 +105,7 @@ extern "C" {
  * Error codes optionally reported in ChppTransportHeader (Least significant
  * nibble of int8_t packetCode).
  */
+#define CHPP_TRANSPORT_ERROR_MASK LEAST_SIGNIFICANT_NIBBLE
 enum ChppTransportErrorCode {
   //! No error reported (either ACK or implicit NACK)
   CHPP_TRANSPORT_ERROR_NONE = 0,
@@ -436,10 +437,10 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
  * an OOM situation over the wire.
  *
  * @param context Maintains status for each transport layer instance.
- * @param packetCode Error code and packet attributes to be sent.
+ * @param errorCode Error code to be sent.
  */
 void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
-                                uint8_t packetCode);
+                                enum ChppTransportErrorCode errorCode);
 
 /**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be
@@ -502,22 +503,6 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
  * @param buf Pointer to the buf given to chppProcessRxDatagram. Cannot be null.
  */
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
-
-/**
- * Sends a reset or reset-ack packet over the link in order to reset the remote
- * side or inform the counterpart of a reset, respectively. The transport
- * layer's configuration is sent as the payload of the reset packet.
- *
- * This function should only be used immediately after initialization, for
- * example upon boot (to send a reset), or when a reset packet is received and
- * acted upon (to send a reset-ack).
- *
- * @param transportContext Maintains status for each transport layer instance.
- * @param resetType Distinguishes a reset from a reset-ack, as defined in the
- * ChppTransportPacketAttributes struct.
- */
-void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType);
 
 #ifdef __cplusplus
 }

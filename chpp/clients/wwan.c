@@ -29,8 +29,8 @@
  *  Prototypes
  ***********************************************/
 
-static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
-                                     size_t len);
+static enum ChppAppErrorCode chppDispatchWwanResponse(void *clientContext,
+                                                      uint8_t *buf, size_t len);
 static bool chppWwanClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion);
 static void chppWwanClientDeinit(void *clientContext);
@@ -114,14 +114,15 @@ void chppWwanGetCellInfoAsyncResult(struct ChppWwanClientState *clientContext,
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  *
- * @return False indicates error (unknown command).
+ * @return Indicates the result of this function call.
  */
-static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
-                                     size_t len) {
+static enum ChppAppErrorCode chppDispatchWwanResponse(void *clientContext,
+                                                      uint8_t *buf,
+                                                      size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;
-  bool success = true;
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   switch (rxHeader->command) {
     case CHPP_WWAN_OPEN: {
@@ -145,12 +146,12 @@ static bool chppDispatchWwanResponse(void *clientContext, uint8_t *buf,
     }
 
     default: {
-      success = false;
+      error = CHPP_APP_ERROR_INVALID_COMMAND;
       break;
     }
   }
 
-  return success;
+  return error;
 }
 
 /**

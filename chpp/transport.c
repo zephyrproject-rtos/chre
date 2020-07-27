@@ -68,6 +68,9 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
 
 static void chppReset(struct ChppTransportState *transportContext,
                       struct ChppAppState *appContext);
+static void chppTransportSendReset(
+    struct ChppTransportState *context,
+    enum ChppTransportPacketAttributes resetType);
 
 /************************************************
  *  Private Functions
@@ -839,6 +842,56 @@ static void chppReset(struct ChppTransportState *transportContext,
   transportContext->resetState = CHPP_RESET_STATE_NONE;
 }
 
+/**
+ * Sends a reset or reset-ack packet over the link in order to reset the remote
+ * side or inform the counterpart of a reset, respectively. The transport
+ * layer's configuration is sent as the payload of the reset packet.
+ *
+ * This function is used immediately after initialization, for example upon boot
+ * (to send a reset), or when a reset packet is received and acted upon (to send
+ * a reset-ack).
+ *
+ * @param transportContext Maintains status for each transport layer instance.
+ * @param resetType Distinguishes a reset from a reset-ack, as defined in the
+ * ChppTransportPacketAttributes struct.
+ */
+static void chppTransportSendReset(
+    struct ChppTransportState *context,
+    enum ChppTransportPacketAttributes resetType) {
+  // CHPP must be in an initialized state
+  chppMutexLock(&context->mutex);
+  if (context->txDatagramQueue.pending > 0 ||
+      context->txDatagramQueue.front != 0) {
+    CHPP_LOGE(
+        "chppTransportSendReset called but CHPP not in initialized state.");
+    CHPP_ASSERT(false);
+  }
+  chppMutexUnlock(&context->mutex);
+
+  // Payload to send
+  struct ChppTransportConfiguration *config =
+      chppMalloc(sizeof(struct ChppTransportConfiguration));
+
+  // CHPP transport version
+  config->version.major = 1;
+  config->version.minor = 0;
+  config->version.patch = 0;
+
+  // Rx MTU size
+  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
+
+  // Max Rx window size
+  // Note: current implementation does not support a window size >1
+  config->windowSize = 1;
+
+  // Advertised transport layer (ACK) timeout
+  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
+
+  // Send out the reset datagram
+  chppEnqueueTxDatagram(context, resetType, config,
+                        sizeof(struct ChppTransportConfiguration));
+}
+
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -969,8 +1022,8 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
 }
 
 void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
-                                uint8_t packetCode) {
-  switch (packetCode) {
+                                enum ChppTransportErrorCode errorCode) {
+  switch (errorCode) {
     case CHPP_TRANSPORT_ERROR_OOM: {
       CHPP_LOGD("Enqueueing CHPP_TRANSPORT_ERROR_OOM datagram");
       break;
@@ -984,7 +1037,7 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
       CHPP_ASSERT(false);
     }
   }
-  chppEnqueueTxPacket(context, packetCode);
+  chppEnqueueTxPacket(context, errorCode & CHPP_TRANSPORT_ERROR_MASK);
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {
@@ -1042,40 +1095,4 @@ void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
   UNUSED_VAR(context);
 
   CHPP_FREE_AND_NULLIFY(buf);
-}
-
-void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType) {
-  // CHPP must be in an initialized state
-  chppMutexLock(&context->mutex);
-  if (context->txDatagramQueue.pending > 0 ||
-      context->txDatagramQueue.front != 0) {
-    CHPP_LOGE(
-        "chppTransportSendReset called but CHPP not in initialized state.");
-    CHPP_ASSERT(false);
-  }
-  chppMutexUnlock(&context->mutex);
-
-  // Payload to send
-  struct ChppTransportConfiguration *config =
-      chppMalloc(sizeof(struct ChppTransportConfiguration));
-
-  // CHPP transport version
-  config->version.major = 1;
-  config->version.minor = 0;
-  config->version.patch = 0;
-
-  // Rx MTU size
-  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
-
-  // Max Rx window size
-  // Note: current implementation does not support a window size >1
-  config->windowSize = 1;
-
-  // Advertised transport layer (ACK) timeout
-  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
-
-  // Send out the reset datagram
-  chppEnqueueTxDatagram(context, resetType, config,
-                        sizeof(struct ChppTransportConfiguration));
 }
