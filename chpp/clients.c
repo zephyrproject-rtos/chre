@@ -73,11 +73,13 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 
 void chppClientInit(struct ChppClientState *clientContext, uint8_t handle) {
   clientContext->handle = handle;
-  chppNotifierInit(&clientContext->responseNotifier);
+  chppMutexInit(&clientContext->responseMutex);
+  chppConditionVariableInit(&clientContext->responseCondVar);
 }
 
 void chppClientDeinit(struct ChppClientState *clientContext) {
-  chppNotifierDeinit(&clientContext->responseNotifier);
+  chppConditionVariableDeinit(&clientContext->responseCondVar);
+  chppMutexDeinit(&clientContext->responseMutex);
 }
 
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
@@ -197,15 +199,21 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
 bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
                                        struct ChppRequestResponseState *rRState,
                                        void *buf, size_t len) {
-  clientState->waitingForResponse = true;
+  chppMutexLock(&clientState->responseMutex);
 
   bool result =
       chppSendTimestampedRequestOrFail(clientState, rRState, buf, len);
   if (result) {
-    chppNotifierWait(&clientState->responseNotifier);  // TODO: Add timeout
+    clientState->responseReady = false;
+    while (!clientState->responseReady) {
+      chppConditionVariableWait(
+          &clientState->responseCondVar,
+          &clientState->responseMutex);  // TODO: Add timeout
+    }
+    result = clientState->responseReady;
   }
 
-  clientState->waitingForResponse = false;
+  chppMutexUnlock(&clientState->responseMutex);
 
   return result;
 }
