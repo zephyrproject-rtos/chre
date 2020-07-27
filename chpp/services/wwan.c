@@ -213,9 +213,15 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
     CHPP_LOGI("CHPP WWAN service initialized");
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                      &wwanServiceContext->open, response,
-                                      sizeof(*response));
+
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
+    } else {
+      chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                        &wwanServiceContext->open, response,
+                                        sizeof(*response));
+    }
   }
 
   return error;
@@ -232,16 +238,24 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
 static enum ChppAppErrorCode chppWwanServiceClose(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
   wwanServiceContext->api->close();
   CHPP_LOGI("CHPP WWAN service deinitialized");
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-  chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                    &wwanServiceContext->close, response,
-                                    sizeof(*response));
 
-  return CHPP_APP_ERROR_NONE;
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                      &wwanServiceContext->close, response,
+                                      sizeof(*response));
+  }
+
+  return error;
 }
 
 /**
@@ -256,20 +270,26 @@ static enum ChppAppErrorCode chppWwanServiceClose(
 static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
     struct ChppWwanServiceState *wwanServiceContext,
     struct ChppAppHeader *requestHeader) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
   struct ChppWwanGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppWwanGetCapabilitiesResponse);
 
-  response->capabilities = wwanServiceContext->api->getCapabilities();
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    response->capabilities = wwanServiceContext->api->getCapabilities();
 
-  CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
-            response->capabilities, sizeof(*response));
+    CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
+              response->capabilities, sizeof(*response));
+    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                      &wwanServiceContext->getCapabilities,
+                                      response, sizeof(*response));
+  }
 
-  chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                    &wwanServiceContext->getCapabilities,
-                                    response, sizeof(*response));
-
-  return CHPP_APP_ERROR_NONE;
+  return error;
 }
 
 /**

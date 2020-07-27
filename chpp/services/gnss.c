@@ -246,7 +246,6 @@ static enum ChppAppErrorCode chppDispatchGnssRequest(void *serviceContext,
 static enum ChppAppErrorCode chppGnssServiceOpen(
     struct ChppGnssServiceState *gnssServiceContext,
     struct ChppAppHeader *requestHeader) {
-  // TODO: Check for OOM here and elsewhere
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   static const struct chrePalGnssCallbacks palCallbacks = {
@@ -269,9 +268,15 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
     CHPP_LOGI("CHPP GNSS service initialized");
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
-                                      &gnssServiceContext->open, response,
-                                      sizeof(*response));
+
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
+    } else {
+      chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
+                                        &gnssServiceContext->open, response,
+                                        sizeof(*response));
+    }
   }
 
   return error;
@@ -288,17 +293,24 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
 static enum ChppAppErrorCode chppGnssServiceClose(
     struct ChppGnssServiceState *gnssServiceContext,
     struct ChppAppHeader *requestHeader) {
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   gnssServiceContext->api->close();
   CHPP_LOGI("CHPP GNSS service deinitialized");
 
-  chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
-                                    &gnssServiceContext->close, response,
-                                    sizeof(*response));
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
-  return CHPP_APP_ERROR_NONE;
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
+                                      &gnssServiceContext->close, response,
+                                      sizeof(*response));
+  }
+
+  return error;
 }
 
 /**
@@ -313,20 +325,26 @@ static enum ChppAppErrorCode chppGnssServiceClose(
 static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
     struct ChppGnssServiceState *gnssServiceContext,
     struct ChppAppHeader *requestHeader) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
   struct ChppGnssGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppGnssGetCapabilitiesResponse);
 
-  response->capabilities = gnssServiceContext->api->getCapabilities();
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    response->capabilities = gnssServiceContext->api->getCapabilities();
 
-  CHPP_LOGD("chppGnssServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
-            response->capabilities, sizeof(*response));
+    CHPP_LOGD("chppGnssServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
+              response->capabilities, sizeof(*response));
+    chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
+                                      &gnssServiceContext->getCapabilities,
+                                      response, sizeof(*response));
+  }
 
-  chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
-                                    &gnssServiceContext->getCapabilities,
-                                    response, sizeof(*response));
-
-  return CHPP_APP_ERROR_NONE;
+  return error;
 }
 
 /**
