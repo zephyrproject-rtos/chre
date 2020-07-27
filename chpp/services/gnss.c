@@ -248,8 +248,6 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
     struct ChppAppHeader *requestHeader) {
   // TODO: Check for OOM here and elsewhere
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
   static const struct chrePalGnssCallbacks palCallbacks = {
       .requestStateResync = chppGnssServiceRequestStateResyncCallback,
@@ -264,10 +262,13 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
   if (!gnssServiceContext->api->open(
           gnssServiceContext->service.appContext->systemApi, &palCallbacks)) {
     error = CHPP_APP_ERROR_UNSPECIFIED;
-    CHPP_LOGE("GNSS PAL API initialization failed");
+    CHPP_LOGE("CHPP GNSS PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
 
   } else {
+    CHPP_LOGI("CHPP GNSS service initialized");
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
     chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                       &gnssServiceContext->open, response,
                                       sizeof(*response));
@@ -291,6 +292,7 @@ static enum ChppAppErrorCode chppGnssServiceClose(
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
   gnssServiceContext->api->close();
+  CHPP_LOGI("CHPP GNSS service deinitialized");
 
   chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                     &gnssServiceContext->close, response,

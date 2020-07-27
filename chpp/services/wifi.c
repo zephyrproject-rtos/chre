@@ -234,11 +234,12 @@ static enum ChppAppErrorCode chppWifiServiceOpen(
 
   if (!wifiServiceContext->api->open(
           wifiServiceContext->service.appContext->systemApi, &palCallbacks)) {
-    CHPP_LOGE("WiFi PAL API initialization failed");
+    CHPP_LOGE("CHPP WiFi PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
     error = CHPP_APP_ERROR_UNSPECIFIED;
 
   } else {
+    CHPP_LOGI("CHPP WiFi service initialized");
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
     chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
@@ -261,6 +262,7 @@ static enum ChppAppErrorCode chppWifiServiceClose(
     struct ChppWifiServiceState *wifiServiceContext,
     struct ChppAppHeader *requestHeader) {
   wifiServiceContext->api->close();
+  CHPP_LOGI("CHPP WiFi service deinitialized");
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
