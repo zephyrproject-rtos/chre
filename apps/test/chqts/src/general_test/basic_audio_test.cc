@@ -195,7 +195,8 @@ void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
   if (mState == State::kPreStart) {
     unexpectedEvent(eventType);
   } else {
-    // TODO: Handle audio data from sources, perform basic sanity checks on it.
+    // TODO: Handle audio data from sources, perform basic consistency checks on
+    // it.
   }
 
   mInMethod = false;

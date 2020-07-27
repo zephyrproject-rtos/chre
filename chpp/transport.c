@@ -166,12 +166,12 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
 
     enum ChppTransportErrorCode headerCheckResult = chppRxHeaderCheck(context);
     if (headerCheckResult != CHPP_TRANSPORT_ERROR_NONE) {
-      // Header fails sanity check. NACK and return to preamble state
+      // Header fails consistency check. NACK and return to preamble state
       chppEnqueueTxPacket(context, headerCheckResult);
       chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
     } else {
-      // Header passes sanity check
+      // Header passes consistency check
 
       if (context->rxHeader.length == 0) {
         // Non-payload packet
@@ -431,17 +431,17 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
   // TODO
   UNUSED_VAR(context);
 
-  CHPP_LOGE("Blindly assuming checksum is correct");
+  CHPP_LOGE("Unconditionally assuming checksum is correct");
   return true;
 }
 
 /**
- * Performs sanity check on received packet header. Discards packet if header is
- * obviously corrupt / invalid.
+ * Performs consistency check on received packet header. Discards packet if
+ * header is obviously corrupt / invalid.
  *
  * @param context Maintains status for each transport layer instance.
  *
- * @return True if and only if header passes sanity check
+ * @return True if and only if header passes consistency check
  */
 static enum ChppTransportErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context) {
@@ -455,7 +455,7 @@ static enum ChppTransportErrorCode chppRxHeaderCheck(
     result = CHPP_TRANSPORT_ERROR_ORDER;
   }
 
-  // TODO: More sanity checks
+  // TODO: More consistency checks
 
   return result;
 }

@@ -120,7 +120,7 @@ class BasicSensorTestBase : public Test {
   void handleSamplingChangeEvent(
       const chreSensorSamplingStatusEvent *eventData);
   void handleSensorDataEvent(uint16_t eventType, const void *eventData);
-  void sanityCheckHeader(const chreSensorDataHeader *header, uint16_t eventType,
+  void verifyEventHeader(const chreSensorDataHeader *header, uint16_t eventType,
                          uint64_t eventDuration);
 };
 

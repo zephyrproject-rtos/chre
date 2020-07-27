@@ -32,7 +32,7 @@ namespace {
 constexpr bool kEnableLocationTest = true;
 constexpr bool kEnableMeasurementTest = true;
 
-//! A dummy cookie to pass into the session async and timer request.
+//! A fake/unused cookie to pass into the session async and timer request.
 const uint32_t kLocationSessionCookie = 0x1337;
 const uint32_t kMeasurementSessionCookie = 0xdaad;
 

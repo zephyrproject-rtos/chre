@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <general_test/logging_sanity_test.h>
+#include <general_test/logging_consistency_test.h>
 
 #include <cstddef>
 #include <limits>
@@ -30,13 +30,14 @@ using nanoapp_testing::sendSuccessToHost;
 
 namespace general_test {
 
-LoggingSanityTest::LoggingSanityTest() : Test(CHRE_API_VERSION_1_0) {}
+LoggingConsistencyTest::LoggingConsistencyTest() : Test(CHRE_API_VERSION_1_0) {}
 
-void LoggingSanityTest::setUp(uint32_t messageSize,
-                              const void * /* message */) {
+void LoggingConsistencyTest::setUp(uint32_t messageSize,
+                                   const void * /* message */) {
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "LoggingSanity message expects 0 additional bytes, got ", &messageSize);
+        "LoggingConsistency message expects 0 additional bytes, got ",
+        &messageSize);
   }
 
   // Test each warning level.
@@ -121,8 +122,9 @@ void LoggingSanityTest::setUp(uint32_t messageSize,
   sendSuccessToHost();
 }
 
-void LoggingSanityTest::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void *eventData) {
+void LoggingConsistencyTest::handleEvent(uint32_t senderInstanceId,
+                                         uint16_t eventType,
+                                         const void *eventData) {
   unexpectedEvent(eventType);
 }
 

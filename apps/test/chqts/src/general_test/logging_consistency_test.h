@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _GTS_NANOAPPS_GENERAL_TEST_LOGGING_SANITY_TEST_H_
-#define _GTS_NANOAPPS_GENERAL_TEST_LOGGING_SANITY_TEST_H_
+#ifndef _GTS_NANOAPPS_GENERAL_TEST_LOGGING_CONSISTENCY_TEST_H_
+#define _GTS_NANOAPPS_GENERAL_TEST_LOGGING_CONSISTENCY_TEST_H_
 
 #include <general_test/test.h>
 
@@ -32,9 +32,9 @@ namespace general_test {
  *
  * Simple protocol.
  */
-class LoggingSanityTest : public Test {
+class LoggingConsistencyTest : public Test {
  public:
-  LoggingSanityTest();
+  LoggingConsistencyTest();
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
@@ -44,4 +44,4 @@ class LoggingSanityTest : public Test {
 
 }  // namespace general_test
 
-#endif  // _GTS_NANOAPPS_GENERAL_TEST_LOGGING_SANITY_TEST_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_LOGGING_CONSISTENCY_TEST_H_

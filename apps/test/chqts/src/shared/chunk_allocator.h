@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef _GTS_NANOAPPS_SHARED_DUMB_ALLOCATOR_H_
-#define _GTS_NANOAPPS_SHARED_DUMB_ALLOCATOR_H_
+#ifndef _GTS_NANOAPPS_SHARED_CHUNK_ALLOCATOR_H_
+#define _GTS_NANOAPPS_SHARED_CHUNK_ALLOCATOR_H_
 
 #include <cstddef>
 #include <cstdint>
 
 namespace nanoapp_testing {
 
-// Implementation Note: We chose the pattern of having DumbAllocatorBase to
-// reduce the code duplication from multiple instances of DumbAllocator with
+// Implementation Note: We chose the pattern of having ChunkAllocatorBase to
+// reduce the code duplication from multiple instances of ChunkAllocator with
 // different template parameters.
-// See DumbAllocator below for usage and API documentation.
-class DumbAllocatorBase {
+// See ChunkAllocator below for usage and API documentation.
+class ChunkAllocatorBase {
  protected:
-  DumbAllocatorBase(size_t allocSize, size_t slotCount, uint8_t *rawMemory);
+  ChunkAllocatorBase(size_t allocSize, size_t slotCount, uint8_t *rawMemory);
 
   void *alloc(size_t bytes);
   bool free(void *ptr);
@@ -50,7 +50,7 @@ class DumbAllocatorBase {
 };
 
 /**
- * This dumb allocator is designed to allow us to easily get chunks of
+ * This chunk allocator is designed to allow us to easily get chunks of
  * memory without needing to go through heap allocation.  The idea is to
  * reduce our dependency on CHRE for some aspects of our tests.
  *
@@ -61,10 +61,10 @@ class DumbAllocatorBase {
  * each, and costs (kSlotCount * kAllocSize) bytes of underlying storage.
  */
 template <size_t kAllocSize, size_t kSlotCount>
-class DumbAllocator : DumbAllocatorBase {
+class ChunkAllocator : ChunkAllocatorBase {
  public:
-  DumbAllocator()
-      : DumbAllocatorBase(kAllocSize, kSlotCount, mRawMemoryArray) {}
+  ChunkAllocator()
+      : ChunkAllocatorBase(kAllocSize, kSlotCount, mRawMemoryArray) {}
 
   /**
    * If "bytes" <= kAllocSize, and there are less than kSlotCount allocations,
@@ -73,7 +73,7 @@ class DumbAllocator : DumbAllocatorBase {
    * Reminder this is non-reentrant.
    */
   void *alloc(size_t bytes) {
-    return DumbAllocatorBase::alloc(bytes);
+    return ChunkAllocatorBase::alloc(bytes);
   }
 
   /**
@@ -83,7 +83,7 @@ class DumbAllocator : DumbAllocatorBase {
    * Reminder this is non-reentrant.
    */
   bool free(void *ptr) {
-    return DumbAllocatorBase::free(ptr);
+    return ChunkAllocatorBase::free(ptr);
   }
 
   /**
@@ -91,7 +91,7 @@ class DumbAllocator : DumbAllocatorBase {
    * return true.  Otherwise, do nothing and return false.
    */
   bool contains(const void *ptr) const {
-    return DumbAllocatorBase::contains(ptr);
+    return ChunkAllocatorBase::contains(ptr);
   }
 
  private:
@@ -102,4 +102,4 @@ class DumbAllocator : DumbAllocatorBase {
 
 }  // namespace nanoapp_testing
 
-#endif  // _GTS_NANOAPPS_SHARED_DUMB_ALLOCATOR_H_
+#endif  // _GTS_NANOAPPS_SHARED_CHUNK_ALLOCATOR_H_

@@ -37,8 +37,8 @@ using nanoapp_testing::sendSuccessToHost;
  * Our general test flow is as follows:
  *
  * Constructor: Send startEvent to self to start.
- * StartEvent: Get default sensor and perform various sanity checks.  Configure
- *    the sensor.
+ * StartEvent: Get default sensor and perform various consistency checks.
+ * Configure the sensor.
  *
  * At this point, it depends what kind of sensor we have for how we proceed
  * with the test.
@@ -47,8 +47,8 @@ using nanoapp_testing::sendSuccessToHost;
  * On-change: Wait for one data event from sensor.  Then finishTest().
  * Continuous: Wait for two data events from sensor.  Then finishTest().
  *
- * We also look for and perform basic sanity checking on sampling status
- * change events, as well as bias data reports.
+ * We also look for and perform basic consistency checking on sampling
+ * status change events, as well as bias data reports.
  */
 
 namespace general_test {
@@ -298,7 +298,7 @@ void BasicSensorTestBase::finishTest() {
   sendSuccessToHost();
 }
 
-void BasicSensorTestBase::sanityCheckHeader(const chreSensorDataHeader *header,
+void BasicSensorTestBase::verifyEventHeader(const chreSensorDataHeader *header,
                                             uint16_t eventType,
                                             uint64_t eventDuration) {
   if (header->sensorHandle != mSensorHandle) {
@@ -390,9 +390,9 @@ void BasicSensorTestBase::handleBiasEvent(
   if (expectedSensorType != getSensorType()) {
     sendFatalFailureToHost("Unexpected bias event:", &eType);
   }
-  sanityCheckHeader(&eventData->header, eventType, getEventDuration(eventData));
+  verifyEventHeader(&eventData->header, eventType, getEventDuration(eventData));
 
-  // TODO: Sanity check the eventData.  This check is out-of-scope for
+  // TODO: consistency check the eventData.  This check is out-of-scope for
   //     Android N testing.
 }
 
@@ -417,7 +417,7 @@ void BasicSensorTestBase::handleSamplingChangeEvent(
   if ((mNewStatus.interval != eventData->status.interval) ||
       (mNewStatus.latency != eventData->status.latency)) {
     // This is from someone other than us.  Let's note that so we know
-    // our sanity checks are invalid.
+    // our consistency checks are invalid.
     mExternalSamplingStatusChange = true;
   }
 }
@@ -428,11 +428,11 @@ void BasicSensorTestBase::handleSensorDataEvent(uint16_t eventType,
     sendFatalFailureToHost("SensorDataEvent sent too early.");
   }
   // Note, if mState is kFinished, we could be getting batched data which
-  // hadn't been delivered yet at the time we were DONE.  We'll sanity
+  // hadn't been delivered yet at the time we were DONE.  We'll consistency
   // check it, even though in theory we're done testing.
   uint64_t eventDuration =
       getEventDuration(static_cast<const chreSensorThreeAxisData *>(eventData));
-  sanityCheckHeader(static_cast<const chreSensorDataHeader *>(eventData),
+  verifyEventHeader(static_cast<const chreSensorDataHeader *>(eventData),
                     eventType, eventDuration);
 
   // Send to the sensor itself for any additional checks of actual data.

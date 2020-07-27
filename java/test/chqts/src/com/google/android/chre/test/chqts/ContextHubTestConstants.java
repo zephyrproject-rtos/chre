@@ -111,14 +111,14 @@ public class ContextHubTestConstants {
         BASIC_PROXIMITY(0x040F),
 
         /**
-         * Test: ContextHubSimpleGeneralNanoAppTests[VersionSanity]
+         * Test: ContextHubSimpleGeneralNanoAppTests[VersionConsistency]
          */
-        VERSION_SANITY(0x0410),
+        VERSION_CONSISTENCY(0x0410),
 
         /**
-         * Test: ContextHubSimpleGeneralNanoAppTests[LoggingSanity]
+         * Test: ContextHubSimpleGeneralNanoAppTests[LoggingConsistency]
          */
-        LOGGING_SANITY(0x0411),
+        LOGGING_CONSISTENCY(0x0411),
 
         /**
          * Test: ContextHubSendMessageToHostNanoAppTest

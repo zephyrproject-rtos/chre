@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <general_test/version_sanity_test.h>
+#include <general_test/version_consistency_test.h>
 
 #include <cstddef>
 
@@ -27,13 +27,14 @@ using nanoapp_testing::sendSuccessToHost;
 
 namespace general_test {
 
-VersionSanityTest::VersionSanityTest() : Test(CHRE_API_VERSION_1_0) {}
+VersionConsistencyTest::VersionConsistencyTest() : Test(CHRE_API_VERSION_1_0) {}
 
-void VersionSanityTest::setUp(uint32_t messageSize,
-                              const void * /* message */) {
+void VersionConsistencyTest::setUp(uint32_t messageSize,
+                                   const void * /* message */) {
   if (messageSize != 0) {
     sendFatalFailureToHost(
-        "VersionSanity message expects 0 additional bytes, got ", &messageSize);
+        "VersionConsistency message expects 0 additional bytes, got ",
+        &messageSize);
   }
 
   if (mApiVersion < CHRE_API_VERSION_1_0) {
@@ -72,8 +73,9 @@ void VersionSanityTest::setUp(uint32_t messageSize,
   sendSuccessToHost();
 }
 
-void VersionSanityTest::handleEvent(uint32_t senderInstanceId,
-                                    uint16_t eventType, const void *eventData) {
+void VersionConsistencyTest::handleEvent(uint32_t senderInstanceId,
+                                         uint16_t eventType,
+                                         const void *eventData) {
   unexpectedEvent(eventType);
 }
 

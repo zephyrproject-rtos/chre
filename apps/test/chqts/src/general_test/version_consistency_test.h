@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _GTS_NANOAPPS_GENERAL_TEST_VERSION_SANITY_TEST_H_
-#define _GTS_NANOAPPS_GENERAL_TEST_VERSION_SANITY_TEST_H_
+#ifndef _GTS_NANOAPPS_GENERAL_TEST_VERSION_CONSISTENCY_TEST_H_
+#define _GTS_NANOAPPS_GENERAL_TEST_VERSION_CONSISTENCY_TEST_H_
 
 #include <general_test/test.h>
 
@@ -28,9 +28,9 @@ namespace general_test {
  *
  * (Note: TODO(b/30077401): This test will have a non-simple protocol.)
  */
-class VersionSanityTest : public Test {
+class VersionConsistencyTest : public Test {
  public:
-  VersionSanityTest();
+  VersionConsistencyTest();
 
  protected:
   void handleEvent(uint32_t senderInstanceId, uint16_t eventType,
@@ -40,4 +40,4 @@ class VersionSanityTest : public Test {
 
 }  // namespace general_test
 
-#endif  // _GTS_NANOAPPS_GENERAL_TEST_VERSION_SANITY_TEST_H_
+#endif  // _GTS_NANOAPPS_GENERAL_TEST_VERSION_CONSISTENCY_TEST_H_
