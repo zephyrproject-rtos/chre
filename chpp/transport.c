@@ -28,7 +28,6 @@
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"
-#include "chpp/transport_signals.h"
 
 //! Signals to use in ChppNotifier in this program.
 #define CHPP_SIGNAL_EXIT UINT32_C(1 << 0)
@@ -1086,16 +1085,6 @@ void chppWorkThreadStart(struct ChppTransportState *context) {
 
 void chppWorkThreadStop(struct ChppTransportState *context) {
   chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EXIT);
-}
-
-void chppWorkThreadSignalFromLink(struct ChppPlatformLinkParameters *params,
-                                  uint32_t signal) {
-  struct ChppTransportState *context =
-      container_of(params, struct ChppTransportState, linkParams);
-
-  CHPP_ASSERT((signal & ~(CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK)) == 0);
-  chppNotifierSignal(&context->notifier,
-                     signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
 }
 
 void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,

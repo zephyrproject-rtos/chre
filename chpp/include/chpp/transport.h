@@ -25,6 +25,7 @@
 #include "chpp/macros.h"
 #include "chpp/mutex.h"
 #include "chpp/notifier.h"
+#include "chpp/transport_signals.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -459,12 +460,23 @@ void chppWorkThreadStart(struct ChppTransportState *context);
  * Signals the main thread for CHPP's Transport Layer to perform some work. This
  * method should only be called from the link layer.
  *
+ * Note that this method must be safe to call from an interrupt context, as the
+ * platform link layer implementation may send a signal from one (e.g. handling
+ * an interrupt from the physical layer or inputs from the remote endpoint).
+ *
  * @param params Platform-specific struct with link details / parameters.
  * @param signal The signal that describes the work to be performed. Only bits
  * specified by CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK can be set.
  */
-void chppWorkThreadSignalFromLink(struct ChppPlatformLinkParameters *params,
-                                  uint32_t signal);
+static inline void chppWorkThreadSignalFromLink(
+    struct ChppPlatformLinkParameters *params, uint32_t signal) {
+  struct ChppTransportState *context =
+      container_of(params, struct ChppTransportState, linkParams);
+
+  CHPP_ASSERT((signal & ~(CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK)) == 0);
+  chppNotifierSignal(&context->notifier,
+                     signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
+}
 
 /**
  * Stops the main thread for CHPP's Transport Layer that has been started by
