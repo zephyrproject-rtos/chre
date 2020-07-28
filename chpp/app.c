@@ -394,7 +394,7 @@ static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
       break;
     }
     default: {
-      CHPP_LOGE("Cannot provide context for unknown message type=%" PRIu8
+      CHPP_LOGE("Cannot provide context for unknown message type=%" PRIx8
                 " (handle=%" PRIu8 ")",
                 type, handle);
       return NULL;
@@ -439,7 +439,7 @@ static void chppProcessPredefinedHandleDatagram(struct ChppAppState *context,
 
   if (success == false) {
     CHPP_LOGE("Predefined handle=%" PRIu8
-              " does not support message type=%" PRIu8
+              " does not support message type=%" PRIx8
               " (len=%zu, transaction ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
@@ -467,14 +467,14 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
 
   if (dispatchFunc == NULL) {
     CHPP_LOGE("Negotiated handle=%" PRIu8
-              " does not support RX message type=%" PRIu8
+              " does not support RX message type=%" PRIx8
               " (len=%zu, transaction ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
                                CHPP_TRANSPORT_ERROR_APPLAYER);
 
   } else if (clientServiceContext == NULL) {
-    CHPP_LOGE("Negotiated handle=%" PRIu8 " for RX message type=%" PRIu8
+    CHPP_LOGE("Negotiated handle=%" PRIu8 " for RX message type=%" PRIx8
               " is missing context (len=%zu, transaction ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
@@ -560,7 +560,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
   } else {
     CHPP_LOGD("App layer RX datagram (len=%zu) for handle=%" PRIu8
-              ", type=%" PRIu8 ", transaction ID=%" PRIu8 ", error=%" PRIu8
+              ", type=%" PRIx8 ", transaction ID=%" PRIu8 ", error=%" PRIu8
               ", command=%" PRIx16,
               len, rxHeader->handle, rxHeader->type, rxHeader->transaction,
               rxHeader->error, rxHeader->command);
