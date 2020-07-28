@@ -34,9 +34,6 @@
 #include "chpp/services/loopback.h"
 #include "chpp/services/nonhandle.h"
 
-//! Signals to use in ChppNotifier in this program.
-#define CHPP_SIGNAL_CLIENT_EVENT UINT32_C(1 << 0)
-
 /************************************************
  *  Prototypes
  ***********************************************/
@@ -504,13 +501,13 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
 
       struct ChppClientState *clientContext =
           (struct ChppClientState *)clientServiceContext;
-      if (clientContext->waitingForResponse) {
-        CHPP_LOGD(
-            "Finished dispatching a synchronous service response. Notifying "
-            "waiting client");
-        chppNotifierSignal(&clientContext->responseNotifier,
-                           CHPP_SIGNAL_CLIENT_EVENT);
-      }
+      chppMutexLock(&clientContext->responseMutex);
+      clientContext->responseReady = true;
+      CHPP_LOGD(
+          "Finished dispatching a synchronous service response. Notifying "
+          "waiting client");
+      chppConditionVariableSignal(&clientContext->responseCondVar);
+      chppMutexUnlock(&clientContext->responseMutex);
     }
   }
 }
