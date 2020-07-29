@@ -39,14 +39,12 @@ struct ChppConditionVariable;
 /**
  * Initializes the platform-specific ChppConditionVariable.
  */
-static void chppConditionVariableInit(
-    struct ChppConditionVariable *condition_variable);
+static void chppConditionVariableInit(struct ChppConditionVariable *cv);
 
 /**
  * Deinitializes the platform-specific ChppConditionVariable.
  */
-static void chppConditionVariableDeinit(
-    struct ChppConditionVariable *condition_variable);
+static void chppConditionVariableDeinit(struct ChppConditionVariable *cv);
 
 /**
  * Waits until signaled through chppConditionVariableSignal(). Only one entity
@@ -55,22 +53,34 @@ static void chppConditionVariableDeinit(
  * It is expected that the provided mutex is locked before the function is
  * invoked, and otherwise results in undefined behavior.
  *
- * @param condition_variable The pointer to the condition variable.
+ * @param cv The pointer to the condition variable.
  * @param mutex The mutex to use with this condition variable.
  *
- * @return The signal value indicated in chppConditionVariableSignal().
+ * @return True if the wait succeeded.
  */
-static bool chppConditionVariableWait(
-    struct ChppConditionVariable *condition_variable, struct ChppMutex *mutex);
+static bool chppConditionVariableWait(struct ChppConditionVariable *cv,
+                                      struct ChppMutex *mutex);
+
+/**
+ * Same as chppConditionVariableWait(), but with a specified timeout.
+ *
+ * @param cv The pointer to the condition variable.
+ * @param mutex The mutex to use with this condition variable.
+ * @param timeoutNs The timeout in nanoseconds.
+ *
+ * @return True if the wait succeeded.
+ */
+static bool chppConditionVariableTimedWait(struct ChppConditionVariable *cv,
+                                           struct ChppMutex *mutex,
+                                           uint64_t timeoutNs);
 
 /**
  * Signals on an entity waiting on the condition variable through
  * chppConditionVariableWait().
  *
- * @param condition_variable The pointer to the condition variable.
+ * @param cv The pointer to the condition variable.
  */
-static void chppConditionVariableSignal(
-    struct ChppConditionVariable *condition_variable);
+static void chppConditionVariableSignal(struct ChppConditionVariable *cv);
 
 #ifdef __cplusplus
 }

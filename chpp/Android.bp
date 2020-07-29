@@ -23,6 +23,8 @@ cc_library_static {
         "-DCHPP_SERVICE_ENABLED_WIFI",
         "-DCHPP_SERVICE_ENABLED_WWAN",
         "-DCHPP_CLIENT_ENABLED_WWAN",
+        // clock_gettime() requires _POSIX_C_SOURCE >= 199309L
+        "-D_POSIX_C_SOURCE=199309L",
     ],
     conlyflags: ["-std=c11"],
     srcs: [

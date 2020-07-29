@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 #include "chpp/mutex.h"
+#include "time.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,24 +31,37 @@ struct ChppConditionVariable {
   pthread_cond_t cond;  // Condition variable
 };
 
-static inline void chppConditionVariableInit(
-    struct ChppConditionVariable *condition_variable) {
-  pthread_cond_init(&condition_variable->cond, NULL);
+static inline void chppConditionVariableInit(struct ChppConditionVariable *cv) {
+  pthread_cond_init(&cv->cond, NULL);
 }
 
 static inline void chppConditionVariableDeinit(
-    struct ChppConditionVariable *condition_variable) {
-  pthread_cond_destroy(&condition_variable->cond);
+    struct ChppConditionVariable *cv) {
+  pthread_cond_destroy(&cv->cond);
 }
 
-static inline bool chppConditionVariableWait(
-    struct ChppConditionVariable *condition_variable, struct ChppMutex *mutex) {
-  return pthread_cond_wait(&condition_variable->cond, &mutex->lock) == 0;
+static inline bool chppConditionVariableWait(struct ChppConditionVariable *cv,
+                                             struct ChppMutex *mutex) {
+  return pthread_cond_wait(&cv->cond, &mutex->lock) == 0;
+}
+
+static inline bool chppConditionVariableTimedWait(
+    struct ChppConditionVariable *cv, struct ChppMutex *mutex,
+    uint64_t timeoutNs) {
+  const uint64_t kNsecInSec = UINT64_C(1000000000);
+  uint64_t timeoutS = timeoutNs / kNsecInSec;
+  timeoutNs = timeoutNs % kNsecInSec;
+
+  struct timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  now.tv_sec += timeoutS;
+  now.tv_nsec += timeoutNs;
+  return pthread_cond_timedwait(&cv->cond, &mutex->lock, &now) == 0;
 }
 
 static inline void chppConditionVariableSignal(
-    struct ChppConditionVariable *condition_variable) {
-  pthread_cond_signal(&condition_variable->cond);
+    struct ChppConditionVariable *cv) {
+  pthread_cond_signal(&cv->cond);
 }
 
 #ifdef __cplusplus
