@@ -271,7 +271,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppRxAbortPacket(context);
       chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_CHECKSUM);  // NACK
 
-    } else if ((context->rxHeader.packetCode & CHPP_TRANSPORT_ATTR_MASK) ==
+    } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET) {
       CHPP_LOGD("RX reset packet. seq=%" PRIu8, context->rxHeader.seq);
 
@@ -284,7 +284,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       // Initiate discovery (client)
       chppInitiateDiscovery(context->appContext);
 
-    } else if ((context->rxHeader.packetCode & CHPP_TRANSPORT_ATTR_MASK) ==
+    } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
       CHPP_LOGD("RX reset-ack packet. seq=%" PRIu8, context->rxHeader.seq);
 
@@ -774,7 +774,7 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
   } else {
     struct ChppAppHeader *header = (struct ChppAppHeader *)buf;
     CHPP_LOGD("Enqueueing TX datagram (packet code=%" PRIx8
-              ", len=%zu) for handle=%" PRIu8 ", type=%" PRIu8
+              ", len=%zu) for handle=%" PRIu8 ", type=%" PRIx8
               ", transaction ID=%" PRIu8 ", error=%" PRIu8 ", command=%" PRIx16,
               packetCode, len, header->handle, header->type,
               header->transaction, header->error, header->command);
@@ -1057,7 +1057,7 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
       CHPP_DEBUG_ASSERT(false);
     }
   }
-  chppEnqueueTxPacket(context, errorCode & CHPP_TRANSPORT_ERROR_MASK);
+  chppEnqueueTxPacket(context, CHPP_TRANSPORT_GET_ERROR(errorCode));
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {

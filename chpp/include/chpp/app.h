@@ -140,8 +140,8 @@ struct ChppAppHeader {
   //! Service Handle
   uint8_t handle;
 
-  //! MS nibble: Rserved
-  //! LS nibble: Message Type from enum ChppMessageType
+  //! Most significant nibble (MSN): Reserved
+  //! Least significant nibble (LSN): Message Type from enum ChppMessageType
   uint8_t type;
 
   //! Transaction ID
