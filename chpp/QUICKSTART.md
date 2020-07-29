@@ -1,42 +1,61 @@
-# CHPP Transport Layer Integration
+# CHPP Integration
 
-This guide focuses on integrating and porting CHPP to your desired platform. For implementation details please refer to the included README.md instead.
+This guide focuses on integrating and porting CHPP to your desired platform. For implementation details please refer to the included README.md instead. The minimum typical steps are provided.
 
-The minimum typical steps are as follows:
+## CHPP Transport Layer Integration
 
-## 1. Platform-specific functionality
+### 1. Platform-specific functionality
 
 Implement the platform-specific functionality utilized by CHPP. These can be found in chpp/platform and include:
 
 1. Memory allocation and deallocation
-2. Thread notification mechanisms and thread signalling
-3. Mutexes (or other resource sharing mechanism)
-4. Logging
+1. Thread notification mechanisms and thread signalling
+1. Mutexes (or other resource sharing mechanism)
+1. Condition variables
+1. Logging
 
 Sample Linux implementations are provided.
 
-## 2. Link-Layer APIs
+### 1. Link-Layer APIs
 
-The APIs that are needed to tie CHPP to the serial port are as follows:
+The APIs that are needed to tie CHPP to the serial port are as follows. Details are provided in link.h.
 
+1. void chppPlatformLinkInit(\*params)
+1. void chppPlatformLinkDeinit(\*params)
+1. void chppPlatformLinkReset(\*params)
+1. enum ChppLinkErrorCode chppPlatformLinkSend(\*params, \*buf, len)
+1. void chppPlatformLinkDoWork(\*params)
 1. bool chppRxDataCb(context, \*buf, len)
-2. enum ChppLinkErrorCode chppPlatformLinkSend(*params, *buf, len)
 
 In addition, the system must implement and initialize the platform-specific linkParams data structure as part of platform_link.h
 
-## 3. Initialization
+### 1. Initialization
 
 In order to initialize CHPP, it is necessary to
 
-1. Allocate the transportContext and appContext structs that hold the state for each instance of the application and transport layers (in any order).
-2. Call the layers’ initialization functions, chppTransportInit and chppAppInit (in any order)
-3. Initialize the platform-specific linkParams struct (part of the transport struct).
-4. Call chppWorkThreadStart to start the main thread for CHPP's Transport Layer.
+1. Allocate the transportContext and appContext structs that hold the state for each instance of the application and transport layers (in any order)
+1. Call the layers’ initialization functions, chppTransportInit and chppAppInit (in any order)
+1. Initialize the platform-specific linkParams struct (part of the transport struct)
+1. Call chppWorkThreadStart to start the main thread for CHPP's Transport Layer
 
-## 4. Testing
+### 1. Testing
 
-Several unit tests are provided in transport_test.c. In addition, loopback functionality is already implemented in CHPP, and can be used for testing. For details on crafting a loopback datagram, look at README.md and the transport layer unit tests (transport_test.c).
+Several unit tests are provided in transport_test.c. In addition, loopback functionality is already implemented in CHPP, and can be used for testing. For details on crafting a loopback datagram, please refer to README.md and the transport layer unit tests (transport_test.c).
 
-## 5. Termination
+### 1. Termination
 
-In order to terminate CHPP's main transport layer thread, it is necessary to call chppWorkThreadStop. It is then possible to deallocate the transportContext and appContext structs.
+In order to terminate CHPP's main transport layer thread, it is necessary to
+
+1. Call chppWorkThreadStop() to stop the main worker thread.
+1. Call the layers’ deinitialization functions, chppTransportDeinit and chppAppDeinit (in any order)
+1. Deallocate the transportContext, appContext, and the platform-specific linkParams structs
+
+## CHPP Services Integration
+
+CHPP provides several predefined services (including Loopback Test, Service Discovery), as well as three standard services that follow the CHRE PAL API to simplify integration and testing. CHPP allows for custom services as well, as described in README.md. The standard services included in CHPP are
+
+1. WWAN
+1. WiFi
+1. GNSS
+
+In order to integrate the standard services using the CHRE PAL API, please refer to each service's interface as provided in include/chre/pal/
