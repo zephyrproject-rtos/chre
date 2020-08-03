@@ -87,11 +87,17 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         // needs to be included in this test executor (e.g. deliver messages from it).
         private final boolean mLoadAtInit;
 
+        // Set to false if the nanoapp should not send a start message at init. An example of where
+        // this is not needed is for test nanoapps that use the general_test protocol, but do not
+        // require a start message (e.g. starts on load like the busy_startup nanoapp).
+        private final boolean mSendStartMessage;
+
         public GeneralTestNanoApp(NanoAppBinary nanoAppBinary,
                 ContextHubTestConstants.TestNames testName) {
             mTestName = testName;
             mNanoAppBinary = nanoAppBinary;
             mLoadAtInit = true;
+            mSendStartMessage = true;
         }
 
         public GeneralTestNanoApp(NanoAppBinary nanoAppBinary,
@@ -99,6 +105,16 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
             mTestName = testName;
             mNanoAppBinary = nanoAppBinary;
             mLoadAtInit = loadAtInit;
+            mSendStartMessage = true;
+        }
+
+        public GeneralTestNanoApp(NanoAppBinary nanoAppBinary,
+                ContextHubTestConstants.TestNames testName,
+                boolean loadAtInit, boolean sendStartMessage) {
+            mTestName = testName;
+            mNanoAppBinary = nanoAppBinary;
+            mLoadAtInit = loadAtInit;
+            mSendStartMessage = sendStartMessage;
         }
 
         public NanoAppBinary getNanoAppBinary() {
@@ -111,6 +127,10 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
 
         public boolean loadAtInit() {
             return mLoadAtInit;
+        }
+
+        public boolean sendStartMessage() {
+            return mSendStartMessage;
         }
     }
 
@@ -198,7 +218,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         mCountDownLatch = new CountDownLatch(1);
 
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
-            if (test.loadAtInit()) {
+            if (test.loadAtInit() && test.sendStartMessage()) {
                 sendMessageToNanoAppOrFail(test.getNanoAppBinary().getNanoAppId(),
                         test.getTestName().asInt(), new byte[0] /* data */);
             }
