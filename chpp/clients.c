@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/clients/loopback.h"
 #include "chpp/clients/wwan.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
@@ -43,6 +44,10 @@
 void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
 
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
+  chppLoopbackClientInit(context);
+#endif
+
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   chppRegisterWwanClient(context);
 #endif
@@ -58,6 +63,11 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
 
 void chppDeregisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
+  chppLoopbackClientDeinit(context);
+#endif
+
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   chppDeregisterWwanClient(context);
 #endif
@@ -111,7 +121,7 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
 
 struct ChppAppHeader *chppAllocClientRequest(
     struct ChppClientState *clientState, size_t len) {
-  CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
+  CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
 
   struct ChppAppHeader *result = chppMalloc(len);
   if (result != NULL) {
@@ -190,7 +200,7 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
 bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
                                       struct ChppRequestResponseState *rRState,
                                       void *buf, size_t len) {
-  CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
+  CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
   chppClientTimestampRequest(rRState, buf);
   return chppEnqueueTxDatagramOrFail(clientState->appContext->transportContext,
                                      buf, len);

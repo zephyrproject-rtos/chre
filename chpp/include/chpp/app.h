@@ -131,6 +131,8 @@ enum ChppAppErrorCode {
   CHPP_APP_ERROR_RATELIMITED = 8,
   //! Function in use / blocked by another entity (e.g. the AP)
   CHPP_APP_ERROR_BLOCKED = 9,
+  //! Invalid length
+  CHPP_APP_ERROR_INVALID_LENGTH = 10,
   //! Unspecified failure
   CHPP_APP_ERROR_UNSPECIFIED = 255
 };
@@ -158,6 +160,9 @@ struct ChppAppHeader {
 
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
+
+//! Minimum length of a header that includes upto the transaction ID
+#define CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION (3 * sizeof(uint8_t))
 
 /**
  * Function type that dispatches incoming datagrams for any client or service

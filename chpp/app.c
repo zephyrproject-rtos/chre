@@ -25,6 +25,7 @@
 
 #include "chpp/clients.h"
 #include "chpp/clients/discovery.h"
+#include "chpp/clients/loopback.h"
 #include "chpp/macros.h"
 #include "chpp/notifier.h"
 #include "chpp/pal_api.h"
@@ -132,10 +133,12 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
   bool dispatchResult = true;
 
   switch (rxHeader->handle) {
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
     case CHPP_HANDLE_LOOPBACK: {
-      // TODO
+      dispatchResult = chppDispatchLoopbackServiceResponse(context, buf, len);
       break;
     }
+#endif
 
     case CHPP_HANDLE_DISCOVERY: {
       dispatchResult = chppDispatchDiscoveryServiceResponse(context, buf, len);
