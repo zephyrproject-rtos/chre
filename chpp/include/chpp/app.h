@@ -88,7 +88,10 @@ enum ChppHandleNumber {
  * Message Types as used in ChppAppHeader
  */
 #define CHPP_APP_MASK_MESSAGE_TYPE LEAST_SIGNIFICANT_NIBBLE
-#define CHPP_APP_GET_MESSAGE_TYPE(value) ((value)&CHPP_APP_MASK_MESSAGE_TYPE)
+#define CHPP_APP_GET_MESSAGE_TYPE(value) \
+  ((enum ChppMessageType)(               \
+      (value)&CHPP_APP_MASK_MESSAGE_TYPE))  // TODO: Consider checking if this
+                                            // maps into a valid enum
 enum ChppMessageType {
   //! Request from client. Needs response from service.
   CHPP_MESSAGE_TYPE_CLIENT_REQUEST = 0,

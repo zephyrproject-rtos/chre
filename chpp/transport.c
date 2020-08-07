@@ -773,12 +773,12 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     CHPP_LOGE("chppEnqueueTxDatagram called with payload length of 0");
     CHPP_DEBUG_ASSERT(false);
   } else if (len < sizeof(struct ChppAppHeader)) {
-    uint8_t *handle = (uint8_t *)buf;
+    uint8_t *handle = buf;
     CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
               ", len=%zu) for handle=%" PRIu8,
               packetCode, len, *handle);
   } else {
-    struct ChppAppHeader *header = (struct ChppAppHeader *)buf;
+    struct ChppAppHeader *header = buf;
     CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
               ", len=%zu) for handle=%" PRIu8 ", type=0x%" PRIx8
               ", transaction ID=%" PRIu8 ", error=%" PRIu8
