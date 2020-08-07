@@ -287,7 +287,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
       CHPP_LOGD("RX reset-ack packet. seq=%" PRIu8, context->rxHeader.seq);
-
+      context->resetState = CHPP_RESET_STATE_NONE;
       context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
       chppRegisterRxAck(context);
 
@@ -305,7 +305,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       // Regular, good packet. Save received ACK info and process payload if any
 
       CHPP_LOGD("RX good packet. payload len=%" PRIu8 ", seq=%" PRIu8
-                ", ackSeq=%" PRIu8 ", flags=%" PRIx8 ", packetCode=%" PRIx8,
+                ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
                 context->rxHeader.packetCode);
@@ -469,7 +469,7 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
   if (context->rxStatus.receivedAckSeq != rxAckSeq) {
     // A previously sent packet was actually ACKed
     // Note: For a future ACK window >1, we should loop by # of ACKed packets
-    if (context->rxStatus.receivedAckSeq + 1 != rxAckSeq) {
+    if ((uint8_t)(context->rxStatus.receivedAckSeq + 1) != rxAckSeq) {
       CHPP_LOGE("Out of order ACK received (last registered=%" PRIu8
                 ", received=%" PRIu8 ")",
                 context->rxStatus.receivedAckSeq, rxAckSeq);
@@ -522,9 +522,11 @@ static void chppEnqueueTxPacket(struct ChppTransportState *context,
   context->txStatus.hasPacketsToSend = true;
   context->txStatus.packetCodeToSend = packetCode;
 
-  CHPP_LOGD("chppEnqueueTxPacket called with packet code=%" PRIu8 "(%s error)",
+  CHPP_LOGD("chppEnqueueTxPacket called with packet code=0x%" PRIx8 "(%serror)",
             packetCode,
-            (packetCode == context->rxStatus.receivedAckSeq) ? "no" : "");
+            (CHPP_TRANSPORT_GET_ERROR(packetCode) == CHPP_TRANSPORT_ERROR_NONE)
+                ? "no "
+                : "");
 
   // Notifies the main CHPP Transport Layer to run chppTransportDoWork().
   chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EVENT);
@@ -608,14 +610,17 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
   // Note: For a future ACK window >1, there needs to be a loop outside the lock
 
   CHPP_LOGD(
-      "chppTransportDoWork start, (packets to send=%s, link=%s, pending "
-      "datagrams=%" PRIu8 ", prior ACK received=%s)",
+      "chppTransportDoWork start. packets to send=%s, link=%s, pending "
+      "datagrams=%" PRIu8 ", last RX ACK=%" PRIu8 " (last TX seq=%" PRIu8
+      ", can%s add payload)",
       context->txStatus.hasPacketsToSend ? "true" : "false (can't run)",
       context->txStatus.linkBusy ? "busy (can't run)" : "not busy",
-      context->txDatagramQueue.pending,
-      (context->txStatus.sentSeq + 1 == context->rxStatus.receivedAckSeq)
-          ? "true"
-          : "false (can't add payload)");
+      context->txDatagramQueue.pending, context->rxStatus.receivedAckSeq,
+      context->txStatus.sentSeq,
+      ((uint8_t)(context->txStatus.sentSeq + 1) ==
+       context->rxStatus.receivedAckSeq)
+          ? ""
+          : "'t");
 
   chppMutexLock(&context->mutex);
 
@@ -644,7 +649,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
 
     // If applicable, add payload
     if ((context->txDatagramQueue.pending > 0) &&
-        (context->txStatus.sentSeq + 1 == context->rxStatus.receivedAckSeq)) {
+        ((uint8_t)(context->txStatus.sentSeq + 1) ==
+         context->rxStatus.receivedAckSeq)) {
       // Note: For a future ACK window >1, seq # check should be against the
       // window size.
 
@@ -696,8 +702,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     chppMutexUnlock(&context->mutex);
 
     // Send out the packet
-    CHPP_LOGD("Handing over TX packet to link layer. (len=%zu, flags=%" PRIx8
-              ", packetCode=%" PRIx8 ", ackSeq=%" PRIu8 ", seq=%" PRIu8
+    CHPP_LOGD("Handing over TX packet to link layer. (len=%zu, flags=0x%" PRIx8
+              ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8 ", seq=%" PRIu8
               ", payload len=%" PRIu16 ", pending datagrams=%" PRIu8 ")",
               context->pendingTxPacket.length, txHeader->flags,
               txHeader->packetCode, txHeader->ackSeq, txHeader->seq,
@@ -717,8 +723,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     // Either there are no pending outgoing packets or we are blocked on the
     // link layer.
     CHPP_LOGW(
-        "chppTransportDoWork could not run, (packets to send=%s, link=%s"
-        ", pending datagrams=%" PRIu8 ", RX state=%" PRIu8 ")",
+        "chppTransportDoWork could not run. packets to send=%s, link=%s"
+        ", pending datagrams=%" PRIu8 ", RX state=%" PRIu8,
         context->txStatus.hasPacketsToSend ? "true" : "false (can't run)",
         context->txStatus.linkBusy ? "busy (can't run)" : "not busy",
         context->txDatagramQueue.pending, context->rxStatus.state);
@@ -767,15 +773,16 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     CHPP_LOGE("chppEnqueueTxDatagram called with payload length of 0");
     CHPP_DEBUG_ASSERT(false);
   } else if (len < sizeof(struct ChppAppHeader)) {
-    uint8_t *handle = (uint8_t *)buf;
-    CHPP_LOGD("Enqueueing TX datagram (packet code=%" PRIx8
+    uint8_t *handle = buf;
+    CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
               ", len=%zu) for handle=%" PRIu8,
               packetCode, len, *handle);
   } else {
-    struct ChppAppHeader *header = (struct ChppAppHeader *)buf;
-    CHPP_LOGD("Enqueueing TX datagram (packet code=%" PRIx8
-              ", len=%zu) for handle=%" PRIu8 ", type=%" PRIx8
-              ", transaction ID=%" PRIu8 ", error=%" PRIu8 ", command=%" PRIx16,
+    struct ChppAppHeader *header = buf;
+    CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
+              ", len=%zu) for handle=%" PRIu8 ", type=0x%" PRIx8
+              ", transaction ID=%" PRIu8 ", error=%" PRIu8
+              ", command=0x%" PRIx16,
               packetCode, len, header->handle, header->type,
               header->transaction, header->error, header->command);
   }
@@ -808,7 +815,14 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
  * Resets the transport state, maintaining the link layer parameters.
  */
 static void chppResetTransportContext(struct ChppTransportState *context) {
-  memset(context, 0, offsetof(struct ChppTransportState, linkParams));
+  memset(&context->rxStatus, 0, sizeof(struct ChppRxStatus));
+  memset(&context->rxDatagram, 0, sizeof(struct ChppDatagram));
+
+  memset(&context->txStatus, 0, sizeof(struct ChppTxStatus));
+  memset(&context->txDatagramQueue, 0, sizeof(struct ChppTxDatagramQueue));
+
+  context->txStatus.sentSeq =
+      UINT8_MAX;  // So that the seq # of the first TX packet is 0
 }
 
 /**
@@ -877,14 +891,12 @@ static void chppTransportSendReset(
     struct ChppTransportState *context,
     enum ChppTransportPacketAttributes resetType) {
   // Make sure CHPP is in an initialized state
-  chppMutexLock(&context->mutex);
   if (context->txDatagramQueue.pending > 0 ||
       context->txDatagramQueue.front != 0) {
     CHPP_LOGE(
         "chppTransportSendReset called but CHPP not in initialized state.");
     CHPP_ASSERT(false);
   }
-  chppMutexUnlock(&context->mutex);
 
   struct ChppTransportConfiguration *config =
       chppMalloc(sizeof(struct ChppTransportConfiguration));
@@ -905,6 +917,8 @@ static void chppTransportSendReset(
   config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
 
   // Send out the reset datagram
+  CHPP_LOGI("Sending out CHPP transport layer RESET%s",
+            (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) ? "-ACK" : "");
   chppEnqueueTxDatagram(context, resetType, config,
                         sizeof(struct ChppTransportConfiguration));
 }

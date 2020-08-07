@@ -88,7 +88,10 @@ enum ChppHandleNumber {
  * Message Types as used in ChppAppHeader
  */
 #define CHPP_APP_MASK_MESSAGE_TYPE LEAST_SIGNIFICANT_NIBBLE
-#define CHPP_APP_GET_MESSAGE_TYPE(value) ((value)&CHPP_APP_MASK_MESSAGE_TYPE)
+#define CHPP_APP_GET_MESSAGE_TYPE(value) \
+  ((enum ChppMessageType)(               \
+      (value)&CHPP_APP_MASK_MESSAGE_TYPE))  // TODO: Consider checking if this
+                                            // maps into a valid enum
 enum ChppMessageType {
   //! Request from client. Needs response from service.
   CHPP_MESSAGE_TYPE_CLIENT_REQUEST = 0,
@@ -128,6 +131,8 @@ enum ChppAppErrorCode {
   CHPP_APP_ERROR_RATELIMITED = 8,
   //! Function in use / blocked by another entity (e.g. the AP)
   CHPP_APP_ERROR_BLOCKED = 9,
+  //! Invalid length
+  CHPP_APP_ERROR_INVALID_LENGTH = 10,
   //! Unspecified failure
   CHPP_APP_ERROR_UNSPECIFIED = 255
 };
@@ -155,6 +160,9 @@ struct ChppAppHeader {
 
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
+
+//! Minimum length of a header that includes upto the transaction ID
+#define CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION (3 * sizeof(uint8_t))
 
 /**
  * Function type that dispatches incoming datagrams for any client or service

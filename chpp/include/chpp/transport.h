@@ -107,7 +107,10 @@ extern "C" {
  * nibble of int8_t packetCode).
  */
 #define CHPP_TRANSPORT_ERROR_MASK LEAST_SIGNIFICANT_NIBBLE
-#define CHPP_TRANSPORT_GET_ERROR(value) ((value)&CHPP_TRANSPORT_ERROR_MASK)
+#define CHPP_TRANSPORT_GET_ERROR(value) \
+  ((enum ChppTransportErrorCode)(       \
+      (value)&CHPP_TRANSPORT_ERROR_MASK))  // TODO: Consider checking if this
+                                           // maps into a valid enum
 enum ChppTransportErrorCode {
   //! No error reported (either ACK or implicit NACK)
   CHPP_TRANSPORT_ERROR_NONE = 0,
@@ -133,7 +136,10 @@ enum ChppTransportErrorCode {
  */
 #define CHPP_TRANSPORT_ATTR_VALUE(value) (((value)&0x0f) << 4)
 #define CHPP_TRANSPORT_ATTR_MASK MOST_SIGNIFICANT_NIBBLE
-#define CHPP_TRANSPORT_GET_ATTR(value) ((value)&CHPP_TRANSPORT_ATTR_MASK)
+#define CHPP_TRANSPORT_GET_ATTR(value)   \
+  ((enum ChppTransportPacketAttributes)( \
+      (value)&CHPP_TRANSPORT_ATTR_MASK))  // TODO: Consider checking if this
+                                          // maps into a valid enum
 enum ChppTransportPacketAttributes {
   //! None
   CHPP_TRANSPORT_ATTR_NONE = CHPP_TRANSPORT_ATTR_VALUE(0),

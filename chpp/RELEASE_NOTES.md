@@ -9,7 +9,7 @@ Initial release of CHPP.
 - CHPP transport and app layers
 - Loopback testing service
 
-### 2020-07-28 (this)
+### 2020-07-28 (7cebe57)
 
 This release enables service integration with WWAN / WiFi / GNSS devices based on the CHRE PAL API.
 
@@ -37,3 +37,17 @@ This release enables service integration with WWAN / WiFi / GNSS devices based o
   - Added initialization, deinitialization and reset functionality for the link layer (see link.h)
   - Condition variables functionality needs to be supported alongside other platform functionality (see chpp/platform/)
   - Name changes for the logging APIs
+
+### 2020-08-07 (this)
+
+This release contains bug fixes as well as the loopback client.
+
+- New functionality
+
+  - Loopback client to run and verify a loopback test using a provided data buffer
+
+- Cleanup and bug fixes
+
+  - Corrected sequence number handling
+  - Updated log messages
+  - More accurate casting into enums
