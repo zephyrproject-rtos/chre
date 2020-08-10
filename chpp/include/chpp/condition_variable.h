@@ -24,6 +24,7 @@
 #ifndef CHPP_CONDITION_VARIABLE_H_
 #define CHPP_CONDITION_VARIABLE_H_
 
+#include <inttypes.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
