@@ -209,18 +209,26 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
 bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
                                        struct ChppRequestResponseState *rRState,
                                        void *buf, size_t len) {
+  return chppSendTimestampedRequestAndWaitTimeout(
+      clientState, rRState, buf, len, DEFAULT_CLIENT_REQUEST_TIMEOUT_NS);
+}
+
+bool chppSendTimestampedRequestAndWaitTimeout(
+    struct ChppClientState *clientState,
+    struct ChppRequestResponseState *rRState, void *buf, size_t len,
+    uint64_t timeoutNs) {
   chppMutexLock(&clientState->responseMutex);
 
   bool result =
       chppSendTimestampedRequestOrFail(clientState, rRState, buf, len);
   if (result) {
     clientState->responseReady = false;
-    while (!clientState->responseReady) {
-      chppConditionVariableWait(
-          &clientState->responseCondVar,
-          &clientState->responseMutex);  // TODO: Add timeout
+    while (result && !clientState->responseReady) {
+      result = chppConditionVariableTimedWait(&clientState->responseCondVar,
+                                              &clientState->responseMutex,
+                                              timeoutNs);
     }
-    result = clientState->responseReady;
+    result &= clientState->responseReady;
   }
 
   chppMutexUnlock(&clientState->responseMutex);
