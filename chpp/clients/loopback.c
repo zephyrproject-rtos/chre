@@ -123,7 +123,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
     gLoopbackClientContext.testResult.rtt = 0;
 
     if (len == 0) {  // Length too short for a loopback test
-      gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_INVALID_ARG;
+      gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_INVALID_LENGTH;
 
     } else {
       gLoopbackClientContext.loopbackRequest =

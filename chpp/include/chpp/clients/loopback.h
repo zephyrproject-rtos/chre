@@ -39,7 +39,7 @@ struct ChppLoopbackTestResult {
   size_t firstError;   // Location of the first incorrect byte in the response
                        // datagram
   size_t byteErrors;   // Number of incorrect bytes in the response datagram
-  uint64_t rtt;        // Round Trip Time
+  uint64_t rtt;        // Round trip time in ns
 };
 
 /**
