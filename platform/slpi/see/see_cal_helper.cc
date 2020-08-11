@@ -110,11 +110,9 @@ const sns_std_suid *SeeCalHelper::getCalSuidFromSensorType(
   return nullptr;
 }
 
-bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper &seeHelper) {
+bool SeeCalHelper::findCalibrationSensors(SeeHelper &seeHelper) {
   bool success = true;
 
-  // Find the cal sensor's SUID, assign it to mCalInfo, and make cal sensor data
-  // request.
   DynamicVector<sns_std_suid> suids;
   for (size_t i = 0; i < ARRAY_SIZE(mCalInfo); i++) {
     const char *calType = getDataTypeForCalSensorIndex(i);
