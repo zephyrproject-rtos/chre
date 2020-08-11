@@ -30,6 +30,3 @@ CHRE_WWAN_SUPPORT_ENABLED = true
 
 COMMON_SRCS += variant/simulator/static_nanoapps.cc
 
-# Makefile Includes ############################################################
-
-include apps/ash_world/ash_world.mk
