@@ -331,10 +331,22 @@ static void chppGnssGetCapabilitiesResult(
 static void chppGnssControlLocationSessionResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  // TODO
-  // gCallbacks->locationStatusChangeCallback(...);
+
+  if (len < sizeof(struct ChppGnssControlLocationSessionResponse)) {
+    CHPP_LOGE("GNSS ControlLocationSession result too short");
+
+  } else {
+    struct ChppGnssControlLocationSessionResponse *result =
+        (struct ChppGnssControlLocationSessionResponse *)buf;
+
+    CHPP_LOGD(
+        "chppGnssControlLocationSessionResult received enable=%s, "
+        "errorCode=%" PRIu8,
+        result->enabled ? "true" : "false", result->errorCode);
+
+    gCallbacks->locationStatusChangeCallback(result->enabled,
+                                             result->errorCode);
+  }
 }
 
 /**
@@ -350,10 +362,22 @@ static void chppGnssControlLocationSessionResult(
 static void chppGnssControlMeasurementSessionResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  // TODO
-  // gCallbacks->measurementStatusChangeCallback(...);
+
+  if (len < sizeof(struct ChppGnssControlMeasurementSessionResponse)) {
+    CHPP_LOGE("GNSS ControlMeasurementSession result too short");
+
+  } else {
+    struct ChppGnssControlMeasurementSessionResponse *result =
+        (struct ChppGnssControlMeasurementSessionResponse *)buf;
+
+    CHPP_LOGD(
+        "chppGnssControlMeasurementSessionResult received enable=%s, "
+        "errorCode=%" PRIu8,
+        result->enabled ? "true" : "false", result->errorCode);
+
+    gCallbacks->measurementStatusChangeCallback(result->enabled,
+                                                result->errorCode);
+  }
 }
 
 /**
