@@ -16,6 +16,8 @@
 
 #include "chpp/clients/gnss.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -302,16 +304,23 @@ static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
  */
 static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
+  if (len < sizeof(struct ChppGnssGetCapabilitiesParameters)) {
+    CHPP_LOGE("GNSS GetCapabilities result too short");
 
-  // TODO: set clientContext->capabilities
+  } else {
+    struct ChppGnssGetCapabilitiesParameters *result =
+        (struct ChppGnssGetCapabilitiesParameters *)buf;
+
+    CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
+              result->capabilities);
+
+    clientContext->capabilities = result->capabilities;
+  }
 }
 
 /**
- * Handles the server response for the Control Location Session client request.
+ * Handles the server response for the Control Location Session client
+ * request.
  *
  * This function is called from chppDispatchGnssResponse().
  *
