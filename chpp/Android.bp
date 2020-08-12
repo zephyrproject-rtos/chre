@@ -20,6 +20,7 @@ cc_library_static {
     vendor: true,
     cflags: [
         "-DCHPP_CLIENT_ENABLED_LOOPBACK",
+        "-DCHPP_CLIENT_ENABLED_GNSS",
         "-DCHPP_CLIENT_ENABLED_WWAN",
         "-DCHPP_SERVICE_ENABLED_GNSS",
         "-DCHPP_SERVICE_ENABLED_WIFI",
@@ -35,6 +36,7 @@ cc_library_static {
         "services.c",
         "clients/discovery.c",
         "clients/loopback.c",
+        "clients/gnss.c",
         "clients/wwan.c",
         "services/discovery.c",
         "services/loopback.c",

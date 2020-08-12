@@ -316,10 +316,11 @@ static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
     CHPP_LOG_OOM();
     error = CHPP_APP_ERROR_OOM;
   } else {
-    response->capabilities = gnssServiceContext->api->getCapabilities();
+    response->params.capabilities = gnssServiceContext->api->getCapabilities();
 
-    CHPP_LOGD("chppGnssServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
-              response->capabilities, sizeof(*response));
+    CHPP_LOGD("chppGnssServiceGetCapabilities returning 0x%" PRIx32
+              ", %zu bytes",
+              response->params.capabilities, sizeof(*response));
     chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                       &gnssServiceContext->getCapabilities,
                                       response, sizeof(*response));

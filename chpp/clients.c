@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/clients/gnss.h"
 #include "chpp/clients/loopback.h"
 #include "chpp/clients/wwan.h"
 #include "chpp/macros.h"

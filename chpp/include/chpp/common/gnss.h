@@ -85,12 +85,18 @@ struct ChppGnssConfigurePassiveLocationListenerRequest {
 CHPP_PACKED_END
 
 /**
- * Data structure used by the Get Capabilities response.
+ * Data structures used by the Get Capabilities response.
  */
+CHPP_PACKED_START
+struct ChppGnssGetCapabilitiesParameters {
+  uint32_t capabilities;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
 CHPP_PACKED_START
 struct ChppGnssGetCapabilitiesResponse {
   struct ChppAppHeader header;
-  uint32_t capabilities;
+  struct ChppGnssGetCapabilitiesParameters params;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
