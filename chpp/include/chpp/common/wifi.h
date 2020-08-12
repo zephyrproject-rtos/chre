@@ -34,23 +34,35 @@ extern "C" {
 #define CHPP_PAL_WIFI_API_VERSION CHRE_PAL_WIFI_API_V1_2
 
 /**
- * Data structure used by the Get Capabilities Response.
+ * Data structures used by the Get Capabilities Response.
  */
 CHPP_PACKED_START
-struct ChppWifiGetCapabilitiesResponse {
-  struct ChppAppHeader header;
+struct ChppWifiGetCapabilitiesParameters {
   uint32_t capabilities;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
+CHPP_PACKED_START
+struct ChppWifiGetCapabilitiesResponse {
+  struct ChppAppHeader header;
+  struct ChppWifiGetCapabilitiesParameters params;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
 /**
- * Data structure used by the Configure Scan Monitor Async Response.
+ * Data structures used by the Configure Scan Monitor Async Response.
  */
+CHPP_PACKED_START
+struct ChppWifiConfigureScanMonitorAsyncParameters {
+  bool enabled;
+  uint8_t errorCode;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
 CHPP_PACKED_START
 struct ChppWifiConfigureScanMonitorAsyncResponse {
   struct ChppAppHeader header;
-  bool enabled;
-  uint8_t errorCode;
+  struct ChppWifiConfigureScanMonitorAsyncParameters params;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
