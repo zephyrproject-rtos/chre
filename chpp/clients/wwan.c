@@ -16,6 +16,8 @@
 
 #include "chpp/clients/wwan.h"
 
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -224,12 +226,18 @@ static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
  */
 static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
+  if (len < sizeof(struct ChppWwanGetCapabilitiesParameters)) {
+    CHPP_LOGE("WWAN GetCapabilities result too short");
 
-  // TODO: set clientContext->capabilities
+  } else {
+    struct ChppWwanGetCapabilitiesParameters *result =
+        (struct ChppWwanGetCapabilitiesParameters *)buf;
+
+    CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
+              result->capabilities);
+
+    clientContext->capabilities = result->capabilities;
+  }
 }
 
 /**

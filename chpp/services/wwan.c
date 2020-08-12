@@ -280,10 +280,11 @@ static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
     CHPP_LOG_OOM();
     error = CHPP_APP_ERROR_OOM;
   } else {
-    response->capabilities = wwanServiceContext->api->getCapabilities();
+    response->params.capabilities = wwanServiceContext->api->getCapabilities();
 
-    CHPP_LOGD("chppWwanServiceGetCapabilities returning %" PRIx32 ", %zu bytes",
-              response->capabilities, sizeof(*response));
+    CHPP_LOGD("chppWwanServiceGetCapabilities returning 0x%" PRIx32
+              ", %zu bytes",
+              response->params.capabilities, sizeof(*response));
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                       &wwanServiceContext->getCapabilities,
                                       response, sizeof(*response));
