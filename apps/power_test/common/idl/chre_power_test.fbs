@@ -35,6 +35,8 @@ enum MessageType : uint {
   BREAK_IT_TEST,
   /// Should be used with NanoappResponseMessage
   NANOAPP_RESPONSE,
+  /// Should be used with GnssMeasurementMessage
+  GNSS_MEASUREMENT_TEST,
 }
 
 /// Represents a message to ask the nanoapp to create a timer that wakes up at
@@ -117,4 +119,11 @@ table BreakItMessage {
 /// Any failures will be printed to the logs.
 table NanoappResponseMessage {
   success:bool;
+}
+
+/// Represents a message to ask the nanoapp to start or stop Gnss measurement
+/// sampling at the requested interval
+table GnssMeasurementMessage {
+  enable:bool;
+  min_interval_millis:uint;
 }
