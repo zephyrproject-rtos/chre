@@ -563,7 +563,7 @@ static void chppGnssServiceMeasurementEventCallback(
   size_t notificationLen;
   if (!chppGnssDataEventFromChre(event, &notification, &notificationLen)) {
     CHPP_LOGE(
-        "chppGnssMeasurementEventFromChre failed (OOM?). Transaction ID = "
+        "chppGnssDataEventFromChre failed (OOM?). Transaction ID = "
         "%" PRIu8,
         gGnssServiceContext.controlMeasurementSession.transaction);
     // TODO: consider sending an error response if this fails
