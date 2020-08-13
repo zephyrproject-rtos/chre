@@ -314,12 +314,13 @@ static void chppWifiConfigureScanMonitorResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
 
-  if (len < sizeof(struct ChppWifiConfigureScanMonitorAsyncParameters)) {
+  if (len <
+      sizeof(struct ChppWifiConfigureScanMonitorAsyncResponseParameters)) {
     CHPP_LOGE("WiFi ControlLocationSession result too short");
 
   } else {
-    struct ChppWifiConfigureScanMonitorAsyncParameters *result =
-        (struct ChppWifiConfigureScanMonitorAsyncParameters *)buf;
+    struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
+        (struct ChppWifiConfigureScanMonitorAsyncResponseParameters *)buf;
 
     CHPP_LOGD(
         "chppWifiConfigureScanMonitorResult received enable=%s, "
@@ -466,10 +467,26 @@ static uint32_t chppWifiClientGetCapabilities() {
  * @return True indicates the request was sent off to the service.
  */
 static bool chppWifiClientConfigureScanMonitor(bool enable) {
-  // TODO
-  UNUSED_VAR(enable);
+  bool result = false;
 
-  return false;
+  struct ChppWifiConfigureScanMonitorAsyncRequest *request =
+      chppAllocClientRequestFixed(
+          &gWifiClientContext.client,
+          struct ChppWifiConfigureScanMonitorAsyncRequest);
+
+  if (request == NULL) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.command = CHPP_WIFI_CONFIGURE_SCAN_MONITOR_ASYNC;
+    request->params.enable = enable;
+    request->params.cookie = &gWifiClientContext.configureScanMonitor;
+
+    result = chppSendTimestampedRequestOrFail(
+        &gWifiClientContext.client, &gWifiClientContext.configureScanMonitor,
+        request, sizeof(struct ChppWifiConfigureScanMonitorAsyncRequest));
+  }
+
+  return result;
 }
 
 /**
