@@ -1076,7 +1076,6 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
 
 void chppWorkThreadStart(struct ChppTransportState *context) {
   chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET);
-  chppTransportDoWork(context);
   CHPP_LOGI("CHPP Work Thread started");
 
   while (true) {
