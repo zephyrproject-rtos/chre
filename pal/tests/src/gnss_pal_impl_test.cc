@@ -169,7 +169,9 @@ void PalGnssTest::SetUp() {
 
 void PalGnssTest::TearDown() {
   gTest = nullptr;
-  api_->close();
+  if (api_ != nullptr) {
+    api_->close();
+  }
 }
 
 void PalGnssTest::requestStateResync() {
