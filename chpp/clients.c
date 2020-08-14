@@ -27,6 +27,7 @@
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"
+#include "chpp/time.h"
 #include "chpp/transport.h"
 
 /************************************************
@@ -155,7 +156,7 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
               rRState->requestTime, requestHeader->transaction,
               rRState->transaction);
   }
-  rRState->requestTime = chppGetCurrentTime();
+  rRState->requestTime = chppGetCurrentTimeNs();
   rRState->responseTime = CHPP_TIME_NONE;
   rRState->transaction = requestHeader->transaction;
 }
@@ -163,7 +164,7 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
 bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
                                  struct ChppAppHeader *responseHeader) {
   uint64_t previousResponseTime = rRState->responseTime;
-  rRState->responseTime = chppGetCurrentTime();
+  rRState->responseTime = chppGetCurrentTimeNs();
 
   if (rRState->requestTime == CHPP_TIME_NONE) {
     CHPP_LOGE("Received response at t = %" PRIu64
@@ -171,7 +172,7 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
               rRState->responseTime);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
-    rRState->responseTime = chppGetCurrentTime();
+    rRState->responseTime = chppGetCurrentTimeNs();
     CHPP_LOGW("Received additional response at t = %" PRIu64
               " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
               rRState->responseTime, rRState->responseTime,

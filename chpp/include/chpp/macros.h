@@ -68,8 +68,6 @@ extern "C" {
 
 #endif
 
-// TODO: Need platform-based time functionality
-#define chppGetCurrentTime() 1
 #define CHPP_TIME_NONE 0
 
 #if defined(__GNUC__) || defined(__clang__)
