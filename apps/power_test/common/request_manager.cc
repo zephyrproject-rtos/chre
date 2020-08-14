@@ -111,6 +111,7 @@ using power_test::AudioRequestMessage;
 using power_test::BreakItMessage;
 using power_test::CellQueryMessage;
 using power_test::GnssLocationMessage;
+using power_test::GnssMeasurementMessage;
 using power_test::MessageType;
 using power_test::NanoappResponseMessage;
 using power_test::SensorRequestMessage;
@@ -154,6 +155,20 @@ bool RequestManager::requestGnssLocation(
   LOGI("RequestGnss success %d, enable %d, scanIntervalMillis %" PRIu32
        " minTimeToNextFixMillis %" PRIu32,
        success, enable, scanIntervalMillis, minTimeToNextFixMillis);
+  return success;
+}
+
+bool RequestManager::requestGnssMeasurement(bool enable,
+                                            uint32_t intervalMillis) const {
+  bool success;
+  if (enable) {
+    success = chreGnssMeasurementSessionStartAsync(intervalMillis,
+                                                   nullptr /* cookie */);
+  } else {
+    success = chreGnssMeasurementSessionStopAsync(nullptr /* cookie */);
+  }
+  LOGI("RequestGnssMeasurement success %d, enable %d, intervalMillis %" PRIu32,
+       success, enable, intervalMillis);
   return success;
 }
 
@@ -328,6 +343,14 @@ bool RequestManager::handleMessageFromHost(
         const BreakItMessage *msg;
         if (verifyMessage<BreakItMessage>(hostMessage, &msg)) {
           success = requestBreakIt(msg->enable());
+        }
+        break;
+      }
+      case MessageType::GNSS_MEASUREMENT_TEST: {
+        const GnssMeasurementMessage *msg;
+        if (verifyMessage<GnssMeasurementMessage>(hostMessage, &msg)) {
+          success =
+              requestGnssMeasurement(msg->enable(), msg->min_interval_millis());
         }
         break;
       }

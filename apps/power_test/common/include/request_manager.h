@@ -108,6 +108,16 @@ class RequestManager {
                            uint32_t minTimeToNextFixMillis) const;
 
   /**
+   * Enables / disables GNSS measurement sampling.
+   *
+   * @param enable whether to enable GNSS measurement sampling
+   * @param intervalMillis amount of time, in milliseconds, between each
+   *     GNSS measurement sample
+   * @return whether the request was successful
+   */
+  bool requestGnssMeasurement(bool enable, uint32_t intervalMillis) const;
+
+  /**
    * Requests cell info. Should be invoked when a timer of TimerType::CELL
    * fires.
    */
