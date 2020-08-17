@@ -121,6 +121,8 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
     gLoopbackClientContext.testResult.firstError = 0;
     gLoopbackClientContext.testResult.byteErrors = 0;
     gLoopbackClientContext.testResult.rtt = 0;
+    gLoopbackClientContext.runLoopbackTest.requestTime = CHPP_TIME_NONE;
+    gLoopbackClientContext.runLoopbackTest.responseTime = CHPP_TIME_NONE;
 
     if (len == 0) {  // Length too short for a loopback test
       gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_INVALID_LENGTH;
