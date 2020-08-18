@@ -279,11 +279,12 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
       // Reset then send reset-ack
       chppReset(context, context->appContext);
+      chppMutexUnlock(&context->mutex);
       chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
 
       // Initiate discovery (client)
       chppInitiateDiscovery(context->appContext);
-
+      chppMutexLock(&context->mutex);
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
       CHPP_LOGD("RX reset-ack packet. seq=%" PRIu8, context->rxHeader.seq);
@@ -294,8 +295,9 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       // TODO: Configure transport layer based on (optional) received config
 
       // Initiate discovery (client)
+      chppMutexUnlock(&context->mutex);
       chppInitiateDiscovery(context->appContext);
-
+      chppMutexLock(&context->mutex);
     } else if (context->resetState == CHPP_RESET_STATE_RESETTING) {
       CHPP_LOGE("Discarding RX packet because CHPP is resetting. seq=%" PRIu8
                 ", len=%" PRIu16,
