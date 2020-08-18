@@ -152,11 +152,11 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
                                 struct ChppAppHeader *requestHeader) {
   if (rRState->responseTime == CHPP_TIME_NONE &&
       rRState->requestTime != CHPP_TIME_NONE) {
-    CHPP_LOGE("Sending duplicate request with transaction ID = %" PRIu64
+    CHPP_LOGE("Sending duplicate request with transaction ID = %" PRIu8
               " while prior request with transaction ID = %" PRIu8
-              " was outstanding from t = %" PRIu8,
-              rRState->requestTime, requestHeader->transaction,
-              rRState->transaction);
+              " was outstanding from t = %" PRIu64,
+              requestHeader->transaction, rRState->transaction,
+              rRState->requestTime);
   }
   rRState->requestTime = chppGetCurrentTimeNs();
   rRState->responseTime = CHPP_TIME_NONE;
