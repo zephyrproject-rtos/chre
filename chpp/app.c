@@ -458,12 +458,12 @@ static void chppProcessPredefinedHandleDatagram(struct ChppAppState *context,
 static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
                                                 uint8_t *buf, size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  enum ChppMessageType messageType = CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type);
+  ChppDispatchFunction *dispatchFunc =
+      chppGetDispatchFunction(context, rxHeader->handle, messageType);
 
-  ChppDispatchFunction *dispatchFunc = chppGetDispatchFunction(
-      context, rxHeader->handle, CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type));
-
-  void *clientServiceContext = chppClientServiceContextOfHandle(
-      context, rxHeader->handle, CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type));
+  void *clientServiceContext =
+      chppClientServiceContextOfHandle(context, rxHeader->handle, messageType);
 
   if (dispatchFunc == NULL) {
     CHPP_LOGE("Negotiated handle=%" PRIu8
@@ -491,14 +491,16 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
                 ", transaction ID=%" PRIu8 ", command=0x%" PRIx16 ", len=%zu",
                 error, rxHeader->handle, rxHeader->type, rxHeader->transaction,
                 rxHeader->command, len);
-      struct ChppAppHeader *response =
-          chppAllocServiceResponseFixed(rxHeader, struct ChppAppHeader);
-      response->error = error;
-      chppEnqueueTxDatagramOrFail(context->transportContext, response,
-                                  sizeof(*response));
 
-    } else if (CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type) ==
-               CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
+      // Only client requests require a dispatch failure response.
+      if (messageType == CHPP_MESSAGE_TYPE_CLIENT_REQUEST) {
+        struct ChppAppHeader *response =
+            chppAllocServiceResponseFixed(rxHeader, struct ChppAppHeader);
+        response->error = error;
+        chppEnqueueTxDatagramOrFail(context->transportContext, response,
+                                    sizeof(*response));
+      }
+    } else if (messageType == CHPP_MESSAGE_TYPE_SERVICE_RESPONSE) {
       // Datagram is a service response. Check for synchronous operation and
       // notify waiting client if needed.
 
