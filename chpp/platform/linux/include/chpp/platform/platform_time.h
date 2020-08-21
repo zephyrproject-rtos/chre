@@ -19,13 +19,16 @@
 
 #include <stdint.h>
 
+#include "chpp/macros.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 static inline uint64_t chppGetCurrentTimeNs() {
-  // TODO: Implement this
-  return 1;
+  struct timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  return (now.tv_sec * CHPP_NSEC_PER_SEC) + now.tv_nsec;
 }
 
 #ifdef __cplusplus

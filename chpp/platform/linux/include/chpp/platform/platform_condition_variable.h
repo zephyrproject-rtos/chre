@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#include "chpp/macros.h"
 #include "chpp/mutex.h"
 #include "time.h"
 
@@ -48,9 +49,8 @@ static inline bool chppConditionVariableWait(struct ChppConditionVariable *cv,
 static inline bool chppConditionVariableTimedWait(
     struct ChppConditionVariable *cv, struct ChppMutex *mutex,
     uint64_t timeoutNs) {
-  const uint64_t kNsecInSec = UINT64_C(1000000000);
-  uint64_t timeoutS = timeoutNs / kNsecInSec;
-  timeoutNs = timeoutNs % kNsecInSec;
+  uint64_t timeoutS = timeoutNs / CHPP_NSEC_PER_SEC;
+  timeoutNs = timeoutNs % CHPP_NSEC_PER_SEC;
 
   struct timespec now;
   clock_gettime(CLOCK_REALTIME, &now);
