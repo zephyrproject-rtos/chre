@@ -161,8 +161,10 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
           response->services[i].version.patch);
 
       // Initialize client
-      if (context->registeredClients[0]->initFunctionPtr(
-              context, CHPP_SERVICE_HANDLE_OF_INDEX(i),
+      uint8_t idx = context->clientIndexOfServiceIndex[i];
+      if (context->registeredClients[idx]->initFunctionPtr(
+              context->registeredClientContexts[idx],
+              CHPP_SERVICE_HANDLE_OF_INDEX(i),
               response->services[i].version) == false) {
         CHPP_LOGE(
             "Client rejected initialization (maybe due to incompatible "
