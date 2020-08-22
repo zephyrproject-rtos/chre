@@ -308,12 +308,12 @@ static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
  */
 static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
-  if (len < sizeof(struct ChppGnssGetCapabilitiesParameters)) {
+  if (len < sizeof(struct ChppGnssGetCapabilitiesResponse)) {
     CHPP_LOGE("GNSS GetCapabilities result too short");
 
   } else {
     struct ChppGnssGetCapabilitiesParameters *result =
-        (struct ChppGnssGetCapabilitiesParameters *)buf;
+        &((struct ChppGnssGetCapabilitiesResponse *)buf)->params;
 
     CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);

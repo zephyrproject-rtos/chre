@@ -226,12 +226,12 @@ static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
  */
 static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
-  if (len < sizeof(struct ChppWwanGetCapabilitiesParameters)) {
+  if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
     CHPP_LOGE("WWAN GetCapabilities result too short");
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =
-        (struct ChppWwanGetCapabilitiesParameters *)buf;
+        &((struct ChppWwanGetCapabilitiesResponse *)buf)->params;
 
     CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);

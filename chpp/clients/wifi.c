@@ -287,12 +287,12 @@ static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
  */
 static void chppWifiGetCapabilitiesResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
-  if (len < sizeof(struct ChppWifiGetCapabilitiesParameters)) {
+  if (len < sizeof(struct ChppWifiGetCapabilitiesResponse)) {
     CHPP_LOGE("WiFi GetCapabilities result too short");
 
   } else {
     struct ChppWifiGetCapabilitiesParameters *result =
-        (struct ChppWifiGetCapabilitiesParameters *)buf;
+        &((struct ChppWifiGetCapabilitiesResponse *)buf)->params;
 
     CHPP_LOGD("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
