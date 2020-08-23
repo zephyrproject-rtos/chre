@@ -526,8 +526,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
         chppMutexLock(&clientContext->responseMutex);
         clientContext->responseReady = true;
         CHPP_LOGD(
-            "Finished dispatching a synchronous service response. Notifying "
-            "waiting client");
+            "Finished dispatching a service response. Notifying a potential "
+            "synchronous client");
         chppConditionVariableSignal(&clientContext->responseCondVar);
         chppMutexUnlock(&clientContext->responseMutex);
       }

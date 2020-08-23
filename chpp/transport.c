@@ -476,9 +476,15 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
                 ", received=%" PRIu8 ")",
                 context->rxStatus.receivedAckSeq, rxAckSeq);
     } else {
-      CHPP_LOGD("ACK received (last registered=%" PRIu8 ", received=%" PRIu8
-                ")",
-                context->rxStatus.receivedAckSeq, rxAckSeq);
+      CHPP_LOGD(
+          "ACK received (last registered=%" PRIu8 ", received=%" PRIu8
+          "). Prior queue depth=%" PRIu8 ", front datagram=%" PRIu8
+          " at loc=%zu of len=%zu",
+          context->rxStatus.receivedAckSeq, rxAckSeq,
+          context->txDatagramQueue.pending, context->txDatagramQueue.front,
+          context->txStatus.ackedLocInDatagram,
+          context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+              .length);
     }
 
     context->rxStatus.receivedAckSeq = rxAckSeq;
@@ -574,7 +580,18 @@ uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
 bool chppDequeueTxDatagram(struct ChppTransportState *context) {
   bool success = false;
 
-  if (context->txDatagramQueue.pending > 0) {
+  if (context->txDatagramQueue.pending == 0) {
+    CHPP_LOGE("Can not dequeue datagram because queue is empty");
+
+  } else {
+    CHPP_LOGD("Dequeuing front datagram with index=%" PRIu8
+              ", len=%zu. Queue depth: %" PRIu8 "->%" PRIu8,
+              context->txDatagramQueue.front,
+              context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+                  .length,
+              context->txDatagramQueue.pending,
+              context->txDatagramQueue.pending - 1);
+
     CHPP_FREE_AND_NULLIFY(
         context->txDatagramQueue.datagram[context->txDatagramQueue.front]
             .payload);
@@ -706,7 +723,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     // Send out the packet
     CHPP_LOGD("Handing over TX packet to link layer. (len=%zu, flags=0x%" PRIx8
               ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8 ", seq=%" PRIu8
-              ", payload len=%" PRIu16 ", pending datagrams=%" PRIu8 ")",
+              ", payload len=%" PRIu16 ", queue depth=%" PRIu8 ")",
               context->pendingTxPacket.length, txHeader->flags,
               txHeader->packetCode, txHeader->ackSeq, txHeader->seq,
               txHeader->length, context->txDatagramQueue.pending);
@@ -774,41 +791,52 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
   if (len == 0) {
     CHPP_LOGE("chppEnqueueTxDatagram called with payload length of 0");
     CHPP_DEBUG_ASSERT(false);
-  } else if (len < sizeof(struct ChppAppHeader)) {
-    uint8_t *handle = buf;
-    CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
-              ", len=%zu) for handle=%" PRIu8,
-              packetCode, len, *handle);
+
   } else {
-    struct ChppAppHeader *header = buf;
-    CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
-              ", len=%zu) for handle=%" PRIu8 ", type=0x%" PRIx8
-              ", transaction ID=%" PRIu8 ", error=%" PRIu8
-              ", command=0x%" PRIx16,
-              packetCode, len, header->handle, header->type,
-              header->transaction, header->error, header->command);
-  }
+    uint8_t *handle = buf;
 
-  chppMutexLock(&context->mutex);
-
-  if (context->txDatagramQueue.pending < CHPP_TX_DATAGRAM_QUEUE_LEN) {
-    uint16_t end =
-        (context->txDatagramQueue.front + context->txDatagramQueue.pending) %
-        CHPP_TX_DATAGRAM_QUEUE_LEN;
-
-    context->txDatagramQueue.datagram[end].length = len;
-    context->txDatagramQueue.datagram[end].payload = buf;
-    context->txDatagramQueue.pending++;
-
-    if (context->txDatagramQueue.pending == 1) {
-      // Queue was empty prior. Need to kickstart transmission.
-      chppEnqueueTxPacket(context, packetCode);
+    if (len < sizeof(struct ChppAppHeader)) {
+      CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
+                ", len=%zu) for handle=%" PRIu8 ". Queue depth: %" PRIu8
+                "->%" PRIu8,
+                packetCode, len, *handle, context->txDatagramQueue.pending,
+                context->txDatagramQueue.pending + 1);
+    } else {
+      struct ChppAppHeader *header = buf;
+      CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
+                ", len=%zu) for handle=%" PRIu8 ", type=0x%" PRIx8
+                ", transaction ID=%" PRIu8 ", error=%" PRIu8
+                ", command=0x%" PRIx16 ". Queue depth: %" PRIu8 "->%" PRIu8,
+                packetCode, len, header->handle, header->type,
+                header->transaction, header->error, header->command,
+                context->txDatagramQueue.pending,
+                context->txDatagramQueue.pending + 1);
     }
 
-    success = true;
-  }
+    chppMutexLock(&context->mutex);
 
-  chppMutexUnlock(&context->mutex);
+    if (context->txDatagramQueue.pending >= CHPP_TX_DATAGRAM_QUEUE_LEN) {
+      CHPP_LOGE("Queue full. Cannot enqueue TX datagram for handle=%" PRIu8,
+                *handle);
+
+    } else {
+      uint16_t end =
+          (context->txDatagramQueue.front + context->txDatagramQueue.pending) %
+          CHPP_TX_DATAGRAM_QUEUE_LEN;
+      context->txDatagramQueue.datagram[end].length = len;
+      context->txDatagramQueue.datagram[end].payload = buf;
+      context->txDatagramQueue.pending++;
+
+      if (context->txDatagramQueue.pending == 1) {
+        // Queue was empty prior. Need to kickstart transmission.
+        chppEnqueueTxPacket(context, packetCode);
+      }
+
+      success = true;
+    }
+
+    chppMutexUnlock(&context->mutex);
+  }
 
   return success;
 }
@@ -1036,12 +1064,12 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
   if (len == 0) {
     CHPP_LOGE("chppEnqueueTxDatagramOrFail called with data length of 0");
     CHPP_DEBUG_ASSERT(false);
-  }
 
-  if (resetting ||
-      !chppEnqueueTxDatagram(context, CHPP_TRANSPORT_ERROR_NONE, buf, len)) {
-    CHPP_LOGE("%s. Cannot enqueue Tx datagram of %zu bytes",
-              resetting ? "CHPP resetting" : "TX queue full", len);
+  } else if (resetting || !chppEnqueueTxDatagram(
+                              context, CHPP_TRANSPORT_ERROR_NONE, buf, len)) {
+    uint8_t *handle = buf;
+    CHPP_LOGE("%s. Discarding TX datagram of %zu bytes for handle=%" PRIu8,
+              resetting ? "CHPP resetting" : "TX queue full", len, *handle);
     CHPP_FREE_AND_NULLIFY(buf);
 
   } else {
