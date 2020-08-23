@@ -105,6 +105,22 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
     }
   }
 
+  CHPP_LOGD(
+      "Loopback client finished processing service response. Test %s. len=%zu, "
+      "error code=0x%" PRIx16 ", first error=%zu, total errors=%zu",
+      (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_NONE)
+          ? "succeeded"
+          : "failed",
+      len, gLoopbackClientContext.testResult.error,
+      gLoopbackClientContext.testResult.firstError,
+      gLoopbackClientContext.testResult.byteErrors);
+
+  // Notify waiting (synchronous) client
+  chppMutexLock(&gLoopbackClientContext.client.responseMutex);
+  gLoopbackClientContext.client.responseReady = true;
+  chppConditionVariableSignal(&gLoopbackClientContext.client.responseCondVar);
+  chppMutexUnlock(&gLoopbackClientContext.client.responseMutex);
+
   return true;
 }
 
@@ -146,6 +162,10 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
       } else {
         gLoopbackClientContext.loopbackData = buf;
         memcpy(&loopbackRequest[CHPP_LOOPBACK_HEADER_LEN], buf, len);
+
+        CHPP_LOGD(
+            "Loopback client sending request. payload len=%zu, request len=%zu",
+            len, gLoopbackClientContext.testResult.requestLen);
 
         if (!chppSendTimestampedRequestAndWait(
                 &gLoopbackClientContext.client,
