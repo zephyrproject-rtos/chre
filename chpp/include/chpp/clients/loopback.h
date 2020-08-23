@@ -69,11 +69,11 @@ void chppLoopbackClientDeinit();
  * be for the CHPP Loopback Client.
  *
  * @param context Maintains status for each app layer instance.
- * @param buf Input (request) datagram. Cannot be null.
+ * @param response Input (response) datagram. Cannot be null.
  * @param len Length of input data in bytes.
  */
 bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
-                                         const uint8_t *buf, size_t len);
+                                         const uint8_t *response, size_t len);
 
 /**
  * Initiates a CHPP service loopback from the client side.

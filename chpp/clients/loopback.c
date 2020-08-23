@@ -44,7 +44,7 @@ struct ChppLoopbackClientState {
   struct ChppRequestResponseState runLoopbackTest;  // Loopback test state
 
   struct ChppLoopbackTestResult testResult;  // Last test result
-  uint8_t *loopbackRequest;                  // Pointer to saved loopback data
+  const uint8_t *loopbackData;               // Pointer to loopback data
 };
 
 // Note: This global definition of gLoopbackClientContext supports only one
@@ -66,12 +66,14 @@ void chppLoopbackClientDeinit() {
 }
 
 bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
-                                         const uint8_t *buf, size_t len) {
+                                         const uint8_t *response, size_t len) {
   UNUSED_VAR(context);
   CHPP_ASSERT(len < CHPP_LOOPBACK_HEADER_LEN);
+  CHPP_NOT_NULL(response);
+  CHPP_NOT_NULL(gLoopbackClientContext.loopbackData);
 
   chppClientTimestampResponse(&gLoopbackClientContext.runLoopbackTest,
-                              (struct ChppAppHeader *)buf);
+                              (struct ChppAppHeader *)response);
 
   gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_NONE;
   gLoopbackClientContext.testResult.responseLen = len;
@@ -89,11 +91,13 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
             gLoopbackClientContext.testResult.responseLen);
   }
 
-  for (size_t loc = CHPP_LOOPBACK_HEADER_LEN;
+  for (size_t loc = 0;
        loc < MIN(gLoopbackClientContext.testResult.requestLen,
-                 gLoopbackClientContext.testResult.responseLen);
+                 gLoopbackClientContext.testResult.responseLen) -
+                 CHPP_LOOPBACK_HEADER_LEN;
        loc++) {
-    if (gLoopbackClientContext.loopbackRequest[loc] != buf[loc]) {
+    if (gLoopbackClientContext.loopbackData[loc] !=
+        response[loc + CHPP_LOOPBACK_HEADER_LEN]) {
       gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_UNSPECIFIED;
       gLoopbackClientContext.testResult.firstError =
           MIN(gLoopbackClientContext.testResult.firstError, loc);
@@ -108,6 +112,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
                                                   const uint8_t *buf,
                                                   size_t len) {
   UNUSED_VAR(context);
+  CHPP_NOT_NULL(buf);
 
   if (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_BLOCKED) {
     CHPP_LOGE("Loopback test cannot be run while another is in progress");
@@ -128,26 +133,23 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
       gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_INVALID_LENGTH;
 
     } else {
-      gLoopbackClientContext.loopbackRequest =
-          (uint8_t *)chppAllocClientRequest(
-              &gLoopbackClientContext.client,
-              gLoopbackClientContext.testResult.requestLen);
+      uint8_t *loopbackRequest = (uint8_t *)chppAllocClientRequest(
+          &gLoopbackClientContext.client,
+          gLoopbackClientContext.testResult.requestLen);
 
-      if (gLoopbackClientContext.loopbackRequest == NULL) {
+      if (loopbackRequest == NULL) {
         // OOM
         gLoopbackClientContext.testResult.requestLen = 0;
         gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_OOM;
         CHPP_LOG_OOM();
 
       } else {
-        memcpy(
-            &gLoopbackClientContext.loopbackRequest[CHPP_LOOPBACK_HEADER_LEN],
-            buf, len);
+        gLoopbackClientContext.loopbackData = buf;
+        memcpy(&loopbackRequest[CHPP_LOOPBACK_HEADER_LEN], buf, len);
 
         if (!chppSendTimestampedRequestAndWait(
                 &gLoopbackClientContext.client,
-                &gLoopbackClientContext.runLoopbackTest,
-                gLoopbackClientContext.loopbackRequest,
+                &gLoopbackClientContext.runLoopbackTest, loopbackRequest,
                 gLoopbackClientContext.testResult.requestLen)) {
           gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_UNSPECIFIED;
         }  // else {gLoopbackClientContext.testResult is now populated}
