@@ -16,26 +16,83 @@
 
 #include "chpp/link.h"
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "chpp/macros.h"
+#include "chpp/platform/log.h"
+#include "chpp/transport.h"
+
+// The set of signals to use for the linkSendThread.
+#define SIGNAL_EXIT UINT32_C(1 << 0)
+#define SIGNAL_DATA UINT32_C(1 << 1)
+
+/**
+ * This thread is used to "send" TX data to the remote endpoint. The remote
+ * endpoint is defined by the ChppTransportState pointer, so a loopback link
+ * with a single CHPP instance can be supported.
+ */
+static void *linkSendThread(void *arg) {
+  struct ChppPlatformLinkParameters *params =
+      (struct ChppPlatformLinkParameters *)arg;
+  while (true) {
+    uint32_t signal = chppNotifierWait(&params->notifier);
+
+    if (signal & SIGNAL_EXIT) {
+      break;
+    }
+    if (signal & SIGNAL_DATA) {
+      chppMutexLock(&params->mutex);
+      bool success = params->linkEstablished;
+      if (success && params->remoteTransportContext != NULL) {
+        success = chppRxDataCb(params->remoteTransportContext, params->buf,
+                               params->bufLen);
+      }
+      params->bufLen = 0;
+      chppLinkSendDoneCb(params, success ? CHPP_LINK_ERROR_NONE_SENT
+                                         : CHPP_LINK_ERROR_UNSPECIFIED);
+      chppMutexUnlock(&params->mutex);
+    }
+  }
+
+  return NULL;
+}
 
 void chppPlatformLinkInit(struct ChppPlatformLinkParameters *params) {
-  UNUSED_VAR(params);
+  chppMutexInit(&params->mutex);
+  chppNotifierInit(&params->notifier);
+  pthread_create(&params->linkSendThread, NULL /* attr */, linkSendThread,
+                 params);
 }
 
 void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params) {
-  UNUSED_VAR(params);
+  params->bufLen = 0;
+  chppNotifierSignal(&params->notifier, SIGNAL_EXIT);
+  pthread_join(params->linkSendThread, NULL /* retval */);
+  chppNotifierDeinit(&params->notifier);
+  chppMutexDeinit(&params->mutex);
 }
 
 enum ChppLinkErrorCode chppPlatformLinkSend(
     struct ChppPlatformLinkParameters *params, uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(params);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  return CHPP_LINK_ERROR_NONE_SENT;
+  bool success = false;
+  chppMutexLock(&params->mutex);
+  if (params->bufLen != 0) {
+    CHPP_LOGE("Failed to send data - link layer busy");
+  } else {
+    success = true;
+    memcpy(params->buf, buf, len);
+    params->bufLen = len;
+  }
+  chppMutexUnlock(&params->mutex);
+
+  if (success) {
+    chppNotifierSignal(&params->notifier, SIGNAL_DATA);
+  }
+
+  return success ? CHPP_LINK_ERROR_NONE_QUEUED : CHPP_LINK_ERROR_BUSY;
 }
 
 void chppPlatformLinkDoWork(struct ChppPlatformLinkParameters *params,
@@ -45,6 +102,6 @@ void chppPlatformLinkDoWork(struct ChppPlatformLinkParameters *params,
 }
 
 void chppPlatformLinkReset(struct ChppPlatformLinkParameters *params) {
-  // TODO
-  UNUSED_VAR(params);
+  chppPlatformLinkDeinit(params);
+  chppPlatformLinkInit(params);
 }
