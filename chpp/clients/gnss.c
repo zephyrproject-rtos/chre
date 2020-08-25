@@ -415,14 +415,15 @@ static void chppGnssLocationResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
 
-  if (len < sizeof(struct ChppGnssLocationEvent)) {
+  if (len < sizeof(struct ChppGnssLocationEventWithHeader)) {
     CHPP_LOGE("GNSS LocationResultNotification too short");
 
   } else {
     CHPP_LOGD("chppGnssLocationResultNotification received location");
 
     // TODO: Use parser script instead. i.e. chppGnssLocationEventToChre()
-
+    struct ChppGnssLocationEventWithHeader *chppEvent =
+        (struct ChppGnssLocationEventWithHeader *)buf;
     struct chreGnssLocationEvent *chreResult =
         chppMalloc(sizeof(struct chreGnssLocationEvent));
 
@@ -430,7 +431,8 @@ static void chppGnssLocationResultNotification(
       CHPP_LOG_OOM();
 
     } else {
-      memcpy(chreResult, buf, sizeof(struct ChppGnssLocationEvent));
+      memcpy(chreResult, &chppEvent->payload,
+             sizeof(struct ChppGnssLocationEvent));
       gCallbacks->locationEventCallback(chreResult);
     }
   }
