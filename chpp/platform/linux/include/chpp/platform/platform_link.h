@@ -17,8 +17,12 @@
 #ifndef CHPP_PLATFORM_LINK_H_
 #define CHPP_PLATFORM_LINK_H_
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "chpp/mutex.h"
+#include "chpp/notifier.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,9 +33,30 @@ extern "C" {
 
 #define CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS 1000
 
+// Forward declaration
+struct ChppTransportState;
+
 struct ChppPlatformLinkParameters {
-  size_t index;
-  bool sync;
+  //! Indicates that the link to the remote endpoint has been established.
+  //! This simulates the establishment of the physical link, so
+  //! chppPlatformLinkSend() will fail if this field is set to false.
+  bool linkEstablished;
+
+  //! A pointer to the transport context of the remote endpoint.
+  struct ChppTransportState *remoteTransportContext;
+
+  //! A thread to use when sending data to the remote endpoint asynchronously.
+  pthread_t linkSendThread;
+
+  //! The notifier for linkSendThread.
+  struct ChppNotifier notifier;
+
+  //! The mutex to protect buf/bufLen.
+  struct ChppMutex mutex;
+
+  //! The temporary buffer to use to send data to the remote endpoint.
+  uint8_t buf[CHPP_PLATFORM_LINK_TX_MTU_BYTES];
+  size_t bufLen;
 };
 
 #ifdef __cplusplus

@@ -70,11 +70,12 @@ constexpr int kMinResponsePacketLength =
 class TransportTests : public testing::TestWithParam<int> {
  protected:
   void SetUp() override {
+    memset(&mTransportContext.linkParams, 0,
+           sizeof(mTransportContext.linkParams));
+    mTransportContext.linkParams.linkEstablished = true;
     chppTransportInit(&mTransportContext, &mAppContext);
     chppAppInit(&mAppContext, &mTransportContext);
 
-    mTransportContext.linkParams.index = 1;
-    mTransportContext.linkParams.sync = true;
     mTransportContext.resetState = CHPP_RESET_STATE_NONE;
 
     // Make sure CHPP has a correct count of the number of registered services
