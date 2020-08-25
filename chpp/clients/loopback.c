@@ -106,12 +106,15 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
   }
 
   CHPP_LOGD(
-      "Loopback client finished processing service response. Test %s. len=%zu, "
-      "error code=0x%" PRIx16 ", first error=%zu, total errors=%zu",
+      "Loopback client processed service response. Test %s. response len=%zu, "
+      "request len=%zu, error code=0x%" PRIx16
+      ", first error=%zu, total errors=%zu",
       (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_NONE)
           ? "succeeded"
           : "failed",
-      len, gLoopbackClientContext.testResult.error,
+      gLoopbackClientContext.testResult.responseLen,
+      gLoopbackClientContext.testResult.requestLen,
+      gLoopbackClientContext.testResult.error,
       gLoopbackClientContext.testResult.firstError,
       gLoopbackClientContext.testResult.byteErrors);
 
@@ -130,6 +133,9 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
   UNUSED_VAR(context);
   CHPP_NOT_NULL(buf);
 
+  CHPP_LOGD("Running loopback test with payload len=%zu, request len=%zu", len,
+            len + CHPP_LOOPBACK_HEADER_LEN);
+
   if (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_BLOCKED) {
     CHPP_LOGE("Loopback test cannot be run while another is in progress");
     CHPP_DEBUG_ASSERT(false);
@@ -145,7 +151,8 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
     gLoopbackClientContext.runLoopbackTest.requestTime = CHPP_TIME_NONE;
     gLoopbackClientContext.runLoopbackTest.responseTime = CHPP_TIME_NONE;
 
-    if (len == 0) {  // Length too short for a loopback test
+    if (len == 0) {
+      CHPP_LOGE("Loopback payload too short");
       gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_INVALID_LENGTH;
 
     } else {
@@ -162,10 +169,6 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
       } else {
         gLoopbackClientContext.loopbackData = buf;
         memcpy(&loopbackRequest[CHPP_LOOPBACK_HEADER_LEN], buf, len);
-
-        CHPP_LOGD(
-            "Loopback client sending request. payload len=%zu, request len=%zu",
-            len, gLoopbackClientContext.testResult.requestLen);
 
         if (!chppSendTimestampedRequestAndWait(
                 &gLoopbackClientContext.client,
