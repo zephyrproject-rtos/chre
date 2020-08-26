@@ -91,16 +91,16 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
             gLoopbackClientContext.testResult.responseLen);
   }
 
-  for (size_t loc = 0;
+  for (size_t loc = CHPP_LOOPBACK_HEADER_LEN;
        loc < MIN(gLoopbackClientContext.testResult.requestLen,
-                 gLoopbackClientContext.testResult.responseLen) -
-                 CHPP_LOOPBACK_HEADER_LEN;
+                 gLoopbackClientContext.testResult.responseLen);
        loc++) {
-    if (gLoopbackClientContext.loopbackData[loc] !=
-        response[loc + CHPP_LOOPBACK_HEADER_LEN]) {
+    if (gLoopbackClientContext.loopbackData[loc - CHPP_LOOPBACK_HEADER_LEN] !=
+        response[loc]) {
       gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_UNSPECIFIED;
       gLoopbackClientContext.testResult.firstError =
-          MIN(gLoopbackClientContext.testResult.firstError, loc);
+          MIN(gLoopbackClientContext.testResult.firstError,
+              loc - CHPP_LOOPBACK_HEADER_LEN);
       gLoopbackClientContext.testResult.byteErrors++;
     }
   }
