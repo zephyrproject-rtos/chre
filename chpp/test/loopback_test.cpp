@@ -111,15 +111,27 @@ TEST_F(LoopbackTests, SimpleLoopback) {
   // Wait for the reset to finish.
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  chppLoopbackClientInit(&mClientAppContext);
-
   CHPP_LOGI("Starting loopback test ...");
-  uint8_t buf[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  struct ChppLoopbackTestResult result =
-      chppRunLoopbackTest(&mClientAppContext, buf, 10);
-  ASSERT_EQ(result.error, CHPP_APP_ERROR_NONE);
 
-  chppLoopbackClientDeinit();
+  size_t testLen = 1000;
+  uint8_t buf[testLen];
+  for (size_t i = 0; i < testLen; i++) {
+    buf[i] = (uint8_t)(i + 100);
+  }
+
+  struct ChppLoopbackTestResult result;
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, testLen);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, 10);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, 1);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, 0);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_INVALID_LENGTH);
 }
 
 }  // namespace
