@@ -120,6 +120,8 @@ static void chppWifiClientReleaseRangingEvent(
 
 static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
                                uint8_t *buf, size_t len);
+static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
+                                uint8_t *buf, size_t len);
 static void chppWifiGetCapabilitiesResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
 static void chppWifiConfigureScanMonitorResult(
@@ -159,6 +161,12 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
     case CHPP_WIFI_OPEN: {
       chppClientTimestampResponse(&wifiClientContext->open, rxHeader);
       chppWifiOpenResult(wifiClientContext, buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_CLOSE: {
+      chppClientTimestampResponse(&wifiClientContext->close, rxHeader);
+      chppWifiCloseResult(wifiClientContext, buf, len);
       break;
     }
 
@@ -270,6 +278,23 @@ static void chppWifiClientDeinit(void *clientContext) {
  */
 static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
                                uint8_t *buf, size_t len) {
+  // TODO
+  UNUSED_VAR(clientContext);
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
+}
+
+/**
+ * Handles the server response for the close client request.
+ *
+ * This function is called from chppDispatchWifiResponse().
+ *
+ * @param clientContext Maintains status for each client instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
+                                uint8_t *buf, size_t len) {
   // TODO
   UNUSED_VAR(clientContext);
   UNUSED_VAR(buf);
@@ -419,9 +444,9 @@ static void chppWifiClientClose() {
   if (request == NULL) {
     CHPP_LOG_OOM();
   } else {
-    chppSendTimestampedRequestOrFail(&gWifiClientContext.client,
-                                     &gWifiClientContext.close, request,
-                                     sizeof(struct ChppAppHeader));
+    chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
+                                      &gWifiClientContext.close, request,
+                                      sizeof(struct ChppAppHeader));
   }
   // Local
   gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;

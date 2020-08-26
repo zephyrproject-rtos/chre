@@ -105,6 +105,8 @@ static void chppWwanClientReleaseCellInfoResult(
 
 static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
                                uint8_t *buf, size_t len);
+static void chppWwanCloseResult(struct ChppWwanClientState *clientContext,
+                                uint8_t *buf, size_t len);
 static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len);
 static void chppWwanGetCellInfoAsyncResult(
@@ -139,6 +141,12 @@ static enum ChppAppErrorCode chppDispatchWwanResponse(void *clientContext,
     case CHPP_WWAN_OPEN: {
       chppClientTimestampResponse(&wwanClientContext->open, rxHeader);
       chppWwanOpenResult(wwanClientContext, buf, len);
+      break;
+    }
+
+    case CHPP_WWAN_CLOSE: {
+      chppClientTimestampResponse(&wwanClientContext->close, rxHeader);
+      chppWwanCloseResult(wwanClientContext, buf, len);
       break;
     }
 
@@ -209,6 +217,23 @@ static void chppWwanClientDeinit(void *clientContext) {
  */
 static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
                                uint8_t *buf, size_t len) {
+  // TODO
+  UNUSED_VAR(clientContext);
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
+}
+
+/**
+ * Handles the server response for the close client request.
+ *
+ * This function is called from chppDispatchWwanResponse().
+ *
+ * @param clientContext Maintains status for each client instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWwanCloseResult(struct ChppWwanClientState *clientContext,
+                                uint8_t *buf, size_t len) {
   // TODO
   UNUSED_VAR(clientContext);
   UNUSED_VAR(buf);
@@ -308,9 +333,9 @@ static void chppWwanClientClose() {
   if (request == NULL) {
     CHPP_LOG_OOM();
   } else {
-    chppSendTimestampedRequestOrFail(&gWwanClientContext.client,
-                                     &gWwanClientContext.close, request,
-                                     sizeof(struct ChppAppHeader));
+    chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                      &gWwanClientContext.close, request,
+                                      sizeof(struct ChppAppHeader));
   }
   // Local
   gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;

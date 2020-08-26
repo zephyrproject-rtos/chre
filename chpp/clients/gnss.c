@@ -125,6 +125,8 @@ static bool chppGnssClientConfigurePassiveLocationListener(bool enable);
 
 static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
                                uint8_t *buf, size_t len);
+static void chppGnssCloseResult(struct ChppGnssClientState *clientContext,
+                                uint8_t *buf, size_t len);
 static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len);
 static void chppGnssControlLocationSessionResult(
@@ -168,6 +170,12 @@ static enum ChppAppErrorCode chppDispatchGnssResponse(void *clientContext,
     case CHPP_GNSS_OPEN: {
       chppClientTimestampResponse(&gnssClientContext->open, rxHeader);
       chppGnssOpenResult(gnssClientContext, buf, len);
+      break;
+    }
+
+    case CHPP_GNSS_CLOSE: {
+      chppClientTimestampResponse(&gnssClientContext->close, rxHeader);
+      chppGnssCloseResult(gnssClientContext, buf, len);
       break;
     }
 
@@ -291,6 +299,23 @@ static void chppGnssClientDeinit(void *clientContext) {
  */
 static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
                                uint8_t *buf, size_t len) {
+  // TODO
+  UNUSED_VAR(clientContext);
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
+}
+
+/**
+ * Handles the server response for the close client request.
+ *
+ * This function is called from chppDispatchGnssResponse().
+ *
+ * @param clientContext Maintains status for each client instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppGnssCloseResult(struct ChppGnssClientState *clientContext,
+                                uint8_t *buf, size_t len) {
   // TODO
   UNUSED_VAR(clientContext);
   UNUSED_VAR(buf);
@@ -505,9 +530,9 @@ static void chppGnssClientClose() {
   if (request == NULL) {
     CHPP_LOG_OOM();
   } else {
-    chppSendTimestampedRequestOrFail(&gGnssClientContext.client,
-                                     &gGnssClientContext.close, request,
-                                     sizeof(struct ChppAppHeader));
+    chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
+                                      &gGnssClientContext.close, request,
+                                      sizeof(struct ChppAppHeader));
   }
   // Local
   gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
