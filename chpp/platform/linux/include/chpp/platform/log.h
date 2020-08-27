@@ -17,7 +17,6 @@
 #ifndef CHPP_LOG_H_
 #define CHPP_LOG_H_
 
-#include <pthread.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -30,13 +29,9 @@ extern "C" {
 
 // TODO: Should use PRIu8 etc. from inttypes.h instead of %d, etc. (add -Wall
 // and -Werror to cflags to catch these)
-#define CHPP_LINUX_LOG(level, color, fmt, ...)                                 \
-  {                                                                            \
-    char name[16];                                                             \
-    pthread_getname_np(pthread_self(), name, 16);                              \
-    printf("\e[" color "m%s %s:%d\t (%s) " fmt "\e[0m\n", level, __FILENAME__, \
-           __LINE__, name, ##__VA_ARGS__);                                     \
-  }
+#define CHPP_LINUX_LOG(level, color, fmt, ...)                         \
+  printf("\e[" color "m%s %s:%d\t" fmt "\e[0m\n", level, __FILENAME__, \
+         __LINE__, ##__VA_ARGS__)
 
 #define CHPP_LOGE(fmt, ...) CHPP_LINUX_LOG("E", "91", fmt, ##__VA_ARGS__)
 #define CHPP_LOGW(fmt, ...) CHPP_LINUX_LOG("W", "93", fmt, ##__VA_ARGS__)

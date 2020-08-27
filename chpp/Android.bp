@@ -28,8 +28,6 @@ cc_library_static {
         "-DCHPP_SERVICE_ENABLED_WWAN",
         // clock_gettime() requires _POSIX_C_SOURCE >= 199309L
         "-D_POSIX_C_SOURCE=199309L",
-        // Required for pthread_setname_np()
-        "-D_GNU_SOURCE"
     ],
     conlyflags: ["-std=c11"],
     srcs: [
@@ -76,10 +74,7 @@ cc_library_static {
 
 cc_test_host {
     name: "chre_chpp_linux_tests",
-    srcs: [
-        "test/loopback_test.cpp",
-        "test/transport_test.cpp",
-    ],
+    srcs: ["test/transport_test.cpp"],
     static_libs: ["chre_chpp_linux"],
 }
 
