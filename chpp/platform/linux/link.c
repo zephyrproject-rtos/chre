@@ -65,6 +65,9 @@ void chppPlatformLinkInit(struct ChppPlatformLinkParameters *params) {
   chppNotifierInit(&params->notifier);
   pthread_create(&params->linkSendThread, NULL /* attr */, linkSendThread,
                  params);
+  if (params->linkThreadName != NULL) {
+    pthread_setname_np(params->linkSendThread, params->linkThreadName);
+  }
 }
 
 void chppPlatformLinkDeinit(struct ChppPlatformLinkParameters *params) {
