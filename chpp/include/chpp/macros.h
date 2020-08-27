@@ -70,7 +70,13 @@ extern "C" {
 
 // Time-related macros
 #define CHPP_TIME_NONE 0
-#define CHPP_NSEC_PER_SEC UINT64_C(1000000000)
+#define CHPP_MSEC_PER_SEC UINT64_C(1000)
+#define CHPP_USEC_PER_MSEC UINT64_C(1000)
+#define CHPP_NSEC_PER_USEC UINT64_C(1000)
+#define CHPP_USEC_PER_SEC (CHPP_USEC_PER_MSEC * CHPP_MSEC_PER_SEC)
+#define CHPP_NSEC_PER_MSEC (CHPP_NSEC_PER_USEC * CHPP_USEC_PER_MSEC)
+#define CHPP_NSEC_PER_SEC \
+  (CHPP_NSEC_PER_USEC * CHPP_USEC_PER_MSEC * CHPP_MSEC_PER_SEC)
 
 #if defined(__GNUC__) || defined(__clang__)
 #define check_types_match(t1, t2) ((__typeof__(t1) *)0 != (__typeof__(t2) *)0)
