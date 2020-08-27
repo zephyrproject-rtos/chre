@@ -57,6 +57,12 @@ struct ChppPlatformLinkParameters {
   //! The temporary buffer to use to send data to the remote endpoint.
   uint8_t buf[CHPP_PLATFORM_LINK_TX_MTU_BYTES];
   size_t bufLen;
+
+  //! The string name of the linkSendThread.
+  const char *linkThreadName;
+
+  //! The string name of the CHPP work thread.
+  const char *workThreadName;
 };
 
 #ifdef __cplusplus
