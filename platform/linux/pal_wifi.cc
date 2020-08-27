@@ -77,7 +77,7 @@ bool chrePalWifiConfigureScanMonitor(bool enable) {
   return true;
 }
 
-bool chrePalWifiApiRequestScan(const struct chreWifiScanParams *params) {
+bool chrePalWifiApiRequestScan(const struct chreWifiScanParams * /* params */) {
   stopScanEventThreads();
 
   gScanEventsThread = std::thread(sendScanResponse);
@@ -111,7 +111,8 @@ bool chrePalWifiApiOpen(const struct chrePalSystemApi *systemApi,
 
 }  // anonymous namespace
 
-const struct chrePalWifiApi *chrePalWifiGetApi(uint32_t requestedApiVersion) {
+const struct chrePalWifiApi *chrePalWifiGetApi(
+    uint32_t /* requestedApiVersion */) {
   static const struct chrePalWifiApi kApi = {
       .moduleVersion = CHRE_PAL_WIFI_API_CURRENT_VERSION,
       .open = chrePalWifiApiOpen,

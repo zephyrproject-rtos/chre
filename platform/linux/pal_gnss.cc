@@ -106,7 +106,7 @@ uint32_t chrePalGnssGetCapabilities() {
 }
 
 bool chrePalControlLocationSession(bool enable, uint32_t minIntervalMs,
-                                   uint32_t minTimeToNextFixMs) {
+                                   uint32_t /* minTimeToNextFixMs */) {
   stopLocationThreads();
 
   if (enable) {
@@ -164,7 +164,8 @@ bool chrePalGnssApiOpen(const struct chrePalSystemApi *systemApi,
 
 }  // anonymous namespace
 
-const struct chrePalGnssApi *chrePalGnssGetApi(uint32_t requestedApiVersion) {
+const struct chrePalGnssApi *chrePalGnssGetApi(
+    uint32_t /* requestedApiVersion */) {
   static const struct chrePalGnssApi kApi = {
       .moduleVersion = CHRE_PAL_GNSS_API_CURRENT_VERSION,
       .open = chrePalGnssApiOpen,
