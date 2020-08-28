@@ -231,7 +231,11 @@ bool chppSendTimestampedRequestAndWaitTimeout(
                                               &clientState->responseMutex,
                                               timeoutNs);
     }
-    result &= clientState->responseReady;
+    if (!clientState->responseReady) {
+      CHPP_LOGE("Timeout waiting on service response after %" PRIu64 " ms",
+                timeoutNs / CHPP_NSEC_PER_MSEC);
+      result = false;
+    }
   }
 
   chppMutexUnlock(&clientState->responseMutex);
