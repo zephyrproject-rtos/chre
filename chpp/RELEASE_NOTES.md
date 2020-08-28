@@ -38,7 +38,7 @@ This release enables service integration with WWAN / WiFi / GNSS devices based o
   - Condition variables functionality needs to be supported alongside other platform functionality (see chpp/platform/)
   - Name changes for the logging APIs
 
-### 2020-08-07 (this)
+### 2020-08-07 (0b41306)
 
 This release contains bug fixes as well as the loopback client.
 
@@ -51,3 +51,26 @@ This release contains bug fixes as well as the loopback client.
   - Corrected sequence number handling
   - Updated log messages
   - More accurate casting into enums
+
+### 2020-08-27 (this)
+
+This release contains additional clients, a virtual link layer for testing (e.g., using loopback), and several important bug fixes.
+
+- New functionality
+
+  - Basic implementation of the standard WiFi client based on the CHRE PAL API
+  - Basic implementation of the standard GNSS client based on the CHRE PAL API
+  - Virtual link layer that connects CHPP with itself on Linux to enable testing, including reset, discovery, and loopback
+
+- Cleanup and bug fixes
+
+  - Client implementation cleanup
+  - Client-side handling of close responses
+  - Reset / reset-ack handshaking mechanism fixed
+  - Loopback client fixed
+  - Enhanced log messages
+  - Service command #s are now sequential
+
+- API and integration changes
+
+  - Platform-specific time functionality (platform_time.h)
