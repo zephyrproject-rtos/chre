@@ -20,6 +20,7 @@
 #include "chre/util/unique_ptr.h"
 
 #include <chrono>
+#include <cinttypes>
 #include <thread>
 
 /**
@@ -111,8 +112,7 @@ bool chrePalWifiApiOpen(const struct chrePalSystemApi *systemApi,
 
 }  // anonymous namespace
 
-const struct chrePalWifiApi *chrePalWifiGetApi(
-    uint32_t /* requestedApiVersion */) {
+const struct chrePalWifiApi *chrePalWifiGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalWifiApi kApi = {
       .moduleVersion = CHRE_PAL_WIFI_API_CURRENT_VERSION,
       .open = chrePalWifiApiOpen,
@@ -123,5 +123,13 @@ const struct chrePalWifiApi *chrePalWifiGetApi(
       .releaseScanEvent = chrePalWifiApiReleaseScanEvent,
   };
 
-  return &kApi;
+  if (!CHRE_PAL_VERSIONS_ARE_COMPATIBLE(kApi.moduleVersion,
+                                        requestedApiVersion)) {
+    LOGE("Incompatible version: requested 0x%" PRIx32
+         " module version 0x%" PRIx32,
+         requestedApiVersion, kApi.moduleVersion);
+    return nullptr;
+  } else {
+    return &kApi;
+  }
 }
