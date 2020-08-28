@@ -707,7 +707,8 @@ TEST_F(TransportTests, WwanOpen) {
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
   responseLoc += sizeof(uint32_t);
 
-  EXPECT_EQ(*capabilities, CHRE_WWAN_GET_CELL_INFO);
+  uint32_t capabilitySet = CHRE_WWAN_GET_CELL_INFO;
+  EXPECT_EQ((*capabilities) & ~(capabilitySet), 0);
 
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
@@ -745,8 +746,11 @@ TEST_F(TransportTests, WifiOpen) {
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
   responseLoc += sizeof(uint32_t);
 
-  EXPECT_EQ(*capabilities, CHRE_WIFI_CAPABILITIES_SCAN_MONITORING |
-                               CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN);
+  uint32_t capabilitySet = CHRE_WIFI_CAPABILITIES_SCAN_MONITORING |
+                           CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN |
+                           CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF |
+                           CHRE_WIFI_CAPABILITIES_RTT_RANGING;
+  EXPECT_EQ((*capabilities) & ~(capabilitySet), 0);
 
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
@@ -787,10 +791,10 @@ TEST_F(TransportTests, GnssOpen) {
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
   responseLoc += sizeof(uint32_t);
 
-  EXPECT_EQ(*capabilities,
-            CHRE_GNSS_CAPABILITIES_LOCATION |
-                CHRE_GNSS_CAPABILITIES_MEASUREMENTS |
-                CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER);
+  uint32_t capabilitySet =
+      CHRE_GNSS_CAPABILITIES_LOCATION | CHRE_GNSS_CAPABILITIES_MEASUREMENTS |
+      CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER;
+  EXPECT_EQ((*capabilities) & ~(capabilitySet), 0);
 
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
