@@ -102,6 +102,14 @@ class SensorRequest {
   }
 
   /**
+   * Overrides the latency specified in the request to the provided latency
+   * value.
+   */
+  void setLatency(Nanoseconds latency) {
+    mLatency = latency;
+  }
+
+  /**
    * @return Returns the maximum amount of time samples can be batched prior to
    * dispatching to the client.
    */
