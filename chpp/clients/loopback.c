@@ -68,7 +68,7 @@ void chppLoopbackClientDeinit() {
 bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
                                          const uint8_t *response, size_t len) {
   UNUSED_VAR(context);
-  CHPP_ASSERT(len < CHPP_LOOPBACK_HEADER_LEN);
+  CHPP_ASSERT(len >= CHPP_LOOPBACK_HEADER_LEN);
   CHPP_NOT_NULL(response);
   CHPP_NOT_NULL(gLoopbackClientContext.loopbackData);
 
