@@ -311,7 +311,7 @@ static enum ChppAppErrorCode chppWifiServiceGetCapabilities(
     response->params.capabilities = wifiServiceContext->api->getCapabilities();
 
     CHPP_LOGD("chppWifiServiceGetCapabilities returning 0x%" PRIx32
-              ", %zu bytes",
+              ", %" PRIuSIZE " bytes",
               response->params.capabilities, sizeof(*response));
     chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
                                       &wifiServiceContext->getCapabilities,

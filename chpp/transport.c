@@ -90,7 +90,7 @@ static void chppTransportSendReset(
 static void chppSetRxState(struct ChppTransportState *context,
                            enum ChppRxState newState) {
   CHPP_LOGD("Changing RX transport state from %" PRIu8 " to %" PRIu8
-            " after %zu bytes",
+            " after %" PRIuSIZE " bytes",
             context->rxStatus.state, newState, context->rxStatus.locInState);
   context->rxStatus.locInState = 0;
   context->rxStatus.state = newState;
@@ -196,7 +196,7 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
 
       if (tempPayload == NULL) {
         CHPP_LOG_OOM("packet# %" PRIu8 ", len=%" PRIu16
-                     ". Previous fragment(s) total len=%zu",
+                     ". Previous fragment(s) total len=%" PRIuSIZE,
                      context->rxHeader.seq, context->rxHeader.length,
                      context->rxDatagram.length);
         chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_OOM);
@@ -355,7 +355,7 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
 
       if (tempPayload == NULL) {
         CHPP_LOG_OOM("While discarding RX continuation packet. seq=%" PRIu8
-                     ". datagram len=%zu",
+                     ". datagram len=%" PRIuSIZE,
                      context->rxHeader.seq,
                      context->rxDatagram.length + context->rxHeader.length);
       } else {
@@ -400,7 +400,7 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
   if (context->rxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM) {
     // Packet is part of a larger datagram
     CHPP_LOGD("RX packet for unfinished datagram. Seq=%" PRIu8 " len=%" PRIu16
-              ". Datagram len so far is %zu",
+              ". Datagram len so far is %" PRIuSIZE,
               context->rxHeader.seq, context->rxHeader.length,
               context->rxDatagram.length);
 
@@ -418,13 +418,13 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
     chppClearRxDatagram(context);
 
     // Send ACK because we had RX a payload-bearing packet
-    CHPP_LOGD(
-        "App layer processed datagram with len=%zu, ending packet seq="
-        "%" PRIu8 ", len=%" PRIu16 ". Sending ACK=%" PRIu8
-        " (previously sent=%" PRIu8 ")",
-        context->rxDatagram.length, context->rxHeader.seq,
-        context->rxHeader.length, context->rxStatus.expectedSeq,
-        context->txStatus.sentAckSeq);
+    CHPP_LOGD("App layer processed datagram with len=%" PRIuSIZE
+              ", ending packet seq="
+              "%" PRIu8 ", len=%" PRIu16 ". Sending ACK=%" PRIu8
+              " (previously sent=%" PRIu8 ")",
+              context->rxDatagram.length, context->rxHeader.seq,
+              context->rxHeader.length, context->rxStatus.expectedSeq,
+              context->txStatus.sentAckSeq);
     chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
   }
 }
@@ -508,7 +508,7 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
       CHPP_LOGD(
           "ACK received (last registered=%" PRIu8 ", received=%" PRIu8
           "). Prior queue depth=%" PRIu8 ", front datagram=%" PRIu8
-          " at loc=%zu of len=%zu",
+          " at loc=%" PRIuSIZE " of len=%" PRIuSIZE,
           context->rxStatus.receivedAckSeq, rxAckSeq,
           context->txDatagramQueue.pending, context->txDatagramQueue.front,
           context->txStatus.ackedLocInDatagram,
@@ -613,8 +613,8 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
     CHPP_LOGE("Can not dequeue datagram because queue is empty");
 
   } else {
-    CHPP_LOGD("Dequeuing front datagram with index=%" PRIu8
-              ", len=%zu. Queue depth: %" PRIu8 "->%" PRIu8,
+    CHPP_LOGD("Dequeuing front datagram with index=%" PRIu8 ", len=%" PRIuSIZE
+              ". Queue depth: %" PRIu8 "->%" PRIu8,
               context->txDatagramQueue.front,
               context->txDatagramQueue.datagram[context->txDatagramQueue.front]
                   .length,
@@ -750,9 +750,10 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     chppMutexUnlock(&context->mutex);
 
     // Send out the packet
-    CHPP_LOGD("Handing over TX packet to link layer. (len=%zu, flags=0x%" PRIx8
-              ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8 ", seq=%" PRIu8
-              ", payload len=%" PRIu16 ", queue depth=%" PRIu8 ")",
+    CHPP_LOGD("Handing over TX packet to link layer. (len=%" PRIuSIZE
+              ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8
+              ", seq=%" PRIu8 ", payload len=%" PRIu16 ", queue depth=%" PRIu8
+              ")",
               context->pendingTxPacket.length, txHeader->flags,
               txHeader->packetCode, txHeader->ackSeq, txHeader->seq,
               txHeader->length, context->txDatagramQueue.pending);
@@ -826,14 +827,14 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
 
     if (len < sizeof(struct ChppAppHeader)) {
       CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
-                ", len=%zu) for handle=%" PRIu8 ". Queue depth: %" PRIu8
-                "->%" PRIu8,
+                ", len=%" PRIuSIZE ") for handle=%" PRIu8
+                ". Queue depth: %" PRIu8 "->%" PRIu8,
                 packetCode, len, *handle, context->txDatagramQueue.pending,
                 context->txDatagramQueue.pending + 1);
     } else {
       struct ChppAppHeader *header = buf;
       CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
-                ", len=%zu) for handle=%" PRIu8 ", type=0x%" PRIx8
+                ", len=%" PRIuSIZE ") for handle=%" PRIu8 ", type=0x%" PRIx8
                 ", transaction ID=%" PRIu8 ", error=%" PRIu8
                 ", command=0x%" PRIx16 ". Queue depth: %" PRIu8 "->%" PRIu8,
                 packetCode, len, header->handle, header->type,
@@ -1020,8 +1021,9 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
   CHPP_NOT_NULL(buf);
   CHPP_NOT_NULL(context);
 
-  CHPP_LOGD("chppRxDataCb received %zu bytes while in RX state=%" PRIu8, len,
-            context->rxStatus.state);
+  CHPP_LOGD("chppRxDataCb received %" PRIuSIZE
+            " bytes while in RX state=%" PRIu8,
+            len, context->rxStatus.state);
 
   size_t consumed = 0;
   while (consumed < len) {
@@ -1100,7 +1102,8 @@ bool chppEnqueueTxDatagramOrFail(struct ChppTransportState *context, void *buf,
   } else if (resetting || !chppEnqueueTxDatagram(
                               context, CHPP_TRANSPORT_ERROR_NONE, buf, len)) {
     uint8_t *handle = buf;
-    CHPP_LOGE("%s. Discarding TX datagram of %zu bytes for handle=%" PRIu8,
+    CHPP_LOGE("%s. Discarding TX datagram of %" PRIuSIZE
+              " bytes for handle=%" PRIu8,
               resetting ? "CHPP resetting" : "TX queue full", len, *handle);
     CHPP_FREE_AND_NULLIFY(buf);
 

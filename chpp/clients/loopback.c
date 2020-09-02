@@ -106,9 +106,9 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
   }
 
   CHPP_LOGD(
-      "Loopback client processed service response. Test %s. response len=%zu, "
-      "request len=%zu, error code=0x%" PRIx16
-      ", first error=%zu, total errors=%zu",
+      "Loopback client processed service response. Test %s. response "
+      "len=%" PRIuSIZE ", request len=%" PRIuSIZE ", error code=0x%" PRIx16
+      ", first error=%" PRIuSIZE ", total errors=%" PRIuSIZE,
       (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_NONE)
           ? "succeeded"
           : "failed",
@@ -133,8 +133,9 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
   UNUSED_VAR(context);
   CHPP_NOT_NULL(buf);
 
-  CHPP_LOGD("Running loopback test with payload len=%zu, request len=%zu", len,
-            len + CHPP_LOOPBACK_HEADER_LEN);
+  CHPP_LOGD("Running loopback test with payload len=%" PRIuSIZE
+            ", request len=%" PRIuSIZE,
+            len, len + CHPP_LOOPBACK_HEADER_LEN);
 
   if (gLoopbackClientContext.testResult.error == CHPP_APP_ERROR_BLOCKED) {
     CHPP_LOGE("Loopback test cannot be run while another is in progress");

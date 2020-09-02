@@ -273,7 +273,7 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
 
   if (len < minLen) {
     CHPP_LOGE("Received datagram too short for handle=%" PRIu8
-              ", len=%zu < %zu",
+              ", len=%" PRIuSIZE " < %" PRIuSIZE,
               handle, len, minLen);
   }
   return (len >= minLen);
@@ -457,8 +457,8 @@ static void chppProcessPredefinedHandleDatagram(struct ChppAppState *context,
 
   if (success == false) {
     CHPP_LOGE("Predefined handle=%" PRIu8
-              " does not support message type=0x%" PRIx8
-              " (len=%zu, transaction ID=%" PRIu8 ")",
+              " does not support message type=0x%" PRIx8 " (len=%" PRIuSIZE
+              ", transaction ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
                                CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -482,7 +482,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
       chppClientServiceContextOfHandle(context, rxHeader->handle, messageType);
   if (clientServiceContext == NULL) {
     CHPP_LOGE("Negotiated handle=%" PRIu8 " for RX message type=0x%" PRIx8
-              " is missing context (len=%zu, transaction ID=%" PRIu8 ")",
+              " is missing context (len=%" PRIuSIZE ", transaction ID=%" PRIu8
+              ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
                                CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -493,8 +494,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
         chppGetDispatchFunction(context, rxHeader->handle, messageType);
     if (dispatchFunc == NULL) {
       CHPP_LOGE("Negotiated handle=%" PRIu8
-                " does not support RX message type=0x%" PRIx8
-                " (len=%zu, transaction ID=%" PRIu8 ")",
+                " does not support RX message type=0x%" PRIx8 " (len=%" PRIuSIZE
+                ", transaction ID=%" PRIu8 ")",
                 rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
       chppEnqueueTxErrorDatagram(context->transportContext,
                                  CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -507,7 +508,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
       if (error != CHPP_APP_ERROR_NONE) {
         CHPP_LOGE("Dispatching RX datagram failed. error=0x%" PRIx16
                   " handle=0x%" PRIx8 ", type =0x%" PRIx8
-                  ", transaction ID=%" PRIu8 ", command=0x%" PRIx16 ", len=%zu",
+                  ", transaction ID=%" PRIu8 ", command=0x%" PRIx16
+                  ", len=%" PRIuSIZE,
                   error, rxHeader->handle, rxHeader->type,
                   rxHeader->transaction, rxHeader->command, len);
 
@@ -577,11 +579,11 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
   } else if (len < sizeof(struct ChppAppHeader)) {
     uint8_t *handle = (uint8_t *)buf;
-    CHPP_LOGD("App layer RX datagram (len=%zu) for handle=%" PRIu8, len,
-              *handle);
+    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for handle=%" PRIu8,
+              len, *handle);
 
   } else {
-    CHPP_LOGD("App layer RX datagram (len=%zu) for handle=%" PRIu8
+    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for handle=%" PRIu8
               ", type=0x%" PRIx8 ", transaction ID=%" PRIu8 ", error=%" PRIu8
               ", command=0x%" PRIx16,
               len, rxHeader->handle, rxHeader->type, rxHeader->transaction,

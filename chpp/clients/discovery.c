@@ -106,10 +106,10 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
 
   if (servicesLen != serviceCount * sizeof(struct ChppServiceDescriptor)) {
     // Incomplete service list
-    CHPP_LOGE(
-        "Service descriptors length length=%zu is invalid for a service count "
-        "= %" PRIu8 " and descriptor length = %zu",
-        servicesLen, serviceCount, sizeof(struct ChppServiceDescriptor));
+    CHPP_LOGE("Service descriptors length length=%" PRIuSIZE
+              " is invalid for a service count = %" PRIu8
+              " and descriptor length = %" PRIuSIZE,
+              servicesLen, serviceCount, sizeof(struct ChppServiceDescriptor));
     CHPP_DEBUG_ASSERT(false);
   }
 

@@ -283,7 +283,7 @@ static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
     response->params.capabilities = wwanServiceContext->api->getCapabilities();
 
     CHPP_LOGD("chppWwanServiceGetCapabilities returning 0x%" PRIx32
-              ", %zu bytes",
+              ", %" PRIuSIZE " bytes",
               response->params.capabilities, sizeof(*response));
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                       &wwanServiceContext->getCapabilities,

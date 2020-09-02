@@ -28,6 +28,10 @@ extern "C" {
 #define __FILENAME__ __FILE__
 #endif
 
+#ifndef PRIuSIZE
+#define PRIuSIZE "zu"
+#endif
+
 // TODO: Should use PRIu8 etc. from inttypes.h instead of %d, etc. (add -Wall
 // and -Werror to cflags to catch these)
 #define CHPP_LINUX_LOG(level, color, fmt, ...)                                 \

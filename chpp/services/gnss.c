@@ -319,7 +319,7 @@ static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
     response->params.capabilities = gnssServiceContext->api->getCapabilities();
 
     CHPP_LOGD("chppGnssServiceGetCapabilities returning 0x%" PRIx32
-              ", %zu bytes",
+              ", %" PRIuSIZE " bytes",
               response->params.capabilities, sizeof(*response));
     chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                       &gnssServiceContext->getCapabilities,
