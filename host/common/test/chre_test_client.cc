@@ -15,6 +15,7 @@
  */
 
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/util/system/napp_header_utils.h"
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
 #include "chre_host/socket_client.h"
@@ -37,7 +38,7 @@
  *
  * Usage:
  *  chre_test_client load <nanoapp-id> <nanoapp-path> \
- *      [app-version] [api-version]
+ *      [app-version] [api-version] [tcm-capable]
  *  chre_test_client unload <nanoapp-id>
  */
 
@@ -168,7 +169,7 @@ void sendMessageToNanoapp(SocketClient &client) {
 
 void sendLoadNanoappRequest(SocketClient &client, const char *filename,
                             uint64_t appId, uint32_t appVersion,
-                            uint32_t apiVersion) {
+                            uint32_t apiVersion, bool tcmApp) {
   std::ifstream file(filename, std::ios::binary | std::ios::ate);
   if (!file) {
     LOGE("Couldn't open file '%s': %s", filename, strerror(errno));
@@ -183,10 +184,16 @@ void sendLoadNanoappRequest(SocketClient &client, const char *filename,
     return;
   }
 
+  // All loaded nanoapps must be signed currently.
+  uint32_t appFlags = CHRE_NAPP_HEADER_SIGNED;
+  if (tcmApp) {
+    appFlags |= CHRE_NAPP_HEADER_TCM_CAPABLE;
+  }
+
   // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, apiVersion, buffer,
+      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, buffer,
       buffer.size() /* fragmentSize */);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
@@ -237,6 +244,7 @@ int main(int argc, char *argv[]) {
   const std::string path{argi < argc ? argv[argi++] : ""};
   const std::string appVerStr{argi < argc ? argv[argi++] : ""};
   const std::string apiVerStr{argi < argc ? argv[argi++] : ""};
+  const std::string tcmCapStr{argi < argc ? argv[argi++] : ""};
 
   SocketClient client;
   sp<SocketCallbacks> callbacks = new SocketCallbacks();
@@ -252,7 +260,8 @@ int main(int argc, char *argv[]) {
     sendMessageToNanoapp(client);
     sendLoadNanoappRequest(client, "/data/activity.so",
                            0x476f6f676c00100b /* appId */, 0 /* appVersion */,
-                           0x01000000 /* targetApiVersion */);
+                           0x01000000 /* targetApiVersion */,
+                           false /* tcmCapable */);
     sendUnloadNanoappRequest(client, 0x476f6f676c00100b /* appId */);
 
     LOGI("Sleeping, waiting on responses");
@@ -261,6 +270,7 @@ int main(int argc, char *argv[]) {
     uint64_t id = 0;
     uint32_t appVersion = kDefaultAppVersion;
     uint32_t apiVersion = kDefaultApiVersion;
+    bool tcmApp = false;
 
     if (idstr.empty() || path.empty()) {
       LOGE("Arguments not provided!");
@@ -274,7 +284,11 @@ int main(int argc, char *argv[]) {
     if (!apiVerStr.empty()) {
       std::istringstream(apiVerStr) >> std::setbase(0) >> apiVersion;
     }
-    sendLoadNanoappRequest(client, path.c_str(), id, appVersion, apiVersion);
+    if (!tcmCapStr.empty()) {
+      std::istringstream(tcmCapStr) >> tcmApp;
+    }
+    sendLoadNanoappRequest(client, path.c_str(), id, appVersion, apiVersion,
+                           tcmApp);
   } else if (cmd == "unload") {
     uint64_t id = 0;
 

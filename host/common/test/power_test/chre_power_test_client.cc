@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/util/system/napp_header_utils.h"
 #include "chre/version.h"
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
@@ -281,7 +282,7 @@ bool requestNanoappList(SocketClient &client) {
 
 bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
                             uint64_t appId, uint32_t appVersion,
-                            uint32_t apiVersion) {
+                            uint32_t apiVersion, bool tcmApp) {
   std::ifstream file(filename, std::ios::binary | std::ios::ate);
   if (!file) {
     LOGE("Couldn't open file '%s': %s", filename, strerror(errno));
@@ -297,10 +298,16 @@ bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
     return false;
   }
 
+  // All loaded nanoapps must be signed currently.
+  uint32_t appFlags = CHRE_NAPP_HEADER_SIGNED;
+  if (tcmApp) {
+    appFlags |= CHRE_NAPP_HEADER_TCM_CAPABLE;
+  }
+
   // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, apiVersion, buffer,
+      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, buffer,
       buffer.size() /* fragmentSize */);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
@@ -318,9 +325,9 @@ bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
 
 bool loadNanoapp(SocketClient &client, sp<SocketCallbacks> callbacks,
                  const char *filename, uint64_t appId, uint32_t appVersion,
-                 uint32_t apiVersion) {
-  if (!sendLoadNanoappRequest(client, filename, appId, appVersion,
-                              apiVersion)) {
+                 uint32_t apiVersion, bool tcmApp) {
+  if (!sendLoadNanoappRequest(client, filename, appId, appVersion, apiVersion,
+                              tcmApp)) {
     return false;
   }
   auto status = kReadyCond.wait_for(kReadyCondLock, kTimeout);
@@ -384,11 +391,12 @@ bool unloadAllNanoapps(SocketClient &client, sp<SocketCallbacks> callbacks) {
   return true;
 }
 
+bool isTcmArgSpecified(std::vector<string> &args) {
+  return !args.empty() && args[0] == "tcm";
+}
+
 inline uint64_t getId(std::vector<string> &args) {
-  if (!args.empty() && args[0] == "tcm") {
-    return kPowerTestTcmAppId;
-  }
-  return kPowerTestAppId;
+  return isTcmArgSpecified(args) ? kPowerTestTcmAppId : kPowerTestAppId;
 }
 
 /**
@@ -761,7 +769,7 @@ int main(int argc, char *argv[]) {
     }
     case Command::kLoad: {
       success = loadNanoapp(client, callbacks, getPath(args), getId(args),
-                            kAppVersion, kApiVersion);
+                            kAppVersion, kApiVersion, isTcmArgSpecified(args));
       break;
     }
     default: {

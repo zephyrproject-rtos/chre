@@ -196,9 +196,9 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    */
   static void encodeLoadNanoappRequestForBinary(
       flatbuffers::FlatBufferBuilder &builder, uint32_t transactionId,
-      uint64_t appId, uint32_t appVersion, uint32_t targetApiVersion,
-      const std::vector<uint8_t> &nanoappBinary, uint32_t fragmentId,
-      size_t appTotalSizeBytes);
+      uint64_t appId, uint32_t appVersion, uint32_t appFlags,
+      uint32_t targetApiVersion, const std::vector<uint8_t> &nanoappBinary,
+      uint32_t fragmentId, size_t appTotalSizeBytes);
 
   /**
    * Encodes a message requesting to load a nanoapp specified by the included

@@ -103,8 +103,8 @@ void HostProtocolHost::encodeFragmentedLoadNanoappRequest(
     const FragmentedLoadRequest &request) {
   encodeLoadNanoappRequestForBinary(
       builder, request.transactionId, request.appId, request.appVersion,
-      request.targetApiVersion, request.binary, request.fragmentId,
-      request.appTotalSizeBytes);
+      request.appFlags, request.targetApiVersion, request.binary,
+      request.fragmentId, request.appTotalSizeBytes);
 }
 
 void HostProtocolHost::encodeNanoappListRequest(FlatBufferBuilder &builder) {
@@ -170,13 +170,13 @@ bool HostProtocolHost::mutateHostClientId(void *message, size_t messageLen,
 
 void HostProtocolHost::encodeLoadNanoappRequestForBinary(
     FlatBufferBuilder &builder, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t targetApiVersion,
+    uint32_t appVersion, uint32_t appFlags, uint32_t targetApiVersion,
     const std::vector<uint8_t> &nanoappBinary, uint32_t fragmentId,
     size_t appTotalSizeBytes) {
   auto appBinary = builder.CreateVector(nanoappBinary);
   auto request = fbs::CreateLoadNanoappRequest(
       builder, transactionId, appId, appVersion, targetApiVersion, appBinary,
-      fragmentId, appTotalSizeBytes);
+      fragmentId, appTotalSizeBytes, 0 /* app_binary_file_name */, appFlags);
   finalize(builder, fbs::ChreMessage::LoadNanoappRequest, request.Union());
 }
 
