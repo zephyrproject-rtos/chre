@@ -22,10 +22,18 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#ifdef CHPP_CLIENT_ENABLED_GNSS
 #include "chpp/clients/gnss.h"
+#endif
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
 #include "chpp/clients/loopback.h"
+#endif
+#ifdef CHPP_CLIENT_ENABLED_WIFI
 #include "chpp/clients/wifi.h"
+#endif
+#ifdef CHPP_CLIENT_ENABLED_WWAN
 #include "chpp/clients/wwan.h"
+#endif
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"

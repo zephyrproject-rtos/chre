@@ -24,9 +24,15 @@
 #include "chpp/app.h"
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"
+#ifdef CHPP_SERVICE_ENABLED_GNSS
 #include "chpp/services/gnss.h"
+#endif
+#ifdef CHPP_SERVICE_ENABLED_WIFI
 #include "chpp/services/wifi.h"
+#endif
+#ifdef CHPP_SERVICE_ENABLED_WWAN
 #include "chpp/services/wwan.h"
+#endif
 #include "chpp/time.h"
 #include "chpp/transport.h"
 
