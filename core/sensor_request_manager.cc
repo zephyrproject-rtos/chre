@@ -177,6 +177,11 @@ bool SensorRequestManager::setSensorRequest(
     if (isSensorRequestValid(sensor, sensorRequest)) {
       // Copy the request so it can be modified below.
       SensorRequest request = sensorRequest;
+      if (sensor.isOneShot()) {
+        // Always use a latency value of ASAP for one-shot sensors since
+        // one-shot data is always expected to be delivered immediately.
+        request.setLatency(Nanoseconds(CHRE_SENSOR_LATENCY_ASAP));
+      }
 
       size_t requestIndex;
       uint8_t sensorType = sensor.getSensorType();
