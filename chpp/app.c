@@ -25,7 +25,9 @@
 
 #include "chpp/clients.h"
 #include "chpp/clients/discovery.h"
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
 #include "chpp/clients/loopback.h"
+#endif
 #include "chpp/macros.h"
 #include "chpp/notifier.h"
 #include "chpp/pal_api.h"

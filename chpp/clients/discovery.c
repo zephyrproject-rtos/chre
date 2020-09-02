@@ -34,9 +34,9 @@
 
 static inline bool chppIsClientCompatibleWithService(
     const struct ChppClientDescriptor *client,
-    struct ChppServiceDescriptor *service);
-static uint8_t chppFindMatchingClient(struct ChppAppState *context,
-                                      struct ChppServiceDescriptor *service);
+    const struct ChppServiceDescriptor *service);
+static uint8_t chppFindMatchingClient(
+    struct ChppAppState *context, const struct ChppServiceDescriptor *service);
 static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
                                             const uint8_t *buf, size_t len);
 
@@ -57,7 +57,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
  */
 static inline bool chppIsClientCompatibleWithService(
     const struct ChppClientDescriptor *client,
-    struct ChppServiceDescriptor *service) {
+    const struct ChppServiceDescriptor *service) {
   return (memcmp(client->uuid, service->uuid, CHPP_SERVICE_UUID_LEN) == 0 &&
           client->version.major == service->version.major);
 }
@@ -72,8 +72,8 @@ static inline bool chppIsClientCompatibleWithService(
  * @param return Index of client matching the service, or CHPP_CLIENT_INDEX_NONE
  * if there is none.
  */
-static uint8_t chppFindMatchingClient(struct ChppAppState *context,
-                                      struct ChppServiceDescriptor *service) {
+static uint8_t chppFindMatchingClient(
+    struct ChppAppState *context, const struct ChppServiceDescriptor *service) {
   uint8_t result = CHPP_CLIENT_INDEX_NONE;
 
   for (size_t i = 0; i < context->registeredClientCount; i++) {
@@ -99,7 +99,8 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
                                             const uint8_t *buf, size_t len) {
   CHPP_DEBUG_ASSERT(len >= sizeof(struct ChppAppHeader));
 
-  struct ChppDiscoveryResponse *response = (struct ChppDiscoveryResponse *)buf;
+  const struct ChppDiscoveryResponse *response =
+      (struct ChppDiscoveryResponse *)buf;
   size_t servicesLen = len - sizeof(struct ChppAppHeader);
   uint8_t serviceCount = servicesLen / sizeof(struct ChppServiceDescriptor);
 
