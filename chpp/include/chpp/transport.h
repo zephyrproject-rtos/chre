@@ -84,10 +84,11 @@ extern "C" {
 
 /**
  * Maximum payload of packets at the link layer.
- * TODO: Negotiate or advertise MTU
+ * TODO: Negotiate or advertise MTU. In the mean time, set default as to achieve
+ * transport TX MTU of 1024.
  */
 #define CHPP_LINK_TX_MTU_BYTES                                               \
-  MAX(CHPP_PLATFORM_LINK_TX_MTU_BYTES,                                       \
+  MIN(CHPP_PLATFORM_LINK_TX_MTU_BYTES,                                       \
       (1024 + CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) + \
        sizeof(struct ChppTransportFooter)))
 
