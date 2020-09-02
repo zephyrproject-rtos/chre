@@ -81,9 +81,10 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
             getStringFromByteVector(request->app_binary_file_name());
         HostMessageHandlers::handleLoadNanoappRequest(
             hostClientId, request->transaction_id(), request->app_id(),
-            request->app_version(), request->target_api_version(),
-            appBinary->data(), appBinary->size(), appBinaryFilename,
-            request->fragment_id(), request->total_app_size());
+            request->app_version(), request->app_flags(),
+            request->target_api_version(), appBinary->data(), appBinary->size(),
+            appBinaryFilename, request->fragment_id(),
+            request->total_app_size());
         break;
       }
 

@@ -799,9 +799,9 @@ void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
 
 void HostMessageHandlers::handleLoadNanoappRequest(
     uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t targetApiVersion, const void *buffer,
-    size_t bufferLen, const char *appFileName, uint32_t fragmentId,
-    size_t appBinaryLen) {
+    uint32_t appVersion, uint32_t /* appFlags */, uint32_t targetApiVersion,
+    const void *buffer, size_t bufferLen, const char *appFileName,
+    uint32_t fragmentId, size_t appBinaryLen) {
   UniquePtr<Nanoapp> pendingNanoapp;
   if (appFileName != nullptr) {
     pendingNanoapp =

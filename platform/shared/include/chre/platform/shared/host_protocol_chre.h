@@ -60,9 +60,9 @@ class HostMessageHandlers {
 
   static void handleLoadNanoappRequest(
       uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-      uint32_t appVersion, uint32_t targetApiVersion, const void *buffer,
-      size_t bufferLen, const char *appFileName, uint32_t fragmentId,
-      size_t appBinaryLen);
+      uint32_t appVersion, uint32_t appFlags, uint32_t targetApiVersion,
+      const void *buffer, size_t bufferLen, const char *appFileName,
+      uint32_t fragmentId, size_t appBinaryLen);
 
   static void handleUnloadNanoappRequest(uint16_t hostClientId,
                                          uint32_t transactionId, uint64_t appId,
