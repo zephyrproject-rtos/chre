@@ -139,6 +139,10 @@ table LoadNanoappRequest {
   /// Null-terminated ASCII string containing the file name that contains the
   /// app binary to be loaded.
   app_binary_file_name:[byte];
+
+  /// The nanoapp flag values from the nanoapp header defined in
+  /// build/build_template.mk. Refer to that file for more details.
+  app_flags:uint;
 }
 
 table LoadNanoappResponse {
