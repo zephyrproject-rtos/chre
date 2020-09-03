@@ -17,6 +17,7 @@
 #ifndef CHPP_LOG_H_
 #define CHPP_LOG_H_
 
+#include <inttypes.h>
 #include <pthread.h>
 #include <stdio.h>
 

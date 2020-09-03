@@ -18,6 +18,7 @@
 #define CHPP_MACROS_H_
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdlib.h>
 
