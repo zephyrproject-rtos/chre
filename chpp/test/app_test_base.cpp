@@ -53,11 +53,23 @@ void AppTestBase::SetUp() {
   mClientTransportContext.linkParams.linkThreadName = "Link to service";
   mClientTransportContext.linkParams.workThreadName = "Client work";
 
-  chppTransportInit(&mClientTransportContext, &mClientAppContext);
-  chppAppInit(&mClientAppContext, &mClientTransportContext);
+  struct ChppClientServiceSet set;
+  memset(&set, 0, sizeof(set));
+  set.wifiClient = 1;
+  set.gnssClient = 1;
+  set.wwanClient = 1;
 
+  chppTransportInit(&mClientTransportContext, &mClientAppContext);
+  chppAppInitWithClientServiceSet(&mClientAppContext, &mClientTransportContext,
+                                  set);
+
+  memset(&set, 0, sizeof(set));
+  set.wifiService = 1;
+  set.gnssService = 1;
+  set.wwanService = 1;
   chppTransportInit(&mServiceTransportContext, &mServiceAppContext);
-  chppAppInit(&mServiceAppContext, &mServiceTransportContext);
+  chppAppInitWithClientServiceSet(&mServiceAppContext,
+                                  &mServiceTransportContext, set);
 
   mClientTransportContext.linkParams.remoteTransportContext =
       &mServiceTransportContext;

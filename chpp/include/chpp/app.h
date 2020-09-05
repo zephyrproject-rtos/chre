@@ -285,6 +285,15 @@ struct ChppRequestResponseState {
   uint8_t transaction;    // Transaction ID for the last request/response
 };
 
+struct ChppClientServiceSet {
+  bool wifiService : 1;
+  bool gnssService : 1;
+  bool wwanService : 1;
+  bool wifiClient : 1;
+  bool gnssClient : 1;
+  bool wwanClient : 1;
+};
+
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
 
@@ -304,6 +313,8 @@ struct ChppAppState {
 
   uint8_t
       clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
+
+  struct ChppClientServiceSet clientServiceSet;  // Enabled client/services
 };
 
 #define CHPP_SERVICE_INDEX_OF_HANDLE(handle) \
@@ -327,6 +338,15 @@ struct ChppAppState {
  */
 void chppAppInit(struct ChppAppState *appContext,
                  struct ChppTransportState *transportContext);
+
+/**
+ * Same as chppAppInit(), but specifies the client/service endpoints to be
+ * enabled.
+ */
+void chppAppInitWithClientServiceSet(
+    struct ChppAppState *appContext,
+    struct ChppTransportState *transportContext,
+    struct ChppClientServiceSet clientServiceSet);
 
 /**
  * Deinitializes the CHPP app layer for e.g. clean shutdown.

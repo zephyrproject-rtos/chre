@@ -60,15 +60,21 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
-  chppRegisterWwanClient(context);
+  if (context->clientServiceSet.wwanClient) {
+    chppRegisterWwanClient(context);
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WIFI
-  chppRegisterWifiClient(context);
+  if (context->clientServiceSet.wifiClient) {
+    chppRegisterWifiClient(context);
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_GNSS
-  chppRegisterGnssClient(context);
+  if (context->clientServiceSet.gnssClient) {
+    chppRegisterGnssClient(context);
+  }
 #endif
 }
 
@@ -80,15 +86,21 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
-  chppDeregisterWwanClient(context);
+  if (context->clientServiceSet.wwanClient) {
+    chppDeregisterWwanClient(context);
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WIFI
-  chppDeregisterWifiClient(context);
+  if (context->clientServiceSet.wifiClient) {
+    chppDeregisterWifiClient(context);
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_GNSS
-  chppDeregisterGnssClient(context);
+  if (context->clientServiceSet.gnssClient) {
+    chppDeregisterGnssClient(context);
+  }
 #endif
 }
 

@@ -42,29 +42,41 @@
 
 void chppRegisterCommonServices(struct ChppAppState *context) {
 #ifdef CHPP_SERVICE_ENABLED_WWAN
-  chppRegisterWwanService(context);
+  if (context->clientServiceSet.wwanService) {
+    chppRegisterWwanService(context);
+  }
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_WIFI
-  chppRegisterWifiService(context);
+  if (context->clientServiceSet.wifiService) {
+    chppRegisterWifiService(context);
+  }
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS
-  chppRegisterGnssService(context);
+  if (context->clientServiceSet.gnssService) {
+    chppRegisterGnssService(context);
+  }
 #endif
 }
 
 void chppDeregisterCommonServices(struct ChppAppState *context) {
 #ifdef CHPP_SERVICE_ENABLED_WWAN
-  chppDeregisterWwanService(context);
+  if (context->clientServiceSet.wwanService) {
+    chppDeregisterWwanService(context);
+  }
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_WIFI
-  chppDeregisterWifiService(context);
+  if (context->clientServiceSet.wifiService) {
+    chppDeregisterWifiService(context);
+  }
 #endif
 
 #ifdef CHPP_SERVICE_ENABLED_GNSS
-  chppDeregisterGnssService(context);
+  if (context->clientServiceSet.gnssService) {
+    chppDeregisterGnssService(context);
+  }
 #endif
 }
 

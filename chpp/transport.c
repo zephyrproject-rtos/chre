@@ -929,7 +929,8 @@ static void chppReset(struct ChppTransportState *transportContext,
   chppResetTransportContext(transportContext);
 
   // Initialize app layer
-  chppAppInit(appContext, transportContext);
+  chppAppInitWithClientServiceSet(appContext, transportContext,
+                                  appContext->clientServiceSet);
 }
 
 /**

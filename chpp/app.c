@@ -545,6 +545,17 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
 
 void chppAppInit(struct ChppAppState *appContext,
                  struct ChppTransportState *transportContext) {
+  // Default initialize all service/clients
+  struct ChppClientServiceSet set;
+  memset(&set, 0xff, sizeof(set));  // set all bits to 1
+
+  chppAppInitWithClientServiceSet(appContext, transportContext, set);
+}
+
+void chppAppInitWithClientServiceSet(
+    struct ChppAppState *appContext,
+    struct ChppTransportState *transportContext,
+    struct ChppClientServiceSet clientServiceSet) {
   CHPP_NOT_NULL(appContext);
   CHPP_NOT_NULL(transportContext);
 
@@ -552,6 +563,7 @@ void chppAppInit(struct ChppAppState *appContext,
 
   memset(appContext, 0, sizeof(struct ChppAppState));
 
+  appContext->clientServiceSet = clientServiceSet;
   appContext->transportContext = transportContext;
 
   chppPalSystemApiInit(appContext);

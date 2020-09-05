@@ -129,6 +129,10 @@ After calling chppTransportInit, it is also necessary to separately initialize t
 The CHPP Application Layer state is stored in the ChppAppState struct appContext, and passed around between various functions. It is necessary to initialize the application layer state for each application layer instance on every platform.
 Each application layer instance is associated with a single transport layer instance. transportContext points to the transport layer status struct associated with this application layer instance.
 
+## void chppAppInitWithClientServiceSet(*transportContext, *appContext, clientServiceSet)
+
+It is also possible to specify the client/service endpoints to be enabled at runtime.
+
 ## bool chppRxDataCb(context, \*buf, len)
 
 This function is the interface between the CHPP Transport layer and the communications link’s Rx path (e.g. from the UART driver). This function is called when any data is received at the serial interface. The data is provided through a pointer to *buf, with its length specified as len.
