@@ -24,14 +24,27 @@ namespace chre {
  * to avoid allocating space on the heap in the case where the data is smaller
  * than the size of a void pointer.
  */
-template<typename DataType>
+template <typename DataType>
 union NestedDataPtr {
-  NestedDataPtr() {
-    static_assert(sizeof(NestedDataPtr<DataType>) == sizeof(void *),
-                  "Size of NestedDataPtr must be equal to that of void *");
+  NestedDataPtr(DataType nestedData) : data(nestedData) {
+    assertSize();
+  }
+
+  explicit NestedDataPtr() {
+    assertSize();
   }
   void *dataPtr;
   DataType data;
+
+ private:
+  /**
+   * Ensures both constructors make the same assertion about the size of the
+   * struct.
+   */
+  void assertSize() {
+    static_assert(sizeof(NestedDataPtr<DataType>) == sizeof(void *),
+                  "Size of NestedDataPtr must be equal to that of void *");
+  }
 };
 
 }  // namespace chre

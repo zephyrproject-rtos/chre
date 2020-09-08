@@ -16,6 +16,7 @@
 
 #include "chre/platform/slpi/see/see_cal_helper.h"
 
+#include "chre/core/sensor_type_helpers.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/slpi/see/see_helper.h"
@@ -24,7 +25,7 @@
 
 namespace chre {
 
-void SeeCalHelper::applyCalibration(SensorType sensorType, const float input[3],
+void SeeCalHelper::applyCalibration(uint8_t sensorType, const float input[3],
                                     float output[3]) const {
   bool applied = false;
   size_t index = getCalIndexFromSensorType(sensorType);
@@ -47,8 +48,8 @@ void SeeCalHelper::applyCalibration(SensorType sensorType, const float input[3],
   }
 }
 
-bool SeeCalHelper::getBias(
-    SensorType sensorType, struct chreSensorThreeAxisData *biasData) const {
+bool SeeCalHelper::getBias(uint8_t sensorType,
+                           struct chreSensorThreeAxisData *biasData) const {
   CHRE_ASSERT(biasData != nullptr);
 
   bool success = false;
@@ -59,8 +60,6 @@ bool SeeCalHelper::getBias(
 
       if (mCalInfo[index].cal.hasBias) {
         biasData->header.baseTimestamp = mCalInfo[index].cal.timestamp;
-        biasData->header.sensorHandle =
-            getSensorHandleFromSensorType(sensorType);
         biasData->header.readingCount = 1;
         biasData->header.accuracy = mCalInfo[index].cal.accuracy;
         biasData->header.reserved = 0;
@@ -102,7 +101,7 @@ bool SeeCalHelper::configureCalUpdates(const sns_std_suid &suid, bool enable,
 }
 
 const sns_std_suid *SeeCalHelper::getCalSuidFromSensorType(
-    SensorType sensorType) const {
+    uint8_t sensorType) const {
   // Mutex not needed, SUID is not modified after init
   size_t calIndex = getCalIndexFromSensorType(sensorType);
   if (calIndex < ARRAY_SIZE(mCalInfo) && mCalInfo[calIndex].suid.has_value()) {
@@ -111,7 +110,7 @@ const sns_std_suid *SeeCalHelper::getCalSuidFromSensorType(
   return nullptr;
 }
 
-bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
+bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper &seeHelper) {
   bool success = true;
 
   // Find the cal sensor's SUID, assign it to mCalInfo, and make cal sensor data
@@ -124,7 +123,7 @@ bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
       LOGE("Failed to find sensor '%s'", calType);
     } else {
       mCalInfo[i].suid = suids[0];
-      // The calibrated sensor type uses power on the default build
+
 #ifndef CHRE_SLPI_DEFAULT_BUILD
       if (!seeHelper.configureOnChangeSensor(suids[0], true /* enable */)) {
         success = false;
@@ -137,14 +136,15 @@ bool SeeCalHelper::registerForCalibrationUpdates(SeeHelper& seeHelper) {
   return success;
 }
 
-void SeeCalHelper::updateCalibration(
-    const sns_std_suid& suid, bool hasBias, float bias[3], bool hasScale,
-    float scale[3], bool hasMatrix, float matrix[9], uint8_t accuracy,
-    uint64_t timestamp) {
+void SeeCalHelper::updateCalibration(const sns_std_suid &suid, bool hasBias,
+                                     float bias[3], bool hasScale,
+                                     float scale[3], bool hasMatrix,
+                                     float matrix[9], uint8_t accuracy,
+                                     uint64_t timestamp) {
   size_t index = getCalIndexFromSuid(suid);
   if (index < ARRAY_SIZE(mCalInfo)) {
     LockGuard<Mutex> lock(mMutex);
-    SeeCalData& calData = mCalInfo[index].cal;
+    SeeCalData &calData = mCalInfo[index].cal;
 
     calData.hasBias = hasBias;
     if (hasBias) {
@@ -166,37 +166,43 @@ void SeeCalHelper::updateCalibration(
   }
 }
 
-SensorType SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid& suid) const {
+bool SeeCalHelper::getSensorTypeFromSuid(const sns_std_suid &suid,
+                                         uint8_t *sensorType) const {
   size_t calSensorIndex = getCalIndexFromSuid(suid);
+  bool found = true;
   switch (static_cast<SeeCalSensor>(calSensorIndex)) {
 #ifdef CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::AccelCal:
-      return SensorType::Accelerometer;
+      *sensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
+      break;
 #endif  // CHRE_ENABLE_ACCEL_CAL
     case SeeCalSensor::GyroCal:
-      return SensorType::Gyroscope;
+      *sensorType = CHRE_SENSOR_TYPE_GYROSCOPE;
+      break;
     case SeeCalSensor::MagCal:
-      return SensorType::GeomagneticField;
+      *sensorType = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD;
+      break;
     default:
-      // Fall-through as CHRE can receive calibration events for other sensors
-      // even if it doesn't request them.
+      // Don't assert here as SEE may send us calibration updates for other
+      // sensors even if CHRE doesn't request them.
+      found = false;
       break;
   }
-  return SensorType::Unknown;
+  return found;
 }
 
-size_t SeeCalHelper::getCalIndexFromSensorType(SensorType sensorType) {
+size_t SeeCalHelper::getCalIndexFromSensorType(uint8_t sensorType) {
   SeeCalSensor index;
   switch (sensorType) {
 #ifdef CHRE_ENABLE_ACCEL_CAL
-    case SensorType::Accelerometer:
+    case CHRE_SENSOR_TYPE_ACCELEROMETER:
       index = SeeCalSensor::AccelCal;
       break;
 #endif  // CHRE_ENABLE_ACCEL_CAL
-    case SensorType::Gyroscope:
+    case CHRE_SENSOR_TYPE_GYROSCOPE:
       index = SeeCalSensor::GyroCal;
       break;
-    case SensorType::GeomagneticField:
+    case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD:
       index = SeeCalSensor::MagCal;
       break;
     default:
@@ -221,11 +227,11 @@ const char *SeeCalHelper::getDataTypeForCalSensorIndex(size_t calSensorIndex) {
   return nullptr;
 }
 
-size_t SeeCalHelper::getCalIndexFromSuid(const sns_std_suid& suid) const {
+size_t SeeCalHelper::getCalIndexFromSuid(const sns_std_suid &suid) const {
   size_t i = 0;
   for (; i < ARRAY_SIZE(mCalInfo); i++) {
-    if (mCalInfo[i].suid.has_value()
-        && suidsMatch(suid, mCalInfo[i].suid.value())) {
+    if (mCalInfo[i].suid.has_value() &&
+        suidsMatch(suid, mCalInfo[i].suid.value())) {
       break;
     }
   }
