@@ -307,7 +307,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
                 context->rxHeader.seq, context->rxHeader.length);
 
     } else {
-      CHPP_LOGD("RX good packet. payload len=%" PRIu8 ", seq=%" PRIu8
+      CHPP_LOGD("RX good packet. payload len=%" PRIu16 ", seq=%" PRIu8
                 ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
@@ -484,7 +484,7 @@ static enum ChppTransportErrorCode chppRxHeaderCheck(
     result = CHPP_TRANSPORT_ERROR_ORDER;
 
     CHPP_LOGE("Invalid RX packet header. Unexpected seq=%" PRIu8
-              " (expected=%" PRIu8 "), len=%" PRIu8,
+              " (expected=%" PRIu8 "), len=%" PRIu16,
               context->rxHeader.seq, context->rxStatus.expectedSeq,
               context->rxHeader.length);
   }
@@ -620,7 +620,7 @@ bool chppDequeueTxDatagram(struct ChppTransportState *context) {
 
   } else {
     CHPP_LOGD("Dequeuing front datagram with index=%" PRIu8 ", len=%" PRIuSIZE
-              ". Queue depth: %" PRIu8 "->%" PRIu8,
+              ". Queue depth: %" PRIu8 "->%d",
               context->txDatagramQueue.front,
               context->txDatagramQueue.datagram[context->txDatagramQueue.front]
                   .length,
@@ -834,7 +834,7 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     if (len < sizeof(struct ChppAppHeader)) {
       CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
                 ", len=%" PRIuSIZE ") for handle=%" PRIu8
-                ". Queue depth: %" PRIu8 "->%" PRIu8,
+                ". Queue depth: %" PRIu8 "->%d",
                 packetCode, len, *handle, context->txDatagramQueue.pending,
                 context->txDatagramQueue.pending + 1);
     } else {
@@ -842,7 +842,7 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
       CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
                 ", len=%" PRIuSIZE ") for handle=%" PRIu8 ", type=0x%" PRIx8
                 ", transaction ID=%" PRIu8 ", error=%" PRIu8
-                ", command=0x%" PRIx16 ". Queue depth: %" PRIu8 "->%" PRIu8,
+                ", command=0x%" PRIx16 ". Queue depth: %" PRIu8 "->%d",
                 packetCode, len, header->handle, header->type,
                 header->transaction, header->error, header->command,
                 context->txDatagramQueue.pending,

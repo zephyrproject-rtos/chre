@@ -115,7 +115,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
 
   if (serviceCount >= CHPP_MAX_DISCOVERED_SERVICES) {
     CHPP_LOGE("Discovered service count = %" PRIu8
-              " larger than CHPP_MAX_DISCOVERED_SERVICES = %" PRIu8,
+              " larger than CHPP_MAX_DISCOVERED_SERVICES = %d",
               serviceCount, CHPP_MAX_DISCOVERED_SERVICES);
     CHPP_DEBUG_ASSERT(false);
   }
@@ -135,17 +135,18 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     chppUuidToStr(response->services[i].uuid, uuidText);
 
     if (context->clientIndexOfServiceIndex[i] == CHPP_CLIENT_INDEX_NONE) {
-      CHPP_LOGI("No matching client found for service on handle %" PRIu8
-                " with name=%s, UUID=%s, version=%" PRIu8 ".%" PRIu8
-                ".%" PRIu16,
-                CHPP_SERVICE_HANDLE_OF_INDEX(i), response->services[i].name,
-                uuidText, response->services[i].version.major,
-                response->services[i].version.minor,
-                response->services[i].version.patch);
+      CHPP_LOGI(
+          "No matching client found for service on handle %d"
+          " with name=%s, UUID=%s, version=%" PRIu8 ".%" PRIu8 ".%" PRIu16,
+          CHPP_SERVICE_HANDLE_OF_INDEX(i), response->services[i].name, uuidText,
+          response->services[i].version.major,
+          response->services[i].version.minor,
+          response->services[i].version.patch);
 
     } else {
       CHPP_LOGI(
-          "Client # %" PRIu8 " matched to service on handle %" PRIu8
+          "Client # %" PRIu8
+          " matched to service on handle %d"
           " with name=%s, UUID=%s. "
           "client version=%" PRIu8 ".%" PRIu8 ".%" PRIu16
           ", service version=%" PRIu8 ".%" PRIu8 ".%" PRIu16,

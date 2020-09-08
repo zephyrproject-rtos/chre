@@ -98,7 +98,8 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     chppUuidToStr(newService->descriptor.uuid, uuidText);
-    CHPP_LOGI("Registered service # %" PRIu8 " on handle %" PRIu8
+    CHPP_LOGI("Registered service # %" PRIu8
+              " on handle %d"
               " with name=%s, UUID=%s, version=%" PRIu8 ".%" PRIu8 ".%" PRIu16
               ", min_len=%" PRIuSIZE " ",
               appContext->registeredServiceCount,
