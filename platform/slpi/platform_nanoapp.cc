@@ -207,6 +207,7 @@ bool PlatformNanoappBase::setAppInfo(uint64_t appId, uint32_t appVersion,
 }
 
 bool PlatformNanoappBase::reserveBuffer(uint64_t appId, uint32_t appVersion,
+                                        uint32_t /* appFlags */,
                                         size_t appBinaryLen) {
   CHRE_ASSERT(!isLoaded());
   bool success = false;

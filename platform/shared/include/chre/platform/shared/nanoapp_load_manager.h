@@ -52,12 +52,13 @@ class NanoappLoadManager : public NonCopyable {
    * @param transactionId the ID of the transaction
    * @param appId the ID of the app to load
    * @param appVersion the version of the app to load
+   * @param appFlags the flags provided by the app being loaded
    * @param totalBinaryLen the total nanoapp binary length
    *
    * @return true if the preparation was successful, false otherwise
    */
   bool prepareForLoad(uint16_t hostClientId, uint32_t transactionId,
-                      uint64_t appId, uint32_t appVersion,
+                      uint64_t appId, uint32_t appVersion, uint32_t appFlags,
                       size_t totalBinaryLen);
 
   /**

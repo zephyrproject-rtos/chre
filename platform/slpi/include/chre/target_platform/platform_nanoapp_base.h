@@ -48,11 +48,13 @@ class PlatformNanoappBase {
    *
    * @param appId The unique app identifier associated with this binary
    * @param appVersion An application-defined version number
+   * @param appFlags The flags provided by the app being loaded
    * @param appBinaryLen Size of appBinary, in bytes
    *
    * @return true if the allocation was successful, false otherwise
    */
-  bool reserveBuffer(uint64_t appId, uint32_t appVersion, size_t appBinarylen);
+  bool reserveBuffer(uint64_t appId, uint32_t appVersion, uint32_t appFlags,
+                     size_t appBinarylen);
 
   /**
    * Copies the (possibly fragmented) application binary data into the allocated

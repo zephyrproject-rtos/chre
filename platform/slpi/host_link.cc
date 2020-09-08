@@ -481,6 +481,7 @@ UniquePtr<Nanoapp> handleLoadNanoappFile(uint16_t hostClientId,
  * @param transactionId the ID of the transaction
  * @param appId the ID of the app to load
  * @param appVersion the version of the app to load
+ * @param appFlags The flags provided by the app being loaded
  * @param targetApiVersion the API version this nanoapp is targeted for
  * @param buffer the nanoapp binary data. May be only part of the nanoapp's
  *     binary if it's being sent over multiple fragments
@@ -491,20 +492,23 @@ UniquePtr<Nanoapp> handleLoadNanoappFile(uint16_t hostClientId,
  * @return A valid pointer to a nanoapp that can be loaded into the system. A
  *     nullptr if the preparation process fails.
  */
-UniquePtr<Nanoapp> handleLoadNanoappData(
-    uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t targetApiVersion, const void *buffer,
-    size_t bufferLen, uint32_t fragmentId, size_t appBinaryLen) {
+UniquePtr<Nanoapp> handleLoadNanoappData(uint16_t hostClientId,
+                                         uint32_t transactionId, uint64_t appId,
+                                         uint32_t appVersion, uint32_t appFlags,
+                                         uint32_t targetApiVersion,
+                                         const void *buffer, size_t bufferLen,
+                                         uint32_t fragmentId,
+                                         size_t appBinaryLen) {
   static NanoappLoadManager sLoadManager;
 
   bool success = true;
   if (fragmentId == 0 || fragmentId == 1) {  // first fragment
     size_t totalAppBinaryLen = (fragmentId == 0) ? bufferLen : appBinaryLen;
     LOGD("Load nanoapp request for app ID 0x%016" PRIx64 " ver 0x%" PRIx32
-         " target API 0x%08" PRIx32 " size %zu (txnId %" PRIu32
-         " client %" PRIu16 ")",
-         appId, appVersion, targetApiVersion, totalAppBinaryLen, transactionId,
-         hostClientId);
+         " flags 0x%" PRIx32 " target API 0x%08" PRIx32
+         " size %zu (txnId %" PRIu32 " client %" PRIu16 ")",
+         appId, appVersion, appFlags, targetApiVersion, totalAppBinaryLen,
+         transactionId, hostClientId);
 
     if (sLoadManager.hasPendingLoadTransaction()) {
       FragmentedLoadInfo info = sLoadManager.getTransactionInfo();
@@ -513,8 +517,9 @@ UniquePtr<Nanoapp> handleLoadNanoappData(
       sLoadManager.markFailure();
     }
 
-    success = sLoadManager.prepareForLoad(hostClientId, transactionId, appId,
-                                          appVersion, totalAppBinaryLen);
+    success =
+        sLoadManager.prepareForLoad(hostClientId, transactionId, appId,
+                                    appVersion, appFlags, totalAppBinaryLen);
   }
   success &= sLoadManager.copyNanoappFragment(
       hostClientId, transactionId, (fragmentId == 0) ? 1 : fragmentId, buffer,
@@ -799,7 +804,7 @@ void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
 
 void HostMessageHandlers::handleLoadNanoappRequest(
     uint16_t hostClientId, uint32_t transactionId, uint64_t appId,
-    uint32_t appVersion, uint32_t /* appFlags */, uint32_t targetApiVersion,
+    uint32_t appVersion, uint32_t appFlags, uint32_t targetApiVersion,
     const void *buffer, size_t bufferLen, const char *appFileName,
     uint32_t fragmentId, size_t appBinaryLen) {
   UniquePtr<Nanoapp> pendingNanoapp;
@@ -808,9 +813,9 @@ void HostMessageHandlers::handleLoadNanoappRequest(
         handleLoadNanoappFile(hostClientId, transactionId, appId, appVersion,
                               targetApiVersion, appFileName);
   } else {
-    pendingNanoapp = handleLoadNanoappData(hostClientId, transactionId, appId,
-                                           appVersion, targetApiVersion, buffer,
-                                           bufferLen, fragmentId, appBinaryLen);
+    pendingNanoapp = handleLoadNanoappData(
+        hostClientId, transactionId, appId, appVersion, appFlags,
+        targetApiVersion, buffer, bufferLen, fragmentId, appBinaryLen);
   }
 
   if (!pendingNanoapp.isNull()) {
