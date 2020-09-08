@@ -56,7 +56,9 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
-  chppLoopbackClientInit(context);
+  if (context->clientServiceSet.loopbackClient) {
+    chppLoopbackClientInit(context);
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
@@ -82,7 +84,9 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
-  chppLoopbackClientDeinit(context);
+  if (context->clientServiceSet.loopbackClient) {
+    chppLoopbackClientDeinit();
+  }
 #endif
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN

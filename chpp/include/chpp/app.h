@@ -292,6 +292,7 @@ struct ChppClientServiceSet {
   bool wifiClient : 1;
   bool gnssClient : 1;
   bool wwanClient : 1;
+  bool loopbackClient : 1;
 };
 
 struct ChppAppState {

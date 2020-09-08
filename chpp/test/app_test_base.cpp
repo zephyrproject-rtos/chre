@@ -58,6 +58,7 @@ void AppTestBase::SetUp() {
   set.wifiClient = 1;
   set.gnssClient = 1;
   set.wwanClient = 1;
+  set.loopbackClient = 1;
 
   chppTransportInit(&mClientTransportContext, &mClientAppContext);
   chppAppInitWithClientServiceSet(&mClientAppContext, &mClientTransportContext,
