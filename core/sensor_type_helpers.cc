@@ -33,6 +33,7 @@ ReportingMode SensorTypeHelpers::getReportingMode(uint8_t sensorType) {
       return ReportingMode::OneShot;
     case CHRE_SENSOR_TYPE_LIGHT:
     case CHRE_SENSOR_TYPE_PROXIMITY:
+    case CHRE_SENSOR_TYPE_STEP_COUNTER:
       return ReportingMode::OnChange;
     default:
       return ReportingMode::Continuous;
@@ -115,6 +116,8 @@ size_t SensorTypeHelpers::getLastEventSize(uint8_t sensorType) {
         return sizeof(chreSensorOccurrenceData);
       case CHRE_SENSOR_TYPE_PROXIMITY:
         return sizeof(chreSensorByteData);
+      case CHRE_SENSOR_TYPE_STEP_COUNTER:
+        return sizeof(chreSensorUint64Data);
       default:
         // Update implementation to prevent undefined from being used.
         CHRE_ASSERT(false);
@@ -150,6 +153,8 @@ const char *SensorTypeHelpers::getSensorTypeName(uint8_t sensorType) {
       return "Proximity";
     case CHRE_SENSOR_TYPE_STEP_DETECT:
       return "Step Detect";
+    case CHRE_SENSOR_TYPE_STEP_COUNTER:
+      return "Step Counter";
     case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
       return "Accelerometer Temp";
     case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
@@ -203,6 +208,10 @@ void SensorTypeHelpers::getLastSample(uint8_t sensorType,
       case CHRE_SENSOR_TYPE_PROXIMITY:
         copyLastSample<chreSensorByteData>(&event->byteData,
                                            &lastEvent->byteData);
+        break;
+      case CHRE_SENSOR_TYPE_STEP_COUNTER:
+        copyLastSample<chreSensorUint64Data>(&event->uint64Data,
+                                             &lastEvent->uint64Data);
         break;
       default:
         LOGE("Unhandled sensor type %" PRIu8, sensorType);
