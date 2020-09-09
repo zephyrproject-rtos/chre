@@ -670,7 +670,7 @@ struct chreSensorFlushCompleteEvent {
  * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
  * @param handle  If a sensor is found, then the memory will be filled with
  *     the value for the sensor's handle.  This argument must be non-NULL.
- * @returns true if a sensor was found, false otherwise.
+ * @return true if a sensor was found, false otherwise.
  */
 bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle);
 
@@ -682,7 +682,7 @@ bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle);
  * @param info  If the sensor is valid, then this memory will be filled with
  *     the SensorInfo contents for this sensor.  This argument must be
  *     non-NULL.
- * @returns true if the senor handle is valid and 'info' was filled in;
+ * @return true if the senor handle is valid and 'info' was filled in;
  *     false otherwise.
  */
 bool chreGetSensorInfo(uint32_t sensorHandle, struct chreSensorInfo *info);
@@ -707,7 +707,7 @@ bool chreGetSensorInfo(uint32_t sensorHandle, struct chreSensorInfo *info);
  * @param status  If the sensor is valid, then this memory will be filled with
  *     the sampling status contents for this sensor.  This argument must be
  *     non-NULL.
- * @returns true if the senor handle is valid and 'status' was filled in;
+ * @return true if the senor handle is valid and 'status' was filled in;
  *     false otherwise.
  */
 bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
@@ -808,7 +808,7 @@ bool chreGetSensorSamplingStatus(uint32_t sensorHandle,
  *     nanoapp receives the information.  The current CHRE API has no
  *     real-time elements, although future versions may introduce some to
  *     help with this issue.
- * @returns true if the configuration succeeded, false otherwise.
+ * @return true if the configuration succeeded, false otherwise.
  *
  * @see chreSensorConfigureMode
  * @see chreSensorFindDefault

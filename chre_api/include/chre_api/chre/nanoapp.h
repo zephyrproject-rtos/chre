@@ -35,7 +35,7 @@ extern "C" {
  *
  * Every CHRE method is legal to call from this method.
  *
- * @returns  'true' if the nanoapp successfully started.  'false' if the nanoapp
+ * @return  'true' if the nanoapp successfully started.  'false' if the nanoapp
  *     failed to properly initialize itself (for example, could not obtain
  *     sufficient memory from the heap).  If this method returns 'false', the
  *     nanoapp will be unloaded by the CHRE (and nanoappEnd will

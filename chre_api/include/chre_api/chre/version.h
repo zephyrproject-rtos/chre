@@ -120,7 +120,7 @@ extern "C" {
  * @param version A uint32_t version, e.g. the value returned by
  *     chreGetApiVersion()
  *
- * @returns The API major version in the least significant byte, e.g. 0x01
+ * @return The API major version in the least significant byte, e.g. 0x01
  */
 #define CHRE_EXTRACT_MAJOR_VERSION(version) \
     (((version) & UINT32_C(0xFF000000)) >> 24)
@@ -131,7 +131,7 @@ extern "C" {
  *
  * @param version A uint32_t version, e.g. the CHRE_API_VERSION constant
  *
- * @returns The API minor version in the least significant byte, e.g. 0x01
+ * @return The API minor version in the least significant byte, e.g. 0x01
  */
 #define CHRE_EXTRACT_MINOR_VERSION(version) \
     (((version) & UINT32_C(0x00FF0000)) >> 16)
@@ -143,7 +143,7 @@ extern "C" {
  * @param version A complete uint32_t version, e.g. the value returned by
  *     chreGetVersion()
  *
- * @returns The implementation patch version in the least significant two bytes,
+ * @return The implementation patch version in the least significant two bytes,
  *     e.g. 0x0123, with all other bytes set to 0
  */
 #define CHRE_EXTRACT_PATCH_VERSION(version)  ((version) & UINT32_C(0xFFFF))
@@ -159,7 +159,7 @@ extern "C" {
  * By definition, this will have the two least significant bytes set to 0,
  * and only contain the major and minor version number.
  *
- * @returns The API version.
+ * @return The API version.
  */
 uint32_t chreGetApiVersion(void);
 
@@ -173,7 +173,7 @@ uint32_t chreGetApiVersion(void);
  * of this specific platform ID.  It is increased by the platform every time
  * a backwards-compatible bug fix is released.
  *
- * @returns The version.
+ * @return The version.
  *
  * @see chreGetPlatformId()
  */
@@ -195,7 +195,7 @@ uint32_t chreGetVersion(void);
  * to have code that can conditionally work around the bug on a buggy version.
  * Thus, we require this uniqueness to allow such a setup to work.
  *
- * @returns The platform ID.
+ * @return The platform ID.
  *
  * @see CHRE_EXTRACT_VENDOR_ID
  */
