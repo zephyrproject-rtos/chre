@@ -117,6 +117,7 @@ enum class SensorType : uint8_t {
   LIGHT = 12,
   PROXIMITY = 13,
   STEP_DETECT = 23,
+  STEP_COUNTER = 24,
   UNCALIBRATED_ACCELEROMETER = 55,
   ACCELEROMETER_TEMPERATURE = 56,
   GYROSCOPE_TEMPERATURE = 57,
@@ -125,7 +126,7 @@ enum class SensorType : uint8_t {
   MAX = GEOMAGNETIC_FIELD_TEMPERATURE
 };
 
-inline const SensorType (&EnumValuesSensorType())[16] {
+inline const SensorType (&EnumValuesSensorType())[17] {
   static const SensorType values[] = {
     SensorType::UNKNOWN,
     SensorType::ACCELEROMETER,
@@ -139,6 +140,7 @@ inline const SensorType (&EnumValuesSensorType())[16] {
     SensorType::LIGHT,
     SensorType::PROXIMITY,
     SensorType::STEP_DETECT,
+    SensorType::STEP_COUNTER,
     SensorType::UNCALIBRATED_ACCELEROMETER,
     SensorType::ACCELEROMETER_TEMPERATURE,
     SensorType::GYROSCOPE_TEMPERATURE,
@@ -173,7 +175,7 @@ inline const char * const *EnumNamesSensorType() {
     "",
     "",
     "STEP_DETECT",
-    "",
+    "STEP_COUNTER",
     "",
     "",
     "",
@@ -255,6 +257,7 @@ struct TimerMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  TimerMessageBuilder &operator=(const TimerMessageBuilder &);
   flatbuffers::Offset<TimerMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimerMessage>(end);
@@ -308,6 +311,7 @@ struct WifiScanMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  WifiScanMessageBuilder &operator=(const WifiScanMessageBuilder &);
   flatbuffers::Offset<WifiScanMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<WifiScanMessage>(end);
@@ -369,6 +373,7 @@ struct GnssLocationMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  GnssLocationMessageBuilder &operator=(const GnssLocationMessageBuilder &);
   flatbuffers::Offset<GnssLocationMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<GnssLocationMessage>(end);
@@ -424,6 +429,7 @@ struct CellQueryMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  CellQueryMessageBuilder &operator=(const CellQueryMessageBuilder &);
   flatbuffers::Offset<CellQueryMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<CellQueryMessage>(end);
@@ -480,6 +486,7 @@ struct AudioRequestMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  AudioRequestMessageBuilder &operator=(const AudioRequestMessageBuilder &);
   flatbuffers::Offset<AudioRequestMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<AudioRequestMessage>(end);
@@ -549,6 +556,7 @@ struct SensorRequestMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SensorRequestMessageBuilder &operator=(const SensorRequestMessageBuilder &);
   flatbuffers::Offset<SensorRequestMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SensorRequestMessage>(end);
@@ -599,6 +607,7 @@ struct BreakItMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  BreakItMessageBuilder &operator=(const BreakItMessageBuilder &);
   flatbuffers::Offset<BreakItMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<BreakItMessage>(end);
@@ -642,6 +651,7 @@ struct NanoappResponseMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappResponseMessageBuilder &operator=(const NanoappResponseMessageBuilder &);
   flatbuffers::Offset<NanoappResponseMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappResponseMessage>(end);
@@ -693,6 +703,7 @@ struct GnssMeasurementMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  GnssMeasurementMessageBuilder &operator=(const GnssMeasurementMessageBuilder &);
   flatbuffers::Offset<GnssMeasurementMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<GnssMeasurementMessage>(end);

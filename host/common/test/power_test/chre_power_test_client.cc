@@ -86,6 +86,7 @@
  *  light
  *  proximity
  *  step
+ *  step_counter
  *  uncalibrated_accelerometer
  *  accelerometer_temperature
  *  gyroscope_temperature
@@ -173,6 +174,7 @@ std::unordered_map<string, SensorType> sensorTypeMap{
     {"light", SensorType::LIGHT},
     {"proximity", SensorType::PROXIMITY},
     {"step", SensorType::STEP_DETECT},
+    {"step_counter", SensorType::STEP_COUNTER},
     {"uncalibrated_accelerometer", SensorType::UNCALIBRATED_ACCELEROMETER},
     {"accelerometer_temperature", SensorType::ACCELEROMETER_TEMPERATURE},
     {"gyroscope_temperature", SensorType::GYROSCOPE_TEMPERATURE},
