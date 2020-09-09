@@ -80,7 +80,7 @@ static void chppDiscoveryDiscoverAll(
 bool chppDispatchDiscoveryClientRequest(struct ChppAppState *context,
                                         const uint8_t *buf, size_t len) {
   UNUSED_VAR(len);
-  const struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  const struct ChppAppHeader *rxHeader = (const struct ChppAppHeader *)buf;
   bool success = true;
 
   switch (rxHeader->command) {
