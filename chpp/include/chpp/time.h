@@ -34,7 +34,7 @@ extern "C" {
 /**
  * @return The current time in nanoseconds.
  */
-static uint64_t chppGetCurrentTimeNs();
+static uint64_t chppGetCurrentTimeNs(void);
 
 #ifdef __cplusplus
 }

@@ -32,7 +32,7 @@
 //! macros.
 #define PAL_LOG_FORMAT_STR "PAL: %s"
 
-uint64_t palSystemApiGetCurrentTime() {
+uint64_t palSystemApiGetCurrentTime(void) {
   return chppGetCurrentTimeNs();
 }
 
