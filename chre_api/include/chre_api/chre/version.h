@@ -85,10 +85,10 @@ extern "C" {
 /**
  * Value for version 1.4 of the Context Hub Runtime Environment API interface.
  *
- * The version of the CHRE API shipped with the Android R release.
- *
- * @note This version of the CHRE API has not been finalized yet, and is
- * currently considered a preview that is subject to change.
+ * The version of the CHRE API shipped with the Android R release. It adds
+ * support for collecting debug dump information from nanoapps, receiving L5
+ * GNSS measurements, determining if a sensor supports passive requests,
+ * receiving 5G cell info, and deprecates chreSendMessageToHost.
  *
  * @see CHRE_API_VERSION
  */
