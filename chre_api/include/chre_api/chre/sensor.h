@@ -147,10 +147,30 @@ extern "C" {
  *
  * This data is generated every time a step is taken by the user.
  *
+ * This is backed by the same algorithm that feeds Android's
+ * SENSOR_TYPE_STEP_DETECTOR, and therefore sacrifices some accuracy to target
+ * an update latency of under 2 seconds.
+ *
  * @since v1.3
  */
 #define CHRE_EVENT_SENSOR_STEP_DETECT_DATA \
     (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_STEP_DETECT)
+
+/**
+ * nanoappHandleEvent argument: struct chreSensorUint64Data
+ *
+ * The value of the data is the cumulative number of steps taken by the user
+ * since the last reboot while the sensor is active. This data is generated
+ * every time a step is taken by the user.
+ *
+ * This is backed by the same algorithm that feeds Android's
+ * SENSOR_TYPE_STEP_COUNTER, and therefore targets high accuracy with under
+ * 10 seconds of update latency.
+ *
+ * @since v1.5
+ */
+#define CHRE_EVENT_SENSOR_STEP_COUNTER_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_STEP_COUNTER)
 
 /**
  * nanoappHandleEvent argument: struct chreSensorThreeAxisData
