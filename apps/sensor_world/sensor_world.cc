@@ -133,6 +133,24 @@ SensorState sensors[] = {
         .info = {},
     },
     {
+        .type = CHRE_SENSOR_TYPE_STEP_DETECT,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
+        .latency = CHRE_SENSOR_LATENCY_ASAP,
+        .info = {},
+    },
+    {
+        .type = CHRE_SENSOR_TYPE_STEP_COUNTER,
+        .handle = 0,
+        .isInitialized = false,
+        .enable = kEnableDefault,
+        .interval = CHRE_SENSOR_INTERVAL_DEFAULT,
+        .latency = CHRE_SENSOR_LATENCY_ASAP,
+        .info = {},
+    },
+    {
         .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
         .handle = 0,
         .isInitialized = false,
@@ -423,12 +441,23 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
     }
 
     case CHRE_EVENT_SENSOR_INSTANT_MOTION_DETECT_DATA:
-    case CHRE_EVENT_SENSOR_STATIONARY_DETECT_DATA: {
+    case CHRE_EVENT_SENSOR_STATIONARY_DETECT_DATA:
+    case CHRE_EVENT_SENSOR_STEP_DETECT_DATA: {
       const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
       const auto header = ev->header;
 
       CLOGI("%s, %d samples", getSensorName(header.sensorHandle),
             header.readingCount);
+      break;
+    }
+
+    case CHRE_EVENT_SENSOR_STEP_COUNTER_DATA: {
+      const auto *ev = static_cast<const chreSensorUint64Data *>(eventData);
+      const auto header = ev->header;
+      const uint64_t reading = ev->readings[header.readingCount - 1].value;
+
+      CLOGI("%s, %" PRIu16 " samples: latest %" PRIu64,
+            getSensorName(header.sensorHandle), header.readingCount, reading);
       break;
     }
 
