@@ -101,7 +101,7 @@ enum chreLogLevel {
  * The application ID is set by the loader of the nanoapp.  This is not
  * assured to be unique among all nanoapps running in the system.
  *
- * @returns The application ID.
+ * @return The application ID.
  */
 uint64_t chreGetAppId(void);
 
@@ -113,7 +113,7 @@ uint64_t chreGetAppId(void);
  * different from the CHRE_INSTANCE_ID.  This is the ID used to communicate
  * between nanoapps.
  *
- * @returns The instance ID
+ * @return The instance ID
  */
 uint32_t chreGetInstanceId(void);
 
@@ -149,7 +149,7 @@ uint32_t chreGetInstanceId(void);
  *
  * For a nanoapp author, an OPTIONAL format means you might not get exactly
  * what you want on every CHRE implementation, but you will always get
- * something sane.
+ * something valid.
  *
  * To be clearer, here's an example with the OPTIONAL 0-padding for integers
  * for different hypothetical CHRE implementations.
@@ -174,10 +174,10 @@ uint32_t chreGetInstanceId(void);
  *
  * OPTIONAL format sub-specifiers:
  * - '-' (left-justify within the given field width)
- * - '+' (preceed the result with a '+' sign if it is positive)
- * - ' ' (preceed the result with a blank space if no sign is going to be
+ * - '+' (precede the result with a '+' sign if it is positive)
+ * - ' ' (precede the result with a blank space if no sign is going to be
  *        output)
- * - '#' (For 'o', 'x' or 'X', preceed output with "0", "0x" or "0X",
+ * - '#' (For 'o', 'x' or 'X', precede output with "0", "0x" or "0X",
  *        respectively.  For floating point, unconditionally output a decimal
  *        point.)
  * - '0' (left pad the number with zeroes instead of spaces when <width>
@@ -242,7 +242,7 @@ void chreLog(enum chreLogLevel level, const char *formatStr, ...);
  * This value must always increase (and must never roll over).  This
  * value has no meaning across CHRE reboots.
  *
- * @returns The system time, in nanoseconds.
+ * @return The system time, in nanoseconds.
  */
 uint64_t chreGetTime(void);
 
@@ -261,7 +261,7 @@ uint64_t chreGetTime(void);
  * some fixed/invalid value while waiting for the initial offset estimate to be
  * determined - this initial offset must be ready before nanoapps are started.
  *
- * @returns An estimate of the offset between CHRE's time returned in
+ * @return An estimate of the offset between CHRE's time returned in
  *     chreGetTime() and the time on the host given in the Android API
  *     SystemClock.elapsedRealtimeNanos(), accurate to within +/- 10
  *     milliseconds, such that adding this offset to chreGetTime() produces the
@@ -277,7 +277,7 @@ int64_t chreGetEstimatedHostTimeOffset(void);
  * Convenience function to retrieve CHRE's estimate of the current time on the
  * host, corresponding to the Android API SystemClock.elapsedRealtimeNanos().
  *
- * @returns An estimate of the current time on the host, accurate to within
+ * @return An estimate of the current time on the host, accurate to within
  *     +/- 10 milliseconds.  This estimate is *not* guaranteed to be
  *     monotonically increasing, and may move backwards as a result of receiving
  *     new information from the host.
@@ -325,7 +325,7 @@ static inline uint64_t chreGetEstimatedHostTime(void) {
  *     timer will continue to refire every 'duration', until this timer is
  *     canceled (@see chreTimerCancel).
  *
- * @returns  The timer ID.  If the system is unable to set a timer
+ * @return  The timer ID.  If the system is unable to set a timer
  *     (no more available timers, etc.) then CHRE_TIMER_INVALID will
  *     be returned.
  *
@@ -341,7 +341,7 @@ uint32_t chreTimerSet(uint64_t duration, const void *cookie, bool oneShot);
  * will need to be evicted from the queue by the CHRE.
  *
  * @param timerId  A timer ID obtained by this nanoapp via chreTimerSet().
- * @returns true if the timer was cancelled, false otherwise.  We may
+ * @return true if the timer was cancelled, false otherwise.  We may
  *     fail to cancel the timer if it's a one shot which (just) fired,
  *     or if the given timer ID is not owned by the calling app.
  */
@@ -360,7 +360,7 @@ bool chreTimerCancel(uint32_t timerId);
  * @param abortCode  A value indicating the reason for aborting.  (Note that
  *    in this version of the API, there is no way for anyone to access this
  *    code, but future APIs may expose it.)
- * @returns Never.  This method does not return, as the CHRE stops nanoapp
+ * @return Never.  This method does not return, as the CHRE stops nanoapp
  *    execution immediately.
  */
 void chreAbort(uint32_t abortCode);
@@ -377,7 +377,7 @@ void chreAbort(uint32_t abortCode);
  * to properly manage their heap resources.
  *
  * @param bytes  The number of bytes requested.
- * @returns  A pointer to 'bytes' contiguous bytes of heap memory, or NULL
+ * @return  A pointer to 'bytes' contiguous bytes of heap memory, or NULL
  *     if the allocation could not be performed.  This pointer must be suitably
  *     aligned for any kind of variable.
  *

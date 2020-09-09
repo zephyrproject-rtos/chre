@@ -108,9 +108,10 @@ enum chreError {
     CHRE_ERROR_REJECTED_RATE_LIMIT = 8,
 
     //! The requested functionality is not currently accessible from the CHRE,
-    //! because another master, such as the main applications processor, is
+    //! because another client, such as the main applications processor, is
     //! currently controlling it.
     CHRE_ERROR_FUNCTION_RESTRICTED_TO_OTHER_MASTER = 9,
+    CHRE_ERROR_FUNCTION_RESTRICTED_TO_OTHER_CLIENT = 9,
 
     //!< Do not exceed this value when adding new error codes
     CHRE_ERROR_LAST = UINT8_MAX,

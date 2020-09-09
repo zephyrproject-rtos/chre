@@ -379,7 +379,7 @@ typedef void (chreMessageFreeFunction)(void *message, size_t messageSize);
  * @param targetInstanceId  The ID of the instance we're delivering this event
  *     to.  Note that this is allowed to be our own instance.  The instance ID
  *     of a nanoapp can be retrieved by using chreGetNanoappInfoByInstanceId().
- * @returns true if the event was enqueued, false otherwise.  Note that even
+ * @return true if the event was enqueued, false otherwise.  Note that even
  *     if this method returns 'false', the 'freeCallback' will be invoked,
  *     if non-NULL.  Note in the 'false' case, the 'freeCallback' may be
  *     invoked directly from within chreSendEvent(), so it's necessary
@@ -453,7 +453,7 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
  *     the host, just that the transport layer no longer needs this memory),
  *     this callback will be invoked.  This argument is allowed
  *     to be NULL, in which case no callback will be invoked.
- * @returns true if the message was accepted for transmission, false otherwise.
+ * @return true if the message was accepted for transmission, false otherwise.
  *     Note that even if this method returns 'false', the 'freeCallback' will
  *     be invoked, if non-NULL.  In either case, the 'freeCallback' may be
  *     invoked directly from within chreSendMessageToHostEndpoint(), so it's
@@ -479,7 +479,7 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
  *     information about.
  * @param info Output parameter.  If this function returns true, this structure
  *     will be populated with details of the specified nanoapp.
- * @returns true if a nanoapp with the given ID is currently running, and the
+ * @return true if a nanoapp with the given ID is currently running, and the
  *     supplied info parameter was populated with its information.
  *
  * @since v1.1
@@ -494,7 +494,7 @@ bool chreGetNanoappInfoByAppId(uint64_t appId, struct chreNanoappInfo *info);
  * @param instanceId
  * @param info Output parameter.  If this function returns true, this structure
  *     will be populated with details of the specified nanoapp.
- * @returns true if a nanoapp with the given instance ID is currently running,
+ * @return true if a nanoapp with the given instance ID is currently running,
  *     and the supplied info parameter was populated with its information.
  *
  * @since v1.1
@@ -557,7 +557,7 @@ void chreConfigureHostSleepStateEvents(bool enable);
  * state is instantaneous, and it may also change between querying the state and
  * performing a host-waking action like sending a message to the host.
  *
- * @returns true if by CHRE's own estimation the host is currently awake,
+ * @return true if by CHRE's own estimation the host is currently awake,
  *     false otherwise
  *
  * @since v1.2
