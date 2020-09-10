@@ -1177,10 +1177,12 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
   struct ChppTransportState *context =
       container_of(params, struct ChppTransportState, linkParams);
 
+  chppMutexLock(&context->mutex);
   context->txStatus.linkBusy = false;
   if (context->txStatus.hasPacketsToSend) {
     chppNotifierSignal(&context->notifier, CHPP_TRANSPORT_SIGNAL_EVENT);
   }
+  chppMutexUnlock(&context->mutex);
 }
 
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
