@@ -29,7 +29,15 @@
  *     "802.11" | IEEE Std 802.11-2007
  *     "HT"     | IEEE Std 802.11n-2009
  *     "VHT"    | IEEE Std 802.11ac-2013
+ *     "WiFi 6" | IEEE Std 802.11ax draft
  *
+ * In the current version of CHRE API, the 6GHz band introduced in WiFi 6 is
+ * not supported. A scan request from CHRE should not result in scanning 6GHz
+ * channels. In particular, if a 6GHz channel is specified in scanning or
+ * ranging request parameter, CHRE should return an error code of
+ * CHRE_ERROR_NOT_SUPPORTED. Additionally, CHRE implementations must not include
+ * observations of access points on 6GHz channels in scan results, especially
+ * those produced due to scan monitoring.
  */
 
 #include <chre/common.h>
