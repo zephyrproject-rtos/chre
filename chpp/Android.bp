@@ -19,6 +19,7 @@ cc_library_static {
     name: "chre_chpp_linux",
     vendor: true,
     cflags: [
+        "-DCHPP_CLIENT_ENABLED_DISCOVERY",
         "-DCHPP_CLIENT_ENABLED_LOOPBACK",
         "-DCHPP_CLIENT_ENABLED_GNSS",
         "-DCHPP_CLIENT_ENABLED_WIFI",
