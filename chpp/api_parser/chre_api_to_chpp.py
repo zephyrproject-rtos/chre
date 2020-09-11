@@ -123,6 +123,10 @@ class CodeGenerator:
         else:
             raise RuntimeError("Couldn't figure out new type name for {}".format(chre_type))
 
+    def _get_chre_type_with_prefix(self, chre_type):
+        """Given 'chreWwanCellInfo' returns 'struct chreWwanCellInfo', etc."""
+        return self._get_struct_or_union_prefix(chre_type) + chre_type
+
     def _get_chpp_header_type_from_chre(self, chre_type):
         """Given 'chreWwanCellInfo' returns 'struct ChppWwanCellInfoWithHeader', etc."""
         return self._get_chpp_type_from_chre(chre_type) + 'WithHeader'
@@ -252,7 +256,7 @@ class CodeGenerator:
         return result
 
     # ----------------------------------------------------------------------------------------------
-    # Encoder/decoder function generation methods
+    # Encoder function generation methods (CHRE --> CHPP)
     # ----------------------------------------------------------------------------------------------
 
     def _get_chpp_member_sizeof_call(self, member_info):
@@ -361,42 +365,6 @@ class CodeGenerator:
         out.append(")")
         return out
 
-    def _get_assignment_statement_for_field(self, member_info, in_vla_loop=False,
-                                            containing_field_name=None):
-        """Returns a statement to assign the provided member
-
-        :param member_info:
-        :param in_vla_loop: True if we're currently inside a loop and should append [i]
-        :param containing_field_name: Additional member name to use to access the target field, or
-        None; for example the normal case is "out->field = in->field", but if we're generating
-        assignments in the parent conversion function (e.g. as used for union variants), we need to
-        do "out->nested_field.field = in->nested_field.field"
-        :return: assignment statement as a string
-        """
-        array_index = "[i]" if in_vla_loop else ""
-        output_accessor = "" if in_vla_loop else "out->"
-        containing_field = containing_field_name + "." if containing_field_name is not None else ""
-
-        output_variable = "{}{}{}{}".format(output_accessor, containing_field, member_info['name'],
-                                            array_index)
-        input_variable = "in->{}{}{}".format(containing_field, member_info['name'], array_index)
-
-        if member_info['is_nested_type']:
-            # Use encoding function
-            chre_type = member_info['nested_type_name']
-            has_vla_member = self.api.structs_and_unions[chre_type]['has_vla_member']
-            vla_params = ", payload, payloadSize, vlaOffset" if has_vla_member else ""
-            return "{}(&{}, &{}{});\n".format(
-                self._get_encoding_function_name(chre_type), input_variable, output_variable,
-                vla_params)
-        elif self._is_array_type(member_info['type']):
-            # Array of primitive type (e.g. uint32_t[8]) - use memcpy
-            return "memcpy({}, {}, sizeof({}));\n".format(output_variable, input_variable,
-                                                          output_variable)
-        else:
-            # Regular assignment
-            return "{} = {};\n".format(output_variable, input_variable)
-
     def _gen_vla_encoding(self, member_info, annotation):
         out = []
 
@@ -420,7 +388,7 @@ class CodeGenerator:
         out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
             annotation['length_field'], variable_name))
         out.append("      {}".format(
-            self._get_assignment_statement_for_field(member_info, True)))
+            self._get_assignment_statement_for_field(member_info, in_vla_loop=True)))
         out.append("    }\n")
 
         out.append("  } else {\n")
@@ -429,8 +397,66 @@ class CodeGenerator:
 
         return out
 
-    def _gen_union_variant_conversion_code(self, member_info, annotation):
-        """Generates a switch statement to convert the "active"/"used" field within a union.
+    # ----------------------------------------------------------------------------------------------
+    # Encoder / decoder function generation methods (CHRE <--> CHPP)
+    # ----------------------------------------------------------------------------------------------
+
+    def _get_assignment_statement_for_field(self, member_info, in_vla_loop=False,
+                                            containing_field_name=None,
+                                            decode_mode=False):
+        """Returns a statement to assign the provided member
+
+        :param member_info:
+        :param in_vla_loop: True if we're currently inside a loop and should append [i]
+        :param containing_field_name: Additional member name to use to access the target field, or
+        None; for example the normal case is "out->field = in->field", but if we're generating
+        assignments in the parent conversion function (e.g. as used for union variants), we need to
+        do "out->nested_field.field = in->nested_field.field"
+        :param decode_mode: True converts from CHPP to CHRE. False from CHRE to CHPP
+        :return: assignment statement as a string
+        """
+        array_index = "[i]" if in_vla_loop else ""
+        output_accessor = "" if in_vla_loop else "out->"
+        containing_field = containing_field_name + "." if containing_field_name is not None else ""
+
+        output_variable = "{}{}{}{}".format(output_accessor, containing_field, member_info['name'],
+                                            array_index)
+        input_variable = "in->{}{}{}".format(containing_field, member_info['name'], array_index)
+
+        if decode_mode and in_vla_loop:
+            output_variable = "{}Out{}".format(member_info['name'], array_index)
+            input_variable = "{}In{}".format(member_info['name'], array_index)
+
+        if member_info['is_nested_type']:
+            chre_type = member_info['nested_type_name']
+            has_vla_member = self.api.structs_and_unions[chre_type]['has_vla_member']
+            if decode_mode:
+                # Use decoding function
+                vla_params = ", inSize" if has_vla_member else ""
+                out = "if (!{}(&{}, &{}{})) {{\n".format(
+                    self._get_decoding_function_name(chre_type), input_variable,
+                    output_variable, vla_params)
+                if has_vla_member:
+                    out += "  CHPP_FREE_AND_NULLIFY({}Out);\n".format(member_info['name'])
+                out += "  return false;\n"
+                out += "}\n"
+                return out
+            else:
+                # Use encoding function
+                vla_params = ", payload, payloadSize, vlaOffset" if has_vla_member else ""
+                return "{}(&{}, &{}{});\n".format(
+                    self._get_encoding_function_name(chre_type), input_variable, output_variable,
+                    vla_params)
+        elif self._is_array_type(member_info['type']):
+            # Array of primitive type (e.g. uint32_t[8]) - use memcpy
+            return "memcpy({}, {}, sizeof({}));\n".format(output_variable, input_variable,
+                                                          output_variable)
+        else:
+            # Regular assignment
+            return "{} = {};\n".format(output_variable, input_variable)
+
+    def _gen_union_variant_conversion_code(self, member_info, annotation, decode_mode):
+        """Generates a switch statement to encode the "active"/"used" field within a union.
 
         Handles cases where a union has multiple types, but there's another peer/adjacent field
         which tells you which field in the union is to be used. Outputs code like this:
@@ -440,6 +466,7 @@ class CodeGenerator:
                 ...
         :param chre_type: CHRE type of the union
         :param annotation: Reference to JSON annotation data with the discriminator mapping data
+        :param decode_mode: False encodes from CHRE to CHPP. True decodes from CHPP to CHRE
         :return: list of strings
         """
         out = []
@@ -460,7 +487,9 @@ class CodeGenerator:
                 if nested_member_info['name'] == field_name:
                     out.append("      {}".format(
                         self._get_assignment_statement_for_field(
-                            nested_member_info, containing_field_name=member_info['name'])))
+                            nested_member_info,
+                            containing_field_name=member_info['name'],
+                            decode_mode=decode_mode)))
                     found = True
                     break
 
@@ -476,13 +505,14 @@ class CodeGenerator:
 
         return out
 
-    def _gen_encoding_function(self, chre_type, already_generated):
+    def _gen_conversion_function(self, chre_type, already_generated, decode_mode):
         out = []
 
         struct_info = self.api.structs_and_unions[chre_type]
         for dependency in sorted(struct_info['dependencies']):
             if dependency not in already_generated:
-                out.extend(self._gen_encoding_function(dependency, already_generated))
+                out.extend(
+                    self._gen_conversion_function(dependency, already_generated, decode_mode))
 
         # Skip if we've already generated code for this type, or if it's a union (in which case we
         # handle the assignment in the parent structure to enable support for discrimination of
@@ -492,7 +522,10 @@ class CodeGenerator:
         already_generated.add(chre_type)
 
         out.append("static ")
-        out.extend(self._gen_encoding_function_signature(chre_type))
+        if decode_mode:
+            out.extend(self._gen_decoding_function_signature(chre_type))
+        else:
+            out.extend(self._gen_encoding_function_signature(chre_type))
         out.append(" {\n")
 
         for member_info in self.api.structs_and_unions[chre_type]['members']:
@@ -511,26 +544,33 @@ class CodeGenerator:
                     # TODO: generate range verification code?
                     pass
                 elif annotation['annotation'] == "var_len_array":
-                    out.extend(self._gen_vla_encoding(member_info, annotation))
+                    if decode_mode:
+                        out.extend(self._gen_vla_decoding(member_info, annotation))
+                    else:
+                        out.extend(self._gen_vla_encoding(member_info, annotation))
                     generated_by_annotation = True
                     break
                 elif annotation['annotation'] == "union_variant":
-                    out.extend(self._gen_union_variant_conversion_code(member_info, annotation))
+                    out.extend(self._gen_union_variant_conversion_code(
+                        member_info, annotation, decode_mode))
                     generated_by_annotation = True
                     break
 
             if not generated_by_annotation:
-                out.append("  {}".format(self._get_assignment_statement_for_field(member_info)))
+                out.append("  {}".format(
+                    self._get_assignment_statement_for_field(member_info, decode_mode=decode_mode)))
+
+        if decode_mode:
+            out.append("\n  return true;\n")
 
         out.append("}\n\n")
         return out
 
-    def _gen_encoding_functions(self):
+    def _gen_conversion_functions(self, decode_mode):
         out = []
         already_generated = set()
         for struct in self.json['root_structs']:
-            out.extend(self._gen_encoding_function(struct, already_generated))
-
+            out.extend(self._gen_conversion_function(struct, already_generated, decode_mode))
         return out
 
     def _strip_prefix_and_service_from_chre_struct_name(self, struct):
@@ -579,8 +619,7 @@ class CodeGenerator:
                        "app layer header, and to free the buffer when it is no longer needed via "
                        "chppFree() or CHPP_FREE_AND_NULLIFY().\n"
                        " * @param outSize Upon success, will be set to the size of the output "
-                       "buffer,\n"
-                       " * in bytes.\n"
+                       "buffer, in bytes.\n"
                        " *\n"
                        " * @return true on success, false if memory allocation failed.\n"
                        " */\n")
@@ -636,6 +675,132 @@ class CodeGenerator:
         return out
 
     # ----------------------------------------------------------------------------------------------
+    # Decoder function generation methods (CHPP --> CHRE)
+    # ----------------------------------------------------------------------------------------------
+
+    def _get_decoding_function_name(self, chre_type):
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_type)
+        return "chpp{}Convert{}ToChre".format(self.capitalized_service_name, core_type_name)
+
+    def _gen_decoding_function_signature(self, chre_type):
+        out = []
+        out.append("bool {}(\n".format(self._get_decoding_function_name(chre_type)))
+        out.append("    const {} *in,\n".format(self._get_chpp_type_from_chre(chre_type)))
+        out.append("    {} *out".format(self._get_chre_type_with_prefix(chre_type)))
+        if self.api.structs_and_unions[chre_type]['has_vla_member']:
+            out.append(",\n")
+            out.append("    size_t inSize")
+        out.append(")")
+        return out
+
+    def _gen_vla_decoding(self, member_info, annotation):
+        out = []
+
+        variable_name = member_info['name']
+        chpp_type = self._get_member_type(member_info, True)
+        if member_info['is_nested_type']:
+            chre_type = self._get_chre_type_with_prefix(member_info['nested_type_name'])
+        else:
+            chre_type = chpp_type
+
+        out.append("  if (in->{}.length != 0) {{\n".format(variable_name))
+
+        out.append("    if (in->{}.offset + in->{}.length > inSize) {{\n".format(
+            variable_name, variable_name))
+        out.append("      return false;\n")
+        out.append("    }\n\n")
+
+        out.append("    {} *{}In = ({} *) &((uint8_t *)in)[in->{}.offset];\n".format(
+            chpp_type, variable_name, chpp_type, variable_name))
+
+        out.append("    {} *{}Out = chppMalloc(in->{} * sizeof({}));\n".format(
+            chre_type, variable_name, annotation['length_field'], chre_type))
+        out.append("    if ({}Out == NULL) {{\n".format(variable_name))
+        out.append("      return false;\n")
+        out.append("    }\n\n")
+
+
+        out.append("    for (size_t i = 0; i < in->{}; i++) {{\n".format(
+            annotation['length_field'], variable_name))
+        out.append("      {}".format(self._get_assignment_statement_for_field(
+            member_info, in_vla_loop=True, decode_mode=True)))
+        out.append("    }\n")
+        out.append("    out->{} = {}Out;\n".format(variable_name, variable_name))
+        out.append("  }\n\n")
+
+        return out
+
+    def _get_decode_allocation_function_name(self, chre_type):
+        core_type_name = self._strip_prefix_and_service_from_chre_struct_name(chre_type)
+        return "chpp{}{}ToChre".format(self.capitalized_service_name, core_type_name)
+
+    def _gen_decode_allocation_function_signature(self, chre_type, gen_docs=False):
+        out = []
+        if gen_docs:
+            out.append("/**\n"
+                       " * Converts from serialized CHPP structure to a CHRE type.\n"
+                       " *\n"
+                       " * @param in Fully-formed CHPP structure.\n"
+                       " * @param in Size of the CHPP structure in bytes.\n"
+                       " *\n"
+                       " * @return If successful, a pointer to a CHRE structure allocated with "
+                       "chppMalloc(). If unsuccessful, null.\n"
+                       " * It is the responsibility of the caller to free the buffer when it is no "
+                       "longer needed via chppFree() or CHPP_FREE_AND_NULLIFY().\n"
+                       " */\n")
+
+        out.append("{} *{}(\n".format(
+            self._get_chre_type_with_prefix(chre_type),
+            self._get_decode_allocation_function_name(chre_type)))
+        out.append("    const {} *in,\n".format(self._get_chpp_type_from_chre(chre_type)))
+        out.append("    size_t inSize)")
+        return out
+
+    def _gen_decode_allocation_function(self, chre_type):
+        out = []
+
+        out.extend(self._gen_decode_allocation_function_signature(chre_type))
+        out.append(" {\n")
+
+        out.append("  {} *out = NULL;\n\n".format(
+            self._get_chre_type_with_prefix(chre_type)))
+
+        out.append("  if (inSize >= sizeof({})) {{\n".format(
+            self._get_chpp_type_from_chre(chre_type)))
+
+        out.append("    out = chppMalloc(sizeof({}));\n".format(
+            self._get_chre_type_with_prefix(chre_type)))
+        out.append("    if (out != NULL) {\n")
+
+        struct_info = self.api.structs_and_unions[chre_type]
+
+        out.append("      if (!{}(in, out".format(self._get_decoding_function_name(chre_type)))
+        if struct_info['has_vla_member']:
+            out.append(", inSize")
+        out.append(")) {")
+        out.append("        CHPP_FREE_AND_NULLIFY(out);\n")
+        out.append("      }\n")
+
+        out.append("    }\n")
+        out.append("  }\n\n")
+        out.append("  return out;\n")
+        out.append("}\n")
+        return out
+
+    def _gen_decode_allocation_functions(self):
+        out = []
+        for chre_type in self.json['root_structs']:
+            out.extend(self._gen_decode_allocation_function(chre_type))
+        return out
+
+    def _gen_decode_allocation_function_signatures(self):
+        out = []
+        for chre_type in self.json['root_structs']:
+            out.extend(self._gen_decode_allocation_function_signature(chre_type, True))
+            out.append(";\n\n")
+        return out
+
+    # ----------------------------------------------------------------------------------------------
     # Public methods
     # ----------------------------------------------------------------------------------------------
 
@@ -667,7 +832,8 @@ class CodeGenerator:
         out.append("\n// Encoding functions (CHRE --> CHPP)\n\n")
         out.extend(self._gen_encode_allocation_function_signatures())
 
-        # TODO: function prototypes for decoding
+        out.append("\n// Decoding functions (CHPP --> CHRE)\n\n")
+        out.extend(self._gen_decode_allocation_function_signatures())
 
         out.append("#ifdef __cplusplus\n}\n#endif\n\n")
         out.append("#endif  // {}\n".format(header_guard))
@@ -690,11 +856,18 @@ class CodeGenerator:
 
         out.extend(self._autogen_notice())
         out.extend(self._gen_conversion_includes())
+
+        out.append("\n// Encoding (CHRE --> CHPP) size functions\n\n")
         out.extend(self._gen_chpp_sizeof_functions())
-        out.extend(self._gen_encoding_functions())
+        out.append("\n// Encoding (CHRE --> CHPP) conversion functions\n\n")
+        out.extend(self._gen_conversion_functions(False))
+        out.append("\n// Encoding (CHRE --> CHPP) top-level functions\n\n")
         out.extend(self._gen_encode_allocation_functions())
 
-        # TODO: allocation + decoding functions (for CHPP to CHRE direction)
+        out.append("\n// Decoding (CHPP --> CHRE) conversion functions\n\n")
+        out.extend(self._gen_conversion_functions(True))
+        out.append("\n// Decoding (CHPP --> CHRE) top-level functions\n\n")
+        out.extend(self._gen_decode_allocation_functions())
 
         return ''.join(out)
 
