@@ -52,7 +52,7 @@ void pw_TokenizerHandleEncodedMessageWithPayload(void *userPayload,
   // TODO (b/148873804): buffer log messages generated while the AP is asleep
   auto &hostCommsMgr =
       chre::EventLoopManagerSingleton::get()->getHostCommsManager();
-  hostCommsMgr.sendLogMessage(reinterpret_cast<const char *>(logBuffer),
+  hostCommsMgr.sendLogMessage(logBuffer,
                               encodedMsgSize + kLogMessageHeaderSizeBytes);
 }
 #endif

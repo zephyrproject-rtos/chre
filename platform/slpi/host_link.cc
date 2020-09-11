@@ -738,6 +738,29 @@ bool HostLinkBase::flushOutboundQueue() {
   return (waitCount >= 0);
 }
 
+void HostLinkBase::sendLogMessage(const uint8_t *logMessage,
+                                  size_t logMessageSize) {
+  struct LogMessageData {
+    const uint8_t *logMsg;
+    size_t logMsgSize;
+  };
+
+  LogMessageData logMessageData;
+
+  logMessageData.logMsg = logMessage;
+  logMessageData.logMsgSize = logMessageSize;
+
+  auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
+    const auto *data = static_cast<const LogMessageData *>(cookie);
+    HostProtocolChre::encodeLogMessages(builder, data->logMsg,
+                                        data->logMsgSize);
+  };
+
+  constexpr size_t kInitialSize = 128;
+  buildAndEnqueueMessage(PendingMessageType::EncodedLogMessage, kInitialSize,
+                         msgBuilder, &logMessageData);
+}
+
 void HostLinkBase::shutdown() {
   // Push a null message so the blocking call in chre_slpi_get_message_to_host()
   // returns and the host can exit cleanly. If the queue is full, try again to
@@ -892,28 +915,6 @@ void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
     LOGE("Couldn't trigger debug dump process");
     sendDebugDumpResponse(hostClientId, false /*success*/, 0 /*dataCount*/);
   }
-}
-
-void HostLink::sendLogMessage(const char *logMessage, size_t logMessageSize) {
-  struct LogMessageData {
-    const char *logMsg;
-    size_t logMsgSize;
-  };
-
-  LogMessageData logMessageData;
-
-  logMessageData.logMsg = logMessage;
-  logMessageData.logMsgSize = logMessageSize;
-
-  auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
-    const auto *data = static_cast<const LogMessageData *>(cookie);
-    HostProtocolChre::encodeLogMessages(builder, data->logMsg,
-                                        data->logMsgSize);
-  };
-
-  constexpr size_t kInitialSize = 128;
-  buildAndEnqueueMessage(PendingMessageType::EncodedLogMessage, kInitialSize,
-                         msgBuilder, &logMessageData);
 }
 
 void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,

@@ -76,28 +76,15 @@ typedef HostMessage MessageFromHost;
 typedef HostMessage MessageToHost;
 
 /**
- * Manages bi-directional communications with the host. There must only be one
- * instance of this class per CHRE instance, as the HostLink is not multiplexed
- * per-EventLoop.
+ * Common code for managing bi-directional communications between the host and
+ * nanoapps. Inherits from the platform-specific HostLink class to accomplish
+ * this, and also to provide an access point (lookup via the EventLoopManager
+ * Singleton) to the platform-specific HostLinkBase functionality for use by
+ * platform-specific code.
  */
-class HostCommsManager : public NonCopyable {
+class HostCommsManager : public HostLink {
  public:
   HostCommsManager() : mIsNanoappBlamedForWakeup(false) {}
-
-  /**
-   * @see HostLink::flushMessagesSentByNanoapp
-   */
-  void flushMessagesSentByNanoapp(uint64_t appId);
-
-  /**
-   * Sends a Log Message to the host over the HostLink
-   * @see HostLink::sendLogMessage
-   *
-   * @param logMessage Buffer containing a (possibly encoded) log message
-   * @param logMessageSize size in bytes of the logMessage buffer
-   */
-
-  void sendLogMessage(const char *logMessage, size_t logMessageSize);
 
   /**
    * Formulates a MessageToHost using the supplied message contents and passes
@@ -189,9 +176,6 @@ class HostCommsManager : public NonCopyable {
   //! handles communications for all EventLoops, and also to support freeing
   //! messages directly in onMessageToHostComplete.
   SynchronizedMemoryPool<HostMessage, kMaxOutstandingMessages> mMessagePool;
-
-  //! The platform-specific link to the host that we manage
-  HostLink mHostLink;
 
   /**
    * Allocates and populates the event structure used to notify a nanoapp of an

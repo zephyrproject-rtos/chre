@@ -165,7 +165,7 @@ class HostProtocolChre : public HostProtocolCommon {
    * Encodes a buffer of log messages to the host.
    */
   static void encodeLogMessages(ChreFlatBufferBuilder &builder,
-                                const char *logBuffer, size_t bufferSize);
+                                const uint8_t *logBuffer, size_t bufferSize);
 
   /**
    * Encodes a string into a DebugDumpData message.

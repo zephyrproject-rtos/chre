@@ -85,6 +85,7 @@ SLPI_SRCS += platform/shared/memory_manager.cc
 SLPI_SRCS += platform/shared/nanoapp_load_manager.cc
 SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
 SLPI_SRCS += platform/shared/pal_system_api.cc
+SLPI_SRCS += platform/shared/pw_tokenized_log.cc
 SLPI_SRCS += platform/shared/system_time.cc
 SLPI_SRCS += platform/slpi/chre_api_re.cc
 SLPI_SRCS += platform/slpi/fatal_error.cc

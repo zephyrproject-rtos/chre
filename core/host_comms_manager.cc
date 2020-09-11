@@ -26,15 +26,6 @@ namespace chre {
 
 constexpr uint32_t kMessageToHostReservedFieldValue = UINT32_MAX;
 
-void HostCommsManager::flushMessagesSentByNanoapp(uint64_t appId) {
-  mHostLink.flushMessagesSentByNanoapp(appId);
-}
-
-void HostCommsManager::sendLogMessage(const char *logMessage,
-                                      size_t logMessageSize) {
-  mHostLink.sendLogMessage(logMessage, logMessageSize);
-}
-
 bool HostCommsManager::sendMessageToHostFromNanoapp(
     Nanoapp *nanoapp, void *messageData, size_t messageSize,
     uint32_t messageType, uint16_t hostEndpoint,
@@ -69,7 +60,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
                               .getPowerControlManager()
                               .hostIsAwake();
 
-      success = mHostLink.sendMessage(msgToHost);
+      success = HostLink::sendMessage(msgToHost);
       if (!success) {
         mMessagePool.deallocate(msgToHost);
       } else if (!hostWasAwake && !mIsNanoappBlamedForWakeup) {
