@@ -228,7 +228,16 @@ extern "C" {
 #define CHRE_WIFI_SECURITY_MODE_OPEN  UINT8_C(1 << 0)  //!< No auth/security
 #define CHRE_WIFI_SECURITY_MODE_WEP   UINT8_C(1 << 1)
 #define CHRE_WIFI_SECURITY_MODE_PSK   UINT8_C(1 << 2)  //!< WPA-PSK or WPA2-PSK
-#define CHRE_WIFI_SECURITY_MODE_EAP   UINT8_C(1 << 3)  //!< Any type of EAPOL
+#define CHRE_WIFI_SECURITY_MODE_EAP   UINT8_C(1 << 3)  //!< WPA-EAP or WPA2-EAP
+
+//! @since v1.5
+#define CHRE_WIFI_SECURITY_MODE_SAE   UINT8_C(1 << 4)
+
+//! @since v1.5
+#define CHRE_WIFI_SECURITY_MODE_EAP_SUITE_B  UINT8_C(1 << 5)
+
+//! @since v1.5
+#define CHRE_WIFI_SECURITY_MODE_OWE   UINT8_C(1 << 6)
 
 /** @} */
 
