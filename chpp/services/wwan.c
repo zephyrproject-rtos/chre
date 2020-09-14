@@ -334,7 +334,7 @@ static void chppWwanServiceCellInfoResultCallback(
     struct chreWwanCellInfoResult *result) {
   // Recover state
   struct ChppRequestResponseState *rRState =
-      (struct ChppRequestResponseState *)result->cookie;
+      &gWwanServiceContext.getCellInfoAsync;
   struct ChppWwanServiceState *wwanServiceContext =
       container_of(rRState, struct ChppWwanServiceState, getCellInfoAsync);
 
