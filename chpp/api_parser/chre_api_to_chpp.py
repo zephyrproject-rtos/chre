@@ -705,8 +705,11 @@ class CodeGenerator:
 
         out.append("  if (in->{}.length != 0) {{\n".format(variable_name))
 
-        out.append("    if (in->{}.offset + in->{}.length > inSize) {{\n".format(
+        out.append("    if (in->{}.offset + in->{}.length > inSize ||\n".format(
             variable_name, variable_name))
+        out.append("        in->{}.length != in->{} * sizeof({})) {{\n".format(
+            variable_name, annotation['length_field'], chre_type))
+
         out.append("      return false;\n")
         out.append("    }\n\n")
 
