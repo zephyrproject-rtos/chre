@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "chpp/condition_variable.h"
 #include "chpp/link.h"
 #include "chpp/macros.h"
 #include "chpp/mutex.h"
@@ -349,6 +350,9 @@ struct ChppTransportState {
   struct ChppNotifier notifier;    // Notifier for main thread
   enum ChppResetState resetState;  // Maintains state of a reset
 
+  struct ChppConditionVariable
+      resetCondVar;  // Condvar specifically to wait for resetState
+
   //! This MUST be the last field in the ChppTransportState structure, otherwise
   //! chppResetTransportContext() will not work properly.
   struct ChppPlatformLinkParameters linkParams;  // For corresponding link layer
@@ -388,6 +392,18 @@ void chppTransportInit(struct ChppTransportState *transportContext,
  * initialized previously in chppTransportInit().
  */
 void chppTransportDeinit(struct ChppTransportState *transportContext);
+
+/**
+ * Blocking call until CHPP has finished resetting.
+ *
+ * @param transportContext, A non-null pointer to ChppTransportState
+ * initialized previously in chppTransportDeinit().
+ * @param timeoutMs The timeout in milliseconds.
+ *
+ * @return False if timed out.
+ */
+bool chppTransportWaitForResetComplete(
+    struct ChppTransportState *transportContext, uint64_t timeoutMs);
 
 /**
  * Processes all incoming data on the serial port based on the Rx state.

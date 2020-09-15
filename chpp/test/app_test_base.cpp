@@ -86,6 +86,9 @@ void AppTestBase::SetUp() {
                  &mServiceTransportContext);
   mClientTransportContext.linkParams.linkEstablished = true;
   mServiceTransportContext.linkParams.linkEstablished = true;
+
+  constexpr uint64_t kResetWaitTimeMs = 1000;
+  chppTransportWaitForResetComplete(&mClientTransportContext, kResetWaitTimeMs);
 }
 
 void AppTestBase::TearDown() {
