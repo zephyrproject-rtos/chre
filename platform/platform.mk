@@ -204,7 +204,7 @@ endif
 
 # Optional WWAN support.
 ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
-SIM_SRCS += platform/shared/pal_wwan_stub.cc
+SIM_SRCS += platform/linux/pal_wwan.cc
 SIM_SRCS += platform/shared/platform_wwan.cc
 endif
 
