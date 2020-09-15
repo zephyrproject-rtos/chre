@@ -80,7 +80,8 @@ class SystemTimer : public SystemTimerBase, public NonCopyable {
    * firing, this prevents the callback from being invoked until the timer is
    * restarted by a subsequent call to set().
    *
-   * @return Whether or not the timer was cancelled successfully.
+   * @return true if the timer was cancelled successfully and false if the timer
+   *     was already canceled or something failed.
    */
   bool cancel();
 
