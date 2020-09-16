@@ -32,6 +32,30 @@ extern "C" {
  ***********************************************/
 
 /**
+ * CHPP discovery state initialization that should be called on CHPP startup. It
+ * may be called during transient internal resets, but is a no-op.
+ */
+void chppDiscoveryInit(struct ChppAppState *context);
+
+/**
+ * CHPP discovery state de-initialization that should be called during shutdown.
+ */
+void chppDiscoveryDeinit(struct ChppAppState *context);
+
+/**
+ * A method that can be invoked to block until the CHPP discovery sequence
+ * completes. This can be useful to wait until CHPP client invocations can
+ * succeed.
+ *
+ * @param context The non-null pointer to the ChppAppState of this instance.
+ * @param timeoutMs The timeout in milliseconds.
+ *
+ * @return False if timed out waiting for discovery completion.
+ */
+bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
+                                  uint64_t timeoutMs);
+
+/**
  * Dispatches an Rx Datagram from the transport layer that is determined to be
  * for the CHPP Discovery Client.
  *

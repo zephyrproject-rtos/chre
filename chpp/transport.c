@@ -915,7 +915,7 @@ static void chppReset(struct ChppTransportState *transportContext,
   transportContext->resetState = CHPP_RESET_STATE_RESETTING;
 
   // Deinitialize app layer (deregistering services and clients)
-  chppAppDeinit(appContext);
+  chppAppDeinitTransient(appContext);
 
   // Reset asynchronous link layer if busy
   if (transportContext->txStatus.linkBusy == true) {

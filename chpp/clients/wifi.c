@@ -24,6 +24,7 @@
 
 #include "chpp/app.h"
 #include "chpp/clients.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
 #include "chpp/macros.h"
@@ -32,6 +33,10 @@
 #include "chpp/services/wifi_types.h"
 #include "chre/pal/wifi.h"
 #include "chre_api/chre/wifi.h"
+
+#ifndef CHPP_WIFI_DISCOVERY_TIMEOUT_MS
+#define CHPP_WIFI_DISCOVERY_TIMEOUT_MS CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS
+#endif
 
 /************************************************
  *  Prototypes
@@ -417,17 +422,23 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   // Local
   gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
 
-  // Remote
-  struct ChppAppHeader *request =
-      chppAllocClientRequestCommand(&gWifiClientContext.client, CHPP_WIFI_OPEN);
-
-  if (request == NULL) {
-    CHPP_LOG_OOM();
+  // Wait for discovery to complete for "open" call to succeed
+  if (!chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
+                                    CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
+    CHPP_LOGE("Timed out waiting to discover CHPP WiFi service");
   } else {
-    // Send request and wait for service response
-    result = chppSendTimestampedRequestAndWait(
-        &gWifiClientContext.client, &gWifiClientContext.open, request,
-        sizeof(struct ChppAppHeader));
+    // Remote
+    struct ChppAppHeader *request = chppAllocClientRequestCommand(
+        &gWifiClientContext.client, CHPP_WIFI_OPEN);
+
+    if (request == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      // Send request and wait for service response
+      result = chppSendTimestampedRequestAndWait(
+          &gWifiClientContext.client, &gWifiClientContext.open, request,
+          sizeof(struct ChppAppHeader));
+    }
   }
 
   return result;

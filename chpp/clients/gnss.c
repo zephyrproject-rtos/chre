@@ -24,6 +24,7 @@
 
 #include "chpp/app.h"
 #include "chpp/clients.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/common/gnss.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/macros.h"
@@ -32,6 +33,10 @@
 #include "chpp/services/gnss_types.h"
 #include "chre/pal/gnss.h"
 #include "chre_api/chre/gnss.h"
+
+#ifndef CHPP_GNSS_DISCOVERY_TIMEOUT_MS
+#define CHPP_GNSS_DISCOVERY_TIMEOUT_MS CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS
+#endif
 
 /************************************************
  *  Prototypes
@@ -503,17 +508,23 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   // Local
   gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
 
-  // Remote
-  struct ChppAppHeader *request =
-      chppAllocClientRequestCommand(&gGnssClientContext.client, CHPP_GNSS_OPEN);
-
-  if (request == NULL) {
-    CHPP_LOG_OOM();
+  // Wait for discovery to complete for "open" call to succeed
+  if (!chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
+                                    CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {
+    CHPP_LOGE("Timed out waiting to discover CHPP GNSS service");
   } else {
-    // Send request and wait for service response
-    result = chppSendTimestampedRequestAndWait(
-        &gGnssClientContext.client, &gGnssClientContext.open, request,
-        sizeof(struct ChppAppHeader));
+    // Remote
+    struct ChppAppHeader *request = chppAllocClientRequestCommand(
+        &gGnssClientContext.client, CHPP_GNSS_OPEN);
+
+    if (request == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      // Send request and wait for service response
+      result = chppSendTimestampedRequestAndWait(
+          &gGnssClientContext.client, &gGnssClientContext.open, request,
+          sizeof(struct ChppAppHeader));
+    }
   }
 
   return result;

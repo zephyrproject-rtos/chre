@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "chpp/condition_variable.h"
 #include "chpp/macros.h"
 #include "chpp/transport.h"
 
@@ -316,6 +317,12 @@ struct ChppAppState {
       clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
 
   struct ChppClientServiceSet clientServiceSet;  // Enabled client/services
+
+  // For discovery clients
+  bool isDiscoveryClientInitialized;
+  bool isDiscoveryComplete;
+  struct ChppMutex discoveryMutex;
+  struct ChppConditionVariable discoveryCv;
 };
 
 #define CHPP_SERVICE_INDEX_OF_HANDLE(handle) \
@@ -356,6 +363,13 @@ void chppAppInitWithClientServiceSet(
  * in chppAppInit().
  */
 void chppAppDeinit(struct ChppAppState *appContext);
+
+/**
+ * Same as chppAppDeinit(), but to be invoked when the deinitialization is
+ * temporary (e.g. during a CHPP reset), distinguishing complete vs temporary
+ * shutdown.
+ */
+void chppAppDeinitTransient(struct ChppAppState *appContext);
 
 /*
  * Processes an Rx Datagram from the transport layer.

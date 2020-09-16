@@ -91,6 +91,9 @@ struct ChppClientState {
 // The default timeout for chppSendTimestampedRequestAndWait().
 #define DEFAULT_CLIENT_REQUEST_TIMEOUT_NS UINT64_C(5000000000)  // 5s
 
+// The default timeout to wait on discovery completion.
+#define CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS UINT64_C(10000)  // 10s
+
 /************************************************
  *  Public functions
  ***********************************************/

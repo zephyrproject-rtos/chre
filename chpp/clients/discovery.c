@@ -191,11 +191,47 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
             " clients with services, out of a total of %" PRIu8
             " registered clients and %" PRIu8 " discovered services",
             matchedClients, context->registeredClientCount, serviceCount);
+
+  // Notify (possible) waiting client on discovery completion.
+  chppMutexLock(&context->discoveryMutex);
+  context->isDiscoveryComplete = true;
+  chppConditionVariableSignal(&context->discoveryCv);
+  chppMutexUnlock(&context->discoveryMutex);
 }
 
 /************************************************
  *  Public Functions
  ***********************************************/
+
+void chppDiscoveryInit(struct ChppAppState *context) {
+  if (!context->isDiscoveryClientInitialized) {
+    chppMutexInit(&context->discoveryMutex);
+    chppConditionVariableInit(&context->discoveryCv);
+    context->isDiscoveryComplete = false;
+    context->isDiscoveryClientInitialized = true;
+  }
+}
+
+void chppDiscoveryDeinit(struct ChppAppState *context) {
+  chppConditionVariableDeinit(&context->discoveryCv);
+  chppMutexDeinit(&context->discoveryMutex);
+  context->isDiscoveryClientInitialized = false;
+}
+
+bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
+                                  uint64_t timeoutMs) {
+  bool success = true;
+  chppMutexLock(&context->discoveryMutex);
+
+  while (success && !context->isDiscoveryComplete) {
+    success = chppConditionVariableTimedWait(&context->discoveryCv,
+                                             &context->discoveryMutex,
+                                             timeoutMs * CHPP_NSEC_PER_MSEC);
+  }
+
+  chppMutexUnlock(&context->discoveryMutex);
+  return success;
+}
 
 bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
                                           const uint8_t *buf, size_t len) {
@@ -224,6 +260,10 @@ void chppInitiateDiscovery(struct ChppAppState *context) {
   request->handle = CHPP_HANDLE_DISCOVERY;
   request->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
   request->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
+
+  chppMutexLock(&context->discoveryMutex);
+  context->isDiscoveryComplete = false;
+  chppMutexUnlock(&context->discoveryMutex);
 
   chppEnqueueTxDatagramOrFail(context->transportContext, request,
                               sizeof(struct ChppAppHeader));

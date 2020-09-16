@@ -561,17 +561,40 @@ void chppAppInitWithClientServiceSet(
 
   CHPP_LOGI("Initializing the CHPP app layer");
 
-  memset(appContext, 0, sizeof(struct ChppAppState));
+  // Don't reset entire ChppAppState to avoid clearing non-transient
+  // contents e.g. discovery mutex/condvar/states.
+  appContext->registeredServiceCount = 0;
+  memset(appContext->registeredServices, 0,
+         sizeof(appContext->registeredServices));
+  memset(appContext->registeredServiceContexts, 0,
+         sizeof(appContext->registeredServiceContexts));
+  appContext->registeredClientCount = 0;
+  memset(appContext->registeredClients, 0,
+         sizeof(appContext->registeredClients));
+  memset(appContext->registeredClientContexts, 0,
+         sizeof(appContext->registeredClientContexts));
+  memset(appContext->clientIndexOfServiceIndex, 0,
+         sizeof(appContext->clientIndexOfServiceIndex));
 
   appContext->clientServiceSet = clientServiceSet;
   appContext->transportContext = transportContext;
 
+  chppDiscoveryInit(appContext);
   chppPalSystemApiInit(appContext);
   chppRegisterCommonServices(appContext);
   chppRegisterCommonClients(appContext);
 }
 
 void chppAppDeinit(struct ChppAppState *appContext) {
+  chppAppDeinitTransient(appContext);
+
+  // Discovery should only be deinitialized on true CHPP app deinit
+  // (shutdown), since a client may be waiting on discovery completion
+  // during a transient deinit (reset).
+  chppDiscoveryDeinit(appContext);
+}
+
+void chppAppDeinitTransient(struct ChppAppState *appContext) {
   CHPP_NOT_NULL(appContext);
 
   CHPP_LOGI("Deinitializing the CHPP app layer");

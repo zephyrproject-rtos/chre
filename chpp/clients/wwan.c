@@ -22,11 +22,16 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chpp/macros.h"
 #include "chpp/platform/log.h"
 #include "chre/pal/wwan.h"
+
+#ifndef CHPP_WWAN_DISCOVERY_TIMEOUT_MS
+#define CHPP_WWAN_DISCOVERY_TIMEOUT_MS CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS
+#endif
 
 /************************************************
  *  Prototypes
@@ -306,17 +311,23 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   // Local
   gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
 
-  // Remote
-  struct ChppAppHeader *request =
-      chppAllocClientRequestCommand(&gWwanClientContext.client, CHPP_WWAN_OPEN);
-
-  if (request == NULL) {
-    CHPP_LOG_OOM();
+  // Wait for discovery to complete for "open" call to succeed
+  if (!chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
+                                    CHPP_WWAN_DISCOVERY_TIMEOUT_MS)) {
+    CHPP_LOGE("Timed out waiting to discover CHPP WWAN service");
   } else {
-    // Send request and wait for service response
-    result = chppSendTimestampedRequestAndWait(
-        &gWwanClientContext.client, &gWwanClientContext.open, request,
-        sizeof(struct ChppAppHeader));
+    // Remote
+    struct ChppAppHeader *request = chppAllocClientRequestCommand(
+        &gWwanClientContext.client, CHPP_WWAN_OPEN);
+
+    if (request == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      // Send request and wait for service response
+      result = chppSendTimestampedRequestAndWait(
+          &gWwanClientContext.client, &gWwanClientContext.open, request,
+          sizeof(struct ChppAppHeader));
+    }
   }
 
   return result;
