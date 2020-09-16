@@ -27,6 +27,8 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+#include "chpp/mutex.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
