@@ -170,9 +170,6 @@ void BasicSensorTestBase::checkPassiveConfigure() {
 void BasicSensorTestBase::startTest() {
   mState = State::kPreConfigure;
   if (!chreSensorFindDefault(getSensorType(), &mSensorHandle)) {
-    if (isRequiredSensor()) {
-      sendFatalFailureToHost("Sensor is required, but no default found.");
-    }
     sendStringToHost(MessageType::kSkipped,
                      "No default sensor found for optional sensor.");
     return;
