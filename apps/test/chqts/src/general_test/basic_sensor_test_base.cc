@@ -380,6 +380,8 @@ void BasicSensorTestBase::handleBiasEvent(
     expectedSensorType = CHRE_SENSOR_TYPE_GYROSCOPE;
   } else if (eventType == CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO) {
     expectedSensorType = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD;
+  } else if (eventType == CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO) {
+    expectedSensorType = CHRE_SENSOR_TYPE_ACCELEROMETER;
   } else {
     sendInternalFailureToHost("Illegal eventType in handleBiasEvent", &eType);
   }
