@@ -397,7 +397,9 @@ void Manager::handleInfoMessage(uint16_t hostEndpoint,
     LOGE("Could not decode info command");
   } else {
     uint32_t handle;
+    infoResponse.has_chreSensorType = true;
     infoResponse.chreSensorType = infoCommand.chreSensorType;
+    infoResponse.has_isAvailable = true;
     infoResponse.isAvailable =
         chreSensorFindDefault(infoResponse.chreSensorType, &handle);
   }
