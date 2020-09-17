@@ -33,22 +33,24 @@ namespace chpp {
 namespace {
 
 TEST_F(AppTestBase, SimpleStartStop) {
-  // Simple test to make sure start/stop work threads work,
-  // without crashes.
+  // Simple test to make sure start/stop work threads work without crashing
 }
 
 TEST_F(AppTestBase, SimpleLoopback) {
-  CHPP_LOGI("Starting loopback test ...");
-
-  size_t testLen = 1000;
-  uint8_t buf[testLen];
-  for (size_t i = 0; i < testLen; i++) {
+  constexpr size_t kTestLen =
+      CHPP_TRANSPORT_TX_MTU_BYTES - CHPP_LOOPBACK_HEADER_LEN;
+  uint8_t buf[kTestLen];
+  for (size_t i = 0; i < kTestLen; i++) {
     buf[i] = (uint8_t)(i + 100);
   }
 
+  CHPP_LOGI(
+      "Starting loopback test without fragmentation (max buffer = %zu)...",
+      kTestLen);
+
   struct ChppLoopbackTestResult result;
 
-  result = chppRunLoopbackTest(&mClientAppContext, buf, testLen);
+  result = chppRunLoopbackTest(&mClientAppContext, buf, kTestLen);
   EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
 
   result = chppRunLoopbackTest(&mClientAppContext, buf, 10);
@@ -61,5 +63,29 @@ TEST_F(AppTestBase, SimpleLoopback) {
   EXPECT_EQ(result.error, CHPP_APP_ERROR_INVALID_LENGTH);
 }
 
-}  //  anonymous namespace
-}  //  namespace chpp
+TEST_F(AppTestBase, FragmentedLoopback) {
+  constexpr size_t kTestLen = UINT16_MAX;
+  uint8_t buf[kTestLen];
+  for (size_t i = 0; i < kTestLen; i++) {
+    buf[i] = (uint8_t)(i + 100);
+  }
+
+  CHPP_LOGI("Starting loopback test with fragmentation (max buffer = %zu)...",
+            kTestLen);
+
+  struct ChppLoopbackTestResult result;
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, kTestLen);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+
+  result = chppRunLoopbackTest(&mClientAppContext, buf, 50000);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+
+  result = chppRunLoopbackTest(
+      &mClientAppContext, buf,
+      CHPP_TRANSPORT_TX_MTU_BYTES - CHPP_LOOPBACK_HEADER_LEN + 1);
+  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+}
+
+}  // namespace
+}  // namespace chpp

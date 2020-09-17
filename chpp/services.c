@@ -41,6 +41,8 @@
  ***********************************************/
 
 void chppRegisterCommonServices(struct ChppAppState *context) {
+  UNUSED_VAR(context);
+
 #ifdef CHPP_SERVICE_ENABLED_WWAN
   if (context->clientServiceSet.wwanService) {
     chppRegisterWwanService(context);
@@ -61,6 +63,8 @@ void chppRegisterCommonServices(struct ChppAppState *context) {
 }
 
 void chppDeregisterCommonServices(struct ChppAppState *context) {
+  UNUSED_VAR(context);
+
 #ifdef CHPP_SERVICE_ENABLED_WWAN
   if (context->clientServiceSet.wwanService) {
     chppDeregisterWwanService(context);

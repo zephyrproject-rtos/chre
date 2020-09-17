@@ -427,9 +427,6 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
                           context->rxDatagram.length);
     chppMutexLock(&context->mutex);
 
-    chppClearRxDatagram(context);
-
-    // Send ACK because we had RX a payload-bearing packet
     CHPP_LOGD("App layer processed datagram with len=%" PRIuSIZE
               ", ending packet seq="
               "%" PRIu8 ", len=%" PRIu16 ". Sending ACK=%" PRIu8
@@ -437,8 +434,11 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
               context->rxDatagram.length, context->rxHeader.seq,
               context->rxHeader.length, context->rxStatus.expectedSeq,
               context->txStatus.sentAckSeq);
-    chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
+    chppClearRxDatagram(context);
   }
+
+  // Send ACK because we had RX a payload-bearing packet
+  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
 }
 
 /**
