@@ -89,8 +89,6 @@ const chreWwanCellInfoResult kChreResultTwoCell = {
 
 void compareCellInfo(const chreWwanCellInfo *chre,
                      const ChppWwanCellInfo *chpp) {
-  EXPECT_EQ(chre->timeStamp, chpp->timeStamp);
-
   EXPECT_EQ(chpp->timeStamp, chre->timeStamp);
   EXPECT_EQ(chpp->cellInfoType, chre->cellInfoType);
   EXPECT_EQ(chpp->timeStampType, chre->timeStampType);
