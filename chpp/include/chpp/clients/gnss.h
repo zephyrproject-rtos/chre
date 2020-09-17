@@ -49,6 +49,13 @@ void chppRegisterGnssClient(struct ChppAppState *appContext);
  */
 void chppDeregisterGnssClient(struct ChppAppState *appContext);
 
+#ifndef CHPP_CLIENT_ENABLED_CHRE_GNSS
+/**
+ * Alternative to chrePalGnssGetApi() to avoid conflicting with CHPP service.
+ */
+const struct chrePalGnssApi *chppPalGnssGetApi(uint32_t requestedApiVersion);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

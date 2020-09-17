@@ -49,6 +49,13 @@ void chppRegisterWwanClient(struct ChppAppState *appContext);
  */
 void chppDeregisterWwanClient(struct ChppAppState *appContext);
 
+#ifndef CHPP_CLIENT_ENABLED_CHRE_WWAN
+/**
+ * Alternative to chrePalWwanGetApi() to avoid conflicting with CHPP service.
+ */
+const struct chrePalWwanApi *chppPalWwanGetApi(uint32_t requestedApiVersion);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

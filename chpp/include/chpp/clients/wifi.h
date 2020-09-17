@@ -49,6 +49,13 @@ void chppRegisterWifiClient(struct ChppAppState *appContext);
  */
 void chppDeregisterWifiClient(struct ChppAppState *appContext);
 
+#ifndef CHPP_CLIENT_ENABLED_CHRE_WIFI
+/**
+ * Alternative to chrePalWifiGetApi() to avoid conflicting with CHPP service.
+ */
+const struct chrePalWifiApi *chppPalWifiGetApi(uint32_t requestedApiVersion);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
