@@ -241,31 +241,18 @@ void handleGnssDataEvent(const chreGnssDataEvent *event) {
 bool nanoappStart() {
   LOGI("App started as instance %" PRIu32, chreGetInstanceId());
 
-  const char *gnssCapabilitiesStr;
   uint32_t gnssCapabilities = chreGnssGetCapabilities();
-  switch (gnssCapabilities) {
-    case CHRE_GNSS_CAPABILITIES_LOCATION | CHRE_GNSS_CAPABILITIES_MEASUREMENTS:
-      gnssCapabilitiesStr = "LOCATION | MEASUREMENTS";
-      gLocationSupported = true;
-      gMeasurementSupported = true;
-      break;
-    case CHRE_GNSS_CAPABILITIES_LOCATION:
-      gnssCapabilitiesStr = "LOCATION";
-      gLocationSupported = true;
-      break;
-    case CHRE_GNSS_CAPABILITIES_MEASUREMENTS:
-      gnssCapabilitiesStr = "MEASUREMENTS";
-      gMeasurementSupported = true;
-      break;
-    case CHRE_GNSS_CAPABILITIES_NONE:
-      gnssCapabilitiesStr = "NONE";
-      break;
-    default:
-      gnssCapabilitiesStr = "INVALID";
-  }
 
-  LOGI("Detected GNSS support as: %s (%" PRIu32 ")", gnssCapabilitiesStr,
-       gnssCapabilities);
+  if ((gnssCapabilities & CHRE_GNSS_CAPABILITIES_LOCATION) != 0) {
+    gLocationSupported = true;
+  }
+  if ((gnssCapabilities & CHRE_GNSS_CAPABILITIES_MEASUREMENTS) != 0) {
+    gMeasurementSupported = true;
+  }
+  // TODO: Add logic for
+  // CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER
+
+  LOGI("Detected GNSS support as 0x%" PRIx32, gnssCapabilities);
 
   if (gLocationSupported && kEnableLocationTest) {
     makeLocationRequest();
