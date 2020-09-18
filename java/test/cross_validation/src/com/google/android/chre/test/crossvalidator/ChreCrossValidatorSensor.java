@@ -333,6 +333,7 @@ public class ChreCrossValidatorSensor
         map.put(Sensor.TYPE_PRESSURE, new CrossValidatorSensorConfig(1, 0.01f));
         map.put(Sensor.TYPE_LIGHT, new CrossValidatorSensorConfig(1, 0.07f));
         map.put(Sensor.TYPE_PROXIMITY, new CrossValidatorSensorConfig(1, 0.01f));
+        map.put(Sensor.TYPE_STEP_COUNTER, new CrossValidatorSensorConfig(1, 0f));
         return map;
     }
 
@@ -350,6 +351,7 @@ public class ChreCrossValidatorSensor
         map.put(Sensor.TYPE_PRESSURE, 10 /* CHRE_SENSOR_TYPE_PRESSURE */);
         map.put(Sensor.TYPE_LIGHT, 12 /* CHRE_SENSOR_TYPE_LIGHT */);
         map.put(Sensor.TYPE_PROXIMITY, 13 /* CHRE_SENSOR_TYPE_PROXIMITY */);
+        map.put(Sensor.TYPE_STEP_COUNTER, 24 /* CHRE_SENSOR_TYPE_STEP_COUNTER */);
         return map;
     }
 
