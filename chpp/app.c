@@ -140,12 +140,14 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
       dispatchResult = chppDispatchLoopbackServiceResponse(context, buf, len);
       break;
     }
-#endif
+#endif  // CHPP_CLIENT_ENABLED_LOOPBACK
 
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
     case CHPP_HANDLE_DISCOVERY: {
       dispatchResult = chppDispatchDiscoveryServiceResponse(context, buf, len);
       break;
     }
+#endif  // CHPP_CLIENT_ENABLED_DISCOVERY
 
     default: {
       handleValid = false;
@@ -579,7 +581,9 @@ void chppAppInitWithClientServiceSet(
   appContext->clientServiceSet = clientServiceSet;
   appContext->transportContext = transportContext;
 
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
   chppDiscoveryInit(appContext);
+#endif  // CHPP_CLIENT_ENABLED_DISCOVERY
   chppPalSystemApiInit(appContext);
   chppRegisterCommonServices(appContext);
   chppRegisterCommonClients(appContext);
@@ -588,10 +592,12 @@ void chppAppInitWithClientServiceSet(
 void chppAppDeinit(struct ChppAppState *appContext) {
   chppAppDeinitTransient(appContext);
 
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
   // Discovery should only be deinitialized on true CHPP app deinit
   // (shutdown), since a client may be waiting on discovery completion
   // during a transient deinit (reset).
   chppDiscoveryDeinit(appContext);
+#endif  // CHPP_CLIENT_ENABLED_DISCOVERY
 }
 
 void chppAppDeinitTransient(struct ChppAppState *appContext) {
