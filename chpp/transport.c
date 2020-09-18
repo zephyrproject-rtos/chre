@@ -728,7 +728,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
       } else {
         // Send final (or only) part of a datagram
         txHeader->flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
-        txHeader->length = remainingBytes;
+        txHeader->length = (uint16_t)remainingBytes;
       }
 
       // Copy payload

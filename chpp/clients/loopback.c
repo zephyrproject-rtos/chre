@@ -49,7 +49,7 @@ struct ChppLoopbackClientState {
 
 // Note: This global definition of gLoopbackClientContext supports only one
 // instance of the CHPP loopback client at a time.
-struct ChppLoopbackClientState gLoopbackClientContext = {};
+struct ChppLoopbackClientState gLoopbackClientContext;
 
 /************************************************
  *  Public Functions
@@ -61,7 +61,7 @@ void chppLoopbackClientInit(struct ChppAppState *context) {
   gLoopbackClientContext.testResult.error = CHPP_APP_ERROR_NONE;
 }
 
-void chppLoopbackClientDeinit() {
+void chppLoopbackClientDeinit(void) {
   chppClientDeinit(&gLoopbackClientContext.client);
 }
 

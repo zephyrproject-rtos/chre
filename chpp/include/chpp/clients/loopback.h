@@ -62,7 +62,7 @@ void chppLoopbackClientInit(struct ChppAppState *context);
 /**
  * Deinitializes the client.
  */
-void chppLoopbackClientDeinit();
+void chppLoopbackClientDeinit(void);
 
 /**
  * Dispatches an Rx Datagram from the transport layer that is determined to

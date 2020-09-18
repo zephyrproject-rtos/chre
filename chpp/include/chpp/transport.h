@@ -81,7 +81,7 @@ extern "C" {
  * To be safe, this should be less than half of the maximum uint8_t value.
  * Otherwise, ChppTxDatagramQueue should be updated accordingly.
  */
-#define CHPP_TX_DATAGRAM_QUEUE_LEN 16
+#define CHPP_TX_DATAGRAM_QUEUE_LEN ((uint8_t)16)
 
 /**
  * Maximum payload of packets at the link layer.
@@ -89,16 +89,18 @@ extern "C" {
  * transport TX MTU of 1024.
  */
 #define CHPP_LINK_TX_MTU_BYTES                                               \
-  MIN(CHPP_PLATFORM_LINK_TX_MTU_BYTES,                                       \
+  ((uint16_t)MIN(                                                            \
+      CHPP_PLATFORM_LINK_TX_MTU_BYTES,                                       \
       (1024 + CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) + \
-       sizeof(struct ChppTransportFooter)))
+       sizeof(struct ChppTransportFooter))))
 
 /**
  * Maximum payload of packets at the transport layer.
  */
-#define CHPP_TRANSPORT_TX_MTU_BYTES                   \
-  (CHPP_LINK_TX_MTU_BYTES - CHPP_PREAMBLE_LEN_BYTES - \
-   sizeof(struct ChppTransportHeader) - sizeof(struct ChppTransportFooter))
+#define CHPP_TRANSPORT_TX_MTU_BYTES                              \
+  ((uint16_t)(CHPP_LINK_TX_MTU_BYTES - CHPP_PREAMBLE_LEN_BYTES - \
+              sizeof(struct ChppTransportHeader) -               \
+              sizeof(struct ChppTransportFooter)))
 
 /************************************************
  *  Status variables to store context in lieu of global variables (this)

@@ -144,7 +144,7 @@ static enum ChppAppErrorCode chppDispatchWifiRequest(void *serviceContext,
 
   struct ChppWifiServiceState *wifiServiceContext =
       (struct ChppWifiServiceState *)serviceContext;
-  struct ChppRequestResponseState *rRState;
+  struct ChppRequestResponseState *rRState = NULL;
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
   bool dispatched = true;
 

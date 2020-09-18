@@ -114,7 +114,7 @@ static const struct chrePalWifiCallbacks *gCallbacks;
 static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
                                const struct chrePalWifiCallbacks *callbacks);
 static void chppWifiClientClose();
-static uint32_t chppWifiClientGetCapabilities();
+static uint32_t chppWifiClientGetCapabilities(void);
 static bool chppWifiClientConfigureScanMonitor(bool enable);
 static bool chppWifiClientRequestScan(const struct chreWifiScanParams *params);
 static void chppWifiClientReleaseScanEvent(struct chreWifiScanEvent *event);
@@ -447,7 +447,7 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
 /**
  * Deinitializes the WiFi client.
  */
-static void chppWifiClientClose() {
+static void chppWifiClientClose(void) {
   // Remote
   struct ChppAppHeader *request = chppAllocClientRequestCommand(
       &gWifiClientContext.client, CHPP_WIFI_CLOSE);
@@ -469,7 +469,7 @@ static void chppWifiClientClose() {
  *
  * @return Capabilities flags.
  */
-static uint32_t chppWifiClientGetCapabilities() {
+static uint32_t chppWifiClientGetCapabilities(void) {
   uint32_t capabilities = CHRE_WIFI_CAPABILITIES_NONE;
 
   if (gWifiClientContext.capabilities != CHRE_WIFI_CAPABILITIES_NONE) {

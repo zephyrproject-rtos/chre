@@ -115,8 +115,8 @@ static const struct chrePalGnssCallbacks *gCallbacks;
 
 static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
                                const struct chrePalGnssCallbacks *callbacks);
-static void chppGnssClientClose();
-static uint32_t chppGnssClientGetCapabilities();
+static void chppGnssClientClose(void);
+static uint32_t chppGnssClientGetCapabilities(void);
 static bool chppGnssClientControlLocationSession(bool enable,
                                                  uint32_t minIntervalMs,
                                                  uint32_t minTimeToNextFixMs);
@@ -533,7 +533,7 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
 /**
  * Deinitializes the GNSS client.
  */
-static void chppGnssClientClose() {
+static void chppGnssClientClose(void) {
   // Remote
   struct ChppAppHeader *request = chppAllocClientRequestCommand(
       &gGnssClientContext.client, CHPP_GNSS_CLOSE);
@@ -555,7 +555,7 @@ static void chppGnssClientClose() {
  *
  * @return Capabilities flags.
  */
-static uint32_t chppGnssClientGetCapabilities() {
+static uint32_t chppGnssClientGetCapabilities(void) {
   uint32_t capabilities = CHRE_GNSS_CAPABILITIES_NONE;
 
   if (gGnssClientContext.capabilities != CHRE_GNSS_CAPABILITIES_NONE) {

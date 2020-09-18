@@ -23,6 +23,7 @@
  */
 
 #if defined(__GNUC__) || defined(__clang__)
+// For GCC and clang
 
 #define CHRE_DEPRECATED(message) \
   __attribute__((deprecated(message)))
@@ -30,6 +31,16 @@
 // Enable printf-style compiler warnings for mismatched format string and args
 #define CHRE_PRINTF_ATTR(formatPos, argStart) \
   __attribute__((format(printf, formatPos, argStart)))
+
+#elif defined(__ICCARM__) || defined(__CC_ARM)
+// For IAR ARM and Keil MDK-ARM compilers
+
+#define CHRE_PRINTF_ATTR(formatPos, argStart)
+
+#elif defined(_MSC_VER)
+// For Microsoft Visual Studio
+
+#define CHRE_PRINTF_ATTR(formatPos, argStart)
 
 #else  // if !defined(__GNUC__) && !defined(__clang__)
 

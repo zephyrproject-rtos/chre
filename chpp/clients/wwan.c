@@ -102,9 +102,9 @@ static const struct chrePalWwanCallbacks *gCallbacks;
 
 static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
                                const struct chrePalWwanCallbacks *callbacks);
-static void chppWwanClientClose();
-static uint32_t chppWwanClientGetCapabilities();
-static bool chppWwanClientGetCellInfoAsync();
+static void chppWwanClientClose(void);
+static uint32_t chppWwanClientGetCapabilities(void);
+static bool chppWwanClientGetCellInfoAsync(void);
 static void chppWwanClientReleaseCellInfoResult(
     struct chreWwanCellInfoResult *result);
 
@@ -336,7 +336,7 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
 /**
  * Deinitializes the WWAN client.
  */
-static void chppWwanClientClose() {
+static void chppWwanClientClose(void) {
   // Remote
   struct ChppAppHeader *request = chppAllocClientRequestCommand(
       &gWwanClientContext.client, CHPP_WWAN_CLOSE);
@@ -358,7 +358,7 @@ static void chppWwanClientClose() {
  *
  * @return Capabilities flags.
  */
-static uint32_t chppWwanClientGetCapabilities() {
+static uint32_t chppWwanClientGetCapabilities(void) {
   uint32_t capabilities = CHRE_WWAN_CAPABILITIES_NONE;
 
   if (gWwanClientContext.capabilities != CHRE_WWAN_CAPABILITIES_NONE) {
@@ -391,7 +391,7 @@ static uint32_t chppWwanClientGetCapabilities() {
  *
  * @return True indicates the request was sent off to the service.
  */
-static bool chppWwanClientGetCellInfoAsync() {
+static bool chppWwanClientGetCellInfoAsync(void) {
   bool result = false;
 
   struct ChppAppHeader *request = chppAllocClientRequestCommand(

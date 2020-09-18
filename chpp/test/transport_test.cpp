@@ -174,14 +174,14 @@ void addPreambleToBuf(uint8_t *buf, size_t *location) {
 ChppTransportHeader *addTransportHeaderToBuf(uint8_t *buf, size_t *location) {
   size_t oldLoc = *location;
 
-  static const ChppTransportHeader transHeader = {
-      // Default values for initial, minimum size request packet
-      .flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM,
-      .packetCode = CHPP_TRANSPORT_ERROR_NONE,
-      .ackSeq = 1,
-      .seq = 0,
-      .length = sizeof(ChppAppHeader),
-  };
+  // Default values for initial, minimum size request packet
+  ChppTransportHeader transHeader = {};
+  transHeader.flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
+  transHeader.packetCode = CHPP_TRANSPORT_ERROR_NONE;
+  transHeader.ackSeq = 1;
+  transHeader.seq = 0;
+  transHeader.length = sizeof(ChppAppHeader);
+  transHeader.reserved = 0;
 
   memcpy(&buf[*location], &transHeader, sizeof(transHeader));
   *location += sizeof(transHeader);
@@ -203,14 +203,13 @@ ChppTransportHeader *addTransportHeaderToBuf(uint8_t *buf, size_t *location) {
 ChppAppHeader *addAppHeaderToBuf(uint8_t *buf, size_t *location) {
   size_t oldLoc = *location;
 
-  static const ChppAppHeader appHeader = {
-      // Default values - to be updated later as necessary
-      .handle = CHPP_HANDLE_NEGOTIATED_RANGE_START,
-      .type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST,
-      .transaction = 0,
-      .command = 0,
-      .error = CHPP_APP_ERROR_NONE,
-  };
+  // Default values - to be updated later as necessary
+  ChppAppHeader appHeader = {};
+  appHeader.handle = CHPP_HANDLE_NEGOTIATED_RANGE_START;
+  appHeader.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+  appHeader.transaction = 0;
+  appHeader.error = CHPP_APP_ERROR_NONE;
+  appHeader.command = 0;
 
   memcpy(&buf[*location], &appHeader, sizeof(appHeader));
   *location += sizeof(appHeader);
@@ -383,7 +382,7 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
   if (len <= kMaxChunkSize) {
     size_t loc = 0;
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
-    transHeader->length = len;
+    transHeader->length = static_cast<uint16_t>(len);
 
     // Send header and check for correct state
     EXPECT_FALSE(
@@ -524,7 +523,7 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   if (len <= kMaxChunkSize) {
     size_t loc = 0;
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
-    transHeader->length = len;
+    transHeader->length = static_cast<uint16_t>(len);
 
     // Loopback App header (only 2 fields required)
     mBuf[sizeof(ChppTransportHeader)] = CHPP_HANDLE_LOOPBACK;
@@ -603,7 +602,7 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
  * Discovery service + Transaction ID
  */
 TEST_P(TransportTests, DiscoveryService) {
-  uint8_t transactionID = static_cast<size_t>(GetParam());
+  uint8_t transactionID = static_cast<uint8_t>(GetParam());
   size_t len = 0;
 
   mTransportContext.txStatus.hasPacketsToSend = true;
@@ -651,17 +650,18 @@ TEST_P(TransportTests, DiscoveryService) {
   EXPECT_EQ(mTransportContext.pendingTxPacket.length, responseLoc);
 
   // Check service configuration response
-  static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = CHPP_UUID_WWAN_STANDARD,
 
-      // Human-readable name
-      .name = "WWAN",
+  ChppServiceDescriptor wwanServiceDescriptor = {};
+  static const uint8_t uuid[CHPP_SERVICE_UUID_LEN] = CHPP_UUID_WWAN_STANDARD;
+  memcpy(&wwanServiceDescriptor.uuid, &uuid,
+         sizeof(wwanServiceDescriptor.uuid));
+  static const char name[CHPP_SERVICE_NAME_MAX_LEN] = "WWAN";
+  memcpy(&wwanServiceDescriptor.name, &name,
+         sizeof(wwanServiceDescriptor.name));
+  wwanServiceDescriptor.version.major = 1;
+  wwanServiceDescriptor.version.minor = 0;
+  wwanServiceDescriptor.version.patch = 0;
 
-      // Version
-      .version.major = 1,
-      .version.minor = 0,
-      .version.patch = 0,
-  };
   EXPECT_EQ(std::memcmp(services[0].uuid, wwanServiceDescriptor.uuid,
                         sizeof(wwanServiceDescriptor.uuid)),
             0);
@@ -824,22 +824,22 @@ TEST_F(TransportTests, Discovery) {
   appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
   appHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
 
-  static const ChppServiceDescriptor wwanServiceDescriptor = {
-      .uuid = CHPP_UUID_WWAN_STANDARD,
+  ChppServiceDescriptor wwanServiceDescriptor = {};
+  static const uint8_t uuid[CHPP_SERVICE_UUID_LEN] = CHPP_UUID_WWAN_STANDARD;
+  memcpy(&wwanServiceDescriptor.uuid, &uuid,
+         sizeof(wwanServiceDescriptor.uuid));
+  static const char name[CHPP_SERVICE_NAME_MAX_LEN] = "WWAN";
+  memcpy(&wwanServiceDescriptor.name, &name,
+         sizeof(wwanServiceDescriptor.name));
+  wwanServiceDescriptor.version.major = 1;
+  wwanServiceDescriptor.version.minor = 0;
+  wwanServiceDescriptor.version.patch = 0;
 
-      // Human-readable name
-      .name = "WWAN",
-
-      // Version
-      .version.major = 1,
-      .version.minor = 0,
-      .version.patch = 0,
-  };
   memcpy(&mBuf[len], &wwanServiceDescriptor, sizeof(ChppServiceDescriptor));
   len += sizeof(ChppServiceDescriptor);
 
-  transHeader->length =
-      len - sizeof(ChppTransportHeader) - CHPP_PREAMBLE_LEN_BYTES;
+  transHeader->length = static_cast<uint16_t>(
+      len - sizeof(ChppTransportHeader) - CHPP_PREAMBLE_LEN_BYTES);
 
   addTransportFooterToBuf(mBuf, &len);
 

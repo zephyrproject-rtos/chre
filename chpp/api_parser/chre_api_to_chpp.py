@@ -376,8 +376,9 @@ class CodeGenerator:
             member_info['name'], annotation['length_field'],
             self._get_chpp_member_sizeof_call(member_info)))
 
-        out.append("  CHPP_ASSERT(*vlaOffset + out->{}.length <= payloadSize);\n".format(
+        out.append("  CHPP_ASSERT((size_t)(*vlaOffset + out->{}.length) <= payloadSize);\n".format(
             member_info['name']))
+
         out.append("  if (out->{}.length > 0 &&\n"
                    "      *vlaOffset + out->{}.length <= payloadSize) {{\n".format(
             member_info['name'], member_info['name']))

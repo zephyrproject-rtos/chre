@@ -76,7 +76,7 @@ static uint8_t chppFindMatchingClient(
     struct ChppAppState *context, const struct ChppServiceDescriptor *service) {
   uint8_t result = CHPP_CLIENT_INDEX_NONE;
 
-  for (size_t i = 0; i < context->registeredClientCount; i++) {
+  for (uint8_t i = 0; i < context->registeredClientCount; i++) {
     if (chppIsClientCompatibleWithService(
             &context->registeredClients[i]->descriptor, service)) {
       result = i;
@@ -102,7 +102,8 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
   const struct ChppDiscoveryResponse *response =
       (struct ChppDiscoveryResponse *)buf;
   size_t servicesLen = len - sizeof(struct ChppAppHeader);
-  uint8_t serviceCount = servicesLen / sizeof(struct ChppServiceDescriptor);
+  uint8_t serviceCount =
+      (uint8_t)(servicesLen / sizeof(struct ChppServiceDescriptor));
 
   if (servicesLen != serviceCount * sizeof(struct ChppServiceDescriptor)) {
     // Incomplete service list

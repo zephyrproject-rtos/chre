@@ -149,7 +149,7 @@ static enum ChppAppErrorCode chppDispatchGnssRequest(void *serviceContext,
 
   struct ChppGnssServiceState *gnssServiceContext =
       (struct ChppGnssServiceState *)serviceContext;
-  struct ChppRequestResponseState *rRState;
+  struct ChppRequestResponseState *rRState = NULL;
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
   bool dispatched = true;
 

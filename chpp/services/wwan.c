@@ -134,7 +134,7 @@ static enum ChppAppErrorCode chppDispatchWwanRequest(void *serviceContext,
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct ChppWwanServiceState *wwanServiceContext =
       (struct ChppWwanServiceState *)serviceContext;
-  struct ChppRequestResponseState *rRState;
+  struct ChppRequestResponseState *rRState = NULL;
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
   bool dispatched = true;
 
