@@ -48,8 +48,7 @@ extern "C" {
 #define CHPP_LOGI(fmt, ...) CHPP_LINUX_LOG("I", "96", fmt, ##__VA_ARGS__)
 #define CHPP_LOGD(fmt, ...) CHPP_LINUX_LOG("D", "97", fmt, ##__VA_ARGS__)
 
-#define CHPP_LOG_OOM(fmt, ...) \
-  CHPP_LINUX_LOG("E", "91", "CHPP OOM: " fmt, ##__VA_ARGS__)
+#define CHPP_LOG_OOM() CHPP_LOGE("OOM at %s:%d", __FILENAME__, __LINE__)
 
 #ifdef __cplusplus
 }

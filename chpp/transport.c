@@ -195,10 +195,7 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
       }
 
       if (tempPayload == NULL) {
-        CHPP_LOG_OOM("packet# %" PRIu8 ", len=%" PRIu16
-                     ". Previous fragment(s) total len=%" PRIuSIZE,
-                     context->rxHeader.seq, context->rxHeader.length,
-                     context->rxDatagram.length);
+        CHPP_LOG_OOM();
         chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_OOM);
         chppSetRxState(context, CHPP_STATE_PREAMBLE);
       } else {
@@ -360,10 +357,7 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
                       context->rxDatagram.length + context->rxHeader.length);
 
       if (tempPayload == NULL) {
-        CHPP_LOG_OOM("While discarding RX continuation packet. seq=%" PRIu8
-                     ". datagram len=%" PRIuSIZE,
-                     context->rxHeader.seq,
-                     context->rxDatagram.length + context->rxHeader.length);
+        CHPP_LOG_OOM();
       } else {
         context->rxDatagram.payload = tempPayload;
       }
