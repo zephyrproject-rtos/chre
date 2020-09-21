@@ -22,6 +22,10 @@ enum MessageType {
   // H2C: Host passing down wifi scan result data to CHRE to validate.
   // There may be multiple messages with this type sent.
   SCAN_RESULT = 3;
+
+  // C2H: Nanoapp informing host about the wifi capabilities it has.
+  // The payload must be a WifiCapabilities message.
+  WIFI_CAPABILITIES = 4;
 }
 
 enum Step {
@@ -31,6 +35,8 @@ enum Step {
   SETUP = 1;
   // The validate step where the data is gathered and compared.
   VALIDATE = 2;
+  // The step where the wifi capabilities are gathered from the nanoapp.
+  CAPABILITIES = 3;
 }
 
 message StepStartCommand {
@@ -53,4 +59,12 @@ message WifiScanResult {
   // The index of this result in relation to the entire set of results.
   // [0 - totalNumResults)
   optional uint32 resultIndex = 4;
+}
+
+/*
+ * The wifi capabilities listed in
+ * //system/chre/chre_api/include/chre_api/chre/wifi.h
+ */
+message WifiCapabilities {
+  optional uint32 wifiCapabilities = 1;
 }
