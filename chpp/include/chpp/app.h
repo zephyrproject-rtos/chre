@@ -318,13 +318,11 @@ struct ChppAppState {
 
   struct ChppClientServiceSet clientServiceSet;  // Enabled client/services
 
-#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
   // For discovery clients
   bool isDiscoveryClientInitialized;
   bool isDiscoveryComplete;
   struct ChppMutex discoveryMutex;
   struct ChppConditionVariable discoveryCv;
-#endif  // CHPP_CLIENT_ENABLED_DISCOVERY
 };
 
 #define CHPP_SERVICE_INDEX_OF_HANDLE(handle) \
