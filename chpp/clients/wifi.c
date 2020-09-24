@@ -374,11 +374,22 @@ static void chppWifiConfigureScanMonitorResult(
 static void chppWifiScanEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
+  CHPP_LOGD("chppWifiScanEventNotification received data len=%" PRIuSIZE, len);
 
-  // TODO: Use auto-generated parser to convert, i.e. chppWifiScanEventToChre()
-  // gCallbacks->scanEventCallback(chreResult);
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct chreWifiScanEvent *chre =
+      chppWifiScanEventToChre((struct ChppWifiScanEvent *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "chppWifiScanEventNotification CHPP -> CHRE conversion failed. Input "
+        "len=%" PRIuSIZE,
+        len);
+  } else {
+    gCallbacks->scanEventCallback(chre);
+  }
 }
 
 /**

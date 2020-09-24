@@ -374,47 +374,30 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
     struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len) {
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
-  // TODO: replace with chppWifiScanParamsToChre() when available
-  if (len < sizeof(struct chreWifiScanParams)) {
+  struct chreWifiScanParams *chre =
+      chppWifiScanParamsToChre((struct ChppWifiScanParams *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "WifiServiceRequestScanAsync CHPP -> CHRE conversion failed. Input "
+        "len=%" PRIuSIZE,
+        len);
     error = CHPP_APP_ERROR_INVALID_ARG;
 
+  } else if (!wifiServiceContext->api->requestScan(chre)) {
+    error = CHPP_APP_ERROR_UNSPECIFIED;
+
   } else {
-    struct ChppWifiScanParams *in = (struct ChppWifiScanParams *)buf;
-    struct chreWifiScanParams *params = (struct chreWifiScanParams *)buf;
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
 
-    if (in->frequencyListLen > 0 &&
-        len >= in->frequencyList.offset +
-                   in->frequencyListLen * sizeof(uint32_t)) {
-      params->frequencyList =
-          (const uint32_t *)(buf + in->frequencyList.offset);
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
     } else {
-      params->frequencyList = NULL;
-    }
-
-    if (in->ssidListLen > 0 &&
-        len >= in->ssidList.offset +
-                   in->ssidListLen * sizeof(struct chreWifiSsidListItem)) {
-      params->ssidList =
-          (const struct chreWifiSsidListItem *)(buf + in->ssidList.offset);
-    } else {
-      params->ssidList = NULL;
-    }
-
-    if (!wifiServiceContext->api->requestScan(params)) {
-      error = CHPP_APP_ERROR_UNSPECIFIED;
-
-    } else {
-      struct ChppAppHeader *response =
-          chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-
-      if (response == NULL) {
-        CHPP_LOG_OOM();
-        error = CHPP_APP_ERROR_OOM;
-      } else {
-        chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
-                                          &wifiServiceContext->requestScanAsync,
-                                          response, sizeof(*response));
-      }
+      chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
+                                        &wifiServiceContext->requestScanAsync,
+                                        response, sizeof(*response));
     }
   }
 
