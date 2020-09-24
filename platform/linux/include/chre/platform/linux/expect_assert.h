@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_ASSERT_H_
-#define CHRE_PLATFORM_LINUX_ASSERT_H_
+#ifndef CHRE_PLATFORM_LINUX_EXPECT_ASSERT_H_
+#define CHRE_PLATFORM_LINUX_EXPECT_ASSERT_H_
 
 #include <cassert>
-
-#define CHRE_ASSERT_USES_STDLIB_ASSERT
 
 #ifdef GTEST
 
@@ -70,20 +68,6 @@ class MockAssert : public AssertInterface {
     statement;                                                            \
   } while (0)
 
-#define CHRE_ASSERT(condition)                           \
-  do {                                                   \
-    if (gMockAssert != nullptr && !(condition)) {        \
-      LOGI("Mocked assertion " #condition " triggered"); \
-      gMockAssert->doAssert();                           \
-    } else {                                             \
-      assert(condition);                                 \
-    }                                                    \
-  } while (0)
-
-#else  // if !defined(GTEST)
-
-#define CHRE_ASSERT(condition) assert(condition)
-
 #endif  // GTEST
 
-#endif  // CHRE_PLATFORM_LINUX_ASSERT_H_
+#endif  // CHRE_PLATFORM_LINUX_EXPECT_ASSERT_H_

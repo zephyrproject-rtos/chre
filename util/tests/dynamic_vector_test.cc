@@ -16,6 +16,10 @@
 
 #include "gtest/gtest.h"
 
+#ifdef GTEST
+#include "chre/platform/linux/expect_assert.h"
+#endif
+
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 

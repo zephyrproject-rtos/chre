@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_ASSERT_H_
-#define CHRE_PLATFORM_SLPI_ASSERT_H_
+#include "chre/platform/assert.h"
 
 #include "chre/platform/fatal_error.h"
 
-#define CHRE_ASSERT(condition)                                            \
-  do {                                                                    \
-    if (!(condition)) {                                                   \
-      FATAL_ERROR("Assertion failure at %s:%d", CHRE_FILENAME, __LINE__); \
-    }                                                                     \
-  } while (0)
+namespace chre {
 
-#endif  // CHRE_PLATFORM_SLPI_ASSERT_H_
+void doAssert(const char *filename, size_t line) {
+  FATAL_ERROR("Assertion failure at %s:%zu", filename, line);
+}
+
+}  // namespace chre

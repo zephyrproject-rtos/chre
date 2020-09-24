@@ -21,23 +21,19 @@
 
 /**
  * @file
- * Includes the platform-specific header file that supplies an assertion macro.
- * The platform header must supply the following symbol as a macro or free
- * function:
- *
- *   CHRE_ASSERT(scalar expression)
- *
- * Where expression will be checked to be false (ie: compares equal to zero) and
- * terminate the program if found to be the case.
+ * Defines the CHRE_ASSERT and CHRE_ASSERT_LOG macros for CHRE platforms.
+ * Platforms must supply an implementation for assertCondition or use the shared
+ * implementation.
  */
 
 #if defined(CHRE_ASSERTIONS_ENABLED)
 
-#include "chre/target_platform/assert.h"
-
-#ifndef CHRE_ASSERT
-#error "CHRE_ASSERT must be defined by the target platform's assert.h"
-#endif  // CHRE_ASSERT
+#define CHRE_ASSERT(condition)                 \
+  do {                                         \
+    if (!(condition)) {                        \
+      chre::doAssert(CHRE_FILENAME, __LINE__); \
+    }                                          \
+  } while (0)
 
 #elif defined(CHRE_ASSERTIONS_DISABLED)
 
@@ -65,5 +61,17 @@
       CHRE_ASSERT(condition);                \
     }                                        \
   } while (0)
+
+namespace chre {
+
+/**
+ * Performs assertion while logging the filename and line provided.
+ *
+ * @param filename The filename containing the assertion being fired.
+ * @param line The line that contains the assertion being fired.
+ */
+void doAssert(const char *filename, size_t line);
+
+}  // namespace chre
 
 #endif  // CHRE_PLATFORM_ASSERT_H_
