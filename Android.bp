@@ -192,6 +192,37 @@ cc_library_headers {
     host_supported: true,
 }
 
+cc_library_static {
+    name: "chre_pal_linux",
+    vendor: true,
+    srcs: [
+        "platform/shared/pal_system_api.cc",
+        "platform/linux/assert.cc",
+        "platform/linux/fatal_error.cc",
+        "platform/linux/memory.cc",
+        "platform/linux/pal_gnss.cc",
+        "platform/linux/pal_wifi.cc",
+        "platform/linux/pal_wwan.cc",
+        "platform/linux/platform_log.cc",
+        "platform/linux/system_time.cc",
+    ],
+    export_include_dirs: [
+        "platform/shared/include",
+        "platform/include",
+        "platform/linux/include",
+        "util/include",
+    ],
+    header_libs: [
+        "chre_pal",
+    ],
+    cflags: [
+        "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
+        "-DCHRE_ASSERTIONS_ENABLED=true",
+        "-DCHRE_FILENAME=__FILE__"
+    ],
+    host_supported: true,
+}
+
 subdirs = [
     "apps/wifi_offload",
 ]
