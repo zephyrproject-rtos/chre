@@ -27,6 +27,7 @@
 #include "chpp/common/wwan.h"
 #include "chpp/macros.h"
 #include "chpp/platform/log.h"
+#include "chpp/services/wwan_types.h"
 #include "chre/pal/wwan.h"
 
 #ifndef CHPP_WWAN_DISCOVERY_TIMEOUT_MS
@@ -283,11 +284,22 @@ static void chppWwanGetCapabilitiesResult(
 static void chppWwanGetCellInfoAsyncResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  // TODO: Use auto-generated parser to convert, i.e.
-  // chppWwanCellInfoResultToChre().
-  // gCallbacks->cellInfoResultCallback(chreResult);
+  CHPP_LOGD("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
+
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct chreWwanCellInfoResult *chre =
+      chppWwanCellInfoResultToChre((struct ChppWwanCellInfoResult *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "chppWwanGetCellInfoAsyncResult CHPP -> CHRE conversion failed. Input "
+        "len=%" PRIuSIZE,
+        len);
+  } else {
+    gCallbacks->cellInfoResultCallback(chre);
+  }
 }
 
 /**
