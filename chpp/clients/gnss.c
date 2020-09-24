@@ -444,27 +444,22 @@ static void chppGnssStateResyncNotification(
 static void chppGnssLocationResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
+  CHPP_LOGD("chppGnssLocationResultNotification received data len=%" PRIuSIZE,
+            len);
 
-  if (len < sizeof(struct ChppGnssLocationEventWithHeader)) {
-    CHPP_LOGE("GNSS LocationResultNotification too short");
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
 
+  struct chreGnssLocationEvent *chre =
+      chppGnssLocationEventToChre((struct ChppGnssLocationEvent *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "chppGnssLocationResultNotification CHPP -> CHRE conversion failed. "
+        "Input len=%" PRIuSIZE,
+        len);
   } else {
-    CHPP_LOGD("chppGnssLocationResultNotification received location");
-
-    // TODO: Use parser script instead. i.e. chppGnssLocationEventToChre()
-    struct ChppGnssLocationEventWithHeader *chppEvent =
-        (struct ChppGnssLocationEventWithHeader *)buf;
-    struct chreGnssLocationEvent *chreResult =
-        chppMalloc(sizeof(struct chreGnssLocationEvent));
-
-    if (chreResult == NULL) {
-      CHPP_LOG_OOM();
-
-    } else {
-      memcpy(chreResult, &chppEvent->payload,
-             sizeof(struct ChppGnssLocationEvent));
-      gCallbacks->locationEventCallback(chreResult);
-    }
+    gCallbacks->locationEventCallback(chre);
   }
 }
 
@@ -480,11 +475,24 @@ static void chppGnssLocationResultNotification(
 static void chppGnssMeasurementResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  // TODO: Use parser script, i.e. chppGnssMeasurementEventToChre(), to convert
+  CHPP_LOGD(
+      "chppGnssMeasurementResultNotification received data len=%" PRIuSIZE,
+      len);
 
-  // gCallbacks->measurementEventCallback(chreResult);
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct chreGnssDataEvent *chre =
+      chppGnssDataEventToChre((struct ChppGnssDataEvent *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "chppGnssMeasurementResultNotification CHPP -> CHRE conversion failed. "
+        "Input len=%" PRIuSIZE,
+        len);
+  } else {
+    gCallbacks->measurementEventCallback(chre);
+  }
 }
 
 /**
