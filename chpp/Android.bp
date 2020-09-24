@@ -56,9 +56,6 @@ cc_library_static {
         "platform/linux/link.c",
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
-        "platform/linux/services/platform_gnss.c",
-        "platform/linux/services/platform_wifi.c",
-        "platform/linux/services/platform_wwan.c",
     ],
     export_include_dirs: [
         "platform/linux/include",
@@ -72,6 +69,7 @@ cc_library_static {
         "chre_pal",
         "chre_api",
     ],
+    static_libs: ["chre_pal_linux"],
     host_supported: true,
 }
 
@@ -86,7 +84,10 @@ cc_test_host {
         // Needed to support running on TreeHugger
         "general-tests",
     ],
-    static_libs: ["chre_chpp_linux"],
+    static_libs: [
+        "chre_chpp_linux",
+        "chre_pal_linux"
+    ],
 }
 
 cc_test_host {
