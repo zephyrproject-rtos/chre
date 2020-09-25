@@ -24,9 +24,11 @@ cc_library_static {
         "-DCHPP_CLIENT_ENABLED_GNSS",
         "-DCHPP_CLIENT_ENABLED_WIFI",
         "-DCHPP_CLIENT_ENABLED_WWAN",
+        "-DCHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK",
         "-DCHPP_SERVICE_ENABLED_GNSS",
         "-DCHPP_SERVICE_ENABLED_WIFI",
         "-DCHPP_SERVICE_ENABLED_WWAN",
+        "-DCHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK",
         // clock_gettime() requires _POSIX_C_SOURCE >= 199309L
         "-D_POSIX_C_SOURCE=199309L",
         // Required for pthread_setname_np()
@@ -75,6 +77,9 @@ cc_library_static {
 
 cc_test_host {
     name: "chre_chpp_linux_tests",
+    cflags: [
+        "-DCHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK",
+    ],
     srcs: [
         "test/app_test_base.cpp",
         "test/loopback_test.cpp",

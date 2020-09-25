@@ -144,6 +144,8 @@ enum ChppTransportErrorCode {
   ((enum ChppTransportPacketAttributes)( \
       (value)&CHPP_TRANSPORT_ATTR_MASK))  // TODO: Consider checking if this
                                           // maps into a valid enum
+#define CHPP_TRANSPORT_SET_ATTR(code, value) \
+  code = ((code & CHPP_TRANSPORT_ERROR_MASK) | value)
 enum ChppTransportPacketAttributes {
   //! None
   CHPP_TRANSPORT_ATTR_NONE = CHPP_TRANSPORT_ATTR_VALUE(0),
@@ -151,6 +153,10 @@ enum ChppTransportPacketAttributes {
   CHPP_TRANSPORT_ATTR_RESET = CHPP_TRANSPORT_ATTR_VALUE(1),
   //! Reset Ack
   CHPP_TRANSPORT_ATTR_RESET_ACK = CHPP_TRANSPORT_ATTR_VALUE(2),
+  //! Transport-Layer Loopback Request
+  CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST = CHPP_TRANSPORT_ATTR_VALUE(3),
+  //! Transport-Layer Loopback Response
+  CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE = CHPP_TRANSPORT_ATTR_VALUE(4),
 };
 
 /**
@@ -343,6 +349,8 @@ struct ChppTransportState {
   struct ChppTransportHeader rxHeader;  // Rx packet header
   struct ChppTransportFooter rxFooter;  // Rx packet footer (checksum)
   struct ChppDatagram rxDatagram;       // Rx datagram
+  uint8_t loopbackResult;  // Last transport-layer loopback test result as an
+                           // enum ChppAppErrorCode
 
   struct ChppTxStatus txStatus;                // Tx state
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
@@ -542,6 +550,21 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
  * @param buf Pointer to the buf given to chppProcessRxDatagram. Cannot be null.
  */
 void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
+
+/*
+ * Sends out transport-layer loopback data. Note that in most situations, an
+ * application-layer loopback test is pprefrable as it is more thorough and
+ * provides statistics regarding the correctness of the loopbacked data.
+ *
+ * The result will be available later, asynchronously, as a ChppAppErrorCode
+ * enum in context->loopbackResult.
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @param buf Pointer to the loopback data to be sent. Cannot be null.
+ * @param len Length of the loopback data.
+ */
+void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
+                              size_t len);
 
 #ifdef __cplusplus
 }

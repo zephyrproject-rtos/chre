@@ -48,6 +48,14 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
 static size_t chppConsumeFooter(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len);
 static void chppRxAbortPacket(struct ChppTransportState *context);
+#ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
+static void chppProcessTransportLoopbackRequest(
+    struct ChppTransportState *context);
+#endif
+#ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
+static void chppProcessTransportLoopbackResponse(
+    struct ChppTransportState *context);
+#endif
 static void chppProcessReset(struct ChppTransportState *context);
 static void chppProcessResetAck(struct ChppTransportState *context);
 static void chppProcessRxPayload(struct ChppTransportState *context);
@@ -264,7 +272,19 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
     // TODO: Handle duplicate packets (i.e. resent because ACK was lost)
 
-    if (!chppRxChecksumIsOk(context)) {
+    if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
+        CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST) {
+#ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
+      chppProcessTransportLoopbackRequest(context);
+#endif
+
+    } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
+               CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE) {
+#ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
+      chppProcessTransportLoopbackResponse(context);
+#endif
+
+    } else if (!chppRxChecksumIsOk(context)) {
       CHPP_LOGE("Discarding RX packet because of bad checksum. seq=%" PRIu8
                 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
@@ -274,7 +294,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET) {
       CHPP_LOGD("RX RESET packet. seq=%" PRIu8, context->rxHeader.seq);
-
       chppProcessReset(context);
 
       chppMutexUnlock(&context->mutex);
@@ -287,7 +306,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
       CHPP_LOGD("RX RESET-ACK packet. seq=%" PRIu8, context->rxHeader.seq);
-
       chppProcessResetAck(context);
 
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
@@ -364,6 +382,93 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
     }
   }
 }
+
+#ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
+static void chppProcessTransportLoopbackRequest(
+    struct ChppTransportState *context) {
+  if (context->txStatus.linkBusy) {
+    CHPP_LOGE(
+        "Could not process transport-loopback request because link is busy");
+
+  } else {
+    context->txStatus.linkBusy = true;
+    context->pendingTxPacket.length = 0;
+    context->pendingTxPacket.length +=
+        chppAddPreamble(&context->pendingTxPacket.payload[0]);
+
+    struct ChppTransportHeader *txHeader =
+        (struct ChppTransportHeader *)&context->pendingTxPacket
+            .payload[context->pendingTxPacket.length];
+    context->pendingTxPacket.length += sizeof(*txHeader);
+
+    *txHeader = context->rxHeader;
+    CHPP_TRANSPORT_SET_ATTR(txHeader->packetCode,
+                            CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE);
+
+    size_t payloadLen =
+        MIN(context->rxDatagram.length, CHPP_TRANSPORT_TX_MTU_BYTES);
+    chppAppendToPendingTxPacket(&context->pendingTxPacket,
+                                context->rxDatagram.payload, payloadLen);
+    CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
+    chppClearRxDatagram(context);
+
+    uint32_t checksum = chppCalculateChecksum(context->pendingTxPacket.payload,
+                                              context->pendingTxPacket.length);
+    chppAppendToPendingTxPacket(&context->pendingTxPacket, (uint8_t *)&checksum,
+                                sizeof(checksum));
+
+    CHPP_LOGD("Looping back incoming data (Tx packet len=%" PRIuSIZE
+              ", Tx payload len=%" PRIu16 ", Rx payload len=%" PRIuSIZE ")",
+              context->pendingTxPacket.length, txHeader->length,
+              context->rxDatagram.length);
+    enum ChppLinkErrorCode error = chppPlatformLinkSend(
+        &context->linkParams, context->pendingTxPacket.payload,
+        context->pendingTxPacket.length);
+
+    if (error != CHPP_LINK_ERROR_NONE_QUEUED) {
+      chppLinkSendDoneCb(&context->linkParams, error);
+    }
+  }
+}
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
+static void chppProcessTransportLoopbackResponse(
+    struct ChppTransportState *context) {
+  if (context->pendingTxPacket.length !=
+      context->rxDatagram.length + CHPP_PREAMBLE_LEN_BYTES +
+          sizeof(struct ChppTransportHeader) +
+          sizeof(struct ChppTransportFooter)) {
+    CHPP_LOGE(
+        "Rx transport-loopback payload length does not match Tx (Rx "
+        "len=%" PRIuSIZE ", Tx len=%" PRIuSIZE ")",
+        context->rxDatagram.length,
+        context->pendingTxPacket.length - CHPP_PREAMBLE_LEN_BYTES -
+            sizeof(struct ChppTransportHeader) -
+            sizeof(struct ChppTransportFooter));
+    context->loopbackResult = CHPP_APP_ERROR_INVALID_LENGTH;
+
+  } else if (memcmp(context->rxDatagram.payload,
+                    &context->pendingTxPacket
+                         .payload[CHPP_PREAMBLE_LEN_BYTES +
+                                  sizeof(struct ChppTransportHeader)],
+                    context->rxDatagram.length) != 0) {
+    CHPP_LOGE(
+        "Rx transport-loopback payload does not match Tx data (len=%" PRIuSIZE
+        ")",
+        context->rxDatagram.length);
+    context->loopbackResult = CHPP_APP_ERROR_INVALID_ARG;
+
+  } else {
+    context->loopbackResult = CHPP_APP_ERROR_NONE;
+  }
+  CHPP_LOGI("Rx successful transport-loopback (payload len=%" PRIuSIZE ")",
+            context->rxDatagram.length);
+
+  CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
+  chppClearRxDatagram(context);
+}
+#endif
 
 static void chppProcessReset(struct ChppTransportState *context) {
   // TODO: Configure transport layer based on (optional?) received config before
@@ -478,7 +583,9 @@ static enum ChppTransportErrorCode chppRxHeaderCheck(
 
   bool invalidSeqNo = (context->rxHeader.seq != context->rxStatus.expectedSeq);
   bool hasPayload = (context->rxHeader.length > 0);
-  if (invalidSeqNo && hasPayload) {
+  bool regularPacket = (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
+                        CHPP_TRANSPORT_ATTR_NONE);
+  if (invalidSeqNo && hasPayload && regularPacket) {
     // Note: For a future ACK window > 1, might make more sense to keep quiet
     // instead of flooding with out of order NACK errors
     result = CHPP_TRANSPORT_ERROR_ORDER;
@@ -1212,4 +1319,54 @@ void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
   UNUSED_VAR(context);
 
   CHPP_FREE_AND_NULLIFY(buf);
+}
+
+void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
+                              size_t len) {
+  UNUSED_VAR(buf);
+  UNUSED_VAR(len);
+  context->loopbackResult = CHPP_APP_ERROR_UNSUPPORTED;
+
+#ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
+  context->loopbackResult = CHPP_APP_ERROR_UNSPECIFIED;
+  if (context->txStatus.linkBusy) {
+    CHPP_LOGE("Could not run transport-loopback because link is busy");
+    context->loopbackResult = CHPP_APP_ERROR_BUSY;
+
+  } else {
+    context->txStatus.linkBusy = true;
+    context->pendingTxPacket.length = 0;
+    memset(&context->pendingTxPacket.payload, 0, CHPP_LINK_TX_MTU_BYTES);
+    context->pendingTxPacket.length +=
+        chppAddPreamble(&context->pendingTxPacket.payload[0]);
+
+    struct ChppTransportHeader *txHeader =
+        (struct ChppTransportHeader *)&context->pendingTxPacket
+            .payload[context->pendingTxPacket.length];
+    context->pendingTxPacket.length += sizeof(*txHeader);
+
+    CHPP_TRANSPORT_SET_ATTR(txHeader->packetCode,
+                            CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST);
+
+    size_t payloadLen = MIN(len, CHPP_TRANSPORT_TX_MTU_BYTES);
+    txHeader->length = (uint16_t)payloadLen;
+    chppAppendToPendingTxPacket(&context->pendingTxPacket, buf, payloadLen);
+
+    uint32_t checksum = chppCalculateChecksum(context->pendingTxPacket.payload,
+                                              context->pendingTxPacket.length);
+    chppAppendToPendingTxPacket(&context->pendingTxPacket, (uint8_t *)&checksum,
+                                sizeof(checksum));
+
+    CHPP_LOGD("Sending transport-loopback request (packet len=%" PRIuSIZE
+              ", payload len=%" PRIu16 ", asked len was %" PRIuSIZE ")",
+              context->pendingTxPacket.length, txHeader->length, len);
+    enum ChppLinkErrorCode error = chppPlatformLinkSend(
+        &context->linkParams, context->pendingTxPacket.payload,
+        context->pendingTxPacket.length);
+
+    if (error != CHPP_LINK_ERROR_NONE_QUEUED) {
+      chppLinkSendDoneCb(&context->linkParams, error);
+    }
+  }
+#endif
 }

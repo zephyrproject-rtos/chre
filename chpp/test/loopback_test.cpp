@@ -25,6 +25,7 @@
 #include "chpp/app.h"
 #include "chpp/clients/loopback.h"
 #include "chpp/platform/log.h"
+#include "chpp/transport.h"
 
 /*
  * Test suite for the CHPP Loopback client/service
@@ -34,6 +35,41 @@ namespace {
 
 TEST_F(AppTestBase, SimpleStartStop) {
   // Simple test to make sure start/stop work threads work without crashing
+}
+
+TEST_F(AppTestBase, TransportLayerLoopback) {
+  // This tests the more limited transport-layer-looopback. In contrast,
+  // the regular application-layer loopback test provides a more thorough test
+  // and test results.
+  constexpr size_t kTestLen = CHPP_TRANSPORT_TX_MTU_BYTES;
+  uint8_t buf[kTestLen];
+  for (size_t i = 0; i < kTestLen; i++) {
+    buf[i] = (uint8_t)(i + 100);
+  }
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  CHPP_LOGI("Starting transport-layer loopback test (max buffer = %zu)...",
+            kTestLen);
+
+  chppRunTransportLoopback(mClientAppContext.transportContext, buf, kTestLen);
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+            mClientAppContext.transportContext->loopbackResult);
+
+  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 100);
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+            mClientAppContext.transportContext->loopbackResult);
+
+  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 1);
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+            mClientAppContext.transportContext->loopbackResult);
+
+  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+            mClientAppContext.transportContext->loopbackResult);
 }
 
 TEST_F(AppTestBase, SimpleLoopback) {
