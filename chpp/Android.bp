@@ -82,6 +82,10 @@ cc_test_host {
         "test/loopback_test.cpp",
         "test/transport_test.cpp",
     ],
+    test_suites: [
+        // Needed to support running on TreeHugger
+        "general-tests",
+    ],
     static_libs: ["chre_chpp_linux"],
 }
 
