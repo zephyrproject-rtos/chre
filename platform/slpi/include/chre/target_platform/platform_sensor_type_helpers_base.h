@@ -44,6 +44,7 @@ enum class SensorSampleType {
   Vendor7,
   Vendor8,
   Vendor9,
+  Vendor10,
   Unknown,
 };
 
