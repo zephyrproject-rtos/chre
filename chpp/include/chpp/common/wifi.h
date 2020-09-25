@@ -31,7 +31,7 @@ extern "C" {
  *  Public Definitions
  ***********************************************/
 
-#define CHPP_PAL_WIFI_API_VERSION CHRE_PAL_WIFI_API_V1_2
+#define CHPP_PAL_WIFI_API_VERSION CHRE_PAL_WIFI_API_V1_5
 
 /**
  * Data structures used by the Configure Scan Monitor request.

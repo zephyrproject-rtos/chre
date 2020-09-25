@@ -327,7 +327,7 @@ TEST(WifiConvert, TwoResultsWithFreqList) {
       .centerFreqPrimary = 8888,
       .centerFreqSecondary = 7777,
       .channelWidth = CHRE_WIFI_CHANNEL_WIDTH_160_MHZ,
-      .securityMode = CHRE_WIFI_SECURITY_MODE_PSK | CHRE_WIFI_SECURITY_MODE_EAP,
+      .securityMode = CHRE_WIFI_SECURITY_MODE_SAE,
       .radioChain = CHRE_WIFI_RADIO_CHAIN_0,
       .rssiChain0 = -37,
       .rssiChain1 = 0,
