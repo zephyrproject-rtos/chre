@@ -223,6 +223,40 @@ cc_library_static {
     host_supported: true,
 }
 
+cc_test_host {
+    name: "chre_unit_tests",
+    srcs: [
+        "platform/linux/assert.cc",
+        "platform/linux/fatal_error.cc",
+        "platform/linux/platform_log.cc",
+        "platform/linux/memory.cc",
+        "util/buffer_base.cc",
+        "util/dynamic_vector_base.cc",
+        "util/system/debug_dump.cc",
+        "util/tests/**/*.cc",
+    ],
+    local_include_dirs: [
+        "chre_api/include/chre_api",
+        "platform/linux/include",
+        "platform/shared/include",
+        "platform/include",
+        "util/include",
+    ],
+    test_suites: [
+        // Needed to support running on TreeHugger
+        "general-tests",
+    ],
+    cflags: [
+        "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
+        "-DCHRE_ASSERTIONS_ENABLED=true",
+        "-DCHRE_FILENAME=__FILE__",
+        "-DGTEST",
+    ],
+    static_libs: [
+        "libgmock",
+    ],
+}
+
 subdirs = [
     "apps/wifi_offload",
 ]
