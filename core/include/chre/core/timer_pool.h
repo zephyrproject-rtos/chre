@@ -272,7 +272,7 @@ class TimerPool : public NonCopyable {
    * Sets the underlying system timer to the next timer in the timer list if
    * available.
    *
-   * @return true if any timer events were posted
+   * @return true if at least one timer had expired
    */
   bool handleExpiredTimersAndScheduleNext();
 
@@ -280,7 +280,7 @@ class TimerPool : public NonCopyable {
    * Same as handleExpiredTimersAndScheduleNext(), except mMutex must be
    * acquired prior to calling this function.
    *
-   * @return true if any timer events were posted
+   * @return true if at least one timer had expired
    */
   bool handleExpiredTimersAndScheduleNextLocked();
 

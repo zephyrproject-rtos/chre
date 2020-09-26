@@ -217,16 +217,18 @@ bool TimerPool::handleExpiredTimersAndScheduleNext() {
 }
 
 bool TimerPool::handleExpiredTimersAndScheduleNextLocked() {
-  bool success = false;
+  bool handledExpiredTimer = false;
+
   while (!mTimerRequests.empty()) {
     Nanoseconds currentTime = SystemTime::getMonotonicTime();
     TimerRequest &currentTimerRequest = mTimerRequests.top();
     if (currentTime >= currentTimerRequest.expirationTime) {
       // Post an event for an expired timer.
-      success = EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           currentTimerRequest.eventType,
           const_cast<void *>(currentTimerRequest.cookie),
           currentTimerRequest.callback, currentTimerRequest.instanceId);
+      handledExpiredTimer = true;
 
       // Reschedule the timer if needed, and release the current request.
       if (!currentTimerRequest.isOneShot) {
@@ -242,26 +244,27 @@ bool TimerPool::handleExpiredTimersAndScheduleNextLocked() {
         popTimerRequestLocked();
       }
     } else {
+      // Update the system timer to reflect the duration until the closest
+      // expiry (mTimerRequests is sorted by expiry, so we just do this for the
+      // first timer found which has not expired yet)
       Nanoseconds duration = currentTimerRequest.expirationTime - currentTime;
       mSystemTimer.set(handleSystemTimerCallback, this, duration);
-
-      // Assign success to true here to handle timers that tick before their
-      // expiration time. This should be rarely required, but for systems where
-      // a timer may tick earlier than requested the request is rescheduled with
-      // the remaining time as computed above.
-      success = true;
       break;
     }
   }
 
-  return success;
+  return handledExpiredTimer;
 }
 
 void TimerPool::handleSystemTimerCallback(void *timerPoolPtr) {
   auto callback = [](uint16_t /* eventType */, void *eventData) {
     auto *timerPool = static_cast<TimerPool *>(eventData);
     if (!timerPool->handleExpiredTimersAndScheduleNext()) {
-      LOGE("Timer callback invoked with no outstanding timers");
+      // Means that the system timer invoked our callback before the next timer
+      // expired. Possible in rare race conditions with time removal, but could
+      // indicate a faulty SystemTimer implementation if this happens often. Not
+      // a major problem - we'll just reset the timer to the next expiration.
+      LOGW("Timer callback invoked prior to expiry");
     }
   };
 

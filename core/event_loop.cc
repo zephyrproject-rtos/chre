@@ -249,46 +249,41 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
   return unloaded;
 }
 
-bool EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
+void EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
                                chreEventCompleteFunction *freeCallback,
                                uint32_t targetInstanceId) {
-  bool success = false;
-
   if (mRunning) {
-    success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                   kSystemInstanceId, targetInstanceId);
-    if (!success) {
-      // This can only happen if the event is a system event type. This
-      // postEvent method will fail if a non-system event is posted when the
-      // memory pool is close to full.
-      FATAL_ERROR("Failed to allocate system event type %" PRIu16, eventType);
+    if (!allocateAndPostEvent(eventType, eventData, freeCallback,
+                              kSystemInstanceId, targetInstanceId)) {
+      FATAL_ERROR("Failed to post critical system event 0x%" PRIx16, eventType);
     }
+  } else if (freeCallback != nullptr) {
+    freeCallback(eventType, eventData);
   }
-
-  return success;
 }
 
 bool EventLoop::postLowPriorityEventOrFree(
     uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
     uint32_t targetInstanceId) {
-  bool success = false;
+  bool eventPosted = false;
 
   if (mRunning) {
     if (mEventPool.getFreeBlockCount() > kMinReservedHighPriorityEventCount) {
-      success = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                     senderInstanceId, targetInstanceId);
-    }
-    if (!success) {
-      if (freeCallback != nullptr) {
-        freeCallback(eventType, eventData);
+      eventPosted = allocateAndPostEvent(eventType, eventData, freeCallback,
+                                         senderInstanceId, targetInstanceId);
+      if (!eventPosted) {
+        LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
+             eventType, targetInstanceId);
       }
-      LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
-           eventType, targetInstanceId);
     }
   }
 
-  return success;
+  if (!eventPosted && freeCallback != nullptr) {
+    freeCallback(eventType, eventData);
+  }
+
+  return eventPosted;
 }
 
 void EventLoop::stop() {

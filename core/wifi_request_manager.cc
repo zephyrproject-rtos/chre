@@ -407,14 +407,10 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
       event->reserved = 0;
       event->cookie = cookie;
 
-      // Post the event.
-      eventPosted =
-          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-              CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-              nanoappInstanceId);
-      if (!eventPosted) {
-        memoryFree(event);
-      }
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+          nanoappInstanceId);
+      eventPosted = true;
     }
   }
 
@@ -433,6 +429,9 @@ void WifiRequestManager::postScanMonitorAsyncResultEventFatal(
 bool WifiRequestManager::postScanRequestAsyncResultEvent(
     uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
     const void *cookie) {
+  // TODO: the body of this function can be extracted to a common helper for use
+  // across this function, postScanMonitorAsyncResultEvent,
+  // postRangingAsyncResult, and GnssSession::postAsyncResultEvent
   bool eventPosted = false;
   chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
   if (event == nullptr) {
@@ -444,11 +443,10 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
     event->reserved = 0;
     event->cookie = cookie;
 
-    // Post the event.
-    eventPosted =
-        EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-            CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-            nanoappInstanceId);
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+        nanoappInstanceId);
+    eventPosted = true;
   }
 
   return eventPosted;
@@ -589,13 +587,10 @@ bool WifiRequestManager::postRangingAsyncResult(uint8_t errorCode) {
       event->reserved = 0;
       event->cookie = req.cookie;
 
-      eventPosted =
-          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-              CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-              req.nanoappInstanceId);
-      if (!eventPosted) {
-        memoryFree(event);
-      }
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+          req.nanoappInstanceId);
+      eventPosted = true;
     }
   }
 

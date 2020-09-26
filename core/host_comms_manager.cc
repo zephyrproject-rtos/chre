@@ -106,22 +106,20 @@ bool HostCommsManager::deliverNanoappMessageFromHost(
     MessageFromHost *craftedMessage) {
   const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   uint32_t targetInstanceId;
-  bool success = false;
+  bool nanoappFound = false;
 
   CHRE_ASSERT_LOG(craftedMessage != nullptr,
                   "Cannot deliver NULL pointer nanoapp message from host");
 
   if (eventLoop.findNanoappInstanceIdByAppId(craftedMessage->appId,
                                              &targetInstanceId)) {
-    success = true;
-    if (!EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-            CHRE_EVENT_MESSAGE_FROM_HOST, &craftedMessage->fromHostData,
-            freeMessageFromHostCallback, targetInstanceId)) {
-      mMessagePool.deallocate(craftedMessage);
-    }
+    nanoappFound = true;
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_MESSAGE_FROM_HOST, &craftedMessage->fromHostData,
+        freeMessageFromHostCallback, targetInstanceId);
   }
 
-  return success;
+  return nanoappFound;
 }
 
 void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,

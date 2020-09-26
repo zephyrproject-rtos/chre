@@ -415,14 +415,10 @@ bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
       event->reserved = 0;
       event->cookie = cookie;
 
-      eventPosted =
-          EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-              CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
-              instanceId);
-
-      if (!eventPosted) {
-        memoryFree(event);
-      }
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_GNSS_ASYNC_RESULT, event, freeEventDataCallback,
+          instanceId);
+      eventPosted = true;
     }
   }
 
