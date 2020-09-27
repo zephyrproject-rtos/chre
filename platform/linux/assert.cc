@@ -34,7 +34,13 @@ void doAssert(const char *filename, size_t line) {
   } else
 #endif  // GTEST
   {
+#ifdef NDEBUG
+    // Directly abort the program if assert is a no-op so that gtests can
+    // work properly.
+    abort();
+#else
     assert(false);
+#endif  // NDEBUG
   }
 }
 

@@ -20,6 +20,7 @@
 #include "chre/platform/linux/expect_assert.h"
 #endif
 
+#include "chre/platform/assert.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 
@@ -127,7 +128,7 @@ class MovableButNonCopyable : public chre::NonCopyable {
   }
 
   MovableButNonCopyable &operator=(MovableButNonCopyable &&other) {
-    assert(mMagic == kConstructedMagic);
+    CHRE_ASSERT(mMagic == kConstructedMagic);
     mValue = other.mValue;
     other.mValue = -1;
     return *this;
@@ -171,7 +172,7 @@ class CopyableButNonMovable {
   }
 
   CopyableButNonMovable &operator=(const CopyableButNonMovable &other) {
-    assert(mMagic == kConstructedMagic);
+    CHRE_ASSERT(mMagic == kConstructedMagic);
     mValue = other.mValue;
     return *this;
   }
@@ -221,7 +222,7 @@ class MovableAndCopyable {
   }
 
   MovableAndCopyable &operator=(const MovableAndCopyable &other) {
-    assert(mMagic == kConstructedMagic);
+    CHRE_ASSERT(mMagic == kConstructedMagic);
     mValue = other.mValue;
     return *this;
   }
