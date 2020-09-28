@@ -64,7 +64,7 @@ static bool gnssPalControlMeasurementSessiont(bool enable,
 
 static void gnssPalReleaseMeasurementDataEvent(
     struct chreGnssDataEvent *event) {
-  gSystemApi->memoryFree((void *)event->measurements);
+  gSystemApi->memoryFree(CHPP_CONST_CAST_POINTER(event->measurements));
   gSystemApi->memoryFree(event);
 }
 

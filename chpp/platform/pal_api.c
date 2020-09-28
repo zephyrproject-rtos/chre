@@ -32,11 +32,12 @@
 //! macros.
 #define PAL_LOG_FORMAT_STR "PAL: %s"
 
-uint64_t palSystemApiGetCurrentTime(void) {
+static uint64_t palSystemApiGetCurrentTime(void) {
   return chppGetCurrentTimeNs();
 }
 
-void palSystemApiLog(enum chreLogLevel level, const char *formatStr, ...) {
+static void palSystemApiLog(enum chreLogLevel level, const char *formatStr,
+                            ...) {
   char logBuf[512];
   va_list args;
 

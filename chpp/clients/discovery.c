@@ -100,7 +100,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
   CHPP_DEBUG_ASSERT(len >= sizeof(struct ChppAppHeader));
 
   const struct ChppDiscoveryResponse *response =
-      (struct ChppDiscoveryResponse *)buf;
+      (const struct ChppDiscoveryResponse *)buf;
   size_t servicesLen = len - sizeof(struct ChppAppHeader);
   uint8_t serviceCount =
       (uint8_t)(servicesLen / sizeof(struct ChppServiceDescriptor));
@@ -236,7 +236,7 @@ bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
 
 bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
                                           const uint8_t *buf, size_t len) {
-  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  const struct ChppAppHeader *rxHeader = (const struct ChppAppHeader *)buf;
   bool success = true;
 
   switch (rxHeader->command) {

@@ -53,7 +53,7 @@ static bool wifiPalRequestScan(const struct chreWifiScanParams *params) {
 }
 
 static void wifiPalReleaseScanEvent(struct chreWifiScanEvent *event) {
-  gSystemApi->memoryFree((void *)event->results);
+  gSystemApi->memoryFree(CHPP_CONST_CAST_POINTER(event->results));
   gSystemApi->memoryFree(event);
 }
 
@@ -64,7 +64,7 @@ static bool wifiPalRequestRanging(const struct chreWifiRangingParams *params) {
 }
 
 static void wifiPalReleaseRangingEvent(struct chreWifiRangingEvent *event) {
-  gSystemApi->memoryFree((void *)event->results);
+  gSystemApi->memoryFree(CHPP_CONST_CAST_POINTER(event->results));
   gSystemApi->memoryFree(event);
 }
 

@@ -714,8 +714,10 @@ class CodeGenerator:
         out.append("      return false;\n")
         out.append("    }\n\n")
 
-        out.append("    {} *{}In = ({} *) &((uint8_t *)in)[in->{}.offset];\n".format(
-            chpp_type, variable_name, chpp_type, variable_name))
+        out.append("    const {} *{}In =\n".format(
+            chpp_type, variable_name))
+        out.append("        (const {} *) &((const uint8_t *)in)[in->{}.offset];\n".format(
+            chpp_type, variable_name))
 
         out.append("    {} *{}Out = chppMalloc(in->{} * sizeof({}));\n".format(
             chre_type, variable_name, annotation['length_field'], chre_type))

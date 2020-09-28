@@ -188,7 +188,7 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
 }
 
 bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
-                                 struct ChppAppHeader *responseHeader) {
+                                 const struct ChppAppHeader *responseHeader) {
   uint64_t previousResponseTime = rRState->responseTime;
   rRState->responseTime = chppGetCurrentTimeNs();
 

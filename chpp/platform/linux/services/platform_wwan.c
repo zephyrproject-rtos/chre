@@ -60,7 +60,7 @@ static bool wwanPalRequestCellInfo(void) {
 
 static void wwanPalReleaseCellInfoResult(
     struct chreWwanCellInfoResult *result) {
-  gSystemApi->memoryFree((void *)result->cells);
+  gSystemApi->memoryFree(CHPP_CONST_CAST_POINTER(result->cells));
   gSystemApi->memoryFree(result);
 }
 

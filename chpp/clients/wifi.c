@@ -113,7 +113,7 @@ static const struct chrePalWifiCallbacks *gCallbacks;
 
 static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
                                const struct chrePalWifiCallbacks *callbacks);
-static void chppWifiClientClose();
+static void chppWifiClientClose(void);
 static uint32_t chppWifiClientGetCapabilities(void);
 static bool chppWifiClientConfigureScanMonitor(bool enable);
 static bool chppWifiClientRequestScan(const struct chreWifiScanParams *params);

@@ -159,6 +159,9 @@ enum ChppTransportPacketAttributes {
   CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE = CHPP_TRANSPORT_ATTR_VALUE(4),
 };
 
+#define CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(attr, error) \
+  ((uint8_t)(attr) | (uint8_t)(error))
+
 /**
  * CHPP Transport Layer header (not including the preamble)
  */

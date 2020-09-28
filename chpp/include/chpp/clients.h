@@ -88,6 +88,12 @@ struct ChppClientState {
 #define CHPP_CLIENT_ENABLED_GNSS
 #endif
 
+#if defined(CHPP_CLIENT_ENABLED_LOOPBACK) ||                                  \
+    defined(CHPP_CLIENT_ENABLED_WWAN) || defined(CHPP_CLIENT_ENABLED_WIFI) || \
+    defined(CHPP_CLIENT_ENABLED_GNSS)
+#define CHPP_CLIENT_ENABLED
+#endif
+
 // The default timeout for chppSendTimestampedRequestAndWait().
 #define DEFAULT_CLIENT_REQUEST_TIMEOUT_NS UINT64_C(5000000000)  // 5s
 
@@ -220,7 +226,7 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
  * @return false if there is an error. True otherwise.
  */
 bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
-                                 struct ChppAppHeader *responseHeader);
+                                 const struct ChppAppHeader *responseHeader);
 
 /**
  * Timestamps a client request using chppClientTimestampResponse() and enqueues

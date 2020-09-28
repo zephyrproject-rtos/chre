@@ -28,7 +28,7 @@ extern "C" {
 static inline uint64_t chppGetCurrentTimeNs(void) {
   struct timespec now;
   clock_gettime(CLOCK_REALTIME, &now);
-  return (now.tv_sec * CHPP_NSEC_PER_SEC) + now.tv_nsec;
+  return (uint64_t)now.tv_sec * CHPP_NSEC_PER_SEC + (uint64_t)now.tv_nsec;
 }
 
 #ifdef __cplusplus

@@ -127,6 +127,10 @@ extern "C" {
     (p) = NULL;                  \
   } while (0)
 
+//! Cast a const pointer to a non-const. This is necessary for removing const
+//! with the -Wcast-qual compiler flag.
+#define CHPP_CONST_CAST_POINTER(p) (void *)(intptr_t)(p)
+
 #ifdef __cplusplus
 }
 #endif

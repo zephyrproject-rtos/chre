@@ -74,7 +74,7 @@ static void chppTransportDoWork(struct ChppTransportState *context);
 static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
                                         const uint8_t *buf, size_t len);
 static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
-                                  int8_t packetCode, void *buf, size_t len);
+                                  uint8_t packetCode, void *buf, size_t len);
 
 static void chppResetTransportContext(struct ChppTransportState *context);
 static void chppReset(struct ChppTransportState *transportContext,
@@ -180,7 +180,9 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
     enum ChppTransportErrorCode headerCheckResult = chppRxHeaderCheck(context);
     if (headerCheckResult != CHPP_TRANSPORT_ERROR_NONE) {
       // Header fails consistency check. NACK and return to preamble state
-      chppEnqueueTxPacket(context, headerCheckResult);
+      chppEnqueueTxPacket(
+          context, CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(CHPP_TRANSPORT_ATTR_NONE,
+                                                      headerCheckResult));
       chppSetRxState(context, CHPP_STATE_PREAMBLE);
 
     } else if (context->rxHeader.length == 0) {
@@ -928,7 +930,7 @@ static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
  * False informs the sender that the queue was full.
  */
 static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
-                                  int8_t packetCode, void *buf, size_t len) {
+                                  uint8_t packetCode, void *buf, size_t len) {
   bool success = false;
 
   if (len == 0) {
@@ -1097,8 +1099,10 @@ static void chppTransportSendReset(
     chppSetResetComplete(context);
   }
 
-  chppEnqueueTxDatagram(context, resetType, config,
-                        sizeof(struct ChppTransportConfiguration));
+  chppEnqueueTxDatagram(
+      context,
+      CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, CHPP_TRANSPORT_ERROR_NONE),
+      config, sizeof(struct ChppTransportConfiguration));
 }
 
 /************************************************
@@ -1267,7 +1271,9 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
       CHPP_DEBUG_ASSERT(false);
     }
   }
-  chppEnqueueTxPacket(context, CHPP_TRANSPORT_GET_ERROR(errorCode));
+  chppEnqueueTxPacket(context, CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
+                                   CHPP_TRANSPORT_ATTR_NONE,
+                                   CHPP_TRANSPORT_GET_ERROR(errorCode)));
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {

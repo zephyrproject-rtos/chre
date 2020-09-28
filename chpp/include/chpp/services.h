@@ -32,6 +32,11 @@ extern "C" {
  *  Public Definitions
  ***********************************************/
 
+#if defined(CHPP_SERVICE_ENABLED_WWAN) || \
+    defined(CHPP_SERVICE_ENABLED_WIFI) || defined(CHPP_SERVICE_ENABLED_GNSS)
+#define CHPP_SERVICE_ENABLED
+#endif
+
 /**
  * Uses chppAllocServiceNotification() to allocate a variable-length response
  * message of a specific type.
