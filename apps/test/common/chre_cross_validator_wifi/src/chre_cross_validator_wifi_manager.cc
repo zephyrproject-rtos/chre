@@ -19,6 +19,7 @@
 #include <cinttypes>
 #include <cstring>
 
+#include "chre/util/nanoapp/assert.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre_cross_validation_wifi.nanopb.h"
@@ -89,24 +90,35 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 
 void Manager::handleStepStartMessage(
     chre_cross_validation_wifi_StepStartCommand stepStartCommand) {
-  chre_test_common_TestResult testResult;
   switch (stepStartCommand.step) {
     case chre_cross_validation_wifi_Step_INIT:
-      testResult = makeTestResultProtoMessage(
-          false, "Received StepStartCommand for INIT step");
+      LOGE("Received StepStartCommand for INIT step");
+      CHRE_ASSERT(false);
       break;
-    case chre_cross_validation_wifi_Step_SETUP:
+    case chre_cross_validation_wifi_Step_CAPABILITIES: {
+      chre_cross_validation_wifi_WifiCapabilities wifiCapabilities =
+          makeWifiCapabilitiesMessage(chreWifiGetCapabilities());
+      encodeAndSendMessageToHost(
+          static_cast<void *>(&wifiCapabilities),
+          chre_cross_validation_wifi_WifiCapabilities_fields,
+          chre_cross_validation_wifi_MessageType_WIFI_CAPABILITIES);
+      break;
+    }
+    case chre_cross_validation_wifi_Step_SETUP: {
       if (!chreWifiConfigureScanMonitorAsync(true /* enable */,
                                              &kScanMonitoringCookie)) {
         LOGE("chreWifiConfigureScanMonitorAsync() failed");
-        testResult =
+        chre_test_common_TestResult testResult =
             makeTestResultProtoMessage(false, "setupWifiScanMonitoring failed");
-        encodeAndSendMessageToHost(static_cast<void *>(&testResult),
-                                   chre_test_common_TestResult_fields);
+        encodeAndSendMessageToHost(
+            static_cast<void *>(&testResult),
+            chre_test_common_TestResult_fields,
+            chre_cross_validation_wifi_MessageType_STEP_RESULT);
       } else {
         LOGD("chreWifiConfigureScanMonitorAsync() succeeded");
       }
       break;
+    }
     case chre_cross_validation_wifi_Step_VALIDATE:
       LOGE("start message received in VALIDATE phase");
       break;
@@ -174,8 +186,10 @@ void Manager::compareAndSendResultToHost() {
         }
       }
     }
-    encodeAndSendMessageToHost(static_cast<const void *>(&testResult),
-                               chre_test_common_TestResult_fields);
+    encodeAndSendMessageToHost(
+        static_cast<const void *>(&testResult),
+        chre_test_common_TestResult_fields,
+        chre_cross_validation_wifi_MessageType_STEP_RESULT);
     chreHeapFree(errMsg);
   }
 }
@@ -208,8 +222,17 @@ chre_test_common_TestResult Manager::makeTestResultProtoMessage(
   return testResult;
 }
 
+chre_cross_validation_wifi_WifiCapabilities
+Manager::makeWifiCapabilitiesMessage(uint32_t capabilitiesFromChre) {
+  chre_cross_validation_wifi_WifiCapabilities capabilities;
+  capabilities.has_wifiCapabilities = true;
+  capabilities.wifiCapabilities = capabilitiesFromChre;
+  return capabilities;
+}
+
 void Manager::encodeAndSendMessageToHost(const void *message,
-                                         const pb_field_t *fields) {
+                                         const pb_field_t *fields,
+                                         uint32_t messageType) {
   size_t encodedSize;
   if (!pb_get_encoded_size(&encodedSize, fields, message)) {
     LOGE("Could not get encoded size of test result message");
@@ -222,8 +245,7 @@ void Manager::encodeAndSendMessageToHost(const void *message,
       if (!pb_encode(&ostream, fields, message)) {
         LOGE("Could not encode data proto message");
       } else if (!chreSendMessageToHostEndpoint(
-                     static_cast<void *>(buffer), encodedSize,
-                     chre_cross_validation_wifi_MessageType_STEP_RESULT,
+                     static_cast<void *>(buffer), encodedSize, messageType,
                      mCrossValidatorState.hostEndpoint,
                      heapFreeMessageCallback)) {
         LOGE("Could not send message to host");
@@ -254,8 +276,9 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
     testResult = makeTestResultProtoMessage(
         false, "Unknown chre async result type received");
   }
-  encodeAndSendMessageToHost(static_cast<void *>(&testResult),
-                             chre_test_common_TestResult_fields);
+  encodeAndSendMessageToHost(
+      static_cast<void *>(&testResult), chre_test_common_TestResult_fields,
+      chre_cross_validation_wifi_MessageType_STEP_RESULT);
 }
 
 }  // namespace cross_validator_wifi
