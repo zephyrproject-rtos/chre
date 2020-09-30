@@ -1,6 +1,6 @@
 # CHPP Release Notes
 
-A summary of notable changes is provided in the form of release notes. Dates are provided as yyyy-mm-dd. Note that this is not meant to be a detailed change log; for a detailed change list please refer to git commits.
+A summary of notable changes is provided in the form of release notes. Dates are provided as yyyy-mm-dd. Note that this is not meant to be a detailed changelog; for a detailed change list, please refer to git commits.
 
 ### 2020-03-04 (4c668b3)
 
@@ -15,8 +15,8 @@ This release enables service integration with WWAN / WiFi / GNSS devices based o
 
 - New functionality
 
-  - Reset and reset-ack implementation to allow either peer to initialize the other (e.g. upon boot)
-  - Discovery service to provide list of services
+  - Reset and reset-ack implementation to allow either peer to initialize the other (e.g., upon boot)
+  - Discovery service to provide a list of services
   - Discovery client to match clients with discovered services
   - Standard WWAN service based on the CHRE PAL API
   - Standard WiFi service based on the CHRE PAL API
@@ -34,7 +34,7 @@ This release enables service integration with WWAN / WiFi / GNSS devices based o
   - App layer header now includes an error code
   - App layer message type now occupies only the least significant nibble (LSN). The most significant nibble (MSN) is reserved
   - chppPlatformLinkSend() now returns an error code instead of a boolean
-  - Added initialization, deinitialization and reset functionality for the link layer (see link.h)
+  - Added initialization, deinitialization, and reset functionality for the link layer (see link.h)
   - Condition variables functionality needs to be supported alongside other platform functionality (see chpp/platform/)
   - Name changes for the logging APIs
 
@@ -52,7 +52,7 @@ This release contains bug fixes as well as the loopback client.
   - Updated log messages
   - More accurate casting into enums
 
-### 2020-08-27 (this)
+### 2020-08-27 (8ab5c23)
 
 This release contains additional clients, a virtual link layer for testing (e.g., using loopback), and several important bug fixes.
 
@@ -74,3 +74,22 @@ This release contains additional clients, a virtual link layer for testing (e.g.
 - API and integration changes
 
   - Platform-specific time functionality (platform_time.h)
+
+### 2020-10-01 (this)
+
+This release updates client functionality using the parser, adds a transport-layer loopback mechanism for testing and debugging, and includes several important bug fixes.
+
+- New functionality
+
+  - Parser for CHPP -> CHRE Data Structure Decoding
+  - Completed client functionality using parser-generated functions
+  - Transport-layer-loopback client and service. The Transport-layer loopback ignores app layer functionality and state, as well as checksums and sequence numbers
+
+- Cleanup and bug fixes
+
+  - Improved compiler compatibility for MSVC, as well as when enabling additional compiler warning flags
+  - Fixed handling of fragmented datagrams
+  - Corrected MTU calculation
+  - Corrected loopback assert
+  - Slimmer OOM logging
+  - Parser code and header files were relocated
