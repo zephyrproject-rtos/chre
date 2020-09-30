@@ -300,14 +300,9 @@ bool Manager::isValidHeader(const chreSensorDataHeader &header) {
   return header.readingCount > 0 && isTimestampValid;
 }
 
-void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
+void Manager::handleStartMessage(uint16_t hostEndpoint,
+                                 const chreMessageFromHostData *hostData) {
   bool success = true;
-  uint16_t hostEndpoint;
-  if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
-    hostEndpoint = hostData->hostEndpoint;
-  } else {
-    hostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
-  }
   // Default values for everything but hostEndpoint param
   mCrossValidatorState = CrossValidatorState(CrossValidatorType::SENSOR, 0, 0,
                                              0, hostEndpoint, false);
@@ -335,14 +330,48 @@ void Manager::handleStartMessage(const chreMessageFromHostData *hostData) {
   }
 }
 
+void Manager::handleInfoMessage(uint16_t hostEndpoint,
+                                const chreMessageFromHostData *hostData) {
+  chre_cross_validation_sensor_SensorInfoResponse infoResponse =
+      chre_cross_validation_sensor_SensorInfoResponse_init_default;
+  pb_istream_t istream = pb_istream_from_buffer(
+      static_cast<const pb_byte_t *>(hostData->message), hostData->messageSize);
+  chre_cross_validation_sensor_SensorInfoCommand infoCommand =
+      chre_cross_validation_sensor_SensorInfoCommand_init_default;
+  if (!pb_decode(&istream,
+                 chre_cross_validation_sensor_SensorInfoCommand_fields,
+                 &infoCommand)) {
+    LOGE("Could not decode info command");
+  } else {
+    uint32_t handle;
+    infoResponse.has_chreSensorType = true;
+    infoResponse.chreSensorType = infoCommand.chreSensorType;
+    infoResponse.has_isAvailable = true;
+    infoResponse.isAvailable =
+        chreSensorFindDefault(infoResponse.chreSensorType, &handle);
+  }
+
+  sendInfoResponse(hostEndpoint, infoResponse);
+}
+
 void Manager::handleMessageFromHost(uint32_t senderInstanceId,
                                     const chreMessageFromHostData *hostData) {
   if (senderInstanceId != CHRE_INSTANCE_ID) {
     LOGE("Incorrect sender instance id: %" PRIu32, senderInstanceId);
   } else {
+    uint16_t hostEndpoint;
+    if (hostData->hostEndpoint != CHRE_HOST_ENDPOINT_UNSPECIFIED) {
+      hostEndpoint = hostData->hostEndpoint;
+    } else {
+      hostEndpoint = CHRE_HOST_ENDPOINT_BROADCAST;
+    }
+
     switch (hostData->messageType) {
       case chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_START:
-        handleStartMessage(hostData);
+        handleStartMessage(hostEndpoint, hostData);
+        break;
+      case chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_INFO:
+        handleInfoMessage(hostEndpoint, hostData);
         break;
       default:
         LOGE("Unknown message type %" PRIu32 " for host message",
@@ -416,7 +445,7 @@ void Manager::handleSensorThreeAxisData(
   if (processSensorData(threeAxisDataFromChre->header, sensorType)) {
     chre_cross_validation_sensor_Data newData =
         makeSensorThreeAxisData(threeAxisDataFromChre, sensorType);
-    encodeAndSendDataToHost(newData);
+    sendDataToHost(newData);
   }
 }
 
@@ -425,7 +454,7 @@ void Manager::handleSensorFloatData(
   if (processSensorData(floatDataFromChre->header, sensorType)) {
     chre_cross_validation_sensor_Data newData =
         makeSensorFloatData(floatDataFromChre, sensorType);
-    encodeAndSendDataToHost(newData);
+    sendDataToHost(newData);
   }
 }
 
@@ -435,30 +464,43 @@ void Manager::handleProximityData(
                         CHRE_SENSOR_TYPE_PROXIMITY)) {
     chre_cross_validation_sensor_Data newData =
         makeSensorProximityData(proximityDataFromChre);
-    encodeAndSendDataToHost(newData);
+    sendDataToHost(newData);
   }
 }
 
-void Manager::encodeAndSendDataToHost(
-    const chre_cross_validation_sensor_Data &data) {
+void Manager::sendDataToHost(const chre_cross_validation_sensor_Data &data) {
+  sendMessageToHost(
+      mCrossValidatorState->hostEndpoint,
+      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_DATA,
+      chre_cross_validation_sensor_Data_fields, &data);
+}
+
+void Manager::sendInfoResponse(
+    uint16_t hostEndpoint,
+    const chre_cross_validation_sensor_SensorInfoResponse &infoResponse) {
+  sendMessageToHost(
+      hostEndpoint,
+      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_INFO_RESPONSE,
+      chre_cross_validation_sensor_SensorInfoResponse_fields, &infoResponse);
+}
+
+void Manager::sendMessageToHost(uint16_t hostEndpoint, uint16_t messageType,
+                                const pb_field_t fields[],
+                                const void *srcStruct) {
   size_t encodedSize;
-  if (!pb_get_encoded_size(&encodedSize,
-                           chre_cross_validation_sensor_Data_fields, &data)) {
-    LOGE("Could not get encoded size of data proto message");
+  if (!pb_get_encoded_size(&encodedSize, fields, srcStruct)) {
+    LOGE("Could not get encoded size of proto message");
   } else {
     pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
     if (buffer == nullptr) {
       LOG_OOM();
     } else {
       pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
-      if (!pb_encode(&ostream, chre_cross_validation_sensor_Data_fields,
-                     &data)) {
-        LOGE("Could not encode data proto message");
-      } else if (
-          !chreSendMessageToHostEndpoint(
-              static_cast<void *>(buffer), encodedSize,
-              chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_DATA,
-              mCrossValidatorState->hostEndpoint, heapFreeMessageCallback)) {
+      if (!pb_encode(&ostream, fields, srcStruct)) {
+        LOGE("Could not encode proto message");
+      } else if (!chreSendMessageToHostEndpoint(
+                     static_cast<void *>(buffer), encodedSize, messageType,
+                     hostEndpoint, heapFreeMessageCallback)) {
         LOGE("Could not send message to host");
       }
     }
