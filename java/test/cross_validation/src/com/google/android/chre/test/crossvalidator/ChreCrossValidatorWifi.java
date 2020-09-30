@@ -38,6 +38,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.Assert;
+import org.junit.Assume;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -52,6 +53,13 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
 
     private static final long NANO_APP_ID = 0x476f6f6754000005L;
 
+    /**
+     * Wifi capabilities flags listed in
+     * //system/chre/chre_api/include/chre_api/chre/wifi.h
+     */
+    private static final int WIFI_CAPABILITIES_SCAN_MONITORING = 1;
+    private static final int WIFI_CAPABILITIES_ON_DEMAND_SCAN = 2;
+
     AtomicReference<Step> mStep = new AtomicReference<Step>(Step.INIT);
     AtomicBoolean mDidReceiveNanoAppMessage = new AtomicBoolean(false);
 
@@ -60,6 +68,9 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
 
     private WifiManager mWifiManager;
     private BroadcastReceiver mWifiScanReceiver;
+
+    private AtomicReference<ChreCrossValidationWifi.WifiCapabilities> mWifiCapabilities =
+            new AtomicReference<ChreCrossValidationWifi.WifiCapabilities>(null);
 
     private AtomicBoolean mWifiScanResultsCompareFinalResult = new AtomicBoolean(false);
     private AtomicReference<String> mWifiScanResultsCompareFinalErrorMessage =
@@ -90,17 +101,27 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
     }
 
     @Override public void validate() throws AssertionError {
-        mStep.set(Step.SETUP);
-        sendStepStartMessage(Step.SETUP);
-        waitForStepResult();
+        mCollectingData.set(true);
+        sendStepStartMessage(Step.CAPABILITIES);
+        waitForMessageFromNanoapp();
+        mCollectingData.set(false);
+        Assume.assumeTrue("Chre wifi is not enabled",
+                          chreWifiHasCapabilities(mWifiCapabilities.get()));
 
+        mCollectingData.set(true);
+        sendStepStartMessage(Step.SETUP);
+        waitForMessageFromNanoapp();
+        mCollectingData.set(false);
+
+        mCollectingData.set(true);
         sendStepStartMessage(Step.VALIDATE);
 
         Assert.assertTrue("Wifi manager start scan failed", mWifiManager.startScan());
         waitForApScanResults();
         sendWifiScanResultsToChre();
 
-        waitForStepResult();
+        waitForMessageFromNanoapp();
+        mCollectingData.set(false);
     }
 
 
@@ -108,7 +129,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
      * Send step start message to nanoapp.
      */
     private void sendStepStartMessage(Step step) {
-        mStep.set(Step.VALIDATE);
+        mStep.set(step);
         sendMessageToNanoApp(makeStepStartMessage(step));
     }
 
@@ -138,16 +159,14 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
     }
 
     /**
-     * Wait for setup message from CHRE or CHRE_ERROR
+     * Wait for a messaage from the nanoapp.
      */
-    private void waitForStepResult() {
-        mCollectingData.set(true);
+    private void waitForMessageFromNanoapp() {
         try {
             mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Assert.fail("Interrupted while awaiting " + getCurrentStepName() + " step");
         }
-        mCollectingData.set(false);
         mAwaitDataLatch = new CountDownLatch(1);
         Assert.assertTrue("Timed out while waiting for step result in " + getCurrentStepName()
                 + " step", mDidReceiveNanoAppMessage.get());
@@ -155,6 +174,15 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
         if (mErrorStr.get() != null) {
             Assert.fail(mErrorStr.get());
         }
+    }
+
+    /**
+     * @param capabilities The wifi capabilities message from CHRE.
+     * @return true if CHRE wifi has the necessary capabilities to run the test.
+     */
+    private boolean chreWifiHasCapabilities(ChreCrossValidationWifi.WifiCapabilities capabilities) {
+        return (capabilities.getWifiCapabilities() & WIFI_CAPABILITIES_SCAN_MONITORING) != 0
+            && (capabilities.getWifiCapabilities() & WIFI_CAPABILITIES_ON_DEMAND_SCAN) != 0;
     }
 
     private void waitForApScanResults() {
@@ -186,34 +214,48 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
         return message;
     }
 
-
     @Override
     protected void parseDataFromNanoAppMessage(NanoAppMessage message) {
         mDidReceiveNanoAppMessage.set(true);
         if (message.getMessageType()
-                != ChreCrossValidationWifi.MessageType.STEP_RESULT_VALUE) {
-            setErrorStr(String.format("Received message with message type %d when expecting %d",
-                        message.getMessageType(),
-                        ChreCrossValidationWifi.MessageType.STEP_RESULT_VALUE));
-        }
-        ChreTestCommon.TestResult testResult = null;
-        try {
-            testResult = ChreTestCommon.TestResult.parseFrom(message.getMessageBody());
-        } catch (InvalidProtocolBufferException e) {
-            setErrorStr("Error parsing protobuff: " + e);
-            mAwaitDataLatch.countDown();
-            return;
-        }
-        boolean success = getSuccessFromTestResult(testResult);
-        if (mStep.get() == Step.SETUP || mStep.get() == Step.VALIDATE) {
-            if (success) {
-                Log.i(TAG, getCurrentStepName() + " step success");
-            } else {
-                setErrorStr(getCurrentStepName() + " step failed: "
-                        + testResult.getErrorMessage().toStringUtf8());
+                == ChreCrossValidationWifi.MessageType.STEP_RESULT_VALUE) {
+            ChreTestCommon.TestResult testResult = null;
+            try {
+                testResult = ChreTestCommon.TestResult.parseFrom(message.getMessageBody());
+            } catch (InvalidProtocolBufferException e) {
+                setErrorStr("Error parsing protobuff: " + e);
+                mAwaitDataLatch.countDown();
+                return;
             }
-        } else { // mStep.get() == Step.INIT
-            setErrorStr("Received a step result message when no phase set yet.");
+            boolean success = getSuccessFromTestResult(testResult);
+            if (mStep.get() == Step.SETUP || mStep.get() == Step.VALIDATE) {
+                if (success) {
+                    Log.i(TAG, getCurrentStepName() + " step success");
+                } else {
+                    setErrorStr(getCurrentStepName() + " step failed: "
+                            + testResult.getErrorMessage().toStringUtf8());
+                }
+            } else {
+                setErrorStr("Received a step result message during step " + getCurrentStepName());
+            }
+        } else if (message.getMessageType()
+                == ChreCrossValidationWifi.MessageType.WIFI_CAPABILITIES_VALUE) {
+            if (mStep.get() != Step.CAPABILITIES) {
+                setErrorStr("Received a capabilities message during step " + getCurrentStepName());
+            }
+            ChreCrossValidationWifi.WifiCapabilities capabilities = null;
+            try {
+                capabilities = ChreCrossValidationWifi.WifiCapabilities.parseFrom(
+                        message.getMessageBody());
+            } catch (InvalidProtocolBufferException e) {
+                setErrorStr("Error parsing protobuff: " + e);
+                mAwaitDataLatch.countDown();
+                return;
+            }
+            mWifiCapabilities.set(capabilities);
+        } else {
+            setErrorStr(String.format("Received message with unexpected type: %d",
+                                      message.getMessageType()));
         }
         // Each message should countdown the latch no matter success or fail
         mAwaitDataLatch.countDown();

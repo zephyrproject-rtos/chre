@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class ChreCrossValidatorSensor
@@ -65,6 +66,7 @@ public class ChreCrossValidatorSensor
 
     private static final long AWAIT_DATA_TIMEOUT_CONTINUOUS_IN_MS = 5000;
     private static final long AWAIT_DATA_TIMEOUT_ON_CHANGE_ONE_SHOT_IN_MS = 1000;
+    private static final long INFO_RESPONSE_TIMEOUT_MS = 1000;
 
     private static final long DEFAULT_SAMPLING_INTERVAL_IN_MS = 20;
 
@@ -86,6 +88,7 @@ public class ChreCrossValidatorSensor
     private Sensor mSensor;
 
     private long mSamplingIntervalInMs;
+    private boolean mChreSensorFound;
 
     private CrossValidatorSensorConfig mSensorConfig;
 
@@ -131,6 +134,7 @@ public class ChreCrossValidatorSensor
 
     @Override
     public void validate() throws AssertionError {
+        verifyChreSensorIsPresent();
         collectDataFromAp();
         collectDataFromChre();
         waitForDataSampling();
@@ -156,8 +160,59 @@ public class ChreCrossValidatorSensor
                 mNappBinary.getNanoAppId(), messageType, startCommand.toByteArray());
     }
 
+    /**
+    * @return The nanoapp message used to retrieve info of a given CHRE sensor.
+    */
+    private NanoAppMessage makeInfoCommandMessage() {
+        int messageType = ChreCrossValidationSensor.MessageType.CHRE_CROSS_VALIDATION_INFO_VALUE;
+        ChreCrossValidationSensor.SensorInfoCommand infoCommand =
+                ChreCrossValidationSensor.SensorInfoCommand.newBuilder()
+                .setChreSensorType(getChreSensorType())
+                .build();
+        return NanoAppMessage.createMessageToNanoApp(
+                mNappBinary.getNanoAppId(), messageType, infoCommand.toByteArray());
+    }
+
     @Override
     protected void parseDataFromNanoAppMessage(NanoAppMessage message) {
+        if (message.getMessageType()
+                == ChreCrossValidationSensor.MessageType
+                        .CHRE_CROSS_VALIDATION_INFO_RESPONSE_VALUE) {
+            parseInfoResponseFromNanoappMessage(message);
+        } else if (message.getMessageType()
+                == ChreCrossValidationSensor.MessageType.CHRE_CROSS_VALIDATION_DATA_VALUE) {
+            parseSensorDataFromNanoappMessage(message);
+        } else {
+            Assert.fail("Received invalid message type from nanoapp " + message.getMessageType());
+        }
+    }
+
+    private void parseInfoResponseFromNanoappMessage(NanoAppMessage message) {
+        ChreCrossValidationSensor.SensorInfoResponse infoProto;
+        try {
+            infoProto = ChreCrossValidationSensor.SensorInfoResponse.parseFrom(
+                    message.getMessageBody());
+        } catch (InvalidProtocolBufferException e) {
+            setErrorStr("Error parsing protobuf: " + e);
+            return;
+        }
+        if (!infoProto.hasChreSensorType() || !infoProto.hasIsAvailable()) {
+            setErrorStr("Info response message isn't completely filled in");
+            return;
+        }
+
+        int apSensorType = chreToApSensorType(infoProto.getChreSensorType());
+        if (!isSensorTypeCurrent(apSensorType)) {
+            setErrorStr(String.format("Incorrect sensor type %d when expecting %d",
+                    apSensorType, mSensor.getType()));
+            return;
+        }
+
+        mChreSensorFound = infoProto.getIsAvailable();
+        mAwaitDataLatch.countDown();
+    }
+
+    private void parseSensorDataFromNanoappMessage(NanoAppMessage message) {
         final String kParseDataErrorPrefix = "While parsing data from nanoapp: ";
         ChreCrossValidationSensor.Data dataProto;
         try {
@@ -309,10 +364,14 @@ public class ChreCrossValidatorSensor
     /**
     * Start collecting data from CHRE
     */
-    private void collectDataFromChre() throws AssertionError {
+    private void collectDataFromChre() {
         // The info in the start message will inform the nanoapp of which type of
         // data to collect (accel, gyro, gnss, wifi, etc).
-        int result = mContextHubClient.sendMessageToNanoApp(makeStartNanoAppMessage());
+        sendMessageToNanoApp(makeStartNanoAppMessage());
+    }
+
+    private void sendMessageToNanoApp(NanoAppMessage message) {
+        int result = mContextHubClient.sendMessageToNanoApp(message);
         if (result != ContextHubTransaction.RESULT_SUCCESS) {
             Assert.fail("Collect data from CHRE failed with result "
                     + contextHubTransactionResultToString(result)
@@ -446,6 +505,38 @@ public class ChreCrossValidatorSensor
      */
     private int getChreSensorType() {
         return AP_TO_CHRE_SENSOR_TYPE.get(mSensor.getType());
+    }
+
+    /**
+     * Verify the CHRE sensor being evaluated is present on this device.
+     */
+    private void verifyChreSensorIsPresent() {
+        mCollectingData.set(true);
+        sendMessageToNanoApp(makeInfoCommandMessage());
+        waitForInfoResponse();
+        mCollectingData.set(false);
+        // All CHRE sensors are optional so skip this test if the required sensor isn't found.
+        Assume.assumeTrue(mChreSensorFound);
+    }
+
+    private void waitForInfoResponse() {
+        boolean success = false;
+        try {
+            success = mAwaitDataLatch.await(INFO_RESPONSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Assert.fail("await data latch interrupted");
+        }
+
+        if (!success) {
+            Assert.fail("Timed out waiting for sensor info response");
+        }
+
+        if (mErrorStr.get() != null) {
+            Assert.fail(mErrorStr.get());
+        }
+
+        // Reset latch for use in waiting for sensor data.
+        mAwaitDataLatch = new CountDownLatch(1);
     }
 
     private boolean sensorIsContinuous() {
