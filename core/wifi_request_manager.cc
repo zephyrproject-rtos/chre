@@ -152,18 +152,22 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
   bool success = false;
   if (mScanRequestingNanoappInstanceId.has_value()) {
     LOGE("Active wifi scan request made while a request is in flight");
+  } else if (getSettingState(Setting::WIFI_AVAILABLE) ==
+             SettingState::DISABLED) {
+    // Treat as success, but send an async failure per API contract.
+    success = true;
+    handleScanResponse(false /* pending */, CHRE_ERROR_FUNCTION_DISABLED);
   } else {
     success = mPlatformWifi.requestScan(params);
     if (!success) {
       LOGE("Wifi scan request failed");
-    } else {
-      mScanRequestingNanoappInstanceId = nanoapp->getInstanceId();
-      mScanRequestingNanoappCookie = cookie;
-      mLastScanRequestTime = SystemTime::getMonotonicTime();
     }
   }
 
   if (success) {
+    mScanRequestingNanoappInstanceId = nanoapp->getInstanceId();
+    mScanRequestingNanoappCookie = cookie;
+    mLastScanRequestTime = SystemTime::getMonotonicTime();
     addWifiScanRequestLog(nanoapp->getInstanceId(), params);
   }
 
