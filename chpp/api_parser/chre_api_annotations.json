@@ -4,7 +4,7 @@
     "chre_api/include/chre_api/chre/common.h"
   ],
   "output_includes": [
-    "chpp/services/common_types.h",
+    "chpp/common/common_types.h",
     "chre_api/chre/wwan.h"
   ],
   "struct_info": [
@@ -92,7 +92,7 @@
     "chre_api/include/chre_api/chre/common.h"
   ],
   "output_includes": [
-    "chpp/services/common_types.h",
+    "chpp/common/common_types.h",
     "chre_api/chre/wifi.h"
   ],
   "struct_info": [
@@ -153,7 +153,7 @@
     "chre_api/include/chre_api/chre/common.h"
   ],
   "output_includes": [
-    "chpp/services/common_types.h",
+    "chpp/common/common_types.h",
     "chre_api/chre/gnss.h"
   ],
   "struct_info": [

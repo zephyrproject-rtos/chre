@@ -18,8 +18,8 @@
 
 #include <string.h>
 
+#include "chpp/common/wwan_types.h"
 #include "chpp/memory.h"
-#include "chpp/services/wwan_types.h"
 
 namespace {
 

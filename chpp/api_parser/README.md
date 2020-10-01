@@ -85,7 +85,7 @@ handle things like variable-length arrays (VLAs), we use the
   ],
   // Which files the output header should pull in to satisfy dependencies
   "output_includes": [
-    "chpp/services/common_types.h",
+    "chpp/common/common_types.h",
     "chre_api/chre/wwan.h"
   ],
   // A list of entries providing additional information for structs/unions that

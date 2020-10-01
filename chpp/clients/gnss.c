@@ -26,11 +26,11 @@
 #include "chpp/clients.h"
 #include "chpp/clients/discovery.h"
 #include "chpp/common/gnss.h"
+#include "chpp/common/gnss_types.h"
 #include "chpp/common/standard_uuids.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"
-#include "chpp/services/gnss_types.h"
 #include "chre/pal/gnss.h"
 #include "chre_api/chre/gnss.h"
 

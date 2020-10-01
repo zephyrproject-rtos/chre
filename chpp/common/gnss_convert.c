@@ -21,9 +21,9 @@
 // DO NOT modify this file directly, as those changes will be lost the next
 // time the script is executed
 
+#include "chpp/common/gnss_types.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
-#include "chpp/services/gnss_types.h"
 
 #include <stddef.h>
 #include <stdint.h>

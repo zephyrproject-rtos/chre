@@ -22,10 +22,10 @@
 
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
+#include "chpp/common/wifi_types.h"
 #include "chpp/macros.h"
 #include "chpp/platform/log.h"
 #include "chpp/services.h"
-#include "chpp/services/wifi_types.h"
 #include "chre/pal/wifi.h"
 
 /************************************************

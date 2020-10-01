@@ -16,8 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include "chpp/common/wifi_types.h"
 #include "chpp/memory.h"
-#include "chpp/services/wifi_types.h"
 
 #include <cstring>
 

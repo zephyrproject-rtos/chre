@@ -27,8 +27,8 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/common/common_types.h"
 #include "chpp/macros.h"
-#include "chpp/services/common_types.h"
 #include "chre_api/chre/gnss.h"
 #include "chre_api/chre/version.h"
 
