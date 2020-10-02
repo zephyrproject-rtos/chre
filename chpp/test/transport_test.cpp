@@ -32,6 +32,7 @@
 #include "chpp/common/wifi.h"
 #include "chpp/common/wifi_types.h"
 #include "chpp/common/wwan.h"
+#include "chpp/crc.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
 #include "chpp/transport.h"
@@ -674,6 +675,75 @@ TEST_P(TransportTests, DiscoveryService) {
   // Cleanup
   chppWorkThreadStop(&mTransportContext);
   t1.join();
+}
+
+/**
+ * CRC-32 calculation for several pre-known test vectors.
+ */
+TEST_F(TransportTests, CRC32Basic) {
+  static const char kTest1Str[] = "Hello World Test!";
+  static const uint8_t *kTest1 = (const uint8_t *)kTest1Str;
+  EXPECT_EQ(chppCrc32(0, kTest1, 17), 0x613B1D74);
+  EXPECT_EQ(chppCrc32(0, kTest1, 16), 0x5F88D7D9);
+  EXPECT_EQ(chppCrc32(0, kTest1, 1), 0xAA05262F);
+  EXPECT_EQ(chppCrc32(0, kTest1, 0), 0x00000000);
+
+  static const uint8_t kTest2[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  EXPECT_EQ(chppCrc32(0, kTest2, 6), 0x41D9ED00);
+  EXPECT_EQ(chppCrc32(0, kTest2, 5), 0xD2FD1072);
+  EXPECT_EQ(chppCrc32(0, kTest2, 4), 0xFFFFFFFF);
+  EXPECT_EQ(chppCrc32(0, kTest2, 3), 0xFFFFFF00);
+  EXPECT_EQ(chppCrc32(0, kTest2, 2), 0xFFFF0000);
+  EXPECT_EQ(chppCrc32(0, kTest2, 1), 0xFF000000);
+  EXPECT_EQ(chppCrc32(0, kTest2, 0), 0x00000000);
+
+  static const char kTest3Str[] = "123456789";
+  static const uint8_t *kTest3 = (const uint8_t *)kTest3Str;
+  EXPECT_EQ(chppCrc32(0, kTest3, 9), 0xCBF43926);
+
+  static const uint8_t kTest4[] = {0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(chppCrc32(0, kTest4, sizeof(kTest4)), 0x2144DF1C);
+
+  static const uint8_t kTest5[] = {0xF2, 0x01, 0x83};
+  EXPECT_EQ(chppCrc32(0, kTest5, sizeof(kTest5)), 0x24AB9D77);
+
+  static const uint8_t kTest6[] = {0x0F, 0xAA, 0x00, 0x55};
+  EXPECT_EQ(chppCrc32(0, kTest6, sizeof(kTest6)), 0xB6C9B287);
+
+  static const uint8_t kTest7[] = {0x00, 0xFF, 0x55, 0x11};
+  EXPECT_EQ(chppCrc32(0, kTest7, sizeof(kTest7)), 0x32A06212);
+
+  static const uint8_t kTest8[] = {0x33, 0x22, 0x55, 0xAA, 0xBB,
+                                   0xCC, 0xDD, 0xEE, 0xFF};
+  EXPECT_EQ(chppCrc32(0, kTest8, sizeof(kTest8)), 0xB0AE863D);
+
+  static const uint8_t kTest9[] = {0x92, 0x6B, 0x55};
+  EXPECT_EQ(chppCrc32(0, kTest9, sizeof(kTest9)), 0x9CDEA29B);
+}
+
+/**
+ * CRC-32 calculation for daisy-chained input.
+ */
+TEST_F(TransportTests, CRC32DaisyChained) {
+  static const size_t kMaxLen = 10000;
+  uint8_t test[kMaxLen];
+  // Populate test with 8-bit LFSR
+  // Feedback polynomial is x^8 + x^6 + x^5 + x^4 + 1
+  static uint8_t lfsr = 1;
+  for (size_t i = 0; i < kMaxLen; i++) {
+    test[i] = lfsr;
+    lfsr = (lfsr >> 1) |
+           (((lfsr << 7) ^ (lfsr << 5) ^ (lfsr << 4) ^ (lfsr << 3)) & 0x80);
+  }
+
+  for (size_t len = 0; len < kMaxLen; len += 1000) {
+    uint32_t fullCRC = chppCrc32(0, &test[0], len);
+    for (size_t partition = 0; partition <= len; partition++) {
+      uint32_t partialCRC = chppCrc32(0, &test[0], partition);
+      EXPECT_EQ(chppCrc32(partialCRC, &test[partition], len - partition),
+                fullCRC);
+    }
+  }
 }
 
 /**
