@@ -495,6 +495,27 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
 void chppWorkThreadStart(struct ChppTransportState *context);
 
 /**
+ * Handles signals set for the CHPP transport instance. This method should be
+ * invoked externally if chppWorkThreadStart() cannot be directly used, for
+ * example if the system does not support thread signaling and needs explicit
+ * control of the CHPP work thread from an outer control loop. By "outer control
+ * loop," we mean the code path triggering work on the CHPP transport layer.
+ *
+ * Note that if a platform uses this method, the outer control loop MUST
+ * replicate the behavior in the chppWorkThreadStart() method exactly. All
+ * pending signals MUST be handled prior to the suspension of the outer control
+ * loop, and any initialization sequence MUST be replicated.
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @params signals The signals to process. Should be obtained via
+ * chppNotifierWait() for the given transport context's notifier.
+ *
+ * @return true if the CHPP work thread should exit.
+ */
+bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
+                                uint32_t signals);
+
+/**
  * Signals the main thread for CHPP's Transport Layer to perform some work. This
  * method should only be called from the link layer.
  *
@@ -568,6 +589,21 @@ void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
  */
 void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
                               size_t len);
+/**
+ * Sends a reset or reset-ack packet over the link in order to reset the remote
+ * side or inform the counterpart of a reset, respectively. The transport
+ * layer's configuration is sent as the payload of the reset packet.
+ *
+ * This function is used immediately after initialization, for example upon boot
+ * (to send a reset), or when a reset packet is received and acted upon (to send
+ * a reset-ack).
+ *
+ * @param transportContext Maintains status for each transport layer instance.
+ * @param resetType Distinguishes a reset from a reset-ack, as defined in the
+ * ChppTransportPacketAttributes struct.
+ */
+void chppTransportSendReset(struct ChppTransportState *context,
+                            enum ChppTransportPacketAttributes resetType);
 
 #ifdef __cplusplus
 }

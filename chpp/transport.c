@@ -29,10 +29,6 @@
 #include "chpp/memory.h"
 #include "chpp/platform/log.h"
 
-//! Signals to use in ChppNotifier in this program.
-#define CHPP_SIGNAL_EXIT UINT32_C(1 << 0)
-#define CHPP_SIGNAL_TRANSPORT_EVENT UINT32_C(1 << 1)
-
 /************************************************
  *  Prototypes
  ***********************************************/
@@ -79,9 +75,6 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
 static void chppResetTransportContext(struct ChppTransportState *context);
 static void chppReset(struct ChppTransportState *transportContext,
                       struct ChppAppState *appContext);
-static void chppTransportSendReset(
-    struct ChppTransportState *context,
-    enum ChppTransportPacketAttributes resetType);
 
 /************************************************
  *  Private Functions
@@ -1049,62 +1042,6 @@ static void chppReset(struct ChppTransportState *transportContext,
                                   appContext->clientServiceSet);
 }
 
-/**
- * Sends a reset or reset-ack packet over the link in order to reset the remote
- * side or inform the counterpart of a reset, respectively. The transport
- * layer's configuration is sent as the payload of the reset packet.
- *
- * This function is used immediately after initialization, for example upon boot
- * (to send a reset), or when a reset packet is received and acted upon (to send
- * a reset-ack).
- *
- * @param transportContext Maintains status for each transport layer instance.
- * @param resetType Distinguishes a reset from a reset-ack, as defined in the
- * ChppTransportPacketAttributes struct.
- */
-static void chppTransportSendReset(
-    struct ChppTransportState *context,
-    enum ChppTransportPacketAttributes resetType) {
-  // Make sure CHPP is in an initialized state
-  if (context->txDatagramQueue.pending > 0 ||
-      context->txDatagramQueue.front != 0) {
-    CHPP_LOGE(
-        "chppTransportSendReset called but CHPP not in initialized state.");
-    CHPP_ASSERT(false);
-  }
-
-  struct ChppTransportConfiguration *config =
-      chppMalloc(sizeof(struct ChppTransportConfiguration));
-
-  // CHPP transport version
-  config->version.major = 1;
-  config->version.minor = 0;
-  config->version.patch = 0;
-
-  // Rx MTU size
-  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
-
-  // Max Rx window size
-  // Note: current implementation does not support a window size >1
-  config->windowSize = 1;
-
-  // Advertised transport layer (ACK) timeout
-  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
-
-  // Send out the reset datagram
-  CHPP_LOGI("Sending out CHPP transport layer RESET%s",
-            (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) ? "-ACK" : "");
-
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    chppSetResetComplete(context);
-  }
-
-  chppEnqueueTxDatagram(
-      context,
-      CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, CHPP_TRANSPORT_ERROR_NONE),
-      config, sizeof(struct ChppTransportConfiguration));
-}
-
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -1280,22 +1217,28 @@ void chppWorkThreadStart(struct ChppTransportState *context) {
   chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET);
   CHPP_LOGI("CHPP Work Thread started");
 
-  while (true) {
-    uint32_t signal = chppNotifierWait(&context->notifier);
+  uint32_t signals;
+  do {
+    signals = chppNotifierWait(&context->notifier);
+  } while (chppWorkThreadHandleSignal(context, signals));
+}
 
-    if (signal & CHPP_TRANSPORT_SIGNAL_EXIT) {
-      CHPP_LOGI("CHPP Work Thread terminated");
-      break;
-    }
-
-    if (signal & CHPP_TRANSPORT_SIGNAL_EVENT) {
-      chppTransportDoWork(context);
-    }
-    if (signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK) {
-      chppPlatformLinkDoWork(&context->linkParams,
-                             signal & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
-    }
+bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
+                                uint32_t signals) {
+  if (signals & CHPP_TRANSPORT_SIGNAL_EXIT) {
+    CHPP_LOGI("CHPP Work Thread terminated");
+    return false;
   }
+
+  if (signals & CHPP_TRANSPORT_SIGNAL_EVENT) {
+    chppTransportDoWork(context);
+  }
+  if (signals & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK) {
+    chppPlatformLinkDoWork(&context->linkParams,
+                           signals & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
+  }
+
+  return true;
 }
 
 void chppWorkThreadStop(struct ChppTransportState *context) {
@@ -1375,4 +1318,46 @@ void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
     }
   }
 #endif
+}
+
+void chppTransportSendReset(struct ChppTransportState *context,
+                            enum ChppTransportPacketAttributes resetType) {
+  // Make sure CHPP is in an initialized state
+  if (context->txDatagramQueue.pending > 0 ||
+      context->txDatagramQueue.front != 0) {
+    CHPP_LOGE(
+        "chppTransportSendReset called but CHPP not in initialized state.");
+    CHPP_ASSERT(false);
+  }
+
+  struct ChppTransportConfiguration *config =
+      chppMalloc(sizeof(struct ChppTransportConfiguration));
+
+  // CHPP transport version
+  config->version.major = 1;
+  config->version.minor = 0;
+  config->version.patch = 0;
+
+  // Rx MTU size
+  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
+
+  // Max Rx window size
+  // Note: current implementation does not support a window size >1
+  config->windowSize = 1;
+
+  // Advertised transport layer (ACK) timeout
+  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
+
+  // Send out the reset datagram
+  CHPP_LOGI("Sending out CHPP transport layer RESET%s",
+            (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) ? "-ACK" : "");
+
+  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+    chppSetResetComplete(context);
+  }
+
+  chppEnqueueTxDatagram(
+      context,
+      CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, CHPP_TRANSPORT_ERROR_NONE),
+      config, sizeof(struct ChppTransportConfiguration));
 }
