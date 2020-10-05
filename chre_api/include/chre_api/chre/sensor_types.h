@@ -294,7 +294,8 @@ extern "C" {
  */
 struct chreSensorDataHeader {
     /**
-     * The base timestamp, in nanoseconds.
+     * The base timestamp, in nanoseconds; must be in the same time base as
+     * chreGetTime().
      */
     uint64_t baseTimestamp;
 
