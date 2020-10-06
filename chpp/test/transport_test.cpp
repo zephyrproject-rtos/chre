@@ -221,15 +221,20 @@ ChppAppHeader *addAppHeaderToBuf(uint8_t *buf, size_t *location) {
  * Adds a transport footer to a certain location in a buffer, and increases the
  * location accordingly, to account for the length of the added preamble.
  *
- * TODO: calculate checksum for the footer.
- *
  * @param buf Buffer.
- * @param location Location to add the preamble, which its value will be
+ * @param location Location to add the footer. The value of location will be
  * increased accordingly.
+ *
  */
 void addTransportFooterToBuf(uint8_t *buf, size_t *location) {
-  // TODO: add checksum
-  UNUSED_VAR(buf);
+  uint32_t *checksum = (uint32_t *)&buf[*location];
+
+#ifdef CHPP_CHECKSUM_ENABLED
+  *checksum = chppCrc32(0, &buf[CHPP_PREAMBLE_LEN_BYTES],
+                        *location - CHPP_PREAMBLE_LEN_BYTES);
+#else
+  *checksum = 1;
+#endif  // CHPP_CHECKSUM_ENABLED
 
   *location += sizeof(ChppTransportFooter);
 }
@@ -372,7 +377,7 @@ TEST_P(TransportTests, ZeroThenPreambleInput) {
  * Rx Testing with various length payloads of zeros
  */
 TEST_P(TransportTests, RxPayloadOfZeros) {
-  mTransportContext.rxStatus.state = CHPP_STATE_HEADER;
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
   size_t len = static_cast<size_t>(GetParam());
 
   mTransportContext.txStatus.hasPacketsToSend = true;
@@ -381,12 +386,18 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
 
   if (len <= kMaxChunkSize) {
     size_t loc = 0;
+    addPreambleToBuf(mBuf, &loc);
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+
     transHeader->length = static_cast<uint16_t>(len);
+    loc += len;
+
+    addTransportFooterToBuf(mBuf, &loc);
 
     // Send header and check for correct state
     EXPECT_FALSE(
-        chppRxDataCb(&mTransportContext, mBuf, sizeof(ChppTransportHeader)));
+        chppRxDataCb(&mTransportContext, mBuf,
+                     CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader)));
     if (len > 0) {
       EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PAYLOAD);
     } else {
@@ -400,8 +411,9 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
 
     // Send payload if any and check for correct state
     if (len > 0) {
-      EXPECT_FALSE(chppRxDataCb(&mTransportContext,
-                                &mBuf[sizeof(ChppTransportHeader)], len));
+      EXPECT_FALSE(chppRxDataCb(
+          &mTransportContext,
+          &mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader)], len));
       EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_FOOTER);
     }
 
@@ -412,9 +424,10 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, transHeader->seq);
 
     // Send footer
-    EXPECT_TRUE(chppRxDataCb(&mTransportContext,
-                             &mBuf[sizeof(ChppTransportHeader) + len],
-                             sizeof(ChppTransportFooter)));
+    EXPECT_TRUE(chppRxDataCb(
+        &mTransportContext,
+        &mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) + len],
+        sizeof(ChppTransportFooter)));
 
     // The next expected packet sequence # should incremented only if the
     // received packet is payload-bearing.
@@ -513,7 +526,7 @@ TEST_P(TransportTests, EnqueueDatagrams) {
  * Loopback testing with various length payloads of zeros
  */
 TEST_P(TransportTests, LoopbackPayloadOfZeros) {
-  mTransportContext.rxStatus.state = CHPP_STATE_HEADER;
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
   size_t len = static_cast<size_t>(GetParam());
 
   mTransportContext.txStatus.hasPacketsToSend = true;
@@ -522,19 +535,25 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
 
   if (len <= kMaxChunkSize) {
     size_t loc = 0;
+    addPreambleToBuf(mBuf, &loc);
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
     transHeader->length = static_cast<uint16_t>(len);
 
     // Loopback App header (only 2 fields required)
-    mBuf[sizeof(ChppTransportHeader)] = CHPP_HANDLE_LOOPBACK;
-    mBuf[sizeof(ChppTransportHeader) + 1] = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader)] =
+        CHPP_HANDLE_LOOPBACK;
+    mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) + 1] =
+        CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
 
-    // TODO: Add checksum
+    // Payload of zeros
+    loc += len;
+
+    addTransportFooterToBuf(mBuf, &loc);
+    EXPECT_EQ(loc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) + len +
+                       sizeof(ChppTransportFooter));
 
     // Send header + payload (if any) + footer
-    EXPECT_TRUE(chppRxDataCb(
-        &mTransportContext, mBuf,
-        sizeof(ChppTransportHeader) + len + sizeof(ChppTransportFooter)));
+    EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, loc));
 
     // Check for correct state
     EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
@@ -677,6 +696,7 @@ TEST_P(TransportTests, DiscoveryService) {
   t1.join();
 }
 
+#ifdef CHPP_CHECKSUM_ENABLED
 /**
  * CRC-32 calculation for several pre-known test vectors.
  */
@@ -745,6 +765,7 @@ TEST_F(TransportTests, CRC32DaisyChained) {
     }
   }
 }
+#endif  // CHPP_CHECKSUM_ENABLED
 
 /**
  * WWAN service Open and GetCapabilities.
@@ -929,7 +950,7 @@ TEST_F(TransportTests, Discovery) {
   // Cleanup
   chppWorkThreadStop(&mTransportContext);
   t1.join();
-}  // namespace
+}
 
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));

@@ -103,7 +103,9 @@ TEST_F(AppTestBase, FragmentedLoopback) {
   constexpr size_t kTestLen = UINT16_MAX;
   uint8_t buf[kTestLen];
   for (size_t i = 0; i < kTestLen; i++) {
-    buf[i] = (uint8_t)(i + 100);
+    buf[i] = (uint8_t)(
+        (i % 251) + 64);  // Arbitrary data. A modulus of 251, a prime number,
+                          // reduces the chance of alignment with the MTU.
   }
 
   CHPP_LOGI("Starting loopback test with fragmentation (max buffer = %zu)...",

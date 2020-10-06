@@ -193,8 +193,7 @@ CHPP_PACKED_END
  */
 CHPP_PACKED_START
 struct ChppTransportFooter {
-  // Checksum algo TBD. Maybe IEEE CRC-32?
-  uint32_t checksum;
+  uint32_t checksum;  // IEEE CRC-32 initialized to 0xFFFFFFFF
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 

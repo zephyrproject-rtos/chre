@@ -30,6 +30,7 @@ cc_library_static {
         "-Wshadow",
         "-Wstrict-prototypes",
         "-Wswitch",
+        "-DCHPP_CHECKSUM_ENABLED",
         "-DCHPP_CLIENT_ENABLED_DISCOVERY",
         "-DCHPP_CLIENT_ENABLED_LOOPBACK",
         "-DCHPP_CLIENT_ENABLED_GNSS",
@@ -91,6 +92,7 @@ cc_test_host {
     name: "chre_chpp_linux_tests",
     cflags: [
         "-DCHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK",
+        "-DCHPP_CHECKSUM_ENABLED",
     ],
     srcs: [
         "test/app_test_base.cpp",

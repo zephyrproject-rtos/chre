@@ -24,6 +24,7 @@
 
 #include "chpp/app.h"
 #include "chpp/clients/discovery.h"
+#include "chpp/crc.h"
 #include "chpp/link.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
@@ -64,7 +65,7 @@ static void chppRegisterRxAck(struct ChppTransportState *context);
 static void chppEnqueueTxPacket(struct ChppTransportState *context,
                                 uint8_t packetCode);
 static size_t chppAddPreamble(uint8_t *buf);
-uint32_t chppCalculateChecksum(uint8_t *buf, size_t len);
+static void chppAddFooter(struct PendingTxPacket *packet);
 bool chppDequeueTxDatagram(struct ChppTransportState *context);
 static void chppTransportDoWork(struct ChppTransportState *context);
 static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
@@ -407,10 +408,7 @@ static void chppProcessTransportLoopbackRequest(
     CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
     chppClearRxDatagram(context);
 
-    uint32_t checksum = chppCalculateChecksum(context->pendingTxPacket.payload,
-                                              context->pendingTxPacket.length);
-    chppAppendToPendingTxPacket(&context->pendingTxPacket, (uint8_t *)&checksum,
-                                sizeof(checksum));
+    chppAddFooter(&context->pendingTxPacket);
 
     CHPP_LOGD("Looping back incoming data (Tx packet len=%" PRIuSIZE
               ", Tx payload len=%" PRIu16 ", Rx payload len=%" PRIuSIZE ")",
@@ -506,9 +504,9 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
   if (context->rxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM) {
     // Packet is part of a larger datagram
     CHPP_LOGD("RX packet for unfinished datagram. Seq=%" PRIu8 " len=%" PRIu16
-              ". Datagram len so far is %" PRIuSIZE,
+              ". Datagram len=%" PRIuSIZE ". Sending ACK=%" PRIu8,
               context->rxHeader.seq, context->rxHeader.length,
-              context->rxDatagram.length);
+              context->rxDatagram.length, context->rxStatus.expectedSeq);
 
   } else {
     // End of this packet is end of a datagram
@@ -522,9 +520,8 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
     chppMutexLock(&context->mutex);
 
     CHPP_LOGD("App layer processed datagram with len=%" PRIuSIZE
-              ", ending packet seq="
-              "%" PRIu8 ", len=%" PRIu16 ". Sending ACK=%" PRIu8
-              " (previously sent=%" PRIu8 ")",
+              ", ending packet seq=%" PRIu8 ", len=%" PRIu16
+              ". Sending ACK=%" PRIu8 " (previously sent=%" PRIu8 ")",
               context->rxDatagram.length, context->rxHeader.seq,
               context->rxHeader.length, context->rxStatus.expectedSeq,
               context->txStatus.sentAckSeq);
@@ -557,11 +554,30 @@ static void chppClearRxDatagram(struct ChppTransportState *context) {
  * @return True if and only if the checksum is correct.
  */
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
-  // TODO
-  UNUSED_VAR(context);
+#ifdef CHPP_CHECKSUM_ENABLED
+  uint32_t crc = chppCrc32(0, (const uint8_t *)&context->rxHeader,
+                           sizeof(struct ChppTransportHeader));
+  crc = chppCrc32(
+      crc,
+      &context->rxDatagram
+           .payload[context->rxStatus.locInDatagram - context->rxHeader.length],
+      context->rxHeader.length);
 
-  CHPP_LOGE("Unconditionally assuming checksum is correct");
-  return true;
+#else
+  uint32_t crc = context->rxFooter.checksum;
+  CHPP_LOGE("Unconditionally assuming Rx checksum=0x%" PRIx32 " is correct",
+            crc);
+
+#endif  // CHPP_CHECKSUM_ENABLED
+
+  if (context->rxFooter.checksum != crc) {
+    CHPP_LOGE("Rx packet with BAD checksum: footer=0x%" PRIx32
+              ", calculated=0x%" PRIx32 ", len=%" PRIuSIZE,
+              context->rxFooter.checksum, crc,
+              context->rxHeader.length + sizeof(struct ChppTransportHeader));
+  }
+
+  return (context->rxFooter.checksum == crc);
 }
 
 /**
@@ -691,19 +707,27 @@ static size_t chppAddPreamble(uint8_t *buf) {
 }
 
 /**
- * Calculates the checksum on a buffer indicated by buf with length len.
+ * Adds a footer (containing the checksum) to a packet.
  *
- * @param buf Pointer to buffer for the ckecksum to be calculated on.
- * @param len Length of the buffer.
- *
- * @return Calculated checksum.
+ * @param packet The packet from which to calculate the checksum and append the
+ * footer.
  */
-uint32_t chppCalculateChecksum(uint8_t *buf, size_t len) {
-  // TODO
+static void chppAddFooter(struct PendingTxPacket *packet) {
+  struct ChppTransportFooter footer;
+#ifdef CHPP_CHECKSUM_ENABLED
+  footer.checksum = chppCrc32(0, &packet->payload[CHPP_PREAMBLE_LEN_BYTES],
+                              packet->length - CHPP_PREAMBLE_LEN_BYTES);
+#else
+  footer.checksum = 1;
+  CHPP_LOGE("Using default value of 0x%" PRIx32 " as checksum",
+            footer.checksum);
+#endif  // CHPP_CHECKSUM_ENABLED
 
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
-  return 1;
+  CHPP_LOGD("Adding transport footer. Checksum=0x%" PRIx32 ", len: %" PRIuSIZE
+            " -> %" PRIuSIZE,
+            footer.checksum, packet->length, packet->length + sizeof(footer));
+
+  chppAppendToPendingTxPacket(packet, (const uint8_t *)&footer, sizeof(footer));
 }
 
 /**
@@ -846,10 +870,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     }  // else {no payload}
 
     // Populate checksum
-    uint32_t checksum = chppCalculateChecksum(context->pendingTxPacket.payload,
-                                              context->pendingTxPacket.length);
-    chppAppendToPendingTxPacket(&context->pendingTxPacket, (uint8_t *)&checksum,
-                                sizeof(checksum));
+    chppAddFooter(&context->pendingTxPacket);
 
     // Note: For a future ACK window >1, this needs to be updated
     context->txStatus.hasPacketsToSend = false;
@@ -1301,10 +1322,7 @@ void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
     txHeader->length = (uint16_t)payloadLen;
     chppAppendToPendingTxPacket(&context->pendingTxPacket, buf, payloadLen);
 
-    uint32_t checksum = chppCalculateChecksum(context->pendingTxPacket.payload,
-                                              context->pendingTxPacket.length);
-    chppAppendToPendingTxPacket(&context->pendingTxPacket, (uint8_t *)&checksum,
-                                sizeof(checksum));
+    chppAddFooter(&context->pendingTxPacket);
 
     CHPP_LOGD("Sending transport-loopback request (packet len=%" PRIuSIZE
               ", payload len=%" PRIu16 ", asked len was %" PRIuSIZE ")",
