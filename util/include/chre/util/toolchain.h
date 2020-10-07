@@ -41,6 +41,28 @@
 
 #define CHRE_DEPRECATED_EPILOGUE _Pragma("GCC diagnostic pop")
 
+// Instructs the compiler to warn about unused results.
+// When annotating a function, this macro must appear before the function name
+// in the declaration.
+// Example Usage:
+//    bool CHRE_MUST_USE_RESULT pleaseUseMyResult();
+//
+// A cast-to-void to suppress this warning only works on clang and not on gcc
+// because of this bug:
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=66425
+//
+// A possible workaround (other than just filtering out this macro) may be
+// just negating the return value before a void-cast as follows::
+//    void void_cast_should_not_warn() {
+//      (void) !foo();
+//      //     ^-- here
+//    }
+#if __has_attribute(warn_unused_result)
+#define CHRE_MUST_USE_RESULT __attribute__((warn_unused_result))
+#else
+#define CHRE_MUST_USE_RESULT
+#endif
+
 #else  // if !defined(__GNUC__) && !defined(__clang__)
 
 #error Need to add support for new compiler
