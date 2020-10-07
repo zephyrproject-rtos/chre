@@ -529,9 +529,9 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
       CHPP_LOG_OOM();
     } else {
       // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(
-          &gGnssClientContext.client, &gGnssClientContext.open, request,
-          sizeof(struct ChppAppHeader));
+      result = chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
+                                                 &gGnssClientContext.open,
+                                                 request, sizeof(*request));
     }
   }
 
@@ -551,7 +551,7 @@ static void chppGnssClientClose(void) {
   } else {
     chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
                                       &gGnssClientContext.close, request,
-                                      sizeof(struct ChppAppHeader));
+                                      sizeof(*request));
   }
   // Local
   gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
@@ -577,9 +577,9 @@ static uint32_t chppGnssClientGetCapabilities(void) {
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      if (chppSendTimestampedRequestAndWait(
-              &gGnssClientContext.client, &gGnssClientContext.getCapabilities,
-              request, sizeof(struct ChppAppHeader))) {
+      if (chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
+                                            &gGnssClientContext.getCapabilities,
+                                            request, sizeof(*request))) {
         // Success. gGnssClientContext.capabilities is now populated
         capabilities = gGnssClientContext.capabilities;
       }
@@ -620,7 +620,7 @@ static bool chppGnssClientControlLocationSession(bool enable,
 
     result = chppSendTimestampedRequestOrFail(
         &gGnssClientContext.client, &gGnssClientContext.controlLocationSession,
-        request, sizeof(struct ChppGnssControlLocationSessionRequest));
+        request, sizeof(*request));
   }
 
   return result;
@@ -666,7 +666,7 @@ static bool chppGnssClientControlMeasurementSession(bool enable,
     result = chppSendTimestampedRequestOrFail(
         &gGnssClientContext.client,
         &gGnssClientContext.controlMeasurementSession, request,
-        sizeof(struct ChppGnssControlMeasurementSessionRequest));
+        sizeof(*request));
   }
 
   return result;
@@ -706,8 +706,7 @@ static bool chppGnssClientConfigurePassiveLocationListener(bool enable) {
 
     result = chppSendTimestampedRequestOrFail(
         &gGnssClientContext.client, &gGnssClientContext.passiveLocationListener,
-        request,
-        sizeof(struct ChppGnssConfigurePassiveLocationListenerRequest));
+        request, sizeof(*request));
   }
 
   return result;

@@ -556,7 +556,7 @@ static void chppClearRxDatagram(struct ChppTransportState *context) {
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
 #ifdef CHPP_CHECKSUM_ENABLED
   uint32_t crc = chppCrc32(0, (const uint8_t *)&context->rxHeader,
-                           sizeof(struct ChppTransportHeader));
+                           sizeof(context->rxHeader));
   crc = chppCrc32(
       crc,
       &context->rxDatagram
@@ -1377,5 +1377,5 @@ void chppTransportSendReset(struct ChppTransportState *context,
   chppEnqueueTxDatagram(
       context,
       CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, CHPP_TRANSPORT_ERROR_NONE),
-      config, sizeof(struct ChppTransportConfiguration));
+      config, sizeof(*config));
 }

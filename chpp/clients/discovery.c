@@ -267,5 +267,5 @@ void chppInitiateDiscovery(struct ChppAppState *context) {
   chppMutexUnlock(&context->discoveryMutex);
 
   chppEnqueueTxDatagramOrFail(context->transportContext, request,
-                              sizeof(struct ChppAppHeader));
+                              sizeof(*request));
 }

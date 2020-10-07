@@ -249,6 +249,7 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
     CHPP_LOGI("CHPP GNSS service initialized");
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
     if (response == NULL) {
       CHPP_LOG_OOM();
@@ -256,7 +257,7 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
     } else {
       chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                         &gnssServiceContext->open, response,
-                                        sizeof(*response));
+                                        responseLen);
     }
   }
 
@@ -281,6 +282,7 @@ static enum ChppAppErrorCode chppGnssServiceClose(
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -288,7 +290,7 @@ static enum ChppAppErrorCode chppGnssServiceClose(
   } else {
     chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                       &gnssServiceContext->close, response,
-                                      sizeof(*response));
+                                      responseLen);
   }
 
   return error;
@@ -311,6 +313,7 @@ static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
   struct ChppGnssGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppGnssGetCapabilitiesResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -320,10 +323,10 @@ static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
 
     CHPP_LOGD("chppGnssServiceGetCapabilities returning 0x%" PRIx32
               ", %" PRIuSIZE " bytes",
-              response->params.capabilities, sizeof(*response));
+              response->params.capabilities, responseLen);
     chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
                                       &gnssServiceContext->getCapabilities,
-                                      response, sizeof(*response));
+                                      response, responseLen);
   }
 
   return error;
@@ -445,6 +448,7 @@ static enum ChppAppErrorCode chppGnssServiceConfigurePassiveLocationListener(
 static void chppGnssServiceRequestStateResyncCallback(void) {
   struct ChppAppHeader *notification =
       chppAllocServiceNotificationFixed(struct ChppAppHeader);
+  size_t notificationLen = sizeof(*notification);
 
   if (notification == NULL) {
     CHPP_LOG_OOM();
@@ -456,7 +460,7 @@ static void chppGnssServiceRequestStateResyncCallback(void) {
 
     chppEnqueueTxDatagramOrFail(
         gGnssServiceContext.service.appContext->transportContext, notification,
-        sizeof(struct ChppAppHeader));
+        notificationLen);
   }
 }
 
@@ -476,6 +480,7 @@ static void chppGnssServiceLocationStatusChangeCallback(bool enabled,
   struct ChppGnssControlLocationSessionResponse *response =
       chppAllocServiceResponseFixed(
           &requestHeader, struct ChppGnssControlLocationSessionResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -487,8 +492,7 @@ static void chppGnssServiceLocationStatusChangeCallback(bool enabled,
 
     chppSendTimestampedResponseOrFail(
         &gGnssServiceContext.service,
-        &gGnssServiceContext.controlLocationSession, response,
-        sizeof(struct ChppGnssControlLocationSessionResponse));
+        &gGnssServiceContext.controlLocationSession, response, responseLen);
   }
 }
 
@@ -537,6 +541,7 @@ static void chppGnssServiceMeasurementStatusChangeCallback(bool enabled,
   struct ChppGnssControlMeasurementSessionResponse *response =
       chppAllocServiceResponseFixed(
           &requestHeader, struct ChppGnssControlMeasurementSessionResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -548,8 +553,7 @@ static void chppGnssServiceMeasurementStatusChangeCallback(bool enabled,
 
     chppSendTimestampedResponseOrFail(
         &gGnssServiceContext.service,
-        &gGnssServiceContext.controlMeasurementSession, response,
-        sizeof(struct ChppGnssControlMeasurementSessionResponse));
+        &gGnssServiceContext.controlMeasurementSession, response, responseLen);
   }
 }
 

@@ -213,6 +213,7 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
     CHPP_LOGI("CHPP WWAN service initialized");
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
     if (response == NULL) {
       CHPP_LOG_OOM();
@@ -220,7 +221,7 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
     } else {
       chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                         &wwanServiceContext->open, response,
-                                        sizeof(*response));
+                                        responseLen);
     }
   }
 
@@ -245,6 +246,7 @@ static enum ChppAppErrorCode chppWwanServiceClose(
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -252,7 +254,7 @@ static enum ChppAppErrorCode chppWwanServiceClose(
   } else {
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                       &wwanServiceContext->close, response,
-                                      sizeof(*response));
+                                      responseLen);
   }
 
   return error;
@@ -275,6 +277,7 @@ static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
   struct ChppWwanGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppWwanGetCapabilitiesResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -284,10 +287,10 @@ static enum ChppAppErrorCode chppWwanServiceGetCapabilities(
 
     CHPP_LOGD("chppWwanServiceGetCapabilities returning 0x%" PRIx32
               ", %" PRIuSIZE " bytes",
-              response->params.capabilities, sizeof(*response));
+              response->params.capabilities, responseLen);
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
                                       &wwanServiceContext->getCapabilities,
-                                      response, sizeof(*response));
+                                      response, responseLen);
   }
 
   return error;

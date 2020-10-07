@@ -446,9 +446,9 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
       CHPP_LOG_OOM();
     } else {
       // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(
-          &gWifiClientContext.client, &gWifiClientContext.open, request,
-          sizeof(struct ChppAppHeader));
+      result = chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
+                                                 &gWifiClientContext.open,
+                                                 request, sizeof(*request));
     }
   }
 
@@ -468,7 +468,7 @@ static void chppWifiClientClose(void) {
   } else {
     chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
                                       &gWifiClientContext.close, request,
-                                      sizeof(struct ChppAppHeader));
+                                      sizeof(*request));
   }
   // Local
   gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
@@ -494,9 +494,9 @@ static uint32_t chppWifiClientGetCapabilities(void) {
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      if (chppSendTimestampedRequestAndWait(
-              &gWifiClientContext.client, &gWifiClientContext.getCapabilities,
-              request, sizeof(struct ChppAppHeader))) {
+      if (chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
+                                            &gWifiClientContext.getCapabilities,
+                                            request, sizeof(*request))) {
         // Success. gWifiClientContext.capabilities is now populated
         capabilities = gWifiClientContext.capabilities;
       }
@@ -530,7 +530,7 @@ static bool chppWifiClientConfigureScanMonitor(bool enable) {
 
     result = chppSendTimestampedRequestOrFail(
         &gWifiClientContext.client, &gWifiClientContext.configureScanMonitor,
-        request, sizeof(struct ChppWifiConfigureScanMonitorAsyncRequest));
+        request, sizeof(*request));
   }
 
   return result;

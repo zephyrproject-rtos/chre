@@ -336,9 +336,9 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
       CHPP_LOG_OOM();
     } else {
       // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(
-          &gWwanClientContext.client, &gWwanClientContext.open, request,
-          sizeof(struct ChppAppHeader));
+      result = chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                                 &gWwanClientContext.open,
+                                                 request, sizeof(*request));
     }
   }
 
@@ -358,7 +358,7 @@ static void chppWwanClientClose(void) {
   } else {
     chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
                                       &gWwanClientContext.close, request,
-                                      sizeof(struct ChppAppHeader));
+                                      sizeof(*request));
   }
   // Local
   gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
@@ -384,9 +384,9 @@ static uint32_t chppWwanClientGetCapabilities(void) {
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      if (chppSendTimestampedRequestAndWait(
-              &gWwanClientContext.client, &gWwanClientContext.getCapabilities,
-              request, sizeof(struct ChppAppHeader))) {
+      if (chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                            &gWwanClientContext.getCapabilities,
+                                            request, sizeof(*request))) {
         // Success. gWwanClientContext.capabilities is now populated
         capabilities = gWwanClientContext.capabilities;
       }
@@ -414,7 +414,7 @@ static bool chppWwanClientGetCellInfoAsync(void) {
   } else {
     result = chppSendTimestampedRequestOrFail(
         &gWwanClientContext.client, &gWwanClientContext.getCellInfoAsync,
-        request, sizeof(struct ChppAppHeader));
+        request, sizeof(*request));
   }
 
   return result;

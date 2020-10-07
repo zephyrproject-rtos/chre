@@ -243,13 +243,15 @@ static enum ChppAppErrorCode chppWifiServiceOpen(
 
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
+
     if (response == NULL) {
       CHPP_LOG_OOM();
       error = CHPP_APP_ERROR_OOM;
     } else {
       chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
                                         &wifiServiceContext->open, response,
-                                        sizeof(*response));
+                                        responseLen);
     }
   }
 
@@ -274,6 +276,7 @@ static enum ChppAppErrorCode chppWifiServiceClose(
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -281,7 +284,7 @@ static enum ChppAppErrorCode chppWifiServiceClose(
   } else {
     chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
                                       &wifiServiceContext->close, response,
-                                      sizeof(*response));
+                                      responseLen);
   }
   return error;
 }
@@ -303,6 +306,7 @@ static enum ChppAppErrorCode chppWifiServiceGetCapabilities(
   struct ChppWifiGetCapabilitiesResponse *response =
       chppAllocServiceResponseFixed(requestHeader,
                                     struct ChppWifiGetCapabilitiesResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -312,10 +316,10 @@ static enum ChppAppErrorCode chppWifiServiceGetCapabilities(
 
     CHPP_LOGD("chppWifiServiceGetCapabilities returning 0x%" PRIx32
               ", %" PRIuSIZE " bytes",
-              response->params.capabilities, sizeof(*response));
+              response->params.capabilities, responseLen);
     chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
                                       &wifiServiceContext->getCapabilities,
-                                      response, sizeof(*response));
+                                      response, responseLen);
   }
 
   return error;
@@ -390,6 +394,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
   } else {
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
     if (response == NULL) {
       CHPP_LOG_OOM();
@@ -397,7 +402,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
     } else {
       chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
                                         &wifiServiceContext->requestScanAsync,
-                                        response, sizeof(*response));
+                                        response, responseLen);
     }
   }
 
@@ -434,6 +439,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
     } else {
       struct ChppAppHeader *response =
           chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
 
       if (response == NULL) {
         CHPP_LOG_OOM();
@@ -441,8 +447,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
       } else {
         chppSendTimestampedResponseOrFail(
             &wifiServiceContext->service,
-            &wifiServiceContext->requestRangingAsync, response,
-            sizeof(*response));
+            &wifiServiceContext->requestRangingAsync, response, responseLen);
       }
     }
   }
@@ -469,6 +474,7 @@ static void chppWifiServiceScanMonitorStatusChangeCallback(bool enabled,
   struct ChppWifiConfigureScanMonitorAsyncResponse *response =
       chppAllocServiceResponseFixed(
           &requestHeader, struct ChppWifiConfigureScanMonitorAsyncResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -480,8 +486,7 @@ static void chppWifiServiceScanMonitorStatusChangeCallback(bool enabled,
 
     chppSendTimestampedResponseOrFail(
         &gWifiServiceContext.service,
-        &gWifiServiceContext.configureScanMonitorAsync, response,
-        sizeof(struct ChppWifiConfigureScanMonitorAsyncResponse));
+        &gWifiServiceContext.configureScanMonitorAsync, response, responseLen);
   }
 }
 
@@ -502,6 +507,7 @@ static void chppWifiServiceScanResponseCallback(bool pending,
 
   struct ChppWifiRequestScanResponse *response = chppAllocServiceResponseFixed(
       &requestHeader, struct ChppWifiRequestScanResponse);
+  size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
@@ -511,9 +517,9 @@ static void chppWifiServiceScanResponseCallback(bool pending,
     response->pending = pending;
     response->errorCode = errorCode;
 
-    chppSendTimestampedResponseOrFail(
-        &gWifiServiceContext.service, &gWifiServiceContext.requestScanAsync,
-        response, sizeof(struct ChppWifiRequestScanResponse));
+    chppSendTimestampedResponseOrFail(&gWifiServiceContext.service,
+                                      &gWifiServiceContext.requestScanAsync,
+                                      response, responseLen);
   }
 }
 

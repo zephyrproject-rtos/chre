@@ -53,8 +53,9 @@ extern "C" {
 #define CHPP_DEBUG_ASSERT(var) CHPP_ASSERT(var)
 #endif
 
-#ifndef PRIu64  // Pre-C99 lacks PRIu64 / llu support
-#define PRIu64 "lu"
+#ifndef PRIu64  // Pre-C99 lacks PRIu64 support. Note that the correct
+                // definition on pre-C99 systems would be compiler-dependent.
+#define PRIu64 "llu"
 #endif
 
 #if defined(__GNUC__) && (__STDC_VERSION__ >= 201112L)
