@@ -296,3 +296,5 @@ GOOGLETEST_CFLAGS += -Iplatform/slpi/include
 GOOGLETEST_COMMON_SRCS += platform/linux/assert.cc
 GOOGLETEST_COMMON_SRCS += platform/linux/audio_source.cc
 GOOGLETEST_COMMON_SRCS += platform/linux/platform_audio.cc
+GOOGLETEST_COMMON_SRCS += platform/test/log_buffer_test.cc
+GOOGLETEST_COMMON_SRCS += platform/shared/log_buffer.cc

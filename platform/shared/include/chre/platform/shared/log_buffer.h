@@ -19,7 +19,9 @@
 
 #include <cinttypes>
 #include <cstdarg>
+#include <cstring>
 
+#include "chre/platform/mutex.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/singleton.h"
 
@@ -36,12 +38,12 @@ namespace chre {
  * THRESHOLD - The LogBuffer should notify the platform when a certain thresold
  *             of memory has been allocated for logs in the buffer.
  */
-enum LogBufferNotificationSetting { ALWAYS, NEVER, THRESHOLD };
+enum class LogBufferNotificationSetting : uint8_t { ALWAYS, NEVER, THRESHOLD };
 
 /**
  * The log level options for logs stored in a log buffer.
  */
-enum LogBufferLogLevel { ERROR, WARN, INFO, DEBUG, VERBOSE };
+enum class LogBufferLogLevel : uint8_t { ERROR, WARN, INFO, DEBUG, VERBOSE };
 
 // Forward declaration for LogBufferCallbackInterface.
 class LogBuffer;
@@ -52,6 +54,7 @@ class LogBuffer;
  * through this callback interface.
  */
 class LogBufferCallbackInterface {
+ public:
   /**
    * Notify the platform code that is using the buffer manager that it should
    * call copyLogs because the buffer internal state has changed to suit the
@@ -75,7 +78,8 @@ class LogBuffer {
    *                 the state of the log buffer.
    * @param buffer The buffer location that will store log data.
    *                    message.
-   * @param bufferSize The number of bytes in the buffer.
+   * @param bufferSize The number of bytes in the buffer. This value must be >
+   *                   kBufferMinSize
    */
   LogBuffer(LogBufferCallbackInterface *callback, void *buffer,
             size_t bufferSize);
@@ -133,6 +137,95 @@ class LogBuffer {
    */
   void updateNotificationSetting(LogBufferNotificationSetting setting,
                                  size_t thresholdBytes = 0);
+
+ private:
+  /**
+   * @return The current buffer size.
+   */
+  size_t getBufferSize() const;
+
+  /**
+   * Increment the value and take the modulus of the max size of the buffer.
+   *
+   * @param originalVal The original value to increment and mod.
+   * @param incrementBy The amount to increment by.
+   * @return The final value after incrementing and modulus.
+   */
+  size_t incrementAndModByBufferMaxSize(size_t originalVal,
+                                        size_t incrementBy) const;
+
+  /**
+   * Copy from the source memory location to the buffer data ensuring that
+   * the copy wraps around the buffer data if needed.
+   *
+   * @param size The number of bytes to copy into the buffer.
+   * @param source The memory location to copy from.
+   */
+  void copyToBuffer(size_t size, const void *source);
+
+  /**
+   * Copy from the buffer data to a destination memory location ensuring that
+   * the copy wraps around the buffer data if needed.
+   *
+   * @param size The number of bytes to copy into the buffer.
+   * @param destination The memory location to copy to.
+   */
+  void copyFromBuffer(size_t size, void *destination);
+
+  /**
+   * Get next index indicating the start of a log entry from the starting
+   * index of a previous log entry.
+   *
+   * @param startingIndex The starting index given.
+   * @param logSize Non-null pointer that will be set to the size of the current
+   *        log message.
+   * @return The next starting log index.
+   */
+  size_t getNextLogIndex(size_t startingIndex, size_t *logSize);
+
+  //! The number of bytes in a log entry of the buffer before the log size data
+  //! is encountered.
+  static constexpr size_t kLogSizeOffset = 5;
+  //! The number of bytes that the log size data takes up in a log entry.
+  static constexpr size_t kLogSizeBytes = 1;
+  //! The max size of a single log entry which must fit in a single byte.
+  static constexpr size_t kLogMaxSize = 255;
+
+  /**
+   * The buffer data is stored in the format
+   *
+   * [ logLevel (1B) , timestamp (4B), dataLength (1B), data (dataLenB) ]
+   *
+   * Since dataLength cannot be greater than uint8_t the max size of the data
+   * portion can be max 255.
+   */
+  uint8_t *mBufferData;
+
+  // TODO(b/170870354): Create a cirular buffer class to reuse this concept in
+  // other parts of CHRE
+  //! The buffer data head index
+  size_t mBufferDataHeadIndex = 0;
+  //! The buffer data tail index
+  size_t mBufferDataTailIndex = 0;
+  //! The current size of the data buffer
+  size_t mBufferDataSize = 0;
+  //! The buffer max size
+  size_t mBufferMaxSize;
+  //! The buffer min size
+  // TODO(b/170870354): Setup a more appropriate min size
+  static constexpr size_t kBufferMinSize = 1024;  // 1KB
+
+  //! The callback object
+  LogBufferCallbackInterface *mCallback;
+  //! The notification setting object
+  LogBufferNotificationSetting mNotificationSetting =
+      LogBufferNotificationSetting::NEVER;
+  //! The number of bytes that will trigger the threshold notification
+  size_t mNotificationThresholdBytes = 0;
+
+  // TODO(srok): Optimize the locking scheme
+  //! The mutex guarding the buffer data bytes array
+  Mutex mBufferDataLock;
 };
 
 }  // namespace chre
