@@ -17,13 +17,7 @@
 #define LOG_TAG "ContextHubHal"
 #define LOG_NDEBUG 0
 
-#include "generic_context_hub_v1_1.h"
-
 #include "context_hub_settings_util.h"
-
-#include <chrono>
-#include <cinttypes>
-#include <vector>
 
 #include <log/log.h>
 #include <unistd.h>
@@ -31,37 +25,53 @@
 namespace android {
 namespace hardware {
 namespace contexthub {
-namespace V1_1 {
+namespace common {
 namespace implementation {
-
-using ::android::chre::HostProtocolHost;
-using ::android::hardware::Return;
-using ::android::hardware::contexthub::common::implementation::getFbsSetting;
-using ::android::hardware::contexthub::common::implementation::
-    getFbsSettingValue;
-using ::flatbuffers::FlatBufferBuilder;
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
 namespace fbs = ::chre::fbs;
 
-Return<void> GenericContextHubV1_1::onSettingChanged(Setting setting,
-                                                     SettingValue newValue) {
-  fbs::Setting fbsSetting;
-  fbs::SettingState fbsState;
-  if (getFbsSetting(setting, &fbsSetting) &&
-      getFbsSettingValue(newValue, &fbsState)) {
-    FlatBufferBuilder builder(64);
-    HostProtocolHost::encodeSettingChangeNotification(builder, fbsSetting,
-                                                      fbsState);
-    mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
+using ::android::hardware::contexthub::V1_1::Setting;
+using ::android::hardware::contexthub::V1_1::SettingValue;
+
+bool getFbsSetting(Setting setting, fbs::Setting *fbsSetting) {
+  bool foundSetting = true;
+
+  switch (setting) {
+    case Setting::LOCATION:
+      *fbsSetting = fbs::Setting::LOCATION;
+      break;
+    default:
+      foundSetting = false;
+      ALOGE("Setting update with invalid enum value %hhu", setting);
+      break;
   }
 
-  return Void();
+  return foundSetting;
+}
+
+bool getFbsSettingValue(SettingValue newValue, fbs::SettingState *fbsState) {
+  bool foundSettingValue = true;
+
+  switch (newValue) {
+    case SettingValue::ENABLED:
+      *fbsState = fbs::SettingState::ENABLED;
+      break;
+    case SettingValue::DISABLED:
+      *fbsState = fbs::SettingState::DISABLED;
+      break;
+    default:
+      foundSettingValue = false;
+      ALOGE("Setting value update with invalid enum value %hhu", newValue);
+      break;
+  }
+
+  return foundSettingValue;
 }
 
 }  // namespace implementation
-}  // namespace V1_1
+}  // namespace common
 }  // namespace contexthub
 }  // namespace hardware
 }  // namespace android
