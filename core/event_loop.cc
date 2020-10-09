@@ -262,6 +262,21 @@ void EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
   }
 }
 
+bool EventLoop::postSystemEvent(uint16_t eventType, void *eventData,
+                                SystemEventCallbackFunction *callback,
+                                void *extraData) {
+  if (mRunning) {
+    Event *event =
+        mEventPool.allocate(eventType, eventData, callback, extraData);
+
+    if (event == nullptr || !mEvents.push(event)) {
+      FATAL_ERROR("Failed to post critical system event 0x%" PRIx16, eventType);
+    }
+    return true;
+  }
+  return false;
+}
+
 bool EventLoop::postLowPriorityEventOrFree(
     uint16_t eventType, void *eventData,
     chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
@@ -287,12 +302,14 @@ bool EventLoop::postLowPriorityEventOrFree(
 }
 
 void EventLoop::stop() {
-  auto callback = [](uint16_t /* type */, void * /* data */) {
-    EventLoopManagerSingleton::get()->getEventLoop().onStopComplete();
+  auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
+    auto *obj = static_cast<EventLoop *>(data);
+    obj->onStopComplete();
   };
 
-  // Stop accepting new events and tell the main loop to finish.
-  postEventOrDie(0, nullptr, callback, kSystemInstanceId);
+  // Stop accepting new events and tell the main loop to finish
+  postSystemEvent(static_cast<uint16_t>(SystemCallbackType::Shutdown),
+                  /*data=*/this, callback, /*extraData=*/nullptr);
 }
 
 void EventLoop::onStopComplete() {
@@ -417,10 +434,10 @@ void EventLoop::flushNanoappEventQueues() {
 }
 
 void EventLoop::freeEvent(Event *event) {
-  if (event->freeCallback != nullptr) {
+  if (event->hasFreeCallback()) {
     // TODO: find a better way to set the context to the creator of the event
     mCurrentApp = lookupAppByInstanceId(event->senderInstanceId);
-    event->freeCallback(event->eventType, event->eventData);
+    event->invokeFreeCallback();
     mCurrentApp = nullptr;
   }
 

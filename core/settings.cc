@@ -83,19 +83,18 @@ void postSettingChange(Setting setting, SettingState state) {
     }
   };
 
-  NestedDataPtr<SettingChange> nestedPtr(SettingChange(setting, state));
-
-  auto callback = [](uint16_t /* type */, void *data) {
-    NestedDataPtr<SettingChange> setting(data);
-    setSettingState(setting.data.setting, setting.data.state);
+  auto callback = [](uint16_t /* type */, void *data, void * /*extraData*/) {
+    SettingChange settingChange = NestedDataPtr<SettingChange>(data);
+    setSettingState(settingChange.setting, settingChange.state);
 #ifdef CHRE_GNSS_SUPPORT_ENABLED
     EventLoopManagerSingleton::get()->getGnssManager().onSettingChanged(
-        setting.data.setting, setting.data.state);
+        settingChange.setting, settingChange.state);
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
   };
 
+  NestedDataPtr<SettingChange> settingChange(SettingChange(setting, state));
   EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SettingChangeEvent, nestedPtr.dataPtr, callback);
+      SystemCallbackType::SettingChangeEvent, settingChange, callback);
 }
 
 SettingState getSettingState(Setting setting) {

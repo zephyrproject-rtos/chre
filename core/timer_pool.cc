@@ -30,12 +30,13 @@ TimerPool::TimerPool() {
 }
 
 TimerHandle TimerPool::setSystemTimer(Nanoseconds duration,
-                                      SystemCallbackFunction *callback,
+                                      SystemEventCallbackFunction *callback,
                                       SystemCallbackType callbackType,
-                                      const void *cookie) {
-  TimerHandle timerHandle = setTimer(kSystemInstanceId, duration, callback,
-                                     static_cast<uint16_t>(callbackType),
-                                     cookie, true /* isOneShot */);
+                                      void *data) {
+  CHRE_ASSERT(callback != nullptr);
+  TimerHandle timerHandle =
+      setTimer(kSystemInstanceId, duration, data, callback, callbackType,
+               true /* isOneShot */);
 
   if (timerHandle == CHRE_TIMER_INVALID) {
     FATAL_ERROR("Failed to set system timer");
@@ -45,8 +46,9 @@ TimerHandle TimerPool::setSystemTimer(Nanoseconds duration,
 }
 
 TimerHandle TimerPool::setTimer(uint32_t instanceId, Nanoseconds duration,
-                                SystemCallbackFunction *callback,
-                                uint16_t eventType, const void *cookie,
+                                const void *cookie,
+                                SystemEventCallbackFunction *systemCallback,
+                                SystemCallbackType callbackType,
                                 bool isOneShot) {
   LockGuard<Mutex> lock(mMutex);
 
@@ -55,10 +57,10 @@ TimerHandle TimerPool::setTimer(uint32_t instanceId, Nanoseconds duration,
   timerRequest.timerHandle = generateTimerHandleLocked();
   timerRequest.expirationTime = SystemTime::getMonotonicTime() + duration;
   timerRequest.duration = duration;
-  timerRequest.isOneShot = isOneShot;
-  timerRequest.callback = callback;
-  timerRequest.eventType = eventType;
   timerRequest.cookie = cookie;
+  timerRequest.systemCallback = systemCallback;
+  timerRequest.callbackType = callbackType;
+  timerRequest.isOneShot = isOneShot;
 
   bool newTimerExpiresEarliest =
       (!mTimerRequests.empty() && mTimerRequests.top() > timerRequest);
@@ -223,11 +225,18 @@ bool TimerPool::handleExpiredTimersAndScheduleNextLocked() {
     Nanoseconds currentTime = SystemTime::getMonotonicTime();
     TimerRequest &currentTimerRequest = mTimerRequests.top();
     if (currentTime >= currentTimerRequest.expirationTime) {
-      // Post an event for an expired timer.
-      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          currentTimerRequest.eventType,
-          const_cast<void *>(currentTimerRequest.cookie),
-          currentTimerRequest.callback, currentTimerRequest.instanceId);
+      // This timer has expired, so post an event if it is a nanoapp timer, or
+      // submit a deferred callback if it's a system timer.
+      if (currentTimerRequest.instanceId == kSystemInstanceId) {
+        EventLoopManagerSingleton::get()->deferCallback(
+            currentTimerRequest.callbackType,
+            const_cast<void *>(currentTimerRequest.cookie),
+            currentTimerRequest.systemCallback);
+      } else {
+        EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+            CHRE_EVENT_TIMER, const_cast<void *>(currentTimerRequest.cookie),
+            nullptr /*freeCallback*/, currentTimerRequest.instanceId);
+      }
       handledExpiredTimer = true;
 
       // Reschedule the timer if needed, and release the current request.
@@ -257,8 +266,8 @@ bool TimerPool::handleExpiredTimersAndScheduleNextLocked() {
 }
 
 void TimerPool::handleSystemTimerCallback(void *timerPoolPtr) {
-  auto callback = [](uint16_t /* eventType */, void *eventData) {
-    auto *timerPool = static_cast<TimerPool *>(eventData);
+  auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
+    auto *timerPool = static_cast<TimerPool *>(data);
     if (!timerPool->handleExpiredTimersAndScheduleNext()) {
       // Means that the system timer invoked our callback before the next timer
       // expired. Possible in rare race conditions with time removal, but could

@@ -769,7 +769,7 @@ void PlatformSensorManagerBase::onSamplingStatusUpdate(
                             *status.get())) {
       sensor->mLastReceivedSamplingStatus = *status.get();
 
-      auto callback = [](uint16_t /* type */, void *data) {
+      auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
         auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
             static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(
                 data));

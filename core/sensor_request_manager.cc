@@ -56,7 +56,7 @@ bool isSensorRequestValid(const Sensor &sensor,
 void updateLastEvent(void *eventData) {
   CHRE_ASSERT(eventData);
 
-  auto callback = [](uint16_t /* type */, void *data) {
+  auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
     auto *sensorData = static_cast<ChreSensorData *>(data);
     Sensor *sensor =
         EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
@@ -442,30 +442,18 @@ void SensorRequestManager::handleFlushCompleteEvent(uint32_t sensorHandle,
     // has been received.
     mSensors[sensorHandle].cancelPendingFlushRequestTimer();
 
-    struct CallbackState {
-      uint8_t errorCode;
-      uint32_t sensorHandle;
+    auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
+      uint8_t cbErrorCode = NestedDataPtr<uint8_t>(data);
+      uint32_t cbSensorHandle = NestedDataPtr<uint32_t>(extraData);
+      EventLoopManagerSingleton::get()
+          ->getSensorRequestManager()
+          .handleFlushCompleteEventSync(cbErrorCode, cbSensorHandle);
     };
 
-    auto *cbState = memoryAlloc<CallbackState>();
-    if (cbState == nullptr) {
-      LOG_OOM();
-    } else {
-      cbState->errorCode = errorCode;
-      cbState->sensorHandle = sensorHandle;
-
-      auto callback = [](uint16_t /* eventType */, void *eventData) {
-        auto *cbState = static_cast<CallbackState *>(eventData);
-        EventLoopManagerSingleton::get()
-            ->getSensorRequestManager()
-            .handleFlushCompleteEventSync(cbState->errorCode,
-                                          cbState->sensorHandle);
-        memoryFree(cbState);
-      };
-
-      EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorFlushComplete, cbState, callback);
-    }
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::SensorFlushComplete,
+        NestedDataPtr<uint8_t>(errorCode), callback,
+        NestedDataPtr<uint32_t>(sensorHandle));
   }
 }
 
@@ -497,31 +485,20 @@ void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
 
 void SensorRequestManager::handleSamplingStatusUpdate(
     uint32_t sensorHandle, struct chreSensorSamplingStatus *status) {
-  struct StatusUpdate {
-    uint32_t sensorHandle;
-    struct chreSensorSamplingStatus *status;
+  auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
+    uint32_t cbSensorHandle = NestedDataPtr<uint32_t>(data);
+    auto *cbStatus = static_cast<struct chreSensorSamplingStatus *>(extraData);
+    updateSamplingStatus(cbSensorHandle, *cbStatus);
+    EventLoopManagerSingleton::get()
+        ->getSensorRequestManager()
+        .releaseSamplingStatusUpdate(cbStatus);
   };
-  auto *cbData = memoryAlloc<struct StatusUpdate>();
-  if (cbData == nullptr) {
-    LOG_OOM();
-  } else {
-    cbData->sensorHandle = sensorHandle;
-    cbData->status = status;
 
-    auto callback = [](uint16_t /* type */, void *data) {
-      auto cbData = static_cast<struct StatusUpdate *>(data);
-      updateSamplingStatus(cbData->sensorHandle, *cbData->status);
-      EventLoopManagerSingleton::get()
-          ->getSensorRequestManager()
-          .releaseSamplingStatusUpdate(cbData->status);
-      memoryFree(cbData);
-    };
-
-    // Schedule a deferred callback to handle sensor status change in the main
-    // thread.
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::SensorStatusUpdate, cbData, callback);
-  }
+  // Schedule a deferred callback to handle sensor status change in the main
+  // thread.
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::SensorStatusUpdate,
+      NestedDataPtr<uint32_t>(sensorHandle), callback, status);
 }
 
 void SensorRequestManager::handleBiasEvent(uint32_t sensorHandle,
@@ -804,9 +781,9 @@ uint8_t SensorRequestManager::makeFlushRequest(FlushRequest &request) {
       Nanoseconds delay = deadline - now;
       request.isActive = true;
 
-      auto callback = [](uint16_t /* eventType */, void *eventData) {
+      auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
         LOGE("Flush request timed out");
-        NestedDataPtr<uint32_t> sensorHandle(eventData);
+        NestedDataPtr<uint32_t> sensorHandle(data);
         EventLoopManagerSingleton::get()
             ->getSensorRequestManager()
             .onFlushTimeout(sensorHandle);

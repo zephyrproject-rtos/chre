@@ -36,7 +36,7 @@ namespace {
 
 constexpr uint32_t kAppVersion = 99;
 
-void handleUnload(uint16_t /* eventType */, void * /* data */) {
+void handleUnload(uint16_t /*type*/, void * /*data*/, void * /*extraData*/) {
   EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   uint32_t instanceId;
 

@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_EVENT_H_
 #define CHRE_CORE_EVENT_H_
 
+#include "chre/core/event_loop_common.h"
 #include "chre/platform/assert.h"
 #include "chre/util/non_copyable.h"
 #include "chre_api/chre/event.h"
@@ -38,6 +39,9 @@ constexpr uint32_t kInvalidInstanceId = kBroadcastInstanceId;
 
 class Event : public NonCopyable {
  public:
+  Event() = delete;
+
+  // Events targeted at nanoapps
   Event(uint16_t eventType_, void *eventData_,
         chreEventCompleteFunction *freeCallback_,
         uint32_t senderInstanceId_ = kSystemInstanceId,
@@ -47,7 +51,24 @@ class Event : public NonCopyable {
         eventData(eventData_),
         freeCallback(freeCallback_),
         senderInstanceId(senderInstanceId_),
-        targetInstanceId(targetInstanceId_) {}
+        targetInstanceId(targetInstanceId_) {
+    // Sending events to the system must only be done via the other constructor
+    CHRE_ASSERT(targetInstanceId_ != kSystemInstanceId);
+  }
+
+  // Alternative constructor used for system-internal events (e.g. deferred
+  // callbacks)
+  Event(uint16_t eventType_, void *eventData_,
+        SystemEventCallbackFunction *systemEventCallback_, void *extraData_)
+      : eventType(eventType_),
+        receivedTimeMillis(getTimeMillis()),
+        eventData(eventData_),
+        systemEventCallback(systemEventCallback_),
+        extraData(extraData_),
+        targetInstanceId(kSystemInstanceId) {
+    // Posting events to the system must always have a corresponding callback
+    CHRE_ASSERT(systemEventCallback_ != nullptr);
+  }
 
   void incrementRefCount() {
     mRefCount++;
@@ -63,13 +84,48 @@ class Event : public NonCopyable {
     return (mRefCount == 0);
   }
 
+  //! @return true if this event has an associated callback which needs to be
+  //! called prior to deallocating the event
+  bool hasFreeCallback() {
+    return (targetInstanceId == kSystemInstanceId || freeCallback != nullptr);
+  }
+
+  /**
+   * Invoke the callback associated with this event with the applicable function
+   * signature (passing extraData if this is a system event).
+   *
+   * The caller MUST confirm that hasFreeCallback() is true before calling this
+   * method.
+   */
+  void invokeFreeCallback() {
+    if (targetInstanceId == kSystemInstanceId) {
+      systemEventCallback(eventType, eventData, extraData);
+    } else {
+      freeCallback(eventType, eventData);
+    }
+  }
+
   const uint16_t eventType;
+
   //! This value can serve as a proxy for how fast CHRE is processing events
   //! in its queue by substracting the newest event timestamp by the oldest one.
   const uint16_t receivedTimeMillis;
   void *const eventData;
-  chreEventCompleteFunction *const freeCallback;
-  const uint32_t senderInstanceId;
+
+  //! If targetInstanceId is kSystemInstanceId, senderInstanceId is always
+  //! kSystemInstanceId (nanoapps can't send events to the system), so we
+  //! utilize that to allow an extra 32 bits of data to be passed to the
+  //! callback, which can reduce dynamic allocation in several cases. Therefore,
+  //! if targetInstanceId == kSystemInstanceId, then we use the latter two
+  //! elements in the following two unions
+  union {
+    chreEventCompleteFunction *const freeCallback;
+    SystemEventCallbackFunction *const systemEventCallback;
+  };
+  union {
+    const uint32_t senderInstanceId;
+    void *const extraData;
+  };
   const uint32_t targetInstanceId;
 
  private:

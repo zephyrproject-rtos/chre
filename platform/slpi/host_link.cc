@@ -37,6 +37,7 @@
 #include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/flatbuffers/helpers.h"
 #include "chre/util/macros.h"
+#include "chre/util/nested_data_ptr.h"
 #include "chre/util/unique_ptr.h"
 #include "chre_api/chre/version.h"
 
@@ -53,11 +54,6 @@ constexpr size_t kOutboundQueueSize = 32;
 //! TODO: Make this a member of HostLinkBase
 Nanoseconds gLastTimeSyncRequestNanos(0);
 
-//! Used to pass the client ID through the user data pointer in deferCallback
-union HostClientIdCallbackData {
-  uint16_t hostClientId;
-  void *ptr;
-};
 static_assert(sizeof(uint16_t) <= sizeof(void *),
               "Pointer must at least fit a u16 for passing the host client ID");
 
@@ -213,7 +209,7 @@ bool buildAndEnqueueMessage(PendingMessageType msgType,
 }
 
 /**
- * FlatBuffer message builder callback used with constructNanoappListCallback()
+ * FlatBuffer message builder callback used with handleNanoappListRequest()
  */
 void buildNanoappListResponse(ChreFlatBufferBuilder &builder, void *cookie) {
   auto nanoappAdderCallback = [](const Nanoapp *nanoapp, void *data) {
@@ -232,30 +228,8 @@ void buildNanoappListResponse(ChreFlatBufferBuilder &builder, void *cookie) {
                                               cbData->hostClientId);
 }
 
-void constructNanoappListCallback(uint16_t /*eventType*/, void *deferCbData) {
-  HostClientIdCallbackData clientIdCbData;
-  clientIdCbData.ptr = deferCbData;
-
-  NanoappListData cbData = {};
-  cbData.hostClientId = clientIdCbData.hostClientId;
-
-  const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  size_t expectedNanoappCount = eventLoop.getNanoappCount();
-  if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
-    LOG_OOM();
-  } else {
-    constexpr size_t kFixedOverhead = 48;
-    constexpr size_t kPerNanoappSize = 32;
-    size_t initialBufferSize =
-        (kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
-
-    buildAndEnqueueMessage(PendingMessageType::NanoappListResponse,
-                           initialBufferSize, buildNanoappListResponse,
-                           &cbData);
-  }
-}
-
-void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
+void finishLoadingNanoappCallback(uint16_t /*type*/, void *data,
+                                  void * /*extraData*/) {
   auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<LoadNanoappCallbackData *>(cookie);
 
@@ -277,7 +251,8 @@ void finishLoadingNanoappCallback(uint16_t /*eventType*/, void *data) {
                          kInitialBufferSize, msgBuilder, data);
 }
 
-void handleUnloadNanoappCallback(uint16_t /*eventType*/, void *data) {
+void handleUnloadNanoappCallback(uint16_t /*type*/, void *data,
+                                 void * /*extraData*/) {
   auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<UnloadNanoappCallbackData *>(cookie);
 
@@ -802,12 +777,32 @@ void HostMessageHandlers::handleHubInfoRequest(uint16_t hostClientId) {
 }
 
 void HostMessageHandlers::handleNanoappListRequest(uint16_t hostClientId) {
+  auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
+    uint16_t cbHostClientId = NestedDataPtr<uint16_t>(data);
+
+    NanoappListData cbData = {};
+    cbData.hostClientId = cbHostClientId;
+
+    size_t expectedNanoappCount =
+        EventLoopManagerSingleton::get()->getEventLoop().getNanoappCount();
+    if (!cbData.nanoappEntries.reserve(expectedNanoappCount)) {
+      LOG_OOM();
+    } else {
+      constexpr size_t kFixedOverhead = 48;
+      constexpr size_t kPerNanoappSize = 32;
+      size_t initialBufferSize =
+          (kFixedOverhead + expectedNanoappCount * kPerNanoappSize);
+
+      buildAndEnqueueMessage(PendingMessageType::NanoappListResponse,
+                             initialBufferSize, buildNanoappListResponse,
+                             &cbData);
+    }
+  };
+
   LOGD("Nanoapp list request from client ID %" PRIu16, hostClientId);
-  HostClientIdCallbackData cbData = {};
-  cbData.hostClientId = hostClientId;
   EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::NanoappListResponse, cbData.ptr,
-      constructNanoappListCallback);
+      SystemCallbackType::NanoappListResponse,
+      NestedDataPtr<uint16_t>(hostClientId), callback);
 }
 
 void HostMessageHandlers::handleLoadNanoappRequest(

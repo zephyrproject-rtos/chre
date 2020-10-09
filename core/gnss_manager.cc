@@ -20,6 +20,7 @@
 #include "chre/core/settings.h"
 #include "chre/platform/assert.h"
 #include "chre/platform/fatal_error.h"
+#include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
@@ -133,38 +134,32 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
   struct CallbackState {
     bool enabled;
     uint8_t errorCode;
-    GnssSession *session;
   };
 
-  auto *cbState = memoryAlloc<CallbackState>();
-  if (cbState == nullptr) {
-    LOG_OOM();
-  } else {
-    cbState->enabled = enabled;
-    cbState->errorCode = errorCode;
-    cbState->session = this;
+  auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
+    auto *session = static_cast<GnssSession *>(data);
+    CallbackState cbState = NestedDataPtr<CallbackState>(extraData);
+    session->handleStatusChangeSync(cbState.enabled, cbState.errorCode);
+  };
 
-    auto callback = [](uint16_t /* eventType */, void *eventData) {
-      auto *state = static_cast<CallbackState *>(eventData);
-      state->session->handleStatusChangeSync(state->enabled, state->errorCode);
-      memoryFree(state);
-    };
-
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::GnssSessionStatusChange, cbState, callback);
-  }
+  CallbackState cbState = {};
+  cbState.enabled = enabled;
+  cbState.errorCode = errorCode;
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::GnssSessionStatusChange, /*data=*/this, callback,
+      NestedDataPtr<CallbackState>(cbState));
 }
 
 void GnssSession::handleReportEvent(void *event) {
-  auto callback = [](uint16_t type, void *eventData) {
+  auto callback = [](uint16_t type, void *data, void * /*extraData*/) {
     uint16_t reportEventType;
     if (!getReportEventType(static_cast<SystemCallbackType>(type),
                             &reportEventType) ||
         (getSettingState(Setting::LOCATION) == SettingState::DISABLED)) {
-      freeReportEventCallback(reportEventType, eventData);
+      freeReportEventCallback(reportEventType, data);
     } else {
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          reportEventType, eventData, freeReportEventCallback);
+          reportEventType, data, freeReportEventCallback);
     }
   };
 

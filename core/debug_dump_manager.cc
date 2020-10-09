@@ -24,7 +24,7 @@
 namespace chre {
 
 void DebugDumpManager::trigger() {
-  auto callback = [](uint16_t /*eventType*/, void * /*eventData*/) {
+  auto callback = [](uint16_t /*type*/, void * /*data*/, void * /*extraData*/) {
     DebugDumpManager &debugDumpManager =
         EventLoopManagerSingleton::get()->getDebugDumpManager();
     debugDumpManager.collectFrameworkDebugDumps();

@@ -19,6 +19,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/system_time.h"
+#include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 
 /*
@@ -73,14 +74,14 @@ void AudioRequestManager::handleAudioDataEvent(
         SystemTime::getMonotonicTime();
   }
 
-  auto callback = [](uint16_t /* eventType */, void *eventData) {
-    auto *event = static_cast<struct chreAudioDataEvent *>(eventData);
+  auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
+    auto *event = static_cast<struct chreAudioDataEvent *>(data);
     EventLoopManagerSingleton::get()
         ->getAudioRequestManager()
         .handleAudioDataEventSync(event);
   };
 
-  // Cast off the event const so that it can be provided to the free callback as
+  // Cast off the event const so that it can be provided to the callback as
   // non-const. The event is provided to nanoapps as const and the runtime
   // itself will not modify this memory so this is safe.
   EventLoopManagerSingleton::get()->deferCallback(
@@ -90,29 +91,18 @@ void AudioRequestManager::handleAudioDataEvent(
 
 void AudioRequestManager::handleAudioAvailability(uint32_t handle,
                                                   bool available) {
-  struct CallbackState {
-    uint32_t handle;
-    bool available;
+  auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
+    uint32_t cbHandle = NestedDataPtr<uint32_t>(data);
+    bool cbAvailable = NestedDataPtr<bool>(extraData);
+    EventLoopManagerSingleton::get()
+        ->getAudioRequestManager()
+        .handleAudioAvailabilitySync(cbHandle, cbAvailable);
   };
 
-  auto *cbState = memoryAlloc<CallbackState>();
-  if (cbState == nullptr) {
-    LOG_OOM();
-  } else {
-    cbState->handle = handle;
-    cbState->available = available;
-
-    auto callback = [](uint16_t /* eventType */, void *eventData) {
-      auto *state = static_cast<CallbackState *>(eventData);
-      EventLoopManagerSingleton::get()
-          ->getAudioRequestManager()
-          .handleAudioAvailabilitySync(state->handle, state->available);
-      memoryFree(state);
-    };
-
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::AudioAvailabilityChange, cbState, callback);
-  }
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::AudioAvailabilityChange,
+      NestedDataPtr<uint32_t>(handle), callback,
+      NestedDataPtr<bool>(available));
 }
 
 void AudioRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {

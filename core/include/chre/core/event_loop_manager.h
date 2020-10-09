@@ -83,15 +83,17 @@ class EventLoopManager : public NonCopyable {
    *
    * This function is safe to call from any thread.
    *
+   * @param callback Function to invoke from within the main CHRE event loop
    * @param type An identifier for the callback, which is passed through to the
    *        callback as a uint16_t, and can also be useful for debugging
    * @param data Arbitrary data to provide to the callback
-   * @param callback Function to invoke from within the main CHRE event loop
+   * @param extraData Additional arbitrary data to provide to the callback
    */
   void deferCallback(SystemCallbackType type, void *data,
-                     SystemCallbackFunction *callback) {
-    mEventLoop.postEventOrDie(static_cast<uint16_t>(type), data, callback,
-                              kSystemInstanceId);
+                     SystemEventCallbackFunction *callback,
+                     void *extraData = nullptr) {
+    mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data, callback,
+                               extraData);
   }
 
   /**
@@ -104,14 +106,15 @@ class EventLoopManager : public NonCopyable {
    * @param type An identifier for the callback, which is passed through to the
    *        callback as a uint16_t, and can also be useful for debugging
    * @param data Arbitrary data to provide to the callback
-   * @param callback Function to invoke from within the main CHRE event loop
+   * @param callback Function to invoke from within the main CHRE event loop -
+   *        note that extraData is always passed back as nullptr
    * @param delay The delay to postpone posting the event
    * @return TimerHandle of the requested timer.
    *
    * @see deferCallback
    */
   TimerHandle setDelayedCallback(SystemCallbackType type, void *data,
-                                 SystemCallbackFunction *callback,
+                                 SystemEventCallbackFunction *callback,
                                  Nanoseconds delay) {
     return mEventLoop.getTimerPool().setSystemTimer(delay, callback, type,
                                                     data);
