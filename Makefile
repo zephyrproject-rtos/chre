@@ -109,5 +109,6 @@ include $(CHRE_PREFIX)/build/variant/google_hexagonv66_adsp-see.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv66_adsp-see-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv66_slpi-see.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv66_slpi-see-uimg.mk
+include $(CHRE_PREFIX)/build/variant/google_hexagonv66_slpi-qsh.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_linux.mk
 include $(CHRE_PREFIX)/build/variant/google_x86_googletest.mk

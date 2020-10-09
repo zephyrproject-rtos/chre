@@ -33,14 +33,6 @@ SLPI_CFLAGS += -Iplatform/slpi/include
 # We use FlatBuffers in the SLPI platform layer
 SLPI_CFLAGS += $(FLATBUFFERS_CFLAGS)
 
-ifneq ($(CHRE_ENABLE_ACCEL_CAL), false)
-SLPI_CFLAGS += -DCHRE_ENABLE_ACCEL_CAL
-endif
-
-ifneq ($(CHRE_ENABLE_ASH_DEBUG_DUMP), false)
-SLPI_CFLAGS += -DCHRE_ENABLE_ASH_DEBUG_DUMP
-endif
-
 # SLPI/SEE-specific Compiler Flags #############################################
 
 # Include paths.
@@ -68,6 +60,23 @@ SLPI_SEE_CFLAGS += -DPB_FIELD_16BIT
 ifeq ($(IMPORT_CHRE_UTILS), true)
 SLPI_SEE_CFLAGS += -DIMPORT_CHRE_UTILS
 endif
+
+ifneq ($(CHRE_ENABLE_ACCEL_CAL), false)
+SLPI_SEE_CFLAGS += -DCHRE_ENABLE_ACCEL_CAL
+endif
+
+ifneq ($(CHRE_ENABLE_ASH_DEBUG_DUMP), false)
+SLPI_SEE_CFLAGS += -DCHRE_ENABLE_ASH_DEBUG_DUMP
+endif
+
+# SLPI/QSH-specific Compiler Flags #############################################
+
+# Include paths.
+SLPI_QSH_CFLAGS += -Iplatform/slpi/see/include
+
+# Define CHRE_SLPI_SEE for the few components that are still shared between QSH
+# and SEE.
+SLPI_QSH_CFLAGS += -DCHRE_SLPI_SEE
 
 # SLPI-specific Source Files ###################################################
 
@@ -153,6 +162,12 @@ SLPI_SEE_SRCS += platform/slpi/see/power_control_manager.cc
 ifneq ($(IMPORT_CHRE_UTILS), true)
 SLPI_SEE_SRCS += platform/slpi/see/island_vote_client.cc
 endif
+
+# SLPI/QSH-specific Source Files ###############################################
+
+SLPI_QSH_SRCS += platform/slpi/see/island_vote_client.cc
+SLPI_QSH_SRCS += platform/slpi/see/power_control_manager.cc
+SLPI_QSH_SRCS += platform/slpi/qsh/qsh_shim.cc
 
 # Simulator-specific Compiler Flags ############################################
 
