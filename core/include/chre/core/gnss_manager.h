@@ -97,8 +97,11 @@ class GnssSession {
    * necessary according to the new state.
    *
    * @param state The new setting state.
+   *
+   * @return true if the location setting change resulted in dispatching an
+   *         internal request to control the platform layer
    */
-  void handleLocationSettingChange(SettingState state);
+  bool handleLocationSettingChange(SettingState state);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
