@@ -54,9 +54,6 @@ constexpr size_t kOutboundQueueSize = 32;
 //! TODO: Make this a member of HostLinkBase
 Nanoseconds gLastTimeSyncRequestNanos(0);
 
-static_assert(sizeof(uint16_t) <= sizeof(void *),
-              "Pointer must at least fit a u16 for passing the host client ID");
-
 struct LoadNanoappCallbackData {
   uint64_t appId;
   uint32_t transactionId;
@@ -228,8 +225,8 @@ void buildNanoappListResponse(ChreFlatBufferBuilder &builder, void *cookie) {
                                               cbData->hostClientId);
 }
 
-void finishLoadingNanoappCallback(uint16_t /*type*/, void *data,
-                                  void * /*extraData*/) {
+void finishLoadingNanoappCallback(SystemCallbackType /*type*/,
+                                  UniquePtr<LoadNanoappCallbackData> &&data) {
   auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<LoadNanoappCallbackData *>(cookie);
 
@@ -242,17 +239,13 @@ void finishLoadingNanoappCallback(uint16_t /*type*/, void *data,
                                                 cbData->fragmentId);
   };
 
-  // Re-wrap the callback data struct, so it is destructed and freed, ensuring
-  // we don't leak the embedded UniquePtr<Nanoapp>
-  UniquePtr<LoadNanoappCallbackData> dataWrapped(
-      static_cast<LoadNanoappCallbackData *>(data));
   constexpr size_t kInitialBufferSize = 48;
   buildAndEnqueueMessage(PendingMessageType::LoadNanoappResponse,
-                         kInitialBufferSize, msgBuilder, data);
+                         kInitialBufferSize, msgBuilder, data.get());
 }
 
-void handleUnloadNanoappCallback(uint16_t /*type*/, void *data,
-                                 void * /*extraData*/) {
+void handleUnloadNanoappCallback(SystemCallbackType /*type*/,
+                                 UniquePtr<UnloadNanoappCallbackData> &&data) {
   auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
     auto *cbData = static_cast<UnloadNanoappCallbackData *>(cookie);
 
@@ -272,8 +265,7 @@ void handleUnloadNanoappCallback(uint16_t /*type*/, void *data,
 
   constexpr size_t kInitialBufferSize = 52;
   buildAndEnqueueMessage(PendingMessageType::UnloadNanoappResponse,
-                         kInitialBufferSize, msgBuilder, data);
-  memoryFree(data);
+                         kInitialBufferSize, msgBuilder, data.get());
 }
 
 int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
@@ -835,7 +827,7 @@ void HostMessageHandlers::handleLoadNanoappRequest(
       // Note that if this fails, we'll generate the error response in
       // the normal deferred callback
       EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::FinishLoadingNanoapp, cbData.release(),
+          SystemCallbackType::FinishLoadingNanoapp, std::move(cbData),
           finishLoadingNanoappCallback);
     }
   }
@@ -847,7 +839,7 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
   LOGD("Unload nanoapp request (txnID %" PRIu32 ") for appId 0x%016" PRIx64
        " system %d",
        transactionId, appId, allowSystemNanoappUnload);
-  auto *cbData = memoryAlloc<UnloadNanoappCallbackData>();
+  auto cbData = MakeUnique<UnloadNanoappCallbackData>();
   if (cbData == nullptr) {
     LOG_OOM();
   } else {
@@ -857,7 +849,7 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
     cbData->allowSystemNanoappUnload = allowSystemNanoappUnload;
 
     EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::HandleUnloadNanoapp, cbData,
+        SystemCallbackType::HandleUnloadNanoapp, std::move(cbData),
         handleUnloadNanoappCallback);
   }
 }

@@ -769,27 +769,25 @@ void PlatformSensorManagerBase::onSamplingStatusUpdate(
                             *status.get())) {
       sensor->mLastReceivedSamplingStatus = *status.get();
 
-      auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
-        auto cbData = UniquePtr<SeeHelperCallbackInterface::SamplingStatusData>(
-            static_cast<SeeHelperCallbackInterface::SamplingStatusData *>(
-                data));
+      auto callback =
+          [](SystemCallbackType /* type */,
+             UniquePtr<SeeHelperCallbackInterface::SamplingStatusData> &&data) {
+            uint32_t sensorHandle;
+            getSensorRequestManager().getSensorHandle(data->sensorType,
+                                                      &sensorHandle);
 
-        uint32_t sensorHandle;
-        getSensorRequestManager().getSensorHandle(cbData->sensorType,
-                                                  &sensorHandle);
+            // This memory will be freed via releaseSamplingStatusUpdate()
+            struct chreSensorSamplingStatus *status =
+                memoryAlloc<struct chreSensorSamplingStatus>();
+            mergeUpdatedStatus(sensorHandle, *data.get(), status);
 
-        // Memory will be freed after core framework performs its updates.
-        struct chreSensorSamplingStatus *status =
-            memoryAlloc<struct chreSensorSamplingStatus>();
-        mergeUpdatedStatus(sensorHandle, *cbData.get(), status);
-
-        getSensorRequestManager().handleSamplingStatusUpdate(sensorHandle,
-                                                             status);
-      };
+            getSensorRequestManager().handleSamplingStatusUpdate(sensorHandle,
+                                                                 status);
+          };
       // Schedule a deferred callback to handle sensor status change in the main
       // thread.
       EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SensorStatusUpdate, status.release(), callback);
+          SystemCallbackType::SensorStatusUpdate, std::move(status), callback);
     }
   }
 }
