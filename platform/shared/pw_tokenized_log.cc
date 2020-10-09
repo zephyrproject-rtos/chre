@@ -38,8 +38,7 @@ void pw_TokenizerHandleEncodedMessageWithPayload(void *userPayload,
   constexpr size_t kLogMessageHeaderSizeBytes = 1 + sizeof(uint64_t);
   uint8_t *pLogBuffer = &logBuffer[0];
 
-  chre::NestedDataPtr<uint8_t> nestedLevel;
-  nestedLevel.dataPtr = userPayload;
+  chre::NestedDataPtr<uint8_t> nestedLevel(userPayload);
   *pLogBuffer = nestedLevel.data;
   ++pLogBuffer;
 

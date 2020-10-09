@@ -26,25 +26,30 @@ namespace chre {
  */
 template <typename DataType>
 union NestedDataPtr {
-  NestedDataPtr(DataType nestedData) : data(nestedData) {
-    assertSize();
+  static_assert(sizeof(DataType) <= sizeof(void *),
+                "Requested data type must fit in a void* to use NestedDataPtr");
+  // If the sizeof() check passes, then this is unlikely to be an issue, and in
+  // many usage scenarios this wouldn't be an issue (e.g. reinterpreting a value
+  // stored in a register), but it's included here just to be safe.
+  static_assert(alignof(DataType) <= alignof(void *),
+                "Additional alignment in NestedDataPtr can't be guaranteed");
+
+  NestedDataPtr() = default;
+
+  explicit NestedDataPtr(DataType nestedData) : data(nestedData) {}
+  explicit NestedDataPtr(void *ptr) : dataPtr(ptr) {}
+
+  // Implicit conversions
+  operator DataType() const {
+    return data;
   }
 
-  explicit NestedDataPtr() {
-    assertSize();
+  operator void *() const {
+    return dataPtr;
   }
+
   void *dataPtr;
   DataType data;
-
- private:
-  /**
-   * Ensures both constructors make the same assertion about the size of the
-   * struct.
-   */
-  void assertSize() {
-    static_assert(sizeof(NestedDataPtr<DataType>) == sizeof(void *),
-                  "Size of NestedDataPtr must be equal to that of void *");
-  }
 };
 
 }  // namespace chre

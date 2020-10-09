@@ -125,8 +125,8 @@ bool RequestManager::requestTimer(bool enable, TimerType type,
   bool success = false;
   if (enable) {
     NestedDataPtr<TimerType> timerType(type);
-    uint32_t timerId = chreTimerSet(delay.toRawNanoseconds(), timerType.dataPtr,
-                                    false /* oneShot */);
+    uint32_t timerId =
+        chreTimerSet(delay.toRawNanoseconds(), timerType, false /* oneShot */);
     if (timerId != CHRE_TIMER_INVALID) {
       success = true;
     }
@@ -266,8 +266,7 @@ bool RequestManager::requestBreakIt(bool enable) {
 
 void RequestManager::handleTimerEvent(const void *cookie) const {
   if (cookie != nullptr) {
-    NestedDataPtr<TimerType> timerType;
-    timerType.dataPtr = const_cast<void *>(cookie);
+    NestedDataPtr<TimerType> timerType(const_cast<void *>(cookie));
     switch (timerType.data) {
       case TimerType::WAKEUP:
         LOGI("Received a wakeup timer event");
