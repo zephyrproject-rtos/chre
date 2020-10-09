@@ -349,19 +349,12 @@ bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
                                      uint32_t targetInstanceId) {
   bool success = false;
 
-  Milliseconds receivedTime = Nanoseconds(SystemTime::getMonotonicTime());
-  // The event loop should never contain more than 65 seconds worth of data
-  // unless something has gone terribly wrong so use uint16_t to save space.
-  uint16_t receivedTimeMillis =
-      static_cast<uint16_t>(receivedTime.getMilliseconds());
-
-  Event *event =
-      mEventPool.allocate(eventType, receivedTimeMillis, eventData,
-                          freeCallback, senderInstanceId, targetInstanceId);
-
+  Event *event = mEventPool.allocate(eventType, eventData, freeCallback,
+                                     senderInstanceId, targetInstanceId);
   if (event != nullptr) {
     success = mEvents.push(event);
   }
+
   return success;
 }
 
