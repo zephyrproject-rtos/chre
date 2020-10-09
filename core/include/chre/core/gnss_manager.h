@@ -159,7 +159,7 @@ class GnssSession {
   };
 
   //! The event type of the session's report data.
-  uint16_t mReportEventType;
+  const uint16_t kReportEventType;
 
   //! The request type to start and stop a session.
   uint8_t mStartRequestType;

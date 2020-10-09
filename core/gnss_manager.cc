@@ -94,8 +94,8 @@ void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
-    : mReportEventType(reportEventType) {
-  switch (mReportEventType) {
+    : kReportEventType(reportEventType) {
+  switch (kReportEventType) {
     case CHRE_EVENT_GNSS_LOCATION:
       mStartRequestType = CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START;
       mStopRequestType = CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP;
@@ -164,8 +164,8 @@ void GnssSession::handleReportEvent(void *event) {
   };
 
   SystemCallbackType type;
-  if (!getCallbackType(mReportEventType, &type)) {
-    freeReportEventCallback(mReportEventType, event);
+  if (!getCallbackType(kReportEventType, &type)) {
+    freeReportEventCallback(kReportEventType, event);
   } else {
     EventLoopManagerSingleton::get()->deferCallback(type, event, callback);
   }
@@ -384,14 +384,14 @@ bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
         if (!success) {
           LOG_OOM();
         } else {
-          nanoapp->registerForBroadcastEvent(mReportEventType);
+          nanoapp->registerForBroadcastEvent(kReportEventType);
         }
       }
     } else if (hasExistingRequest) {
       // The session was successfully disabled for a previously enabled
       // nanoapp. Remove it from the list of requests.
       mRequests.erase(requestIndex);
-      nanoapp->unregisterForBroadcastEvent(mReportEventType);
+      nanoapp->unregisterForBroadcastEvent(kReportEventType);
     }  // else disabling an inactive request, treat as success per CHRE API
   }
 
@@ -497,7 +497,7 @@ bool GnssSession::controlPlatform(bool enable, Milliseconds minInterval,
                                   Milliseconds /* minTimeToNext */) {
   bool success = false;
 
-  switch (mReportEventType) {
+  switch (kReportEventType) {
     case CHRE_EVENT_GNSS_LOCATION:
       // TODO: Provide support for min time to next report. It is currently sent
       // to the platform as zero.
@@ -515,7 +515,7 @@ bool GnssSession::controlPlatform(bool enable, Milliseconds minInterval,
       break;
 
     default:
-      CHRE_ASSERT_LOG(false, "Unhandled event type %" PRIu16, mReportEventType);
+      CHRE_ASSERT_LOG(false, "Unhandled event type %" PRIu16, kReportEventType);
   }
 
   if (success) {
