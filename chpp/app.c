@@ -28,10 +28,10 @@
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
 #include "chpp/clients/loopback.h"
 #endif
+#include "chpp/log.h"
 #include "chpp/macros.h"
 #include "chpp/notifier.h"
 #include "chpp/pal_api.h"
-#include "chpp/platform/log.h"
 #include "chpp/services.h"
 #include "chpp/services/discovery.h"
 #include "chpp/services/loopback.h"

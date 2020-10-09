@@ -26,8 +26,8 @@
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chpp/common/wwan_types.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
-#include "chpp/platform/log.h"
 #include "chre/pal/wwan.h"
 
 #ifndef CHPP_WWAN_DISCOVERY_TIMEOUT_MS

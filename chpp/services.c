@@ -22,8 +22,8 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#include "chpp/log.h"
 #include "chpp/memory.h"
-#include "chpp/platform/log.h"
 #ifdef CHPP_SERVICE_ENABLED_GNSS
 #include "chpp/services/gnss.h"
 #endif

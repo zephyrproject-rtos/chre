@@ -22,8 +22,8 @@
 
 #include "chpp/app.h"
 #include "chpp/common/discovery.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
-#include "chpp/platform/log.h"
 #include "chpp/services.h"
 #include "chpp/transport.h"
 

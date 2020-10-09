@@ -26,9 +26,9 @@
 #include "chpp/clients/discovery.h"
 #include "chpp/crc.h"
 #include "chpp/link.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
-#include "chpp/platform/log.h"
 
 /************************************************
  *  Prototypes

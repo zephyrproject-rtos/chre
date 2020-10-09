@@ -20,9 +20,9 @@
 #include <stdio.h>
 
 #include "chpp/app.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
-#include "chpp/platform/log.h"
 #include "chpp/time.h"
 #include "chre/pal/system.h"
 #include "chre_api/chre/re.h"

@@ -23,8 +23,8 @@
 #include "chpp/common/gnss.h"
 #include "chpp/common/gnss_types.h"
 #include "chpp/common/standard_uuids.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
-#include "chpp/platform/log.h"
 #include "chpp/services.h"
 #include "chre/pal/gnss.h"
 

@@ -21,8 +21,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "chpp/log.h"
 #include "chpp/macros.h"
-#include "chpp/platform/log.h"
 #include "chpp/transport.h"
 
 // The set of signals to use for the linkSendThread.

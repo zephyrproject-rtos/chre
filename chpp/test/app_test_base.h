@@ -24,8 +24,8 @@
 
 #include "chpp/app.h"
 #include "chpp/clients/loopback.h"
+#include "chpp/log.h"
 #include "chpp/macros.h"
-#include "chpp/platform/log.h"
 #include "chpp/transport.h"
 
 namespace chpp {
