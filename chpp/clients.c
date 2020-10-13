@@ -205,8 +205,8 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
               rRState->responseTime - rRState->requestTime);
 
   } else {
-    CHPP_LOGI("Received initial response at t = %" PRIu64
-              " for request at t = %" PRIu64 " (RTT = %" PRIu64 ")",
+    CHPP_LOGI("Received response at t = %" PRIu64 " for request at t = %" PRIu64
+              " (RTT = %" PRIu64 ")",
               rRState->responseTime, rRState->responseTime,
               rRState->responseTime - rRState->requestTime);
   }

@@ -266,8 +266,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
   if (context->rxStatus.locInState == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
-    // TODO: Handle duplicate packets (i.e. resent because ACK was lost)
-
     if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
         CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST) {
 #ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
@@ -492,12 +490,15 @@ static void chppProcessResetAck(struct ChppTransportState *context) {
 
 /**
  * Process the payload of a validated payload-bearing packet and send out the
- * ACK
+ * ACK.
  *
  * @param context Maintains status for each transport layer instance.
  */
 static void chppProcessRxPayload(struct ChppTransportState *context) {
-  context->rxStatus.expectedSeq = context->rxHeader.seq + 1;
+  context->rxStatus.expectedSeq++;  // chppRxHeaderCheck() has already confirmed
+                                    // that context->rxStatus.expectedSeq ==
+                                    // context->rxHeader.seq, protecting against
+                                    // duplicate and out-of-order packets.
 
   if (context->rxHeader.flags & CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM) {
     // Packet is part of a larger datagram
@@ -580,7 +581,7 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
 
 /**
  * Performs consistency checks on received packet header to determine if it is
- * obviously corrupt / invalid.
+ * obviously corrupt / invalid / duplicate / out-of-order.
  *
  * @param context Maintains status for each transport layer instance.
  *
@@ -636,23 +637,21 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
           context->txStatus.ackedLocInDatagram,
           context->txDatagramQueue.datagram[context->txDatagramQueue.front]
               .length);
-    }
 
-    context->rxStatus.receivedAckSeq = rxAckSeq;
+      context->rxStatus.receivedAckSeq = rxAckSeq;
 
-    // Process and if necessary pop from Tx datagram queue
-    context->txStatus.ackedLocInDatagram += CHPP_TRANSPORT_TX_MTU_BYTES;
-    if (context->txStatus.ackedLocInDatagram >=
-        context->txDatagramQueue.datagram[context->txDatagramQueue.front]
-            .length) {
-      // We are done with datagram
+      // Process and if necessary pop from Tx datagram queue
+      context->txStatus.ackedLocInDatagram += CHPP_TRANSPORT_TX_MTU_BYTES;
+      if (context->txStatus.ackedLocInDatagram >=
+          context->txDatagramQueue.datagram[context->txDatagramQueue.front]
+              .length) {
+        // We are done with datagram
 
-      context->txStatus.ackedLocInDatagram = 0;
-      context->txStatus.sentLocInDatagram = 0;
-
-      // Note: For a future ACK window >1, we should update which datagram too
-
-      chppDequeueTxDatagram(context);
+        context->txStatus.ackedLocInDatagram = 0;
+        context->txStatus.sentLocInDatagram = 0;
+        // Note: For a future ACK window >1, we should update which datagram too
+        chppDequeueTxDatagram(context);
+      }
     }
   }  // else {nothing was ACKed}
 }
@@ -789,16 +788,15 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
 
   CHPP_LOGD(
       "chppTransportDoWork start. packets to send=%s, link=%s, pending "
-      "datagrams=%" PRIu8 ", last RX ACK=%" PRIu8 " (last TX seq=%" PRIu8
-      ", can%s add payload)",
+      "datagrams=%" PRIu8 ", last RX ACK=%" PRIu8 " (last TX seq=%" PRIu8 "%s)",
       context->txStatus.hasPacketsToSend ? "true" : "false (can't run)",
       context->txStatus.linkBusy ? "busy (can't run)" : "not busy",
       context->txDatagramQueue.pending, context->rxStatus.receivedAckSeq,
       context->txStatus.sentSeq,
-      ((uint8_t)(context->txStatus.sentSeq + 1) ==
-       context->rxStatus.receivedAckSeq)
-          ? ""
-          : "'t");
+      (context->txStatus.sentSeq == context->rxStatus.receivedAckSeq) &&
+              context->txStatus.hasPacketsToSend
+          ? ", ReTx payload"
+          : "");
 
   chppMutexLock(&context->mutex);
 
@@ -826,29 +824,30 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     context->txStatus.sentAckSeq = txHeader->ackSeq;
 
     // If applicable, add payload
-    if ((context->txDatagramQueue.pending > 0) &&
-        ((uint8_t)(context->txStatus.sentSeq + 1) ==
-         context->rxStatus.receivedAckSeq)) {
-      // Note: For a future ACK window >1, seq # check should be against the
-      // window size.
+    if ((context->txDatagramQueue.pending > 0)) {
+      // Note: For a future ACK window >1, we need to rewrite this payload
+      // adding code to base the next packet on the sent location within the
+      // last sent datagram, except for the case of a NACK (explicit or
+      // timeout). For a NACK, we would need to base the next packet off the
+      // last ACKed location.
 
-      // Note: For a future ACK window >1, this is only valid for the
-      // (context->rxStatus.receivedPacketCode != CHPP_TRANSPORT_ERROR_NONE)
-      // case, i.e. we have registered an explicit or implicit NACK. Else,
-      // txHeader->seq = ++(context->txStatus.sentSeq)
       txHeader->seq = context->rxStatus.receivedAckSeq;
       context->txStatus.sentSeq = txHeader->seq;
 
       size_t remainingBytes =
           context->txDatagramQueue.datagram[context->txDatagramQueue.front]
               .length -
-          context->txStatus.sentLocInDatagram;
+          context->txStatus.ackedLocInDatagram;
+
+      CHPP_LOGD("Adding payload to seq=%" PRIu8 ", remainingBytes=%" PRIuSIZE
+                " of pending datagrams=%" PRIu8,
+                txHeader->seq, remainingBytes,
+                context->txDatagramQueue.pending);
 
       if (remainingBytes > CHPP_TRANSPORT_TX_MTU_BYTES) {
         // Send an unfinished part of a datagram
         txHeader->flags = CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM;
         txHeader->length = CHPP_TRANSPORT_TX_MTU_BYTES;
-
       } else {
         // Send final (or only) part of a datagram
         txHeader->flags = CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM;
@@ -860,10 +859,11 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
           &context->pendingTxPacket,
           context->txDatagramQueue.datagram[context->txDatagramQueue.front]
                   .payload +
-              context->txStatus.sentLocInDatagram,
+              context->txStatus.ackedLocInDatagram,
           txHeader->length);
 
-      context->txStatus.sentLocInDatagram += txHeader->length;
+      context->txStatus.sentLocInDatagram =
+          context->txStatus.ackedLocInDatagram + txHeader->length;
 
     }  // else {no payload}
 
@@ -877,7 +877,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     chppMutexUnlock(&context->mutex);
 
     // Send out the packet
-    CHPP_LOGD("Handing over TX packet to link layer. (len=%" PRIuSIZE
+    CHPP_LOGD("Handing TX packet to link layer. (len=%" PRIuSIZE
               ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8
               ", seq=%" PRIu8 ", payload len=%" PRIu16 ", queue depth=%" PRIu8
               ")",
