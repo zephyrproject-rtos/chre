@@ -428,23 +428,18 @@ static void chppProcessTransportLoopbackRequest(
 #ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
 static void chppProcessTransportLoopbackResponse(
     struct ChppTransportState *context) {
-  if (context->pendingTxPacket.length !=
-      context->rxDatagram.length + CHPP_PREAMBLE_LEN_BYTES +
-          sizeof(struct ChppTransportHeader) +
-          sizeof(struct ChppTransportFooter)) {
+  if (context->transportLoopbackData.length != context->rxDatagram.length) {
     CHPP_LOGE(
         "Rx transport-loopback payload length does not match Tx (Rx "
         "len=%" PRIuSIZE ", Tx len=%" PRIuSIZE ")",
         context->rxDatagram.length,
-        context->pendingTxPacket.length - CHPP_PREAMBLE_LEN_BYTES -
+        context->transportLoopbackData.length - CHPP_PREAMBLE_LEN_BYTES -
             sizeof(struct ChppTransportHeader) -
             sizeof(struct ChppTransportFooter));
     context->loopbackResult = CHPP_APP_ERROR_INVALID_LENGTH;
 
   } else if (memcmp(context->rxDatagram.payload,
-                    &context->pendingTxPacket
-                         .payload[CHPP_PREAMBLE_LEN_BYTES +
-                                  sizeof(struct ChppTransportHeader)],
+                    context->transportLoopbackData.payload,
                     context->rxDatagram.length) != 0) {
     CHPP_LOGE(
         "Rx transport-loopback payload does not match Tx data (len=%" PRIuSIZE
@@ -454,10 +449,13 @@ static void chppProcessTransportLoopbackResponse(
 
   } else {
     context->loopbackResult = CHPP_APP_ERROR_NONE;
-  }
-  CHPP_LOGI("Rx successful transport-loopback (payload len=%" PRIuSIZE ")",
-            context->rxDatagram.length);
 
+    CHPP_LOGI("Rx successful transport-loopback (payload len=%" PRIuSIZE ")",
+              context->rxDatagram.length);
+  }
+
+  context->transportLoopbackData.length = 0;
+  CHPP_FREE_AND_NULLIFY(context->transportLoopbackData.payload);
   CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
   chppClearRxDatagram(context);
 }
@@ -1291,19 +1289,38 @@ void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
   CHPP_FREE_AND_NULLIFY(buf);
 }
 
-void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
-                              size_t len) {
+uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
+                                 uint8_t *buf, size_t len) {
   UNUSED_VAR(buf);
   UNUSED_VAR(len);
-  context->loopbackResult = CHPP_APP_ERROR_UNSUPPORTED;
+  uint8_t result = CHPP_APP_ERROR_UNSUPPORTED;
+  context->loopbackResult = result;
 
 #ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
+  result = CHPP_APP_ERROR_NONE;
   context->loopbackResult = CHPP_APP_ERROR_UNSPECIFIED;
-  if (context->txStatus.linkBusy) {
-    CHPP_LOGE("Could not run transport-loopback because link is busy");
-    context->loopbackResult = CHPP_APP_ERROR_BUSY;
+
+  if (len == 0 || len > CHPP_TRANSPORT_TX_MTU_BYTES) {
+    result = CHPP_APP_ERROR_INVALID_LENGTH;
+    context->loopbackResult = result;
+
+  } else if (context->txStatus.linkBusy) {
+    result = CHPP_APP_ERROR_BLOCKED;
+    context->loopbackResult = result;
+
+  } else if (context->transportLoopbackData.payload != NULL) {
+    result = CHPP_APP_ERROR_BUSY;
+    context->loopbackResult = result;
+
+  } else if ((context->transportLoopbackData.payload = chppMalloc(len)) ==
+             NULL) {
+    result = CHPP_APP_ERROR_OOM;
+    context->loopbackResult = result;
 
   } else {
+    context->transportLoopbackData.length = len;
+    memcpy(context->transportLoopbackData.payload, buf, len);
+
     context->txStatus.linkBusy = true;
     context->pendingTxPacket.length = 0;
     memset(&context->pendingTxPacket.payload, 0, CHPP_LINK_TX_MTU_BYTES);
@@ -1332,10 +1349,23 @@ void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
         context->pendingTxPacket.length);
 
     if (error != CHPP_LINK_ERROR_NONE_QUEUED) {
+      // Either sent synchronously or an error has occurred
       chppLinkSendDoneCb(&context->linkParams, error);
+
+      if (error != CHPP_LINK_ERROR_NONE_SENT) {
+        // An error has occurred
+        CHPP_FREE_AND_NULLIFY(context->transportLoopbackData.payload);
+        context->transportLoopbackData.length = 0;
+        result = CHPP_APP_ERROR_UNSPECIFIED;
+      }
     }
   }
+
+  if (result != CHPP_APP_ERROR_NONE) {
+    CHPP_LOGE("Could not run transport-loopback. result=%" PRIu8, result);
+  }
 #endif
+  return result;
 }
 
 void chppTransportSendReset(struct ChppTransportState *context,

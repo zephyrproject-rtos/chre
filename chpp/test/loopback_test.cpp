@@ -47,28 +47,36 @@ TEST_F(AppTestBase, TransportLayerLoopback) {
     buf[i] = (uint8_t)(i + 100);
   }
 
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   CHPP_LOGI("Starting transport-layer loopback test (max buffer = %zu)...",
             kTestLen);
 
-  chppRunTransportLoopback(mClientAppContext.transportContext, buf, kTestLen);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+            chppRunTransportLoopback(mClientAppContext.transportContext, buf,
+                                     kTestLen));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
   EXPECT_EQ(CHPP_APP_ERROR_NONE,
             mClientAppContext.transportContext->loopbackResult);
 
-  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 100);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(
+      CHPP_APP_ERROR_NONE,
+      chppRunTransportLoopback(mClientAppContext.transportContext, buf, 100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
   EXPECT_EQ(CHPP_APP_ERROR_NONE,
             mClientAppContext.transportContext->loopbackResult);
 
-  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 1);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  EXPECT_EQ(
+      CHPP_APP_ERROR_NONE,
+      chppRunTransportLoopback(mClientAppContext.transportContext, buf, 1));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
   EXPECT_EQ(CHPP_APP_ERROR_NONE,
             mClientAppContext.transportContext->loopbackResult);
 
-  chppRunTransportLoopback(mClientAppContext.transportContext, buf, 0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-  EXPECT_EQ(CHPP_APP_ERROR_NONE,
+  EXPECT_EQ(
+      CHPP_APP_ERROR_INVALID_LENGTH,
+      chppRunTransportLoopback(mClientAppContext.transportContext, buf, 0));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  EXPECT_EQ(CHPP_APP_ERROR_INVALID_LENGTH,
             mClientAppContext.transportContext->loopbackResult);
 }
 

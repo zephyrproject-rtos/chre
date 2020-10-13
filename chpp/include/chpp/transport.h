@@ -357,6 +357,8 @@ struct ChppTransportState {
   struct ChppTxStatus txStatus;                // Tx state
   struct ChppTxDatagramQueue txDatagramQueue;  // Queue of datagrams to be Tx
   struct PendingTxPacket pendingTxPacket;      // Outgoing packet to Link Layer
+  struct ChppDatagram transportLoopbackData;   // Transport-layer loopback
+                                               // request data, if any
 
   struct ChppMutex mutex;          // Lock for transport state (i.e. context)
   struct ChppNotifier notifier;    // Notifier for main thread
@@ -585,9 +587,13 @@ void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
  * @param context Maintains status for each transport layer instance.
  * @param buf Pointer to the loopback data to be sent. Cannot be null.
  * @param len Length of the loopback data.
+ *
+ * @return A ChppLinkErrorCode enum indicating if the transport-layer-loopback
+ * request was accepted. Note that the actual test result will be available
+ * later, asynchronously, in context->loopbackResult.
  */
-void chppRunTransportLoopback(struct ChppTransportState *context, uint8_t *buf,
-                              size_t len);
+uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
+                                 uint8_t *buf, size_t len);
 /**
  * Sends a reset or reset-ack packet over the link in order to reset the remote
  * side or inform the counterpart of a reset, respectively. The transport
