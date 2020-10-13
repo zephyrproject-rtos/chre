@@ -17,12 +17,15 @@
 #ifndef UTIL_CHRE_NESTED_DATA_PTR_H_
 #define UTIL_CHRE_NESTED_DATA_PTR_H_
 
+#include <string.h>
+
 namespace chre {
 
 /**
- * A template that provides the ability to store data inside of a void pointer
- * to avoid allocating space on the heap in the case where the data is smaller
- * than the size of a void pointer.
+ * Template which provides type punning capability between the template type and
+ * void*. Note that this void* representation must not be dereferenced - it is
+ * only safe as a temporary representation of the underlying type, for example
+ * passed through to a callback which accepts an opaque void* parameter.
  */
 template <typename DataType>
 union NestedDataPtr {
@@ -37,7 +40,17 @@ union NestedDataPtr {
   NestedDataPtr() = default;
 
   explicit NestedDataPtr(DataType nestedData) : data(nestedData) {}
-  explicit NestedDataPtr(void *ptr) : dataPtr(ptr) {}
+  explicit NestedDataPtr(void *ptr) {
+    // We use memcpy here and in the void* conversion operator, as the C++11
+    // language standard defines that accessing any field of a union other than
+    // most recently set value is undefined behavior, unless it's a structure
+    // with a common prefix to the active field. Most compilers (e.g. GCC,
+    // clang) allow for this anyways as it's permitted in C, but to avoid the UB
+    // we do the conversion via memcpy. Note that compilers will recognize this
+    // as a simple store operation and produce equivalent assembly as if we were
+    // assigning to mUnusedPtr.
+    memcpy(&data, &ptr, sizeof(ptr));
+  }
 
   // Implicit conversions
   operator DataType() const {
@@ -45,11 +58,18 @@ union NestedDataPtr {
   }
 
   operator void *() const {
-    return dataPtr;
+    void *result;
+    static_assert(sizeof(*this) == sizeof(result), "Broken assumption");
+    memcpy(&result, this, sizeof(result));
+    return result;
   }
 
-  void *dataPtr;
   DataType data;
+
+ private:
+  // Here to force that this union has at least the alignment + size of a
+  // pointer, but we don't access it directly
+  void *mUnusedPtr;
 };
 
 }  // namespace chre
