@@ -61,6 +61,8 @@ ifeq ($(IMPORT_CHRE_UTILS), true)
 SLPI_SEE_CFLAGS += -DIMPORT_CHRE_UTILS
 endif
 
+# Enable accel calibration and ASH debug dump by default unless overridden
+# explicitly by the environment.
 ifneq ($(CHRE_ENABLE_ACCEL_CAL), false)
 SLPI_SEE_CFLAGS += -DCHRE_ENABLE_ACCEL_CAL
 endif
