@@ -49,7 +49,12 @@ namespace fbs = ::chre::fbs;
 
 Return<void> GenericContextHubV1_2::onSettingChanged(V1_1::Setting setting,
                                                      SettingValue newValue) {
-  // TODO(arthuri): Share implementation with onSettingsChanged_1_2.
+  return onSettingChanged_1_2(reinterpret_cast<V1_2::Setting &>(setting),
+                              newValue);
+}
+
+Return<void> GenericContextHubV1_2::onSettingChanged_1_2(
+    Setting setting, SettingValue newValue) {
   fbs::Setting fbsSetting;
   fbs::SettingState fbsState;
   if (getFbsSetting(setting, &fbsSetting) &&
@@ -59,13 +64,6 @@ Return<void> GenericContextHubV1_2::onSettingChanged(V1_1::Setting setting,
                                                       fbsState);
     mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
   }
-
-  return Void();
-}
-
-Return<void> GenericContextHubV1_2::onSettingChanged_1_2(
-    Setting /* setting */, SettingValue /* newValue */) {
-  // TODO(arthuri): Implement this
 
   return Void();
 }

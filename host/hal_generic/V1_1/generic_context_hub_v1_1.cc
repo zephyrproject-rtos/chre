@@ -49,7 +49,7 @@ Return<void> GenericContextHubV1_1::onSettingChanged(Setting setting,
                                                      SettingValue newValue) {
   fbs::Setting fbsSetting;
   fbs::SettingState fbsState;
-  if (getFbsSetting(setting, &fbsSetting) &&
+  if (getFbsSetting(reinterpret_cast<V1_2::Setting &>(setting), &fbsSetting) &&
       getFbsSettingValue(newValue, &fbsState)) {
     FlatBufferBuilder builder(64);
     HostProtocolHost::encodeSettingChangeNotification(builder, fbsSetting,

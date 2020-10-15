@@ -20,6 +20,7 @@
 #include <cinttypes>
 
 #include <android/hardware/contexthub/1.1/IContexthub.h>
+#include <android/hardware/contexthub/1.2/IContexthub.h>
 
 #include "chre_host/host_protocol_host.h"
 
@@ -30,14 +31,15 @@ namespace common {
 namespace implementation {
 
 /**
- * @param setting The HAL v1.1 Setting.
+ * @param setting The HAL Setting (<= v1.2).
  * @param fbsSetting A non-null pointer where the corresponding flatbuffers
  * settings value will be stored.
  *
  * @return true if the flatbuffers setting value was found and populated.
  */
-bool getFbsSetting(::android::hardware::contexthub::V1_1::Setting setting,
-                   ::chre::fbs::Setting *fbsSetting);
+bool getFbsSetting(
+    const ::android::hardware::contexthub::V1_2::Setting &setting,
+    ::chre::fbs::Setting *fbsSetting);
 
 /**
  * @param setting The HAL v1.1 SettingValue.
@@ -47,7 +49,7 @@ bool getFbsSetting(::android::hardware::contexthub::V1_1::Setting setting,
  * @return true if the flatbuffers setting state value was found and populated.
  */
 bool getFbsSettingValue(
-    ::android::hardware::contexthub::V1_1::SettingValue newValue,
+    const ::android::hardware::contexthub::V1_1::SettingValue &newValue,
     ::chre::fbs::SettingState *fbsState);
 
 }  // namespace implementation

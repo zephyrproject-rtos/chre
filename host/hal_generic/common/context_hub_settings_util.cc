@@ -32,15 +32,25 @@ namespace implementation {
 // CHRE-side code
 namespace fbs = ::chre::fbs;
 
-using ::android::hardware::contexthub::V1_1::Setting;
 using ::android::hardware::contexthub::V1_1::SettingValue;
+using ::android::hardware::contexthub::V1_2::Setting;
 
-bool getFbsSetting(Setting setting, fbs::Setting *fbsSetting) {
+static_assert(sizeof(::android::hardware::contexthub::V1_1::Setting) ==
+                  sizeof(Setting),
+              "New and old Setting types must have the same size");
+
+bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
   bool foundSetting = true;
 
   switch (setting) {
     case Setting::LOCATION:
       *fbsSetting = fbs::Setting::LOCATION;
+      break;
+    case Setting::WIFI_AVAILABLE:
+      *fbsSetting = fbs::Setting::WIFI_AVAILABLE;
+      break;
+    case Setting::AIRPLANE_MODE:
+      *fbsSetting = fbs::Setting::AIRPLANE_MODE;
       break;
     default:
       foundSetting = false;
@@ -51,7 +61,8 @@ bool getFbsSetting(Setting setting, fbs::Setting *fbsSetting) {
   return foundSetting;
 }
 
-bool getFbsSettingValue(SettingValue newValue, fbs::SettingState *fbsState) {
+bool getFbsSettingValue(const SettingValue &newValue,
+                        fbs::SettingState *fbsState) {
   bool foundSettingValue = true;
 
   switch (newValue) {

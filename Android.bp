@@ -155,6 +155,7 @@ cc_binary {
         "libutils",
         "android.hardware.contexthub@1.0",
         "android.hardware.contexthub@1.1",
+        "android.hardware.contexthub@1.2",
     ],
     static_libs: ["chre_client"],
     vintf_fragments: ["host/hal_generic/V1_1/android.hardware.contexthub@1.1-generic.xml"],
