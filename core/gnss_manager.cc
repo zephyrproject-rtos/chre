@@ -87,6 +87,22 @@ void GnssManager::onSettingChanged(Setting setting, SettingState state) {
   mMeasurementSession.onSettingChanged(setting, state);
 }
 
+void GnssManager::handleRequestStateResyncCallback() {
+  auto callback = [](uint16_t /* eventType */, void * /* eventData */,
+                     void * /* extraData */) {
+    EventLoopManagerSingleton::get()
+        ->getGnssManager()
+        .handleRequestStateResyncCallbackSync();
+  };
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::GnssRequestResyncEvent, nullptr /* data */, callback);
+}
+
+void GnssManager::handleRequestStateResyncCallbackSync() {
+  mLocationSession.handleRequestStateResyncCallbackSync();
+  mMeasurementSession.handleRequestStateResyncCallbackSync();
+}
+
 void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nGNSS:");
   mLocationSession.logStateToBuffer(debugDump);
@@ -178,16 +194,18 @@ void GnssSession::onSettingChanged(Setting setting, SettingState state) {
       // to handle the state change.
       mSettingChangePending = true;
     } else {
-      handleLocationSettingChange(state);
+      updatePlatformRequest();
       mSettingChangePending = false;
     }
   }
 }
 
-bool GnssSession::handleLocationSettingChange(SettingState state) {
-  bool chreDisable = ((state == SettingState::DISABLED) && mPlatformEnabled);
-  bool chreEnable = ((state == SettingState::ENABLED) && !mPlatformEnabled &&
-                     !mRequests.empty());
+bool GnssSession::updatePlatformRequest(bool forceUpdate) {
+  SettingState state = getSettingState(Setting::LOCATION);
+  bool chreDisable =
+      ((state == SettingState::DISABLED) && (mPlatformEnabled || forceUpdate));
+  bool chreEnable = ((state == SettingState::ENABLED) &&
+                     (!mPlatformEnabled || forceUpdate) && !mRequests.empty());
 
   bool requestPending = false;
   if (chreEnable || chreDisable) {
@@ -204,6 +222,16 @@ bool GnssSession::handleLocationSettingChange(SettingState state) {
   }
 
   return requestPending;
+}
+
+void GnssSession::handleRequestStateResyncCallbackSync() {
+  if (!mStateTransitions.empty()) {
+    // A request is in progress, so we wait until the async response arrives
+    // to handle the resync callback.
+    mResyncPending = true;
+  } else {
+    mInternalRequestPending = updatePlatformRequest(true /* forceUpdate */);
+  }
 }
 
 void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
@@ -457,15 +485,21 @@ void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
     mStateTransitions.pop();
   }
 
-  // If a previous setting change event is pending process, do that first.
-  if (mSettingChangePending) {
-    mSettingChangePending = false;
-    mInternalRequestPending =
-        handleLocationSettingChange(getSettingState(Setting::LOCATION));
+  // If a previous setting change or resync event is pending process, do that
+  // first.
+  if (mResyncPending && !success) {
+    // We only send a platform request on resync if a pending request failed,
+    // because we still need to restore the previous request state.
+    mInternalRequestPending = updatePlatformRequest(true /* forceUpdate */);
+  } else if (mSettingChangePending) {
+    mInternalRequestPending = updatePlatformRequest();
   }
 
+  mResyncPending = false;
+  mSettingChangePending = false;
+
   // If we didn't issue an internally-generated update via
-  // handleLocationSettingChange(), process pending nanoapp requests (otherwise,
+  // updatePlatformRequest(), process pending nanoapp requests (otherwise,
   // wait for it to finish, then process any pending requests)
   if (!mInternalRequestPending) {
     dispatchQueuedStateTransitions();

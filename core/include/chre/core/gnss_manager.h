@@ -93,15 +93,20 @@ class GnssSession {
   void onSettingChanged(Setting setting, SettingState state);
 
   /**
-   * Handles a change in the Location setting, making a GNSS request if
-   * necessary according to the new state.
+   * Updates the platform GNSS request according to the current state.
    *
-   * @param state The new setting state.
+   * @param forceUpdate If true, force the platform GNSS request to be made.
    *
-   * @return true if the location setting change resulted in dispatching an
-   *         internal request to control the platform layer
+   * @return true if the invocation resulted in dispatching an internal
+   *         request to control the platform layer
    */
-  bool handleLocationSettingChange(SettingState state);
+  bool updatePlatformRequest(bool forceUpdate = false);
+
+  /**
+   * Invoked as a result of a requestStateResync() callback from the GNSS PAL.
+   * Runs in the context of the CHRE thread.
+   */
+  void handleRequestStateResyncCallbackSync();
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
@@ -195,6 +200,9 @@ class GnssSession {
 
   //! True if a setting change event is pending to be processed.
   bool mSettingChangePending = false;
+
+  //! True if a state resync callback is pending to be processed.
+  bool mResyncPending = false;
 
   // Allows GnssManager to access constructor.
   friend class GnssManager;
@@ -394,6 +402,18 @@ class GnssManager : public NonCopyable {
    * @param state The new setting state.
    */
   void onSettingChanged(Setting setting, SettingState state);
+
+  /**
+   * Invoked as a result of a requestStateResync() callback from the GNSS PAL.
+   * Runs asynchronously in the context of the callback immediately.
+   */
+  void handleRequestStateResyncCallback();
+
+  /**
+   * Invoked as a result of a requestStateResync() callback from the GNSS PAL.
+   * Runs in the context of the CHRE thread.
+   */
+  void handleRequestStateResyncCallbackSync();
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
