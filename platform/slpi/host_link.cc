@@ -562,38 +562,6 @@ UniquePtr<Nanoapp> handleLoadNanoappData(
   return nanoapp;
 }
 
-bool getSettingFromFbs(fbs::Setting setting, Setting *chreSetting) {
-  bool success = true;
-  switch (setting) {
-    case fbs::Setting::LOCATION:
-      *chreSetting = Setting::LOCATION;
-      break;
-    default:
-      LOGE("Unknown setting %" PRIu8, setting);
-      success = false;
-  }
-
-  return success;
-}
-
-bool getSettingStateFromFbs(fbs::SettingState state,
-                            SettingState *chreSettingState) {
-  bool success = true;
-  switch (state) {
-    case fbs::SettingState::DISABLED:
-      *chreSettingState = SettingState::DISABLED;
-      break;
-    case fbs::SettingState::ENABLED:
-      *chreSettingState = SettingState::ENABLED;
-      break;
-    default:
-      LOGE("Unknown state %" PRIu8, state);
-      success = false;
-  }
-
-  return success;
-}
-
 /**
  * FastRPC method invoked by the host to block on messages
  *
@@ -921,8 +889,8 @@ void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
                                                      fbs::SettingState state) {
   Setting chreSetting;
   SettingState chreSettingState;
-  if (getSettingFromFbs(setting, &chreSetting) &&
-      getSettingStateFromFbs(state, &chreSettingState)) {
+  if (HostProtocolChre::getSettingFromFbs(setting, &chreSetting) &&
+      HostProtocolChre::getSettingStateFromFbs(state, &chreSettingState)) {
     postSettingChange(chreSetting, chreSettingState);
   }
 }

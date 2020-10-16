@@ -234,4 +234,43 @@ void HostProtocolChre::encodeLowPowerMicAccessRelease(
            request.Union());
 }
 
+bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
+                                         Setting *chreSetting) {
+  bool success = true;
+  switch (setting) {
+    case fbs::Setting::LOCATION:
+      *chreSetting = Setting::LOCATION;
+      break;
+    case fbs::Setting::WIFI_AVAILABLE:
+      *chreSetting = Setting::WIFI_AVAILABLE;
+      break;
+    case fbs::Setting::AIRPLANE_MODE:
+      *chreSetting = Setting::AIRPLANE_MODE;
+      break;
+    default:
+      LOGE("Unknown setting %" PRIu8, setting);
+      success = false;
+  }
+
+  return success;
+}
+
+bool HostProtocolChre::getSettingStateFromFbs(fbs::SettingState state,
+                                              SettingState *chreSettingState) {
+  bool success = true;
+  switch (state) {
+    case fbs::SettingState::DISABLED:
+      *chreSettingState = SettingState::DISABLED;
+      break;
+    case fbs::SettingState::ENABLED:
+      *chreSettingState = SettingState::ENABLED;
+      break;
+    default:
+      LOGE("Unknown state %" PRIu8, state);
+      success = false;
+  }
+
+  return success;
+}
+
 }  // namespace chre

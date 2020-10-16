@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 
+#include "chre/core/settings.h"
 #include "chre/platform/shared/generated/host_messages_generated.h"
 #include "chre/platform/shared/host_protocol_common.h"
 #include "chre/util/dynamic_vector.h"
@@ -200,6 +201,25 @@ class HostProtocolChre : public HostProtocolCommon {
    * anymore, so the low-power microphone may be powered off.
    */
   static void encodeLowPowerMicAccessRelease(ChreFlatBufferBuilder &builder);
+
+  /**
+   * @param state The fbs::Setting value.
+   * @param chreSettingState If success, stores the corresponding
+   * chre::Setting value.
+   *
+   * @return true if state was a valid fbs::Setting value.
+   */
+  static bool getSettingFromFbs(fbs::Setting setting, Setting *chreSetting);
+
+  /**
+   * @param state The fbs::SettingState value.
+   * @param chreSettingState If success, stores the corresponding
+   * chre::SettingState value.
+   *
+   * @return true if state was a valid fbs::SettingState value.
+   */
+  static bool getSettingStateFromFbs(fbs::SettingState state,
+                                     SettingState *chreSettingState);
 };
 
 }  // namespace chre
