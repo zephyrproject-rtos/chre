@@ -40,6 +40,10 @@ extern "C" {
 #include "chre/platform/slpi/see/island_vote_client.h"
 #endif
 
+#ifdef CHRE_QSH_ENABLED
+#include "chre/platform/slpi/qsh/qsh_shim.h"
+#endif
+
 using chre::EventLoop;
 using chre::EventLoopManagerSingleton;
 using chre::LockGuard;
@@ -99,11 +103,20 @@ bool gTlsKeyValid;
  * @param data Argument passed to qurt_thread_create()
  */
 void chreThreadEntry(void * /*data*/) {
+#ifdef CHRE_QSH_ENABLED
+  chre::openQsh();
+#endif  // CHRE_QSH_ENABLED
+
   EventLoopManagerSingleton::get()->lateInit();
   chre::loadStaticNanoapps();
   EventLoopManagerSingleton::get()->getEventLoop().run();
 
   chre::deinit();
+
+#ifdef CHRE_QSH_ENABLED
+  chre::closeQsh();
+#endif  // CHRE_QSH_ENABLED
+
 #if defined(CHRE_SLPI_SEE) && !defined(IMPORT_CHRE_UTILS)
   chre::IslandVoteClientSingleton::deinit();
 #endif
