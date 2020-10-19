@@ -18,12 +18,6 @@ COMMON_SRCS += core/host_comms_manager.cc
 COMMON_SRCS += core/init.cc
 COMMON_SRCS += core/log.cc
 COMMON_SRCS += core/nanoapp.cc
-COMMON_SRCS += core/sensor.cc
-COMMON_SRCS += core/sensor_request.cc
-COMMON_SRCS += core/sensor_request_manager.cc
-COMMON_SRCS += core/sensor_request_multiplexer.cc
-COMMON_SRCS += core/sensor_type.cc
-COMMON_SRCS += core/sensor_type_helpers.cc
 COMMON_SRCS += core/settings.cc
 COMMON_SRCS += core/static_nanoapps.cc
 COMMON_SRCS += core/timer_pool.cc
@@ -36,6 +30,16 @@ endif
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/gnss_manager.cc
+endif
+
+# Optional sensors support.
+ifeq ($(CHRE_SENSORS_SUPPORT_ENABLED), true)
+COMMON_SRCS += core/sensor.cc
+COMMON_SRCS += core/sensor_request.cc
+COMMON_SRCS += core/sensor_request_manager.cc
+COMMON_SRCS += core/sensor_request_multiplexer.cc
+COMMON_SRCS += core/sensor_type.cc
+COMMON_SRCS += core/sensor_type_helpers.cc
 endif
 
 # Optional Wi-Fi support.
