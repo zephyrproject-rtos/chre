@@ -74,7 +74,9 @@ void DebugDumpManager::collectFrameworkDebugDumps() {
   eventLoopManager->getMemoryManager().logStateToBuffer(mDebugDump);
   eventLoopManager->getEventLoop().handleNanoappWakeupBuckets();
   eventLoopManager->getEventLoop().logStateToBuffer(mDebugDump);
+#ifdef CHRE_SENSORS_SUPPORT_ENABLED
   eventLoopManager->getSensorRequestManager().logStateToBuffer(mDebugDump);
+#endif  // CHRE_SENSORS_SUPPORT_ENABLED
 #ifdef CHRE_GNSS_SUPPORT_ENABLED
   eventLoopManager->getGnssManager().logStateToBuffer(mDebugDump);
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
