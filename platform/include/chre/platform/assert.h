@@ -43,6 +43,12 @@
 #error "CHRE_ASSERTIONS_ENABLED or CHRE_ASSERTIONS_DISABLED must be defined"
 #endif  // CHRE_ASSERTIONS_ENABLED
 
+#ifdef __cplusplus
+#define CHRE_ASSERT_NOT_NULL(ptr) CHRE_ASSERT((ptr) != nullptr)
+#else
+#define CHRE_ASSERT_NOT_NULL(ptr) CHRE_ASSERT((ptr) != NULL)
+#endif
+
 /**
  * Combination macro that always logs an error message if the condition
  * evaluates to false.
