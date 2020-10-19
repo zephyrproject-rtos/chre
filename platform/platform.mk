@@ -72,6 +72,7 @@ endif
 # SLPI/QSH-specific Compiler Flags #############################################
 
 # Include paths.
+SLPI_QSH_CFLAGS += -I$(SLPI_PREFIX)/qsh/qsh_nanoapp/inc
 SLPI_QSH_CFLAGS += -Iplatform/slpi/see/include
 
 # Define CHRE_SLPI_SEE for the few components that are still shared between QSH
