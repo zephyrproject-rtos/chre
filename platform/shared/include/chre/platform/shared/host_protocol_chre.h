@@ -204,7 +204,7 @@ class HostProtocolChre : public HostProtocolCommon {
 
   /**
    * @param state The fbs::Setting value.
-   * @param chreSettingState If success, stores the corresponding
+   * @param chreSetting If success, stores the corresponding
    * chre::Setting value.
    *
    * @return true if state was a valid fbs::Setting value.

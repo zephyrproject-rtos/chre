@@ -54,7 +54,7 @@ void setSettingState(Setting setting, SettingState state) {
 }
 
 const char *getSettingStateString(Setting setting) {
-  switch (getSettingState(Setting::LOCATION)) {
+  switch (getSettingState(setting)) {
     case SettingState::ENABLED:
       return "enabled";
       break;
@@ -111,6 +111,8 @@ SettingState getSettingState(Setting setting) {
 void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
   debugDump.print("\nSettings:");
   debugDump.print("\n Location %s", getSettingStateString(Setting::LOCATION));
+  debugDump.print("\n WiFi available %s",
+                  getSettingStateString(Setting::WIFI_AVAILABLE));
 }
 
 }  // namespace chre
