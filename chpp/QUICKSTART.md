@@ -50,6 +50,12 @@ In order to terminate CHPP's main transport layer thread, it is necessary to
 1. Call the layers’ deinitialization functions, chppTransportDeinit and chppAppDeinit (in any order)
 1. Deallocate the transportContext, appContext, and the platform-specific linkParams structs
 
+### 1. Single-threaded systems
+
+If the system does not support multi-threading, the chppWorkThreadHandleSignal method can be used to directly handle signals without using chppWorkThreadStart.
+
+Note that the system MUST replicate the high-level behavior of chppWorkThreadStart exactly in this case. More details in the documentation of chppWorkThreadHandleSignal.
+
 ## CHPP Services Integration
 
 CHPP provides several predefined services (including Loopback Test, Service Discovery), as well as three standard services that follow the CHRE PAL API to simplify integration and testing. CHPP allows for custom services as well, as described in README.md. The standard services included in CHPP are
