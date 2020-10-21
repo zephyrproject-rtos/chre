@@ -261,7 +261,7 @@ void WifiRequestManager::handleRangingEvent(
 }
 
 void WifiRequestManager::handleScanEvent(chreWifiScanEvent *event) {
-  auto callback = [](uint16_t eventType, void *eventData) {
+  auto callback = [](uint16_t /* eventType */, void *eventData) {
     chreWifiScanEvent *scanEvent = static_cast<chreWifiScanEvent *>(eventData);
     EventLoopManagerSingleton::get()
         ->getWifiRequestManager()
@@ -684,7 +684,7 @@ void WifiRequestManager::addWifiScanRequestLog(
                          static_cast<Milliseconds>(params->maxScanAgeMs)));
 }
 
-void WifiRequestManager::freeWifiScanEventCallback(uint16_t eventType,
+void WifiRequestManager::freeWifiScanEventCallback(uint16_t /* eventType */,
                                                    void *eventData) {
   chreWifiScanEvent *scanEvent = static_cast<chreWifiScanEvent *>(eventData);
   EventLoopManagerSingleton::get()
@@ -692,7 +692,7 @@ void WifiRequestManager::freeWifiScanEventCallback(uint16_t eventType,
       .handleFreeWifiScanEvent(scanEvent);
 }
 
-void WifiRequestManager::freeWifiRangingEventCallback(uint16_t eventType,
+void WifiRequestManager::freeWifiRangingEventCallback(uint16_t /* eventType */,
                                                       void *eventData) {
   auto *event = static_cast<struct chreWifiRangingEvent *>(eventData);
   EventLoopManagerSingleton::get()
