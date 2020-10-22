@@ -545,10 +545,26 @@ static bool chppWifiClientConfigureScanMonitor(bool enable) {
  * @return True indicates the request was sent off to the service.
  */
 static bool chppWifiClientRequestScan(const struct chreWifiScanParams *params) {
-  // TODO using parser, i.e. chppWifiScanParamsFromChre()
-  UNUSED_VAR(params);
+  struct ChppWifiScanParamsWithHeader *request;
+  size_t requestLen;
 
-  return false;
+  bool result = chppWifiScanParamsFromChre(params, &request, &requestLen);
+
+  if (!result) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.handle = gWifiClientContext.client.handle;
+    request->header.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    request->header.transaction = gWifiClientContext.client.transaction++;
+    request->header.error = CHPP_APP_ERROR_NONE;
+    request->header.command = CHPP_WIFI_REQUEST_SCAN_ASYNC;
+
+    result = chppSendTimestampedRequestOrFail(&gWifiClientContext.client,
+                                              &gWifiClientContext.requestScan,
+                                              request, requestLen);
+  }
+
+  return result;
 }
 
 /**
