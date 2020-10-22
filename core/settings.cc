@@ -113,6 +113,8 @@ void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
   debugDump.print("\n Location %s", getSettingStateString(Setting::LOCATION));
   debugDump.print("\n WiFi available %s",
                   getSettingStateString(Setting::WIFI_AVAILABLE));
+  debugDump.print("\n Airplane mode %s",
+                  getSettingStateString(Setting::AIRPLANE_MODE));
 }
 
 }  // namespace chre
