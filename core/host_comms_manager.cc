@@ -143,7 +143,7 @@ void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
            "(size %zu)",
            appId, messageSize);
     } else if (!deliverNanoappMessageFromHost(craftedMessage)) {
-      LOGD("Deferring message; destination app ID 0x%016" PRIx64
+      LOGV("Deferring message; destination app ID 0x%016" PRIx64
            " not found at this time",
            appId);
 

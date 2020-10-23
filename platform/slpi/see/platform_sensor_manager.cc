@@ -376,7 +376,7 @@ bool getSuidAndAttrs(SeeHelper &seeHelper, const char *dataType,
   if (!success) {
     LOGE("Failed to find sensor '%s'", dataType);
   } else {
-    LOGD("Num of SUIDs found for '%s': %zu", dataType, suids.size());
+    LOGV("Num of SUIDs found for '%s': %zu", dataType, suids.size());
 
     for (const auto &suid : suids) {
       SeeAttributes attr;
@@ -385,7 +385,7 @@ bool getSuidAndAttrs(SeeHelper &seeHelper, const char *dataType,
         LOGE("Failed to get attributes of SUID 0x%" PRIx64 " %" PRIx64,
              suid.suid_high, suid.suid_low);
       } else {
-        LOGI("%s %s, hw id %" PRId64 ", max ODR %f Hz, stream type %" PRIu8
+        LOGV("%s %s, hw id %" PRId64 ", max ODR %f Hz, stream type %" PRIu8
              " passive %d",
              attr.vendor, attr.name, attr.hwId, attr.maxSampleRate,
              attr.streamType, attr.passiveRequest);
@@ -476,7 +476,7 @@ void findAndAddSensorsForType(SeeHelper &seeHelper,
 #else
             if (sensorHwMatch(attr, tempAttr)) {
 #endif
-              LOGD("Found matching temperature sensor type");
+              LOGV("Found matching temperature sensor type");
               tempFound = true;
               addSensor(seeHelper, temperatureType, tempSuid, tempAttr,
                         sensors);

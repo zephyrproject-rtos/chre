@@ -45,6 +45,8 @@
   CHRE_SEND_TOKENIZED_LOG(CHRE_LOG_LEVEL_INFO, fmt, ##__VA_ARGS__)
 #define LOGD(fmt, ...) \
   CHRE_SEND_TOKENIZED_LOG(CHRE_LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
+#define LOGV(fmt, ...) \
+  CHRE_SEND_TOKENIZED_LOG(CHRE_LOG_LEVEL_VERBOSE, fmt, ##__VA_ARGS__)
 
 #elif defined(CHRE_USE_FARF_LOGGING)
 #define CHRE_SLPI_LOG(level, fmt, ...) \
@@ -55,9 +57,10 @@
   } while (0)
 
 #define LOGE(fmt, ...) CHRE_SLPI_LOG(ERROR, fmt, ##__VA_ARGS__)
-#define LOGD(fmt, ...) CHRE_SLPI_LOG(HIGH, fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) CHRE_SLPI_LOG(MEDIUM, fmt, ##__VA_ARGS__)
-#define LOGI(fmt, ...) CHRE_SLPI_LOG(ALWAYS, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) CHRE_SLPI_LOG(HIGH, fmt, ##__VA_ARGS__)
+#define LOGI(fmt, ...) CHRE_SLPI_LOG(MEDIUM, fmt, ##__VA_ARGS__)
+#define LOGD(fmt, ...) CHRE_SLPI_LOG(LOW, fmt, ##__VA_ARGS__)
+#define LOGV(fmt, ...) CHRE_SLPI_LOG(LOW, fmt, ##__VA_ARGS__)
 
 #else
 #define CHRE_SLPI_LOG(level, fmt, ...)                  \
@@ -71,6 +74,7 @@
 #define LOGW(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_WARN, fmt, ##__VA_ARGS__)
 #define LOGI(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_INFO, fmt, ##__VA_ARGS__)
 #define LOGD(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define LOGV(fmt, ...) CHRE_SLPI_LOG(ASH_LOG_VERBOSE, fmt, ##__VA_ARGS__)
 #endif  // CHRE_USE_FARF_LOGGING
 
 #endif  // CHRE_PLATFORM_SLPI_LOG_H_
