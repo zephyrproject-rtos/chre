@@ -679,6 +679,8 @@ static bool chppGnssClientControlMeasurementSession(bool enable,
  */
 static void chppGnssClientReleaseMeasurementDataEvent(
     struct chreGnssDataEvent *event) {
+  void *measurements = CHPP_CONST_CAST_POINTER(event->measurements);
+  CHPP_FREE_AND_NULLIFY(measurements);
   CHPP_FREE_AND_NULLIFY(event);
 }
 
