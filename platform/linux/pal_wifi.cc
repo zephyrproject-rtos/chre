@@ -87,6 +87,7 @@ bool chrePalWifiApiRequestScan(const struct chreWifiScanParams * /* params */) {
 }
 
 void chrePalWifiApiReleaseScanEvent(struct chreWifiScanEvent *event) {
+  chre::memoryFree(const_cast<uint32_t *>(event->scannedFreqList));
   chre::memoryFree(const_cast<struct chreWifiScanResult *>(event->results));
   chre::memoryFree(event);
 }
