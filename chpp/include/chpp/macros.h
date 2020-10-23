@@ -22,6 +22,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "chpp/memory.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
