@@ -28,6 +28,9 @@
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
 #include "chpp/clients/loopback.h"
 #endif
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+#include "chpp/clients/timesync.h"
+#endif
 #ifdef CHPP_CLIENT_ENABLED_WIFI
 #include "chpp/clients/wifi.h"
 #endif
@@ -61,6 +64,12 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
   }
 #endif
 
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  if (context->clientServiceSet.timesyncClient) {
+    chppTimesyncClientInit(context);
+  }
+#endif
+
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   if (context->clientServiceSet.wwanClient) {
     chppRegisterWwanClient(context);
@@ -86,6 +95,12 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
   if (context->clientServiceSet.loopbackClient) {
     chppLoopbackClientDeinit();
+  }
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  if (context->clientServiceSet.timesyncClient) {
+    chppTimesyncClientDeinit(context);
   }
 #endif
 

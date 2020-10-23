@@ -59,6 +59,7 @@ void AppTestBase::SetUp() {
   set.gnssClient = 1;
   set.wwanClient = 1;
   set.loopbackClient = 1;
+  set.timesyncClient = 1;
 
   chppTransportInit(&mClientTransportContext, &mClientAppContext);
   chppAppInitWithClientServiceSet(&mClientAppContext, &mClientTransportContext,

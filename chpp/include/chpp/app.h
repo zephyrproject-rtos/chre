@@ -78,6 +78,9 @@ enum ChppHandleNumber {
   //! Loopback Service
   CHPP_HANDLE_LOOPBACK = 0x01,
 
+  //! Time Service
+  CHPP_HANDLE_TIMESYNC = 0x02,
+
   //! Discovery Service
   CHPP_HANDLE_DISCOVERY = 0x0F,
 
@@ -286,6 +289,9 @@ struct ChppRequestResponseState {
   uint8_t transaction;    // Transaction ID for the last request/response
 };
 
+/**
+ * Enabled clients and services.
+ */
 struct ChppClientServiceSet {
   bool wifiService : 1;
   bool gnssService : 1;
@@ -294,7 +300,10 @@ struct ChppClientServiceSet {
   bool gnssClient : 1;
   bool wwanClient : 1;
   bool loopbackClient : 1;
+  bool timesyncClient : 1;
 };
+
+struct ChppTimesyncClientState;
 
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
@@ -317,6 +326,10 @@ struct ChppAppState {
       clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
 
   struct ChppClientServiceSet clientServiceSet;  // Enabled client/services
+
+  // Pointers to the contexts of basic clients, which are allocated if and when
+  // they are initialized
+  struct ChppTimesyncClientState *timesyncClientContext;
 
   // For discovery clients
   bool isDiscoveryClientInitialized;

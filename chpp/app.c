@@ -28,6 +28,9 @@
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
 #include "chpp/clients/loopback.h"
 #endif
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+#include "chpp/clients/timesync.h"
+#endif
 #include "chpp/log.h"
 #include "chpp/macros.h"
 #include "chpp/notifier.h"
@@ -36,6 +39,7 @@
 #include "chpp/services/discovery.h"
 #include "chpp/services/loopback.h"
 #include "chpp/services/nonhandle.h"
+#include "chpp/services/timesync.h"
 
 /************************************************
  *  Prototypes
@@ -98,6 +102,11 @@ static bool chppProcessPredefinedClientRequest(struct ChppAppState *context,
       break;
     }
 
+    case CHPP_HANDLE_TIMESYNC: {
+      dispatchResult = chppDispatchTimesyncClientRequest(context, buf, len);
+      break;
+    }
+
     case CHPP_HANDLE_DISCOVERY: {
       dispatchResult = chppDispatchDiscoveryClientRequest(context, buf, len);
       break;
@@ -142,6 +151,13 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
     }
 #endif  // CHPP_CLIENT_ENABLED_LOOPBACK
 
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+    case CHPP_HANDLE_TIMESYNC: {
+      dispatchResult = chppDispatchTimesyncServiceResponse(context, buf, len);
+      break;
+    }
+#endif  // CHPP_CLIENT_ENABLED_TIMESYNC
+
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
     case CHPP_HANDLE_DISCOVERY: {
       dispatchResult = chppDispatchDiscoveryServiceResponse(context, buf, len);
@@ -157,8 +173,8 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
   if (dispatchResult == false) {
     CHPP_LOGE("Handle=%" PRIu8
               " received unknown server response. command=%#x, transaction ID="
-              "%" PRIu8,
-              rxHeader->handle, rxHeader->command, rxHeader->transaction);
+              "%" PRIu8 ", len=%" PRIuSIZE,
+              rxHeader->handle, rxHeader->command, rxHeader->transaction, len);
   }
 
   return handleValid;
@@ -244,6 +260,7 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
                  sizeof_member(struct ChppAppHeader, type);
         break;
 
+      case CHPP_HANDLE_TIMESYNC:
       case CHPP_HANDLE_DISCOVERY:
         minLen = sizeof(struct ChppAppHeader);
         break;
