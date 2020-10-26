@@ -247,7 +247,7 @@ GOOGLE_ARM64_ANDROID_CFLAGS += -Iplatform/android/include
 GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/libbase/include
 GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/libcutils/include
 GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/libutils/include
-GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/core/liblog/include
+GOOGLE_ARM64_ANDROID_CFLAGS += -I$(ANDROID_BUILD_TOP)/system/logging/liblog/include
 GOOGLE_ARM64_ANDROID_CFLAGS += -Ihost/common/include
 
 # Also add the linux sources to fall back to the default Linux implementation.
@@ -259,7 +259,7 @@ GOOGLE_ARM64_ANDROID_CFLAGS += -I$(FLATBUFFERS_PATH)/include
 # Android-specific Source Files ################################################
 
 ANDROID_CUTILS_TOP = $(ANDROID_BUILD_TOP)/system/core/libcutils
-ANDROID_LOG_TOP = $(ANDROID_BUILD_TOP)/system/core/liblog
+ANDROID_LOG_TOP = $(ANDROID_BUILD_TOP)/system/logging/liblog
 
 GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_CUTILS_TOP)/sockets_unix.cpp
 GOOGLE_ARM64_ANDROID_SRCS += $(ANDROID_CUTILS_TOP)/android_get_control_file.cpp
