@@ -35,7 +35,7 @@ class TestLogBufferCallback : public LogBufferCallbackInterface {
 };
 
 static constexpr size_t kDefaultBufferSize = 1024;
-static constexpr size_t kBytesBeforeLogData = 6;
+static constexpr size_t kBytesBeforeLogData = 5;
 
 TEST(LogBuffer, HandleOneLogAndCopy) {
   char buffer[kDefaultBufferSize];
@@ -49,11 +49,9 @@ TEST(LogBuffer, HandleOneLogAndCopy) {
   logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
 
-  EXPECT_EQ(bytesCopied,
-            strlen(testLogStr) +
-                kBytesBeforeLogData /*loglevel, timestamp, and loglen*/);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr));
-  testedBuffer[strlen(testLogStr)] = '\0';
+  EXPECT_EQ(bytesCopied, strlen(testLogStr) +
+                             kBytesBeforeLogData /*loglevel, timestamp*/ + 1);
+  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr) + 1);
   EXPECT_TRUE(strcmp(testedBuffer, testLogStr) == 0);
 }
 
@@ -71,8 +69,7 @@ TEST(LogBuffer, FailOnMoreCopyThanHandle) {
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
   logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   logBuffer.copyLogs(outBuffer, kOutBufferSize);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr));
-  testedBuffer[strlen(testLogStr)] = '\0';
+  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr) + 1);
   size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
 
   EXPECT_EQ(bytesCopied, 0);
@@ -111,14 +108,13 @@ TEST(LogBuffer, LogOverwritten) {
     const char *testLogStr = testLogStrStr.c_str();
     logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   }
-  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kBytesBeforeLogData + 100);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, 100);
-  testedBuffer[100] = '\0';
+  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kBytesBeforeLogData + 101);
+  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, 101);
 
   // Should have read out the second from front test log string which is 'a' + 1
   // = 'b'
   EXPECT_TRUE(strcmp(testedBuffer, std::string(100, 'b').c_str()) == 0);
-  EXPECT_EQ(bytesCopied, kBytesBeforeLogData + 100);
+  EXPECT_EQ(bytesCopied, kBytesBeforeLogData + 100 + 1);
 }
 
 TEST(LogBuffer, CopyIntoEmptyBuffer) {

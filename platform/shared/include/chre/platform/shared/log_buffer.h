@@ -183,18 +183,28 @@ class LogBuffer {
    */
   size_t getNextLogIndex(size_t startingIndex, size_t *logSize);
 
-  //! The number of bytes in a log entry of the buffer before the log size data
-  //! is encountered.
-  static constexpr size_t kLogSizeOffset = 5;
-  //! The number of bytes that the log size data takes up in a log entry.
-  static constexpr size_t kLogSizeBytes = 1;
+  /**
+   * @param startingIndex The index to start from.
+   * @return The length of the data portion of a log along with the null
+   *         terminator. If a null terminator was not found at most
+   *         kLogMaxSize - kLogDataOffset bytes away from the startingIndex
+   *         then kLogMaxSize - kLogDataOffset + 1 is returned.
+   */
+  size_t getLogDataLength(size_t startingIndex);
+
+  //! The number of bytes in a log entry of the buffer before the log data is
+  //! encountered.
+  static constexpr size_t kLogDataOffset = 5;
   //! The max size of a single log entry which must fit in a single byte.
   static constexpr size_t kLogMaxSize = 255;
 
   /**
    * The buffer data is stored in the format
    *
-   * [ logLevel (1B) , timestamp (4B), dataLength (1B), data (dataLenB) ]
+   * [ logLevel (1B) , timestamp (4B), data (dataLenB) , \0 (1B) ]
+   *
+   * This pattern is repeated as many times as there is log entries in the
+   * buffer.
    *
    * Since dataLength cannot be greater than uint8_t the max size of the data
    * portion can be max 255.

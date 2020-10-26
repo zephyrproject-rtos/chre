@@ -32,9 +32,14 @@ LogBuffer::LogBuffer(LogBufferCallbackInterface *callback, void *buffer,
 
 void LogBuffer::handleLog(LogBufferLogLevel logLevel, uint32_t timestampMs,
                           const char *log) {
-  uint8_t logLen = static_cast<uint8_t>(
-      strnlen(log, kLogMaxSize - kLogSizeOffset - kLogSizeBytes));
-  size_t totalLogSize = kLogSizeOffset + kLogSizeBytes + logLen;
+  constexpr size_t maxLogLen = kLogMaxSize - kLogDataOffset;
+  uint8_t logLen = static_cast<uint8_t>(strnlen(log, maxLogLen));
+  if (logLen == maxLogLen) {
+    // So that the last character is not copied to buffer and a null terminator
+    // can be copied there instead.
+    logLen--;
+  }
+  size_t totalLogSize = kLogDataOffset + logLen;
 
   if (totalLogSize > mBufferMaxSize) {
     return;
@@ -51,8 +56,8 @@ void LogBuffer::handleLog(LogBufferLogLevel logLevel, uint32_t timestampMs,
     }
     copyToBuffer(sizeof(logLevel), &logLevel);
     copyToBuffer(sizeof(timestampMs), &timestampMs);
-    copyToBuffer(sizeof(logLen), &logLen);
     copyToBuffer(logLen, reinterpret_cast<const void *>(log));
+    copyToBuffer(1, reinterpret_cast<const void *>("\0"));
   }
 
   switch (mNotificationSetting) {
@@ -79,9 +84,12 @@ size_t LogBuffer::copyLogs(void *destination, size_t size) {
 
   if (size != 0 && destination != nullptr && getBufferSize() != 0) {
     size_t logStartIndex = mBufferDataHeadIndex;
-    size_t logDataSize = mBufferData[incrementAndModByBufferMaxSize(
-        logStartIndex, kLogSizeOffset)];
-    size_t logSize = kLogSizeOffset + kLogSizeBytes + logDataSize;
+    size_t logDataStartIndex =
+        incrementAndModByBufferMaxSize(logStartIndex, kLogDataOffset);
+    // There is guaranteed to be a null terminator within the max log length
+    // number of bytes
+    size_t logDataSize = getLogDataLength(logDataStartIndex);
+    size_t logSize = kLogDataOffset + logDataSize;
     size_t sizeAfterAddingLog = logSize;
     while (sizeAfterAddingLog <= size &&
            sizeAfterAddingLog <= getBufferSize()) {
@@ -148,9 +156,28 @@ void LogBuffer::copyFromBuffer(size_t size, void *destination) {
 }
 
 size_t LogBuffer::getNextLogIndex(size_t startingIndex, size_t *logSize) {
-  size_t logDataSize = mBufferData[startingIndex + kLogSizeOffset];
-  *logSize = kLogSizeOffset + kLogSizeBytes + logDataSize;
+  size_t logDataStartIndex =
+      incrementAndModByBufferMaxSize(startingIndex, kLogDataOffset);
+
+  size_t logDataSize = getLogDataLength(logDataStartIndex);
+  *logSize = kLogDataOffset + logDataSize;
   return incrementAndModByBufferMaxSize(startingIndex, *logSize);
+}
+
+size_t LogBuffer::getLogDataLength(size_t startingIndex) {
+  size_t currentIndex = startingIndex;
+  constexpr size_t maxBytes = kLogMaxSize - kLogDataOffset;
+  size_t numBytes = maxBytes + 1;
+
+  for (size_t i = 0; i < maxBytes; i++) {
+    if (mBufferData[currentIndex] == '\0') {
+      // +1 to include the null terminator
+      numBytes = i + 1;
+      break;
+    }
+    currentIndex = incrementAndModByBufferMaxSize(currentIndex, 1);
+  }
+  return numBytes;
 }
 
 }  // namespace chre
