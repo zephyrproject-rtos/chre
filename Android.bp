@@ -264,9 +264,13 @@ cc_test_host {
         "util/dynamic_vector_base.cc",
         "util/system/debug_dump.cc",
         "util/tests/**/*.cc",
+        "pal/tests/src/wwan_test.cc",
+        "pal/tests/src/version_test.cc",
     ],
     local_include_dirs: [
+        "chre_api/include",
         "chre_api/include/chre_api",
+        "pal/include",
         "platform/linux/include",
         "platform/shared/include",
         "platform/include",
