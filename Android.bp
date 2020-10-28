@@ -270,6 +270,8 @@ cc_test_host {
         "platform/linux/memory.cc",
         "platform/linux/memory_manager.cc",
         "platform/shared/memory_manager.cc",
+        "platform/shared/log_buffer.cc",
+        "platform/tests/**/*.cc",
         "util/buffer_base.cc",
         "util/dynamic_vector_base.cc",
         "util/system/debug_dump.cc",

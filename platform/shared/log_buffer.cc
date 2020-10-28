@@ -96,7 +96,7 @@ size_t LogBuffer::copyLogs(void *destination, size_t size) {
   return copySize;
 }
 
-void LogBuffer::transferTo(LogBuffer &buffer) {
+void LogBuffer::transferTo(LogBuffer & /*buffer*/) {
   // TODO(b/146164384): Implement
 }
 
