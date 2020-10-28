@@ -151,7 +151,7 @@ class EventLoopManager : public NonCopyable {
   //! caller from passing a variable which is set to nullptr at runtime, but
   //! generally the callback is always known at compile time.
   template <typename T>
-  void deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
+  void deferCallback(SystemCallbackType /*type*/, UniquePtr<T> && /*data*/,
                      std::nullptr_t /*callback*/) {
     static_assert(AlwaysFalse<T>::value,
                   "deferCallback(SystemCallbackType, UniquePtr<T>, nullptr) is "
