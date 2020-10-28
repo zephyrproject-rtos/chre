@@ -17,9 +17,7 @@
 #ifndef CHRE_PLATFORM_SLPI_LOG_H_
 #define CHRE_PLATFORM_SLPI_LOG_H_
 
-#ifdef CHRE_USE_FARF_LOGGING
-#include "HAP_farf.h"
-#else  // CHRE_USE_FARF_LOGGING
+#ifndef CHRE_USE_FARF_LOGGING
 #include "ash/debug.h"
 #endif  // CHRE_USE_FARF_LOGGING
 #include "chre/util/toolchain.h"
@@ -49,6 +47,36 @@
   CHRE_SEND_TOKENIZED_LOG(CHRE_LOG_LEVEL_VERBOSE, fmt, ##__VA_ARGS__)
 
 #elif defined(CHRE_USE_FARF_LOGGING)
+// Define FARF_X macros depending on the CHRE log level to ensure that FARF
+// doesn't strip out logs that CHRE intends to log.
+#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_ERROR
+#ifndef FARF_ERROR
+#define FARF_ERROR 1
+#endif
+#endif
+
+#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_WARN
+#ifndef FARF_HIGH
+#define FARF_HIGH 1
+#endif
+#endif
+
+#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_INFO
+#ifndef FARF_MEDIUM
+#define FARF_MEDIUM 1
+#endif
+#endif
+
+#if CHRE_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_DEBUG
+#ifndef FARF_LOW
+#define FARF_LOW 1
+#endif
+#endif
+
+#ifdef CHRE_USE_FARF_LOGGING
+#include "HAP_farf.h"
+#endif
+
 #define CHRE_SLPI_LOG(level, fmt, ...) \
   do {                                 \
     CHRE_LOG_PREAMBLE                  \
