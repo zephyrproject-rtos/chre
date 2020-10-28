@@ -412,11 +412,15 @@ void EventLoop::distributeEvent(Event *event) {
   }
 
   if (event->isUnreferenced()) {
-    // Events sent to the system instance ID are processed via the free callback
-    // and are not expected to be delivered to any nanoapp, so no need to log a
-    // warning in that case
-    if (event->senderInstanceId != kSystemInstanceId) {
-      LOGW("Dropping event 0x%" PRIx16, event->eventType);
+    // Log if an event unicast to a nanoapp isn't delivered, as this is could be
+    // a bug (e.g. something isn't properly keeping track of when nanoapps are
+    // unloaded), though it could just be a harmless transient issue (e.g. race
+    // condition with nanoapp unload, where we post an event to a nanoapp just
+    // after queues are flushed while it's unloading)
+    if (event->targetInstanceId != kBroadcastInstanceId &&
+        event->targetInstanceId != kSystemInstanceId) {
+      LOGW("Dropping event 0x%" PRIx16 " from instanceId %" PRIu32 "->%" PRIu32,
+           event->eventType, event->senderInstanceId, event->targetInstanceId);
     }
     freeEvent(event);
   }
