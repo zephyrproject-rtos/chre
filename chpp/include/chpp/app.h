@@ -303,6 +303,7 @@ struct ChppClientServiceSet {
   bool timesyncClient : 1;
 };
 
+struct ChppLoopbackClientState;
 struct ChppTimesyncClientState;
 
 struct ChppAppState {
@@ -329,6 +330,7 @@ struct ChppAppState {
 
   // Pointers to the contexts of basic clients, which are allocated if and when
   // they are initialized
+  struct ChppLoopbackClientState *loopbackClientContext;
   struct ChppTimesyncClientState *timesyncClientContext;
 
   // For discovery clients

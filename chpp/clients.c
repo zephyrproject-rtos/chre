@@ -94,7 +94,7 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
   if (context->clientServiceSet.loopbackClient) {
-    chppLoopbackClientDeinit();
+    chppLoopbackClientDeinit(context);
   }
 #endif
 

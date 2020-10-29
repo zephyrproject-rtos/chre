@@ -53,7 +53,7 @@ struct ChppLoopbackTestResult {
  ***********************************************/
 
 /**
- * Initializes the loopback client.
+ * Initializes the client.
  *
  * @param context Maintains status for each app layer instance.
  */
@@ -61,8 +61,10 @@ void chppLoopbackClientInit(struct ChppAppState *context);
 
 /**
  * Deinitializes the client.
+ *
+ * @param context Maintains status for each app layer instance.
  */
-void chppLoopbackClientDeinit(void);
+void chppLoopbackClientDeinit(struct ChppAppState *context);
 
 /**
  * Dispatches an Rx Datagram from the transport layer that is determined to
