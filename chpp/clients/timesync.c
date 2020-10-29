@@ -80,26 +80,27 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
   context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
 
   context->timesyncClientContext->timesyncResult.rttNs =
-      context->timesyncClientContext->getTimesync.responseTime -
-      context->timesyncClientContext->getTimesync.requestTime;
+      context->timesyncClientContext->getTimesync.responseTimeNs -
+      context->timesyncClientContext->getTimesync.requestTimeNs;
 
   context->timesyncClientContext->timesyncResult.offsetNs =
       (int64_t)(response->timeNs -
-                context->timesyncClientContext->getTimesync.requestTime -
+                context->timesyncClientContext->getTimesync.requestTimeNs -
                 context->timesyncClientContext->timesyncResult.rttNs / 2);
 
-  CHPP_LOGD("Timesync client processed service response. request t=%" PRIu64
-            ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
-            ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", rtt=%" PRIi64,
-            context->timesyncClientContext->getTimesync.requestTime,
-            context->timesyncClientContext->getTimesync.responseTime,
-            response->timeNs,
-            (int64_t)(response->timeNs -
-                      context->timesyncClientContext->getTimesync.requestTime),
-            (int64_t)(context->timesyncClientContext->getTimesync.responseTime -
-                      response->timeNs),
-            context->timesyncClientContext->timesyncResult.offsetNs,
-            context->timesyncClientContext->timesyncResult.rttNs);
+  CHPP_LOGD(
+      "Timesync client processed service response. request t=%" PRIu64
+      ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
+      ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", rtt=%" PRIi64,
+      context->timesyncClientContext->getTimesync.requestTimeNs,
+      context->timesyncClientContext->getTimesync.responseTimeNs,
+      response->timeNs,
+      (int64_t)(response->timeNs -
+                context->timesyncClientContext->getTimesync.requestTimeNs),
+      (int64_t)(context->timesyncClientContext->getTimesync.responseTimeNs -
+                response->timeNs),
+      context->timesyncClientContext->timesyncResult.offsetNs,
+      context->timesyncClientContext->timesyncResult.rttNs);
 
   // Notify waiting (synchronous) client
   chppMutexLock(&context->timesyncClientContext->client.responseMutex);

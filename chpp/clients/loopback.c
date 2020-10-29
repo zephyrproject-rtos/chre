@@ -80,9 +80,9 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
   context->loopbackClientContext->testResult.responseLen = len;
   context->loopbackClientContext->testResult.firstError = len;
   context->loopbackClientContext->testResult.byteErrors = 0;
-  context->loopbackClientContext->testResult.rtt =
-      context->loopbackClientContext->runLoopbackTest.responseTime -
-      context->loopbackClientContext->runLoopbackTest.requestTime;
+  context->loopbackClientContext->testResult.rttNs =
+      context->loopbackClientContext->runLoopbackTest.responseTimeNs -
+      context->loopbackClientContext->runLoopbackTest.requestTimeNs;
 
   if (context->loopbackClientContext->testResult.requestLen !=
       context->loopbackClientContext->testResult.responseLen) {
@@ -151,10 +151,10 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
     context->loopbackClientContext->testResult.responseLen = 0;
     context->loopbackClientContext->testResult.firstError = 0;
     context->loopbackClientContext->testResult.byteErrors = 0;
-    context->loopbackClientContext->testResult.rtt = 0;
-    context->loopbackClientContext->runLoopbackTest.requestTime =
+    context->loopbackClientContext->testResult.rttNs = 0;
+    context->loopbackClientContext->runLoopbackTest.requestTimeNs =
         CHPP_TIME_NONE;
-    context->loopbackClientContext->runLoopbackTest.responseTime =
+    context->loopbackClientContext->runLoopbackTest.responseTimeNs =
         CHPP_TIME_NONE;
 
     if (len == 0) {
