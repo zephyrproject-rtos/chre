@@ -16,6 +16,7 @@
 
 #include "chre/core/audio_request_manager.h"
 
+#include "chre/core/audio_util.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/system_time.h"
@@ -155,7 +156,7 @@ bool AudioRequestManager::validateConfigureSourceArguments(
            bufferDuration, audioSource.minBufferDuration,
            audioSource.maxBufferDuration);
     } else {
-      *numSamples = getSampleCountFromRateAndDuration(
+      *numSamples = AudioUtil::getSampleCountFromRateAndDuration(
           audioSource.sampleRate, Nanoseconds(bufferDuration));
       success = true;
     }

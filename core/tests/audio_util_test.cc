@@ -16,43 +16,43 @@
 
 #include "gtest/gtest.h"
 
-#include "chre/core/audio_request_manager.h"
+#include "chre/core/audio_util.h"
 
-using chre::AudioRequestManager;
+using chre::AudioUtil;
 using chre::Nanoseconds;
 
 TEST(AudioDurationFromSampleCountAndRate, HalfSecond) {
   Nanoseconds duration =
-      AudioRequestManager::getDurationFromSampleCountAndRate(8000, 16000);
+      AudioUtil::getDurationFromSampleCountAndRate(8000, 16000);
   EXPECT_EQ(duration.toRawNanoseconds(), 500000000);
 }
 
 TEST(AudioDurationFromSampleCountAndRate, OneSecond) {
   Nanoseconds duration =
-      AudioRequestManager::getDurationFromSampleCountAndRate(16000, 16000);
+      AudioUtil::getDurationFromSampleCountAndRate(16000, 16000);
   EXPECT_EQ(duration.toRawNanoseconds(), 1000000000);
 }
 
 TEST(AudioDurationFromSampleCountAndRate, OneHundredSecond) {
   Nanoseconds duration =
-      AudioRequestManager::getDurationFromSampleCountAndRate(1600000, 16000);
+      AudioUtil::getDurationFromSampleCountAndRate(1600000, 16000);
   EXPECT_EQ(duration.toRawNanoseconds(), 100000000000);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneSample) {
-  uint32_t sampleCount = AudioRequestManager::getSampleCountFromRateAndDuration(
-      16000, Nanoseconds(62500));
+  uint32_t sampleCount =
+      AudioUtil::getSampleCountFromRateAndDuration(16000, Nanoseconds(62500));
   EXPECT_EQ(sampleCount, 1);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneHundredSample) {
-  uint32_t sampleCount = AudioRequestManager::getSampleCountFromRateAndDuration(
-      16000, Nanoseconds(6250000));
+  uint32_t sampleCount =
+      AudioUtil::getSampleCountFromRateAndDuration(16000, Nanoseconds(6250000));
   EXPECT_EQ(sampleCount, 100);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneThousandSample) {
-  uint32_t sampleCount = AudioRequestManager::getSampleCountFromRateAndDuration(
+  uint32_t sampleCount = AudioUtil::getSampleCountFromRateAndDuration(
       16000, Nanoseconds(62500000));
   EXPECT_EQ(sampleCount, 1000);
 }
