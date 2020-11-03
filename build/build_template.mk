@@ -110,7 +110,11 @@ $(1)_bin: $$($$(1)_BIN)
 $(1)_header: $$($$(1)_HEADER)
 
 .PHONY: $(1)
+ifeq ($(IS_ARCHIVE_ONLY_BUILD),true)
+$(1): $(1)_ar
+else
 $(1): $(1)_ar $(1)_so $(1)_bin $(1)_header
+endif
 
 # If building the runtime, simply add the archive and shared object to the all
 # target. When building CHRE, it is expected that this runtime just be linked
