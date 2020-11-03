@@ -16,6 +16,7 @@
 
 #include <cutils/sockets.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <utils/StrongPointer.h>
 
@@ -50,6 +51,8 @@
  *  chre_power_test_client unloadall
  *  chre_power_test_client timer <optional: tcm> <enable> <interval_ns>
  *  chre_power_test_client wifi <optional: tcm> <enable> <interval_ns>
+ *                              <optional: wifi_scan_type>
+ *                              <optional: wifi_radio_chain>
  *  chre_power_test_client gnss <optional: tcm> <enable> <interval_ms>
  *                              <optional: next_fix_ms>
  *  chre_power_test_client cell <optional: tcm> <enable> <interval_ns>
@@ -95,6 +98,17 @@
  *
  * For instant_motion and stationary sensor, it is not necessary to provide the
  * interval and latency
+ *
+ * <wifi_scan_type>:
+ *  active (default when omitted)
+ *  active_passive_dfs
+ *  passive
+ *
+ * <wifi_radio_chain>:
+ *  default (default when omitted)
+ *  low_latency
+ *  low_power
+ *  high_accuracy
  */
 
 using android::sp;
@@ -105,6 +119,8 @@ using android::chre::IChreMessageHandlers;
 using android::chre::SocketClient;
 using chre::power_test::MessageType;
 using chre::power_test::SensorType;
+using chre::power_test::WifiRadioChain;
+using chre::power_test::WifiScanType;
 using flatbuffers::FlatBufferBuilder;
 using std::string;
 
@@ -117,7 +133,7 @@ namespace {
 
 constexpr uint16_t kHostEndpoint = 0xfffd;
 
-constexpr uint32_t kAppVersion = 1;
+constexpr uint32_t kAppVersion = 0x00020000;
 constexpr uint32_t kApiVersion = CHRE_API_VERSION;
 constexpr uint64_t kPowerTestAppId = 0x012345678900000f;
 constexpr uint64_t kPowerTestTcmAppId = 0x0123456789000010;
@@ -125,8 +141,8 @@ constexpr uint64_t kUint64Max = std::numeric_limits<uint64_t>::max();
 
 constexpr auto kTimeout = std::chrono::seconds(10);
 
-const char *kPowerTestPath = "/vendor/dsp/sdsp/power_test.so";
-const char *kPowerTestTcmPath = "/vendor/dsp/sdsp/power_test_tcm.so";
+const string kPowerTestName = "power_test.so";
+const string kPowerTestTcmName = "power_test_tcm.so";
 std::condition_variable kReadyCond;
 std::mutex kReadyMutex;
 std::unique_lock<std::mutex> kReadyCondLock(kReadyMutex);
@@ -180,6 +196,17 @@ std::unordered_map<string, SensorType> sensorTypeMap{
     {"accelerometer_temperature", SensorType::ACCELEROMETER_TEMPERATURE},
     {"gyroscope_temperature", SensorType::GYROSCOPE_TEMPERATURE},
     {"geomagnetic_temperature", SensorType::GEOMAGNETIC_FIELD_TEMPERATURE}};
+
+std::unordered_map<string, WifiScanType> wifiScanTypeMap{
+    {"active", WifiScanType::ACTIVE},
+    {"active_passive_dfs", WifiScanType::ACTIVE_PLUS_PASSIVE_DFS},
+    {"passive", WifiScanType::PASSIVE}};
+
+std::unordered_map<string, WifiRadioChain> wifiRadioChainMap{
+    {"default", WifiRadioChain::DEFAULT},
+    {"low_latency", WifiRadioChain::LOW_LATENCY},
+    {"low_power", WifiRadioChain::LOW_POWER},
+    {"higi_accuracy", WifiRadioChain::HIGH_ACCURACY}};
 
 class SocketCallbacks : public SocketClient::ICallbacks,
                         public IChreMessageHandlers {
@@ -399,23 +426,38 @@ inline uint64_t getId(std::vector<string> &args) {
   return isTcmArgSpecified(args) ? kPowerTestTcmAppId : kPowerTestAppId;
 }
 
+const string searchPath(const string &name) {
+  const string kAdspPath = "vendor/dsp/adsp/" + name;
+  const string kSdspPath = "vendor/dsp/sdsp/" + name;
+  const string kEtcPath = "vendor/etc/chre/" + name;
+
+  struct stat buf;
+  if (stat(kAdspPath.c_str(), &buf) == 0) {
+    return kAdspPath;
+  } else if (stat(kSdspPath.c_str(), &buf) == 0) {
+    return kSdspPath;
+  } else {
+    return kEtcPath;
+  }
+}
+
 /**
  * When user provides the customized path in tcm mode, the args[1] is the path.
  * In this case, the args[0] has to be "tcm". When user provide customized path
  * for non-tcm mode, the args[0] is the path.
  */
 
-inline const char *getPath(std::vector<string> &args) {
+inline const string getPath(std::vector<string> &args) {
   if (args.empty()) {
-    return kPowerTestPath;
+    return searchPath(kPowerTestName);
   }
   if (args[0] == "tcm") {
     if (args.size() > 1) {
-      return args[1].c_str();
+      return args[1];
     }
-    return kPowerTestTcmPath;
+    return searchPath(kPowerTestTcmName);
   }
-  return args[0].c_str();
+  return args[0];
 }
 
 inline uint64_t getNanoseconds(std::vector<string> &args, size_t index) {
@@ -442,8 +484,73 @@ bool isLoaded(SocketClient &client, sp<SocketCallbacks> callbacks,
   return false;
 }
 
+bool validateSensorArguments(std::vector<string> &args) {
+  if (args.size() < 3) {
+    LOGE("Sensor type is required");
+    return false;
+  }
+
+  if (sensorTypeMap.find(args[2]) == sensorTypeMap.end()) {
+    LOGE("Invalid sensor type");
+    return false;
+  }
+
+  SensorType sensorType = sensorTypeMap[args[2]];
+  if (sensorType == SensorType::STATIONARY_DETECT ||
+      sensorType == SensorType::INSTANT_MOTION_DETECT)
+    return true;
+
+  uint64_t intervalNanoseconds = getNanoseconds(args, 3);
+  uint64_t latencyNanoseconds = getNanoseconds(args, 4);
+  if (intervalNanoseconds == 0) {
+    LOGE("Non zero sensor sampling interval is required when enable");
+    return false;
+  }
+  if (latencyNanoseconds != 0 && latencyNanoseconds < intervalNanoseconds) {
+    LOGE("The latency is not zero and smaller than the interval");
+    return false;
+  }
+  return true;
+}
+
+bool validateWifiArguments(std::vector<string> &args) {
+  if (args.size() < 3) {
+    LOGE("The interval is required");
+    return false;
+  } else if (args.size() == 4) {
+    bool scanTypeFound =
+        (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end());
+    bool radioChainFound =
+        (wifiRadioChainMap.find(args[3]) != wifiRadioChainMap.end());
+    if (!scanTypeFound && !radioChainFound) {
+      LOGE("Invalid WiFi scan type or radio chain preference");
+      return false;
+    }
+  } else if (args.size() >= 5) {
+    bool scanTypeFound =
+        (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end());
+    bool radioChainFound =
+        (wifiRadioChainMap.find(args[4]) != wifiRadioChainMap.end());
+    if (!scanTypeFound || !radioChainFound) {
+      LOGE("Invalid WiFi scan type or radio chain preference");
+      return false;
+    }
+  }
+
+  uint64_t intervalNanoseconds = getNanoseconds(args, 2);
+  if (intervalNanoseconds == 0) {
+    LOGE("Non-zero WiFi request interval is required");
+    return false;
+  }
+
+  return true;
+}
+
 bool validateArguments(Command commandEnum, std::vector<string> &args) {
+  // Commands: unloadall, load, unload
   if (static_cast<uint32_t>(commandEnum) < 3) return true;
+
+  // The other commands.
   if (args.empty()) {
     LOGE("Not enough parameters");
     return false;
@@ -473,7 +580,11 @@ bool validateArguments(Command commandEnum, std::vector<string> &args) {
   }
 
   // Case of "enable":
-  if (commandEnum != Command::kSensor) {
+  if (commandEnum == Command::kSensor) {
+    return validateSensorArguments(args);
+  } else if (commandEnum == Command::kWifi) {
+    return validateWifiArguments(args);
+  } else {
     if (args.size() < 3) {
       LOGE("The interval or duration was not provided");
       return false;
@@ -487,34 +598,6 @@ bool validateArguments(Command commandEnum, std::vector<string> &args) {
     }
     return true;
   }
-
-  // Case of enable sensor request
-  if (args.size() < 3) {
-    LOGE("Sensor type is required");
-    return false;
-  }
-
-  if (sensorTypeMap.find(args[2]) == sensorTypeMap.end()) {
-    LOGE("Invalid sensor type");
-    return false;
-  }
-
-  SensorType sensorType = sensorTypeMap[args[2]];
-  if (sensorType == SensorType::STATIONARY_DETECT ||
-      sensorType == SensorType::INSTANT_MOTION_DETECT)
-    return true;
-
-  uint64_t intervalNanoseconds = getNanoseconds(args, 3);
-  uint64_t latencyNanoseconds = getNanoseconds(args, 4);
-  if (intervalNanoseconds == 0) {
-    LOGE("Non zero sensor sampling interval is required when enable");
-    return false;
-  }
-  if (latencyNanoseconds != 0 && latencyNanoseconds < intervalNanoseconds) {
-    LOGE("The latency is not zero and smaller than the interval");
-    return false;
-  }
-  return true;
 }
 
 void createTimerMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
@@ -528,9 +611,26 @@ void createTimerMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
 void createWifiMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
   bool enable = (args[1] == "enable");
   uint64_t intervalNanoseconds = getNanoseconds(args, 2);
-  fbb.Finish(ptest::CreateWifiScanMessage(fbb, enable, intervalNanoseconds));
-  LOGI("Created WifiScanMessage, enable %d, scan interval ns %" PRIu64, enable,
-       intervalNanoseconds);
+  WifiScanType scanType = WifiScanType::ACTIVE;
+  WifiRadioChain radioChain = WifiRadioChain::DEFAULT;
+
+  if (args.size() == 4) {
+    if (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end()) {
+      scanType = wifiScanTypeMap[args[3]];
+    } else {
+      radioChain = wifiRadioChainMap[args[3]];
+    }
+  } else if (args.size() >= 5) {
+    scanType = wifiScanTypeMap[args[3]];
+    radioChain = wifiRadioChainMap[args[4]];
+  }
+
+  fbb.Finish(ptest::CreateWifiScanMessage(fbb, enable, intervalNanoseconds,
+                                          scanType, radioChain));
+  LOGI("Created WifiScanMessage, enable %d, scan interval ns %" PRIu64
+       " scan type %" PRIu8 " radio chain preference %" PRIu8,
+       enable, intervalNanoseconds, static_cast<uint8_t>(scanType),
+       static_cast<uint8_t>(radioChain));
 }
 
 void createGnssMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
@@ -630,7 +730,8 @@ static void usage() {
       " chre_power_test_client unload <optional: tcm>\n"
       " chre_power_test_client unloadall\n"
       " chre_power_test_client timer <optional: tcm> <enable> <interval_ns>\n"
-      " chre_power_test_client wifi <optional: tcm> <enable> <interval_ns>\n"
+      " chre_power_test_client wifi <optional: tcm> <enable> <interval_ns>"
+      " <optional: wifi_scan_type> <optional: wifi_radio_chain>\n"
       " chre_power_test_client gnss <optional: tcm> <enable> <interval_ms>"
       " <next_fix_ms>\n"
       " chre_power_test_client cell <optional: tcm> <enable> <interval_ns>\n"
@@ -674,7 +775,18 @@ static void usage() {
       " geomanetic_temperature\n"
       "\n"
       " For instant_montion and stationary sersor, it is not necessary to"
-      " provide the interval and latency");
+      " provide the interval and latency.\n"
+      "\n"
+      "<wifi_scan_type>:\n"
+      " active (default when omitted)\n"
+      " active_passive_dfs\n"
+      " passive\n"
+      "\n"
+      "<wifi_radio_chain>:\n"
+      " default (default when omitted)\n"
+      " low_latency\n"
+      " low_power\n"
+      " high_accuracy\n");
 }
 
 void createRequestMessage(Command commandEnum, FlatBufferBuilder &fbb,
@@ -768,8 +880,10 @@ int main(int argc, char *argv[]) {
       break;
     }
     case Command::kLoad: {
-      success = loadNanoapp(client, callbacks, getPath(args), getId(args),
-                            kAppVersion, kApiVersion, isTcmArgSpecified(args));
+      LOGI("Loading nanoapp from %s", getPath(args).c_str());
+      success =
+          loadNanoapp(client, callbacks, getPath(args).c_str(), getId(args),
+                      kAppVersion, kApiVersion, isTcmArgSpecified(args));
       break;
     }
     default: {
