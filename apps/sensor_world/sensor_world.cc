@@ -352,6 +352,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       const auto *ev = static_cast<const chreSensorThreeAxisData *>(eventData);
       const auto header = ev->header;
       const auto *data = ev->readings;
+      const auto accuracy = header.accuracy;
       sampleTime = header.baseTimestamp;
 
       float x = 0, y = 0, z = 0;
@@ -365,9 +366,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       y /= header.readingCount;
       z /= header.readingCount;
 
-      CLOGI("%s, %d samples: %f %f %f, t=%" PRIu64 " ms",
+      CLOGI("%s, %d samples: %f %f %f, accuracy: %u, t=%" PRIu64 " ms",
             getSensorName(header.sensorHandle), header.readingCount, x, y, z,
-            header.baseTimestamp / kOneMillisecondInNanoseconds);
+            accuracy, header.baseTimestamp / kOneMillisecondInNanoseconds);
 
       if (eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA) {
         CLOGI("UncalGyro time: first %" PRIu64 " last %" PRIu64 " chre %" PRIu64
@@ -395,8 +396,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       }
       v /= header.readingCount;
 
-      CLOGI("%s, %d samples: %f, t=%" PRIu64 " ms",
+      CLOGI("%s, %d samples: %f, accuracy = %u, t=%" PRIu64 " ms",
             getSensorName(header.sensorHandle), header.readingCount, v,
+            header.accuracy,
             header.baseTimestamp / kOneMillisecondInNanoseconds);
       break;
     }
@@ -407,9 +409,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       const auto reading = ev->readings[0];
       sampleTime = header.baseTimestamp;
 
-      CLOGI("%s, %d samples: isNear %d, invalid %d",
+      CLOGI("%s, %d samples: isNear %d, invalid %d, accuracy: %u",
             getSensorName(header.sensorHandle), header.readingCount,
-            reading.isNear, reading.invalid);
+            reading.isNear, reading.invalid, header.accuracy);
 
       CLOGI("Prox time: sample %" PRIu64 " chre %" PRIu64 " delta %" PRId64
             "ms",
@@ -446,8 +448,8 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       const auto *ev = static_cast<const chreSensorOccurrenceData *>(eventData);
       const auto header = ev->header;
 
-      CLOGI("%s, %d samples", getSensorName(header.sensorHandle),
-            header.readingCount);
+      CLOGI("%s, %d samples, accuracy: %u", getSensorName(header.sensorHandle),
+            header.readingCount, header.accuracy);
       break;
     }
 
