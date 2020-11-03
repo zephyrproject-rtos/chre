@@ -46,11 +46,31 @@ table TimerMessage {
   wakeup_interval_ns:ulong;
 }
 
+/// All the various WiFi scan types that can be interacted with inside the
+/// nanoapp. The values used here map directly to values from the CHRE API.
+enum WifiScanType : ubyte {
+  ACTIVE = 0,
+  ACTIVE_PLUS_PASSIVE_DFS = 1,
+  PASSIVE = 2,
+}
+
+/// All the various WiFi radio chain preferences that can be interacted with
+/// inside the nanoapp. The values used here map directly to values from the
+/// CHRE API.
+enum WifiRadioChain : ubyte {
+  DEFAULT = 0,
+  LOW_LATENCY = 1,
+  LOW_POWER = 2,
+  HIGH_ACCURACY = 3,
+}
+
 /// Represents a message to ask the nanoapp to start or stop WiFi scanning and
 /// the scan interval to use if scanning is being started
 table WifiScanMessage {
   enable:bool;
   scan_interval_ns:ulong;
+  scan_type:WifiScanType;
+  radio_chain:WifiRadioChain;
 }
 
 /// Represents a message to ask the nanoapp to start or stop Gnss location
