@@ -85,6 +85,10 @@ struct SettingChangeMessage;
 struct SettingChangeMessageBuilder;
 struct SettingChangeMessageT;
 
+struct LogMessageV2;
+struct LogMessageV2Builder;
+struct LogMessageV2T;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -178,11 +182,12 @@ enum class ChreMessage : uint8_t {
   LowPowerMicAccessRequest = 16,
   LowPowerMicAccessRelease = 17,
   SettingChangeMessage = 18,
+  LogMessageV2 = 19,
   MIN = NONE,
-  MAX = SettingChangeMessage
+  MAX = LogMessageV2
 };
 
-inline const ChreMessage (&EnumValuesChreMessage())[19] {
+inline const ChreMessage (&EnumValuesChreMessage())[20] {
   static const ChreMessage values[] = {
     ChreMessage::NONE,
     ChreMessage::NanoappMessage,
@@ -202,13 +207,14 @@ inline const ChreMessage (&EnumValuesChreMessage())[19] {
     ChreMessage::TimeSyncRequest,
     ChreMessage::LowPowerMicAccessRequest,
     ChreMessage::LowPowerMicAccessRelease,
-    ChreMessage::SettingChangeMessage
+    ChreMessage::SettingChangeMessage,
+    ChreMessage::LogMessageV2
   };
   return values;
 }
 
 inline const char * const *EnumNamesChreMessage() {
-  static const char * const names[20] = {
+  static const char * const names[21] = {
     "NONE",
     "NanoappMessage",
     "HubInfoRequest",
@@ -228,13 +234,14 @@ inline const char * const *EnumNamesChreMessage() {
     "LowPowerMicAccessRequest",
     "LowPowerMicAccessRelease",
     "SettingChangeMessage",
+    "LogMessageV2",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameChreMessage(ChreMessage e) {
-  if (flatbuffers::IsOutRange(e, ChreMessage::NONE, ChreMessage::SettingChangeMessage)) return "";
+  if (flatbuffers::IsOutRange(e, ChreMessage::NONE, ChreMessage::LogMessageV2)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesChreMessage()[index];
 }
@@ -313,6 +320,10 @@ template<> struct ChreMessageTraits<chre::fbs::LowPowerMicAccessRelease> {
 
 template<> struct ChreMessageTraits<chre::fbs::SettingChangeMessage> {
   static const ChreMessage enum_value = ChreMessage::SettingChangeMessage;
+};
+
+template<> struct ChreMessageTraits<chre::fbs::LogMessageV2> {
+  static const ChreMessage enum_value = ChreMessage::LogMessageV2;
 };
 
 struct ChreMessageUnion {
@@ -490,6 +501,14 @@ struct ChreMessageUnion {
   const chre::fbs::SettingChangeMessageT *AsSettingChangeMessage() const {
     return type == ChreMessage::SettingChangeMessage ?
       reinterpret_cast<const chre::fbs::SettingChangeMessageT *>(value) : nullptr;
+  }
+  chre::fbs::LogMessageV2T *AsLogMessageV2() {
+    return type == ChreMessage::LogMessageV2 ?
+      reinterpret_cast<chre::fbs::LogMessageV2T *>(value) : nullptr;
+  }
+  const chre::fbs::LogMessageV2T *AsLogMessageV2() const {
+    return type == ChreMessage::LogMessageV2 ?
+      reinterpret_cast<const chre::fbs::LogMessageV2T *>(value) : nullptr;
   }
 };
 
@@ -2226,6 +2245,89 @@ inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(
 
 flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flatbuffers::FlatBufferBuilder &_fbb, const SettingChangeMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct LogMessageV2T : public flatbuffers::NativeTable {
+  typedef LogMessageV2 TableType;
+  std::vector<int8_t> buffer;
+  LogMessageV2T() {
+  }
+};
+
+/// Represents V2 log messages from CHRE.
+struct LogMessageV2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LogMessageV2T NativeTableType;
+  typedef LogMessageV2Builder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_BUFFER = 4
+  };
+  /// A buffer containing formatted log data. A flat array is used here to avoid
+  /// overhead in serializing and deserializing. The format is as follows:
+  ///
+  /// uint8_t                 - LogBuffer log level (1 = error, 2 = warn,
+  ///                                                3 = info,  4 = debug,
+  ///                                                5 = verbose)
+  /// uint32_t, little-endian - timestamp in milliseconds
+  /// char[]                  - message to log
+  /// char, \0                - null-terminator
+  ///
+  /// This pattern repeats until the end of the buffer for multiple log
+  /// messages. The last byte will always be a null-terminator. There are no
+  /// padding bytes between these fields. Treat this like a packed struct and be
+  /// cautious with unaligned access when reading/writing this buffer.
+  const flatbuffers::Vector<int8_t> *buffer() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  flatbuffers::Vector<int8_t> *mutable_buffer() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_BUFFER);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_BUFFER) &&
+           verifier.VerifyVector(buffer()) &&
+           verifier.EndTable();
+  }
+  LogMessageV2T *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LogMessageV2T *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LogMessageV2> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageV2T* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LogMessageV2Builder {
+  typedef LogMessageV2 Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
+    fbb_.AddOffset(LogMessageV2::VT_BUFFER, buffer);
+  }
+  explicit LogMessageV2Builder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LogMessageV2Builder &operator=(const LogMessageV2Builder &);
+  flatbuffers::Offset<LogMessageV2> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<LogMessageV2>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer = 0) {
+  LogMessageV2Builder builder_(_fbb);
+  builder_.add_buffer(buffer);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2Direct(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int8_t> *buffer = nullptr) {
+  auto buffer__ = buffer ? _fbb.CreateVector<int8_t>(*buffer) : 0;
+  return chre::fbs::CreateLogMessageV2(
+      _fbb,
+      buffer__);
+}
+
+flatbuffers::Offset<LogMessageV2> CreateLogMessageV2(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageV2T *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   chre::fbs::ChreMessageUnion message;
@@ -2305,6 +2407,9 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const chre::fbs::SettingChangeMessage *message_as_SettingChangeMessage() const {
     return message_type() == chre::fbs::ChreMessage::SettingChangeMessage ? static_cast<const chre::fbs::SettingChangeMessage *>(message()) : nullptr;
+  }
+  const chre::fbs::LogMessageV2 *message_as_LogMessageV2() const {
+    return message_type() == chre::fbs::ChreMessage::LogMessageV2 ? static_cast<const chre::fbs::LogMessageV2 *>(message()) : nullptr;
   }
   void *mutable_message() {
     return GetPointer<void *>(VT_MESSAGE);
@@ -2404,6 +2509,10 @@ template<> inline const chre::fbs::LowPowerMicAccessRelease *MessageContainer::m
 
 template<> inline const chre::fbs::SettingChangeMessage *MessageContainer::message_as<chre::fbs::SettingChangeMessage>() const {
   return message_as_SettingChangeMessage();
+}
+
+template<> inline const chre::fbs::LogMessageV2 *MessageContainer::message_as<chre::fbs::LogMessageV2>() const {
+  return message_as_LogMessageV2();
 }
 
 struct MessageContainerBuilder {
@@ -3019,6 +3128,32 @@ inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flat
       _state);
 }
 
+inline LogMessageV2T *LogMessageV2::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<chre::fbs::LogMessageV2T> _o = std::unique_ptr<chre::fbs::LogMessageV2T>(new LogMessageV2T());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void LogMessageV2::UnPackTo(LogMessageV2T *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = buffer(); if (_e) { _o->buffer.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer[_i] = _e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<LogMessageV2> LogMessageV2::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageV2T* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLogMessageV2(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageV2T *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LogMessageV2T* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _buffer = _o->buffer.size() ? _fbb.CreateVector(_o->buffer) : 0;
+  return chre::fbs::CreateLogMessageV2(
+      _fbb,
+      _buffer);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<chre::fbs::MessageContainerT> _o = std::unique_ptr<chre::fbs::MessageContainerT>(new MessageContainerT());
   UnPackTo(_o.get(), _resolver);
@@ -3128,6 +3263,10 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const chre::fbs::SettingChangeMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::LogMessageV2: {
+      auto ptr = reinterpret_cast<const chre::fbs::LogMessageV2 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return true;
   }
 }
@@ -3218,6 +3357,10 @@ inline void *ChreMessageUnion::UnPack(const void *obj, ChreMessage type, const f
       auto ptr = reinterpret_cast<const chre::fbs::SettingChangeMessage *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::LogMessageV2: {
+      auto ptr = reinterpret_cast<const chre::fbs::LogMessageV2 *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -3296,6 +3439,10 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
       auto ptr = reinterpret_cast<const chre::fbs::SettingChangeMessageT *>(value);
       return CreateSettingChangeMessage(_fbb, ptr, _rehasher).Union();
     }
+    case ChreMessage::LogMessageV2: {
+      auto ptr = reinterpret_cast<const chre::fbs::LogMessageV2T *>(value);
+      return CreateLogMessageV2(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -3372,6 +3519,10 @@ inline ChreMessageUnion::ChreMessageUnion(const ChreMessageUnion &u) : type(u.ty
     }
     case ChreMessage::SettingChangeMessage: {
       value = new chre::fbs::SettingChangeMessageT(*reinterpret_cast<chre::fbs::SettingChangeMessageT *>(u.value));
+      break;
+    }
+    case ChreMessage::LogMessageV2: {
+      value = new chre::fbs::LogMessageV2T(*reinterpret_cast<chre::fbs::LogMessageV2T *>(u.value));
       break;
     }
     default:
@@ -3468,6 +3619,11 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::SettingChangeMessage: {
       auto ptr = reinterpret_cast<chre::fbs::SettingChangeMessageT *>(value);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::LogMessageV2: {
+      auto ptr = reinterpret_cast<chre::fbs::LogMessageV2T *>(value);
       delete ptr;
       break;
     }
