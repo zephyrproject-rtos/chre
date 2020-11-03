@@ -103,13 +103,15 @@ void validateScanEvent(const chreWifiScanEvent &chreEvent) {
               chppEvent->scannedFreqListLen * sizeof(uint32_t));
     baseOffset += chppEvent->scannedFreqList.length;
 
-    const uint32_t *chppScannedFreqList =
-        (const uint32_t *)((const uint8_t *)chppEvent +
-                           chppEvent->scannedFreqList.offset);
+    auto *chppScannedFreqList =
+        ((const uint8_t *)chppEvent + chppEvent->scannedFreqList.offset);
     for (size_t i = 0; i < chppEvent->scannedFreqListLen; i++) {
+      uint32_t currScannedFreq;
+      memcpy(&currScannedFreq, chppScannedFreqList + (i * sizeof(uint32_t)),
+             sizeof(uint32_t));
       SCOPED_TRACE(i);
-      EXPECT_EQ(chppScannedFreqList[i], chreEvent.scannedFreqList[i]);
-      EXPECT_EQ(chppScannedFreqList[i], backEvent->scannedFreqList[i]);
+      EXPECT_EQ(currScannedFreq, chreEvent.scannedFreqList[i]);
+      EXPECT_EQ(currScannedFreq, backEvent->scannedFreqList[i]);
     }
   } else {
     EXPECT_EQ(chppEvent->scannedFreqList.offset, 0);
@@ -188,13 +190,15 @@ void validateScanParams(const chreWifiScanParams &chreParams) {
               chppParams->frequencyListLen * sizeof(uint32_t));
     baseOffset += chppParams->frequencyList.length;
 
-    const uint32_t *chppFrequencyList =
-        (const uint32_t *)((const uint8_t *)chppParams +
-                           chppParams->frequencyList.offset);
+    auto *chppFrequencyList =
+        ((const uint8_t *)chppParams + chppParams->frequencyList.offset);
     for (size_t i = 0; i < chppParams->frequencyListLen; i++) {
+      uint32_t currScannedFreq;
+      memcpy(&currScannedFreq, chppFrequencyList + (i * sizeof(uint32_t)),
+             sizeof(uint32_t));
       SCOPED_TRACE(i);
-      EXPECT_EQ(chppFrequencyList[i], chreParams.frequencyList[i]);
-      EXPECT_EQ(chppFrequencyList[i], backParams->frequencyList[i]);
+      EXPECT_EQ(currScannedFreq, chreParams.frequencyList[i]);
+      EXPECT_EQ(currScannedFreq, backParams->frequencyList[i]);
     }
   } else {
     EXPECT_EQ(chppParams->frequencyList.offset, 0);
@@ -332,7 +336,7 @@ TEST(WifiConvert, TwoResultsWithFreqList) {
       .rssiChain0 = -37,
       .rssiChain1 = 0,
   }};
-  const uint32_t freqList[] = {1234, 2345, 3456};
+  const uint32_t freqList[] = {0xdeadbeef, 0xc001cafe, 0xc0a1ba11};
   const chreWifiScanEvent chreEvent = {
       .version = 200,  // ignored
       .resultCount = 2,

@@ -432,8 +432,9 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
   if (len < sizeof(struct chreWifiRangingParams)) {
     error = CHPP_APP_ERROR_INVALID_ARG;
   } else {
-    struct chreWifiRangingParams *params = (struct chreWifiRangingParams *)buf;
-    if (!wifiServiceContext->api->requestRanging(params)) {
+    struct chreWifiRangingParams params;
+    memcpy(&params, buf, sizeof(struct chreWifiRangingParams));
+    if (!wifiServiceContext->api->requestRanging(&params)) {
       error = CHPP_APP_ERROR_UNSPECIFIED;
 
     } else {

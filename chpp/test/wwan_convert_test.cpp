@@ -204,7 +204,7 @@ TEST(WwanConvert, EncodeErrorCode) {
   EXPECT_EQ(chpp->errorCode, chreResult.errorCode);
   EXPECT_EQ(chpp->cellInfoCount, chreResult.cellInfoCount);
   EXPECT_EQ(chpp->reserved, 0);
-  EXPECT_EQ(chpp->cookie, 0);
+  EXPECT_EQ(chpp->cookie, 0u);
   EXPECT_EQ(chpp->cells.offset, 0);
   EXPECT_EQ(chpp->cells.length, 0);
 
