@@ -46,6 +46,10 @@ extern "C" {
 //! The symbol name expected from the nanoapp's definition of its info struct
 #define CHRE_NSL_DSO_NANOAPP_INFO_SYMBOL_NAME "_chreNslDsoNanoappInfo"
 
+//! The symbol name expected from the nanoapp's definition of its unstable ID
+//! char array
+#define CHRE_NSL_DSO_NANOAPP_UNSTABLE_ID_SYMBOL_NAME "_chreNanoappUnstableId"
+
 //! Maximum length of vendor and name strings
 #define CHRE_NSL_DSO_NANOAPP_STRING_MAX_LEN (32)
 
