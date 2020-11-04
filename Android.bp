@@ -201,7 +201,7 @@ cc_binary {
         "host/hal_generic/V1_2/service.cc",
         "host/hal_generic/common/context_hub_settings_util.cc",
     ],
-    init_rc: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-service-generic.rc"],
+    init_rc: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-service-small_fragments.rc"],
     cflags: [
         "-Wall",
         "-Werror",
