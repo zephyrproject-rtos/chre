@@ -20,6 +20,12 @@
 #include <cinttypes>
 #include <vector>
 
+#ifndef CHRE_HOST_DEFAULT_FRAGMENT_SIZE
+// Use 30KB fragment size to fit within 32KB memory fragments at the kernel
+// for most devices.
+#define CHRE_HOST_DEFAULT_FRAGMENT_SIZE (30 * 1024)
+#endif
+
 namespace android {
 namespace chre {
 
@@ -110,9 +116,8 @@ class FragmentedLoadTransaction {
   size_t mCurrentRequestIndex = 0;
   uint32_t mTransactionId;
 
-  // Use 30KB fragment size to fit within 32KB memory fragments at the kernel
-  // for most devices.
-  static constexpr size_t kDefaultFragmentSize = 30 * 1024;
+  static constexpr size_t kDefaultFragmentSize =
+      CHRE_HOST_DEFAULT_FRAGMENT_SIZE;
 };
 
 }  // namespace chre

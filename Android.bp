@@ -189,6 +189,40 @@ cc_binary {
     vintf_fragments: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-generic.xml"],
 }
 
+// TODO(b/168941570): Remove this HAL target once some devices can handle a fragment size of
+// over 1KB.
+cc_binary {
+    name: "android.hardware.contexthub@1.2-service.small_fragments",
+    defaults: ["hidl_defaults"],
+    vendor: true,
+    relative_install_path: "hw",
+    srcs: [
+        "host/hal_generic/V1_2/generic_context_hub_v1_2.cc",
+        "host/hal_generic/V1_2/service.cc",
+        "host/hal_generic/common/context_hub_settings_util.cc",
+    ],
+    init_rc: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-service-generic.rc"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-DCHRE_HOST_DEFAULT_FRAGMENT_SIZE=1024",
+    ],
+    header_libs: [
+        "android.hardware.contexthub@1.X-shared-impl",
+    ],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libhidlbase",
+        "libutils",
+        "android.hardware.contexthub@1.0",
+        "android.hardware.contexthub@1.1",
+        "android.hardware.contexthub@1.2",
+    ],
+    static_libs: ["chre_client"],
+    vintf_fragments: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-generic.xml"],
+}
+
 cc_library_headers {
     name: "chre_api",
     vendor: true,
