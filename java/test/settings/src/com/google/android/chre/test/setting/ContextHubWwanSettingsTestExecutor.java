@@ -42,25 +42,21 @@ public class ContextHubWwanSettingsTestExecutor {
 
     private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
 
-    private CountDownLatch mCountDownLatch = null;
+    private class AirplaneModeListener {
+        protected CountDownLatch mAirplaneModeLatch = new CountDownLatch(1);
 
-    public ContextHubWwanSettingsTestExecutor(NanoAppBinary binary) {
-        mExecutor = new ContextHubSettingsTestExecutor(binary);
-
-        Context context = InstrumentationRegistry.getTargetContext();
-        IntentFilter intentFilter = new
-                IntentFilter("android.intent.action.AIRPLANE_MODE_CHANGED");
-
-        BroadcastReceiver receiver = new BroadcastReceiver() {
+        protected BroadcastReceiver mAirplaneModeReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (mCountDownLatch != null) {
-                    mCountDownLatch.countDown();
+                if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(intent.getAction())) {
+                    mAirplaneModeLatch.countDown();
                 }
             }
         };
+    }
 
-        context.registerReceiver(receiver, intentFilter);
+    public ContextHubWwanSettingsTestExecutor(NanoAppBinary binary) {
+        mExecutor = new ContextHubSettingsTestExecutor(binary);
     }
 
     /**
@@ -103,17 +99,23 @@ public class ContextHubWwanSettingsTestExecutor {
      * @param enableFeature True for enable.
      */
     private void runTest(boolean enableFeature) {
-        mCountDownLatch = new CountDownLatch(1);
+        Context context = InstrumentationRegistry.getTargetContext();
+        AirplaneModeListener listener = new AirplaneModeListener();
+        context.registerReceiver(
+                listener.mAirplaneModeReceiver,
+                new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED));
+
         boolean airplaneModeExpected = !enableFeature;
         setAirplaneMode(airplaneModeExpected);
 
         if (isAirplaneModeOn() != airplaneModeExpected) {
             try {
-                mCountDownLatch.await(5, TimeUnit.SECONDS);
+                listener.mAirplaneModeLatch.await(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Assert.fail(e.getMessage());
             }
         }
+        context.unregisterReceiver(listener.mAirplaneModeReceiver);
         Assert.assertTrue(isAirplaneModeOn() == airplaneModeExpected);
 
         try {
