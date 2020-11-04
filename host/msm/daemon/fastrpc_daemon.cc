@@ -132,7 +132,7 @@ bool FastRpcChreDaemon::sendMessageToChre(uint16_t clientId, void *data,
 // TODO: Consider moving platform independent parts of this function
 // to the base class, revisit when implementing the daemon for
 // another platform.
-void FastRpcChreDaemon::onMessageReceived(unsigned char *messageBuffer,
+void FastRpcChreDaemon::onMessageReceived(const unsigned char *messageBuffer,
                                           size_t messageLen) {
   mLogger.dump(messageBuffer, messageLen);
 
@@ -147,7 +147,13 @@ void FastRpcChreDaemon::onMessageReceived(unsigned char *messageBuffer,
   }
 
   if (messageType == fbs::ChreMessage::LogMessage) {
-    mLogger.log(messageBuffer, messageLen);
+    std::unique_ptr<fbs::MessageContainerT> container =
+        fbs::UnPackMessageContainer(messageBuffer);
+    const auto *logMessage = container->message.AsLogMessage();
+    const std::vector<int8_t> &logData = logMessage->buffer;
+
+    mLogger.log(reinterpret_cast<const uint8_t *>(logData.data()),
+                logData.size());
   } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
     sendTimeSync(true /* logOnError */);
   } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {

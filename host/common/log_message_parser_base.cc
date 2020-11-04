@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <endian.h>
 #include <cstdio>
 
 #include "chre_host/log_message_parser_base.h"
@@ -27,14 +28,6 @@ constexpr bool kVerboseLoggingEnabled = true;
 #else
 constexpr bool kVerboseLoggingEnabled = false;
 #endif
-
-enum ChreLogLevel : uint8_t {
-  LOG_LEVEL_ERROR = 0,
-  LOG_LEVEL_WARN = 1,
-  LOG_LEVEL_INFO = 2,
-  LOG_LEVEL_DEBUG = 3
-};
-
 }  // anonymous namespace
 
 ChreLogMessageParserBase::ChreLogMessageParserBase()
@@ -85,16 +78,30 @@ void ChreLogMessageParserBase::dump(const uint8_t *buffer, size_t size) {
 android_LogPriority ChreLogMessageParserBase::chreLogLevelToAndroidLogPriority(
     uint8_t level) {
   switch (level) {
-    case LOG_LEVEL_ERROR:
+    case LogLevel::ERROR:
       return ANDROID_LOG_ERROR;
-    case LOG_LEVEL_WARN:
+    case LogLevel::WARNING:
       return ANDROID_LOG_WARN;
-    case LOG_LEVEL_INFO:
+    case LogLevel::INFO:
       return ANDROID_LOG_INFO;
-    case LOG_LEVEL_DEBUG:
+    case LogLevel::DEBUG:
       return ANDROID_LOG_DEBUG;
     default:
       return ANDROID_LOG_SILENT;
+  }
+}
+
+void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
+                                   size_t logBufferSize) {
+  size_t bufferIndex = 0;
+  while (bufferIndex < logBufferSize) {
+    const LogMessage *message =
+        reinterpret_cast<const LogMessage *>(&logBuffer[bufferIndex]);
+    emitLogMessage(message->logLevel, le64toh(message->timestampNanos),
+                   message->logMessage);
+    bufferIndex += sizeof(LogMessage) +
+                   strnlen(message->logMessage, logBufferSize - bufferIndex) +
+                   1;
   }
 }
 

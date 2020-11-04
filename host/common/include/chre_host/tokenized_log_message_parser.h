@@ -18,6 +18,7 @@
 #define CHRE_TOKENIZED_LOG_MESSAGE_PARSER_H_
 
 #include <memory>
+#include "chre_host/daemon_base.h"
 #include "chre_host/log_message_parser_base.h"
 
 #include "pw_tokenizer/detokenize.h"
@@ -25,12 +26,14 @@
 using pw::tokenizer::DetokenizedString;
 using pw::tokenizer::Detokenizer;
 
+namespace android {
 namespace chre {
 
 class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
  public:
   virtual bool init() override final {
     mDetokenizer = logDetokenizerInit();
+    return mDetokenizer != nullptr;
   }
 
   virtual void log(const uint8_t *logBuffer,
@@ -55,7 +58,7 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
     constexpr const char kLogDatabaseFilePath[] =
         "/vendor/etc/chre/libchre_log_database.bin";
     std::vector<uint8_t> tokenData;
-    if (readFileContents(kLogDatabaseFilePath, &tokenData)) {
+    if (ChreDaemonBase::readFileContents(kLogDatabaseFilePath, &tokenData)) {
       pw::tokenizer::TokenDatabase database =
           pw::tokenizer::TokenDatabase::Create(tokenData);
       if (database.ok()) {
@@ -71,7 +74,7 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
 
   // Log messages are routed through ashLog if tokenized logging
   // is disabled, so only parse tokenized log messages here.
-  void parseAndEmitTokenizedLogMessages(unsigned char *message,
+  void parseAndEmitTokenizedLogMessages(const uint8_t *message,
                                         unsigned int messageLen,
                                         const Detokenizer *detokenizer) {
     if (detokenizer != nullptr) {
@@ -80,24 +83,16 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
       // logs (b/148873804)
       constexpr size_t kLogMessageHeaderSize =
           1 /*logLevel*/ + sizeof(uint64_t) /*timestamp*/;
-
-      const fbs::MessageContainer *container =
-          fbs::GetMessageContainer(message);
-      const auto *logMessage =
-          static_cast<const fbs::LogMessage *>(container->message());
-
-      const flatbuffers::Vector<int8_t> &logData = *logMessage->buffer();
-      const uint8_t *log = reinterpret_cast<const uint8_t *>(logData.data());
-      uint8_t level = *log;
-      ++log;
+      uint8_t level = *message;
+      ++message;
 
       uint64_t timestampNanos;
-      memcpy(&timestampNanos, log, sizeof(uint64_t));
+      memcpy(&timestampNanos, message, sizeof(uint64_t));
       timestampNanos = le64toh(timestampNanos);
-      log += sizeof(uint64_t);
+      message += sizeof(uint64_t);
 
       DetokenizedString detokenizedLog =
-          detokenizer->Detokenize(log, messageLen - kLogMessageHeaderSize);
+          detokenizer->Detokenize(message, messageLen - kLogMessageHeaderSize);
       std::string decodedLog = detokenizedLog.BestStringWithErrors();
       emitLogMessage(level, timestampNanos, decodedLog.c_str());
     } else {
@@ -107,5 +102,6 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
 };
 
 }  // namespace chre
+}  // namespace android
 
 #endif  // CHRE_TOKENIZED_LOG_MESSAGE_PARSER_H_

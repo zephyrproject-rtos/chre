@@ -110,6 +110,8 @@ class FragmentedLoadTransaction {
   size_t mCurrentRequestIndex = 0;
   uint32_t mTransactionId;
 
+  // Use 30KB fragment size to fit within 32KB memory fragments at the kernel
+  // for most devices.
   static constexpr size_t kDefaultFragmentSize = 30 * 1024;
 };
 

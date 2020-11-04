@@ -46,8 +46,7 @@ class ChreLogMessageParserBase {
     return true;
   };
 
-  virtual void log(const uint8_t * /* logBuffer */,
-                   size_t /* logBufferSize */) {}
+  virtual void log(const uint8_t *logBuffer, size_t logBufferSize);
 
   /**
    * With verbose logging enabled (via enableVerbose()), dump a
@@ -71,6 +70,21 @@ class ChreLogMessageParserBase {
 
   void emitLogMessage(uint8_t level, uint64_t timestampNanos,
                       const char *logMessage);
+
+ private:
+  enum LogLevel : uint8_t {
+    ERROR = 1,
+    WARNING = 2,
+    INFO = 3,
+    DEBUG = 4,
+  };
+
+  //! See host_messages.fbs for the definition of this struct.
+  struct LogMessage {
+    enum LogLevel logLevel;
+    uint64_t timestampNanos;
+    char logMessage[];
+  } __attribute__((packed));
 };
 
 }  // namespace chre

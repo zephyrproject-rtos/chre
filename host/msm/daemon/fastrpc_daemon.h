@@ -78,7 +78,8 @@ class FastRpcChreDaemon : public ChreDaemonBase {
 
   bool sendMessageToChre(uint16_t clientId, void *data, size_t length);
 
-  void onMessageReceived(unsigned char *messageBuffer, size_t messageLen);
+  void onMessageReceived(const unsigned char *messageBuffer,
+                         size_t messageLen) override;
 
  private:
   std::optional<std::thread> mMonitorThread;
