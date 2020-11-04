@@ -16,7 +16,7 @@ endif
 
 # Nanoapp Configuration ########################################################
 
-NANOAPP_VERSION = 0x00010000
+NANOAPP_VERSION = 0x00020000
 
 # Common Compiler Flags ########################################################
 

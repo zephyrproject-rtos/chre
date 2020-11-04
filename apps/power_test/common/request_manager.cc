@@ -140,8 +140,12 @@ bool RequestManager::requestTimer(bool enable, TimerType type,
 }
 
 void RequestManager::wifiTimerCallback() const {
-  bool success = chreWifiRequestScanAsyncDefault(nullptr /* cookie */);
-  LOGI("Requested WiFi - success %d", success);
+  struct chreWifiScanParams params = {};
+  params.scanType = mWifiScanType;
+  params.radioChainPref = mWifiRadioChain;
+  bool success = chreWifiRequestScanAsync(&params, nullptr /*cookie*/);
+  LOGI("Requested WiFi - success %d, scanType %" PRIu8 " radioChain %" PRIu8,
+       success, mWifiScanType, mWifiRadioChain);
 }
 
 bool RequestManager::requestGnssLocation(
@@ -302,6 +306,8 @@ bool RequestManager::handleMessageFromHost(
       case MessageType::WIFI_SCAN_TEST: {
         const WifiScanMessage *msg;
         if (verifyMessage<WifiScanMessage>(hostMessage, &msg)) {
+          mWifiScanType = static_cast<uint8_t>(msg->scan_type());
+          mWifiRadioChain = static_cast<uint8_t>(msg->radio_chain());
           success = requestTimer(msg->enable(), TimerType::WIFI,
                                  Nanoseconds(msg->scan_interval_ns()));
         }
