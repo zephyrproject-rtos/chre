@@ -124,15 +124,21 @@ bool RequestManager::requestTimer(bool enable, TimerType type,
                                   Nanoseconds delay) {
   bool success = false;
   if (enable) {
+    // Stop previous request if active.
+    chreTimerCancel(mTimerIds[type]);
+    mTimerIds[type] = CHRE_TIMER_INVALID;
+
+    // Set a timer for the new request.
     NestedDataPtr<TimerType> timerType(type);
     uint32_t timerId =
         chreTimerSet(delay.toRawNanoseconds(), timerType, false /* oneShot */);
     if (timerId != CHRE_TIMER_INVALID) {
       success = true;
+      mTimerIds[type] = timerId;
     }
-    mTimerIds[type] = timerId;
   } else {
     success = chreTimerCancel(mTimerIds[type]);
+    mTimerIds[type] = CHRE_TIMER_INVALID;
   }
   LOGI("RequestTimer success %d, enable %d, type %d, delay %" PRIu64, success,
        enable, type, delay.toRawNanoseconds());
