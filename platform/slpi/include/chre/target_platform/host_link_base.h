@@ -55,6 +55,16 @@ class HostLinkBase {
   void sendLogMessage(const uint8_t *logMessage, size_t logMessageSize);
 
   /**
+   * Enqueues a V2 log message to be sent to the host.
+   *
+   * @param logMessage Pointer to a buffer that has the log message. Note that
+   * the message might be encoded
+   *
+   * @param logMessageSize length of the log message buffer
+   */
+  void sendLogMessageV2(const uint8_t *logMessage, size_t logMessageSize);
+
+  /**
    * Attempts to flush the outbound queue and gracefully inform the host that we
    * are exiting.
    */
