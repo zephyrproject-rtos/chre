@@ -169,6 +169,8 @@ endif
 
 # SLPI/QSH-specific Source Files ###############################################
 
+SLPI_QSH_SRCS += platform/shared/log_buffer.cc
+SLPI_QSH_SRCS += platform/slpi/platform_log.cc
 SLPI_QSH_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_QSH_SRCS += platform/slpi/see/power_control_manager.cc
 SLPI_QSH_SRCS += platform/slpi/qsh/qsh_shim.cc

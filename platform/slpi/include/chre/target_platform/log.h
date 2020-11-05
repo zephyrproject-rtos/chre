@@ -17,16 +17,46 @@
 #ifndef CHRE_PLATFORM_SLPI_LOG_H_
 #define CHRE_PLATFORM_SLPI_LOG_H_
 
-#ifndef CHRE_USE_FARF_LOGGING
-#include "ash/debug.h"
-#endif  // CHRE_USE_FARF_LOGGING
 #include "chre/util/toolchain.h"
 
 #ifndef __FILENAME__
 #define __FILENAME__ CHRE_FILENAME
 #endif
 
-#if defined(CHRE_USE_TOKENIZED_LOGGING)
+#if defined(CHRE_USE_BUFFERED_LOGGING)
+#include "chre_api/chre/re.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * Log via the PlatformLogSingleton vaLog method.
+ *
+ * @param chreLogLevel The log level.
+ * @param format The format string.
+ * @param ... The arguments to print into the final log.
+ */
+void chrePlatformSlpiLogToBuffer(enum chreLogLevel chreLogLevel,
+                                 const char *format, ...);
+
+#ifdef __cplusplus
+}
+#endif
+
+#define CHRE_BUFFER_LOG(level, fmt, ...)                    \
+  do {                                                      \
+    CHRE_LOG_PREAMBLE                                       \
+    chrePlatformSlpiLogToBuffer(level, fmt, ##__VA_ARGS__); \
+    CHRE_LOG_EPILOGUE                                       \
+  } while (0)
+#define LOGE(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_WARN, fmt, ##__VA_ARGS__)
+#define LOGI(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_INFO, fmt, ##__VA_ARGS__)
+#define LOGD(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define LOGV(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_VERBOSE, fmt, ##__VA_ARGS__)
+
+#elif defined(CHRE_USE_TOKENIZED_LOGGING)
 #include "pw_tokenizer/tokenize.h"
 #define CHRE_SEND_TOKENIZED_LOG(level, fmt, ...)                   \
   do {                                                             \
@@ -91,6 +121,8 @@
 #define LOGV(fmt, ...) CHRE_SLPI_LOG(LOW, fmt, ##__VA_ARGS__)
 
 #else
+
+#include "ash/debug.h"
 #define CHRE_SLPI_LOG(level, fmt, ...)                  \
   do {                                                  \
     CHRE_LOG_PREAMBLE                                   \

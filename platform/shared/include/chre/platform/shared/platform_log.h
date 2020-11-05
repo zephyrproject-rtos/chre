@@ -19,6 +19,7 @@
 
 #include "chre/target_platform/platform_log_base.h"
 #include "chre/util/singleton.h"
+#include "chre_api/chre/re.h"
 
 namespace chre {
 
@@ -43,7 +44,18 @@ class PlatformLog : public PlatformLogBase {
    * Logs message with printf-style arguments. No trailing newline is required
    * for this method.
    */
-  void log(const char *formatStr, ...);
+  void log(chreLogLevel logLevel, const char *formatStr, ...) {
+    va_list args;
+    va_start(args, formatStr);
+    logVa(logLevel, formatStr, args);
+    va_end(args);
+  }
+
+  /**
+   * Logs message with printf-style arguments. No trailing newline is required
+   * for this method. Uses va_list parameter instead of ...
+   */
+  void logVa(chreLogLevel logLevel, const char *formatStr, va_list args);
 };
 
 //! Provides an alias to the PlatformLog singleton.

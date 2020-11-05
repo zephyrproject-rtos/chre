@@ -238,7 +238,7 @@ class LogBuffer {
   LogBufferCallbackInterface *mCallback;
   //! The notification setting object
   LogBufferNotificationSetting mNotificationSetting =
-      LogBufferNotificationSetting::NEVER;
+      LogBufferNotificationSetting::ALWAYS;
   //! The number of bytes that will trigger the threshold notification
   size_t mNotificationThresholdBytes = 0;
 

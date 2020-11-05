@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+#include "chre/platform/assert.h"
 #include "chre/platform/log.h"
+#include "chre/platform/shared/platform_log.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/re.h"
 
@@ -36,8 +38,7 @@ inline void logToFarf(enum chreLogLevel level, const char *logStr) {
   }
 }
 
-#else  // CHRE_USE_FARF_LOGGING
-
+#elif !defined(CHRE_USE_BUFFERED_LOGGING)
 inline ashLogLevel chreLogLevelToAshLogLevel(enum chreLogLevel level) {
   enum ashLogLevel ashLevel;
   switch (level) {
@@ -56,14 +57,16 @@ inline ashLogLevel chreLogLevelToAshLogLevel(enum chreLogLevel level) {
   }
   return ashLevel;
 }
-
-#endif  // CHRE_USE_FARF_LOGGING
+#endif  // !defined(CHRE_USE_BUFFERED_LOGGING)
 
 DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
   va_list args;
 
   va_start(args, formatStr);
-#ifdef CHRE_USE_FARF_LOGGING
+#ifdef CHRE_USE_BUFFERED_LOGGING
+  CHRE_ASSERT(chre::PlatformLogSingleton::isInitialized());
+  chre::PlatformLogSingleton::get()->logVa(level, formatStr, args);
+#elif defined(CHRE_USE_FARF_LOGGING)
   // The same size is used in the implmentation of ashVaLog().
   constexpr size_t kDebugMaxLogEntrySize = 128;
   // FARF doesn't provide a method that takes va_list as an input so write the
