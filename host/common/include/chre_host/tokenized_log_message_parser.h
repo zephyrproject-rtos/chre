@@ -42,6 +42,10 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
                                      mDetokenizer.get());
   }
 
+  void logV2(const uint8_t *logBuffer, size_t logBufferSize) override {
+    // TODO(b/172654554): Modify tokenized logging to only support v2 logs.
+  }
+
  private:
   std::unique_ptr<Detokenizer> mDetokenizer;
 
@@ -94,6 +98,8 @@ class ChreTokenizedLogMessageParser : public ChreLogMessageParserBase {
       DetokenizedString detokenizedLog =
           detokenizer->Detokenize(message, messageLen - kLogMessageHeaderSize);
       std::string decodedLog = detokenizedLog.BestStringWithErrors();
+      uint32_t timestampMillis =
+          timestampNanos / chre::kOneMillisecondInNanoseconds;
       emitLogMessage(level, timestampNanos, decodedLog.c_str());
     } else {
       // log an error and risk log spam? fail silently? log once?

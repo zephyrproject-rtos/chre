@@ -17,7 +17,11 @@
 #include <endian.h>
 #include <cstdio>
 
+#include "chre/util/time.h"
 #include "chre_host/log_message_parser_base.h"
+
+using chre::kOneMillisecondInNanoseconds;
+using chre::kOneSecondInMilliseconds;
 
 namespace android {
 namespace chre {
@@ -97,7 +101,8 @@ void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
   while (bufferIndex < logBufferSize) {
     const LogMessage *message =
         reinterpret_cast<const LogMessage *>(&logBuffer[bufferIndex]);
-    emitLogMessage(message->logLevel, le64toh(message->timestampNanos),
+    uint64_t timeNs = le64toh(message->timestampNanos);
+    emitLogMessage(message->logLevel, timeNs / kOneMillisecondInNanoseconds,
                    message->logMessage);
     bufferIndex += sizeof(LogMessage) +
                    strnlen(message->logMessage, logBufferSize - bufferIndex) +
@@ -105,20 +110,28 @@ void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
   }
 }
 
+void ChreLogMessageParserBase::logV2(const uint8_t *logBuffer,
+                                     size_t logBufferSize) {
+  size_t bufferIndex = 0;
+  while (bufferIndex < logBufferSize) {
+    const LogMessageV2 *message =
+        reinterpret_cast<const LogMessageV2 *>(&logBuffer[bufferIndex]);
+    emitLogMessage(message->logLevel, le32toh(message->timestampMillis),
+                   message->logMessage);
+    bufferIndex += sizeof(LogMessageV2) +
+                   strnlen(message->logMessage, logBufferSize - bufferIndex) +
+                   1;
+  }
+}
+
 void ChreLogMessageParserBase::emitLogMessage(uint8_t level,
-                                              uint64_t timestampNanos,
+                                              uint32_t timestampMillis,
                                               const char *logMessage) {
   constexpr const char kLogTag[] = "CHRE";
-  constexpr const uint64_t kNanosPerSec = 1e9;
-  constexpr const uint64_t kNanosPerMsec = 1e6;
-
-  uint32_t timeSec = timestampNanos / kNanosPerSec;
-  timestampNanos -= (timeSec * kNanosPerSec);
-
-  uint32_t timeMsec = timestampNanos / kNanosPerMsec;
-
+  uint32_t timeSec = timestampMillis / kOneSecondInMilliseconds;
   android_LogPriority priority = chreLogLevelToAndroidLogPriority(level);
-  LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timeMsec, logMessage);
+  LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timestampMillis,
+          logMessage);
 }
 
 }  // namespace chre

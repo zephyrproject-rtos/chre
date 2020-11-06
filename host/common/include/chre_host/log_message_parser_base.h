@@ -46,7 +46,11 @@ class ChreLogMessageParserBase {
     return true;
   };
 
+  //! Logs from a log buffer containing one or more log messages (version 1)
   virtual void log(const uint8_t *logBuffer, size_t logBufferSize);
+
+  //! Logs from a log buffer containing one or more log messages (version 2)
+  virtual void logV2(const uint8_t *logBuffer, size_t logBufferSize);
 
   /**
    * With verbose logging enabled (via enableVerbose()), dump a
@@ -68,7 +72,7 @@ class ChreLogMessageParserBase {
 
   static android_LogPriority chreLogLevelToAndroidLogPriority(uint8_t level);
 
-  void emitLogMessage(uint8_t level, uint64_t timestampNanos,
+  void emitLogMessage(uint8_t level, uint32_t timestampMillis,
                       const char *logMessage);
 
  private:
@@ -77,12 +81,20 @@ class ChreLogMessageParserBase {
     WARNING = 2,
     INFO = 3,
     DEBUG = 4,
+    VERBOSE = 5,
   };
 
   //! See host_messages.fbs for the definition of this struct.
   struct LogMessage {
     enum LogLevel logLevel;
     uint64_t timestampNanos;
+    char logMessage[];
+  } __attribute__((packed));
+
+  //! See host_messages.fbs for the definition of this struct.
+  struct LogMessageV2 {
+    enum LogLevel logLevel;
+    uint32_t timestampMillis;
     char logMessage[];
   } __attribute__((packed));
 };
