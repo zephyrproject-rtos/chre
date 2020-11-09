@@ -94,44 +94,6 @@ uint64_t gLastRangingTimeNs = 0;
 bool gPendingRanging = false;
 
 /**
- * Logs a CHRE wifi scan result.
- *
- * @param result the scan result to log.
- */
-void logChreWifiResult(const chreWifiScanResult &result) {
-  const char *ssidStr = "<non-printable>";
-  char ssidBuffer[chre::kMaxSsidStrLen];
-  if (result.ssidLen == 0) {
-    ssidStr = "<empty>";
-  } else if (chre::parseSsidToStr(ssidBuffer, sizeof(ssidBuffer), result.ssid,
-                                  result.ssidLen)) {
-    ssidStr = ssidBuffer;
-  }
-
-  LOGI("Found network with SSID: %s", ssidStr);
-#ifdef WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
-  const char *bssidStr = "<non-printable>";
-  char bssidBuffer[chre::kBssidStrLen];
-  if (chre::parseBssidToStr(result.bssid, bssidBuffer, sizeof(bssidBuffer))) {
-    bssidStr = bssidBuffer;
-  }
-
-  LOGI("  age (ms): %" PRIu32, result.ageMs);
-  LOGI("  capability info: %" PRIx16, result.capabilityInfo);
-  LOGI("  bssid: %s", bssidStr);
-  LOGI("  flags: %" PRIx8, result.flags);
-  LOGI("  rssi: %" PRId8 "dBm", result.rssi);
-  LOGI("  band: %s (%" PRIu8 ")", chre::parseChreWifiBand(result.band),
-       result.band);
-  LOGI("  primary channel: %" PRIu32, result.primaryChannel);
-  LOGI("  center frequency primary: %" PRIu32, result.centerFreqPrimary);
-  LOGI("  center frequency secondary: %" PRIu32, result.centerFreqSecondary);
-  LOGI("  channel width: %" PRIu8, result.channelWidth);
-  LOGI("  security mode: %" PRIx8, result.securityMode);
-#endif  // WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
-}
-
-/**
  * Logs a CHRE WiFi ranging result.
  *
  * @param result the ranging result to log.
@@ -344,7 +306,11 @@ void handleWifiScanEvent(const chreWifiScanEvent *event) {
 
   for (uint8_t i = 0; i < event->resultCount; i++) {
     const chreWifiScanResult &result = event->results[i];
-    logChreWifiResult(result);
+#ifdef WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
+    chre::logChreWifiResult(result);
+#else
+    chre::logChreWifiResult(result, true /* logSsidOnly */);
+#endif
   }
 }
 
