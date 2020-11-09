@@ -41,6 +41,12 @@ extern "C" {
 #define CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY 255
 #endif
 
+//! The maximum value of chreWifiScanEvent.resultCount that will be used
+//! in the scan cache library to send results to CHRE.
+#ifndef CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT
+#define CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT 20
+#endif
+
 /**
  * Initializes the WiFi scan cache.
  *
@@ -77,13 +83,18 @@ void chreWifiScanCacheDeinit(void);
  * 3. When the WiFi scan is completed (or failed), invoke
  * chreWifiScanCacheScanEventEnd().
  *
+ * This function must not be invoked while a scan caching is currently taking
+ * place (i.e. until chreWifiScanCacheScanEventEnd() is invoked).
+ *
  * @param activeScanResult true if this WiFi scan was a result of an active WiFi
  * scan from CHRE (i.e. not a result of passive scan monitoring only). If true,
  * a scanResponseCallback will be invoked in chreWifiScanCacheScanEventEnd().
  *
+ * @return true if the scan cache was successfully started.
+ *
  * @see The fields of chreWifiScanEvent for the other parameters.
  */
-void chreWifiScanCacheScanEventBegin(enum chreWifiScanType scanType,
+bool chreWifiScanCacheScanEventBegin(enum chreWifiScanType scanType,
                                      uint8_t ssidSetSize,
                                      const uint32_t *scannedFreqList,
                                      uint16_t scannedFreqListLength,
