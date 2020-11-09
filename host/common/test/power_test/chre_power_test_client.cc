@@ -331,11 +331,9 @@ bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
     appFlags |= CHRE_NAPP_HEADER_TCM_CAPABLE;
   }
 
-  // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, buffer,
-      buffer.size() /* fragmentSize */);
+      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, buffer);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
   LOGI("Sending load nanoapp request (%" PRIu32
