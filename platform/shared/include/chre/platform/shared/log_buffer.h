@@ -94,10 +94,20 @@ class LogBuffer {
    * @param timestampMs The timestamp that the log was collected as in
    *                    milliseconds. Monotonically increasing and in
    *                    milliseconds since boot.
-   * @param log The ASCII log that is buffered.
+   * @param logFormat The ASCII log format that is buffered.
+   * @param ... The variable length set of parameters to print into the
+   *            logFormat string.
    */
   void handleLog(LogBufferLogLevel logLevel, uint32_t timestampMs,
-                 const char *log);
+                 const char *logFormat, ...);
+
+  /**
+   * Same as handleLog but with a va_list argument instead of a ... parameter.
+   *
+   * @param args The arguments in a va_list type.
+   */
+  void handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
+                   const char *logFormat, va_list args);
 
   /**
    * Copy out as many logs as will fit into destination buffer as they are

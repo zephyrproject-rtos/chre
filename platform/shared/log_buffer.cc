@@ -31,48 +31,52 @@ LogBuffer::LogBuffer(LogBufferCallbackInterface *callback, void *buffer,
 }
 
 void LogBuffer::handleLog(LogBufferLogLevel logLevel, uint32_t timestampMs,
-                          const char *log) {
+                          const char *logFormat, ...) {
+  va_list args;
+  va_start(args, logFormat);
+  handleLogVa(logLevel, timestampMs, logFormat, args);
+  va_end(args);
+}
+
+void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
+                            const char *logFormat, va_list args) {
   constexpr size_t maxLogLen = kLogMaxSize - kLogDataOffset;
-  uint8_t logLen = static_cast<uint8_t>(strnlen(log, maxLogLen));
-  if (logLen == maxLogLen) {
-    // So that the last character is not copied to buffer and a null terminator
-    // can be copied there instead.
-    logLen--;
-  }
-  size_t totalLogSize = kLogDataOffset + logLen;
-
-  if (totalLogSize > mBufferMaxSize) {
-    return;
-  }
-
-  {
-    LockGuard<Mutex> lockGuard(mBufferDataLock);
-    // Invalidate memory allocated for log at head while the buffer is greater
-    // than max size
-    while (getBufferSize() + totalLogSize > mBufferMaxSize) {
-      size_t logSize;
-      mBufferDataHeadIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
-      mBufferDataSize -= logSize;
+  char tempBuffer[maxLogLen];
+  size_t logLen = vsnprintf(tempBuffer, maxLogLen, logFormat, args);
+  if (logLen >= 0) {
+    if (logLen >= maxLogLen) {
+      // Leave space for nullptr to be copied on end
+      logLen = maxLogLen - 1;
     }
-    copyToBuffer(sizeof(logLevel), &logLevel);
-    copyToBuffer(sizeof(timestampMs), &timestampMs);
-    copyToBuffer(logLen, reinterpret_cast<const void *>(log));
-    copyToBuffer(1, reinterpret_cast<const void *>("\0"));
-  }
-
-  switch (mNotificationSetting) {
-    case LogBufferNotificationSetting::ALWAYS: {
-      mCallback->onLogsReady(this);
-      break;
-    }
-    case LogBufferNotificationSetting::NEVER: {
-      break;
-    }
-    case LogBufferNotificationSetting::THRESHOLD: {
-      if (getBufferSize() > mNotificationThresholdBytes) {
-        mCallback->onLogsReady(this);
+    size_t totalLogSize = kLogDataOffset + logLen;
+    {
+      LockGuard<Mutex> lockGuard(mBufferDataLock);
+      // Invalidate memory allocated for log at head while the buffer is greater
+      // than max size
+      while (getBufferSize() + totalLogSize > mBufferMaxSize) {
+        size_t logSize;
+        mBufferDataHeadIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
+        mBufferDataSize -= logSize;
       }
-      break;
+      copyToBuffer(sizeof(logLevel), &logLevel);
+      copyToBuffer(sizeof(timestampMs), &timestampMs);
+      copyToBuffer(logLen, tempBuffer);
+      copyToBuffer(1, reinterpret_cast<const void *>("\0"));
+    }
+    switch (mNotificationSetting) {
+      case LogBufferNotificationSetting::ALWAYS: {
+        mCallback->onLogsReady(this);
+        break;
+      }
+      case LogBufferNotificationSetting::NEVER: {
+        break;
+      }
+      case LogBufferNotificationSetting::THRESHOLD: {
+        if (getBufferSize() > mNotificationThresholdBytes) {
+          mCallback->onLogsReady(this);
+        }
+        break;
+      }
     }
   }
 }
