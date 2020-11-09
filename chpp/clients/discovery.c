@@ -196,6 +196,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
   // Notify (possible) waiting client on discovery completion.
   chppMutexLock(&context->discoveryMutex);
   context->isDiscoveryComplete = true;
+  context->matchedClientCount = matchedClients;
   chppConditionVariableSignal(&context->discoveryCv);
   chppMutexUnlock(&context->discoveryMutex);
 }
@@ -208,6 +209,7 @@ void chppDiscoveryInit(struct ChppAppState *context) {
   if (!context->isDiscoveryClientInitialized) {
     chppMutexInit(&context->discoveryMutex);
     chppConditionVariableInit(&context->discoveryCv);
+    context->matchedClientCount = 0;
     context->isDiscoveryComplete = false;
     context->isDiscoveryClientInitialized = true;
   }
@@ -263,9 +265,19 @@ void chppInitiateDiscovery(struct ChppAppState *context) {
   request->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
 
   chppMutexLock(&context->discoveryMutex);
+  context->matchedClientCount = 0;
   context->isDiscoveryComplete = false;
   chppMutexUnlock(&context->discoveryMutex);
 
   chppEnqueueTxDatagramOrFail(context->transportContext, request,
                               sizeof(*request));
+}
+
+bool chppAreAllClientsMatched(struct ChppAppState *context) {
+  bool success = false;
+  chppMutexLock(&context->discoveryMutex);
+  success = (context->isDiscoveryComplete) &&
+            (context->registeredClientCount == context->matchedClientCount);
+  chppMutexUnlock(&context->discoveryMutex);
+  return success;
 }

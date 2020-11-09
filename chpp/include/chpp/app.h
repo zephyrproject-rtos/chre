@@ -336,6 +336,10 @@ struct ChppAppState {
   // For discovery clients
   bool isDiscoveryClientInitialized;
   bool isDiscoveryComplete;
+
+  // The number of clients that matched a service during discovery.
+  uint8_t matchedClientCount;
+
   struct ChppMutex discoveryMutex;
   struct ChppConditionVariable discoveryCv;
 };

@@ -99,7 +99,7 @@ cc_test_host {
     ],
     srcs: [
         "test/app_test_base.cpp",
-        "test/loopback_test.cpp",
+        "test/app_test.cpp",
         "test/transport_test.cpp",
     ],
     test_suites: [

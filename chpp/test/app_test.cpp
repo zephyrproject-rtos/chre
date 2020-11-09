@@ -23,6 +23,7 @@
 
 #include "app_test_base.h"
 #include "chpp/app.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/clients/loopback.h"
 #include "chpp/clients/timesync.h"
 #include "chpp/log.h"
@@ -150,6 +151,12 @@ TEST_F(AppTestBase, Timesync) {
   EXPECT_LT(result.offsetNs, kMaxOffset);
   EXPECT_GT(result.offsetNs, -kMaxOffset);
   EXPECT_NE(result.offsetNs, 0);
+}
+
+TEST_F(AppTestBase, DiscoveryMatched) {
+  constexpr uint64_t kTimeoutMs = 5000;
+  EXPECT_TRUE(chppWaitForDiscoveryComplete(&mClientAppContext, kTimeoutMs));
+  EXPECT_TRUE(chppAreAllClientsMatched(&mClientAppContext));
 }
 
 }  // namespace

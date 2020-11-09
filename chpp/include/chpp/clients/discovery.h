@@ -76,6 +76,16 @@ bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
  */
 void chppInitiateDiscovery(struct ChppAppState *context);
 
+/**
+ * Checks if all discovery clients have been matched with a remote service.
+ *
+ * @param context Maintains status for each app layer instance.
+ *
+ * @return true if all registered clients have been matched by a discovered
+ * service.
+ */
+bool chppAreAllClientsMatched(struct ChppAppState *context);
+
 #ifdef __cplusplus
 }
 #endif
