@@ -60,7 +60,7 @@ bool chreWifiScanCacheInit(const struct chrePalSystemApi *systemApi,
 /**
  * This method must be invoked as a result of a chrePalWifiApi->close() call.
  */
-void chreWifiScanCacheDeinit();
+void chreWifiScanCacheDeinit(void);
 
 /**
  * Begins the caching of results from a single WiFi scan.
