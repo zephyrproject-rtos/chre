@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-// TODO(b/168941570): remove flag definition for test clients to use default
-// fragment size.
-// CFLAG to define host small fragment size
-CFLAG_HOST_SMALL_FRAGMENT_SIZE = "-DCHRE_HOST_DEFAULT_FRAGMENT_SIZE=1024"
-
 cc_library_static {
     name: "chre_client",
     vendor: true,
@@ -53,7 +48,7 @@ cc_binary {
     srcs: [
         "host/common/test/chre_test_client.cc",
     ],
-    cflags: ["-Wall", "-Werror", CFLAG_HOST_SMALL_FRAGMENT_SIZE],
+    cflags: ["-Wall", "-Werror"],
     shared_libs: [
         "libcutils",
         "liblog",
@@ -73,7 +68,7 @@ cc_binary {
     srcs: [
         "host/common/test/power_test/chre_power_test_client.cc",
     ],
-    cflags: ["-Wall", "-Werror", CFLAG_HOST_SMALL_FRAGMENT_SIZE],
+    cflags: ["-Wall", "-Werror"],
     shared_libs: [
         "libcutils",
         "liblog",
@@ -92,7 +87,7 @@ cc_test {
     srcs: [
         "host/common/audio_stress_test/audio_stress_test.cc",
     ],
-    cflags: ["-Wall", "-Werror", CFLAG_HOST_SMALL_FRAGMENT_SIZE],
+    cflags: ["-Wall", "-Werror"],
     shared_libs: [
         "libcutils",
         "liblog",
@@ -210,7 +205,7 @@ cc_binary {
     cflags: [
         "-Wall",
         "-Werror",
-        CFLAG_HOST_SMALL_FRAGMENT_SIZE,
+        "-DCHRE_HOST_DEFAULT_FRAGMENT_SIZE=1024",
     ],
     header_libs: [
         "android.hardware.contexthub@1.X-shared-impl",

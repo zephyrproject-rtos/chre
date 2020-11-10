@@ -96,10 +96,12 @@ void sendLoadNanoappRequest(SocketClient &client, const char *filename,
   // All loaded nanoapps must be signed currently.
   uint32_t appFlags = CHRE_NAPP_HEADER_SIGNED;
 
+  // Perform loading with 1 fragment for simplicity
   FlatBufferBuilder builder(size + 128);
-  FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, appFlags,
-      0x01000000 /* targetApiVersion */, buffer);
+  FragmentedLoadTransaction transaction =
+      FragmentedLoadTransaction(1 /* transactionId */, appId, appVersion,
+                                appFlags, 0x01000000 /* targetApiVersion */,
+                                buffer, buffer.size() /* fragmentSize */);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
 
