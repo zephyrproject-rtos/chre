@@ -119,6 +119,9 @@ QCOM_HEXAGONV60_NANOHUB-UIMG_SRCS += $(APP_SUPPORT_PATH)/qcom_nanohub/app_suppor
 
 # Makefile Includes ############################################################
 
+# Standard library overrides include
+include $(CHRE_PREFIX)/std_overrides/std_overrides.mk
+
 # Common includes
 include $(CHRE_PREFIX)/build/defs.mk
 include $(CHRE_PREFIX)/build/common.mk
