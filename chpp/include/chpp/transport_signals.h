@@ -29,6 +29,8 @@ extern "C" {
 //! (ran in chppWorkThreadStart()).
 #define CHPP_TRANSPORT_SIGNAL_EXIT UINT32_C(1 << 0)
 #define CHPP_TRANSPORT_SIGNAL_EVENT UINT32_C(1 << 1)
+#define CHPP_TRANSPORT_SIGNAL_TIMEOUT \
+  UINT32_C(1 << 15)  // Usage is optional and platform-dependent
 
 //! These bits are reserved for platform use (e.g. in the platform-specific
 //! link layer implementation).

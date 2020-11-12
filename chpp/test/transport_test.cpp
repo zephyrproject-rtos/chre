@@ -101,11 +101,18 @@ class TransportTests : public testing::TestWithParam<int> {
  * TODO: Explore better ways to synchronize test with transport
  */
 void WaitForTransport(struct ChppTransportState *transportContext) {
-  volatile uint16_t k = 1;
-  while (transportContext->txStatus.hasPacketsToSend || k > 0) {
+  // Wait for linkParams.notifier.signal to be triggered and processed
+  volatile uint32_t k = 1;
+  while (transportContext->linkParams.notifier.signal == 0 && k > 0) {
     k++;
   }
-  ASSERT_FALSE(transportContext->txStatus.hasPacketsToSend);  // timeout
+  while (transportContext->linkParams.notifier.signal != 0 && k > 0) {
+    k++;
+  }
+  ASSERT_FALSE(k == 0);
+  while (k < UINT16_MAX) {
+    k++;
+  }
 
   // Should have reset loc and length for next packet / datagram
   EXPECT_EQ(transportContext->rxStatus.locInDatagram, 0);
@@ -533,7 +540,7 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   std::thread t1(chppWorkThreadStart, &mTransportContext);
   WaitForTransport(&mTransportContext);
 
-  if (len <= kMaxChunkSize) {
+  if (len > 0 && len <= kMaxChunkSize) {
     size_t loc = 0;
     addPreambleToBuf(mBuf, &loc);
     ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);

@@ -37,6 +37,29 @@ extern "C" {
  ***********************************************/
 
 /**
+ * CHPP Transport layer reset timeout in ns. The transport layer will attempt
+ * another reset if the previous reset is not acked in time.
+ */
+#ifndef CHPP_TRANSPORT_RESET_TIMEOUT_NS
+#define CHPP_TRANSPORT_RESET_TIMEOUT_NS \
+  UINT64_C(1500) * CHPP_NSEC_PER_MSEC  // 1500 ms
+#endif
+
+/**
+ * CHPP Transport layer timeout for tx packets.
+ */
+#ifndef CHPP_TRANSPORT_TX_TIMEOUT_NS
+#define CHPP_TRANSPORT_TX_TIMEOUT_NS \
+  UINT64_C(100) * CHPP_NSEC_PER_MSEC  // 100 ms
+#endif
+
+/**
+ * CHPP Transport layer predefined timeout values.
+ */
+#define CHPP_TRANSPORT_TIMEOUT_INFINITE UINT64_MAX
+#define CHPP_TRANSPORT_TIMEOUT_IMMEDIATE 0
+
+/**
  * CHPP Transport header flags bitmap
  *
  * @defgroup CHPP_TRANSPORT_FLAG
@@ -296,6 +319,12 @@ struct ChppTxStatus {
   //! Error code, if any, of the next packet the transport layer will send out.
   uint8_t packetCodeToSend;
 
+  //! How many times the last sent sequence number has been (re-)sent.
+  size_t retxCount;
+
+  //! Time when the last packet was sent to the link layer.
+  uint64_t lastTxTimeNs;
+
   //! How many bytes of the front-of-queue datagram has been sent out
   size_t sentLocInDatagram;
 
@@ -363,6 +392,7 @@ struct ChppTransportState {
   struct ChppMutex mutex;          // Lock for transport state (i.e. context)
   struct ChppNotifier notifier;    // Notifier for main thread
   enum ChppResetState resetState;  // Maintains state of a reset
+  uint64_t resetTimeNs;            // Time of last reset
 
   struct ChppConditionVariable
       resetCondVar;  // Condvar specifically to wait for resetState
@@ -483,6 +513,28 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
                                 enum ChppTransportErrorCode errorCode);
 
 /**
+ * Provides systems that do not use chppWorkThreadStart() and its associated
+ * timeout mechanisms (that relies on chppNotifierTimedWait()) how long they
+ * should wait until they run chppTransportDoWork() again, in nanoseconds.
+ *
+ * For these implementations, chppTransportDoWork() should be run at or slightly
+ * after the wait time returned by this function.
+ *
+ * A return value of CHPP_TRANSPORT_TIMEOUT_INFINITE indicates that there is no
+ * need to run chppTransportDoWork() based on a timeout (i.e. CHPP is not
+ * waiting on an ACK).
+ *
+ * A return value of CHPP_TRANSPORT_TIMEOUT_IMMEDIATE indicates that
+ * chppTransportDoWork() should be run immediately.
+ *
+ * @param context Maintains status for each transport layer instance.
+ *
+ * @return Time until chppTransportDoWork() must be called in nanoseconds.
+ */
+uint64_t chppTransportGetTimeUntilNextDoWorkNs(
+    struct ChppTransportState *context);
+
+/**
  * Starts the main thread for CHPP's Transport Layer. This thread needs to be
  * started after the Transport Layer is initialized through chppTransportInit().
  * Note that a platform may implement this as a new thread or as part of an
@@ -490,6 +542,12 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
  *
  * If needed (e.g. for testing and debugging), this thread can be stopped by
  * calling chppWorkThreadStop().
+ *
+ * If a system does not support multi-threading, the system MUST replicate the
+ * high-level behavior of chppWorkThreadStart(). More details in the
+ * documentation of chppWorkThreadHandleSignal(). For such systems,
+ * chppTransportGetTimeUntilNextDoWorkNs() can be used to replicate the
+ * functionality of chppNotifierTimedWait().
  *
  * @param context Maintains status for each transport layer instance.
  */
@@ -508,8 +566,8 @@ void chppWorkThreadStart(struct ChppTransportState *context);
  * loop, and any initialization sequence MUST be replicated.
  *
  * @param context Maintains status for each transport layer instance.
- * @params signals The signals to process. Should be obtained via
- * chppNotifierWait() for the given transport context's notifier.
+ * @param signals The signals to process. Should be obtained via
+ * chppNotifierTimedWait() for the given transport context's notifier.
  *
  * @return true if the CHPP work thread should exit.
  */

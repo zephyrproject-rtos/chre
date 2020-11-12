@@ -52,8 +52,19 @@ static void chppNotifierInit(struct ChppNotifier *notifier);
 static void chppNotifierDeinit(struct ChppNotifier *notifier);
 
 /**
+ * Returns the signal value in chppNotifierSignal(), if any. Resets the signal
+ * value afterwards.
+ *
+ * @param notifier Points to the ChppNotifier being used.
+ *
+ * @return The signal value indicated in chppNotifierSignal().
+ */
+static uint32_t chppNotifierGetSignal(struct ChppNotifier *notifier);
+
+/**
  * Waits on a platform-specific notifier until it is signaled through
- * chppNotifierSignal().
+ * chppNotifierSignal(). Similar to chppNotifierTimedWait(), but without the
+ * timeout.
  *
  * @param notifier Points to the ChppNotifier being used.
  *
@@ -62,12 +73,27 @@ static void chppNotifierDeinit(struct ChppNotifier *notifier);
 static uint32_t chppNotifierWait(struct ChppNotifier *notifier);
 
 /**
- * Signals chppNotifierWait() with the specified signal value.
+ * Waits on a platform-specific notifier until it is signaled through
+ * chppNotifierSignal() or until the specified timeout.
+ *
+ * Note that while the timeout is specified as a uint64_t, in practice, CHPP
+ * would only use values up to CHPP_TRANSPORT_TX_TIMEOUT_NS.
+ *
+ * @param notifier Points to the ChppNotifier being used.
+ * @param timeoutNs Timeout in nanoseconds.
+ *
+ * @return The signal value indicated in chppNotifierSignal().
+ */
+static uint32_t chppNotifierTimedWait(struct ChppNotifier *notifier,
+                                      uint64_t timeoutNs);
+
+/**
+ * Signals chppNotifierTimedWait() with the specified signal value.
  *
  * The signal values can be defined by the user of this class. Note that it is
  * expected for different signals to be bitwise exclusive, i.e. each bit in the
  * uint32_t should indicate a specific type of signal event. This allows for
- * multiple events to be handled simultaneously in chppNotifierWait().
+ * multiple events to be handled simultaneously in chppNotifierTimedWait().
  *
  * @param notifier Points to the ChppNotifier being used.
  */

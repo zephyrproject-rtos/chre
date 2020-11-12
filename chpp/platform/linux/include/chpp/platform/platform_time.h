@@ -25,10 +25,13 @@
 extern "C" {
 #endif
 
+#define CHPP_TIMESPEC_TO_NS(time) \
+  ((uint64_t)time.tv_sec * CHPP_NSEC_PER_SEC + (uint64_t)time.tv_nsec)
+
 static inline uint64_t chppGetCurrentTimeNs(void) {
   struct timespec now;
   clock_gettime(CLOCK_REALTIME, &now);
-  return (uint64_t)now.tv_sec * CHPP_NSEC_PER_SEC + (uint64_t)now.tv_nsec;
+  return CHPP_TIMESPEC_TO_NS(now);
 }
 
 #ifdef __cplusplus

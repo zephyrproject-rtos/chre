@@ -49,7 +49,7 @@ TEST_F(AppTestBase, TransportLayerLoopback) {
     buf[i] = (uint8_t)(i + 100);
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   CHPP_LOGI("Starting transport-layer loopback test (max buffer = %zu)...",
             kTestLen);
 

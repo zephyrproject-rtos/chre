@@ -82,13 +82,13 @@ void AppTestBase::SetUp() {
                  &mClientTransportContext);
 
   // Wait a bit to emulate the scenario where the remote is not yet up
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   pthread_create(&mServiceWorkThread, NULL, workThread,
                  &mServiceTransportContext);
   mClientTransportContext.linkParams.linkEstablished = true;
   mServiceTransportContext.linkParams.linkEstablished = true;
 
-  constexpr uint64_t kResetWaitTimeMs = 1000;
+  constexpr uint64_t kResetWaitTimeMs = 1500;
   chppTransportWaitForResetComplete(&mClientTransportContext, kResetWaitTimeMs);
 }
 

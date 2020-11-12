@@ -56,6 +56,8 @@ If the system does not support multi-threading, the chppWorkThreadHandleSignal m
 
 Note that the system MUST replicate the high-level behavior of chppWorkThreadStart exactly in this case. More details in the documentation of chppWorkThreadHandleSignal.
 
+For such systems, chppTransportGetTimeUntilNextDoWorkNs() can be used to replicate the functionality of chppNotifierTimedWait(). chppTransportGetTimeUntilNextDoWorkNs() returns the time until chppTransportDoWork() must be called again.
+
 ## CHPP Services Integration
 
 CHPP provides several predefined services (including Loopback Test, Service Discovery), as well as three standard services that follow the CHRE PAL API to simplify integration and testing. CHPP allows for custom services as well, as described in README.md. The standard services included in CHPP are
