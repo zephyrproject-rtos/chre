@@ -22,7 +22,18 @@
  * Defines a WiFi scan caching library that may be used beneath the CHRE WiFi
  * PAL layer.
  *
- * TODO: Add detailed usage of this library.
+ * This library should be used by the CHRE WiFi PAL implementation as a
+ * convenience module to store completed WiFi scan results, and provide them to
+ * CHRE as defined by the CHRE WiFi PAL API. If this library is used, there is
+ * no need to invoke the chrePalWifiCallback functions related to WiFi scans
+ * (e.g. scanResponseCallback()/scanEventCallback()) directly, as it will be
+ * performed by the caching library.
+ *
+ * The memory footprint of this library can be controlled at compile-time using
+ * macros. For instance, CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY can be adjusted to
+ * reduce the size of the cache storage.
+ *
+ * @see chreWifiScanCacheScanEventBegin() for how to cache scan results.
  */
 
 #include <stdbool.h>
