@@ -77,21 +77,21 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
   chppClientTimestampResponse(&context->timesyncClientContext->getTimesync,
                               &response->header);
 
-  context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
-
-  context->timesyncClientContext->timesyncResult.rttNs =
-      context->timesyncClientContext->getTimesync.responseTimeNs -
-      context->timesyncClientContext->getTimesync.requestTimeNs;
-
-  context->timesyncClientContext->timesyncResult.offsetNs =
-      (int64_t)(response->timeNs -
-                context->timesyncClientContext->getTimesync.requestTimeNs -
-                context->timesyncClientContext->timesyncResult.rttNs / 2);
+  uint64_t rttNs = context->timesyncClientContext->getTimesync.responseTimeNs -
+                   context->timesyncClientContext->getTimesync.requestTimeNs;
+  if (rttNs < context->timesyncClientContext->timesyncResult.rttNs) {
+    // A more accurate measurement has arrived
+    context->timesyncClientContext->timesyncResult.rttNs = rttNs;
+    context->timesyncClientContext->timesyncResult.offsetNs =
+        (int64_t)(response->timeNs -
+                  context->timesyncClientContext->getTimesync.requestTimeNs -
+                  context->timesyncClientContext->timesyncResult.rttNs / 2);
+  }
 
   CHPP_LOGD(
-      "Timesync client processed service response. request t=%" PRIu64
+      "Timesync client processed response. request t=%" PRIu64
       ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
-      ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", rtt=%" PRIi64,
+      ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", rtt=%" PRIi64 ", updated=%s",
       context->timesyncClientContext->getTimesync.requestTimeNs,
       context->timesyncClientContext->getTimesync.responseTimeNs,
       response->timeNs,
@@ -100,7 +100,9 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
       (int64_t)(context->timesyncClientContext->getTimesync.responseTimeNs -
                 response->timeNs),
       context->timesyncClientContext->timesyncResult.offsetNs,
-      context->timesyncClientContext->timesyncResult.rttNs);
+      context->timesyncClientContext->timesyncResult.rttNs,
+      (context->timesyncClientContext->timesyncResult.rttNs == rttNs) ? "yes"
+                                                                      : "no");
 
   // Notify waiting (synchronous) client
   chppMutexLock(&context->timesyncClientContext->client.responseMutex);
@@ -113,8 +115,9 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 }
 
 struct ChppTimesyncResult chppGetTimesync(struct ChppAppState *context) {
-  CHPP_LOGD("Running chppGetTimesync at time~=%" PRIu64,
-            chppGetCurrentTimeNs());
+  CHPP_LOGD("Running chppGetTimesync at time~=%" PRIu64 " with %d measurements",
+            chppGetCurrentTimeNs(),
+            CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT);
 
   if (context->timesyncClientContext->timesyncResult.error ==
       CHPP_APP_ERROR_BLOCKED) {
@@ -123,23 +126,37 @@ struct ChppTimesyncResult chppGetTimesync(struct ChppAppState *context) {
 
   } else {
     context->timesyncClientContext->timesyncResult.error =
-        CHPP_APP_ERROR_BLOCKED;
+        CHPP_APP_ERROR_BLOCKED;  // Indicates a measurement is in progress
+    context->timesyncClientContext->timesyncResult.rttNs = UINT64_MAX;
 
-    struct ChppAppHeader *request = chppAllocClientRequestCommand(
-        &context->timesyncClientContext->client, CHPP_TIMESYNC_COMMAND_GETTIME);
-    size_t requestLen = sizeof(request);
+    uint8_t i = 0;
+    while (i++ < CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT &&
+           context->timesyncClientContext->timesyncResult.error ==
+               CHPP_APP_ERROR_BLOCKED) {
+      struct ChppAppHeader *request =
+          chppAllocClientRequestCommand(&context->timesyncClientContext->client,
+                                        CHPP_TIMESYNC_COMMAND_GETTIME);
+      size_t requestLen = sizeof(request);
 
-    if (request == NULL) {
-      context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_OOM;
-      CHPP_LOG_OOM();
+      if (request == NULL) {
+        context->timesyncClientContext->timesyncResult.error =
+            CHPP_APP_ERROR_OOM;
+        CHPP_LOG_OOM();
 
-    } else if (!chppSendTimestampedRequestAndWait(
-                   &context->timesyncClientContext->client,
-                   &context->timesyncClientContext->getTimesync, request,
-                   requestLen)) {
+      } else if (!chppSendTimestampedRequestAndWait(
+                     &context->timesyncClientContext->client,
+                     &context->timesyncClientContext->getTimesync, request,
+                     requestLen)) {
+        context->timesyncClientContext->timesyncResult.error =
+            CHPP_APP_ERROR_UNSPECIFIED;
+      }
+    }
+
+    if (context->timesyncClientContext->timesyncResult.error ==
+        CHPP_APP_ERROR_BLOCKED) {
       context->timesyncClientContext->timesyncResult.error =
-          CHPP_APP_ERROR_UNSPECIFIED;
-    }  // else {context->timesyncClientContext->timesyncResult is now populated}
+          CHPP_APP_ERROR_NONE;
+    }
   }
 
   return context->timesyncClientContext->timesyncResult;

@@ -29,6 +29,13 @@ extern "C" {
 #endif
 
 /**
+ * Default number of measurements for timesync
+ */
+#ifndef CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT
+#define CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT 5
+#endif
+
+/**
  * Timesync Results.
  */
 struct ChppTimesyncResult {
