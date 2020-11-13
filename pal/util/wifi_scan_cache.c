@@ -43,6 +43,8 @@ struct chreWifiScanCacheState {
   //! chreWifiScanCacheReleaseScanEvent().
   uint8_t numWifiEventsPendingRelease;
 
+  bool scanMonitoringEnabled;
+
   uint32_t scannedFreqList[CHRE_WIFI_FREQUENCY_LIST_MAX_LEN];
 };
 
@@ -53,6 +55,10 @@ static const struct chrePalSystemApi *gSystemApi = NULL;
 static const struct chrePalWifiCallbacks *gCallbacks = NULL;
 
 static struct chreWifiScanCacheState gWifiCacheState;
+
+//! true if scan monitoring is enabled via
+//! chreWifiScanCacheConfigureScanMonitor().
+static bool gScanMonitoringEnabled;
 
 static const uint64_t kOneMillisecondInNanoseconds = UINT64_C(1000000);
 
@@ -79,6 +85,7 @@ bool chreWifiScanCacheInit(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
   memset(&gWifiCacheState, 0, sizeof(gWifiCacheState));
+  gScanMonitoringEnabled = false;
 
   return true;
 }
@@ -165,7 +172,8 @@ void chreWifiScanCacheScanEventEnd(enum chreError errorCode) {
           errorCode == CHRE_ERROR_NONE /* pending */, errorCode);
     }
 
-    if (errorCode == CHRE_ERROR_NONE) {
+    if (errorCode == CHRE_ERROR_NONE &&
+        (gWifiCacheState.activeScanResult || gScanMonitoringEnabled)) {
       gWifiCacheState.event.referenceTime = gSystemApi->getCurrentTime();
       gWifiCacheState.event.scannedFreqList = gWifiCacheState.scannedFreqList;
 
@@ -226,6 +234,5 @@ void chreWifiScanCacheConfigureScanMonitor(bool enable) {
     return;
   }
 
-  UNUSED_VAR(enable);
-  // TODO(b/172663268): Implement this
+  gScanMonitoringEnabled = enable;
 }

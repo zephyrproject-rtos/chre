@@ -118,7 +118,8 @@ void chreWifiScanEventCallback(struct chreWifiScanEvent *event) {
 }
 
 void beginDefaultWifiCache(const uint32_t *scannedFreqList,
-                           uint16_t scannedFreqListLen) {
+                           uint16_t scannedFreqListLen,
+                           bool activeScanResult = true) {
   chreWifiScanEvent event;
   memset(&event, 0, sizeof(chreWifiScanEvent));
   event.version = CHRE_WIFI_SCAN_EVENT_VERSION;
@@ -133,13 +134,15 @@ void beginDefaultWifiCache(const uint32_t *scannedFreqList,
       gExpectedWifiScanEvent->ssidSetSize,
       gExpectedWifiScanEvent->scannedFreqList,
       gExpectedWifiScanEvent->scannedFreqListLen,
-      gExpectedWifiScanEvent->radioChainPref, true /* activeScanResult */);
+      gExpectedWifiScanEvent->radioChainPref, activeScanResult);
 }
 
 void cacheDefaultWifiCacheTest(size_t numEvents,
                                const uint32_t *scannedFreqList,
-                               uint16_t scannedFreqListLen) {
-  beginDefaultWifiCache(scannedFreqList, scannedFreqListLen);
+                               uint16_t scannedFreqListLen,
+                               bool activeScanResult = true,
+                               bool scanMonitoringEnabled = false) {
+  beginDefaultWifiCache(scannedFreqList, scannedFreqListLen, activeScanResult);
 
   chreWifiScanResult result = {};
   for (size_t i = 0; i < numEvents; i++) {
@@ -150,14 +153,21 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
   chreWifiScanCacheScanEventEnd(CHRE_ERROR_NONE);
 
   // Check async response
-  EXPECT_TRUE(gWifiScanResponse.has_value());
-  EXPECT_EQ(gWifiScanResponse->pending, true);
-  ASSERT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_NONE);
+  if (activeScanResult) {
+    EXPECT_TRUE(gWifiScanResponse.has_value());
+    EXPECT_EQ(gWifiScanResponse->pending, true);
+    ASSERT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_NONE);
+  } else {
+    EXPECT_FALSE(gWifiScanResponse.has_value());
+  }
 
-  // Check WiFi results
-  size_t numEventsExpected = std::min(
-      numEvents, static_cast<size_t>(CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY));
-  EXPECT_EQ(gWifiScanResultList.size(), numEventsExpected);
+  size_t numEventsExpected = 0;
+  if (activeScanResult || scanMonitoringEnabled) {
+    numEventsExpected = std::min(
+        numEvents, static_cast<size_t>(CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY));
+  }
+
+  ASSERT_EQ(gWifiScanResultList.size(), numEventsExpected);
   for (size_t i = 0; i < gWifiScanResultList.size(); i++) {
     // ageMs is not known apriori
     result.ageMs = gWifiScanResultList[i].ageMs;
@@ -221,4 +231,34 @@ TEST_F(WifiScanCacheTests, SequentialWifiResultTest) {
   clearTestState();
   cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
                             0 /* scannedFreqListLen */);
+}
+
+TEST_F(WifiScanCacheTests, ScanMonitorDisabledTest) {
+  cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
+                            0 /* scannedFreqListLen */,
+                            false /* activeScanResult */,
+                            false /* scanMonitoringEnabled */);
+}
+
+TEST_F(WifiScanCacheTests, ScanMonitorEnabledTest) {
+  chreWifiScanCacheConfigureScanMonitor(true /* enable */);
+  cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
+                            0 /* scannedFreqListLen */,
+                            false /* activeScanResult */,
+                            true /* scanMonitoringEnabled */);
+}
+
+TEST_F(WifiScanCacheTests, ScanMonitorEnableDisableTest) {
+  chreWifiScanCacheConfigureScanMonitor(true /* enable */);
+  cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
+                            0 /* scannedFreqListLen */,
+                            false /* activeScanResult */,
+                            true /* scanMonitoringEnabled */);
+
+  clearTestState();
+  chreWifiScanCacheConfigureScanMonitor(false /* enable */);
+  cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
+                            0 /* scannedFreqListLen */,
+                            false /* activeScanResult */,
+                            false /* scanMonitoringEnabled */);
 }
