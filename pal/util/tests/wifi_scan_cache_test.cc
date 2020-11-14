@@ -178,6 +178,38 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
   }
 }
 
+void testCacheDispatch(size_t numEvents, uint32_t maxScanAgeMs,
+                       bool expectSuccess) {
+  cacheDefaultWifiCacheTest(numEvents, nullptr /* scannedFreqList */,
+                            0 /* scannedFreqListLen */);
+
+  gExpectedWifiScanEvent->eventIndex = 0;
+  gWifiScanResponse.reset();
+  while (!gWifiScanResultList.empty()) {
+    gWifiScanResultList.pop_back();
+  }
+
+  struct chreWifiScanParams params = {
+      .scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE,
+      .maxScanAgeMs = maxScanAgeMs,
+      .frequencyListLen = 0,
+      .frequencyList = nullptr,
+      .ssidListLen = 0,
+      .ssidList = nullptr,
+      .radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+  };
+  EXPECT_EQ(chreWifiScanCacheDispatchFromCache(&params), expectSuccess);
+
+  // Check async response
+  EXPECT_EQ(gWifiScanResponse.has_value(), expectSuccess);
+  if (expectSuccess) {
+    EXPECT_TRUE(gWifiScanResponse->pending);
+    EXPECT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_NONE);
+  }
+
+  EXPECT_EQ(gWifiScanResultList.size(), expectSuccess ? numEvents : 0);
+}
+
 }  // anonymous namespace
 
 /************************************************
@@ -261,4 +293,14 @@ TEST_F(WifiScanCacheTests, ScanMonitorEnableDisableTest) {
                             0 /* scannedFreqListLen */,
                             false /* activeScanResult */,
                             false /* scanMonitoringEnabled */);
+}
+
+TEST_F(WifiScanCacheTests, CacheDispatchTest) {
+  testCacheDispatch(1 /* numEvents */, 5000 /* maxScanAgeMs */,
+                    true /* expectSuccess */);
+}
+
+TEST_F(WifiScanCacheTests, ZeroMaxScanAgeCacheDispatchTest) {
+  testCacheDispatch(1 /* numEvents */, 0 /* maxScanAgeMs */,
+                    false /* expectSuccess */);
 }
