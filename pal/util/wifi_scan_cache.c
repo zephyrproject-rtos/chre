@@ -132,10 +132,8 @@ bool chreWifiScanCacheScanEventBegin(enum chreWifiScanType scanType,
 }
 
 void chreWifiScanCacheScanEventAdd(const struct chreWifiScanResult *result) {
-  if (!areAllScanEventsReleased()) {
-    gSystemApi->log(
-        CHRE_LOG_ERROR,
-        "Cannot use cache before releasing previous cache dispatch");
+  if (!gWifiCacheState.started) {
+    gSystemApi->log(CHRE_LOG_ERROR, "Cannot add to cache before starting it");
   } else {
     if (gWifiCacheState.event.resultTotal >=
         CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY) {
