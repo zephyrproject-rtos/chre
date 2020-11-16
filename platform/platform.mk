@@ -89,7 +89,6 @@ SLPI_SRCS += platform/shared/chre_api_audio.cc
 SLPI_SRCS += platform/shared/chre_api_core.cc
 SLPI_SRCS += platform/shared/chre_api_gnss.cc
 SLPI_SRCS += platform/shared/chre_api_re.cc
-SLPI_SRCS += platform/shared/chre_api_sensor.cc
 SLPI_SRCS += platform/shared/chre_api_version.cc
 SLPI_SRCS += platform/shared/chre_api_wifi.cc
 SLPI_SRCS += platform/shared/chre_api_wwan.cc
@@ -146,6 +145,7 @@ SLPI_SEE_SRCS += platform/slpi/see/see_cal_helper.cc
 SLPI_SEE_SRCS += platform/slpi/see/see_helper.cc
 endif
 
+SLPI_SEE_SRCS += platform/shared/chre_api_sensor.cc
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_client.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_suid.pb.c
 SLPI_SEE_SRCS += $(SLPI_PREFIX)/ssc_api/pb/sns_cal.pb.c
