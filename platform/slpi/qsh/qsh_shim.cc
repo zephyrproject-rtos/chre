@@ -29,6 +29,12 @@ extern "C" {
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/qsh/qsh_shim.h"
 
+// Define the delete operator so that SLPI doesn't have to expose this symbol
+// since CHRE will never call it directly
+void operator delete (void* ptr) noexcept {
+  free(ptr);
+}
+
 namespace chre {
 namespace {
 
