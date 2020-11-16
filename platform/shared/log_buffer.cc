@@ -42,8 +42,9 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
                             const char *logFormat, va_list args) {
   constexpr size_t maxLogLen = kLogMaxSize - kLogDataOffset;
   char tempBuffer[maxLogLen];
-  size_t logLen = vsnprintf(tempBuffer, maxLogLen, logFormat, args);
-  if (logLen >= 0) {
+  int logLenSigned = vsnprintf(tempBuffer, maxLogLen, logFormat, args);
+  if (logLenSigned >= 0) {
+    size_t logLen = static_cast<size_t>(logLenSigned);
     if (logLen >= maxLogLen) {
       // Leave space for nullptr to be copied on end
       logLen = maxLogLen - 1;
