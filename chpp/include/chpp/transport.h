@@ -54,6 +54,21 @@ extern "C" {
 #endif
 
 /**
+ * CHPP Transport layer maximum retransmission attempts, after which a reset is
+ * attempted.
+ */
+#ifndef CHPP_TRANSPORT_MAX_RETX
+#define CHPP_TRANSPORT_MAX_RETX UINT16_C(5)
+#endif
+
+/**
+ * CHPP Transport layer maximum reset attempts.
+ */
+#ifndef CHPP_TRANSPORT_MAX_RESET
+#define CHPP_TRANSPORT_MAX_RESET UINT16_C(3)
+#endif
+
+/**
  * CHPP Transport layer predefined timeout values.
  */
 #define CHPP_TRANSPORT_TIMEOUT_INFINITE UINT64_MAX
@@ -240,8 +255,9 @@ enum ChppRxState {
 };
 
 enum ChppResetState {
-  CHPP_RESET_STATE_RESETTING = 0,  //! Reset in progress
-  CHPP_RESET_STATE_NONE = 1,       //! Not in the middle of a reset
+  CHPP_RESET_STATE_RESETTING = 0,          //! Reset in progress
+  CHPP_RESET_STATE_NONE = 1,               //! Not in the middle of a reset
+  CHPP_RESET_STATE_PERMANENT_FAILURE = 2,  //! Failed, will not retry
 };
 
 /**
@@ -392,6 +408,7 @@ struct ChppTransportState {
   struct ChppMutex mutex;          // Lock for transport state (i.e. context)
   struct ChppNotifier notifier;    // Notifier for main thread
   enum ChppResetState resetState;  // Maintains state of a reset
+  uint16_t resetCount;             // (Unsuccessful) reset attempts
   uint64_t resetTimeNs;            // Time of last reset
 
   struct ChppConditionVariable

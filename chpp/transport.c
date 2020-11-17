@@ -473,6 +473,7 @@ static void chppProcessTransportLoopbackResponse(
  */
 static void chppSetResetComplete(struct ChppTransportState *context) {
   context->resetState = CHPP_RESET_STATE_NONE;
+  context->resetCount = 0;
   chppConditionVariableSignal(&context->resetCondVar);
 }
 
@@ -839,7 +840,14 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
       context->txStatus.sentSeq = txHeader->seq;
       context->txStatus.retxCount++;
 
-      // TODO: Enforce max retx count
+      if (context->txStatus.retxCount > CHPP_TRANSPORT_MAX_RETX) {
+        CHPP_LOGE("ReTx packet failed after %d tries. Attempting to reset CHPP",
+                  CHPP_TRANSPORT_MAX_RETX);
+
+        chppMutexUnlock(&context->mutex);
+        chppReset(context, CHPP_TRANSPORT_ATTR_RESET);
+        chppMutexLock(&context->mutex);
+      }
 
       size_t remainingBytes =
           context->txDatagramQueue.datagram[context->txDatagramQueue.front]
@@ -1311,11 +1319,13 @@ bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
     if ((context->resetState == CHPP_RESET_STATE_RESETTING) &&
         (chppGetCurrentTimeNs() - context->resetTimeNs >=
          CHPP_TRANSPORT_RESET_TIMEOUT_NS)) {
-      CHPP_LOGE("Timeout while waiting for RESET-ACK. Retrying");
-
-      // TODO: Limit number of reset retries
-
-      chppReset(context, CHPP_TRANSPORT_ATTR_RESET);
+      if (context->resetCount < CHPP_TRANSPORT_MAX_RESET) {
+        CHPP_LOGE("Timeout while waiting for RESET-ACK. Retrying a reset");
+        chppReset(context, CHPP_TRANSPORT_ATTR_RESET);
+      } else {
+        CHPP_LOGE("Timeout while waiting for RESET-ACK. Giving up permanently");
+        context->resetState = CHPP_RESET_STATE_PERMANENT_FAILURE;
+      }
     }
   }
 
