@@ -15,6 +15,7 @@
  */
 
 #include <cstdint>
+#include <dlfcn.h>
 
 extern "C" {
 
@@ -28,15 +29,14 @@ extern "C" {
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
 #include "chre/platform/slpi/qsh/qsh_shim.h"
-
-// Define the delete operator so that SLPI doesn't have to expose this symbol
-// since CHRE will never call it directly
-void operator delete (void* ptr) noexcept {
-  free(ptr);
-}
+#include "chre/sensor.h"
+#include "chre/util/macros.h"
 
 namespace chre {
 namespace {
+
+//! Function pointer to store QSH's version of chreSensorFlushAsync
+decltype(chreSensorFlushAsync) *gFlushFuncPtr = nullptr;
 
 /*
  * Used by QSH to obtain the currently running nanoapp instance ID when nanoapps
@@ -107,6 +107,13 @@ const qsh_na_api_callbacks gQshCallbacks = {
 void openQsh() {
   if (!qsh_na_open(&gQshCallbacks)) {
     LOGE("QSH failed to open");
+  } else {
+    LOGI("QSH opened");
+    gFlushFuncPtr = reinterpret_cast<decltype(gFlushFuncPtr)>(
+        dlsym(RTLD_NEXT, STRINGIFY(chreSensorFlushAsync)));
+    if (gFlushFuncPtr == nullptr) {
+      LOGE("Flush function not found!");
+    }
   }
 }
 
@@ -115,3 +122,18 @@ void closeQsh() {
 }
 
 }  // namespace chre
+
+// Define the delete operator so that SLPI doesn't have to expose this symbol
+// since CHRE will never call it directly
+void operator delete (void* ptr) noexcept {
+  free(ptr);
+}
+
+// Export the chreSensorFlushAsync symbol from CHRE and then used the previously
+// looked up symbol to WAR loader issue where nanoapps can't see QSH symbols.
+DLL_EXPORT extern "C" bool chreSensorFlushAsync(uint32_t sensorHandle,
+                                                const void *cookie) {
+  return (chre::gFlushFuncPtr != nullptr)
+      ? chre::gFlushFuncPtr(sensorHandle, cookie)
+      : false;
+}
