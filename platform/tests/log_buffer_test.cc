@@ -37,6 +37,14 @@ class TestLogBufferCallback : public LogBufferCallbackInterface {
 static constexpr size_t kDefaultBufferSize = 1024;
 static constexpr size_t kBytesBeforeLogData = 5;
 
+// Helpers
+void copyStringWithOffset(char *destination, const char *source,
+                          size_t sourceOffset) {
+  size_t strlength = strlen(source + sourceOffset);
+  // +1 to copy nullbyte on the end
+  memcpy(destination, source + sourceOffset, strlength + 1);
+}
+
 TEST(LogBuffer, HandleOneLogAndCopy) {
   char buffer[kDefaultBufferSize];
   constexpr size_t kOutBufferSize = 20;
@@ -51,29 +59,47 @@ TEST(LogBuffer, HandleOneLogAndCopy) {
 
   EXPECT_EQ(bytesCopied, strlen(testLogStr) +
                              kBytesBeforeLogData /*loglevel, timestamp*/ + 1);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr) + 1);
+  copyStringWithOffset(testedBuffer, outBuffer, strlen(testLogStr) + 1);
   EXPECT_TRUE(strcmp(testedBuffer, testLogStr) == 0);
+}
+
+TEST(LogBuffer, HandleTwoLogsAndCopy) {
+  char buffer[kDefaultBufferSize];
+  constexpr size_t kOutBufferSize = 30;
+  char outBuffer[kOutBufferSize];
+  const char *testLogStr = "test";
+  const char *testLogStr2 = "test2";
+  char testedBuffer[kOutBufferSize];
+  TestLogBufferCallback callback;
+
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr2);
+  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
+
+  EXPECT_EQ(bytesCopied, strlen(testLogStr) + strlen(testLogStr2) +
+                             2 * kBytesBeforeLogData /*loglevel, timestamp*/ +
+                             2);
+  copyStringWithOffset(testedBuffer, outBuffer, kBytesBeforeLogData);
+  EXPECT_TRUE(strcmp(testedBuffer, testLogStr) == 0);
+  copyStringWithOffset(testedBuffer, outBuffer,
+                       2 * kBytesBeforeLogData + strlen(testLogStr) + 1);
+  EXPECT_TRUE(strcmp(testedBuffer, testLogStr2) == 0);
 }
 
 TEST(LogBuffer, FailOnMoreCopyThanHandle) {
   char buffer[kDefaultBufferSize];
   constexpr size_t kOutBufferSize = 20;
   char outBuffer[kOutBufferSize];
-  constexpr size_t kEmptyBufferSize = 10;
-  char emptyBuffer[kEmptyBufferSize];
-  emptyBuffer[0] = '\0';
   const char *testLogStr = "test";
   TestLogBufferCallback callback;
-  char testedBuffer[kOutBufferSize];
 
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
   logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   logBuffer.copyLogs(outBuffer, kOutBufferSize);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, strlen(testLogStr) + 1);
   size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
 
   EXPECT_EQ(bytesCopied, 0);
-  EXPECT_EQ(strlen(emptyBuffer), 0);
 }
 
 TEST(LogBuffer, FailOnHandleLargerLogThanBufferSize) {
@@ -101,6 +127,7 @@ TEST(LogBuffer, LogOverwritten) {
   char testedBuffer[kOutBufferSize];
   TestLogBufferCallback callback;
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
   // This for loop adds 1060 bytes of data through the buffer which is > than
   // 1024
   for (size_t i = 0; i < 10; i++) {
@@ -128,6 +155,48 @@ TEST(LogBuffer, CopyIntoEmptyBuffer) {
   size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
 
   EXPECT_EQ(bytesCopied, 0);
+}
+
+TEST(LogBuffer, NoCopyInfoBufferAfterHandleEmptyLog) {
+  char buffer[kDefaultBufferSize];
+  constexpr size_t kOutBufferSize = 200;
+  char outBuffer[kOutBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, "");
+  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
+
+  EXPECT_EQ(bytesCopied, 0);
+}
+
+TEST(LogBuffer, HandleLogOfNullBytes) {
+  char buffer[kDefaultBufferSize];
+  constexpr size_t kOutBufferSize = 200;
+  char outBuffer[kOutBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, "\0\0\0");
+  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
+
+  EXPECT_EQ(bytesCopied, 0);
+}
+
+TEST(LogBuffer, TruncateLongLog) {
+  char buffer[kDefaultBufferSize];
+  constexpr size_t kOutBufferSize = 500;
+  char outBuffer[kOutBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+  std::string testStr(256, 'a');
+
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testStr.c_str());
+  size_t bytesCopied = logBuffer.copyLogs(outBuffer, kOutBufferSize);
+
+  // Should truncate the logs down to the kLogMaxSize value of 255 by the time
+  // it is copied out.
+  EXPECT_EQ(bytesCopied, 255);
 }
 
 // TODO(srok): Add multithreaded tests

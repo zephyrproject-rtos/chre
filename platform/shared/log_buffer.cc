@@ -15,6 +15,7 @@
  */
 
 #include "chre/platform/shared/log_buffer.h"
+#include "chre/platform/assert.h"
 #include "chre/util/lock_guard.h"
 
 #include <cstdarg>
@@ -43,7 +44,7 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
   constexpr size_t maxLogLen = kLogMaxSize - kLogDataOffset;
   char tempBuffer[maxLogLen];
   int logLenSigned = vsnprintf(tempBuffer, maxLogLen, logFormat, args);
-  if (logLenSigned >= 0) {
+  if (logLenSigned > 0) {
     size_t logLen = static_cast<size_t>(logLenSigned);
     if (logLen >= maxLogLen) {
       // Leave space for nullptr to be copied on end
@@ -88,22 +89,20 @@ size_t LogBuffer::copyLogs(void *destination, size_t size) {
   size_t copySize = 0;
 
   if (size != 0 && destination != nullptr && getBufferSize() != 0) {
-    size_t logStartIndex = mBufferDataHeadIndex;
-    size_t logDataStartIndex =
-        incrementAndModByBufferMaxSize(logStartIndex, kLogDataOffset);
-    // There is guaranteed to be a null terminator within the max log length
-    // number of bytes
-    size_t logDataSize = getLogDataLength(logDataStartIndex);
-    size_t logSize = kLogDataOffset + logDataSize;
-    size_t sizeAfterAddingLog = logSize;
-    while (sizeAfterAddingLog <= size &&
-           sizeAfterAddingLog <= getBufferSize()) {
-      logStartIndex = getNextLogIndex(logStartIndex, &logSize);
-      sizeAfterAddingLog += logSize;
+    if (size >= getBufferSize()) {
+      copySize = getBufferSize();
+    } else {
+      size_t logSize;
+      // There is guaranteed to be a null terminator within the max log length
+      // number of bytes so logStartIndex will not be maxBytes + 1
+      size_t logStartIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
+      while (copySize + logSize <= size &&
+             copySize + logSize <= getBufferSize()) {
+        copySize += logSize;
+        logStartIndex = getNextLogIndex(logStartIndex, &logSize);
+      }
     }
-    copySize = sizeAfterAddingLog - logSize;
     copyFromBuffer(copySize, destination);
-    mBufferDataHeadIndex = logStartIndex;
   }
 
   return copySize;

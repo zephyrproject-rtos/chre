@@ -22,8 +22,6 @@
 #include <cstring>
 
 #include "chre/platform/mutex.h"
-#include "chre/util/fixed_size_vector.h"
-#include "chre/util/singleton.h"
 
 namespace chre {
 
@@ -73,6 +71,9 @@ class LogBufferCallbackInterface {
  */
 class LogBuffer {
  public:
+  //! The max size of a single log entry which must fit in a single byte.
+  static constexpr size_t kLogMaxSize = UINT8_MAX;
+
   /**
    * @param callback The callback object that will receive notifications about
    *                 the state of the log buffer.
@@ -205,8 +206,6 @@ class LogBuffer {
   //! The number of bytes in a log entry of the buffer before the log data is
   //! encountered.
   static constexpr size_t kLogDataOffset = 5;
-  //! The max size of a single log entry which must fit in a single byte.
-  static constexpr size_t kLogMaxSize = 255;
 
   /**
    * The buffer data is stored in the format
