@@ -16,6 +16,7 @@
 
 #include "chre/platform/shared/platform_log.h"
 #include "chre/core/event_loop_manager.h"
+#include "chre/util/lock_guard.h"
 
 // TODO(b/174676445): Move functionality that is shared between platforms that
 // use buffered logging into the shared/ directory in its own implementation
@@ -57,16 +58,36 @@ PlatformLogBase::PlatformLogBase()
 void PlatformLogBase::onLogsReady(LogBuffer *logBuffer) {
   // TODO(b/174676964): Have the PlatformLog class also send logs to host if the
   // AP just awoke.
-  if (EventLoopManagerSingleton::isInitialized() &&
-      EventLoopManagerSingleton::get()
-          ->getEventLoop()
-          .getPowerControlManager()
-          .hostIsAwake()) {
-    // Post a deffered callback so that any errors that occur will not be logged
-    // causing a never ending recursive loop.
-    EventLoopManagerSingleton::get()->deferCallback(
+  LockGuard<Mutex> lockGuard(mFlushLogsMutex);
+  if (!mLogFlushToHostPending) {
+    if (EventLoopManagerSingleton::isInitialized() &&
+        EventLoopManagerSingleton::get()
+            ->getEventLoop()
+            .getPowerControlManager()
+            .hostIsAwake()) {
+      EventLoopManagerSingleton::get()->deferCallback(
+          SystemCallbackType::SendBufferedLogMessage, nullptr,
+          sendBufferedLogMessageCallback);
+      mLogFlushToHostPending = true;
+    }
+  } else {
+    mLogsBecameReadyWhileFlushPending = true;
+  }
+}
+
+void PlatformLogBase::onLogsSentToHost() {
+  bool shouldPostCallback = false;
+  {
+    LockGuard<Mutex> lockGuard(mFlushLogsMutex);
+    shouldPostCallback = mLogsBecameReadyWhileFlushPending;
+    mLogsBecameReadyWhileFlushPending = false;
+    mLogFlushToHostPending = shouldPostCallback;
+  }
+  if (shouldPostCallback) {
+    Nanoseconds delay(Milliseconds(10).toRawNanoseconds());
+    EventLoopManagerSingleton::get()->setDelayedCallback(
         SystemCallbackType::SendBufferedLogMessage, nullptr,
-        sendBufferedLogMessageCallback);
+        sendBufferedLogMessageCallback, delay);
   }
 }
 

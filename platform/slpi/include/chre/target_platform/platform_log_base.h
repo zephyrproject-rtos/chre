@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_SLPI_PLATFORM_LOG_BASE_H_
 #define CHRE_PLATFORM_SLPI_PLATFORM_LOG_BASE_H_
 
+#include "chre/platform/mutex.h"
 #include "chre/platform/shared/log_buffer.h"
 #include "chre_api/chre/re.h"
 
@@ -27,6 +28,8 @@ class PlatformLogBase : public LogBufferCallbackInterface {
   PlatformLogBase();
 
   void onLogsReady(LogBuffer *logBuffer) final;
+
+  void onLogsSentToHost();
 
   LogBuffer *getLogBuffer() {
     return &mLogBuffer;
@@ -45,6 +48,10 @@ class PlatformLogBase : public LogBufferCallbackInterface {
   LogBuffer mLogBuffer;
   uint8_t mTempLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
   uint8_t mLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
+
+  bool mLogFlushToHostPending = false;
+  bool mLogsBecameReadyWhileFlushPending = false;
+  Mutex mFlushLogsMutex;
 };
 
 }  // namespace chre

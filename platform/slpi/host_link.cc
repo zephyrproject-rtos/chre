@@ -29,6 +29,9 @@
 #include "chre/platform/memory.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/shared/nanoapp_load_manager.h"
+#ifdef CHRE_USE_BUFFERED_LOGGING
+#include "chre/platform/shared/platform_log.h"
+#endif
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
 #include "chre/platform/slpi/system_time.h"
@@ -319,9 +322,19 @@ int generateHubInfoResponse(uint16_t hostClientId, unsigned char *buffer,
 
 int generateMessageFromBuilder(ChreFlatBufferBuilder *builder,
                                unsigned char *buffer, size_t bufferSize,
-                               unsigned int *messageLen) {
+                               unsigned int *messageLen,
+                               bool isEncodedLogMessage) {
   CHRE_ASSERT(builder != nullptr);
   int result = copyToHostBuffer(*builder, buffer, bufferSize, messageLen);
+
+#ifdef CHRE_USE_BUFFERED_LOGGING
+  if (isEncodedLogMessage && PlatformLogSingleton::isInitialized()) {
+    PlatformLogSingleton::get()->onLogsSentToHost();
+  }
+#else
+  UNUSED_VAR(isEncodedLogMessage);
+#endif
+
   builder->~ChreFlatBufferBuilder();
   memoryFree(builder);
   return result;
@@ -585,8 +598,9 @@ extern "C" int chre_slpi_get_message_to_host(unsigned char *buffer,
       case PendingMessageType::LowPowerMicAccessRequest:
       case PendingMessageType::LowPowerMicAccessRelease:
       case PendingMessageType::EncodedLogMessage:
-        result = generateMessageFromBuilder(pendingMsg.data.builder, buffer,
-                                            bufferSize, messageLen);
+        result = generateMessageFromBuilder(
+            pendingMsg.data.builder, buffer, bufferSize, messageLen,
+            pendingMsg.type == PendingMessageType::EncodedLogMessage);
         break;
 
       default:
