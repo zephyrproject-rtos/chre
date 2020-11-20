@@ -28,6 +28,14 @@ class PlatformLogBase : public LogBufferCallbackInterface {
 
   void onLogsReady(LogBuffer *logBuffer) final;
 
+  LogBuffer *getLogBuffer() {
+    return &mLogBuffer;
+  }
+
+  uint8_t *getTempLogBufferData() {
+    return mTempLogBufferData;
+  }
+
  protected:
   /*
    * @return The LogBuffer log level for the given CHRE log level.
@@ -35,8 +43,8 @@ class PlatformLogBase : public LogBufferCallbackInterface {
   LogBufferLogLevel chreToLogBufferLogLevel(chreLogLevel chreLogLevel);
 
   LogBuffer mLogBuffer;
-  char mTempLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
-  char mLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
+  uint8_t mTempLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
+  uint8_t mLogBufferData[CHRE_MESSAGE_TO_HOST_MAX_SIZE];
 };
 
 }  // namespace chre

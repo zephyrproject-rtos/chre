@@ -56,6 +56,7 @@ enum class SystemCallbackType : uint16_t {
   TimerSyncRequest,
   DelayedFatalError,
   GnssRequestResyncEvent,
+  SendBufferedLogMessage,
 };
 
 //! Deferred/delayed callbacks use the event subsystem but are invariably sent
