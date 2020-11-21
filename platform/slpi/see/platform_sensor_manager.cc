@@ -147,8 +147,7 @@ uint8_t getUimgSensorType(uint8_t sensorType) {
  * found.
  */
 void crashAfterSensorNotFoundCallback(uint16_t /* eventType */,
-                                      void * /* data */,
-                                      void * /* extraData */) {
+                                      void * /* eventData */) {
   FATAL_ERROR("Missing required sensor(s)");
 }
 
