@@ -73,6 +73,11 @@ static bool areAllScanEventsReleased(void) {
   return gWifiCacheState.numWifiEventsPendingRelease == 0;
 }
 
+static bool isFrequencyListValid(const uint32_t *frequencyList,
+                                 uint16_t frequencyListLen) {
+  return (frequencyListLen == 0) || (frequencyList != NULL);
+}
+
 static bool paramsMatchScanCache(const struct chreWifiScanParams *params) {
   uint64_t timeNs = gWifiCacheState.event.referenceTime;
   // TODO(b/172663268): Add checks for other parameters
@@ -143,30 +148,37 @@ bool chreWifiScanCacheScanEventBegin(enum chreWifiScanType scanType,
                                      uint8_t radioChainPref,
                                      bool activeScanResult) {
   bool success = false;
-  if (chreWifiScanCacheIsInitialized() &&
-      !isWifiScanCacheBusy(true /* logOnBusy */)) {
-    success = true;
-    memset(&gWifiCacheState, 0, sizeof(gWifiCacheState));
+  if (chreWifiScanCacheIsInitialized()) {
+    enum chreError error = CHRE_ERROR_NONE;
+    if (!isFrequencyListValid(scannedFreqList, scannedFreqListLength)) {
+      gSystemApi->log(CHRE_LOG_ERROR, "Invalid frequency argument");
+      error = CHRE_ERROR_INVALID_ARGUMENT;
+    } else if (isWifiScanCacheBusy(true /* logOnBusy */)) {
+      error = CHRE_ERROR_BUSY;
+    } else {
+      success = true;
+      memset(&gWifiCacheState, 0, sizeof(gWifiCacheState));
 
-    gWifiCacheState.event.version = CHRE_WIFI_SCAN_EVENT_VERSION;
-    gWifiCacheState.event.scanType = scanType;
-    gWifiCacheState.event.ssidSetSize = ssidSetSize;
+      gWifiCacheState.event.version = CHRE_WIFI_SCAN_EVENT_VERSION;
+      gWifiCacheState.event.scanType = scanType;
+      gWifiCacheState.event.ssidSetSize = ssidSetSize;
 
-    scannedFreqListLength =
-        MIN(scannedFreqListLength, CHRE_WIFI_FREQUENCY_LIST_MAX_LEN);
-    if (scannedFreqList != NULL) {
-      memcpy(gWifiCacheState.scannedFreqList, scannedFreqList,
-             scannedFreqListLength * sizeof(uint32_t));
+      scannedFreqListLength =
+          MIN(scannedFreqListLength, CHRE_WIFI_FREQUENCY_LIST_MAX_LEN);
+      if (scannedFreqList != NULL) {
+        memcpy(gWifiCacheState.scannedFreqList, scannedFreqList,
+               scannedFreqListLength * sizeof(uint32_t));
+      }
+      gWifiCacheState.event.scannedFreqListLen = scannedFreqListLength;
+      gWifiCacheState.event.radioChainPref = radioChainPref;
+
+      gWifiCacheState.activeScanResult = activeScanResult;
+      gWifiCacheState.started = true;
     }
-    gWifiCacheState.event.scannedFreqListLen = scannedFreqListLength;
-    gWifiCacheState.event.radioChainPref = radioChainPref;
 
-    gWifiCacheState.activeScanResult = activeScanResult;
-    gWifiCacheState.started = true;
-  }
-
-  if (activeScanResult && !success) {
-    gCallbacks->scanResponseCallback(false /* pending */, CHRE_ERROR_BUSY);
+    if (activeScanResult && !success) {
+      gCallbacks->scanResponseCallback(false /* pending */, error);
+    }
   }
 
   return success;

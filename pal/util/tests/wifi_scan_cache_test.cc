@@ -256,6 +256,18 @@ TEST_F(WifiScanCacheTests, FrequencyListTest) {
   cacheDefaultWifiCacheTest(1 /* numEvents */, freqList, ARRAY_SIZE(freqList));
 }
 
+TEST_F(WifiScanCacheTests, InvalidFrequencyListTest) {
+  beginDefaultWifiCache(nullptr /* scannedFreqList */,
+                        1 /* scannedFreqListLen */);
+
+  // Check async response
+  EXPECT_TRUE(gWifiScanResponse.has_value());
+  EXPECT_FALSE(gWifiScanResponse->pending);
+  EXPECT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_INVALID_ARGUMENT);
+
+  EXPECT_EQ(gWifiScanResultList.size(), 0);
+}
+
 TEST_F(WifiScanCacheTests, SequentialWifiResultTest) {
   cacheDefaultWifiCacheTest(1 /* numEvents */, nullptr /* scannedFreqList */,
                             0 /* scannedFreqListLen */);
