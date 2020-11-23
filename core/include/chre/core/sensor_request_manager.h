@@ -296,7 +296,7 @@ class SensorRequestManager : public NonCopyable {
   DynamicVector<Sensor> mSensors;
 
   //! The list of logged sensor requests
-  static constexpr size_t kMaxSensorRequestLogs = 15;
+  static constexpr size_t kMaxSensorRequestLogs = 8;
   ArrayQueue<SensorRequestLog, kMaxSensorRequestLogs> mSensorRequestLogs;
 
   //! A queue of flush requests made by nanoapps.

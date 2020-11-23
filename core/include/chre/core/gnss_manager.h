@@ -174,7 +174,7 @@ class GnssSession {
   ArrayQueue<StateTransition, kMaxGnssStateTransitions> mStateTransitions;
 
   //! The list of most recent session request logs
-  static constexpr size_t kNumSessionRequestLogs = 10;
+  static constexpr size_t kNumSessionRequestLogs = 8;
   ArrayQueue<SessionRequestLog, kNumSessionRequestLogs> mSessionRequestLogs;
 
   //! The request multiplexer for GNSS session requests.
