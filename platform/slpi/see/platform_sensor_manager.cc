@@ -142,6 +142,7 @@ uint8_t getUimgSensorType(uint8_t sensorType) {
 
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
+#ifndef CHRE_LOG_ONLY_NO_SENSOR
 /**
  * Callback function which will run after a delay if a required sensor is not
  * found.
@@ -151,6 +152,7 @@ void crashAfterSensorNotFoundCallback(uint16_t /* eventType */,
                                       void * /* extraData */) {
   FATAL_ERROR("Missing required sensor(s)");
 }
+#endif
 
 void handleMissingSensor() {
   // Try rebooting if a sensor is missing, which might help recover from a
