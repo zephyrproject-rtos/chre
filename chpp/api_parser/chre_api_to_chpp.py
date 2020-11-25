@@ -723,13 +723,16 @@ class CodeGenerator:
 
         if member_info['is_nested_type']:
             out.append("    const {} *{}In =\n".format(chpp_type, variable_name))
-            out.append("        (const {} *) &((const uint8_t *)in)[in->{}.offset];\n".format(
+            out.append("        (const {} *) &((const uint8_t *)in)[in->{}.offset];\n\n".format(
                 chpp_type, variable_name))
 
-        out.append("    {} *{}Out = chppMalloc(in->{} * sizeof({}));\n".format(
-            chre_type, variable_name, annotation['length_field'], chre_type))
-        out.append("    if ({}Out == NULL) {{\n".format(variable_name))
-        out.append("      return false;\n")
+        out.append("    {} *{}Out = NULL;\n".format(chre_type, variable_name))
+        out.append("    if (in->{} > 0) {{\n".format(annotation['length_field']))
+        out.append("      {}Out = chppMalloc(in->{} * sizeof({}));\n".format(
+            variable_name, annotation['length_field'], chre_type))
+        out.append("      if ({}Out == NULL) {{\n".format(variable_name))
+        out.append("        return false;\n")
+        out.append("      }\n")
         out.append("    }\n\n")
 
         if member_info['is_nested_type']:
