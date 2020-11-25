@@ -78,10 +78,14 @@ void nanoappHandleEventCompat(uint32_t senderInstanceId, uint16_t eventType,
 //! Additional symbol used to determine the given unstable ID that was provided
 //! when building this nanoapp, if any. The symbol is placed in its own section
 //! so it be stripped to determine if the nanoapp changed compared to a previous
-//! version.
+//! version. We also align the variable to match the minimum alignment of the
+//! surrounding sections, since for compilers with a default size-1 alignment,
+//! there might be a spill-over from the previous segment if not zero-padded,
+//! when we attempt to read the string.
 #ifdef NANOAPP_UNSTABLE_ID
 DLL_EXPORT extern "C" const char _chreNanoappUnstableId[]
-    __attribute__((section(".unstable_id"))) = NANOAPP_UNSTABLE_ID;
+    __attribute__((section(".unstable_id"))) __attribute__((aligned(8))) =
+        NANOAPP_UNSTABLE_ID;
 #endif  // NANOAPP_UNSTABLE_ID
 
 DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
