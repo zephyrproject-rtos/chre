@@ -711,8 +711,11 @@ class CodeGenerator:
         else:
             chre_type = chpp_type
 
-        out.append("  if (in->{}.length != 0) {{\n".format(variable_name))
-
+        out.append("\n")
+        out.append("  if (in->{}.length == 0) {{\n".format(variable_name))
+        out.append("    out->{} = NULL;\n".format(variable_name))
+        out.append("  }\n")
+        out.append("  else {\n")
         out.append("    if (in->{}.offset + in->{}.length > inSize ||\n".format(
             variable_name, variable_name))
         out.append("        in->{}.length != in->{} * sizeof({})) {{\n".format(
@@ -726,13 +729,10 @@ class CodeGenerator:
             out.append("        (const {} *) &((const uint8_t *)in)[in->{}.offset];\n\n".format(
                 chpp_type, variable_name))
 
-        out.append("    {} *{}Out = NULL;\n".format(chre_type, variable_name))
-        out.append("    if (in->{} > 0) {{\n".format(annotation['length_field']))
-        out.append("      {}Out = chppMalloc(in->{} * sizeof({}));\n".format(
-            variable_name, annotation['length_field'], chre_type))
-        out.append("      if ({}Out == NULL) {{\n".format(variable_name))
-        out.append("        return false;\n")
-        out.append("      }\n")
+        out.append("    {} *{}Out = chppMalloc(in->{} * sizeof({}));\n".format(
+            chre_type, variable_name, annotation['length_field'], chre_type))
+        out.append("    if ({}Out == NULL) {{\n".format(variable_name))
+        out.append("      return false;\n")
         out.append("    }\n\n")
 
         if member_info['is_nested_type']:
