@@ -57,6 +57,9 @@ ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
 COMMON_CFLAGS += -DCHRE_WWAN_SUPPORT_ENABLED
 endif
 
+# Optional on-device unit tests support
+include $(CHRE_PREFIX)/test/test.mk
+
 # Determine the CHRE_HOST_OS to resolve build discrepancies across Darwin and
 # Linux.
 CHRE_HOST_OS := $(shell uname)
