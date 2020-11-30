@@ -80,7 +80,7 @@ static bool isFrequencyListValid(const uint32_t *frequencyList,
 
 static bool paramsMatchScanCache(const struct chreWifiScanParams *params) {
   uint64_t timeNs = gWifiCacheState.event.referenceTime;
-  // TODO(b/172663268): Add checks for other parameters
+  // TODO(b/174510035): Add checks for other parameters
   return (timeNs >= gSystemApi->getCurrentTime() - params->maxScanAgeMs);
 }
 
@@ -111,8 +111,8 @@ static void chreWifiScanCacheDispatchAll(void) {
     gWifiCacheState.event.eventIndex = eventIndex++;
     gWifiCacheState.event.results = &gWifiCacheState.resultList[i];
 
-    // TODO: The current approach only works for situations where the
-    // event is released immediately. Add a way to handle this scenario
+    // TODO(b/174511061): The current approach only works for situations where
+    // the event is released immediately. Add a way to handle this scenario
     // (e.g. an array of chreWifiScanEvent's).
     gWifiCacheState.numWifiEventsPendingRelease++;
     gCallbacks->scanEventCallback(&gWifiCacheState.event);
@@ -190,7 +190,7 @@ void chreWifiScanCacheScanEventAdd(const struct chreWifiScanResult *result) {
   } else {
     if (gWifiCacheState.event.resultTotal >=
         CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY) {
-      // TODO(b/172663268): Filter based on e.g. RSSI if full
+      // TODO(b/174510884): Filter based on e.g. RSSI if full
       gWifiCacheState.numWifiScanResultsDropped++;
     } else {
       size_t index = gWifiCacheState.event.resultTotal;
@@ -246,7 +246,7 @@ bool chreWifiScanCacheDispatchFromCache(
 
   if (paramsMatchScanCache(params) &&
       !isWifiScanCacheBusy(false /* logOnBusy */)) {
-    // TODO(b/172663268): Handle scenario where cache is working on delivering
+    // TODO(b/174511061): Handle scenario where cache is working on delivering
     // a scan event. Ideally the library will wait until it is complete to
     // dispatch from the cache if it meets the criteria, rather than scheduling
     // a fresh scan.
