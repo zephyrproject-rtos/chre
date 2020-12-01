@@ -131,6 +131,8 @@ static void chppWifiGetCapabilitiesResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
 static void chppWifiConfigureScanMonitorResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
+static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
+                                      uint8_t *buf, size_t len);
 
 static void chppWifiScanEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
@@ -186,6 +188,12 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
       chppClientTimestampResponse(&wifiClientContext->configureScanMonitor,
                                   rxHeader);
       chppWifiConfigureScanMonitorResult(wifiClientContext, buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_REQUEST_SCAN_ASYNC: {
+      chppClientTimestampResponse(&wifiClientContext->requestScan, rxHeader);
+      chppWifiRequestScanResult(wifiClientContext, buf, len);
       break;
     }
 
@@ -350,7 +358,7 @@ static void chppWifiConfigureScanMonitorResult(
 
   } else {
     struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
-        (struct ChppWifiConfigureScanMonitorAsyncResponseParameters *)buf;
+        &((struct ChppWifiConfigureScanMonitorAsyncResponse *)buf)->params;
 
     CHPP_LOGD(
         "chppWifiConfigureScanMonitorResult received enable=%s, "
@@ -359,6 +367,33 @@ static void chppWifiConfigureScanMonitorResult(
 
     gCallbacks->scanMonitorStatusChangeCallback(result->enabled,
                                                 result->errorCode);
+  }
+}
+
+/**
+ * Handles the service response for the Request Scan Result client request.
+ *
+ * This function is called from chppDispatchWifiResponse().
+ *
+ * @param clientContext Maintains status for each client instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
+                                      uint8_t *buf, size_t len) {
+  UNUSED_VAR(clientContext);
+
+  if (len < sizeof(struct ChppWifiRequestScanResponseParameters)) {
+    CHPP_LOGE("WiFi RequestScanResult result too short");
+
+  } else {
+    struct ChppWifiRequestScanResponseParameters *result =
+        &((struct ChppWifiRequestScanResponse *)buf)->params;
+
+    CHPP_LOGD("WiFi RequestScanResult request %ssuccessful at service",
+              result->pending ? "" : "FAILURE - un");
+
+    gCallbacks->scanResponseCallback(result->pending, result->errorCode);
   }
 }
 

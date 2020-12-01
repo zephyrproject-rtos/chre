@@ -87,10 +87,16 @@ CHPP_PACKED_END
  * Data structure used by the Request Scan Response.
  */
 CHPP_PACKED_START
-struct ChppWifiRequestScanResponse {
-  struct ChppAppHeader header;
+struct ChppWifiRequestScanResponseParameters {
   bool pending;
   uint8_t errorCode;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
+CHPP_PACKED_START
+struct ChppWifiRequestScanResponse {
+  struct ChppAppHeader header;
+  struct ChppWifiRequestScanResponseParameters params;
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 

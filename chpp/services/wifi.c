@@ -515,8 +515,8 @@ static void chppWifiServiceScanResponseCallback(bool pending,
     CHPP_ASSERT(false);
 
   } else {
-    response->pending = pending;
-    response->errorCode = errorCode;
+    response->params.pending = pending;
+    response->params.errorCode = errorCode;
 
     chppSendTimestampedResponseOrFail(&gWifiServiceContext.service,
                                       &gWifiServiceContext.requestScanAsync,
