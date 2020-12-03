@@ -565,16 +565,18 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
 
 /**
  * Notifies the transport layer that the app layer is done with the previous
- * payload (as provided to chppProcessRxDatagram() through buf and len), so it
- * is freed appropriately etc.
+ * payload (as provided to chppAppProcessRxDatagram() through buf and len), so
+ * it is freed appropriately etc.
  *
  * TODO: Look into automatically doing this when a response is sent back by a
  * service.
  *
  * @param context Maintains status for each transport layer instance.
- * @param buf Pointer to the buf given to chppProcessRxDatagram. Cannot be null.
+ * @param buf Pointer to the buf given to chppAppProcessRxDatagram. Cannot be
+ * null.
  */
-void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf);
+void chppDatagramProcessDoneCb(struct ChppTransportState *context,
+                               uint8_t *buf);
 
 /**
  * Sends out transport-layer loopback data. Note that in most situations, an

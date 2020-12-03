@@ -484,7 +484,7 @@ static void chppProcessResetAck(struct ChppTransportState *context) {
 
   // TODO: Configure transport layer based on (optional?) received config
 
-  chppAppProcessDoneCb(context, context->rxDatagram.payload);
+  chppDatagramProcessDoneCb(context, context->rxDatagram.payload);
   chppClearRxDatagram(context);
 }
 
@@ -512,10 +512,10 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
 
     // Send the payload to the App Layer
     // Note that it is up to the app layer to free the buffer using
-    // chppAppProcessDoneCb() after is is done.
+    // chppDatagramProcessDoneCb() after is is done.
     chppMutexUnlock(&context->mutex);
-    chppProcessRxDatagram(context->appContext, context->rxDatagram.payload,
-                          context->rxDatagram.length);
+    chppAppProcessRxDatagram(context->appContext, context->rxDatagram.payload,
+                             context->rxDatagram.length);
     chppMutexLock(&context->mutex);
 
     CHPP_LOGD("App layer processed datagram with len=%" PRIuSIZE
@@ -535,7 +535,7 @@ static void chppProcessRxPayload(struct ChppTransportState *context) {
  * Resets the incoming datagram state, i.e. after the datagram has been
  * processed.
  * Note that it is up to the app layer to inform the transport layer using
- * chppAppProcessDoneCb() once it is done with the buffer so it is freed.
+ * chppDatagramProcessDoneCb() once it is done with the buffer so it is freed.
  *
  * @param context Maintains status for each transport layer instance.
  */
@@ -1283,7 +1283,8 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
   chppMutexUnlock(&context->mutex);
 }
 
-void chppAppProcessDoneCb(struct ChppTransportState *context, uint8_t *buf) {
+void chppDatagramProcessDoneCb(struct ChppTransportState *context,
+                               uint8_t *buf) {
   UNUSED_VAR(context);
 
   CHPP_FREE_AND_NULLIFY(buf);

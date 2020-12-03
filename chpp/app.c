@@ -640,12 +640,12 @@ void chppAppDeinitTransient(struct ChppAppState *appContext) {
   chppPalSystemApiDeinit(appContext);
 }
 
-void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
-                           size_t len) {
+void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
+                              size_t len) {
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (len == 0) {
-    CHPP_LOGE("chppProcessRxDatagram called with payload length of 0");
+    CHPP_LOGE("chppAppProcessRxDatagram called with payload length of 0");
     CHPP_DEBUG_ASSERT(false);
 
   } else if (len < sizeof(struct ChppAppHeader)) {
@@ -673,7 +673,7 @@ void chppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
     }
   }
 
-  chppAppProcessDoneCb(context->transportContext, buf);
+  chppDatagramProcessDoneCb(context->transportContext, buf);
 }
 
 void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
