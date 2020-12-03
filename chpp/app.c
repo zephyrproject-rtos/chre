@@ -365,8 +365,9 @@ static inline const struct ChppService *chppServiceOfHandle(
  */
 static inline const struct ChppClient *chppClientOfHandle(
     struct ChppAppState *context, uint8_t handle) {
-  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
-                    context->registeredClientCount);
+  CHPP_DEBUG_ASSERT(
+      context->clientIndexOfServiceIndex[CHPP_SERVICE_INDEX_OF_HANDLE(handle)] <
+      context->registeredClientCount);
   return context->registeredClients[context->clientIndexOfServiceIndex
                                         [CHPP_SERVICE_INDEX_OF_HANDLE(handle)]];
 }
