@@ -326,7 +326,9 @@ static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
 static void chppWifiGetCapabilitiesResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWifiGetCapabilitiesResponse)) {
-    CHPP_LOGE("WiFi GetCapabilities result too short");
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("WiFi GetCapabilities request failed at service. error=%" PRIu8,
+              rxHeader->error);
 
   } else {
     struct ChppWifiGetCapabilitiesParameters *result =
@@ -352,9 +354,11 @@ static void chppWifiConfigureScanMonitorResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
 
-  if (len <
-      sizeof(struct ChppWifiConfigureScanMonitorAsyncResponseParameters)) {
-    CHPP_LOGE("WiFi ControlLocationSession result too short");
+  if (len < sizeof(struct ChppWifiConfigureScanMonitorAsyncResponse)) {
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE(
+        "WiFi ControlLocationSession request failed at service. error=%" PRIu8,
+        rxHeader->error);
 
   } else {
     struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
@@ -383,15 +387,17 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
                                       uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
 
-  if (len < sizeof(struct ChppWifiRequestScanResponseParameters)) {
-    CHPP_LOGE("WiFi RequestScanResult result too short");
+  if (len < sizeof(struct ChppWifiRequestScanResponse)) {
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("WiFi RequestScanResult request failed at service. error=%" PRIu8,
+              rxHeader->error);
 
   } else {
     struct ChppWifiRequestScanResponseParameters *result =
         &((struct ChppWifiRequestScanResponse *)buf)->params;
 
     CHPP_LOGD("WiFi RequestScanResult request %ssuccessful at service",
-              result->pending ? "" : "FAILURE - un");
+              result->pending ? "accepted and " : "FAILURE - accepted but un");
 
     gCallbacks->scanResponseCallback(result->pending, result->errorCode);
   }

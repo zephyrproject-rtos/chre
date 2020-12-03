@@ -259,7 +259,9 @@ static void chppWwanCloseResult(struct ChppWwanClientState *clientContext,
 static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
-    CHPP_LOGE("WWAN GetCapabilities result too short");
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("WWAN GetCapabilities request failed at service. error=%" PRIu8,
+              rxHeader->error);
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =

@@ -339,7 +339,9 @@ static void chppGnssCloseResult(struct ChppGnssClientState *clientContext,
 static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppGnssGetCapabilitiesResponse)) {
-    CHPP_LOGE("GNSS GetCapabilities result too short");
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("GNSS GetCapabilities request failed at service. error=%" PRIu8,
+              rxHeader->error);
 
   } else {
     struct ChppGnssGetCapabilitiesParameters *result =
@@ -367,7 +369,10 @@ static void chppGnssControlLocationSessionResult(
   UNUSED_VAR(clientContext);
 
   if (len < sizeof(struct ChppGnssControlLocationSessionResponse)) {
-    CHPP_LOGE("GNSS ControlLocationSession result too short");
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE(
+        "GNSS ControlLocationSession request failed at service. error=%" PRIu8,
+        rxHeader->error);
 
   } else {
     struct ChppGnssControlLocationSessionResponse *result =
@@ -398,7 +403,11 @@ static void chppGnssControlMeasurementSessionResult(
   UNUSED_VAR(clientContext);
 
   if (len < sizeof(struct ChppGnssControlMeasurementSessionResponse)) {
-    CHPP_LOGE("GNSS ControlMeasurementSession result too short");
+    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE(
+        "GNSS ControlMeasurementSession request failed at service. "
+        "error=%" PRIu8,
+        rxHeader->error);
 
   } else {
     struct ChppGnssControlMeasurementSessionResponse *result =
