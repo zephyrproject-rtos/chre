@@ -66,16 +66,16 @@ static const struct ChppClient kWifiClientConfig = {
     .descriptor.version.minor = 0,
     .descriptor.version.patch = 0,
 
-    // Server response dispatch function pointer
+    // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWifiResponse,
 
-    // Server notification dispatch function pointer
+    // Service notification dispatch function pointer
     .notificationDispatchFunctionPtr = &chppDispatchWifiNotification,
 
-    // Server response dispatch function pointer
+    // Service response dispatch function pointer
     .initFunctionPtr = &chppWifiClientInit,
 
-    // Server notification dispatch function pointer
+    // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppWifiClientDeinit,
 
     // Min length is the entire header
@@ -144,7 +144,7 @@ static void chppWifiRangingEventNotification(
  ***********************************************/
 
 /**
- * Dispatches a server response from the transport layer that is determined to
+ * Dispatches a service response from the transport layer that is determined to
  * be for the WiFi client.
  *
  * This function is called from the app layer using its function pointer given
@@ -207,7 +207,7 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
 }
 
 /**
- * Dispatches a server notification from the transport layer that is determined
+ * Dispatches a service notification from the transport layer that is determined
  * to be for the WiFi client.
  *
  * This function is called from the app layer using its function pointer given
@@ -281,7 +281,7 @@ static void chppWifiClientDeinit(void *clientContext) {
 }
 
 /**
- * Handles the server response for the open client request.
+ * Handles the service response for the open client request.
  *
  * This function is called from chppDispatchWifiResponse().
  *
@@ -298,7 +298,7 @@ static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
 }
 
 /**
- * Handles the server response for the close client request.
+ * Handles the service response for the close client request.
  *
  * This function is called from chppDispatchWifiResponse().
  *
@@ -315,7 +315,7 @@ static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
 }
 
 /**
- * Handles the server response for the get capabilities client request.
+ * Handles the service response for the get capabilities client request.
  *
  * This function is called from chppDispatchWifiResponse().
  *
@@ -404,7 +404,7 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
 }
 
 /**
- * Handles the WiFi scan event server notification.
+ * Handles the WiFi scan event service notification.
  *
  * This function is called from chppDispatchWifiNotification().
  *
@@ -434,7 +434,7 @@ static void chppWifiScanEventNotification(
 }
 
 /**
- * Handles the WiFi ranging event server notification.
+ * Handles the WiFi ranging event service notification.
  *
  * This function is called from chppDispatchWifiNotification().
  *

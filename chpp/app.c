@@ -172,7 +172,7 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
 
   if (dispatchResult == false) {
     CHPP_LOGE("Handle=%" PRIu8
-              " received unknown server response. command=%#x, transaction ID="
+              " received unknown service response. command=%#x, transaction ID="
               "%" PRIu8 ", len=%" PRIuSIZE,
               rxHeader->handle, rxHeader->command, rxHeader->transaction, len);
   }

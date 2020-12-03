@@ -215,7 +215,7 @@ void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
 void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState);
 
 /**
- * Timestamps a server response using chppServiceTimestampResponse() and
+ * Timestamps a service response using chppServiceTimestampResponse() and
  * enqueues it using chppEnqueueTxDatagramOrFail().
  *
  * Refer to their respective documentation for details.

@@ -60,16 +60,16 @@ static const struct ChppClient kWwanClientConfig = {
     .descriptor.version.minor = 0,
     .descriptor.version.patch = 0,
 
-    // Server response dispatch function pointer
+    // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWwanResponse,
 
-    // Server notification dispatch function pointer
+    // Service notification dispatch function pointer
     .notificationDispatchFunctionPtr = NULL,  // Not supported
 
-    // Server response dispatch function pointer
+    // Service response dispatch function pointer
     .initFunctionPtr = &chppWwanClientInit,
 
-    // Server notification dispatch function pointer
+    // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppWwanClientDeinit,
 
     // Min length is the entire header
@@ -124,7 +124,7 @@ static void chppWwanGetCellInfoAsyncResult(
  ***********************************************/
 
 /**
- * Dispatches a server response from the transport layer that is determined to
+ * Dispatches a service response from the transport layer that is determined to
  * be for the WWAN client.
  *
  * This function is called from the app layer using its function pointer given
@@ -214,7 +214,7 @@ static void chppWwanClientDeinit(void *clientContext) {
 }
 
 /**
- * Handles the server response for the open client request.
+ * Handles the service response for the open client request.
  *
  * This function is called from chppDispatchWwanResponse().
  *
@@ -231,7 +231,7 @@ static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
 }
 
 /**
- * Handles the server response for the close client request.
+ * Handles the service response for the close client request.
  *
  * This function is called from chppDispatchWwanResponse().
  *
@@ -248,7 +248,7 @@ static void chppWwanCloseResult(struct ChppWwanClientState *clientContext,
 }
 
 /**
- * Handles the server response for the get capabilities client request.
+ * Handles the service response for the get capabilities client request.
  *
  * This function is called from chppDispatchWwanResponse().
  *
@@ -275,7 +275,7 @@ static void chppWwanGetCapabilitiesResult(
 }
 
 /**
- * Handles the server response for the asynchronous get cell info client
+ * Handles the service response for the asynchronous get cell info client
  * request.
  *
  * This function is called from chppDispatchWwanResponse().
