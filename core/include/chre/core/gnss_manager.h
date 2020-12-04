@@ -416,6 +416,15 @@ class GnssManager : public NonCopyable {
   void handleRequestStateResyncCallbackSync();
 
   /**
+   * @param nanoapp The nanoapp invoking
+   * chreGnssConfigurePassiveLocationListener.
+   * @param enable true to enable the configuration.
+   *
+   * @return true if the configuration succeeded.
+   */
+  bool configurePassiveLocationListener(Nanoapp *nanoapp, bool enable);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *

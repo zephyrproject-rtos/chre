@@ -98,6 +98,12 @@ void GnssManager::handleRequestStateResyncCallback() {
       SystemCallbackType::GnssRequestResyncEvent, nullptr /* data */, callback);
 }
 
+bool GnssManager::configurePassiveLocationListener(Nanoapp * /* nanoapp */,
+                                                   bool /* enable */) {
+  // TODO(b/174590024): Implement this
+  return false;
+}
+
 void GnssManager::handleRequestStateResyncCallbackSync() {
   mLocationSession.handleRequestStateResyncCallbackSync();
   mMeasurementSession.handleRequestStateResyncCallbackSync();

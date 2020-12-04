@@ -86,3 +86,14 @@ DLL_EXPORT bool chreGnssMeasurementSessionStopAsync(const void *cookie) {
   return false;
 #endif  // CHRE_GNSS_SUPPORT_ENABLED
 }
+
+DLL_EXPORT bool chreGnssConfigurePassiveLocationListener(bool enable) {
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return chre::EventLoopManagerSingleton::get()
+      ->getGnssManager()
+      .configurePassiveLocationListener(nanoapp, enable);
+#else
+  return false;
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
+}
