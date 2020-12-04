@@ -57,6 +57,7 @@
 
 void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_LOGD("Registering Clients");
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
   if (context->clientServiceSet.loopbackClient) {
@@ -91,6 +92,7 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
 
 void chppDeregisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_LOGD("Deregistering Clients");
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
   if (context->clientServiceSet.loopbackClient) {

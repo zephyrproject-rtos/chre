@@ -233,6 +233,10 @@ bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
   }
 
   chppMutexUnlock(&context->discoveryMutex);
+
+  if (!success) {
+    CHPP_LOGE("Timed out waiting for DiscoveryComplete");
+  }
   return success;
 }
 

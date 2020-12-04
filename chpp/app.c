@@ -607,6 +607,7 @@ void chppAppInitWithClientServiceSet(
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
   chppDiscoveryInit(appContext);
 #endif  // CHPP_CLIENT_ENABLED_DISCOVERY
+
   chppPalSystemApiInit(appContext);
 #ifdef CHPP_SERVICE_ENABLED
   chppRegisterCommonServices(appContext);

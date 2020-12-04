@@ -29,6 +29,8 @@
 #include "chpp/time.h"
 #include "chpp/transport.h"
 
+#include "chpp/clients/discovery.h"
+
 /************************************************
  *  Private Definitions
  ***********************************************/
@@ -49,6 +51,8 @@ struct ChppTimesyncClientState {
  ***********************************************/
 
 void chppTimesyncClientInit(struct ChppAppState *context) {
+  CHPP_LOGD("Timesync client init");
+
   context->timesyncClientContext =
       chppMalloc(sizeof(struct ChppTimesyncClientState));
   CHPP_NOT_NULL(context->timesyncClientContext);
@@ -60,12 +64,20 @@ void chppTimesyncClientInit(struct ChppAppState *context) {
 }
 
 void chppTimesyncClientDeinit(struct ChppAppState *context) {
+  CHPP_LOGD("Timesync client deinit");
+
+  CHPP_NOT_NULL(context->timesyncClientContext);
   chppClientDeinit(&context->timesyncClientContext->client);
   CHPP_FREE_AND_NULLIFY(context->timesyncClientContext);
 }
 
 bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
                                          const uint8_t *buf, size_t len) {
+  CHPP_LOGD("Timesync client dispatch service response");
+
+  CHPP_NOT_NULL(context->timesyncClientContext);
+  CHPP_NOT_NULL(buf);
+
   if (len != sizeof(struct ChppTimesyncResponse)) {
     context->timesyncClientContext->timesyncResult.error =
         CHPP_APP_ERROR_INVALID_LENGTH;
@@ -118,6 +130,14 @@ struct ChppTimesyncResult chppGetTimesync(struct ChppAppState *context) {
   CHPP_LOGD("Running chppGetTimesync at time~=%" PRIu64 " with %d measurements",
             chppGetCurrentTimeNs(),
             CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT);
+
+  if (!chppWaitForDiscoveryComplete(context,
+                                    CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS)) {
+    static const struct ChppTimesyncResult result = {
+        .error = CHPP_APP_ERROR_NOT_READY,
+    };
+    return result;
+  }
 
   if (context->timesyncClientContext->timesyncResult.error ==
       CHPP_APP_ERROR_BLOCKED) {

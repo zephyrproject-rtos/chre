@@ -27,6 +27,8 @@
 #include "chpp/memory.h"
 #include "chpp/transport.h"
 
+#include "chpp/clients/discovery.h"
+
 /************************************************
  *  Prototypes
  ***********************************************/
@@ -52,8 +54,12 @@ struct ChppLoopbackClientState {
  ***********************************************/
 
 void chppLoopbackClientInit(struct ChppAppState *context) {
+  CHPP_LOGD("Loopback client init");
+
   context->loopbackClientContext =
       chppMalloc(sizeof(struct ChppLoopbackClientState));
+
+  CHPP_NOT_NULL(context);
   CHPP_NOT_NULL(context->loopbackClientContext);
 
   context->loopbackClientContext->client.appContext = context;
@@ -62,12 +68,19 @@ void chppLoopbackClientInit(struct ChppAppState *context) {
 }
 
 void chppLoopbackClientDeinit(struct ChppAppState *context) {
+  CHPP_LOGD("Loopback client deinit");
+
+  CHPP_NOT_NULL(context);
+  CHPP_NOT_NULL(context->loopbackClientContext);
+
   chppClientDeinit(&context->loopbackClientContext->client);
   CHPP_FREE_AND_NULLIFY(context->loopbackClientContext);
 }
 
 bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
                                          const uint8_t *response, size_t len) {
+  CHPP_LOGD("Loopback client dispatch service response");
+
   CHPP_ASSERT(len >= CHPP_LOOPBACK_HEADER_LEN);
   CHPP_NOT_NULL(response);
   CHPP_NOT_NULL(context->loopbackClientContext);
@@ -138,6 +151,14 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
             ", request len=%" PRIuSIZE,
             len, len + CHPP_LOOPBACK_HEADER_LEN);
 
+  if (!chppWaitForDiscoveryComplete(context,
+                                    CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS)) {
+    static const struct ChppLoopbackTestResult result = {
+        .error = CHPP_APP_ERROR_NOT_READY,
+    };
+    return result;
+  }
+
   CHPP_NOT_NULL(context->loopbackClientContext);
   if (context->loopbackClientContext->testResult.error ==
       CHPP_APP_ERROR_BLOCKED) {
@@ -158,7 +179,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
         CHPP_TIME_NONE;
 
     if (len == 0) {
-      CHPP_LOGE("Loopback payload too short");
+      CHPP_LOGE("Loopback payload too short (0)");
       context->loopbackClientContext->testResult.error =
           CHPP_APP_ERROR_INVALID_LENGTH;
 

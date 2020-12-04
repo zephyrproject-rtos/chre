@@ -137,6 +137,8 @@ enum ChppAppErrorCode {
   CHPP_APP_ERROR_BLOCKED = 9,
   //! Invalid length
   CHPP_APP_ERROR_INVALID_LENGTH = 10,
+  //! CHPP Not Ready
+  CHPP_APP_ERROR_NOT_READY = 11,
   //! Unspecified failure
   CHPP_APP_ERROR_UNSPECIFIED = 255
 };
