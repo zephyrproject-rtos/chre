@@ -119,6 +119,25 @@ static void chreWifiScanCacheDispatchAll(void) {
   }
 }
 
+static bool isWifiScanResultInCache(const struct chreWifiScanResult *result,
+                                    size_t *index) {
+  for (uint8_t i = 0; i < gWifiCacheState.event.resultTotal; i++) {
+    const struct chreWifiScanResult *cacheResult =
+        &gWifiCacheState.resultList[i];
+    // Filtering based on BSSID + SSID + frequency based on Linux cfg80211.
+    // https://github.com/torvalds/linux/blob/master/net/wireless/scan.c
+    if ((result->primaryChannel == cacheResult->primaryChannel) &&
+        (memcmp(result->bssid, cacheResult->bssid, CHRE_WIFI_BSSID_LEN) == 0) &&
+        (result->ssidLen == cacheResult->ssidLen) &&
+        (memcmp(result->ssid, cacheResult->ssid, result->ssidLen) == 0)) {
+      *index = i;
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /************************************************
  *  Public functions
  ***********************************************/
@@ -188,20 +207,25 @@ void chreWifiScanCacheScanEventAdd(const struct chreWifiScanResult *result) {
   if (!gWifiCacheState.started) {
     gSystemApi->log(CHRE_LOG_ERROR, "Cannot add to cache before starting it");
   } else {
-    if (gWifiCacheState.event.resultTotal >=
-        CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY) {
+    size_t index;
+    bool exists = isWifiScanResultInCache(result, &index);
+    if (!exists && gWifiCacheState.event.resultTotal >=
+                       CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY) {
       // TODO(b/174510884): Filter based on e.g. RSSI if full
       gWifiCacheState.numWifiScanResultsDropped++;
     } else {
-      size_t index = gWifiCacheState.event.resultTotal;
+      if (!exists) {
+        // Only add a new entry if the result was not already cached.
+        index = gWifiCacheState.event.resultTotal;
+        gWifiCacheState.event.resultTotal++;
+      }
+
       memcpy(&gWifiCacheState.resultList[index], result,
              sizeof(const struct chreWifiScanResult));
 
       // ageMs will be properly populated in chreWifiScanCacheScanEventEnd
       gWifiCacheState.resultList[index].ageMs = (uint32_t)(
           gSystemApi->getCurrentTime() / kOneMillisecondInNanoseconds);
-
-      gWifiCacheState.event.resultTotal++;
     }
   }
 }

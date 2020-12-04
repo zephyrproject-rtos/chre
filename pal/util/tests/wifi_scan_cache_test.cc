@@ -147,12 +147,12 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
   chreWifiScanResult result = {};
   for (size_t i = 0; i < numEvents; i++) {
     result.rssi = static_cast<int8_t>(i);
+    memcpy(result.bssid, &i, sizeof(i));
     chreWifiScanCacheScanEventAdd(&result);
   }
 
   chreWifiScanCacheScanEventEnd(CHRE_ERROR_NONE);
 
-  // Check async response
   if (activeScanResult) {
     EXPECT_TRUE(gWifiScanResponse.has_value());
     EXPECT_EQ(gWifiScanResponse->pending, true);
@@ -172,6 +172,7 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
     // ageMs is not known apriori
     result.ageMs = gWifiScanResultList[i].ageMs;
     result.rssi = static_cast<int8_t>(i);
+    memcpy(result.bssid, &i, sizeof(i));
     EXPECT_EQ(
         memcmp(&gWifiScanResultList[i], &result, sizeof(chreWifiScanResult)),
         0);
@@ -200,7 +201,6 @@ void testCacheDispatch(size_t numEvents, uint32_t maxScanAgeMs,
   };
   EXPECT_EQ(chreWifiScanCacheDispatchFromCache(&params), expectSuccess);
 
-  // Check async response
   EXPECT_EQ(gWifiScanResponse.has_value(), expectSuccess);
   if (expectSuccess) {
     EXPECT_TRUE(gWifiScanResponse->pending);
@@ -243,7 +243,6 @@ TEST_F(WifiScanCacheTests, FailedWifiCacheTest) {
 
   chreWifiScanCacheScanEventEnd(CHRE_ERROR);
 
-  // Check async response
   EXPECT_TRUE(gWifiScanResponse.has_value());
   EXPECT_FALSE(gWifiScanResponse->pending);
   EXPECT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR);
@@ -260,7 +259,6 @@ TEST_F(WifiScanCacheTests, InvalidFrequencyListTest) {
   beginDefaultWifiCache(nullptr /* scannedFreqList */,
                         1 /* scannedFreqListLen */);
 
-  // Check async response
   EXPECT_TRUE(gWifiScanResponse.has_value());
   EXPECT_FALSE(gWifiScanResponse->pending);
   EXPECT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_INVALID_ARGUMENT);
@@ -315,4 +313,45 @@ TEST_F(WifiScanCacheTests, CacheDispatchTest) {
 TEST_F(WifiScanCacheTests, ZeroMaxScanAgeCacheDispatchTest) {
   testCacheDispatch(1 /* numEvents */, 0 /* maxScanAgeMs */,
                     false /* expectSuccess */);
+}
+
+TEST_F(WifiScanCacheTests, DuplicateScanResultTest) {
+  beginDefaultWifiCache(nullptr /* scannedFreqList */,
+                        0 /* scannedFreqListLen */,
+                        true /* activeScanResult */);
+
+  chreWifiScanResult result = {};
+  result.rssi = -98;
+  result.primaryChannel = 5270;
+  const char *dummySsid = "Test ssid";
+  memcpy(result.ssid, dummySsid, strlen(dummySsid));
+  result.ssidLen = strlen(dummySsid);
+  const char *dummyBssid = "12:34:56:78:9a:bc";
+  memcpy(result.bssid, dummyBssid, strlen(dummyBssid));
+  chreWifiScanResult result2 = {};
+  result.rssi = -98;
+  result.primaryChannel = 5270;
+  const char *dummySsid2 = "Test ssid 2";
+  memcpy(result.ssid, dummySsid, strlen(dummySsid2));
+  result.ssidLen = strlen(dummySsid);
+  const char *dummyBssid2 = "34:56:78:9a:bc:de";
+  memcpy(result.bssid, dummyBssid, strlen(dummyBssid2));
+
+  chreWifiScanCacheScanEventAdd(&result);
+  chreWifiScanCacheScanEventAdd(&result2);
+  chreWifiScanCacheScanEventAdd(&result);
+
+  chreWifiScanCacheScanEventEnd(CHRE_ERROR_NONE);
+
+  EXPECT_TRUE(gWifiScanResponse.has_value());
+  EXPECT_EQ(gWifiScanResponse->pending, true);
+  ASSERT_EQ(gWifiScanResponse->errorCode, CHRE_ERROR_NONE);
+
+  ASSERT_EQ(gWifiScanResultList.size(), 2);
+  result.ageMs = gWifiScanResultList[0].ageMs;
+  EXPECT_EQ(
+      memcmp(&gWifiScanResultList[0], &result, sizeof(chreWifiScanResult)), 0);
+  result2.ageMs = gWifiScanResultList[1].ageMs;
+  EXPECT_EQ(
+      memcmp(&gWifiScanResultList[1], &result2, sizeof(chreWifiScanResult)), 0);
 }
