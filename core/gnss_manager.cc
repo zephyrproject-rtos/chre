@@ -98,21 +98,84 @@ void GnssManager::handleRequestStateResyncCallback() {
       SystemCallbackType::GnssRequestResyncEvent, nullptr /* data */, callback);
 }
 
-bool GnssManager::configurePassiveLocationListener(Nanoapp * /* nanoapp */,
-                                                   bool /* enable */) {
-  // TODO(b/174590024): Implement this
-  return false;
+bool GnssManager::configurePassiveLocationListener(Nanoapp *nanoapp,
+                                                   bool enable) {
+  bool success = false;
+  uint32_t instanceId = nanoapp->getInstanceId();
+
+  size_t index;
+  if (nanoappHasPassiveLocationListener(instanceId, &index) != enable) {
+    uint32_t capabilities = getCapabilities();
+    bool locationSupported =
+        (capabilities & CHRE_GNSS_CAPABILITIES_LOCATION) != 0;
+    bool passiveLocationListenerSupported =
+        (capabilities &
+         CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER) != 0;
+
+    if (!locationSupported) {
+      LOGE("Platform does not have the location capability");
+    } else if (enable && !mPassiveLocationListenerNanoapps.prepareForPush()) {
+      LOG_OOM();
+    } else {
+      if (!passiveLocationListenerSupported) {
+        // Silently succeed per API, since listener capability will occur within
+        // CHRE (nanoapp requests).
+        success = true;
+      } else if ((enable && mPassiveLocationListenerNanoapps.empty()) ||
+                 (!enable && (mPassiveLocationListenerNanoapps.size() == 1))) {
+        success = mPlatformGnss.configurePassiveLocationListener(enable);
+        if (!success) {
+          LOGE("Platform failed to %s passive location listener",
+               enable ? "enable" : "disable");
+        }
+      } else {
+        // Platform was already in the configured state.
+        success = true;
+      }
+
+      if (success) {
+        if (enable) {
+          mPassiveLocationListenerNanoapps.push_back(instanceId);
+          nanoapp->registerForBroadcastEvent(CHRE_EVENT_GNSS_LOCATION);
+        } else {
+          mPassiveLocationListenerNanoapps.erase(index);
+          if (!mLocationSession.nanoappHasRequest(instanceId)) {
+            nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_GNSS_LOCATION);
+          }
+        }
+      }
+    }
+  } else {  // else nanoapp request is already at the desired state.
+    success = true;
+  }
+
+  return success;
+}
+
+bool GnssManager::nanoappHasPassiveLocationListener(uint32_t nanoappInstanceId,
+                                                    size_t *index) {
+  size_t foundIndex = mPassiveLocationListenerNanoapps.find(nanoappInstanceId);
+  bool found = (foundIndex != mPassiveLocationListenerNanoapps.size());
+  if (found && index != nullptr) {
+    *index = foundIndex;
+  }
+
+  return found;
 }
 
 void GnssManager::handleRequestStateResyncCallbackSync() {
   mLocationSession.handleRequestStateResyncCallbackSync();
   mMeasurementSession.handleRequestStateResyncCallbackSync();
+
+  // TODO(b/174798067): Force resync the current passive listener request
 }
 
 void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nGNSS:");
   mLocationSession.logStateToBuffer(debugDump);
   mMeasurementSession.logStateToBuffer(debugDump);
+
+  // TODO(b/174798067): Add passive listener status
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
@@ -425,7 +488,15 @@ bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
       // The session was successfully disabled for a previously enabled
       // nanoapp. Remove it from the list of requests.
       mRequests.erase(requestIndex);
-      nanoapp->unregisterForBroadcastEvent(kReportEventType);
+
+      // We can only unregister the location events from nanoapps if it has no
+      // request and has not configured the passive listener.
+      if ((kReportEventType != CHRE_EVENT_GNSS_LOCATION) ||
+          !EventLoopManagerSingleton::get()
+               ->getGnssManager()
+               .nanoappHasPassiveLocationListener(instanceId)) {
+        nanoapp->unregisterForBroadcastEvent(kReportEventType);
+      }
     }  // else disabling an inactive request, treat as success per CHRE API
   }
 

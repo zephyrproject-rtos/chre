@@ -125,6 +125,16 @@ void PlatformGnss::releaseMeasurementDataEvent(chreGnssDataEvent *event) {
   }
 }
 
+bool PlatformGnss::configurePassiveLocationListener(bool enable) {
+  bool success = false;
+  if (mGnssApi != nullptr &&
+      mGnssApi->moduleVersion >= CHRE_PAL_GNSS_API_V1_2) {
+    prePalApiCall();
+    success = mGnssApi->configurePassiveLocationListener(enable);
+  }
+  return success;
+}
+
 void PlatformGnssBase::measurementStatusChangeCallback(bool enabled,
                                                        uint8_t errorCode) {
   EventLoopManagerSingleton::get()
