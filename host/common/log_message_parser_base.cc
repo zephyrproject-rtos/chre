@@ -129,8 +129,9 @@ void ChreLogMessageParserBase::emitLogMessage(uint8_t level,
                                               const char *logMessage) {
   constexpr const char kLogTag[] = "CHRE";
   uint32_t timeSec = timestampMillis / kOneSecondInMilliseconds;
+  uint32_t timeMsRemainder = timestampMillis % kOneSecondInMilliseconds;
   android_LogPriority priority = chreLogLevelToAndroidLogPriority(level);
-  LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timestampMillis,
+  LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timeMsRemainder,
           logMessage);
 }
 
