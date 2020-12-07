@@ -104,28 +104,19 @@ void postSamplingStatusEvent(uint32_t instanceId, uint32_t sensorHandle,
 }
 
 /**
- * Sets the latest sampling status for a given sensor and notifies all listening
- * nanoapps of the latest update.
+ * Notifies all listening nanoapps of the latest sampling status update.
  *
  * @param sensorHandle The handle of the sensor.
- * @param status A reference of the sampling status to be updated.
+ * @param status A reference of the sampling status to be posted.
  */
-void updateSamplingStatus(uint32_t sensorHandle,
-                          struct chreSensorSamplingStatus &status) {
-  Sensor *sensor =
-      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+void postSamplingStatus(uint32_t sensorHandle,
+                        struct chreSensorSamplingStatus &status) {
+  // Only post to Nanoapps with an open request.
+  const DynamicVector<SensorRequest> &requests =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getRequests(
           sensorHandle);
-
-  if (sensor != nullptr && !sensor->isOneShot()) {
-    sensor->setSamplingStatus(status);
-
-    // Only post to Nanoapps with an open request.
-    const DynamicVector<SensorRequest> &requests =
-        EventLoopManagerSingleton::get()->getSensorRequestManager().getRequests(
-            sensorHandle);
-    for (const auto &req : requests) {
-      postSamplingStatusEvent(req.getInstanceId(), sensorHandle, status);
-    }
+  for (const auto &req : requests) {
+    postSamplingStatusEvent(req.getInstanceId(), sensorHandle, status);
   }
 }
 
@@ -485,20 +476,28 @@ void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
 
 void SensorRequestManager::handleSamplingStatusUpdate(
     uint32_t sensorHandle, struct chreSensorSamplingStatus *status) {
-  auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
-    uint32_t cbSensorHandle = NestedDataPtr<uint32_t>(data);
-    auto *cbStatus = static_cast<struct chreSensorSamplingStatus *>(extraData);
-    updateSamplingStatus(cbSensorHandle, *cbStatus);
-    EventLoopManagerSingleton::get()
-        ->getSensorRequestManager()
-        .releaseSamplingStatusUpdate(cbStatus);
-  };
+  Sensor *sensor =
+      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
+          sensorHandle);
+  if (sensor != nullptr && !sensor->isOneShot()) {
+    sensor->setSamplingStatus(*status);
 
-  // Schedule a deferred callback to handle sensor status change in the main
-  // thread.
-  EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SensorStatusUpdate,
-      NestedDataPtr<uint32_t>(sensorHandle), callback, status);
+    auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
+      uint32_t cbSensorHandle = NestedDataPtr<uint32_t>(data);
+      auto *cbStatus =
+          static_cast<struct chreSensorSamplingStatus *>(extraData);
+      postSamplingStatus(cbSensorHandle, *cbStatus);
+      EventLoopManagerSingleton::get()
+          ->getSensorRequestManager()
+          .releaseSamplingStatusUpdate(cbStatus);
+    };
+
+    // Schedule a deferred callback to handle sensor status change in the main
+    // thread.
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::SensorStatusUpdate,
+        NestedDataPtr<uint32_t>(sensorHandle), callback, status);
+  }
 }
 
 void SensorRequestManager::handleBiasEvent(uint32_t sensorHandle,
