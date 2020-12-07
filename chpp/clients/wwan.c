@@ -60,6 +60,9 @@ static const struct ChppClient kWwanClientConfig = {
     .descriptor.version.minor = 0,
     .descriptor.version.patch = 0,
 
+    // Notifies client if CHPP is reset
+    .resetNotifierFunctionPtr = NULL,
+
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWwanResponse,
 

@@ -197,6 +197,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
   chppMutexLock(&context->discoveryMutex);
   context->isDiscoveryComplete = true;
   context->matchedClientCount = matchedClients;
+  context->discoveredServiceCount = serviceCount;
   chppConditionVariableSignal(&context->discoveryCv);
   chppMutexUnlock(&context->discoveryMutex);
 }

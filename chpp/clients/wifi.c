@@ -66,6 +66,9 @@ static const struct ChppClient kWifiClientConfig = {
     .descriptor.version.minor = 0,
     .descriptor.version.patch = 0,
 
+    // Notifies client if CHPP is reset
+    .resetNotifierFunctionPtr = NULL,
+
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWifiResponse,
 

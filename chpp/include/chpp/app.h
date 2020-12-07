@@ -188,6 +188,11 @@ typedef bool(ChppClientInitFunction)(void *context, uint8_t handle,
 typedef void(ChppClientDeinitFunction)(void *context);
 
 /**
+ * Function type that dispatches a reset notification to any client or service
+ */
+typedef void(ChppResetNotifierFunction)(void *context);
+
+/**
  * Length of a service UUID and its human-readable printed form in bytes
  */
 #define CHPP_SERVICE_UUID_LEN 16
@@ -229,6 +234,10 @@ struct ChppService {
   //! Service Descriptor as sent over the wire.
   struct ChppServiceDescriptor descriptor;
 
+  //! Pointer to the function that is used to notify the service if CHPP is
+  //! reset.
+  ChppResetNotifierFunction *resetNotifierFunctionPtr;
+
   //! Pointer to the function that dispatches incoming client requests for the
   //! service.
   ChppDispatchFunction *requestDispatchFunctionPtr;
@@ -259,6 +268,10 @@ struct ChppClientDescriptor {
 struct ChppClient {
   //! Client descriptor.
   struct ChppClientDescriptor descriptor;
+
+  //! Pointer to the function that is used to notify the client if CHPP is
+  //! reset.
+  ChppResetNotifierFunction *resetNotifierFunctionPtr;
 
   //! Pointer to the function that dispatches incoming service responses for the
   //! client.
@@ -342,6 +355,9 @@ struct ChppAppState {
   // The number of clients that matched a service during discovery.
   uint8_t matchedClientCount;
 
+  // The number of services that were found during discovery.
+  uint8_t discoveredServiceCount;
+
   struct ChppMutex discoveryMutex;
   struct ChppConditionVariable discoveryCv;
 };
@@ -401,6 +417,17 @@ void chppAppDeinitTransient(struct ChppAppState *appContext);
  */
 void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                               size_t len);
+
+/**
+ * Used by the transport layer to notify the app layer of a received reset. In
+ * turn, this function notifies clients and services to allow them to reset or
+ * recover state as necessary.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+void chppAppProcessRxReset(struct ChppAppState *context);
 
 /**
  * Convert UUID to a human-readable, null-terminated string.

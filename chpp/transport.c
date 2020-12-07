@@ -291,10 +291,12 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppProcessReset(context);
 
       chppMutexUnlock(&context->mutex);
+
       chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
       chppInitiateDiscovery(context->appContext);
 #endif
+      chppAppProcessRxReset(context->appContext);
       chppMutexLock(&context->mutex);
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
