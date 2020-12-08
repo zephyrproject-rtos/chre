@@ -309,7 +309,7 @@ void EventLoop::stop() {
 
   // Stop accepting new events and tell the main loop to finish
   postSystemEvent(static_cast<uint16_t>(SystemCallbackType::Shutdown),
-                  /*data=*/this, callback, /*extraData=*/nullptr);
+                  /*eventData=*/this, callback, /*extraData=*/nullptr);
 }
 
 void EventLoop::onStopComplete() {
