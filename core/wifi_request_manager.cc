@@ -251,7 +251,7 @@ void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 
   if (scanMonitorIsEnabled()) {
     debugDump.print(" Wifi scan monitor enabled nanoapps:\n");
-    for (const auto &instanceId : mScanMonitorNanoapps) {
+    for (uint32_t instanceId : mScanMonitorNanoapps) {
       debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
     }
   }

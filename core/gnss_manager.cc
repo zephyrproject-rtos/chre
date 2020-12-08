@@ -175,7 +175,15 @@ void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   mLocationSession.logStateToBuffer(debugDump);
   mMeasurementSession.logStateToBuffer(debugDump);
 
-  // TODO(b/174798067): Add passive listener status
+  bool passiveLocationListenerEnabled =
+      !mPassiveLocationListenerNanoapps.empty();
+  debugDump.print("\n Passive location listener %s\n",
+                  passiveLocationListenerEnabled ? "enabled" : "disabled");
+  if (passiveLocationListenerEnabled) {
+    for (uint32_t instanceId : mPassiveLocationListenerNanoapps) {
+      debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
+    }
+  }
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
