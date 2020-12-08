@@ -184,8 +184,8 @@ bool chreIsHostAwake(void) {
 }
 
 WEAK_SYMBOL
-bool chreGnssConfigureLocationMonitor(bool enable) {
-  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreGnssConfigureLocationMonitor);
+bool chreGnssConfigurePassiveLocationListener(bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreGnssConfigurePassiveLocationListener);
   return (fptr != nullptr) ? fptr(enable) : false;
 }
 
