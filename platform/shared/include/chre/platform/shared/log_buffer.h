@@ -53,6 +53,8 @@ class LogBuffer;
  */
 class LogBufferCallbackInterface {
  public:
+  virtual ~LogBufferCallbackInterface() {}
+
   /**
    * Notify the platform code that is using the buffer manager that it should
    * call copyLogs because the buffer internal state has changed to suit the
