@@ -108,31 +108,34 @@ enum class WifiScanType : uint8_t {
   ACTIVE = 0,
   ACTIVE_PLUS_PASSIVE_DFS = 1,
   PASSIVE = 2,
+  NO_PREFERENCE = 3,
   MIN = ACTIVE,
-  MAX = PASSIVE
+  MAX = NO_PREFERENCE
 };
 
-inline const WifiScanType (&EnumValuesWifiScanType())[3] {
+inline const WifiScanType (&EnumValuesWifiScanType())[4] {
   static const WifiScanType values[] = {
     WifiScanType::ACTIVE,
     WifiScanType::ACTIVE_PLUS_PASSIVE_DFS,
-    WifiScanType::PASSIVE
+    WifiScanType::PASSIVE,
+    WifiScanType::NO_PREFERENCE
   };
   return values;
 }
 
 inline const char * const *EnumNamesWifiScanType() {
-  static const char * const names[4] = {
+  static const char * const names[5] = {
     "ACTIVE",
     "ACTIVE_PLUS_PASSIVE_DFS",
     "PASSIVE",
+    "NO_PREFERENCE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameWifiScanType(WifiScanType e) {
-  if (flatbuffers::IsOutRange(e, WifiScanType::ACTIVE, WifiScanType::PASSIVE)) return "";
+  if (flatbuffers::IsOutRange(e, WifiScanType::ACTIVE, WifiScanType::NO_PREFERENCE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWifiScanType()[index];
 }
@@ -174,6 +177,38 @@ inline const char *EnumNameWifiRadioChain(WifiRadioChain e) {
   if (flatbuffers::IsOutRange(e, WifiRadioChain::DEFAULT, WifiRadioChain::HIGH_ACCURACY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWifiRadioChain()[index];
+}
+
+/// All the various WiFi channel sets that can be interacted with inside the
+/// nanoapp. The values used here map directly to values from the CHRE API.
+enum class WifiChannelSet : uint8_t {
+  NON_DFS = 0,
+  ALL = 1,
+  MIN = NON_DFS,
+  MAX = ALL
+};
+
+inline const WifiChannelSet (&EnumValuesWifiChannelSet())[2] {
+  static const WifiChannelSet values[] = {
+    WifiChannelSet::NON_DFS,
+    WifiChannelSet::ALL
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesWifiChannelSet() {
+  static const char * const names[3] = {
+    "NON_DFS",
+    "ALL",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameWifiChannelSet(WifiChannelSet e) {
+  if (flatbuffers::IsOutRange(e, WifiChannelSet::NON_DFS, WifiChannelSet::ALL)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesWifiChannelSet()[index];
 }
 
 /// All the various sensors that can be interacted with inside the nanoapp.
@@ -357,7 +392,8 @@ struct WifiScanMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ENABLE = 4,
     VT_SCAN_INTERVAL_NS = 6,
     VT_SCAN_TYPE = 8,
-    VT_RADIO_CHAIN = 10
+    VT_RADIO_CHAIN = 10,
+    VT_CHANNEL_SET = 12
   };
   bool enable() const {
     return GetField<uint8_t>(VT_ENABLE, 0) != 0;
@@ -371,12 +407,16 @@ struct WifiScanMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   chre::power_test::WifiRadioChain radio_chain() const {
     return static_cast<chre::power_test::WifiRadioChain>(GetField<uint8_t>(VT_RADIO_CHAIN, 0));
   }
+  chre::power_test::WifiChannelSet channel_set() const {
+    return static_cast<chre::power_test::WifiChannelSet>(GetField<uint8_t>(VT_CHANNEL_SET, 0));
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE) &&
            VerifyField<uint64_t>(verifier, VT_SCAN_INTERVAL_NS) &&
            VerifyField<uint8_t>(verifier, VT_SCAN_TYPE) &&
            VerifyField<uint8_t>(verifier, VT_RADIO_CHAIN) &&
+           VerifyField<uint8_t>(verifier, VT_CHANNEL_SET) &&
            verifier.EndTable();
   }
 };
@@ -397,6 +437,9 @@ struct WifiScanMessageBuilder {
   void add_radio_chain(chre::power_test::WifiRadioChain radio_chain) {
     fbb_.AddElement<uint8_t>(WifiScanMessage::VT_RADIO_CHAIN, static_cast<uint8_t>(radio_chain), 0);
   }
+  void add_channel_set(chre::power_test::WifiChannelSet channel_set) {
+    fbb_.AddElement<uint8_t>(WifiScanMessage::VT_CHANNEL_SET, static_cast<uint8_t>(channel_set), 0);
+  }
   explicit WifiScanMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -414,9 +457,11 @@ inline flatbuffers::Offset<WifiScanMessage> CreateWifiScanMessage(
     bool enable = false,
     uint64_t scan_interval_ns = 0,
     chre::power_test::WifiScanType scan_type = chre::power_test::WifiScanType::ACTIVE,
-    chre::power_test::WifiRadioChain radio_chain = chre::power_test::WifiRadioChain::DEFAULT) {
+    chre::power_test::WifiRadioChain radio_chain = chre::power_test::WifiRadioChain::DEFAULT,
+    chre::power_test::WifiChannelSet channel_set = chre::power_test::WifiChannelSet::NON_DFS) {
   WifiScanMessageBuilder builder_(_fbb);
   builder_.add_scan_interval_ns(scan_interval_ns);
+  builder_.add_channel_set(channel_set);
   builder_.add_radio_chain(radio_chain);
   builder_.add_scan_type(scan_type);
   builder_.add_enable(enable);
