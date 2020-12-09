@@ -60,8 +60,9 @@ class RequestManager {
   uint32_t mTimerIds[TimerType::NUM_TYPES] = {CHRE_TIMER_INVALID};
 
   //! WiFi scan request parameters from host.
-  uint8_t mWifiScanType = CHRE_WIFI_SCAN_TYPE_ACTIVE;
+  uint8_t mWifiScanType = CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE;
   uint8_t mWifiRadioChain = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
+  uint8_t mWifiChannelSet = CHRE_WIFI_CHANNEL_SET_NON_DFS;
 
   /**
    * Enables or disables break-it mode. When enabled, requests WiFi / GNSS /
