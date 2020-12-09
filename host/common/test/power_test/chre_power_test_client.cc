@@ -53,6 +53,7 @@
  *  chre_power_test_client wifi <optional: tcm> <enable> <interval_ns>
  *                              <optional: wifi_scan_type>
  *                              <optional: wifi_radio_chain>
+ *                              <optional: wifi_channel_set>
  *  chre_power_test_client gnss <optional: tcm> <enable> <interval_ms>
  *                              <optional: next_fix_ms>
  *  chre_power_test_client cell <optional: tcm> <enable> <interval_ns>
@@ -100,15 +101,20 @@
  * interval and latency
  *
  * <wifi_scan_type>:
- *  active (default when omitted)
+ *  active
  *  active_passive_dfs
  *  passive
+ *  no_preference (default when omitted)
  *
  * <wifi_radio_chain>:
  *  default (default when omitted)
  *  low_latency
  *  low_power
  *  high_accuracy
+ *
+ * <wifi_channel_set>:
+ *  non_dfs (default when omitted)
+ *  all
  */
 
 using android::sp;
@@ -119,6 +125,7 @@ using android::chre::IChreMessageHandlers;
 using android::chre::SocketClient;
 using chre::power_test::MessageType;
 using chre::power_test::SensorType;
+using chre::power_test::WifiChannelSet;
 using chre::power_test::WifiRadioChain;
 using chre::power_test::WifiScanType;
 using flatbuffers::FlatBufferBuilder;
@@ -207,6 +214,33 @@ std::unordered_map<string, WifiRadioChain> wifiRadioChainMap{
     {"low_latency", WifiRadioChain::LOW_LATENCY},
     {"low_power", WifiRadioChain::LOW_POWER},
     {"higi_accuracy", WifiRadioChain::HIGH_ACCURACY}};
+
+std::unordered_map<string, WifiChannelSet> wifiChannelSetMap{
+    {"non_dfs", WifiChannelSet::NON_DFS}, {"all", WifiChannelSet::ALL}};
+
+bool wifiScanTypeMatch(const string &name, WifiScanType *scanType) {
+  if (wifiScanTypeMap.find(name) != wifiScanTypeMap.end()) {
+    *scanType = wifiScanTypeMap[name];
+    return true;
+  }
+  return false;
+}
+
+bool wifiRadioChainMatch(const string &name, WifiRadioChain *radioChain) {
+  if (wifiRadioChainMap.find(name) != wifiRadioChainMap.end()) {
+    *radioChain = wifiRadioChainMap[name];
+    return true;
+  }
+  return false;
+}
+
+bool wifiChannelSetMatch(const string &name, WifiChannelSet *channelSet) {
+  if (wifiChannelSetMap.find(name) != wifiChannelSetMap.end()) {
+    *channelSet = wifiChannelSetMap[name];
+    return true;
+  }
+  return false;
+}
 
 class SocketCallbacks : public SocketClient::ICallbacks,
                         public IChreMessageHandlers {
@@ -517,22 +551,18 @@ bool validateWifiArguments(std::vector<string> &args) {
   if (args.size() < 3) {
     LOGE("The interval is required");
     return false;
-  } else if (args.size() == 4) {
-    bool scanTypeFound =
-        (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end());
-    bool radioChainFound =
-        (wifiRadioChainMap.find(args[3]) != wifiRadioChainMap.end());
-    if (!scanTypeFound && !radioChainFound) {
-      LOGE("Invalid WiFi scan type or radio chain preference");
-      return false;
-    }
-  } else if (args.size() >= 5) {
-    bool scanTypeFound =
-        (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end());
-    bool radioChainFound =
-        (wifiRadioChainMap.find(args[4]) != wifiRadioChainMap.end());
-    if (!scanTypeFound || !radioChainFound) {
-      LOGE("Invalid WiFi scan type or radio chain preference");
+  }
+
+  bool valid = true;
+  WifiScanType scanType;
+  WifiRadioChain radioChain;
+  WifiChannelSet channelSet;
+  for (int i = 3; i < 6 && args.size() > i && valid; i++) {
+    valid = wifiScanTypeMatch(args[i], &scanType) ||
+            wifiRadioChainMatch(args[i], &radioChain) ||
+            wifiChannelSetMatch(args[i], &channelSet);
+    if (!valid) {
+      LOGE("Invalid WiFi scan parameters: %s", args[i].c_str());
       return false;
     }
   }
@@ -611,26 +641,24 @@ void createTimerMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
 void createWifiMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
   bool enable = (args[1] == "enable");
   uint64_t intervalNanoseconds = getNanoseconds(args, 2);
-  WifiScanType scanType = WifiScanType::ACTIVE;
+  WifiScanType scanType = WifiScanType::NO_PREFERENCE;
   WifiRadioChain radioChain = WifiRadioChain::DEFAULT;
+  WifiChannelSet channelSet = WifiChannelSet::NON_DFS;
 
-  if (args.size() == 4) {
-    if (wifiScanTypeMap.find(args[3]) != wifiScanTypeMap.end()) {
-      scanType = wifiScanTypeMap[args[3]];
-    } else {
-      radioChain = wifiRadioChainMap[args[3]];
-    }
-  } else if (args.size() >= 5) {
-    scanType = wifiScanTypeMap[args[3]];
-    radioChain = wifiRadioChainMap[args[4]];
+  // Check for the 3 optional parameters.
+  bool valid = true;
+  for (int i = 3; i < 6 && args.size() > i && valid; i++) {
+    valid = wifiScanTypeMatch(args[i], &scanType) ||
+            wifiRadioChainMatch(args[i], &radioChain) ||
+            wifiChannelSetMatch(args[i], &channelSet);
   }
 
   fbb.Finish(ptest::CreateWifiScanMessage(fbb, enable, intervalNanoseconds,
-                                          scanType, radioChain));
+                                          scanType, radioChain, channelSet));
   LOGI("Created WifiScanMessage, enable %d, scan interval ns %" PRIu64
-       " scan type %" PRIu8 " radio chain preference %" PRIu8,
+       " scan type %" PRIu8 " radio chain %" PRIu8 " channel set %" PRIu8,
        enable, intervalNanoseconds, static_cast<uint8_t>(scanType),
-       static_cast<uint8_t>(radioChain));
+       static_cast<uint8_t>(radioChain), static_cast<uint8_t>(channelSet));
 }
 
 void createGnssMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
