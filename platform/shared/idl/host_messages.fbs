@@ -143,6 +143,12 @@ table LoadNanoappRequest {
   /// The nanoapp flag values from the nanoapp header defined in
   /// build/build_template.mk. Refer to that file for more details.
   app_flags:uint;
+
+  /// If true and fragmented loading is requested, the LoadNanoappResponse
+  /// for the last fragment will be sent after the fragment was confirmed
+  /// to be placed in memory and no additional response will be sent after
+  /// the nanoapp is linked and started in the framework.
+  respond_before_start:bool;
 }
 
 table LoadNanoappResponse {
