@@ -111,10 +111,12 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    *        construct the message
    * @param request The FragmentedLoadRequest object with the binary and the
    *        metadata
+   * @param respondBeforeStart See LoadNanoappRequest.respond_before_start in
+   *        flatbuffers message.
    */
   static void encodeFragmentedLoadNanoappRequest(
       flatbuffers::FlatBufferBuilder &builder,
-      const FragmentedLoadRequest &request);
+      const FragmentedLoadRequest &request, bool respondBeforeStart = false);
 
   /**
    * Encodes a message requesting the list of loaded nanoapps from CHRE
@@ -198,7 +200,7 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
       flatbuffers::FlatBufferBuilder &builder, uint32_t transactionId,
       uint64_t appId, uint32_t appVersion, uint32_t appFlags,
       uint32_t targetApiVersion, const std::vector<uint8_t> &nanoappBinary,
-      uint32_t fragmentId, size_t appTotalSizeBytes);
+      uint32_t fragmentId, size_t appTotalSizeBytes, bool respondBeforeStart);
 
   /**
    * Encodes a message requesting to load a nanoapp specified by the included

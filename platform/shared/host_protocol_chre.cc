@@ -84,7 +84,7 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
             request->app_version(), request->app_flags(),
             request->target_api_version(), appBinary->data(), appBinary->size(),
             appBinaryFilename, request->fragment_id(),
-            request->total_app_size());
+            request->total_app_size(), request->respond_before_start());
         break;
       }
 
