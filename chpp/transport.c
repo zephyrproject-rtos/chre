@@ -74,8 +74,6 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
                                   uint8_t packetCode, void *buf, size_t len);
 
 static void chppResetTransportContext(struct ChppTransportState *context);
-static void chppReset(struct ChppTransportState *transportContext,
-                      struct ChppAppState *appContext);
 
 /************************************************
  *  Private Functions
@@ -290,15 +288,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       CHPP_LOGD("RX RESET packet. seq=%" PRIu8, context->rxHeader.seq);
       chppProcessReset(context);
 
-      chppMutexUnlock(&context->mutex);
-
-      chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
-#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
-      chppInitiateDiscovery(context->appContext);
-#endif
-      chppAppProcessRxReset(context->appContext);
-      chppMutexLock(&context->mutex);
-
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
       CHPP_LOGD("RX RESET-ACK packet. seq=%" PRIu8, context->rxHeader.seq);
@@ -379,6 +368,11 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
   }
 }
 
+/**
+ * Processes a request that is determined to be for a transport-layer loopback.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
 #ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
 static void chppProcessTransportLoopbackRequest(
     struct ChppTransportState *context) {
@@ -425,6 +419,11 @@ static void chppProcessTransportLoopbackRequest(
 }
 #endif
 
+/**
+ * Processes a response that is determined to be for a transport-layer loopback.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
 #ifdef CHPP_CLIENT_ENABLED_TRANSPORT_LOOPBACK
 static void chppProcessTransportLoopbackResponse(
     struct ChppTransportState *context) {
@@ -461,23 +460,22 @@ static void chppProcessTransportLoopbackResponse(
 }
 #endif
 
-static void chppProcessReset(struct ChppTransportState *context) {
-  // TODO: Configure transport layer based on (optional?) received config before
-  // datagram is wiped
-
-  chppReset(context, context->appContext);
-
-  // context->rxHeader is not wiped in reset
-  context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
-  context->rxStatus.expectedSeq = context->rxHeader.seq + 1;
-}
-
-// Method to invoke when the reset sequence is completed.
+/**
+ * Method to invoke when the reset sequence is completed.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
 static void chppSetResetComplete(struct ChppTransportState *context) {
   context->resetState = CHPP_RESET_STATE_NONE;
   chppConditionVariableSignal(&context->resetCondVar);
 }
 
+/**
+ * An incoming reset-ack packet indicates that a reset is complete at the other
+ * end of the CHPP link.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
 static void chppProcessResetAck(struct ChppTransportState *context) {
   chppSetResetComplete(context);
   context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
@@ -1002,6 +1000,8 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
 
 /**
  * Resets the transport state, maintaining the link layer parameters.
+ *
+ * @param context Maintains status for each transport layer instance.
  */
 static void chppResetTransportContext(struct ChppTransportState *context) {
   memset(&context->rxStatus, 0, sizeof(struct ChppRxStatus));
@@ -1024,15 +1024,13 @@ static void chppResetTransportContext(struct ChppTransportState *context) {
  * transportContext.linkParams.
  *
  * @param transportContext Maintains status for each transport layer instance.
- * @param appContext The app layer status struct associated with this transport
- * layer instance.
  */
-static void chppReset(struct ChppTransportState *transportContext,
-                      struct ChppAppState *appContext) {
-  transportContext->resetState = CHPP_RESET_STATE_RESETTING;
+static void chppProcessReset(struct ChppTransportState *transportContext) {
+  // TODO: Configure transport layer based on (optional?) received config before
+  // datagram is wiped
 
-  // Deinitialize app layer (deregistering services and clients)
-  chppAppDeinitTransient(appContext);
+  struct ChppAppState *appContext = transportContext->appContext;
+  transportContext->resetState = CHPP_RESET_STATE_RESETTING;
 
   // Reset asynchronous link layer if busy
   if (transportContext->txStatus.linkBusy == true) {
@@ -1055,12 +1053,24 @@ static void chppReset(struct ChppTransportState *transportContext,
     }
   }
 
-  // Reset Transport Layer
+  // Reset Transport Layer but restore Rx sequence number and packet code
+  // (context->rxHeader is not wiped in reset)
   chppResetTransportContext(transportContext);
+  transportContext->rxStatus.receivedPacketCode =
+      transportContext->rxHeader.packetCode;
+  transportContext->rxStatus.expectedSeq = transportContext->rxHeader.seq + 1;
 
   // Initialize app layer
-  chppAppInitWithClientServiceSet(appContext, transportContext,
-                                  appContext->clientServiceSet);
+  chppAppInitTransient(appContext, transportContext,
+                       appContext->clientServiceSet);
+
+  // Send reset-ACK
+  chppMutexUnlock(&transportContext->mutex);
+  chppTransportSendReset(transportContext, CHPP_TRANSPORT_ATTR_RESET_ACK);
+
+  // Inform the App Layer
+  chppAppProcessRxReset(appContext);
+  chppMutexLock(&transportContext->mutex);
 }
 
 /************************************************

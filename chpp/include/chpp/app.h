@@ -387,11 +387,33 @@ void chppAppInit(struct ChppAppState *appContext,
 /**
  * Same as chppAppInit(), but specifies the client/service endpoints to be
  * enabled.
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param transportContext The transport layer status struct associated with
+ * this app layer instance.
+ * @param clientServiceSet Bitmap specifying the client/service endpoints to be
+ * enabled.
  */
 void chppAppInitWithClientServiceSet(
     struct ChppAppState *appContext,
     struct ChppTransportState *transportContext,
     struct ChppClientServiceSet clientServiceSet);
+
+/**
+ * Similar to chppAppInitWithClientServiceSet(), but to be invoked during
+ * execution of CHPP when only part of the appContext needs to be initialized.
+ * In contrast, chppAppInitWithClientServiceSet resets all fields of appContext
+ * to zero
+ *
+ * @param appContext Maintains status for each app layer instance.
+ * @param transportContext The transport layer status struct associated with
+ * this app layer instance.
+ * @param clientServiceSet Bitmap specifying the client/service endpoints to be
+ * enabled.
+ */
+void chppAppInitTransient(struct ChppAppState *appContext,
+                          struct ChppTransportState *transportContext,
+                          struct ChppClientServiceSet clientServiceSet);
 
 /**
  * Deinitializes the CHPP app layer for e.g. clean shutdown.
@@ -400,13 +422,6 @@ void chppAppInitWithClientServiceSet(
  * in chppAppInit().
  */
 void chppAppDeinit(struct ChppAppState *appContext);
-
-/**
- * Same as chppAppDeinit(), but to be invoked when the deinitialization is
- * temporary (e.g. during a CHPP reset), distinguishing complete vs temporary
- * shutdown.
- */
-void chppAppDeinitTransient(struct ChppAppState *appContext);
 
 /**
  * Processes an Rx Datagram from the transport layer.
