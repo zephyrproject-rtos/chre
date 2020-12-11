@@ -117,17 +117,16 @@ bool GnssManager::configurePassiveLocationListener(Nanoapp *nanoapp,
     } else if (enable && !mPassiveLocationListenerNanoapps.prepareForPush()) {
       LOG_OOM();
     } else {
+      bool platformEnable = enable && mPassiveLocationListenerNanoapps.empty();
+      bool platformDisable =
+          !enable && (mPassiveLocationListenerNanoapps.size() == 1);
+
       if (!passiveLocationListenerSupported) {
         // Silently succeed per API, since listener capability will occur within
         // CHRE (nanoapp requests).
         success = true;
-      } else if ((enable && mPassiveLocationListenerNanoapps.empty()) ||
-                 (!enable && (mPassiveLocationListenerNanoapps.size() == 1))) {
-        success = mPlatformGnss.configurePassiveLocationListener(enable);
-        if (!success) {
-          LOGE("Platform failed to %s passive location listener",
-               enable ? "enable" : "disable");
-        }
+      } else if (platformEnable || platformDisable) {
+        success = platformConfigurePassiveLocationListener(enable);
       } else {
         // Platform was already in the configured state.
         success = true;
@@ -163,11 +162,28 @@ bool GnssManager::nanoappHasPassiveLocationListener(uint32_t nanoappInstanceId,
   return found;
 }
 
+bool GnssManager::platformConfigurePassiveLocationListener(bool enable) {
+  bool success = mPlatformGnss.configurePassiveLocationListener(enable);
+  if (!success) {
+    LOGE("Platform failed to %s passive location listener",
+         enable ? "enable" : "disable");
+  } else {
+    mPlatformPassiveLocationListenerEnabled = enable;
+  }
+
+  return success;
+}
+
 void GnssManager::handleRequestStateResyncCallbackSync() {
   mLocationSession.handleRequestStateResyncCallbackSync();
   mMeasurementSession.handleRequestStateResyncCallbackSync();
 
-  // TODO(b/174798067): Force resync the current passive listener request
+  mPlatformPassiveLocationListenerEnabled = false;
+  if (!mPassiveLocationListenerNanoapps.empty()) {
+    if (!platformConfigurePassiveLocationListener(true /* enable */)) {
+      FATAL_ERROR("Failed to resync passive location listener");
+    }
+  }
 }
 
 void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
@@ -175,14 +191,11 @@ void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   mLocationSession.logStateToBuffer(debugDump);
   mMeasurementSession.logStateToBuffer(debugDump);
 
-  bool passiveLocationListenerEnabled =
-      !mPassiveLocationListenerNanoapps.empty();
-  debugDump.print("\n Passive location listener %s\n",
-                  passiveLocationListenerEnabled ? "enabled" : "disabled");
-  if (passiveLocationListenerEnabled) {
-    for (uint32_t instanceId : mPassiveLocationListenerNanoapps) {
-      debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
-    }
+  debugDump.print(
+      "\n Passive location listener %s\n",
+      mPlatformPassiveLocationListenerEnabled ? "enabled" : "disabled");
+  for (uint32_t instanceId : mPassiveLocationListenerNanoapps) {
+    debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
   }
 }
 
