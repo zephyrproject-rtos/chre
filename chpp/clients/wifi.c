@@ -50,6 +50,7 @@ static enum ChppAppErrorCode chppDispatchWifiNotification(void *clientContext,
 static bool chppWifiClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion);
 static void chppWifiClientDeinit(void *clientContext);
+static void chppWifiClientNotifyReset(void *clientContext);
 
 /************************************************
  *  Private Definitions
@@ -67,7 +68,7 @@ static const struct ChppClient kWifiClientConfig = {
     .descriptor.version.patch = 0,
 
     // Notifies client if CHPP is reset
-    .resetNotifierFunctionPtr = NULL,
+    .resetNotifierFunctionPtr = &chppWifiClientNotifyReset,
 
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWifiResponse,
@@ -102,8 +103,6 @@ struct ChppWifiClientState {
   struct ChppRequestResponseState requestRanging;  // Request Ranging state
 
   uint32_t capabilities;  // Cached GetCapabilities result
-
-  bool opened;  // WiFi has been successfully opened
 };
 
 // Note: This global definition of gWifiClientContext supports only one
@@ -128,8 +127,6 @@ static bool chppWifiClientRequestRanging(
 static void chppWifiClientReleaseRangingEvent(
     struct chreWifiRangingEvent *event);
 
-static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
-                               uint8_t *buf, size_t len);
 static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
                                 uint8_t *buf, size_t len);
 static void chppWifiGetCapabilitiesResult(
@@ -172,7 +169,7 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
   switch (rxHeader->command) {
     case CHPP_WIFI_OPEN: {
       chppClientTimestampResponse(&wifiClientContext->open, rxHeader);
-      chppWifiOpenResult(wifiClientContext, buf, len);
+      chppClientProcessOpenResponse(&wifiClientContext->client, buf, len);
       break;
     }
 
@@ -286,24 +283,19 @@ static void chppWifiClientDeinit(void *clientContext) {
 }
 
 /**
- * Handles the service response for the open client request.
- *
- * This function is called from chppDispatchWifiResponse().
+ * Notifies the client of an incoming reset.
  *
  * @param clientContext Maintains status for each client instance.
- * @param buf Input data. Cannot be null.
- * @param len Length of input data in bytes.
  */
-static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
-                               uint8_t *buf, size_t len) {
-  UNUSED_VAR(len);
+static void chppWifiClientNotifyReset(void *clientContext) {
+  struct ChppWifiClientState *wifiClientContext =
+      (struct ChppWifiClientState *)clientContext;
 
-  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-  clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
-  if (!clientContext->opened) {
-    CHPP_LOGE("WiFi open failed at service");
+  if (wifiClientContext->client.openState != CHPP_OPEN_STATE_OPENED) {
+    CHPP_LOGW("WiFi client reset but client wasn't open");
   } else {
-    CHPP_LOGI("WiFi open succeeded at service");
+    wifiClientContext->client.openState = CHPP_OPEN_STATE_REOPENING;
+    chppWifiClientOpen(gSystemApi, gCallbacks);
   }
 }
 
@@ -498,37 +490,34 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   CHPP_DEBUG_ASSERT(systemApi != NULL);
   CHPP_DEBUG_ASSERT(callbacks != NULL);
 
-  gWifiClientContext.opened = false;
+  bool result = false;
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  // Local
-  gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
+  CHPP_LOGI("WiFi client %sopening (openState=%" PRIu8 ")",
+            (gWifiClientContext.client.openState == CHPP_OPEN_STATE_REOPENING)
+                ? "re"
+                : "",
+            gWifiClientContext.client.openState);
+
+  if (gWifiClientContext.client.openState == CHPP_OPEN_STATE_CLOSED) {
+    gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
+  }
 
   // Wait for discovery to complete for "open" call to succeed
   if (!chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
                                     CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
     CHPP_LOGE("Timed out waiting to discover CHPP WiFi service");
   } else {
-    // Remote
-    struct ChppAppHeader *request = chppAllocClientRequestCommand(
-        &gWifiClientContext.client, CHPP_WIFI_OPEN);
-
-    if (request == NULL) {
-      CHPP_LOG_OOM();
-    } else {
-      chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
-                                        &gWifiClientContext.open, request,
-                                        sizeof(*request));
-      // gWifiClientContext.opened is now set
-    }
+    result = chppClientSendOpenRequest(
+        &gWifiClientContext.client, &gWifiClientContext.open, CHPP_WIFI_OPEN);
   }
 
 #ifdef CHPP_WIFI_CLIENT_OPEN_ALWAYS_SUCCESS
-  return true;
-#else
-  return gWifiClientContext.opened;
+  result = true;
 #endif
+
+  return result;
 }
 
 /**
@@ -544,7 +533,7 @@ static void chppWifiClientClose(void) {
   } else if (chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
                                                &gWifiClientContext.close,
                                                request, sizeof(*request))) {
-    gWifiClientContext.opened = false;
+    gWifiClientContext.client.openState = CHPP_OPEN_STATE_CLOSED;
     gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
   }
 }

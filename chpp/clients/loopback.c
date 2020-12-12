@@ -65,6 +65,7 @@ void chppLoopbackClientInit(struct ChppAppState *context) {
   context->loopbackClientContext->client.appContext = context;
   chppClientInit(&context->loopbackClientContext->client, CHPP_HANDLE_LOOPBACK);
   context->loopbackClientContext->testResult.error = CHPP_APP_ERROR_NONE;
+  context->loopbackClientContext->client.openState = CHPP_OPEN_STATE_OPENED;
 }
 
 void chppLoopbackClientDeinit(struct ChppAppState *context) {

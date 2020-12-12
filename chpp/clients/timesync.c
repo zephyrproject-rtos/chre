@@ -61,6 +61,7 @@ void chppTimesyncClientInit(struct ChppAppState *context) {
   chppClientInit(&context->timesyncClientContext->client, CHPP_HANDLE_TIMESYNC);
   context->timesyncClientContext->timesyncResult.error =
       CHPP_APP_ERROR_UNSPECIFIED;
+  context->timesyncClientContext->client.openState = CHPP_OPEN_STATE_OPENED;
 }
 
 void chppTimesyncClientDeinit(struct ChppAppState *context) {

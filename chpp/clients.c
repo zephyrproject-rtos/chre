@@ -47,9 +47,52 @@
  *  Prototypes
  ***********************************************/
 
+static bool chppIsClientApiReady(struct ChppClientState *clientState);
+
 /************************************************
  *  Private Functions
  ***********************************************/
+
+static bool chppIsClientApiReady(struct ChppClientState *clientState) {
+  const uint64_t timeoutNs = DEFAULT_CLIENT_REQUEST_TIMEOUT_NS;
+  bool result = false;
+
+  if (clientState->initialized &&
+      clientState->openState != CHPP_OPEN_STATE_CLOSED) {
+    result = true;
+
+    if (clientState->openState == CHPP_OPEN_STATE_OPENING ||
+        clientState->openState == CHPP_OPEN_STATE_REOPENING) {
+      // Return true to allow an open request from chppClientSendOpenRequest()
+      // to pass through and (re)open the service
+      clientState->openState = CHPP_OPEN_STATE_CLOSED;
+
+    } else if (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN) {
+      // Wait for service to be reopened
+      chppMutexLock(&clientState->responseMutex);
+
+      while (result && !clientState->responseReady) {
+        result = chppConditionVariableTimedWait(&clientState->responseCondVar,
+                                                &clientState->responseMutex,
+                                                timeoutNs);
+      }
+      if (!clientState->responseReady) {
+        CHPP_LOGE("Timeout waiting to reopen service after %" PRIu64 " ms",
+                  timeoutNs / CHPP_NSEC_PER_MSEC);
+        result = false;
+      }
+
+      chppMutexUnlock(&clientState->responseMutex);
+    }
+  }
+
+  if (!result) {
+    CHPP_LOGE("Client API not ready (initialized=%s, openState=%" PRIu8 ")",
+              (clientState->initialized) ? "true" : "false",
+              clientState->openState);
+  }
+  return result;
+}
 
 /************************************************
  *  Public Functions
@@ -248,12 +291,13 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
                                       struct ChppRequestResponseState *rRState,
                                       void *buf, size_t len) {
   CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
-  if (!clientState->initialized) {
+  if (!chppIsClientApiReady(clientState)) {
     CHPP_FREE_AND_NULLIFY(buf);
     return false;
   }
 
   chppClientTimestampRequest(rRState, buf);
+  clientState->responseReady = false;
   return chppEnqueueTxDatagramOrFail(clientState->appContext->transportContext,
                                      buf, len);
 }
@@ -269,17 +313,11 @@ bool chppSendTimestampedRequestAndWaitTimeout(
     struct ChppClientState *clientState,
     struct ChppRequestResponseState *rRState, void *buf, size_t len,
     uint64_t timeoutNs) {
-  if (!clientState->initialized) {
-    CHPP_FREE_AND_NULLIFY(buf);
-    return false;
-  }
-
   chppMutexLock(&clientState->responseMutex);
 
   bool result =
       chppSendTimestampedRequestOrFail(clientState, rRState, buf, len);
   if (result) {
-    clientState->responseReady = false;
     while (result && !clientState->responseReady) {
       result = chppConditionVariableTimedWait(&clientState->responseCondVar,
                                               &clientState->responseMutex,
@@ -295,4 +333,69 @@ bool chppSendTimestampedRequestAndWaitTimeout(
   chppMutexUnlock(&clientState->responseMutex);
 
   return result;
+}
+
+bool chppClientSendOpenRequest(struct ChppClientState *clientState,
+                               struct ChppRequestResponseState *openRRState,
+                               uint16_t openCommand) {
+  bool result = false;
+
+  struct ChppAppHeader *request =
+      chppAllocClientRequestCommand(clientState, openCommand);
+
+  if (request == NULL) {
+    CHPP_LOG_OOM();
+
+  } else if (clientState->openState == CHPP_OPEN_STATE_REOPENING) {
+    CHPP_LOGW("Reopening service after reset");
+    if (chppSendTimestampedRequestOrFail(clientState, openRRState, request,
+                                         sizeof(*request))) {
+      clientState->openState = CHPP_OPEN_STATE_WAITING_TO_REOPEN;
+      result = true;
+    }
+
+  } else {
+    CHPP_LOGI("Opening service");
+    clientState->openState = CHPP_OPEN_STATE_OPENING;
+    if (!chppSendTimestampedRequestAndWait(clientState, openRRState, request,
+                                           sizeof(*request))) {
+    }
+    result = (clientState->openState == CHPP_OPEN_STATE_OPENED);
+  }
+
+  if (!result) {
+    CHPP_LOGE("Unable to %sopen service",
+              (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN)
+                  ? "re"
+                  : "");
+    if (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN) {
+      clientState->openState = CHPP_OPEN_STATE_CLOSED;
+      CHPP_PROD_ASSERT(false);
+    }
+  }
+
+  return result;
+}
+
+void chppClientProcessOpenResponse(struct ChppClientState *clientState,
+                                   uint8_t *buf, size_t len) {
+  UNUSED_VAR(len);  // Necessary depending on assert macro below
+  // Assert condition already guaranteed by chppAppProcessRxDatagram() but
+  // checking again since this is a public function
+  CHPP_ASSERT(len >= sizeof(struct ChppAppHeader));
+
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  if (rxHeader->error != CHPP_APP_ERROR_NONE) {
+    CHPP_LOGE("Service %sopen failed at service",
+              (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN)
+                  ? "re"
+                  : "");
+    clientState->openState = CHPP_OPEN_STATE_CLOSED;
+  } else {
+    CHPP_LOGI("Service %sopen succeeded at service",
+              (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN)
+                  ? "re"
+                  : "");
+    clientState->openState = CHPP_OPEN_STATE_OPENED;
+  }
 }
