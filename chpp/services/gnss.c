@@ -244,24 +244,26 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
 
   if (!gnssServiceContext->api->open(
           gnssServiceContext->service.appContext->systemApi, &palCallbacks)) {
-    error = CHPP_APP_ERROR_UNSPECIFIED;
+    error = CHPP_APP_ERROR_BEYOND_CHPP;
     CHPP_LOGE("CHPP GNSS PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
 
   } else {
     CHPP_LOGI("CHPP GNSS service initialized");
-    struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    size_t responseLen = sizeof(*response);
+  }
 
-    if (response == NULL) {
-      CHPP_LOG_OOM();
-      error = CHPP_APP_ERROR_OOM;
-    } else {
-      chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
-                                        &gnssServiceContext->open, response,
-                                        responseLen);
-    }
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  size_t responseLen = sizeof(*response);
+
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    response->error = (uint8_t)error;
+    chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
+                                      &gnssServiceContext->open, response,
+                                      responseLen);
   }
 
   return error;

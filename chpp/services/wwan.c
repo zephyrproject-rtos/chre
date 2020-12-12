@@ -210,22 +210,24 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
           wwanServiceContext->service.appContext->systemApi, &palCallbacks)) {
     CHPP_LOGE("CHPP WWAN PAL API initialization failed");
     CHPP_DEBUG_ASSERT(false);
-    error = CHPP_APP_ERROR_UNSPECIFIED;
+    error = CHPP_APP_ERROR_BEYOND_CHPP;
 
   } else {
     CHPP_LOGI("CHPP WWAN service initialized");
-    struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    size_t responseLen = sizeof(*response);
+  }
 
-    if (response == NULL) {
-      CHPP_LOG_OOM();
-      error = CHPP_APP_ERROR_OOM;
-    } else {
-      chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                        &wwanServiceContext->open, response,
-                                        responseLen);
-    }
+  struct ChppAppHeader *response =
+      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+  size_t responseLen = sizeof(*response);
+
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+    error = CHPP_APP_ERROR_OOM;
+  } else {
+    response->error = (uint8_t)error;
+    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                      &wwanServiceContext->open, response,
+                                      responseLen);
   }
 
   return error;

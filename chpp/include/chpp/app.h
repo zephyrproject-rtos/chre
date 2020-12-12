@@ -139,6 +139,8 @@ enum ChppAppErrorCode {
   CHPP_APP_ERROR_INVALID_LENGTH = 10,
   //! CHPP Not Ready
   CHPP_APP_ERROR_NOT_READY = 11,
+  //! Error outside of CHPP (e.g. PAL API)
+  CHPP_APP_ERROR_BEYOND_CHPP = 12,
   //! Unspecified failure
   CHPP_APP_ERROR_UNSPECIFIED = 255
 };
