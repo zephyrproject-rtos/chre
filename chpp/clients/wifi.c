@@ -102,6 +102,8 @@ struct ChppWifiClientState {
   struct ChppRequestResponseState requestRanging;  // Request Ranging state
 
   uint32_t capabilities;  // Cached GetCapabilities result
+
+  bool opened;  // WiFi has been successfully opened
 };
 
 // Note: This global definition of gWifiClientContext supports only one
@@ -294,10 +296,13 @@ static void chppWifiClientDeinit(void *clientContext) {
  */
 static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
                                uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
   UNUSED_VAR(len);
+
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
+  if (!clientContext->opened) {
+    CHPP_LOGE("WiFi open failed at service");
+  }
 }
 
 /**
@@ -470,7 +475,7 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   CHPP_DEBUG_ASSERT(systemApi != NULL);
   CHPP_DEBUG_ASSERT(callbacks != NULL);
 
-  bool result = false;
+  gWifiClientContext.opened = false;
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
@@ -489,14 +494,14 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
-                                                 &gWifiClientContext.open,
-                                                 request, sizeof(*request));
+      chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
+                                        &gWifiClientContext.open, request,
+                                        sizeof(*request));
+      // gWifiClientContext.opened is now set
     }
   }
 
-  return result;
+  return gWifiClientContext.opened;
 }
 
 /**
@@ -509,13 +514,12 @@ static void chppWifiClientClose(void) {
 
   if (request == NULL) {
     CHPP_LOG_OOM();
-  } else {
-    chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
-                                      &gWifiClientContext.close, request,
-                                      sizeof(*request));
+  } else if (chppSendTimestampedRequestAndWait(&gWifiClientContext.client,
+                                               &gWifiClientContext.close,
+                                               request, sizeof(*request))) {
+    gWifiClientContext.opened = false;
+    gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
   }
-  // Local
-  gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
 }
 
 /**

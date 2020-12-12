@@ -93,6 +93,8 @@ struct ChppWwanClientState {
   struct ChppRequestResponseState getCellInfoAsync;  // Get CellInfo Async state
 
   uint32_t capabilities;  // Cached GetCapabilities result
+
+  bool opened;  // WWAN has been successfully opened
 };
 
 // Note: This global definition of gWwanClientContext supports only one
@@ -227,10 +229,13 @@ static void chppWwanClientDeinit(void *clientContext) {
  */
 static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
                                uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
   UNUSED_VAR(len);
+
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
+  if (!clientContext->opened) {
+    CHPP_LOGE("WWAN open failed at service");
+  }
 }
 
 /**
@@ -322,7 +327,7 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   CHPP_DEBUG_ASSERT(systemApi != NULL);
   CHPP_DEBUG_ASSERT(callbacks != NULL);
 
-  bool result = false;
+  gWwanClientContext.opened = false;
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
@@ -341,14 +346,14 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
-                                                 &gWwanClientContext.open,
-                                                 request, sizeof(*request));
+      chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                        &gWwanClientContext.open, request,
+                                        sizeof(*request));
+      // gWwanClientContext.opened is now set
     }
   }
 
-  return result;
+  return gWwanClientContext.opened;
 }
 
 /**
@@ -361,13 +366,12 @@ static void chppWwanClientClose(void) {
 
   if (request == NULL) {
     CHPP_LOG_OOM();
-  } else {
-    chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
-                                      &gWwanClientContext.close, request,
-                                      sizeof(*request));
+  } else if (chppSendTimestampedRequestAndWait(&gWwanClientContext.client,
+                                               &gWwanClientContext.close,
+                                               request, sizeof(*request))) {
+    gWwanClientContext.opened = false;
+    gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
   }
-  // Local
-  gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
 }
 
 /**

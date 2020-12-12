@@ -104,6 +104,8 @@ struct ChppGnssClientState {
       passiveLocationListener;  // PassiveLocationListener state
 
   uint32_t capabilities;  // Cached GetCapabilities result
+
+  bool opened;  // GNSS has been successfully opened
 };
 
 // Note: This global definition of gGnssClientContext supports only one
@@ -307,10 +309,13 @@ static void chppGnssClientDeinit(void *clientContext) {
  */
 static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
                                uint8_t *buf, size_t len) {
-  // TODO
-  UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
   UNUSED_VAR(len);
+
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
+  if (!clientContext->opened) {
+    CHPP_LOGE("GNSS open failed at service");
+  }
 }
 
 /**
@@ -520,7 +525,7 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   CHPP_DEBUG_ASSERT(systemApi != NULL);
   CHPP_DEBUG_ASSERT(callbacks != NULL);
 
-  bool result = false;
+  gGnssClientContext.opened = false;
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
@@ -539,14 +544,14 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
     if (request == NULL) {
       CHPP_LOG_OOM();
     } else {
-      // Send request and wait for service response
-      result = chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
-                                                 &gGnssClientContext.open,
-                                                 request, sizeof(*request));
+      chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
+                                        &gGnssClientContext.open, request,
+                                        sizeof(*request));
+      // gGnssClientContext.opened is now set
     }
   }
 
-  return result;
+  return gGnssClientContext.opened;
 }
 
 /**
@@ -559,13 +564,12 @@ static void chppGnssClientClose(void) {
 
   if (request == NULL) {
     CHPP_LOG_OOM();
-  } else {
-    chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
-                                      &gGnssClientContext.close, request,
-                                      sizeof(*request));
+  } else if (chppSendTimestampedRequestAndWait(&gGnssClientContext.client,
+                                               &gGnssClientContext.close,
+                                               request, sizeof(*request))) {
+    gGnssClientContext.opened = false;
+    gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
   }
-  // Local
-  gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
 }
 
 /**
