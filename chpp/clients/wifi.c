@@ -103,6 +103,10 @@ struct ChppWifiClientState {
   struct ChppRequestResponseState requestRanging;  // Request Ranging state
 
   uint32_t capabilities;  // Cached GetCapabilities result
+
+  bool scanMonitorEnabled;          // Scan monitoring is enabled
+  bool scanMonitorSilenceCallback;  // Silence callback during recovery from a
+                                    // service reset
 };
 
 // Note: This global definition of gWifiClientContext supports only one
@@ -127,6 +131,8 @@ static bool chppWifiClientRequestRanging(
 static void chppWifiClientReleaseRangingEvent(
     struct chreWifiRangingEvent *event);
 
+static void chppWiFiRecoverScanMonitor(
+    struct ChppWifiClientState *clientContext);
 static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
                                 uint8_t *buf, size_t len);
 static void chppWifiGetCapabilitiesResult(
@@ -170,6 +176,7 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
     case CHPP_WIFI_OPEN: {
       chppClientTimestampResponse(&wifiClientContext->open, rxHeader);
       chppClientProcessOpenResponse(&wifiClientContext->client, buf, len);
+      chppWiFiRecoverScanMonitor(wifiClientContext);
       break;
     }
 
@@ -300,6 +307,26 @@ static void chppWifiClientNotifyReset(void *clientContext) {
 }
 
 /**
+ * Restores the state of scan monitoring after an incoming reset.
+ *
+ * @param clientContext Maintains status for each client instance.
+ */
+static void chppWiFiRecoverScanMonitor(
+    struct ChppWifiClientState *clientContext) {
+  if (clientContext->scanMonitorEnabled) {
+    CHPP_LOGI("Re-enabling WiFi scan monitoring after reset");
+    clientContext->scanMonitorEnabled = false;
+    clientContext->scanMonitorSilenceCallback = true;
+
+    if (!chppWifiClientConfigureScanMonitor(true)) {
+      clientContext->scanMonitorSilenceCallback = false;
+      CHPP_LOGE("Unable to re-enable WiFi scan monitoring after reset");
+      CHPP_PROD_ASSERT(false);
+    }
+  }
+}
+
+/**
  * Handles the service response for the close client request.
  *
  * This function is called from chppDispatchWifiResponse().
@@ -366,20 +393,31 @@ static void chppWifiConfigureScanMonitorResult(
   if (len < sizeof(struct ChppWifiConfigureScanMonitorAsyncResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     CHPP_LOGE(
-        "WiFi ControlLocationSession request failed at service. error=%" PRIu8,
+        "WiFi ControlLocationSession request failed at service. "
+        "error=%" PRIu8,
         rxHeader->error);
 
   } else {
     struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
         &((struct ChppWifiConfigureScanMonitorAsyncResponse *)buf)->params;
 
+    gWifiClientContext.scanMonitorEnabled = result->enabled;
     CHPP_LOGI(
         "chppWifiConfigureScanMonitorResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
 
-    gCallbacks->scanMonitorStatusChangeCallback(result->enabled,
-                                                result->errorCode);
+    if (!gWifiClientContext.scanMonitorSilenceCallback) {
+      // Per the scanMonitorStatusChangeCallback API contract, unsolicited
+      // calls to scanMonitorStatusChangeCallback must not be made, and it
+      // should only be invoked as the direct result of an earlier call to
+      // configureScanMonitor.
+      gCallbacks->scanMonitorStatusChangeCallback(result->enabled,
+                                                  result->errorCode);
+    }  // Else, the WiFi subsystem has been reset and we are required to
+       // silently reenable the scan monitor.
+
+    gWifiClientContext.scanMonitorSilenceCallback = false;
   }
 }
 
@@ -575,7 +613,7 @@ static uint32_t chppWifiClientGetCapabilities(void) {
 }
 
 /**
- * Enables/disables receiving unsolicited scan results.
+ * Enables/disables receiving unsolicited scan results (scan monitoring).
  *
  * @param enable True to enable.
  *
