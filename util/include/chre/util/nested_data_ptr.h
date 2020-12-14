@@ -18,6 +18,7 @@
 #define UTIL_CHRE_NESTED_DATA_PTR_H_
 
 #include <string.h>
+#include <type_traits>
 
 namespace chre {
 
@@ -36,6 +37,8 @@ union NestedDataPtr {
   // stored in a register), but it's included here just to be safe.
   static_assert(alignof(DataType) <= alignof(void *),
                 "Additional alignment in NestedDataPtr can't be guaranteed");
+  static_assert(std::is_trivially_copyable<DataType>::value,
+                "Only trivially copyable types may be used in NestedDataPtr");
 
   NestedDataPtr() = default;
 
@@ -59,8 +62,8 @@ union NestedDataPtr {
 
   operator void *() const {
     void *result;
-    static_assert(sizeof(*this) == sizeof(result), "Broken assumption");
-    memcpy(&result, this, sizeof(result));
+    static_assert(sizeof(data) <= sizeof(result), "Broken assumption");
+    memcpy(&result, &data, sizeof(data));
     return result;
   }
 
