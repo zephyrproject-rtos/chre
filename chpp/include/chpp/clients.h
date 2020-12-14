@@ -70,6 +70,7 @@ struct ChppClientState {
   struct ChppAppState *appContext;  // Pointer to app layer context
   uint8_t handle;                   // Handle number for this client
   uint8_t transaction;              // Next Transaction ID to be used
+  bool initialized;                 // Client has been initialized
 
   bool responseReady;  // For sync. request/responses
   struct ChppMutex responseMutex;

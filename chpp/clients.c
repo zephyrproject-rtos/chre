@@ -129,9 +129,11 @@ void chppClientInit(struct ChppClientState *clientContext, uint8_t handle) {
   clientContext->handle = handle;
   chppMutexInit(&clientContext->responseMutex);
   chppConditionVariableInit(&clientContext->responseCondVar);
+  clientContext->initialized = true;
 }
 
 void chppClientDeinit(struct ChppClientState *clientContext) {
+  clientContext->initialized = false;
   chppConditionVariableDeinit(&clientContext->responseCondVar);
   chppMutexDeinit(&clientContext->responseMutex);
 }
@@ -246,6 +248,10 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
                                       struct ChppRequestResponseState *rRState,
                                       void *buf, size_t len) {
   CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
+  if (!clientState->initialized) {
+    return false;
+  }
+
   chppClientTimestampRequest(rRState, buf);
   return chppEnqueueTxDatagramOrFail(clientState->appContext->transportContext,
                                      buf, len);
@@ -262,6 +268,10 @@ bool chppSendTimestampedRequestAndWaitTimeout(
     struct ChppClientState *clientState,
     struct ChppRequestResponseState *rRState, void *buf, size_t len,
     uint64_t timeoutNs) {
+  if (!clientState->initialized) {
+    return false;
+  }
+
   chppMutexLock(&clientState->responseMutex);
 
   bool result =
