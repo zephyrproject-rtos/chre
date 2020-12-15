@@ -56,6 +56,11 @@ constexpr uint64_t kMinBufferDuration =
 //! not practical for always-on, low-power use-cases.
 constexpr uint64_t kMaxBufferDuration = kOneSecondInNanoseconds * 120;
 
+//! While a variety of sample rates are supported, for the purposes of basic
+//! audio data validation, we buffer about 4 seconds worth of PCM audio data
+//! sampled at 16KHz.
+constexpr uint32_t kRequiredSampleRate = 16000;
+
 /**
  * @return true if the character is ASCII printable.
  */
@@ -119,7 +124,6 @@ bool validateAudioSource(uint32_t handle,
 
 bool validateMinimumAudioSource(const struct chreAudioSource &source) {
   // CHQTS requires a 16kHz, PCM-format, 2 second buffer.
-  constexpr uint32_t kRequiredSampleRate = 16000;
   constexpr uint64_t kRequiredBufferDuration = 2 * kOneSecondInNanoseconds;
 
   // Ensure that the minimum buffer size is less than or equal to the required
@@ -169,6 +173,105 @@ void validateAudioSources() {
   }
 }
 
+/**
+ * Attempts to request audio data from the default microphone handle (0),
+ * posts a failure if the data request failed
+ */
+void requestAudioData() {
+  constexpr uint32_t kAudioHandle = 0;
+  struct chreAudioSource audioSource;
+
+  if (!chreAudioGetSource(kAudioHandle, &audioSource)) {
+    sendFatalFailureToHost("Failed to query source for handle 0");
+  } else if (!chreAudioConfigureSource(kAudioHandle, true /* enable */,
+                                       audioSource.minBufferDuration,
+                                       audioSource.minBufferDuration)) {
+    sendFatalFailureToHost("Failed to request audio data for handle 0");
+  }
+}
+
+/**
+ * Check if the audio samples are all zeros
+ *
+ * @return true on check passing
+ */
+bool checkSamplesAllZeros(int16_t *data, size_t dataLen) {
+  for (size_t i = 0; i < dataLen; ++i) {
+    if (data[i] != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if adjacent audio samples are unique
+ *
+ * @return true on check pass
+ */
+bool checkSamplesAllSame(int16_t *data, size_t dataLen) {
+  if (dataLen > 0) {
+    const int16_t controlValue = data[0];
+    for (size_t i = 1; i < dataLen; ++i) {
+      if (data[i] != controlValue) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
+  constexpr uint32_t kAudioHandle = 0;
+
+  // A count of the number of data events we've received - we stop
+  // the test after receiving 2 data events.
+  static uint8_t numDataEventsSoFar = 1;
+
+  if (dataEvent == nullptr) {
+    sendFatalFailureToHost("Null event data");
+  } else if (dataEvent->samplesS16 == nullptr) {
+    sendFatalFailureToHost("Null audio data frame");
+  } else if (dataEvent->sampleCount == 0) {
+    sendFatalFailureToHost("0 samples in audio data frame");
+  } else {
+    struct chreAudioSource audioSource;
+    if (!chreAudioGetSource(kAudioHandle, &audioSource)) {
+      sendFatalFailureToHost("Failed to get audio source for handle 0");
+    } else {
+      // Per the CHRE Audio API requirements, it is expected that we exactly
+      // the number of samples that we ask for - we verify that here.
+      const size_t kNumSamplesExpected =
+          audioSource.minBufferDuration * kRequiredSampleRate;
+      if (dataEvent->sampleCount != kNumSamplesExpected) {
+        sendFatalFailureToHost(
+            "Failed to receive the expected number of samples in audio data "
+            "event");
+      }
+    }
+  }
+
+  if (numDataEventsSoFar == 2) {
+    if (!chreAudioConfigureSource(kAudioHandle, false /* enable */,
+                                  0 /* bufferDuration */,
+                                  0 /* deliveryInterval */)) {
+      sendFatalFailureToHost("Failed to disable audio source for handle 0");
+    }
+  } else {
+    ++numDataEventsSoFar;
+  }
+
+  if (!checkSamplesAllZeros(dataEvent->samplesS16, dataEvent->sampleCount)) {
+    sendFatalFailureToHost("All audio samples were zeros");
+  } else if (!checkSamplesAllSame(dataEvent->samplesS16,
+                                  dataEvent->sampleCount)) {
+    sendFatalFailureToHost("All audio samples were identical");
+  } else {
+    sendSuccessToHost();
+  }
+}
+}  // namespace
+
 }  // anonymous namespace
 
 BasicAudioTest::BasicAudioTest()
@@ -181,7 +284,10 @@ void BasicAudioTest::setUp(uint32_t messageSize, const void * /* message */) {
   }
 
   validateAudioSources();
-  sendSuccessToHost();
+
+  mState = State::kExpectingAudioData;
+
+  requestAudioData();
 }
 
 void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
@@ -195,8 +301,21 @@ void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
   if (mState == State::kPreStart) {
     unexpectedEvent(eventType);
   } else {
-    // TODO: Handle audio data from sources, perform basic consistency checks on
-    // it.
+    switch (eventType) {
+      case CHRE_EVENT_AUDIO_SAMPLING_CHANGE:
+        /* This event is received, but not relevant to this test since we're
+         * mostly interested in the audio data, so we ignore it. */
+        break;
+
+      case CHRE_EVENT_AUDIO_DATA:
+        handleAudioDataEvent(
+            static_cast<const chreAudioDataEvent *>(eventData));
+        break;
+
+      default:
+        unexpectedEvent(eventType);
+        break;
+    }
   }
 
   mInMethod = false;
