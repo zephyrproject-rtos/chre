@@ -37,7 +37,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.junit.Assert;
 import org.junit.Assume;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -70,8 +70,6 @@ public class ChreCrossValidatorSensor
 
     private static final long DEFAULT_SAMPLING_INTERVAL_IN_MS = 20;
 
-    // TODO(b/146052784): May need to account for differences in sampling rate and latency from
-    // AP side vs CHRE side
     private static final long SAMPLING_LATENCY_IN_MS = 0;
 
     private static final long MAX_TIMESTAMP_DIFF_NS = 10000000L;
@@ -256,8 +254,6 @@ public class ChreCrossValidatorSensor
         Assert.assertTrue("Did not find any AP datapoints", mApDatapointsArray.length > 0);
         alignApAndChreDatapoints();
         // AP and CHRE datapoints will be same size
-        // TODO(b/146052784): Ensure that CHRE data is the same sampling rate as AP data for
-        // comparison
         for (int i = 0; i < mApDatapointsArray.length; i++) {
             assertSensorDatapointsSimilar(
                     (ApSensorDatapoint) mApDatapointsArray[i],
@@ -400,35 +396,35 @@ public class ChreCrossValidatorSensor
     }
 
     /*
-    * Align the AP and CHRE datapoints by finding the first pair that are similar comparing
-    * linearly from there. Also truncate the end if one list has more datapoints than the other
-    * after this. This is needed because AP and CHRE can start sending data and varying times to
-    * this validator and can also stop sending at various times.
+    * Align the AP and CHRE datapoints by finding all the timestamps that match up and discarding
+    * the rest of the datapoints.
     */
     private void alignApAndChreDatapoints() throws AssertionError {
-        int matchAp = 0, matchChre = 0;
-        int shorterDpLength = Math.min(mApDatapointsArray.length, mChreDatapointsArray.length);
-        if (mApDatapointsArray[0].timestamp < mChreDatapointsArray[0].timestamp) {
-            matchChre = 0;
-            matchAp = indexOfFirstClosestDatapoint((SensorDatapoint[]) mApDatapointsArray,
-                                                   mChreDatapointsArray[0]);
-        } else {
-            matchAp = 0;
-            matchChre = indexOfFirstClosestDatapoint((SensorDatapoint[]) mChreDatapointsArray,
-                                                     mApDatapointsArray[0]);
+        ArrayList<ApSensorDatapoint> newApSensorDatapoints = new ArrayList<ApSensorDatapoint>();
+        ArrayList<ChreSensorDatapoint> newChreSensorDatapoints =
+                new ArrayList<ChreSensorDatapoint>();
+        int apI = 0;
+        int chreI = 0;
+        while (apI < mApDatapointsArray.length && chreI < mChreDatapointsArray.length) {
+            ApSensorDatapoint apDp = mApDatapointsArray[apI];
+            ChreSensorDatapoint chreDp = mChreDatapointsArray[chreI];
+            if (datapointTimestampsAreSimilar(apDp, chreDp)) {
+                newApSensorDatapoints.add(apDp);
+                newChreSensorDatapoints.add(chreDp);
+                apI++;
+                chreI++;
+            } else if (apDp.timestamp < chreDp.timestamp) {
+                apI++;
+            } else {
+                chreI++;
+            }
         }
+        // TODO(b/175795665): Assert that an acceptable amount of datapoints pass the alignment
+        // phase.
         Assert.assertTrue("Did not find matching timestamps to align AP and CHRE datapoints.",
-                          (matchAp != -1 && matchChre != -1));
-        // Remove extraneous datapoints before matching datapoints
-        int apStartI = matchAp;
-        int chreStartI = matchChre;
-        int newApLength = mApDatapointsArray.length - apStartI;
-        int newChreLength = mChreDatapointsArray.length - chreStartI;
-        int minLength = Math.min(newApLength, newChreLength);
-        int chreEndI = chreStartI + minLength;
-        int apEndI = apStartI + minLength;
-        mApDatapointsArray = Arrays.copyOfRange(mApDatapointsArray, apStartI, apEndI);
-        mChreDatapointsArray = Arrays.copyOfRange(mChreDatapointsArray, chreStartI, chreEndI);
+                          !(newApSensorDatapoints.isEmpty() || newChreSensorDatapoints.isEmpty()));
+        mApDatapointsArray = newApSensorDatapoints.toArray(new ApSensorDatapoint[0]);
+        mChreDatapointsArray = newChreSensorDatapoints.toArray(new ChreSensorDatapoint[0]);
     }
 
     /**
@@ -461,10 +457,6 @@ public class ChreCrossValidatorSensor
                 String.format("AP and CHRE three axis datapoint values differ on index %d", index)
                 + "\nAP data -> " + apDp + "\nCHRE data -> "
                 + chreDp;
-        String timestampsAssertMsg =
-                String.format("AP and CHRE three axis timestamp values differ on index %d", index)
-                + "\nAP data -> " + apDp + "\nCHRE data -> "
-                + chreDp;
 
         // TODO(b/146052784): Log full list of datapoints to file on disk on assertion failure
         // so that there is more insight into the problem then just logging the one pair of
@@ -472,23 +464,6 @@ public class ChreCrossValidatorSensor
         Assert.assertTrue(datapointsAssertMsg,
                 datapointValuesAreSimilar(
                 apDp, chreDp, mSensorConfig.errorMargin));
-        Assert.assertTrue(timestampsAssertMsg,
-                datapointTimestampsAreSimilar(apDp, chreDp));
-    }
-
-    /**
-     * @param datapoints Array of dataoints to compare timestamps to laterDp
-     * @param laterDp SensorDatapoint whose timestamp will be compared to the datapoints in array
-     *    to find the first pair that match.
-     */
-    private int indexOfFirstClosestDatapoint(SensorDatapoint[] sensorDatapoints,
-                                             SensorDatapoint laterDp) {
-        for (int i = 0; i < sensorDatapoints.length; i++) {
-            if (datapointTimestampsAreSimilar(sensorDatapoints[i], laterDp)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     /**
