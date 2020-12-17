@@ -78,6 +78,10 @@ SLPI_QSH_CFLAGS += -I$(SLPI_PREFIX)/config/cust
 SLPI_QSH_CFLAGS += -I$(SLPI_PREFIX)/qsh/qsh_nanoapp/inc
 SLPI_QSH_CFLAGS += -Iplatform/slpi/see/include
 
+ifeq ($(CHRE_USE_BUFFERED_LOGGING), true)
+SLPI_QSH_CFLAGS += -DCHRE_USE_BUFFERED_LOGGING
+endif
+
 # Define CHRE_SLPI_SEE for the few components that are still shared between QSH
 # and SEE.
 SLPI_QSH_CFLAGS += -DCHRE_SLPI_SEE
@@ -169,11 +173,15 @@ endif
 
 # SLPI/QSH-specific Source Files ###############################################
 
-SLPI_QSH_SRCS += platform/shared/log_buffer.cc
-SLPI_QSH_SRCS += platform/slpi/platform_log.cc
 SLPI_QSH_SRCS += platform/slpi/see/island_vote_client.cc
 SLPI_QSH_SRCS += platform/slpi/see/power_control_manager.cc
 SLPI_QSH_SRCS += platform/slpi/qsh/qsh_shim.cc
+
+ifeq ($(CHRE_USE_BUFFERED_LOGGING), true)
+SLPI_QSH_SRCS += platform/shared/log_buffer.cc
+SLPI_QSH_SRCS += platform/shared/log_buffer_manager.cc
+endif
+
 
 # Simulator-specific Compiler Flags ############################################
 

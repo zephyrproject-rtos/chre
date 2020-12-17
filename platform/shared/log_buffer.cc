@@ -60,7 +60,10 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
         mBufferDataHeadIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
         mBufferDataSize -= logSize;
       }
-      copyToBuffer(sizeof(logLevel), &logLevel);
+      // The final log level as parsed by the daemon requires that the log level
+      // be incremented.
+      uint8_t logLevelAdjusted = static_cast<uint8_t>(logLevel) + 1;
+      copyToBuffer(sizeof(logLevelAdjusted), &logLevelAdjusted);
       copyToBuffer(sizeof(timestampMs), &timestampMs);
       copyToBuffer(logLen, tempBuffer);
       copyToBuffer(1, reinterpret_cast<const void *>("\0"));

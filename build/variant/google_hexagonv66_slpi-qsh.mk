@@ -25,6 +25,8 @@ TARGET_VARIANT_SRCS += $(SLPI_SRCS)
 TARGET_CFLAGS += $(SLPI_QSH_CFLAGS)
 TARGET_VARIANT_SRCS += $(SLPI_QSH_SRCS)
 
+CHRE_USE_BUFFERED_LOGGING = false
+
 ifneq ($(filter $(TARGET_NAME)% all, $(MAKECMDGOALS)),)
 ifneq ($(IS_NANOAPP_BUILD),)
 TARGET_SO_LATE_LIBS += $(CHRE_PREFIX)/build/app_support/google_slpi/libchre_slpi_skel.so

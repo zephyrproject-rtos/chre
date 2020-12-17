@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,46 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_LINUX_PLATFORM_LOG_BASE_H_
-#define CHRE_PLATFORM_LINUX_PLATFORM_LOG_BASE_H_
+#ifndef CHRE_PLATFORM_LINUX_PLATFORM_LOG_H_
+#define CHRE_PLATFORM_LINUX_PLATFORM_LOG_H_
 
 #include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <thread>
 
+#include "chre/util/singleton.h"
+#include "chre_api/chre/re.h"
+
 namespace chre {
 
 /**
  * Storage for the Linux implementation of the PlatformLog class.
  */
-class PlatformLogBase {
- protected:
+class PlatformLog {
+ public:
+  PlatformLog();
+
+  ~PlatformLog();
+
+  /**
+   * Logs message with printf-style arguments. No trailing newline is required
+   * for this method.
+   */
+  void log(chreLogLevel logLevel, const char *formatStr, ...) {
+    va_list args;
+    va_start(args, formatStr);
+    logVa(logLevel, formatStr, args);
+    va_end(args);
+  }
+
+  /**
+   * Logs message with printf-style arguments. No trailing newline is required
+   * for this method. Uses va_list parameter instead of ...
+   */
+  void logVa(chreLogLevel logLevel, const char *formatStr, va_list args);
+
+ private:
   /**
    * A looper method that idles on a condition variable on logs becoming
    * available. When logs are available, they are output via std::cout.
@@ -53,6 +78,8 @@ class PlatformLogBase {
   bool mStopLogger = false;
 };
 
+typedef Singleton<PlatformLog> PlatformLogSingleton;
+
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_LINUX_PLATFORM_LOG_BASE_H_
+#endif  // CHRE_PLATFORM_LINUX_PLATFORM_LOG_H_

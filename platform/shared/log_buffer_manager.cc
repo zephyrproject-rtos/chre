@@ -14,50 +14,31 @@
  * limitations under the License.
  */
 
-#include "chre/platform/shared/platform_log.h"
+#include "chre/platform/shared/log_buffer_manager.h"
+
 #include "chre/core/event_loop_manager.h"
 #include "chre/util/lock_guard.h"
 
-// TODO(b/174676445): Move functionality that is shared between platforms that
-// use buffered logging into the shared/ directory in its own implementation
-// file.
-
-void chrePlatformSlpiLogToBuffer(chreLogLevel chreLogLevel, const char *format,
-                                 ...) {
+void chrePlatformLogToBuffer(chreLogLevel chreLogLevel, const char *format,
+                             ...) {
   va_list args;
   va_start(args, format);
-  if (chre::PlatformLogSingleton::isInitialized()) {
-    chre::PlatformLogSingleton::get()->logVa(chreLogLevel, format, args);
+  if (chre::LogBufferManagerSingleton::isInitialized()) {
+    chre::LogBufferManagerSingleton::get()->logVa(chreLogLevel, format, args);
   }
   va_end(args);
 }
 
 namespace chre {
 
-void sendBufferedLogMessageCallback(uint16_t eventType, void *data,
+void sendBufferedLogMessageCallback(uint16_t /* eventType */, void * /* data */,
                                     void * /* extraData */) {
-  if (EventLoopManagerSingleton::get()
-          ->getEventLoop()
-          .getPowerControlManager()
-          .hostIsAwake()) {
-    PlatformLog *platformLog = PlatformLogSingleton::get();
-    LogBuffer *logBuffer = platformLog->getLogBuffer();
-    uint8_t *tempLogBufferData =
-        reinterpret_cast<uint8_t *>(platformLog->getTempLogBufferData());
-    size_t bytesCopied =
-        logBuffer->copyLogs(tempLogBufferData, CHRE_MESSAGE_TO_HOST_MAX_SIZE);
-    auto &hostCommsMgr =
-        EventLoopManagerSingleton::get()->getHostCommsManager();
-    hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied);
-  }
+  LogBufferManagerSingleton::get()->sendLogsToHost();
 }
 
-PlatformLogBase::PlatformLogBase()
-    : mLogBuffer(this, mLogBufferData, CHRE_MESSAGE_TO_HOST_MAX_SIZE) {}
-
-void PlatformLogBase::onLogsReady(LogBuffer *logBuffer) {
-  // TODO(b/174676964): Have the PlatformLog class also send logs to host if the
-  // AP just awoke.
+void LogBufferManager::onLogsReady(LogBuffer *logBuffer) {
+  // TODO(b/174676964): Have the LogBufferManager class also send logs to host
+  // if the AP just awoke.
   LockGuard<Mutex> lockGuard(mFlushLogsMutex);
   if (!mLogFlushToHostPending) {
     if (EventLoopManagerSingleton::isInitialized() &&
@@ -75,7 +56,7 @@ void PlatformLogBase::onLogsReady(LogBuffer *logBuffer) {
   }
 }
 
-void PlatformLogBase::onLogsSentToHost() {
+void LogBufferManager::onLogsSentToHost() {
   bool shouldPostCallback = false;
   {
     LockGuard<Mutex> lockGuard(mFlushLogsMutex);
@@ -91,12 +72,32 @@ void PlatformLogBase::onLogsSentToHost() {
   }
 }
 
-PlatformLog::PlatformLog() {}
+void LogBufferManager::sendLogsToHost() {
+  if (EventLoopManagerSingleton::get()
+          ->getEventLoop()
+          .getPowerControlManager()
+          .hostIsAwake()) {
+    LogBufferManager *platformLog = LogBufferManagerSingleton::get();
+    LogBuffer *logBuffer = platformLog->getLogBuffer();
+    uint8_t *tempLogBufferData =
+        reinterpret_cast<uint8_t *>(platformLog->getTempLogBufferData());
+    size_t bytesCopied =
+        logBuffer->copyLogs(tempLogBufferData, sizeof(mLogBufferData));
+    auto &hostCommsMgr =
+        EventLoopManagerSingleton::get()->getHostCommsManager();
+    hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied);
+  }
+}
 
-PlatformLog::~PlatformLog() {}
+void LogBufferManager::log(chreLogLevel logLevel, const char *formatStr, ...) {
+  va_list args;
+  va_start(args, formatStr);
+  logVa(logLevel, formatStr, args);
+  va_end(args);
+}
 
-void PlatformLog::logVa(chreLogLevel logLevel, const char *formatStr,
-                        va_list args) {
+void LogBufferManager::logVa(chreLogLevel logLevel, const char *formatStr,
+                             va_list args) {
   LogBufferLogLevel logBufLogLevel = chreToLogBufferLogLevel(logLevel);
   uint64_t timeNs = SystemTime::getMonotonicTime().toRawNanoseconds();
   uint32_t timeMs =
@@ -104,7 +105,15 @@ void PlatformLog::logVa(chreLogLevel logLevel, const char *formatStr,
   mLogBuffer.handleLogVa(logBufLogLevel, timeMs, formatStr, args);
 }
 
-LogBufferLogLevel PlatformLogBase::chreToLogBufferLogLevel(
+LogBuffer *LogBufferManager::getLogBuffer() {
+  return &mLogBuffer;
+}
+
+uint8_t *LogBufferManager::getTempLogBufferData() {
+  return mTempLogBufferData;
+}
+
+LogBufferLogLevel LogBufferManager::chreToLogBufferLogLevel(
     chreLogLevel chreLogLevel) {
   switch (chreLogLevel) {
     case CHRE_LOG_ERROR:
@@ -117,5 +126,8 @@ LogBufferLogLevel PlatformLogBase::chreToLogBufferLogLevel(
       return LogBufferLogLevel::DEBUG;
   }
 }
+
+//! Explicitly instantiate the EventLoopManagerSingleton to reduce codesize.
+template class Singleton<LogBufferManager>;
 
 }  // namespace chre

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "chre/platform/shared/platform_log.h"
+#include "chre/platform/linux/platform_log.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -24,7 +24,7 @@
 
 namespace chre {
 
-void PlatformLogBase::logLooper() {
+void PlatformLog::logLooper() {
   while (1) {
     char *logMessage = nullptr;
 

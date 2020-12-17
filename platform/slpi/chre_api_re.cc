@@ -16,7 +16,9 @@
 
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
-#include "chre/platform/shared/platform_log.h"
+#ifdef CHRE_USE_BUFFERED_LOGGING
+#include "chre/platform/shared/log_buffer_manager.h"
+#endif
 #include "chre/util/macros.h"
 #include "chre_api/chre/re.h"
 
@@ -64,8 +66,8 @@ DLL_EXPORT void chreLog(enum chreLogLevel level, const char *formatStr, ...) {
 
   va_start(args, formatStr);
 #ifdef CHRE_USE_BUFFERED_LOGGING
-  CHRE_ASSERT(chre::PlatformLogSingleton::isInitialized());
-  chre::PlatformLogSingleton::get()->logVa(level, formatStr, args);
+  CHRE_ASSERT(chre::LogBufferManagerSingleton::isInitialized());
+  chre::LogBufferManagerSingleton::get()->logVa(level, formatStr, args);
 #elif defined(CHRE_USE_FARF_LOGGING)
   // The same size is used in the implmentation of ashVaLog().
   constexpr size_t kDebugMaxLogEntrySize = 128;

@@ -33,7 +33,7 @@
   printf("\e[" color "m%s %s:%d\t" fmt "\e[0m\n", levelStr, __FILENAME__, \
          __LINE__, ##__VA_ARGS__)
 #else
-#include "chre/platform/shared/platform_log.h"
+#include "chre/platform/linux/platform_log.h"
 
 #define CHRE_LINUX_LOG(logLevel, levelStr, color, fmt, ...)        \
   if (::chre::PlatformLogSingleton::isInitialized()) {             \

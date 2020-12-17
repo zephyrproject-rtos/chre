@@ -45,7 +45,7 @@ extern "C" {
 #endif
 
 #ifdef CHRE_USE_BUFFERED_LOGGING
-#include "chre/platform/shared/platform_log.h"
+#include "chre/platform/shared/log_buffer_manager.h"
 #endif
 
 using chre::EventLoop;
@@ -161,7 +161,7 @@ extern "C" int chre_slpi_start_thread(void) {
   int fastRpcResult = CHRE_FASTRPC_ERROR;
 
 #ifdef CHRE_USE_BUFFERED_LOGGING
-  chre::PlatformLogSingleton::init();
+  chre::LogBufferManagerSingleton::init();
 #endif
 
   if (gThreadRunning) {

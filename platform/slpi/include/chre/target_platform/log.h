@@ -31,24 +31,26 @@ extern "C" {
 #endif
 
 /**
- * Log via the PlatformLogSingleton vaLog method.
+ * Log via the PlatformLogBufferSingleton vaLog method.
+ *
+ * Defined in platform/shared/platform_log_buffer.cc
  *
  * @param chreLogLevel The log level.
  * @param format The format string.
  * @param ... The arguments to print into the final log.
  */
-void chrePlatformSlpiLogToBuffer(enum chreLogLevel chreLogLevel,
-                                 const char *format, ...);
+void chrePlatformLogToBuffer(enum chreLogLevel chreLogLevel, const char *format,
+                             ...);
 
 #ifdef __cplusplus
 }
 #endif
 
-#define CHRE_BUFFER_LOG(level, fmt, ...)                    \
-  do {                                                      \
-    CHRE_LOG_PREAMBLE                                       \
-    chrePlatformSlpiLogToBuffer(level, fmt, ##__VA_ARGS__); \
-    CHRE_LOG_EPILOGUE                                       \
+#define CHRE_BUFFER_LOG(level, fmt, ...)                \
+  do {                                                  \
+    CHRE_LOG_PREAMBLE                                   \
+    chrePlatformLogToBuffer(level, fmt, ##__VA_ARGS__); \
+    CHRE_LOG_EPILOGUE                                   \
   } while (0)
 #define LOGE(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_ERROR, fmt, ##__VA_ARGS__)
 #define LOGW(fmt, ...) CHRE_BUFFER_LOG(CHRE_LOG_WARN, fmt, ##__VA_ARGS__)

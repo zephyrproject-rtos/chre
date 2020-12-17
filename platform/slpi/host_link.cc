@@ -30,7 +30,7 @@
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/platform/shared/nanoapp_load_manager.h"
 #ifdef CHRE_USE_BUFFERED_LOGGING
-#include "chre/platform/shared/platform_log.h"
+#include "chre/platform/shared/log_buffer_manager.h"
 #endif
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
@@ -328,8 +328,8 @@ int generateMessageFromBuilder(ChreFlatBufferBuilder *builder,
   int result = copyToHostBuffer(*builder, buffer, bufferSize, messageLen);
 
 #ifdef CHRE_USE_BUFFERED_LOGGING
-  if (isEncodedLogMessage && PlatformLogSingleton::isInitialized()) {
-    PlatformLogSingleton::get()->onLogsSentToHost();
+  if (isEncodedLogMessage && LogBufferManagerSingleton::isInitialized()) {
+    LogBufferManagerSingleton::get()->onLogsSentToHost();
   }
 #else
   UNUSED_VAR(isEncodedLogMessage);
