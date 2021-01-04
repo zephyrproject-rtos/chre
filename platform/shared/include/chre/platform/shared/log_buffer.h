@@ -120,13 +120,15 @@ class LogBuffer {
    *
    * @param destination Pointer to the destination memory address.
    * @param size The max number of bytes to copy.
+   * @param numLogsDropped Non-null pointer which will be set to the number of
+   * logs dropped since CHRE started.
    *
    * @return The number of bytes copied from buffer to destination which may be
    *         less than size because partial logs are not copied into
    *         destination or the number of bytes left in the buffer is less than
    *         size.
    */
-  size_t copyLogs(void *destination, size_t size);
+  size_t copyLogs(void *destination, size_t size, size_t *numLogsDropped);
 
   /**
    * Transfer all data from one log buffer to another. The destination log
@@ -232,6 +234,8 @@ class LogBuffer {
   size_t mBufferDataSize = 0;
   //! The buffer max size
   size_t mBufferMaxSize;
+  //! The number of logs that have been dropped
+  size_t mNumLogsDropped = 0;
   //! The buffer min size
   // TODO(b/170870354): Setup a more appropriate min size
   static constexpr size_t kBufferMinSize = 1024;  // 1KB
