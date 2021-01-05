@@ -23,6 +23,7 @@
 
 #include "chpp/app.h"
 #include "chpp/clients.h"
+#include "chpp/common/timesync.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,8 +41,9 @@ extern "C" {
  */
 struct ChppTimesyncResult {
   enum ChppAppErrorCode error;  // Indicates success or error type
-  int64_t offsetNs;             // Time offset between client and service
+  int64_t offsetNs;             // Time offset of service (service - client)
   uint64_t rttNs;               // RTT
+  uint64_t measurementTimeNs;   // Time of last measurement
 };
 
 /************************************************
@@ -75,11 +77,12 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 
 /**
  * Initiates a CHPP timesync to measure time offset of the service.
- * Note that only one GetTimesync may be run at any time.
+ * Note that only one measurement may be run at any time.
  *
  * @param context Maintains status for each app layer instance.
  */
-struct ChppTimesyncResult chppGetTimesync(struct ChppAppState *context);
+struct ChppTimesyncResult chppTimesyncMeasureOffset(
+    struct ChppAppState *context);
 
 #ifdef __cplusplus
 }

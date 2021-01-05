@@ -141,7 +141,8 @@ TEST_F(AppTestBase, Timesync) {
 
   CHPP_LOGI("Starting timesync test...");
 
-  struct ChppTimesyncResult result = chppGetTimesync(&mClientAppContext);
+  struct ChppTimesyncResult result =
+      chppTimesyncMeasureOffset(&mClientAppContext);
 
   EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
 
