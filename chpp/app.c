@@ -719,20 +719,19 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
 
   } else {
     for (uint8_t i = 0; i < context->discoveredServiceCount; i++) {
-      if (context->clientIndexOfServiceIndex[i] != CHPP_CLIENT_INDEX_NONE) {
+      uint8_t clientIndex = context->clientIndexOfServiceIndex[i];
+      if (clientIndex != CHPP_CLIENT_INDEX_NONE) {
         // Discovered service has a matched client
         ChppResetNotifierFunction *ResetNotifierFunction =
-            chppGetClientResetNotifierFunction(
-                context, context->clientIndexOfServiceIndex[i]);
+            chppGetClientResetNotifierFunction(context, clientIndex);
 
         CHPP_LOGD(
-            "Client # %" PRIu8 "(handle=%d) reset notifier %s",
-            context->clientIndexOfServiceIndex[i],
+            "Client #%" PRIu8 " (handle=%d) reset notifier %s", clientIndex,
             CHPP_SERVICE_HANDLE_OF_INDEX(i),
             (ResetNotifierFunction == NULL) ? "is unsupported" : "starting");
 
         if (ResetNotifierFunction != NULL) {
-          ResetNotifierFunction(context);
+          ResetNotifierFunction(context->registeredClientContexts[clientIndex]);
         }
       }
     }
@@ -743,12 +742,12 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
     ChppResetNotifierFunction *ResetNotifierFunction =
         chppGetServiceResetNotifierFunction(context, i);
 
-    CHPP_LOGD("Service # %" PRIu8 "(handle=%d) reset notifier %s", i,
+    CHPP_LOGD("Service #%" PRIu8 " (handle=%d) reset notifier %s", i,
               CHPP_SERVICE_HANDLE_OF_INDEX(i),
               (ResetNotifierFunction == NULL) ? "is unsupported" : "starting");
 
     if (ResetNotifierFunction != NULL) {
-      ResetNotifierFunction(context);
+      ResetNotifierFunction(context->registeredServiceContexts[i]);
     }
   }
 }
