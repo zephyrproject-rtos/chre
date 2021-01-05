@@ -25,6 +25,9 @@
 #include "chpp/app.h"
 #include "chpp/clients.h"
 #include "chpp/clients/discovery.h"
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+#include "chpp/clients/timesync.h"
+#endif
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
 #include "chpp/common/wifi_types.h"
@@ -36,6 +39,10 @@
 
 #ifndef CHPP_WIFI_DISCOVERY_TIMEOUT_MS
 #define CHPP_WIFI_DISCOVERY_TIMEOUT_MS CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS
+#endif
+
+#ifndef CHPP_WIFI_MAX_TIMESYNC_AGE_NS
+#define CHPP_WIFI_MAX_TIMESYNC_AGE_NS CHPP_TIMESYNC_DEFAULT_MAX_AGE_NS
 #endif
 
 /************************************************
@@ -476,6 +483,11 @@ static void chppWifiScanEventNotification(
         "len=%" PRIuSIZE,
         len);
   } else {
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+    chre->referenceTime -= (uint64_t)chppTimesyncGetOffset(
+        gWifiClientContext.client.appContext, CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
+#endif
+
     gCallbacks->scanEventCallback(chre);
   }
 }
