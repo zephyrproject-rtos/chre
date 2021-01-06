@@ -302,6 +302,8 @@ static void chppWifiOpenResult(struct ChppWifiClientState *clientContext,
   clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
   if (!clientContext->opened) {
     CHPP_LOGE("WiFi open failed at service");
+  } else {
+    CHPP_LOGI("WiFi open succeeded at service");
   }
 }
 
@@ -342,7 +344,7 @@ static void chppWifiGetCapabilitiesResult(
     struct ChppWifiGetCapabilitiesParameters *result =
         &((struct ChppWifiGetCapabilitiesResponse *)buf)->params;
 
-    CHPP_LOGD("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
+    CHPP_LOGI("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
     clientContext->capabilities = result->capabilities;
@@ -372,7 +374,7 @@ static void chppWifiConfigureScanMonitorResult(
     struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
         &((struct ChppWifiConfigureScanMonitorAsyncResponse *)buf)->params;
 
-    CHPP_LOGD(
+    CHPP_LOGI(
         "chppWifiConfigureScanMonitorResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
@@ -404,7 +406,7 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
     struct ChppWifiRequestScanResponseParameters *result =
         &((struct ChppWifiRequestScanResponse *)buf)->params;
 
-    CHPP_LOGD("WiFi RequestScanResult request %ssuccessful at service",
+    CHPP_LOGI("WiFi RequestScanResult request %ssuccessful at service",
               result->pending ? "accepted and " : "FAILURE - accepted but un");
 
     gCallbacks->scanResponseCallback(result->pending, result->errorCode);
@@ -423,7 +425,7 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
 static void chppWifiScanEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGD("chppWifiScanEventNotification received data len=%" PRIuSIZE, len);
+  CHPP_LOGI("chppWifiScanEventNotification received data len=%" PRIuSIZE, len);
 
   buf += sizeof(struct ChppAppHeader);
   len -= sizeof(struct ChppAppHeader);

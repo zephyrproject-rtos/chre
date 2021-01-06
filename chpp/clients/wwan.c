@@ -235,6 +235,8 @@ static void chppWwanOpenResult(struct ChppWwanClientState *clientContext,
   clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
   if (!clientContext->opened) {
     CHPP_LOGE("WWAN open failed at service");
+  } else {
+    CHPP_LOGI("WWAN open succeeded at service");
   }
 }
 
@@ -275,7 +277,7 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppWwanGetCapabilitiesParameters *result =
         &((struct ChppWwanGetCapabilitiesResponse *)buf)->params;
 
-    CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
+    CHPP_LOGI("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
     clientContext->capabilities = result->capabilities;
@@ -295,7 +297,7 @@ static void chppWwanGetCapabilitiesResult(
 static void chppWwanGetCellInfoAsyncResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGD("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
+  CHPP_LOGI("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
 
   buf += sizeof(struct ChppAppHeader);
   len -= sizeof(struct ChppAppHeader);

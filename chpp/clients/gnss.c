@@ -315,6 +315,8 @@ static void chppGnssOpenResult(struct ChppGnssClientState *clientContext,
   clientContext->opened = (rxHeader->error == CHPP_APP_ERROR_NONE);
   if (!clientContext->opened) {
     CHPP_LOGE("GNSS open failed at service");
+  } else {
+    CHPP_LOGI("GNSS open succeeded at service");
   }
 }
 
@@ -355,7 +357,7 @@ static void chppGnssGetCapabilitiesResult(
     struct ChppGnssGetCapabilitiesParameters *result =
         &((struct ChppGnssGetCapabilitiesResponse *)buf)->params;
 
-    CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
+    CHPP_LOGI("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
     clientContext->capabilities = result->capabilities;
@@ -385,7 +387,7 @@ static void chppGnssControlLocationSessionResult(
     struct ChppGnssControlLocationSessionResponse *result =
         (struct ChppGnssControlLocationSessionResponse *)buf;
 
-    CHPP_LOGD(
+    CHPP_LOGI(
         "chppGnssControlLocationSessionResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
@@ -420,7 +422,7 @@ static void chppGnssControlMeasurementSessionResult(
     struct ChppGnssControlMeasurementSessionResponse *result =
         (struct ChppGnssControlMeasurementSessionResponse *)buf;
 
-    CHPP_LOGD(
+    CHPP_LOGI(
         "chppGnssControlMeasurementSessionResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
@@ -460,7 +462,7 @@ static void chppGnssStateResyncNotification(
 static void chppGnssLocationResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGD("chppGnssLocationResultNotification received data len=%" PRIuSIZE,
+  CHPP_LOGI("chppGnssLocationResultNotification received data len=%" PRIuSIZE,
             len);
 
   buf += sizeof(struct ChppAppHeader);
@@ -491,7 +493,7 @@ static void chppGnssLocationResultNotification(
 static void chppGnssMeasurementResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGD(
+  CHPP_LOGI(
       "chppGnssMeasurementResultNotification received data len=%" PRIuSIZE,
       len);
 

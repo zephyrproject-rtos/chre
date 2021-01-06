@@ -289,14 +289,14 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET) {
-      CHPP_LOGD("RX RESET packet. seq=%" PRIu8, context->rxHeader.seq);
+      CHPP_LOGI("RX RESET packet. seq=%" PRIu8, context->rxHeader.seq);
       chppMutexUnlock(&context->mutex);
       chppReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
       chppMutexLock(&context->mutex);
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
-      CHPP_LOGD("RX RESET-ACK packet. seq=%" PRIu8, context->rxHeader.seq);
+      CHPP_LOGI("RX RESET-ACK packet. seq=%" PRIu8, context->rxHeader.seq);
       chppProcessResetAck(context);
 
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
@@ -571,7 +571,7 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
 
 #else
   uint32_t crc = context->rxFooter.checksum;
-  CHPP_LOGE("Unconditionally assuming Rx checksum=0x%" PRIx32 " is correct",
+  CHPP_LOGD("Unconditionally assuming Rx checksum=0x%" PRIx32 " is correct",
             crc);
 
 #endif  // CHPP_CHECKSUM_ENABLED
@@ -730,7 +730,7 @@ static void chppAddFooter(struct PendingTxPacket *packet) {
                               packet->length - CHPP_PREAMBLE_LEN_BYTES);
 #else
   footer.checksum = 1;
-  CHPP_LOGE("Using default value of 0x%" PRIx32 " as checksum",
+  CHPP_LOGD("Using default value of 0x%" PRIx32 " as checksum",
             footer.checksum);
 #endif  // CHPP_CHECKSUM_ENABLED
 
@@ -891,7 +891,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     chppMutexUnlock(&context->mutex);
 
     // Send out the packet
-    CHPP_LOGD("Handing TX packet to link layer. (len=%" PRIuSIZE
+    CHPP_LOGI("Handing TX packet to link layer. (len=%" PRIuSIZE
               ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8 ", ackSeq=%" PRIu8
               ", seq=%" PRIu8 ", payload len=%" PRIu16 ", queue depth=%" PRIu8
               ")",
@@ -1141,7 +1141,7 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
   CHPP_NOT_NULL(buf);
   CHPP_NOT_NULL(context);
 
-  CHPP_LOGD("chppRxDataCb received %" PRIuSIZE
+  CHPP_LOGI("chppRxDataCb received %" PRIuSIZE
             " bytes while in RX state=%" PRIu8,
             len, context->rxStatus.state);
 
