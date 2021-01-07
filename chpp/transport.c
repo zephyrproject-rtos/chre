@@ -967,14 +967,14 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     uint8_t *handle = buf;
 
     if (len < sizeof(struct ChppAppHeader)) {
-      CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
+      CHPP_LOGI("Enqueueing TX datagram (packet code=0x%" PRIx8
                 ", len=%" PRIuSIZE ") for handle=%" PRIu8
                 ". Queue depth: %" PRIu8 "->%d",
                 packetCode, len, *handle, context->txDatagramQueue.pending,
                 context->txDatagramQueue.pending + 1);
     } else {
       struct ChppAppHeader *header = buf;
-      CHPP_LOGD("Enqueueing TX datagram (packet code=0x%" PRIx8
+      CHPP_LOGI("Enqueueing TX datagram (packet code=0x%" PRIx8
                 ", len=%" PRIuSIZE ") for handle=%" PRIu8 ", type=0x%" PRIx8
                 ", transaction ID=%" PRIu8 ", error=%" PRIu8
                 ", command=0x%" PRIx16 ". Queue depth: %" PRIu8 "->%d",
