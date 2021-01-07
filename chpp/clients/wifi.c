@@ -455,12 +455,26 @@ static void chppWifiScanEventNotification(
 static void chppWifiRangingEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  UNUSED_VAR(buf);
-  UNUSED_VAR(len);
 
-  // TODO: Use auto-generated parser to convert, i.e.
-  // chppWifiRangingEventToChre().
-  // gCallbacks->rangingEventCallback(chreResult);
+  CHPP_LOGD("chppWifiRangingEventNotification received data len=%" PRIuSIZE,
+            len);
+
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct chreWifiRangingEvent *chre =
+      chppWifiRangingEventToChre((struct ChppWifiRangingEvent *)buf, len);
+
+  uint8_t error = CHRE_ERROR_NONE;
+  if (chre == NULL) {
+    error = CHRE_ERROR;
+    CHPP_LOGE(
+        "chppWifiRangingEventNotification CHPP -> CHRE conversion failed. "
+        "Input len=%" PRIuSIZE,
+        len);
+  }
+
+  gCallbacks->rangingEventCallback(error, chre);
 }
 
 /**
@@ -639,10 +653,26 @@ static void chppWifiClientReleaseScanEvent(struct chreWifiScanEvent *event) {
  */
 static bool chppWifiClientRequestRanging(
     const struct chreWifiRangingParams *params) {
-  // TODO
-  UNUSED_VAR(params);
+  struct ChppWifiRangingParamsWithHeader *request;
+  size_t requestLen;
 
-  return false;
+  bool result = chppWifiRangingParamsFromChre(params, &request, &requestLen);
+
+  if (!result) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.handle = gWifiClientContext.client.handle;
+    request->header.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    request->header.transaction = gWifiClientContext.client.transaction++;
+    request->header.error = CHPP_APP_ERROR_NONE;
+    request->header.command = CHPP_WIFI_REQUEST_RANGING_ASYNC;
+
+    result = chppSendTimestampedRequestOrFail(
+        &gWifiClientContext.client, &gWifiClientContext.requestRanging, request,
+        requestLen);
+  }
+
+  return result;
 }
 
 /**
