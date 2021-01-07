@@ -90,6 +90,7 @@ void DebugDumpManager::collectFrameworkDebugDumps() {
   eventLoopManager->getAudioRequestManager().logStateToBuffer(mDebugDump);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
   logSettingStateToBuffer(mDebugDump);
+  logStateToBuffer(mDebugDump);
 }
 
 void DebugDumpManager::sendFrameworkDebugDumps() {
