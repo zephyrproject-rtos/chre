@@ -100,7 +100,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
                   context->timesyncClientContext->timesyncResult.rttNs / 2);
   }
 
-  CHPP_LOGD(
+  CHPP_LOGI(
       "Timesync client processed response. request t=%" PRIu64
       ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
       ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", rtt=%" PRIi64 ", updated=%s",
@@ -127,7 +127,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 }
 
 struct ChppTimesyncResult chppGetTimesync(struct ChppAppState *context) {
-  CHPP_LOGD("Running chppGetTimesync at time~=%" PRIu64 " with %d measurements",
+  CHPP_LOGI("Running chppGetTimesync at time~=%" PRIu64 " with %d measurements",
             chppGetCurrentTimeNs(),
             CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT);
 
