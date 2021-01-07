@@ -140,11 +140,63 @@
           "length_field": "ssidListLen"
         }
       ]
+    },
+    {
+      "name": "chreWifiRangingEvent",
+      "annotations": [
+        {
+          "field": "version",
+          "annotation": "fixed_value",
+          "value": "CHRE_WIFI_RANGING_EVENT_VERSION"
+        },
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        },
+        {
+          "field": "results",
+          "annotation": "var_len_array",
+          "length_field": "resultCount"
+        }
+      ]
+    },
+    {
+      "name": "chreWifiRangingResult",
+      "annotations": [
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "chreWifiRangingParams",
+      "annotations": [
+        {
+          "field": "targetList",
+          "annotation": "var_len_array",
+          "length_field": "targetListLen"
+        }
+      ]
+    },
+    {
+      "name": "chreWifiRangingTarget",
+      "annotations": [
+        {
+          "field": "reserved",
+          "annotation": "fixed_value",
+          "value": "0"
+        }
+      ]
     }
   ],
   "root_structs": [
     "chreWifiScanEvent",
-    "chreWifiScanParams"
+    "chreWifiScanParams",
+    "chreWifiRangingEvent",
+    "chreWifiRangingParams"
   ]
 },
 {
