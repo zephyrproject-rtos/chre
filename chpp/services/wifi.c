@@ -433,27 +433,31 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
     struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len) {
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
-  if (len < sizeof(struct chreWifiRangingParams)) {
+  struct chreWifiRangingParams *chre =
+      chppWifiRangingParamsToChre((struct ChppWifiRangingParams *)buf, len);
+
+  if (chre == NULL) {
+    CHPP_LOGE(
+        "WifiServiceRequestRangingAsync CHPP -> CHRE conversion failed. Input "
+        "len=%" PRIuSIZE,
+        len);
     error = CHPP_APP_ERROR_INVALID_ARG;
+
+  } else if (!wifiServiceContext->api->requestRanging(chre)) {
+    error = CHPP_APP_ERROR_UNSPECIFIED;
+
   } else {
-    struct chreWifiRangingParams params;
-    memcpy(&params, buf, sizeof(struct chreWifiRangingParams));
-    if (!wifiServiceContext->api->requestRanging(&params)) {
-      error = CHPP_APP_ERROR_UNSPECIFIED;
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
     } else {
-      struct ChppAppHeader *response =
-          chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-      size_t responseLen = sizeof(*response);
-
-      if (response == NULL) {
-        CHPP_LOG_OOM();
-        error = CHPP_APP_ERROR_OOM;
-      } else {
-        chppSendTimestampedResponseOrFail(
-            &wifiServiceContext->service,
-            &wifiServiceContext->requestRangingAsync, response, responseLen);
-      }
+      chppSendTimestampedResponseOrFail(
+          &wifiServiceContext->service,
+          &wifiServiceContext->requestRangingAsync, response, responseLen);
     }
   }
 
@@ -568,9 +572,33 @@ static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event) {
  */
 static void chppWifiServiceRangingEventCallback(
     uint8_t errorCode, struct chreWifiRangingEvent *event) {
-  // TODO
+  struct ChppWifiRangingEventWithHeader *notification;
+  size_t notificationLen;
 
-  UNUSED_VAR(errorCode);
+  if (!chppWifiRangingEventFromChre(event, &notification, &notificationLen)) {
+    CHPP_LOGE(
+        "chppWifiRangingEventFromChre failed (OOM?). Transaction ID = "
+        "%" PRIu8,
+        gWifiServiceContext.requestRangingAsync.transaction);
+
+  } else {
+    notification->header.handle = gWifiServiceContext.service.handle;
+    notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    notification->header.transaction =
+        gWifiServiceContext.requestRangingAsync.transaction;
+    notification->header.error = CHPP_APP_ERROR_NONE;
+    notification->header.command = CHPP_WIFI_REQUEST_RANGING_ASYNC;
+
+    if (errorCode != CHRE_ERROR_NONE) {
+      notification->header.error = CHPP_APP_ERROR_BEYOND_CHPP;
+      notificationLen = MIN(notificationLen, sizeof(struct ChppAppHeader));
+    }
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, notification,
+        notificationLen);
+  }
+
   gWifiServiceContext.api->releaseRangingEvent(event);
 }
 
