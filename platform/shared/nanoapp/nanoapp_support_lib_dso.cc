@@ -114,6 +114,7 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
         /* end */ nanoappEnd,
     },
     /* appVersionString */ NANOAPP_VERSION_STRING,
+    /* appPermissions */ NANOAPP_PERMISSIONS,
 };
 
 // The code section below provides default implementations for new symbols

@@ -41,7 +41,7 @@ extern "C" {
 
 //! The minor version in the nanoapp info structure to determine which fields
 //! are available to support backwards compatibility.
-#define CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION UINT8_C(2)
+#define CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION UINT8_C(3)
 
 //! The symbol name expected from the nanoapp's definition of its info struct
 #define CHRE_NSL_DSO_NANOAPP_INFO_SYMBOL_NAME "_chreNslDsoNanoappInfo"
@@ -110,6 +110,13 @@ struct chreNslNanoappInfo {
   //!
   //! @since minor version 2
   const char *appVersionString;
+
+  //! Set of permissions that determines what APIs the application is allowed to
+  //! use. See chre/util/system/napp_permissions.h for more details on what
+  //! permissions can be declared here and what their values are.
+  //!
+  //! @since minor version 3
+  uint32_t appPermissions;
 };
 
 /**
