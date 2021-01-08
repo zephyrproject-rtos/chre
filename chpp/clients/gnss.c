@@ -581,7 +581,11 @@ static void chppGnssClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppGnssClientGetCapabilities(void) {
+#ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
+  uint32_t capabilities = CHPP_GNSS_DEFAULT_CAPABILITIES;
+#else
   uint32_t capabilities = CHRE_GNSS_CAPABILITIES_NONE;
+#endif
 
   if (gGnssClientContext.capabilities != CHRE_GNSS_CAPABILITIES_NONE) {
     // Result already cached

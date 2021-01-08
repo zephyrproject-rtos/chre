@@ -545,7 +545,11 @@ static void chppWifiClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppWifiClientGetCapabilities(void) {
+#ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
+  uint32_t capabilities = CHPP_WIFI_DEFAULT_CAPABILITIES;
+#else
   uint32_t capabilities = CHRE_WIFI_CAPABILITIES_NONE;
+#endif
 
   if (gWifiClientContext.capabilities != CHRE_WIFI_CAPABILITIES_NONE) {
     // Result already cached

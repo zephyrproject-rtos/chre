@@ -383,7 +383,11 @@ static void chppWwanClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppWwanClientGetCapabilities(void) {
+#ifdef CHPP_WWAN_DEFAULT_CAPABILITIES
+  uint32_t capabilities = CHPP_WWAN_DEFAULT_CAPABILITIES;
+#else
   uint32_t capabilities = CHRE_WWAN_CAPABILITIES_NONE;
+#endif
 
   if (gWwanClientContext.capabilities != CHRE_WWAN_CAPABILITIES_NONE) {
     // Result already cached
