@@ -21,7 +21,9 @@
 #include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
 #include "chre/util/system/napp_permissions.h"
+#ifdef CHRE_NANOAPP_USES_WIFI
 #include "chre/util/system/wifi_util.h"
+#endif
 
 /**
  * @file
@@ -55,7 +57,7 @@ constexpr int kIsTcmNanoapp = 1;
 constexpr int kIsTcmNanoapp = 0;
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
-#ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
+#if !defined(CHRE_NANOAPP_DISABLE_BACKCOMPAT) && defined(CHRE_NANOAPP_USES_GNSS)
 // Return a v1.3+ GnssLocationEvent for the nanoapp when running on a v1.2-
 // platform.
 chreGnssLocationEvent translateLegacyGnssLocation(
@@ -123,7 +125,7 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
     /* entryPoints */
     {
         /* start */ nanoappStart,
-#ifndef CHRE_NANOAPP_DISABLE_BACKCOMPAT
+#if !defined(CHRE_NANOAPP_DISABLE_BACKCOMPAT) && defined(CHRE_NANOAPP_USES_GNSS)
         /* handleEvent */ nanoappHandleEventCompat,
 #else
         /* handleEvent */ nanoappHandleEvent,
@@ -165,6 +167,8 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
     fptr;                                             \
   })
 
+#ifdef CHRE_NANOAPP_USES_AUDIO
+
 WEAK_SYMBOL
 bool chreAudioGetSource(uint32_t handle, struct chreAudioSource *audioSource) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreAudioGetSource);
@@ -187,6 +191,8 @@ bool chreAudioGetStatus(uint32_t handle, struct chreAudioSourceStatus *status) {
   return (fptr != nullptr) ? fptr(handle, status) : false;
 }
 
+#endif /* CHRE_NANOAPP_USES_AUDIO */
+
 WEAK_SYMBOL
 void chreConfigureHostSleepStateEvents(bool enable) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreConfigureHostSleepStateEvents);
@@ -201,11 +207,17 @@ bool chreIsHostAwake(void) {
   return (fptr != nullptr) ? fptr() : false;
 }
 
+#ifdef CHRE_NANOAPP_USES_GNSS
+
 WEAK_SYMBOL
 bool chreGnssConfigurePassiveLocationListener(bool enable) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreGnssConfigurePassiveLocationListener);
   return (fptr != nullptr) ? fptr(enable) : false;
 }
+
+#endif /* CHRE_NANOAPP_USES_GNSS */
+
+#ifdef CHRE_NANOAPP_USES_WIFI
 
 WEAK_SYMBOL
 bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
@@ -230,6 +242,8 @@ bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreWifiRequestRangingAsync);
   return (fptr != nullptr) ? fptr(params, cookie) : false;
 }
+
+#endif /* CHRE_NANOAPP_USES_WIFI */
 
 WEAK_SYMBOL
 bool chreSensorConfigureBiasEvents(uint32_t sensorHandle, bool enable) {

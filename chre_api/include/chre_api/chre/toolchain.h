@@ -32,6 +32,9 @@
 #define CHRE_PRINTF_ATTR(formatPos, argStart) \
   __attribute__((format(printf, formatPos, argStart)))
 
+#define CHRE_BUILD_ERROR(message) CHRE_DO_PRAGMA(GCC error message)
+#define CHRE_DO_PRAGMA(message) _Pragma(#message)
+
 #elif defined(__ICCARM__) || defined(__CC_ARM)
 // For IAR ARM and Keil MDK-ARM compilers
 
@@ -46,6 +49,18 @@
 
 #error Need to add support for new compiler
 
+#endif
+
+// For platforms that don't support error pragmas, utilize the best method of
+// showing an error depending on the platform support.
+#ifndef CHRE_BUILD_ERROR
+#ifdef __cplusplus
+#define CHRE_BUILD_ERROR(message) static_assert(0, message)
+#elif defined(__STDC_VERSION__) && defined(__STDC_VERSION__ >= 201112L)
+#define CHRE_BUILD_ERROR(message) _Static_assert(0, message)
+#else
+#define CHRE_BUILD_ERROR(message) char buildError[-1] = message
+#endif
 #endif
 
 #endif  // CHRE_TOOLCHAIN_H_

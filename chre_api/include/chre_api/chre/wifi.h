@@ -793,6 +793,16 @@ struct chreWifiRangingEvent {
 uint32_t chreWifiGetCapabilities(void);
 
 /**
+ * Nanoapps must define CHRE_NANOAPP_USES_WIFI somewhere in their build
+ * system (e.g. Makefile) if the nanoapp needs to use the following WiFi APIs.
+ * In addition to allowing access to these APIs, defining this macro will also
+ * ensure CHRE enforces that all host clients this nanoapp talks to have the
+ * required Android permissions needed to listen to WiFi data by adding metadata
+ * to the nanoapp.
+ */
+#if defined(CHRE_NANOAPP_USES_WIFI) || !defined(CHRE_IS_NANOAPP_BUILD)
+
+/**
  * Manages a client's request to receive the results of WiFi scans performed for
  * other purposes, for example scans done to maintain connectivity and scans
  * requested by other clients. The presence of this request has no effect on the
@@ -837,6 +847,7 @@ uint32_t chreWifiGetCapabilities(void);
  * @return true if the request was accepted for processing, false otherwise
  *
  * @since v1.1
+ * @note Requires WiFi permission
  */
 bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie);
 
@@ -875,6 +886,7 @@ bool chreWifiConfigureScanMonitorAsync(bool enable, const void *cookie);
  * @return true if the request was accepted for processing, false otherwise
  *
  * @since v1.1
+ * @note Requires WiFi permission
  */
 bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
                               const void *cookie);
@@ -889,6 +901,7 @@ bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
  * @return true if the request was accepted for processing, false otherwise
  *
  * @since v1.1
+ * @note Requires WiFi permission
  */
 static inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
     struct chreWifiScanParams params = {};
@@ -935,6 +948,7 @@ static inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
  * @return true if the request was accepted for processing, false otherwise
  *
  * @since v1.2
+ * @note Requires WiFi permission
  */
 bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
                                  const void *cookie);
@@ -947,6 +961,8 @@ bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
  *
  * @param scanResult The scan result to parse as input
  * @param rangingTarget The RTT ranging target to populate as output
+ *
+ * @note Requires WiFi permission
  */
 static inline void chreWifiRangingTargetFromScanResult(
         const struct chreWifiScanResult *scanResult,
@@ -964,6 +980,25 @@ static inline void chreWifiRangingTargetFromScanResult(
     memset(rangingTarget->reserved, 0, sizeof(rangingTarget->reserved));
 }
 
+#else  /* defined(CHRE_NANOAPP_USES_WIFI) || !defined(CHRE_IS_NANOAPP_BUILD) */
+#define CHRE_WIFI_PERM_ERROR_STRING \
+    "CHRE_NANOAPP_USES_WIFI must be defined when building this nanoapp in " \
+    "order to refer to "
+#define chreWifiConfigureScanMonitorAsync(...) \
+    CHRE_BUILD_ERROR(CHRE_WIFI_PERM_ERROR_STRING \
+                     "chreWifiConfigureScanMonitorAsync")
+#define chreWifiRequestScanAsync(...) \
+    CHRE_BUILD_ERROR(CHRE_WIFI_PERM_ERROR_STRING \
+                     "chreWifiRequestScanAsync")
+#define chreWifiRequestScanAsyncDefault(...) \
+    CHRE_BUILD_ERROR(CHRE_WIFI_PERM_ERROR_STRING \
+                     "chreWifiRequestScanAsyncDefault")
+#define chreWifiRequestRangingAsync(...) \
+    CHRE_BUILD_ERROR(CHRE_WIFI_PERM_ERROR_STRING "chreWifiRequestRangingAsync")
+#define chreWifiRangingTargetFromScanResult(...) \
+    CHRE_BUILD_ERROR(CHRE_WIFI_PERM_ERROR_STRING \
+                     "chreWifiRangingTargetFromScanResult")
+#endif  /* defined(CHRE_NANOAPP_USES_WIFI) || !defined(CHRE_IS_NANOAPP_BUILD) */
 
 #ifdef __cplusplus
 }
