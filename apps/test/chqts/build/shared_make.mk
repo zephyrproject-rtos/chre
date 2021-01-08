@@ -40,4 +40,11 @@ COMMON_CFLAGS += -I$(NANOAPP_SRC_PATH)
 
 OPT_LEVEL=2
 
+# Permission declarations ######################################################
+
+CHRE_NANOAPP_USES_AUDIO = true
+CHRE_NANOAPP_USES_GNSS = true
+CHRE_NANOAPP_USES_WIFI = true
+CHRE_NANOAPP_USES_WWAN = true
+
 include ${ANDROID_BUILD_TOP}/system/chre/build/nanoapp/app.mk

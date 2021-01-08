@@ -41,6 +41,13 @@ COMMON_SRCS += $(CHRE_PREFIX)/util/dynamic_vector_base.cc
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/audio.cc
 COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
+# Permission declarations ######################################################
+
+CHRE_NANOAPP_USES_AUDIO = true
+CHRE_NANOAPP_USES_GNSS = true
+CHRE_NANOAPP_USES_WIFI = true
+CHRE_NANOAPP_USES_WWAN = true
+
 # Makefile Includes ############################################################
 
 include $(CHRE_PREFIX)/build/nanoapp/app.mk
