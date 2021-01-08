@@ -517,7 +517,11 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
     }
   }
 
+#ifdef CHPP_WIFI_CLIENT_OPEN_ALWAYS_SUCCESS
+  return true;
+#else
   return gWifiClientContext.opened;
+#endif
 }
 
 /**

@@ -355,7 +355,11 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
     }
   }
 
+#ifdef CHPP_WWAN_CLIENT_OPEN_ALWAYS_SUCCESS
+  return true;
+#else
   return gWwanClientContext.opened;
+#endif
 }
 
 /**

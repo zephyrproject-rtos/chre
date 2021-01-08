@@ -553,7 +553,11 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
     }
   }
 
+#ifdef CHPP_GNSS_CLIENT_OPEN_ALWAYS_SUCCESS
+  return true;
+#else
   return gGnssClientContext.opened;
+#endif
 }
 
 /**
