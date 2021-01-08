@@ -235,6 +235,9 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
  *
  * Refer to their respective documentation for details.
  *
+ * Note that the ownership of buf is taken from the caller when this method is
+ * invoked.
+ *
  * @param clientState State of the client sending the client request.
  * @param rRState Maintains the basic state for each request/response
  * functionality of a client.

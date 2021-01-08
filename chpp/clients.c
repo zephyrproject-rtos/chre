@@ -249,6 +249,7 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
                                       void *buf, size_t len) {
   CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
   if (!clientState->initialized) {
+    CHPP_FREE_AND_NULLIFY(buf);
     return false;
   }
 
@@ -269,6 +270,7 @@ bool chppSendTimestampedRequestAndWaitTimeout(
     struct ChppRequestResponseState *rRState, void *buf, size_t len,
     uint64_t timeoutNs) {
   if (!clientState->initialized) {
+    CHPP_FREE_AND_NULLIFY(buf);
     return false;
   }
 

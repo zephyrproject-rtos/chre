@@ -509,6 +509,9 @@ void chppRxTimeoutTimerCb(struct ChppTransportState *context);
  * If enqueueing a datagram is unsuccessful, the payload is freed (discarded)
  * and an error message printed.
  *
+ * Note that the ownership of buf is taken from the caller when this method is
+ * invoked.
+ *
  * @param context Maintains status for each transport layer instance.
  * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
  * @param len Datagram length in bytes.
