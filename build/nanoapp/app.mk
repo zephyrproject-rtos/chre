@@ -65,6 +65,24 @@ IS_NANOAPP_BUILD = true
 
 OUTPUT_NAME = $(NANOAPP_NAME)
 
+# Permissions declaration ######################################################
+
+ifneq ($(CHRE_NANOAPP_USES_AUDIO),)
+COMMON_CFLAGS += -DCHRE_NANOAPP_USES_AUDIO
+endif
+
+ifneq ($(CHRE_NANOAPP_USES_GNSS),)
+COMMON_CFLAGS += -DCHRE_NANOAPP_USES_GNSS
+endif
+
+ifneq ($(CHRE_NANOAPP_USES_WIFI),)
+COMMON_CFLAGS += -DCHRE_NANOAPP_USES_WIFI
+endif
+
+ifneq ($(CHRE_NANOAPP_USES_WWAN),)
+COMMON_CFLAGS += -DCHRE_NANOAPP_USES_WWAN
+endif
+
 # Common Compiler Flags ########################################################
 
 # Add the CHRE API to the include search path.

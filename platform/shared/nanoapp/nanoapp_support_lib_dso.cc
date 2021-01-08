@@ -20,6 +20,7 @@
 
 #include "chre/platform/shared/debug_dump.h"
 #include "chre/util/macros.h"
+#include "chre/util/system/napp_permissions.h"
 #include "chre/util/system/wifi_util.h"
 
 /**
@@ -31,6 +32,22 @@
  */
 
 namespace {
+
+constexpr uint32_t kNanoappPermissions =
+    0
+#ifdef CHRE_NANOAPP_USES_AUDIO
+    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_AUDIO)
+#endif
+#ifdef CHRE_NANOAPP_USES_GNSS
+    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_GNSS)
+#endif
+#ifdef CHRE_NANOAPP_USES_WIFI
+    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_WIFI)
+#endif
+#ifdef CHRE_NANOAPP_USES_WWAN
+    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_WWAN)
+#endif
+    ;
 
 #if defined(CHRE_SLPI_UIMG_ENABLED) || defined(CHRE_TCM_ENABLED)
 constexpr int kIsTcmNanoapp = 1;
@@ -114,7 +131,7 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
         /* end */ nanoappEnd,
     },
     /* appVersionString */ NANOAPP_VERSION_STRING,
-    /* appPermissions */ NANOAPP_PERMISSIONS,
+    /* appPermissions */ kNanoappPermissions,
 };
 
 // The code section below provides default implementations for new symbols
