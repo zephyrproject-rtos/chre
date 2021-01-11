@@ -55,6 +55,15 @@ extern "C" {
 #define CHPP_DEBUG_ASSERT(var) CHPP_ASSERT(var)
 #endif
 
+// Asserts to be enabled for production software
+#ifndef CHPP_PROD_ASSERT
+#ifdef CHPP_PROD_ASSERT_ENABLED
+#define CHPP_PROD_ASSERT(var) CHPP_ASSERT(var)
+#else
+#define CHPP_PROD_ASSERT(var)
+#endif
+#endif
+
 #ifndef PRIu64  // Pre-C99 lacks PRIu64 support. Note that the correct
                 // definition on pre-C99 systems would be compiler-dependent.
 #define PRIu64 "llu"

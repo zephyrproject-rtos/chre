@@ -346,6 +346,13 @@ static void chppWifiGetCapabilitiesResult(
 
     CHPP_LOGI("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
+#ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
+    if (result->capabilities != CHPP_WIFI_DEFAULT_CAPABILITIES) {
+      CHPP_LOGE("Unexpected capability: expected 0x%" PRIx32,
+                CHPP_WIFI_DEFAULT_CAPABILITIES);
+      CHPP_PROD_ASSERT(false);
+    }
+#endif
 
     clientContext->capabilities = result->capabilities;
   }
