@@ -23,6 +23,9 @@
 
 #include "chpp/app.h"
 #include "chpp/clients/discovery.h"
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+#include "chpp/clients/timesync.h"
+#endif
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wwan.h"
 #include "chpp/common/wwan_types.h"
@@ -33,6 +36,10 @@
 
 #ifndef CHPP_WWAN_DISCOVERY_TIMEOUT_MS
 #define CHPP_WWAN_DISCOVERY_TIMEOUT_MS CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS
+#endif
+
+#ifndef CHPP_WWAN_MAX_TIMESYNC_AGE_NS
+#define CHPP_WWAN_MAX_TIMESYNC_AGE_NS CHPP_TIMESYNC_DEFAULT_MAX_AGE_NS
 #endif
 
 /************************************************
@@ -310,6 +317,16 @@ static void chppWwanGetCellInfoAsyncResult(
         "len=%" PRIuSIZE,
         len);
   } else {
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+    int64_t offset = chppTimesyncGetOffset(gWwanClientContext.client.appContext,
+                                           CHPP_WWAN_MAX_TIMESYNC_AGE_NS);
+    for (uint8_t i = 0; i < chre->cellInfoCount; i++) {
+      uint64_t *timeStamp =
+          (uint64_t *)(CHPP_CONST_CAST_POINTER(&chre->cells[i].timeStamp));
+      *timeStamp -= (uint64_t)offset;
+    }
+#endif
+
     gCallbacks->cellInfoResultCallback(chre);
   }
 }
