@@ -199,3 +199,16 @@ struct ChppTimesyncResult chppTimesyncMeasureOffset(
 
   return context->timesyncClientContext->timesyncResult;
 }
+
+int64_t chppTimesyncGetOffset(struct ChppAppState *context,
+                              uint64_t maxTimesyncAgeNs) {
+  if (context->timesyncClientContext->timesyncResult.offsetNs == 0 ||
+      chppGetCurrentTimeNs() -
+              context->timesyncClientContext->timesyncResult.measurementTimeNs >
+          maxTimesyncAgeNs) {
+    // Timesync (to determine the offset of remote clock) has not been done yet
+    // or is stale
+    chppTimesyncMeasureOffset(context);
+  }
+  return context->timesyncClientContext->timesyncResult.offsetNs;
+}

@@ -24,6 +24,7 @@
 #include "chpp/app.h"
 #include "chpp/clients.h"
 #include "chpp/common/timesync.h"
+#include "chpp/macros.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,13 @@ extern "C" {
  */
 #ifndef CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT
 #define CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT 5
+#endif
+
+/**
+ * Default maximum age of a time offset measurement
+ */
+#ifndef CHPP_TIMESYNC_DEFAULT_MAX_AGE_NS
+#define CHPP_TIMESYNC_DEFAULT_MAX_AGE_NS (24 * CHPP_NSEC_PER_HOUR)
 #endif
 
 /**
@@ -83,6 +91,19 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
  */
 struct ChppTimesyncResult chppTimesyncMeasureOffset(
     struct ChppAppState *context);
+
+/**
+ * Provides the time offset of the service. If the latest measurement is within
+ * maxTimesyncAgeNs, this function reuses the last measurement. Otherwise, it
+ * will initiate a new measurement.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param maxTimesyncAgeNs Maximum acceptable age of measuement.
+ *
+ * @return Time offset of service vs client (service - client)
+ */
+int64_t chppTimesyncGetOffset(struct ChppAppState *context,
+                              uint64_t maxTimesyncAgeNs);
 
 #ifdef __cplusplus
 }
