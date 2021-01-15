@@ -307,8 +307,10 @@ static void chppGnssClientNotifyReset(void *clientContext) {
   if (gnssClientContext->client.openState != CHPP_OPEN_STATE_OPENED) {
     CHPP_LOGW("GNSS client reset but client wasn't open");
   } else {
-    gnssClientContext->client.openState = CHPP_OPEN_STATE_REOPENING;
-    chppGnssClientOpen(gSystemApi, gCallbacks);
+    CHPP_LOGI("GNSS client reopening");
+    chppClientSendOpenRequest(&gGnssClientContext.client,
+                              &gGnssClientContext.open, CHPP_GNSS_OPEN,
+                              /*reopen=*/true);
   }
 }
 
@@ -530,23 +532,13 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  CHPP_LOGI("GNSS client %sopening (openState=%" PRIu8 ")",
-            (gGnssClientContext.client.openState == CHPP_OPEN_STATE_REOPENING)
-                ? "re"
-                : "",
-            gGnssClientContext.client.openState);
+  CHPP_LOGI("GNSS client opening");
 
-  if (gGnssClientContext.client.openState == CHPP_OPEN_STATE_CLOSED) {
-    gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
-  }
-
-  // Wait for discovery to complete for "open" call to succeed
-  if (!chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
-                                    CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {
-    CHPP_LOGE("Timed out waiting to discover CHPP GNSS service");
-  } else {
-    result = chppClientSendOpenRequest(
-        &gGnssClientContext.client, &gGnssClientContext.open, CHPP_GNSS_OPEN);
+  if (chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
+                                   CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {
+    result = chppClientSendOpenRequest(&gGnssClientContext.client,
+                                       &gGnssClientContext.open, CHPP_GNSS_OPEN,
+                                       /*reopen=*/false);
   }
 
 #ifdef CHPP_GNSS_CLIENT_OPEN_ALWAYS_SUCCESS

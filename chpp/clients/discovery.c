@@ -236,7 +236,8 @@ bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
   chppMutexUnlock(&context->discoveryMutex);
 
   if (!success) {
-    CHPP_LOGE("Timed out waiting for DiscoveryComplete");
+    CHPP_LOGE("Timed out waiting for DiscoveryComplete after %" PRIu64 " ms",
+              timeoutMs);
   }
   return success;
 }

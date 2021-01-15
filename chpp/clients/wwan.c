@@ -234,8 +234,10 @@ static void chppWwanClientNotifyReset(void *clientContext) {
   if (wwanClientContext->client.openState != CHPP_OPEN_STATE_OPENED) {
     CHPP_LOGW("WWAN client reset but client wasn't open");
   } else {
-    wwanClientContext->client.openState = CHPP_OPEN_STATE_REOPENING;
-    chppWwanClientOpen(gSystemApi, gCallbacks);
+    CHPP_LOGI("WWAN client reopening");
+    chppClientSendOpenRequest(&gWwanClientContext.client,
+                              &gWwanClientContext.open, CHPP_WWAN_OPEN,
+                              /*reopen=*/true);
   }
 }
 
@@ -349,23 +351,14 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  CHPP_LOGI("WWAN client %sopening (openState=%" PRIu8 ")",
-            (gWwanClientContext.client.openState == CHPP_OPEN_STATE_REOPENING)
-                ? "re"
-                : "",
-            gWwanClientContext.client.openState);
-
-  if (gWwanClientContext.client.openState == CHPP_OPEN_STATE_CLOSED) {
-    gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
-  }
+  CHPP_LOGI("WWAN client opening");
 
   // Wait for discovery to complete for "open" call to succeed
-  if (!chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
-                                    CHPP_WWAN_DISCOVERY_TIMEOUT_MS)) {
-    CHPP_LOGE("Timed out waiting to discover CHPP WWAN service");
-  } else {
-    result = chppClientSendOpenRequest(
-        &gWwanClientContext.client, &gWwanClientContext.open, CHPP_WWAN_OPEN);
+  if (chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
+                                   CHPP_WWAN_DISCOVERY_TIMEOUT_MS)) {
+    result = chppClientSendOpenRequest(&gWwanClientContext.client,
+                                       &gWwanClientContext.open, CHPP_WWAN_OPEN,
+                                       /*reopen=*/false);
   }
 
 #ifdef CHPP_WWAN_CLIENT_OPEN_ALWAYS_SUCCESS

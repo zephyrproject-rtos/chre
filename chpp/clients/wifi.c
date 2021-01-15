@@ -308,8 +308,10 @@ static void chppWifiClientNotifyReset(void *clientContext) {
   if (wifiClientContext->client.openState != CHPP_OPEN_STATE_OPENED) {
     CHPP_LOGW("WiFi client reset but client wasn't open");
   } else {
-    wifiClientContext->client.openState = CHPP_OPEN_STATE_REOPENING;
-    chppWifiClientOpen(gSystemApi, gCallbacks);
+    CHPP_LOGI("WiFi client reopening");
+    chppClientSendOpenRequest(&gWifiClientContext.client,
+                              &gWifiClientContext.open, CHPP_WIFI_OPEN,
+                              /*reopen=*/true);
   }
 }
 
@@ -544,23 +546,13 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  CHPP_LOGI("WiFi client %sopening (openState=%" PRIu8 ")",
-            (gWifiClientContext.client.openState == CHPP_OPEN_STATE_REOPENING)
-                ? "re"
-                : "",
-            gWifiClientContext.client.openState);
+  CHPP_LOGI("WiFi client opening");
 
-  if (gWifiClientContext.client.openState == CHPP_OPEN_STATE_CLOSED) {
-    gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
-  }
-
-  // Wait for discovery to complete for "open" call to succeed
-  if (!chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
-                                    CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
-    CHPP_LOGE("Timed out waiting to discover CHPP WiFi service");
-  } else {
-    result = chppClientSendOpenRequest(
-        &gWifiClientContext.client, &gWifiClientContext.open, CHPP_WIFI_OPEN);
+  if (chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
+                                   CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
+    result = chppClientSendOpenRequest(&gWifiClientContext.client,
+                                       &gWifiClientContext.open, CHPP_WIFI_OPEN,
+                                       /*reopen=*/false);
   }
 
 #ifdef CHPP_WIFI_CLIENT_OPEN_ALWAYS_SUCCESS

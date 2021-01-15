@@ -283,22 +283,22 @@ bool chppSendTimestampedRequestAndWaitTimeout(
     uint64_t timeoutNs);
 
 /**
- * Sends a client request for the open command. Setting clientstate->reopenState
- * to CHPP_OPEN_STATE_REOPENING indicates that the service is being reopened.
+ * Sends a client request for the open command. Setting reopen to true indicates
+ * that the service is being reopened.
  *
- * The command will be sent non-blocking if reopening after a reset (i.e.
- * clientstate->reopenState == CHPP_OPEN_STATE_REOPENING), and blocking
- * otherwise.
+ * The command will be sent non-blocking if reopening after a reset, and
+ * blocking otherwise.
  *
  * @param clientState State of the client receiving the response.
  * @param openRRState Request/response state for the open command.
  * @param openCommand Open command to be sent.
+ * @param reopen Indicates that this is a reopen (vs. initial open) request.
  *
  * @return Indicates success or failure.
  */
 bool chppClientSendOpenRequest(struct ChppClientState *clientState,
                                struct ChppRequestResponseState *openRRState,
-                               uint16_t openCommand);
+                               uint16_t openCommand, bool reopen);
 
 /**
  * Processes a service response for the open command.
