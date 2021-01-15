@@ -195,7 +195,7 @@ void requestAudioData() {
  *
  * @return true on check passing
  */
-bool checkSamplesAllZeros(int16_t *data, size_t dataLen) {
+bool checkSamplesAllZeros(const int16_t *data, const size_t dataLen) {
   for (size_t i = 0; i < dataLen; ++i) {
     if (data[i] != 0) {
       return true;
@@ -209,7 +209,7 @@ bool checkSamplesAllZeros(int16_t *data, size_t dataLen) {
  *
  * @return true on check pass
  */
-bool checkSamplesAllSame(int16_t *data, size_t dataLen) {
+bool checkSamplesAllSame(const int16_t *data, const size_t dataLen) {
   if (dataLen > 0) {
     const int16_t controlValue = data[0];
     for (size_t i = 1; i < dataLen; ++i) {
@@ -270,7 +270,6 @@ void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
     sendSuccessToHost();
   }
 }
-}  // namespace
 
 }  // anonymous namespace
 
