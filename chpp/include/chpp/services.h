@@ -101,6 +101,8 @@ extern "C" {
 struct ChppServiceState {
   struct ChppAppState *appContext;  // Pointer to app layer context
   uint8_t handle;                   // Handle number for this service
+
+  uint8_t openState;  // As defined in enum ChppOpenState
 };
 
 /************************************************

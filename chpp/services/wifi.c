@@ -34,6 +34,7 @@
 
 static enum ChppAppErrorCode chppDispatchWifiRequest(void *serviceContext,
                                                      uint8_t *buf, size_t len);
+static void chppWifiServiceNotifyReset(void *serviceContext);
 
 /************************************************
  *  Private Definitions
@@ -54,7 +55,7 @@ static const struct ChppService kWifiServiceConfig = {
     .descriptor.version.patch = 0,
 
     // Notifies service if CHPP is reset
-    .resetNotifierFunctionPtr = NULL,
+    .resetNotifierFunctionPtr = &chppWifiServiceNotifyReset,
 
     // Client request dispatch function pointer
     .requestDispatchFunctionPtr = &chppDispatchWifiRequest,
@@ -291,6 +292,24 @@ static enum ChppAppErrorCode chppWifiServiceClose(
                                       responseLen);
   }
   return error;
+}
+
+/**
+ * Notifies the service of an incoming reset.
+ *
+ * @param serviceContext Maintains status for each service instance.
+ */
+static void chppWifiServiceNotifyReset(void *serviceContext) {
+  struct ChppWifiServiceState *wifiServiceContext =
+      (struct ChppWifiServiceState *)serviceContext;
+
+  if (wifiServiceContext->service.openState != CHPP_OPEN_STATE_OPENED) {
+    CHPP_LOGW("WiFi service reset but wasn't open");
+  } else {
+    CHPP_LOGI("WiFi service reset. Closing");
+    wifiServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
+    wifiServiceContext->api->close();
+  }
 }
 
 /**

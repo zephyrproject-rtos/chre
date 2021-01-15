@@ -146,6 +146,17 @@ enum ChppAppErrorCode {
 };
 
 /**
+ * Open status for clients / services.
+ */
+enum ChppOpenState {
+  CHPP_OPEN_STATE_CLOSED = 0,     // Closed
+  CHPP_OPEN_STATE_OPENING = 1,    // Opening (allows one outgoing request)
+  CHPP_OPEN_STATE_OPENED = 2,     // Open
+  CHPP_OPEN_STATE_REOPENING = 3,  // Reopening after a reset
+  CHPP_OPEN_STATE_WAITING_TO_REOPEN = 4,  // Waiting to reopen
+};
+
+/**
  * CHPP Application Layer header
  */
 CHPP_PACKED_START

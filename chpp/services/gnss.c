@@ -34,6 +34,7 @@
 
 static enum ChppAppErrorCode chppDispatchGnssRequest(void *serviceContext,
                                                      uint8_t *buf, size_t len);
+static void chppGnssServiceNotifyReset(void *serviceContext);
 
 /************************************************
  *  Private Definitions
@@ -54,7 +55,7 @@ static const struct ChppService kGnssServiceConfig = {
     .descriptor.version.patch = 0,
 
     // Notifies service if CHPP is reset
-    .resetNotifierFunctionPtr = NULL,
+    .resetNotifierFunctionPtr = &chppGnssServiceNotifyReset,
 
     // Client request dispatch function pointer
     .requestDispatchFunctionPtr = &chppDispatchGnssRequest,
@@ -299,6 +300,24 @@ static enum ChppAppErrorCode chppGnssServiceClose(
   }
 
   return error;
+}
+
+/**
+ * Notifies the service of an incoming reset.
+ *
+ * @param serviceContext Maintains status for each service instance.
+ */
+static void chppGnssServiceNotifyReset(void *serviceContext) {
+  struct ChppGnssServiceState *gnssServiceContext =
+      (struct ChppGnssServiceState *)serviceContext;
+
+  if (gnssServiceContext->service.openState != CHPP_OPEN_STATE_OPENED) {
+    CHPP_LOGW("GNSS service reset but wasn't open");
+  } else {
+    CHPP_LOGI("GNSS service reset. Closing");
+    gnssServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
+    gnssServiceContext->api->close();
+  }
 }
 
 /**

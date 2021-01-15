@@ -61,14 +61,6 @@ extern "C" {
   (type *)chppAllocClientRequest(                                              \
       clientState, sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
 
-enum ChppOpenState {
-  CHPP_OPEN_STATE_CLOSED = 0,     // Closed
-  CHPP_OPEN_STATE_OPENING = 1,    // Opening (allows one outgoing message)
-  CHPP_OPEN_STATE_OPENED = 2,     // Open
-  CHPP_OPEN_STATE_REOPENING = 3,  // Reopening after a reset
-  CHPP_OPEN_STATE_WAITING_TO_REOPEN = 4,  // Waiting to reopen
-};
-
 /**
  * Maintains the basic state of a client.
  * This is expected to be included once in the (context) status variable of
