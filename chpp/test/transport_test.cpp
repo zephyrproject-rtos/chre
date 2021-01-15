@@ -35,6 +35,8 @@
 #include "chpp/crc.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
+#include "chpp/services/discovery.h"
+#include "chpp/services/loopback.h"
 #include "chpp/transport.h"
 #include "chre/pal/wwan.h"
 
@@ -52,17 +54,10 @@ constexpr size_t kMaxPacketSize = kMaxChunkSize + CHPP_PREAMBLE_LEN_BYTES +
                                   sizeof(ChppTransportFooter);
 
 // Input sizes to test the entire range of sizes with a few tests
-constexpr int kChunkSizes[] = {0,  1,   2,   3,    4,     5,    6,
-                               7,  8,   10,  16,   20,    30,   40,
-                               51, 100, 201, 1000, 10001, 20000};
+constexpr int kChunkSizes[] = {0, 1, 2, 3, 4, 21, 100, 1000, 10001, 20000};
 
 // Number of services
 constexpr int kServiceCount = 3;
-
-// Basic response minimum packet length
-constexpr int kMinResponsePacketLength =
-    CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
-    sizeof(ChppAppHeader) + sizeof(ChppTransportFooter);
 
 /*
  * Test suite for the CHPP Transport Layer
@@ -98,7 +93,8 @@ class TransportTests : public testing::TestWithParam<int> {
  * Wait for chppTransportDoWork() to finish after it is notified by
  * chppEnqueueTxPacket to run.
  *
- * TODO: Explore better ways to synchronize test with transport
+ * TODO: (b/177616847) Improve test robustness / synchronization without adding
+ * overhead to CHPP
  */
 void WaitForTransport(struct ChppTransportState *transportContext) {
   // Wait for linkParams.notifier.signal to be triggered and processed
@@ -112,6 +108,9 @@ void WaitForTransport(struct ChppTransportState *transportContext) {
   ASSERT_FALSE(k == 0);
   while (k < UINT16_MAX) {
     k++;
+  }
+  while (k > 0) {
+    k--;
   }
 
   // Should have reset loc and length for next packet / datagram
@@ -539,144 +538,72 @@ TEST_P(TransportTests, LoopbackPayloadOfZeros) {
   mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
   WaitForTransport(&mTransportContext);
-
-  if (len > 0 && len <= kMaxChunkSize) {
-    size_t loc = 0;
-    addPreambleToBuf(mBuf, &loc);
-    ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
-    transHeader->length = static_cast<uint16_t>(len);
-
-    // Loopback App header (only 2 fields required)
-    mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader)] =
-        CHPP_HANDLE_LOOPBACK;
-    mBuf[CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) + 1] =
-        CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
-
-    // Payload of zeros
-    loc += len;
-
-    addTransportFooterToBuf(mBuf, &loc);
-    EXPECT_EQ(loc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) + len +
-                       sizeof(ChppTransportFooter));
-
-    // Send header + payload (if any) + footer
-    EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, loc));
-
-    // Check for correct state
-    EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
-
-    // The next expected packet sequence # should incremented only if the
-    // received packet is payload-bearing.
-    uint8_t nextSeq = transHeader->seq + ((len > 0) ? 1 : 0);
-    EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
-
-    WaitForTransport(&mTransportContext);
-
-    // Check for correct response packet crafting if applicable
-    if (len > 0) {
-      // Check response packet fields
-      struct ChppTransportHeader *txHeader =
-          (struct ChppTransportHeader *)&mTransportContext.pendingTxPacket
-              .payload[CHPP_PREAMBLE_LEN_BYTES];
-
-      // If datagram is larger than Tx MTU, the response packet should be the
-      // first fragment
-      size_t mtu_len = MIN(len, CHPP_TRANSPORT_TX_MTU_BYTES);
-      uint8_t flags = (mtu_len == len)
-                          ? CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM
-                          : CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM;
-
-      // Correct loopback command requires min of 2 bytes payload
-      if (len < 2) {
-        mtu_len = 0;
-      }
-
-      // Check response packet parameters
-      EXPECT_EQ(txHeader->flags, flags);
-      EXPECT_EQ(txHeader->packetCode, CHPP_TRANSPORT_ERROR_NONE);
-      EXPECT_EQ(txHeader->ackSeq, nextSeq);
-      EXPECT_EQ(txHeader->length, mtu_len);
-
-      // Check response packet length
-      EXPECT_EQ(mTransportContext.pendingTxPacket.length,
-                CHPP_PREAMBLE_LEN_BYTES + sizeof(struct ChppTransportHeader) +
-                    mtu_len + sizeof(struct ChppTransportFooter));
-
-      // Check response packet payload
-      if (len >= 2) {
-        EXPECT_EQ(mTransportContext.pendingTxPacket
-                      .payload[CHPP_PREAMBLE_LEN_BYTES +
-                               sizeof(struct ChppTransportHeader)],
-                  CHPP_HANDLE_LOOPBACK);
-        EXPECT_EQ(mTransportContext.pendingTxPacket
-                      .payload[CHPP_PREAMBLE_LEN_BYTES +
-                               sizeof(struct ChppTransportHeader) + 1],
-                  CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
-      }
-    }
-
-    // Should have reset loc and length for next packet / datagram
-    EXPECT_EQ(mTransportContext.rxStatus.locInDatagram, 0);
-    EXPECT_EQ(mTransportContext.rxDatagram.length, 0);
-  }
-
   chppWorkThreadStop(&mTransportContext);
   t1.join();
+
+  if (len > 1 && len <= kMaxChunkSize) {
+    // Loopback App header (only 2 fields required)
+    mBuf[0] = CHPP_HANDLE_LOOPBACK;
+    mBuf[1] = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+
+    EXPECT_TRUE(chppDispatchLoopbackClientRequest(&mAppContext, mBuf, len));
+
+    uint16_t end = (mTransportContext.txDatagramQueue.front +
+                    mTransportContext.txDatagramQueue.pending - 1) %
+                   CHPP_TX_DATAGRAM_QUEUE_LEN;
+
+    EXPECT_EQ(mTransportContext.txDatagramQueue.datagram[end].length, len);
+    EXPECT_EQ(mTransportContext.txDatagramQueue.datagram[end].payload[0],
+              CHPP_HANDLE_LOOPBACK);
+    EXPECT_EQ(mTransportContext.txDatagramQueue.datagram[end].payload[1],
+              CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
+  }
 }
 
 /**
  * Discovery service + Transaction ID
  */
-TEST_P(TransportTests, DiscoveryService) {
+TEST_P(TransportTests, DiscoveryAndTransactionID) {
   uint8_t transactionID = static_cast<uint8_t>(GetParam());
   size_t len = 0;
 
   mTransportContext.txStatus.hasPacketsToSend = true;
   std::thread t1(chppWorkThreadStart, &mTransportContext);
   WaitForTransport(&mTransportContext);
-
-  addPreambleToBuf(mBuf, &len);
-
-  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &len);
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
 
   ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &len);
   appHeader->handle = CHPP_HANDLE_DISCOVERY;
   appHeader->transaction = transactionID;
   appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
 
-  addTransportFooterToBuf(mBuf, &len);
+  EXPECT_TRUE(chppDispatchDiscoveryClientRequest(&mAppContext, mBuf, len));
 
-  // Send header + payload (if any) + footer
-  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
+  uint16_t end = (mTransportContext.txDatagramQueue.front +
+                  mTransportContext.txDatagramQueue.pending - 1) %
+                 CHPP_TX_DATAGRAM_QUEUE_LEN;
 
-  // Check for correct state
-  uint8_t nextSeq = transHeader->seq + 1;
-  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
-  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
+  struct ChppAppHeader *responseHeader =
+      (ChppAppHeader *)mTransportContext.txDatagramQueue.datagram[end].payload;
 
-  // Wait for response
-  WaitForTransport(&mTransportContext);
-
-  // Validate response
-  validateChppTestResponse(mTransportContext.pendingTxPacket.payload, nextSeq,
-                           CHPP_HANDLE_DISCOVERY, transactionID);
-  size_t responseLoc = sizeof(ChppTestResponse);
+  EXPECT_EQ(responseHeader->handle, CHPP_HANDLE_DISCOVERY);
+  EXPECT_EQ(responseHeader->type, CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
+  EXPECT_EQ(responseHeader->transaction, transactionID);
+  EXPECT_EQ(responseHeader->error, CHPP_APP_ERROR_NONE);
+  EXPECT_EQ(responseHeader->command, CHPP_DISCOVERY_COMMAND_DISCOVER_ALL);
 
   // Decode discovery response
-  ChppServiceDescriptor *services = (ChppServiceDescriptor *)&mTransportContext
-                                        .pendingTxPacket.payload[responseLoc];
-  responseLoc += kServiceCount * sizeof(ChppServiceDescriptor);
-
-  // TODO: Verify checksum
-  responseLoc += sizeof(ChppTransportFooter);
+  ChppServiceDescriptor *services =
+      (ChppServiceDescriptor *)&mTransportContext.txDatagramQueue.datagram[end]
+          .payload[sizeof(ChppAppHeader)];
 
   // Check total length (and implicit service count)
-  EXPECT_EQ(responseLoc, kMinResponsePacketLength +
-                             kServiceCount * sizeof(ChppServiceDescriptor));
-  EXPECT_EQ(mTransportContext.pendingTxPacket.length, responseLoc);
+  EXPECT_EQ(
+      mTransportContext.txDatagramQueue.datagram[end].length,
+      sizeof(ChppAppHeader) + kServiceCount * sizeof(ChppServiceDescriptor));
 
   // Check service configuration response
-
   ChppServiceDescriptor wwanServiceDescriptor = {};
   static const uint8_t uuid[CHPP_SERVICE_UUID_LEN] = CHPP_UUID_WWAN_STANDARD;
   memcpy(&wwanServiceDescriptor.uuid, &uuid,
@@ -697,10 +624,6 @@ TEST_P(TransportTests, DiscoveryService) {
   EXPECT_EQ(services[0].version.major, wwanServiceDescriptor.version.major);
   EXPECT_EQ(services[0].version.minor, wwanServiceDescriptor.version.minor);
   EXPECT_EQ(services[0].version.patch, wwanServiceDescriptor.version.patch);
-
-  // Cleanup
-  chppWorkThreadStop(&mTransportContext);
-  t1.join();
 }
 
 #ifdef CHPP_CHECKSUM_ENABLED
@@ -804,16 +727,16 @@ TEST_F(TransportTests, WwanOpen) {
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
   responseLoc += sizeof(uint32_t);
 
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+
   uint32_t capabilitySet = CHRE_WWAN_GET_CELL_INFO;
   EXPECT_EQ((*capabilities) & ~(capabilitySet), 0);
 
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
                              sizeof(ChppWwanGetCapabilitiesResponse));
-
-  // Cleanup
-  chppWorkThreadStop(&mTransportContext);
-  t1.join();
 }
 
 /**
@@ -838,6 +761,10 @@ TEST_F(TransportTests, WifiOpen) {
 
   size_t responseLoc = sizeof(ChppTestResponse);
 
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+
   // Validate capabilities
   uint32_t *capabilities =
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
@@ -852,10 +779,6 @@ TEST_F(TransportTests, WifiOpen) {
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
                              sizeof(ChppWwanGetCapabilitiesResponse));
-
-  // Cleanup
-  chppWorkThreadStop(&mTransportContext);
-  t1.join();
 }
 
 /**
@@ -883,6 +806,10 @@ TEST_F(TransportTests, GnssOpen) {
 
   size_t responseLoc = sizeof(ChppTestResponse);
 
+  // Cleanup
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+
   // Validate capabilities
   uint32_t *capabilities =
       (uint32_t *)&mTransportContext.pendingTxPacket.payload[responseLoc];
@@ -896,10 +823,6 @@ TEST_F(TransportTests, GnssOpen) {
   // Check total length
   EXPECT_EQ(responseLoc, CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
                              sizeof(ChppGnssGetCapabilitiesResponse));
-
-  // Cleanup
-  chppWorkThreadStop(&mTransportContext);
-  t1.join();
 }
 
 /**
@@ -940,23 +863,22 @@ TEST_F(TransportTests, Discovery) {
 
   addTransportFooterToBuf(mBuf, &len);
 
-  // Initialize clientIndexOfServiceIndex[0] to see if it correctly updated upon
-  // discovery
+  // Initialize clientIndexOfServiceIndex[0] to see if it correctly updated
+  // upon discovery
   mAppContext.clientIndexOfServiceIndex[0] = CHPP_CLIENT_INDEX_NONE;
 
   // Send header + payload (if any) + footer
   EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, len));
 
-  EXPECT_EQ(mAppContext.clientIndexOfServiceIndex[0], 0);
-
-  // Check for correct state
-  uint8_t nextSeq = transHeader->seq + 1;
-  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
-  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
-
   // Cleanup
   chppWorkThreadStop(&mTransportContext);
   t1.join();
+
+  // Check for correct state
+  EXPECT_EQ(mAppContext.clientIndexOfServiceIndex[0], 0);
+  uint8_t nextSeq = transHeader->seq + 1;
+  EXPECT_EQ(mTransportContext.rxStatus.expectedSeq, nextSeq);
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
 }
 
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
