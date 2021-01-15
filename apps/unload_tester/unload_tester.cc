@@ -28,7 +28,9 @@
 /**
  * @file
  * A nanoapp exclusively for testing, which unloads the spammer nanoapp after a
- * short delay. Must only be compiled as a static/internal nanoapp.
+ * short delay. Must only be compiled as a static/internal nanoapp, because it
+ * accesses internal framework APIs to do the unload - generally, nanoapps are
+ * not allowed to unload other nanoapps.
  */
 
 namespace chre {

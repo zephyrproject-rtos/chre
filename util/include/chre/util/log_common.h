@@ -57,4 +57,9 @@ inline void chreLogNull(const char *fmt, ...) {
 #define CHRE_LOG_LEVEL_DEBUG 4
 #define CHRE_LOG_LEVEL_VERBOSE 5
 
+/**
+ * Logs an out of memory error with file and line number.
+ */
+#define LOG_OOM() LOGE("OOM at %s:%d", CHRE_FILENAME, __LINE__)
+
 #endif  // CHRE_UTIL_LOG_COMMON_H_

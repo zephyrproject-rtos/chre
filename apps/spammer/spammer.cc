@@ -17,9 +17,9 @@
 #include <cinttypes>
 
 #include "chre/platform/assert.h"
-#include "chre/platform/log.h"
 #include "chre/platform/static_nanoapp_init.h"
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/util/nanoapp/log.h"
 #include "chre_api/chre.h"
 
 /**

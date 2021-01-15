@@ -95,9 +95,4 @@
 #define LOGV(format, ...) CHRE_LOG_NULL(format, ##__VA_ARGS__)
 #endif
 
-/**
- * Logs an out of memory error with file and line number.
- */
-#define LOG_OOM() LOGE("OOM at %s:%d", CHRE_FILENAME, __LINE__)
-
 #endif  // CHRE_PLATFORM_LOG_H_
