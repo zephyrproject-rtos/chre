@@ -273,6 +273,7 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     CHPP_LOGE("WWAN GetCapabilities request failed at service. error=%" PRIu8,
               rxHeader->error);
+    CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =
@@ -307,17 +308,47 @@ static void chppWwanGetCellInfoAsyncResult(
   UNUSED_VAR(clientContext);
   CHPP_LOGI("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
 
-  buf += sizeof(struct ChppAppHeader);
-  len -= sizeof(struct ChppAppHeader);
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+  struct chreWwanCellInfoResult *chre = NULL;
 
-  struct chreWwanCellInfoResult *chre =
-      chppWwanCellInfoResultToChre((struct ChppWwanCellInfoResult *)buf, len);
+  if (len == sizeof(struct ChppAppHeader)) {
+    // Short response length indicates an error
+
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      // But no error reported
+      CHPP_PROD_ASSERT(false);
+    } else {
+      CHPP_LOGE(
+          "WWAN GetCellInfoAsync request failed at service. error=%" PRIu8,
+          rxHeader->error);
+    }
+
+  } else {
+    buf += sizeof(struct ChppAppHeader);
+    len -= sizeof(struct ChppAppHeader);
+    chre =
+        chppWwanCellInfoResultToChre((struct ChppWwanCellInfoResult *)buf, len);
+
+    if (chre == NULL) {
+      CHPP_LOGE(
+          "chppWwanGetCellInfoAsyncResult CHPP -> CHRE conversion failed. "
+          "Input len=%" PRIuSIZE ", service error=%" PRIu8,
+          len, rxHeader->error);
+    }
+  }
 
   if (chre == NULL) {
-    CHPP_LOGE(
-        "chppWwanGetCellInfoAsyncResult CHPP -> CHRE conversion failed. Input "
-        "len=%" PRIuSIZE,
-        len);
+    chre = chppMalloc(sizeof(struct chreWwanCellInfoResult));
+    if (chre == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      chre->version = CHRE_WWAN_CELL_INFO_RESULT_VERSION;
+      chre->errorCode = CHRE_ERROR;
+      chre->cellInfoCount = 0;
+      chre->reserved = 0;
+      chre->cookie = 0;
+    }
+
   } else {
 #ifdef CHPP_CLIENT_ENABLED_TIMESYNC
     int64_t offset = chppTimesyncGetOffset(gWwanClientContext.client.appContext,
@@ -328,7 +359,9 @@ static void chppWwanGetCellInfoAsyncResult(
       *timeStamp -= (uint64_t)offset;
     }
 #endif
+  }
 
+  if (chre != NULL) {
     gCallbacks->cellInfoResultCallback(chre);
   }
 }
