@@ -356,6 +356,7 @@ static void chppGnssGetCapabilitiesResult(
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     CHPP_LOGE("GNSS GetCapabilities request failed at service. error=%" PRIu8,
               rxHeader->error);
+    CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
 
   } else {
     struct ChppGnssGetCapabilitiesParameters *result =
@@ -389,10 +390,19 @@ static void chppGnssControlLocationSessionResult(
   UNUSED_VAR(clientContext);
 
   if (len < sizeof(struct ChppGnssControlLocationSessionResponse)) {
+    // Short response length indicates an error
+
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE(
-        "GNSS ControlLocationSession request failed at service. error=%" PRIu8,
-        rxHeader->error);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      // But no error reported
+      CHPP_PROD_ASSERT(false);
+    } else {
+      CHPP_LOGE(
+          "GNSS ControlLocationSession request failed at service. "
+          "error=%" PRIu8,
+          rxHeader->error);
+      gCallbacks->locationStatusChangeCallback(false, CHRE_ERROR);
+    }
 
   } else {
     struct ChppGnssControlLocationSessionResponse *result =
@@ -423,11 +433,19 @@ static void chppGnssControlMeasurementSessionResult(
   UNUSED_VAR(clientContext);
 
   if (len < sizeof(struct ChppGnssControlMeasurementSessionResponse)) {
+    // Short response length indicates an error
+
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE(
-        "GNSS ControlMeasurementSession request failed at service. "
-        "error=%" PRIu8,
-        rxHeader->error);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      // But no error reported
+      CHPP_PROD_ASSERT(false);
+    } else {
+      CHPP_LOGE(
+          "GNSS ControlMeasurementSession request failed at service. "
+          "error=%" PRIu8,
+          rxHeader->error);
+      gCallbacks->measurementStatusChangeCallback(false, CHRE_ERROR);
+    }
 
   } else {
     struct ChppGnssControlMeasurementSessionResponse *result =
@@ -465,6 +483,7 @@ static void chppGnssConfigurePassiveLocationListenerResult(
         "WiFi ConfigurePassiveLocationListener request failed at service. "
         "error=%" PRIu8,
         rxHeader->error);
+    CHPP_DEBUG_ASSERT(false);
 
   } else {
     CHPP_LOGD(
