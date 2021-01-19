@@ -198,10 +198,12 @@ void HostProtocolChre::encodeLogMessages(ChreFlatBufferBuilder &builder,
 
 void HostProtocolChre::encodeLogMessagesV2(ChreFlatBufferBuilder &builder,
                                            const uint8_t *logBuffer,
-                                           size_t bufferSize) {
+                                           size_t bufferSize,
+                                           uint32_t numLogsDropped) {
   auto logBufferOffset = builder.CreateVector(
       reinterpret_cast<const int8_t *>(logBuffer), bufferSize);
-  auto message = fbs::CreateLogMessageV2(builder, logBufferOffset);
+  auto message =
+      fbs::CreateLogMessageV2(builder, logBufferOffset, numLogsDropped);
   finalize(builder, fbs::ChreMessage::LogMessageV2, message.Union());
 }
 

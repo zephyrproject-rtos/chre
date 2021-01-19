@@ -50,7 +50,8 @@ class ChreLogMessageParserBase {
   virtual void log(const uint8_t *logBuffer, size_t logBufferSize);
 
   //! Logs from a log buffer containing one or more log messages (version 2)
-  virtual void logV2(const uint8_t *logBuffer, size_t logBufferSize);
+  virtual void logV2(const uint8_t *logBuffer, size_t logBufferSize,
+                     uint32_t numLogsDropped);
 
   /**
    * With verbose logging enabled (via enableVerbose()), dump a
@@ -97,6 +98,9 @@ class ChreLogMessageParserBase {
     uint32_t timestampMillis;
     char logMessage[];
   } __attribute__((packed));
+
+  //! The number of logs dropped since CHRE start
+  uint32_t mNumLogsDropped = 0;
 };
 
 }  // namespace chre
