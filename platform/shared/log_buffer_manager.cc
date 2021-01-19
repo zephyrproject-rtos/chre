@@ -85,7 +85,8 @@ void LogBufferManager::sendLogsToHost() {
         logBuffer->copyLogs(tempLogBufferData, sizeof(mLogBufferData));
     auto &hostCommsMgr =
         EventLoopManagerSingleton::get()->getHostCommsManager();
-    hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied);
+    // TODO(b/178033433): Keep track of and passs the number of logs dropped
+    hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied, 0);
   }
 }
 

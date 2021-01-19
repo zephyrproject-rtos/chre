@@ -277,6 +277,9 @@ table LogMessageV2 {
   /// padding bytes between these fields. Treat this like a packed struct and be
   /// cautious with unaligned access when reading/writing this buffer.
   buffer:[byte];
+
+  /// The number of logs dropped since CHRE started
+  num_logs_dropped:uint;
 }
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
