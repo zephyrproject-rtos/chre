@@ -215,20 +215,19 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
 
   } else {
     CHPP_LOGI("CHPP WWAN service initialized");
-  }
 
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-  size_t responseLen = sizeof(*response);
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
-  if (response == NULL) {
-    CHPP_LOG_OOM();
-    error = CHPP_APP_ERROR_OOM;
-  } else {
-    response->error = (uint8_t)error;
-    chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
-                                      &wwanServiceContext->open, response,
-                                      responseLen);
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
+    } else {
+      chppSendTimestampedResponseOrFail(&wwanServiceContext->service,
+                                        &wwanServiceContext->open, response,
+                                        responseLen);
+    }
   }
 
   return error;
