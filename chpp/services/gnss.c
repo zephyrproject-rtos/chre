@@ -251,20 +251,19 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
 
   } else {
     CHPP_LOGI("CHPP GNSS service initialized");
-  }
 
-  struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-  size_t responseLen = sizeof(*response);
+    struct ChppAppHeader *response =
+        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+    size_t responseLen = sizeof(*response);
 
-  if (response == NULL) {
-    CHPP_LOG_OOM();
-    error = CHPP_APP_ERROR_OOM;
-  } else {
-    response->error = (uint8_t)error;
-    chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
-                                      &gnssServiceContext->open, response,
-                                      responseLen);
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+      error = CHPP_APP_ERROR_OOM;
+    } else {
+      chppSendTimestampedResponseOrFail(&gnssServiceContext->service,
+                                        &gnssServiceContext->open, response,
+                                        responseLen);
+    }
   }
 
   return error;
