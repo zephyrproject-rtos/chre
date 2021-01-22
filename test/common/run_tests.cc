@@ -58,9 +58,8 @@ class PwEventHandler : public EventHandler {
 
   void TestCaseExpect(const TestCase &test_case,
                       const TestExpectation &expectation) override {
-    const char *result = expectation.success ? "Success" : "Failure";
-    LOGD("%s:%d: %s", test_case.file_name, expectation.line_number, result);
     if (!expectation.success) {
+      LOGD("%s:%d: Failure", test_case.file_name, expectation.line_number);
       LOGD("      Expected: %s", expectation.expression);
       LOGD("        Actual: %s", expectation.evaluated_expression);
     }
