@@ -24,35 +24,35 @@ using chre::Nanoseconds;
 TEST(AudioDurationFromSampleCountAndRate, HalfSecond) {
   Nanoseconds duration =
       AudioUtil::getDurationFromSampleCountAndRate(8000, 16000);
-  EXPECT_EQ(duration.toRawNanoseconds(), 500000000);
+  EXPECT_EQ(duration.toRawNanoseconds(), 500000000ull);
 }
 
 TEST(AudioDurationFromSampleCountAndRate, OneSecond) {
   Nanoseconds duration =
       AudioUtil::getDurationFromSampleCountAndRate(16000, 16000);
-  EXPECT_EQ(duration.toRawNanoseconds(), 1000000000);
+  EXPECT_EQ(duration.toRawNanoseconds(), 1000000000ull);
 }
 
 TEST(AudioDurationFromSampleCountAndRate, OneHundredSecond) {
   Nanoseconds duration =
       AudioUtil::getDurationFromSampleCountAndRate(1600000, 16000);
-  EXPECT_EQ(duration.toRawNanoseconds(), 100000000000);
+  EXPECT_EQ(duration.toRawNanoseconds(), 100000000000ull);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneSample) {
   uint32_t sampleCount =
       AudioUtil::getSampleCountFromRateAndDuration(16000, Nanoseconds(62500));
-  EXPECT_EQ(sampleCount, 1);
+  EXPECT_EQ(sampleCount, 1u);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneHundredSample) {
   uint32_t sampleCount =
       AudioUtil::getSampleCountFromRateAndDuration(16000, Nanoseconds(6250000));
-  EXPECT_EQ(sampleCount, 100);
+  EXPECT_EQ(sampleCount, 100u);
 }
 
 TEST(AudioSampleCountFromRateAndDuration, OneThousandSample) {
   uint32_t sampleCount = AudioUtil::getSampleCountFromRateAndDuration(
       16000, Nanoseconds(62500000));
-  EXPECT_EQ(sampleCount, 1000);
+  EXPECT_EQ(sampleCount, 1000u);
 }
