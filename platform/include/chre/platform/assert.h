@@ -68,6 +68,19 @@
     }                                        \
   } while (0)
 
+/**
+ * Defines "if not test" macros that allow code to not assert when running
+ * on-device unit tests if the assertion isn't useful during testing.
+ */
+#ifdef CHRE_ON_DEVICE_TESTS_ENABLED
+#define CHRE_ASSERT_LOG_IF_NOT_TEST(condition, fmt, ...)
+#define CHRE_ASSERT_IF_NOT_TEST(condition) ((void)(condition))
+#else
+#define CHRE_ASSERT_LOG_IF_NOT_TEST(condition, fmt, ...) \
+  CHRE_ASSERT_LOG(condition, fmt, ##__VA_ARGS__)
+#define CHRE_ASSERT_IF_NOT_TEST(condition) CHRE_ASSERT(condition)
+#endif
+
 namespace chre {
 
 /**
