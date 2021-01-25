@@ -29,4 +29,10 @@ COMMON_SRCS += $(CHRE_PREFIX)/core/tests/request_multiplexer_test.cc
 COMMON_SRCS += $(CHRE_PREFIX)/core/tests/sensor_request_test.cc
 COMMON_SRCS += $(CHRE_PREFIX)/core/tests/wifi_scan_request_test.cc
 
+# PAL unit tests
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/pal/tests/include
+
+COMMON_SRCS += $(CHRE_PREFIX)/pal/tests/src/version_test.cc
+COMMON_SRCS += $(CHRE_PREFIX)/pal/tests/src/wwan_test.cc
+
 endif

@@ -223,7 +223,7 @@ TEST_F(PalWifiTest, ScanAsyncTest) {
   }
 
   EXPECT_TRUE(lastScanEventReceived_);
-  EXPECT_GT(numScanResultCount_, 0);
+  EXPECT_GT(numScanResultCount_, 0u);
 }
 
 // Note: This test only verifies that the scan monitor succeeds according
