@@ -284,7 +284,7 @@ void GnssSession::onSettingChanged(Setting setting, SettingState state) {
       // to handle the state change.
       mSettingChangePending = true;
     } else {
-      updatePlatformRequest();
+      mInternalRequestPending = updatePlatformRequest();
       mSettingChangePending = false;
     }
   }
