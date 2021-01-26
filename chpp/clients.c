@@ -339,6 +339,12 @@ bool chppSendTimestampedRequestAndWaitTimeout(
   return result;
 }
 
+void chppClientPseudoOpen(struct ChppClientState *clientState) {
+  if (clientState->openState == CHPP_OPEN_STATE_CLOSED) {
+    clientState->openState = CHPP_OPEN_STATE_PSEUDO_OPEN;
+  }
+}
+
 bool chppClientSendOpenRequest(struct ChppClientState *clientState,
                                struct ChppRequestResponseState *openRRState,
                                uint16_t openCommand, bool reopen) {

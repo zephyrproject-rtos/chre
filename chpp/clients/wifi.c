@@ -58,6 +58,7 @@ static bool chppWifiClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion);
 static void chppWifiClientDeinit(void *clientContext);
 static void chppWifiClientNotifyReset(void *clientContext);
+static void chppWifiClientNotifyMatch(void *clientContext);
 
 /************************************************
  *  Private Definitions
@@ -76,6 +77,9 @@ static const struct ChppClient kWifiClientConfig = {
 
     // Notifies client if CHPP is reset
     .resetNotifierFunctionPtr = &chppWifiClientNotifyReset,
+
+    // Notifies client if they are matched to a service
+    .matchNotifierFunctionPtr = &chppWifiClientNotifyMatch,
 
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWifiResponse,
@@ -317,6 +321,23 @@ static void chppWifiClientNotifyReset(void *clientContext) {
     CHPP_LOGW("WiFi client reset but client wasn't open");
   } else {
     CHPP_LOGI("WiFi client reopening");
+    chppClientSendOpenRequest(&gWifiClientContext.client,
+                              &gWifiClientContext.open, CHPP_WIFI_OPEN,
+                              /*reopen=*/true);
+  }
+}
+
+/**
+ * Notifies the client of being matched to a service.
+ *
+ * @param clientContext Maintains status for each client instance.
+ */
+static void chppWifiClientNotifyMatch(void *clientContext) {
+  struct ChppWifiClientState *wifiClientContext =
+      (struct ChppWifiClientState *)clientContext;
+
+  if (wifiClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
+    CHPP_LOGI("Previously pseudo-open WiFi client reopening");
     chppClientSendOpenRequest(&gWifiClientContext.client,
                               &gWifiClientContext.open, CHPP_WIFI_OPEN,
                               /*reopen=*/true);
@@ -609,6 +630,7 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   }
 
 #ifdef CHPP_WIFI_CLIENT_OPEN_ALWAYS_SUCCESS
+  chppClientPseudoOpen(&gWifiClientContext.client);
   result = true;
 #endif
 
