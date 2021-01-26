@@ -239,6 +239,106 @@ void validateScanParams(const chreWifiScanParams &chreParams) {
   chppFree(backParams);
 }
 
+void validateRangingParams(const chreWifiRangingParams &chreParams) {
+  ChppWifiRangingParamsWithHeader *chppWithHeader = nullptr;
+  size_t outputSize = 999;
+
+  // Encode
+  bool result =
+      chppWifiRangingParamsFromChre(&chreParams, &chppWithHeader, &outputSize);
+  ASSERT_TRUE(result);
+  ASSERT_NE(chppWithHeader, nullptr);
+
+  size_t expectedSize =
+      sizeof(ChppWifiRangingParamsWithHeader) +
+      chreParams.targetListLen * sizeof(ChppWifiRangingTarget);
+  EXPECT_EQ(outputSize, expectedSize);
+
+  ChppWifiRangingParams *chppParams = &chppWithHeader->payload;
+
+  // Decode
+  outputSize -= sizeof(struct ChppAppHeader);
+  chreWifiRangingParams *backParams =
+      chppWifiRangingParamsToChre(chppParams, outputSize);
+  ASSERT_NE(backParams, nullptr);
+
+  // Compare chreEvent against encoded (chppEvent) and decoded back (backEvent)
+  EXPECT_EQ(chppParams->targetListLen, chreParams.targetListLen);
+  EXPECT_EQ(backParams->targetListLen, chreParams.targetListLen);
+
+  uint16_t baseOffset = sizeof(ChppWifiRangingParams);
+  if (chreParams.targetListLen > 0) {
+    EXPECT_EQ(chppParams->targetList.offset, baseOffset);
+    EXPECT_EQ(chppParams->targetList.length,
+              chppParams->targetListLen * sizeof(ChppWifiRangingTarget));
+    baseOffset += chppParams->targetList.length;
+
+    auto *chppRangingList =
+        ((const uint8_t *)chppParams + chppParams->targetList.offset);
+    for (size_t i = 0; i < chppParams->targetListLen; i++) {
+      ChppWifiRangingTarget currentRangingTarget;
+      memcpy(&currentRangingTarget,
+             chppRangingList + (i * sizeof(ChppWifiRangingTarget)),
+             sizeof(ChppWifiRangingTarget));
+
+      SCOPED_TRACE(i);
+
+      EXPECT_EQ(currentRangingTarget.macAddress[0],
+                chreParams.targetList[i].macAddress[0]);
+      EXPECT_EQ(currentRangingTarget.macAddress[1],
+                chreParams.targetList[i].macAddress[1]);
+      EXPECT_EQ(currentRangingTarget.macAddress[2],
+                chreParams.targetList[i].macAddress[2]);
+      EXPECT_EQ(currentRangingTarget.macAddress[3],
+                chreParams.targetList[i].macAddress[3]);
+      EXPECT_EQ(currentRangingTarget.macAddress[4],
+                chreParams.targetList[i].macAddress[4]);
+      EXPECT_EQ(currentRangingTarget.macAddress[5],
+                chreParams.targetList[i].macAddress[5]);
+      EXPECT_EQ(currentRangingTarget.primaryChannel,
+                chreParams.targetList[i].primaryChannel);
+      EXPECT_EQ(currentRangingTarget.centerFreqPrimary,
+                chreParams.targetList[i].centerFreqPrimary);
+      EXPECT_EQ(currentRangingTarget.centerFreqSecondary,
+                chreParams.targetList[i].centerFreqSecondary);
+      EXPECT_EQ(currentRangingTarget.channelWidth,
+                chreParams.targetList[i].channelWidth);
+
+      EXPECT_EQ(currentRangingTarget.macAddress[0],
+                backParams->targetList[i].macAddress[0]);
+      EXPECT_EQ(currentRangingTarget.macAddress[1],
+                backParams->targetList[i].macAddress[1]);
+      EXPECT_EQ(currentRangingTarget.macAddress[2],
+                backParams->targetList[i].macAddress[2]);
+      EXPECT_EQ(currentRangingTarget.macAddress[3],
+                backParams->targetList[i].macAddress[3]);
+      EXPECT_EQ(currentRangingTarget.macAddress[4],
+                backParams->targetList[i].macAddress[4]);
+      EXPECT_EQ(currentRangingTarget.macAddress[5],
+                backParams->targetList[i].macAddress[5]);
+      EXPECT_EQ(currentRangingTarget.primaryChannel,
+                backParams->targetList[i].primaryChannel);
+      EXPECT_EQ(currentRangingTarget.centerFreqPrimary,
+                backParams->targetList[i].centerFreqPrimary);
+      EXPECT_EQ(currentRangingTarget.centerFreqSecondary,
+                backParams->targetList[i].centerFreqSecondary);
+      EXPECT_EQ(currentRangingTarget.channelWidth,
+                backParams->targetList[i].channelWidth);
+    }
+  } else {
+    EXPECT_EQ(chppParams->targetList.offset, 0);
+    EXPECT_EQ(chppParams->targetList.length, 0);
+  }
+
+  // Handling of short input
+  chreWifiRangingParams *chreMalformed;
+  chreMalformed = chppWifiRangingParamsToChre(chppParams, outputSize - 1);
+  ASSERT_EQ(chreMalformed, nullptr);
+
+  chppFree(chppWithHeader);
+  chppFree(backParams);
+}
+
 }  // anonymous namespace
 
 TEST(WifiConvert, EmptyScanResult) {
@@ -421,4 +521,30 @@ TEST(WifiConvert, ScanParamsWithBothLists) {
   };
 
   validateScanParams(chreParams);
+}
+
+TEST(WifiConvert, RangingParamsEmpty) {
+  struct chreWifiRangingParams chreParams = {
+      .targetListLen = 0,
+      .targetList = NULL,
+  };
+
+  validateRangingParams(chreParams);
+}
+
+TEST(WifiConvert, RangingParamsWithTarget) {
+  struct chreWifiRangingTarget target = {
+      .macAddress = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc},
+      .primaryChannel = 0xdef02468,
+      .centerFreqPrimary = 0xace13579,
+      .centerFreqSecondary = 0xbdf369cf,
+      .channelWidth = 0x48,
+  };
+
+  struct chreWifiRangingParams chreParams = {
+      .targetListLen = 1,
+      .targetList = &target,
+  };
+
+  validateRangingParams(chreParams);
 }
