@@ -840,7 +840,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
       context->txStatus.sentSeq = txHeader->seq;
       context->txStatus.retxCount++;
 
-      if (context->txStatus.retxCount > CHPP_TRANSPORT_MAX_RETX) {
+      if (context->txStatus.retxCount > CHPP_TRANSPORT_MAX_RETX &&
+          context->resetState != CHPP_RESET_STATE_RESETTING) {
         CHPP_LOGE("ReTx packet failed after %d tries. Attempting to reset CHPP",
                   CHPP_TRANSPORT_MAX_RETX);
 
