@@ -298,6 +298,7 @@ cc_test_host {
         "pal/tests/src/wwan_test.cc",
         "pal/tests/src/version_test.cc",
         "pal/util/tests/**/*.cc",
+        "pal/util/wifi_pal_convert.c",
         "pal/util/wifi_scan_cache.c",
         "platform/linux/assert.cc",
         "platform/linux/fatal_error.cc",
