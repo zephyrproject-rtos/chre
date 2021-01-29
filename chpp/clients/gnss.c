@@ -51,6 +51,7 @@ static bool chppGnssClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion);
 static void chppGnssClientDeinit(void *clientContext);
 static void chppGnssClientNotifyReset(void *clientContext);
+static void chppGnssClientNotifyMatch(void *clientContext);
 
 /************************************************
  *  Private Definitions
@@ -69,6 +70,9 @@ static const struct ChppClient kGnssClientConfig = {
 
     // Notifies client if CHPP is reset
     .resetNotifierFunctionPtr = &chppGnssClientNotifyReset,
+
+    // Notifies client if they are matched to a service
+    .matchNotifierFunctionPtr = &chppGnssClientNotifyMatch,
 
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchGnssResponse,
@@ -318,6 +322,23 @@ static void chppGnssClientNotifyReset(void *clientContext) {
     CHPP_LOGW("GNSS client reset but client wasn't open");
   } else {
     CHPP_LOGI("GNSS client reopening");
+    chppClientSendOpenRequest(&gGnssClientContext.client,
+                              &gGnssClientContext.open, CHPP_GNSS_OPEN,
+                              /*reopen=*/true);
+  }
+}
+
+/**
+ * Notifies the client of being matched to a service.
+ *
+ * @param clientContext Maintains status for each client instance.
+ */
+static void chppGnssClientNotifyMatch(void *clientContext) {
+  struct ChppGnssClientState *gnssClientContext =
+      (struct ChppGnssClientState *)clientContext;
+
+  if (gnssClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
+    CHPP_LOGI("Previously pseudo-open GNSS client reopening");
     chppClientSendOpenRequest(&gGnssClientContext.client,
                               &gGnssClientContext.open, CHPP_GNSS_OPEN,
                               /*reopen=*/true);
@@ -600,6 +621,7 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   }
 
 #ifdef CHPP_GNSS_CLIENT_OPEN_ALWAYS_SUCCESS
+  chppClientPseudoOpen(&gGnssClientContext.client);
   result = true;
 #endif
 
