@@ -39,6 +39,8 @@ static uint8_t chppFindMatchingClient(
     struct ChppAppState *context, const struct ChppServiceDescriptor *service);
 static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
                                             const uint8_t *buf, size_t len);
+ChppNotifierFunction *chppGetClientMatchNotifierFunction(
+    struct ChppAppState *context, uint8_t index);
 
 /************************************************
  *  Private Functions
@@ -193,13 +195,47 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
             " registered clients and %" PRIu8 " discovered services",
             matchedClients, context->registeredClientCount, serviceCount);
 
-  // Notify (possible) waiting client on discovery completion.
+  // Notify any clients waiting on discovery completion
   chppMutexLock(&context->discoveryMutex);
   context->isDiscoveryComplete = true;
   context->matchedClientCount = matchedClients;
   context->discoveredServiceCount = serviceCount;
   chppConditionVariableSignal(&context->discoveryCv);
   chppMutexUnlock(&context->discoveryMutex);
+
+  // Notify clients of match
+  for (uint8_t i = 0; i < context->discoveredServiceCount; i++) {
+    uint8_t clientIndex = context->clientIndexOfServiceIndex[i];
+    if (clientIndex != CHPP_CLIENT_INDEX_NONE) {
+      // Discovered service has a matched client
+      ChppNotifierFunction *MatchNotifierFunction =
+          chppGetClientMatchNotifierFunction(context, clientIndex);
+
+      CHPP_LOGI(
+          "Client #%" PRIu8 " (handle=%d) match notifier %s", clientIndex,
+          CHPP_SERVICE_HANDLE_OF_INDEX(i),
+          (MatchNotifierFunction == NULL) ? "is unsupported" : "starting");
+
+      if (MatchNotifierFunction != NULL) {
+        MatchNotifierFunction(context->registeredClientContexts[clientIndex]);
+      }
+    }
+  }
+}
+
+/**
+ * Returns the match notification function pointer of a particular negotiated
+ * client. The function pointer will be set to null by clients that do not need
+ * or support a match notification.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param index Index of the registered client.
+ *
+ * @return Pointer to the match notification function.
+ */
+ChppNotifierFunction *chppGetClientMatchNotifierFunction(
+    struct ChppAppState *context, uint8_t index) {
+  return context->registeredClients[index]->matchNotifierFunctionPtr;
 }
 
 /************************************************

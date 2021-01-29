@@ -59,9 +59,9 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
 ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                                               uint8_t handle,
                                               enum ChppMessageType type);
-ChppResetNotifierFunction *chppGetClientResetNotifierFunction(
+ChppNotifierFunction *chppGetClientResetNotifierFunction(
     struct ChppAppState *context, uint8_t index);
-ChppResetNotifierFunction *chppGetServiceResetNotifierFunction(
+ChppNotifierFunction *chppGetServiceResetNotifierFunction(
     struct ChppAppState *context, uint8_t index);
 static inline const struct ChppService *chppServiceOfHandle(
     struct ChppAppState *appContext, uint8_t handle);
@@ -343,16 +343,16 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
 }
 
 /**
- * Returns the reset function pointer of a particular negotiated client. The
- * function pointer will be set to null by clients that do not need or support
- * a reset notification.
+ * Returns the reset notification function pointer of a particular negotiated
+ * client. The function pointer will be set to null by clients that do not need
+ * or support a reset notification.
  *
  * @param context Maintains status for each app layer instance.
  * @param index Index of the registered client.
  *
- * @return Pointer to the reset function.
+ * @return Pointer to the reset notification function.
  */
-ChppResetNotifierFunction *chppGetClientResetNotifierFunction(
+ChppNotifierFunction *chppGetClientResetNotifierFunction(
     struct ChppAppState *context, uint8_t index) {
   return context->registeredClients[index]->resetNotifierFunctionPtr;
 }
@@ -367,7 +367,7 @@ ChppResetNotifierFunction *chppGetClientResetNotifierFunction(
  *
  * @return Pointer to the reset function.
  */
-ChppResetNotifierFunction *chppGetServiceResetNotifierFunction(
+ChppNotifierFunction *chppGetServiceResetNotifierFunction(
     struct ChppAppState *context, uint8_t index) {
   return context->registeredServices[index]->resetNotifierFunctionPtr;
 }
@@ -722,7 +722,7 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
       uint8_t clientIndex = context->clientIndexOfServiceIndex[i];
       if (clientIndex != CHPP_CLIENT_INDEX_NONE) {
         // Discovered service has a matched client
-        ChppResetNotifierFunction *ResetNotifierFunction =
+        ChppNotifierFunction *ResetNotifierFunction =
             chppGetClientResetNotifierFunction(context, clientIndex);
 
         CHPP_LOGI(
@@ -739,7 +739,7 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
 #endif  // CHPP_CLIENT_ENABLED_DISCOVERY
 
   for (uint8_t i = 0; i < context->registeredServiceCount; i++) {
-    ChppResetNotifierFunction *ResetNotifierFunction =
+    ChppNotifierFunction *ResetNotifierFunction =
         chppGetServiceResetNotifierFunction(context, i);
 
     CHPP_LOGI("Service #%" PRIu8 " (handle=%d) reset notifier %s", i,

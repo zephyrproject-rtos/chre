@@ -52,6 +52,7 @@ static bool chppWwanClientInit(void *clientContext, uint8_t handle,
                                struct ChppVersion serviceVersion);
 static void chppWwanClientDeinit(void *clientContext);
 static void chppWwanClientNotifyReset(void *clientContext);
+static void chppWwanClientNotifyMatch(void *clientContext);
 
 /************************************************
  *  Private Definitions
@@ -70,6 +71,9 @@ static const struct ChppClient kWwanClientConfig = {
 
     // Notifies client if CHPP is reset
     .resetNotifierFunctionPtr = &chppWwanClientNotifyReset,
+
+    // Notifies client if they are matched to a service
+    .matchNotifierFunctionPtr = &chppWwanClientNotifyMatch,
 
     // Service response dispatch function pointer
     .responseDispatchFunctionPtr = &chppDispatchWwanResponse,
@@ -242,6 +246,23 @@ static void chppWwanClientNotifyReset(void *clientContext) {
 }
 
 /**
+ * Notifies the client of being matched to a service.
+ *
+ * @param clientContext Maintains status for each client instance.
+ */
+static void chppWwanClientNotifyMatch(void *clientContext) {
+  struct ChppWwanClientState *wwanClientContext =
+      (struct ChppWwanClientState *)clientContext;
+
+  if (wwanClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
+    CHPP_LOGI("Previously pseudo-open WWAN client reopening");
+    chppClientSendOpenRequest(&gWwanClientContext.client,
+                              &gWwanClientContext.open, CHPP_WWAN_OPEN,
+                              /*reopen=*/true);
+  }
+}
+
+/**
  * Handles the service response for the close client request.
  *
  * This function is called from chppDispatchWwanResponse().
@@ -395,6 +416,7 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   }
 
 #ifdef CHPP_WWAN_CLIENT_OPEN_ALWAYS_SUCCESS
+  chppClientPseudoOpen(&gWwanClientContext.client);
   result = true;
 #endif
 
