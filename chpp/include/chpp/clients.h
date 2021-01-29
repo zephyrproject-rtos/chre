@@ -283,6 +283,14 @@ bool chppSendTimestampedRequestAndWaitTimeout(
     uint64_t timeoutNs);
 
 /**
+ * Markes a closed client as pseudo-open, so that it would be opened upon a
+ * reset.
+ *
+ * @param clientState State of the client receiving the response.
+ */
+void chppClientPseudoOpen(struct ChppClientState *clientState);
+
+/**
  * Sends a client request for the open command. Setting reopen to true indicates
  * that the service is being reopened.
  *
