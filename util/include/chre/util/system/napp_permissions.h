@@ -30,10 +30,12 @@ namespace chre {
  * by a permission on the Android side (e.g. location).
  */
 enum class NanoappPermissions : uint32_t {
+  NANOAPP_USES_NOTHING = 0,
   NANOAPP_USES_AUDIO = 1,
   NANOAPP_USES_GNSS = 1 << 1,
   NANOAPP_USES_WIFI = 1 << 2,
   NANOAPP_USES_WWAN = 1 << 3,
+  NANOAPP_USES_ANYTHING = 0xffffffff,
 };
 
 }  // namespace chre
