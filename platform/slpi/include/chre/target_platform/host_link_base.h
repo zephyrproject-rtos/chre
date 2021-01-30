@@ -61,8 +61,11 @@ class HostLinkBase {
    * the message might be encoded
    *
    * @param logMessageSize length of the log message buffer
+   *
+   * @param numLogsDropped number of logs dropped since CHRE start
    */
-  void sendLogMessageV2(const uint8_t *logMessage, size_t logMessageSize);
+  void sendLogMessageV2(const uint8_t *logMessage, size_t logMessageSize,
+                        uint32_t numLogsDropped);
 
   /**
    * Attempts to flush the outbound queue and gracefully inform the host that we
