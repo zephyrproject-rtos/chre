@@ -111,8 +111,21 @@ void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
 }
 
 void ChreLogMessageParserBase::logV2(const uint8_t *logBuffer,
-                                     size_t logBufferSize) {
+                                     size_t logBufferSize,
+                                     uint32_t numLogsDropped) {
   size_t bufferIndex = 0;
+  if (numLogsDropped >= mNumLogsDropped) {
+    LOGE(
+        "The numLogsDropped value received from CHRE is less than the last "
+        "value received. Received: %" PRIu32 " Last value: %" PRIu32,
+        numLogsDropped, mNumLogsDropped);
+  }
+  // Log the number of logs dropped once before logging remaining logs from CHRE
+  uint32_t diffLogsDropped = numLogsDropped - mNumLogsDropped;
+  mNumLogsDropped = numLogsDropped;
+  if (diffLogsDropped > 0) {
+    LOGI("# logs dropped: %" PRIu32, diffLogsDropped);
+  }
   while (bufferIndex < logBufferSize) {
     const LogMessageV2 *message =
         reinterpret_cast<const LogMessageV2 *>(&logBuffer[bufferIndex]);

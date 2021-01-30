@@ -716,21 +716,20 @@ void HostLinkBase::sendLogMessage(const uint8_t *logMessage,
 }
 
 void HostLinkBase::sendLogMessageV2(const uint8_t *logMessage,
-                                    size_t logMessageSize) {
+                                    size_t logMessageSize,
+                                    uint32_t numLogsDropped) {
   struct LogMessageData {
     const uint8_t *logMsg;
     size_t logMsgSize;
+    uint32_t numLogsDropped;
   };
 
-  LogMessageData logMessageData;
-
-  logMessageData.logMsg = logMessage;
-  logMessageData.logMsgSize = logMessageSize;
+  LogMessageData logMessageData{logMessage, logMessageSize, numLogsDropped};
 
   auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
     const auto *data = static_cast<const LogMessageData *>(cookie);
-    HostProtocolChre::encodeLogMessagesV2(builder, data->logMsg,
-                                          data->logMsgSize);
+    HostProtocolChre::encodeLogMessagesV2(
+        builder, data->logMsg, data->logMsgSize, data->numLogsDropped);
   };
 
   constexpr size_t kInitialSize = 128;
