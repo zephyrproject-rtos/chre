@@ -107,7 +107,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
         context->timesyncClientContext->measureOffset.responseTimeNs;
   }
 
-  CHPP_LOGI(
+  CHPP_LOGD(
       "Timesync client processed response. request t=%" PRIu64
       ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
       ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", RTT=%" PRIu64 ", updated=%s",
@@ -135,7 +135,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 
 struct ChppTimesyncResult chppTimesyncMeasureOffset(
     struct ChppAppState *context) {
-  CHPP_LOGI("Running chppTimesyncMeasureOffset at time~=%" PRIu64
+  CHPP_LOGD("Running chppTimesyncMeasureOffset at time~=%" PRIu64
             " with %d measurements",
             chppGetCurrentTimeNs(),
             CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT);
@@ -183,14 +183,14 @@ struct ChppTimesyncResult chppTimesyncMeasureOffset(
 
     if (context->timesyncClientContext->timesyncResult.error !=
         CHPP_APP_ERROR_BLOCKED) {
-      CHPP_LOGE("Timesync failed. Error=%" PRIu8,
+      CHPP_LOGE("Timesync failed. err=%" PRIu8,
                 context->timesyncClientContext->timesyncResult.error);
     } else {
       context->timesyncClientContext->timesyncResult.error =
           CHPP_APP_ERROR_NONE;
 
       CHPP_LOGI(
-          "Timesync completed. RTT=%" PRIu64 " Offset=%" PRIi64 "time=%" PRIu64,
+          "Timesync RTT=%" PRIu64 " Offset=%" PRIi64 " t=%" PRIu64,
           context->timesyncClientContext->timesyncResult.rttNs,
           context->timesyncClientContext->timesyncResult.offsetNs,
           context->timesyncClientContext->timesyncResult.measurementTimeNs);

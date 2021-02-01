@@ -109,21 +109,19 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
 
   if (servicesLen != serviceCount * sizeof(struct ChppServiceDescriptor)) {
     // Incomplete service list
-    CHPP_LOGE("Service descriptors length length=%" PRIuSIZE
-              " is invalid for a service count=%" PRIu8
-              " and descriptor length=%" PRIuSIZE,
+    CHPP_LOGE("Descriptor len=%" PRIuSIZE " doesn't match count=%" PRIu8
+              " and size=%" PRIuSIZE,
               servicesLen, serviceCount, sizeof(struct ChppServiceDescriptor));
     CHPP_DEBUG_ASSERT(false);
   }
 
   if (serviceCount >= CHPP_MAX_DISCOVERED_SERVICES) {
-    CHPP_LOGE("Discovered service count=%" PRIu8
-              " larger than CHPP_MAX_DISCOVERED_SERVICES=%d",
-              serviceCount, CHPP_MAX_DISCOVERED_SERVICES);
+    CHPP_LOGE("Service count=%" PRIu8 " larger than max=%d", serviceCount,
+              CHPP_MAX_DISCOVERED_SERVICES);
     CHPP_DEBUG_ASSERT(false);
   }
 
-  CHPP_LOGI("Attempting to match %" PRIu8 " registered clients and %" PRIu8
+  CHPP_LOGD("Attempting to match %" PRIu8 " registered clients and %" PRIu8
             " discovered services",
             context->registeredClientCount, serviceCount);
 
@@ -138,16 +136,16 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     chppUuidToStr(response->services[i].uuid, uuidText);
 
     if (context->clientIndexOfServiceIndex[i] == CHPP_CLIENT_INDEX_NONE) {
-      CHPP_LOGI(
-          "No matching client found for service on handle %d"
-          " with name=%s, UUID=%s, version=%" PRIu8 ".%" PRIu8 ".%" PRIu16,
+      CHPP_LOGE(
+          "No matching client for service: %d"
+          " name=%s, UUID=%s, version=%" PRIu8 ".%" PRIu8 ".%" PRIu16,
           CHPP_SERVICE_HANDLE_OF_INDEX(i), response->services[i].name, uuidText,
           response->services[i].version.major,
           response->services[i].version.minor,
           response->services[i].version.patch);
 
     } else {
-      CHPP_LOGI(
+      CHPP_LOGD(
           "Client # %" PRIu8
           " matched to service on handle %d"
           " with name=%s, UUID=%s. "
@@ -172,9 +170,8 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
               CHPP_SERVICE_HANDLE_OF_INDEX(i),
               response->services[i].version) == false) {
         CHPP_LOGE(
-            "Client rejected initialization (maybe due to incompatible "
-            "versions?)  client version=%" PRIu8 ".%" PRIu8 ".%" PRIu16
-            ", service version=%" PRIu8 ".%" PRIu8 ".%" PRIu16,
+            "Client rejected init: client ver=%" PRIu8 ".%" PRIu8 ".%" PRIu16
+            ", service ver=%" PRIu8 ".%" PRIu8 ".%" PRIu16,
             context->registeredClients[context->clientIndexOfServiceIndex[i]]
                 ->descriptor.version.major,
             context->registeredClients[context->clientIndexOfServiceIndex[i]]
@@ -190,7 +187,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     }
   }
 
-  CHPP_LOGI("Successfully matched %" PRIu8
+  CHPP_LOGD("Successfully matched %" PRIu8
             " clients with services, out of a total of %" PRIu8
             " registered clients and %" PRIu8 " discovered services",
             matchedClients, context->registeredClientCount, serviceCount);
@@ -211,8 +208,8 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
       ChppNotifierFunction *MatchNotifierFunction =
           chppGetClientMatchNotifierFunction(context, clientIndex);
 
-      CHPP_LOGI(
-          "Client #%" PRIu8 " (handle=%d) match notifier %s", clientIndex,
+      CHPP_LOGD(
+          "Client #%" PRIu8 " (H#%d) match notifier %s", clientIndex,
           CHPP_SERVICE_HANDLE_OF_INDEX(i),
           (MatchNotifierFunction == NULL) ? "is unsupported" : "starting");
 
@@ -272,8 +269,7 @@ bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
   chppMutexUnlock(&context->discoveryMutex);
 
   if (!success) {
-    CHPP_LOGE("Timed out waiting for DiscoveryComplete after %" PRIu64 " ms",
-              timeoutMs);
+    CHPP_LOGE("DiscoveryComplete timeout after %" PRIu64 " ms", timeoutMs);
   }
   return success;
 }

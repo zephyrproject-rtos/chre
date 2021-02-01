@@ -375,7 +375,7 @@ static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppGnssGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GNSS GetCapabilities request failed at service. error=%" PRIu8,
+    CHPP_LOGE("GNSS GetCapabilities failed at service. err=%" PRIu8,
               rxHeader->error);
     CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
 
@@ -383,7 +383,7 @@ static void chppGnssGetCapabilitiesResult(
     struct ChppGnssGetCapabilitiesParameters *result =
         &((struct ChppGnssGetCapabilitiesResponse *)buf)->params;
 
-    CHPP_LOGI("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
+    CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 #ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
     if (result->capabilities != CHPP_GNSS_DEFAULT_CAPABILITIES) {
@@ -418,10 +418,7 @@ static void chppGnssControlLocationSessionResult(
       // But no error reported
       CHPP_PROD_ASSERT(false);
     } else {
-      CHPP_LOGE(
-          "GNSS ControlLocationSession request failed at service. "
-          "error=%" PRIu8,
-          rxHeader->error);
+      CHPP_LOGE("ControlLocation failed at service: %" PRIu8, rxHeader->error);
       gCallbacks->locationStatusChangeCallback(false, CHRE_ERROR);
     }
 
@@ -429,7 +426,7 @@ static void chppGnssControlLocationSessionResult(
     struct ChppGnssControlLocationSessionResponse *result =
         (struct ChppGnssControlLocationSessionResponse *)buf;
 
-    CHPP_LOGI(
+    CHPP_LOGD(
         "chppGnssControlLocationSessionResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
@@ -461,10 +458,7 @@ static void chppGnssControlMeasurementSessionResult(
       // But no error reported
       CHPP_PROD_ASSERT(false);
     } else {
-      CHPP_LOGE(
-          "GNSS ControlMeasurementSession request failed at service. "
-          "error=%" PRIu8,
-          rxHeader->error);
+      CHPP_LOGE("Measurement failed at service err=%" PRIu8, rxHeader->error);
       gCallbacks->measurementStatusChangeCallback(false, CHRE_ERROR);
     }
 
@@ -472,7 +466,7 @@ static void chppGnssControlMeasurementSessionResult(
     struct ChppGnssControlMeasurementSessionResponse *result =
         (struct ChppGnssControlMeasurementSessionResponse *)buf;
 
-    CHPP_LOGI(
+    CHPP_LOGD(
         "chppGnssControlMeasurementSessionResult received enable=%s, "
         "errorCode=%" PRIu8,
         result->enabled ? "true" : "false", result->errorCode);
@@ -500,10 +494,7 @@ static void chppGnssConfigurePassiveLocationListenerResult(
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE(
-        "WiFi ConfigurePassiveLocationListener request failed at service. "
-        "error=%" PRIu8,
-        rxHeader->error);
+    CHPP_LOGE("Passive scan failed at service %" PRIu8, rxHeader->error);
     CHPP_DEBUG_ASSERT(false);
 
   } else {
@@ -542,7 +533,7 @@ static void chppGnssStateResyncNotification(
 static void chppGnssLocationResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGI("chppGnssLocationResultNotification received data len=%" PRIuSIZE,
+  CHPP_LOGD("chppGnssLocationResultNotification received data len=%" PRIuSIZE,
             len);
 
   buf += sizeof(struct ChppAppHeader);
@@ -552,10 +543,7 @@ static void chppGnssLocationResultNotification(
       chppGnssLocationEventToChre((struct ChppGnssLocationEvent *)buf, len);
 
   if (chre == NULL) {
-    CHPP_LOGE(
-        "chppGnssLocationResultNotification CHPP -> CHRE conversion failed. "
-        "Input len=%" PRIuSIZE,
-        len);
+    CHPP_LOGE("Location result conversion failed: len=%" PRIuSIZE, len);
   } else {
     gCallbacks->locationEventCallback(chre);
   }
@@ -573,7 +561,7 @@ static void chppGnssLocationResultNotification(
 static void chppGnssMeasurementResultNotification(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGI(
+  CHPP_LOGD(
       "chppGnssMeasurementResultNotification received data len=%" PRIuSIZE,
       len);
 
@@ -584,10 +572,7 @@ static void chppGnssMeasurementResultNotification(
       chppGnssDataEventToChre((struct ChppGnssDataEvent *)buf, len);
 
   if (chre == NULL) {
-    CHPP_LOGE(
-        "chppGnssMeasurementResultNotification CHPP -> CHRE conversion failed. "
-        "Input len=%" PRIuSIZE,
-        len);
+    CHPP_LOGE("Measurement result conversion failed len=%" PRIuSIZE, len);
   } else {
     gCallbacks->measurementEventCallback(chre);
   }
@@ -611,7 +596,7 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  CHPP_LOGI("GNSS client opening");
+  CHPP_LOGD("GNSS client opening");
 
   if (chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
                                    CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {

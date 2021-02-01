@@ -125,7 +125,7 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
   CHPP_LOGI(
       "Loopback client processed service response. Test %s. response "
       "len=%" PRIuSIZE ", request len=%" PRIuSIZE ", error code=0x%" PRIx16
-      ", first error=%" PRIuSIZE ", total errors=%" PRIuSIZE,
+      ", first err=%" PRIuSIZE ", total errors=%" PRIuSIZE,
       (context->loopbackClientContext->testResult.error == CHPP_APP_ERROR_NONE)
           ? "succeeded"
           : "failed",
