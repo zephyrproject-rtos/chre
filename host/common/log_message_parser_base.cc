@@ -114,7 +114,7 @@ void ChreLogMessageParserBase::logV2(const uint8_t *logBuffer,
                                      size_t logBufferSize,
                                      uint32_t numLogsDropped) {
   size_t bufferIndex = 0;
-  if (numLogsDropped >= mNumLogsDropped) {
+  if (numLogsDropped > mNumLogsDropped) {
     LOGE(
         "The numLogsDropped value received from CHRE is less than the last "
         "value received. Received: %" PRIu32 " Last value: %" PRIu32,
