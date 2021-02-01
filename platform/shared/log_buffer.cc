@@ -56,6 +56,7 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
       // Invalidate memory allocated for log at head while the buffer is greater
       // than max size
       while (getBufferSize() + totalLogSize > mBufferMaxSize) {
+        mNumLogsDropped++;
         size_t logSize;
         mBufferDataHeadIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
         mBufferDataSize -= logSize;
@@ -86,7 +87,8 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
   }
 }
 
-size_t LogBuffer::copyLogs(void *destination, size_t size) {
+size_t LogBuffer::copyLogs(void *destination, size_t size,
+                           size_t *numLogsDropped) {
   LockGuard<Mutex> lock(mBufferDataLock);
 
   size_t copySize = 0;
@@ -107,6 +109,8 @@ size_t LogBuffer::copyLogs(void *destination, size_t size) {
     }
     copyFromBuffer(copySize, destination);
   }
+
+  *numLogsDropped = mNumLogsDropped;
 
   return copySize;
 }
