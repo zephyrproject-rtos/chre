@@ -59,6 +59,11 @@ class LogBufferManager : public LogBufferCallbackInterface {
   void onLogsReady(LogBuffer *logBuffer) final;
 
   /**
+   * Flush any logs that might be in the default log buffer.
+   */
+  void flushLogs();
+
+  /**
    * The platform code should call this method after the logs have been sent to
    * the host to signal that more logs can be sent to the host when ready.
    */
