@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "chre/core/nanoapp.h"
+#include "chre/core/settings.h"
 #include "chre/platform/platform_audio.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
@@ -100,6 +101,15 @@ class AudioRequestManager : public NonCopyable {
    *     into one of the buffers.
    */
   void logStateToBuffer(DebugDumpWrapper &debugDump) const;
+
+  /**
+   * Invoked when the host notifies CHRE that microphone access has been
+   * disabled via the user settings.
+   *
+   * @param setting The setting that changed.
+   * @param state The new setting state.
+   */
+  void onSettingChanged(Setting setting, SettingState state);
 
   /**
    * @return the instance of platform audio to allow platform-specific
@@ -327,8 +337,9 @@ class AudioRequestManager : public NonCopyable {
    * the supplied handle with the current availability of the source.
    *
    * @param handle The handle for the audio source that is changing.
+   * @param suspended Boolean value that indicates if the source is suspended
    */
-  void postAudioSamplingChangeEvents(uint32_t handle);
+  void postAudioSamplingChangeEvents(uint32_t handle, bool suspended);
 
   /**
    * Posts a CHRE_EVENT_AUDIO_SAMPLING_CHANGE event to the specified nanoapp.
@@ -337,9 +348,10 @@ class AudioRequestManager : public NonCopyable {
    * @param handle The handle for the audio source that is changing.
    * @param available true if audio is available for the supplied handle, false
    *        otherwise.
+   * @param suspended Boolean value that indicates if the source is suspended
    */
   void postAudioSamplingChangeEvent(uint32_t instanceId, uint32_t handle,
-                                    bool available);
+                                    bool available, bool suspended);
 
   /**
    * Posts the provided audio data event to a nanoapp with the given instance ID

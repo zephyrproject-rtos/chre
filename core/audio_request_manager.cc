@@ -205,7 +205,8 @@ bool AudioRequestManager::doConfigureSource(uint32_t instanceId,
                                              deliveryInterval));
   }
 
-  if (success) {
+  if (success &&
+      (getSettingState(Setting::GLOBAL_MIC_DISABLE) != SettingState::ENABLED)) {
     scheduleNextAudioDataEvent(handle);
     updatePlatformHandleEnabled(handle, lastNumRequests);
   }
@@ -255,7 +256,10 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
   }
 
   if (success) {
-    postAudioSamplingChangeEvent(instanceId, handle, requestList.available);
+    bool suspended =
+        (getSettingState(Setting::GLOBAL_MIC_DISABLE) == SettingState::ENABLED);
+    postAudioSamplingChangeEvent(instanceId, handle, requestList.available,
+                                 suspended);
   }
 
   return success;
@@ -342,8 +346,10 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
                                                       bool available) {
   if (handle < mAudioRequestLists.size()) {
     if (mAudioRequestLists[handle].available != available) {
+      bool suspended = (getSettingState(Setting::GLOBAL_MIC_DISABLE) ==
+                        SettingState::ENABLED);
       mAudioRequestLists[handle].available = available;
-      postAudioSamplingChangeEvents(handle);
+      postAudioSamplingChangeEvents(handle, suspended);
     }
 
     scheduleNextAudioDataEvent(handle);
@@ -353,12 +359,17 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
 }
 
 void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
+  if (getSettingState(Setting::GLOBAL_MIC_DISABLE) == SettingState::ENABLED) {
+    LOGD("Mic access disabled, doing nothing");
+    return;
+  }
+
   auto &reqList = mAudioRequestLists[handle];
   AudioRequest *nextRequest = findNextAudioRequest(handle);
 
   // Clear the next request and it will be reset below if needed.
   reqList.nextAudioRequest = nullptr;
-  if (reqList.available && nextRequest != nullptr) {
+  if (reqList.available && (nextRequest != nullptr)) {
     Nanoseconds curTime = SystemTime::getMonotonicTime();
     Nanoseconds eventDelay = Nanoseconds(0);
     if (nextRequest->nextEventTimestamp > curTime) {
@@ -372,22 +383,25 @@ void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
   }
 }
 
-void AudioRequestManager::postAudioSamplingChangeEvents(uint32_t handle) {
+void AudioRequestManager::postAudioSamplingChangeEvents(uint32_t handle,
+                                                        bool suspended) {
   const auto &requestList = mAudioRequestLists[handle];
   for (const auto &request : requestList.requests) {
     for (const auto &instanceId : request.instanceIds) {
-      postAudioSamplingChangeEvent(instanceId, handle, requestList.available);
+      postAudioSamplingChangeEvent(instanceId, handle, requestList.available,
+                                   suspended);
     }
   }
 }
 
 void AudioRequestManager::postAudioSamplingChangeEvent(uint32_t instanceId,
                                                        uint32_t handle,
-                                                       bool available) {
+                                                       bool available,
+                                                       bool suspended) {
   auto *event = memoryAlloc<struct chreAudioSourceStatusEvent>();
   event->handle = handle;
   event->status.enabled = true;
-  event->status.suspended = !available;
+  event->status.suspended = !available || suspended;
 
   EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
       CHRE_EVENT_AUDIO_SAMPLING_CHANGE, event, freeEventDataCallback,
@@ -438,6 +452,25 @@ void AudioRequestManager::freeAudioDataEventCallback(uint16_t eventType,
   EventLoopManagerSingleton::get()
       ->getAudioRequestManager()
       .handleFreeAudioDataEvent(event);
+}
+
+void AudioRequestManager::onSettingChanged(Setting setting,
+                                           SettingState state) {
+  if (setting == Setting::GLOBAL_MIC_DISABLE) {
+    for (size_t i = 0; i < mAudioRequestLists.size(); ++i) {
+      if (mAudioRequestLists[i].available) {
+        if (state == SettingState::ENABLED) {
+          LOGD("Canceling data event request for handle %u", i);
+          postAudioSamplingChangeEvents(i, true /* suspended */);
+          mPlatformAudio.cancelAudioDataEventRequest(i);
+        } else {
+          LOGD("Scheduling data event for handle %u", i);
+          postAudioSamplingChangeEvents(i, false /* suspended */);
+          scheduleNextAudioDataEvent(i);
+        }
+      }
+    }
+  }
 }
 
 }  // namespace chre
