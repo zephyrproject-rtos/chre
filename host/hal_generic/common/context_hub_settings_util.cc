@@ -52,6 +52,9 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
     case Setting::AIRPLANE_MODE:
       *fbsSetting = fbs::Setting::AIRPLANE_MODE;
       break;
+    case Setting::GLOBAL_MIC_DISABLE:
+      *fbsSetting = fbs::Setting::GLOBAL_MIC_DISABLE;
+      break;
     default:
       foundSetting = false;
       ALOGE("Setting update with invalid enum value %hhu", setting);
