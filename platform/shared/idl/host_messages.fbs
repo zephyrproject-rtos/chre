@@ -75,6 +75,10 @@ table NanoappListEntry {
   /// and do not interact via the context hub HAL.
   is_system:bool = false;
 
+  /// Nanoapp permissions, if supported. Nanoapp permissions are required on
+  /// CHRE API v1.5+, and are defined in chre/util/system/napp_permissions.h
+  permissions:uint;
+
   // TODO: memory usage
 }
 

@@ -1017,11 +1017,13 @@ struct NanoappListEntryT : public flatbuffers::NativeTable {
   uint32_t version;
   bool enabled;
   bool is_system;
+  uint32_t permissions;
   NanoappListEntryT()
       : app_id(0),
         version(0),
         enabled(true),
-        is_system(false) {
+        is_system(false),
+        permissions(0) {
   }
 };
 
@@ -1032,7 +1034,8 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_APP_ID = 4,
     VT_VERSION = 6,
     VT_ENABLED = 8,
-    VT_IS_SYSTEM = 10
+    VT_IS_SYSTEM = 10,
+    VT_PERMISSIONS = 12
   };
   uint64_t app_id() const {
     return GetField<uint64_t>(VT_APP_ID, 0);
@@ -1062,12 +1065,21 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_is_system(bool _is_system) {
     return SetField<uint8_t>(VT_IS_SYSTEM, static_cast<uint8_t>(_is_system), 0);
   }
+  /// Nanoapp permissions, if supported. Nanoapp permissions are required on
+  /// CHRE API v1.5+, and are defined in chre/util/system/napp_permissions.h
+  uint32_t permissions() const {
+    return GetField<uint32_t>(VT_PERMISSIONS, 0);
+  }
+  bool mutate_permissions(uint32_t _permissions) {
+    return SetField<uint32_t>(VT_PERMISSIONS, _permissions, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_APP_ID) &&
            VerifyField<uint32_t>(verifier, VT_VERSION) &&
            VerifyField<uint8_t>(verifier, VT_ENABLED) &&
            VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
+           VerifyField<uint32_t>(verifier, VT_PERMISSIONS) &&
            verifier.EndTable();
   }
   NanoappListEntryT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1091,6 +1103,9 @@ struct NanoappListEntryBuilder {
   void add_is_system(bool is_system) {
     fbb_.AddElement<uint8_t>(NanoappListEntry::VT_IS_SYSTEM, static_cast<uint8_t>(is_system), 0);
   }
+  void add_permissions(uint32_t permissions) {
+    fbb_.AddElement<uint32_t>(NanoappListEntry::VT_PERMISSIONS, permissions, 0);
+  }
   explicit NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1108,9 +1123,11 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(
     uint64_t app_id = 0,
     uint32_t version = 0,
     bool enabled = true,
-    bool is_system = false) {
+    bool is_system = false,
+    uint32_t permissions = 0) {
   NanoappListEntryBuilder builder_(_fbb);
   builder_.add_app_id(app_id);
+  builder_.add_permissions(permissions);
   builder_.add_version(version);
   builder_.add_is_system(is_system);
   builder_.add_enabled(enabled);
@@ -2748,6 +2765,7 @@ inline void NanoappListEntry::UnPackTo(NanoappListEntryT *_o, const flatbuffers:
   { auto _e = version(); _o->version = _e; }
   { auto _e = enabled(); _o->enabled = _e; }
   { auto _e = is_system(); _o->is_system = _e; }
+  { auto _e = permissions(); _o->permissions = _e; }
 }
 
 inline flatbuffers::Offset<NanoappListEntry> NanoappListEntry::Pack(flatbuffers::FlatBufferBuilder &_fbb, const NanoappListEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2762,12 +2780,14 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(flatbuffers:
   auto _version = _o->version;
   auto _enabled = _o->enabled;
   auto _is_system = _o->is_system;
+  auto _permissions = _o->permissions;
   return chre::fbs::CreateNanoappListEntry(
       _fbb,
       _app_id,
       _version,
       _enabled,
-      _is_system);
+      _is_system,
+      _permissions);
 }
 
 inline NanoappListResponseT *NanoappListResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
