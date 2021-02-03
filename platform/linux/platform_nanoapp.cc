@@ -119,11 +119,15 @@ bool PlatformNanoappBase::openNanoappFromFile() {
       if (!success) {
         mAppInfo = nullptr;
       } else {
-        LOGI("Successfully loaded nanoapp %s (0x%016" PRIx64
-             ") version 0x%" PRIx32 " uimg %d system %d from file %s",
+        LOGI("Nanoapp loaded: %s (0x%016" PRIx64 ") version 0x%" PRIx32
+             " uimg %d system %d from file %s",
              mAppInfo->name, mAppInfo->appId, mAppInfo->appVersion,
              mAppInfo->isTcmNanoapp, mAppInfo->isSystemNanoapp,
              mFilename.c_str());
+        if (mAppInfo->structMinorVersion >=
+            CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION) {
+          LOGI("Nanoapp permissions: 0x%" PRIx32, mAppInfo->appPermissions);
+        }
       }
     }
   }
