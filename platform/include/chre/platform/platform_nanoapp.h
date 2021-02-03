@@ -90,6 +90,18 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
   uint32_t getTargetApiVersion() const;
 
   /**
+   * Returns true if the nanoapp supports permissions (i.e. minor version >=
+   * CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION).
+   */
+  bool supportsAppPermissions() const;
+
+  /**
+   * Retrieves the nanoapp's permissions. If unsupported, returns with no
+   * permissions.
+   */
+  uint32_t getAppPermissions() const;
+
+  /**
    * Retrieves the human-friendly name for the nanoapp (null-terminated string).
    */
   const char *getAppName() const;
