@@ -56,6 +56,10 @@ void LogBufferManager::onLogsReady(LogBuffer *logBuffer) {
   }
 }
 
+void LogBufferManager::flushLogs() {
+  onLogsReady(&mLogBuffer);
+}
+
 void LogBufferManager::onLogsSentToHost() {
   bool shouldPostCallback = false;
   {
@@ -84,10 +88,12 @@ void LogBufferManager::sendLogsToHost() {
     size_t numDroppedLogs;
     size_t bytesCopied = logBuffer->copyLogs(
         tempLogBufferData, sizeof(mLogBufferData), &numDroppedLogs);
-    auto &hostCommsMgr =
-        EventLoopManagerSingleton::get()->getHostCommsManager();
-    hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied,
-                                  static_cast<uint32_t>(numDroppedLogs));
+    if (bytesCopied > 0) {
+      auto &hostCommsMgr =
+          EventLoopManagerSingleton::get()->getHostCommsManager();
+      hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied,
+                                    static_cast<uint32_t>(numDroppedLogs));
+    }
   }
 }
 
