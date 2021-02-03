@@ -291,9 +291,10 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     LOGI("Got nanoapp list response with %zu apps:", response.nanoapps.size());
     mAppIdVector.clear();
     for (const auto &nanoapp : response.nanoapps) {
-      LOGI("App ID 0x%016" PRIx64 " version 0x%" PRIx32 " enabled %d system %d",
-           nanoapp->app_id, nanoapp->version, nanoapp->enabled,
-           nanoapp->is_system);
+      LOGI("App ID 0x%016" PRIx64 " version 0x%" PRIx32
+           " permissions 0x%" PRIx32 " enabled %d system %d",
+           nanoapp->app_id, nanoapp->version, nanoapp->permissions,
+           nanoapp->enabled, nanoapp->is_system);
       mAppIdVector.push_back(nanoapp->app_id);
     }
     mConditionVariable.notify_all();
