@@ -48,8 +48,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
-    private static final long AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS = 1000; // 1 sec
-    private static final long AWAIT_WIFI_SCAN_RESULT_TIMEOUT_MS = 3000; // 3 sec
+    private static final long AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_SEC = 7;
+    private static final long AWAIT_WIFI_SCAN_RESULT_TIMEOUT_SEC = 30;
 
     private static final long NANO_APP_ID = 0x476f6f6754000005L;
 
@@ -163,7 +163,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
      */
     private void waitForMessageFromNanoapp() {
         try {
-            mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_SEC, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Assert.fail("Interrupted while awaiting " + getCurrentStepName() + " step");
         }
@@ -187,7 +187,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
 
     private void waitForApScanResults() {
         try {
-            mAwaitApWifiSetupScan.await(AWAIT_WIFI_SCAN_RESULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            mAwaitApWifiSetupScan.await(AWAIT_WIFI_SCAN_RESULT_TIMEOUT_SEC, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Assert.fail("Interrupted while awaiting ap wifi scan result");
         }
