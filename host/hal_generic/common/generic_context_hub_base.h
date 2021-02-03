@@ -409,9 +409,10 @@ class GenericContextHubBase : public IContexthubT {
           continue;
         }
 
-        ALOGV("App 0x%016" PRIx64 " ver 0x%" PRIx32 " enabled %d system %d",
-              nanoapp->app_id, nanoapp->version, nanoapp->enabled,
-              nanoapp->is_system);
+        ALOGV("App 0x%016" PRIx64 " ver 0x%" PRIx32 " permissions 0x%" PRIx32
+              " enabled %d system %d",
+              nanoapp->app_id, nanoapp->version, nanoapp->permissions,
+              nanoapp->enabled, nanoapp->is_system);
         if (!nanoapp->is_system) {
           HubAppInfo appInfo;
 
