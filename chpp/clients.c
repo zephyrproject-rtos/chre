@@ -80,7 +80,7 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
                                                 timeoutNs);
       }
       if (!clientState->responseReady) {
-        CHPP_LOGE("Timeout waiting to reopen service after %" PRIu64 " ms",
+        CHPP_LOGE("Reopen timeout after %" PRIu64 " ms",
                   timeoutNs / CHPP_NSEC_PER_MSEC);
         result = false;
       }
@@ -90,9 +90,8 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
   }
 
   if (!result) {
-    CHPP_LOGE("Client API not ready (initialized=%s, openState=%" PRIu8 ")",
-              (clientState->initialized) ? "true" : "false",
-              clientState->openState);
+    CHPP_LOGE("Client not ready (init=%d, open=%" PRIu8 ")",
+              clientState->initialized, clientState->openState);
   }
   return result;
 }
@@ -189,7 +188,7 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
   CHPP_NOT_NULL(newClient);
 
   if (appContext->registeredClientCount >= CHPP_MAX_REGISTERED_CLIENTS) {
-    CHPP_LOGE("Cannot register new client # %" PRIu8 ". Already hit maximum",
+    CHPP_LOGE("Max clients registered: %" PRIu8,
               appContext->registeredClientCount);
 
   } else {
@@ -200,8 +199,8 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
 
     char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
     chppUuidToStr(newClient->descriptor.uuid, uuidText);
-    CHPP_LOGI("Registered client # %" PRIu8 " with UUID=%s, version=%" PRIu8
-              ".%" PRIu8 ".%" PRIu16 ", min_len=%" PRIuSIZE,
+    CHPP_LOGI("Client # %" PRIu8 " UUID=%s, version=%" PRIu8 ".%" PRIu8
+              ".%" PRIu16 ", min_len=%" PRIuSIZE,
               appContext->registeredClientCount, uuidText,
               newClient->descriptor.version.major,
               newClient->descriptor.version.minor,
@@ -242,9 +241,7 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
                                 struct ChppAppHeader *requestHeader) {
   if (rRState->responseTimeNs == CHPP_TIME_NONE &&
       rRState->requestTimeNs != CHPP_TIME_NONE) {
-    CHPP_LOGE("Sending duplicate request with transaction ID=%" PRIu8
-              " while prior request with transaction ID=%" PRIu8
-              " was outstanding from t=%" PRIu64,
+    CHPP_LOGE("Dupe req ID=%" PRIu8 " existing ID=%" PRIu8 " from t=%" PRIu64,
               requestHeader->transaction, rRState->transaction,
               rRState->requestTimeNs);
   }
@@ -259,16 +256,12 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
   rRState->responseTimeNs = chppGetCurrentTimeNs();
 
   if (rRState->requestTimeNs == CHPP_TIME_NONE) {
-    CHPP_LOGE("Received response at t=%" PRIu64
-              " with no prior outstanding request",
-              rRState->responseTimeNs);
+    CHPP_LOGE("Resp with no req t=%" PRIu64, rRState->responseTimeNs);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
     rRState->responseTimeNs = chppGetCurrentTimeNs();
-    CHPP_LOGW("Received additional response at t=%" PRIu64
-              " for request at t=%" PRIu64 " (RTT=%" PRIu64 ")",
-              rRState->responseTimeNs, rRState->responseTimeNs,
-              rRState->responseTimeNs - rRState->requestTimeNs);
+    CHPP_LOGW("Extra response at t=%" PRIu64 " for request at t=%" PRIu64,
+              rRState->responseTimeNs, rRState->responseTimeNs);
 
   } else {
     CHPP_LOGD("Received response at t=%" PRIu64 " for request at t=%" PRIu64
@@ -279,11 +272,9 @@ bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
 
   // TODO: Also check for timeout
   if (responseHeader->transaction != rRState->transaction) {
-    CHPP_LOGE(
-        "Received a response at t=%" PRIu64 " with transaction ID=%" PRIu8
-        " for a different outstanding request with transaction ID=%" PRIu8,
-        rRState->responseTimeNs, responseHeader->transaction,
-        rRState->transaction);
+    CHPP_LOGE("Invalid resp ID=%" PRIu8 " at t=%" PRIu64 " expected=%" PRIu8,
+              responseHeader->transaction, rRState->responseTimeNs,
+              rRState->transaction);
     return false;
   } else {
     return true;
@@ -328,7 +319,7 @@ bool chppSendTimestampedRequestAndWaitTimeout(
                                               timeoutNs);
     }
     if (!clientState->responseReady) {
-      CHPP_LOGE("Timeout waiting on service response after %" PRIu64 " ms",
+      CHPP_LOGE("Response timeout after %" PRIu64 " ms",
                 timeoutNs / CHPP_NSEC_PER_MSEC);
       result = false;
     }

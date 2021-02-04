@@ -122,9 +122,7 @@ static bool chppProcessPredefinedClientRequest(struct ChppAppState *context,
   }
 
   if (dispatchResult == false) {
-    CHPP_LOGE("Handle=%" PRIu8
-              " received unknown client request. command=%#x, transaction ID="
-              "%" PRIu8,
+    CHPP_LOGE("H#%" PRIu8 " unknown request. cmd=%#x, ID=%" PRIu8,
               rxHeader->handle, rxHeader->command, rxHeader->transaction);
   }
 
@@ -175,9 +173,8 @@ static bool chppProcessPredefinedServiceResponse(struct ChppAppState *context,
   }
 
   if (dispatchResult == false) {
-    CHPP_LOGE("Handle=%" PRIu8
-              " received unknown service response. command=%#x, transaction ID="
-              "%" PRIu8 ", len=%" PRIuSIZE,
+    CHPP_LOGE("H#%" PRIu8 " unknown response. cmd=%#x, ID=%" PRIu8
+              ", len=%" PRIuSIZE,
               rxHeader->handle, rxHeader->command, rxHeader->transaction, len);
   }
 
@@ -295,8 +292,8 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
   }
 
   if (len < minLen) {
-    CHPP_LOGE("Received datagram too short for handle=%" PRIu8
-              ", len=%" PRIuSIZE " < %" PRIuSIZE,
+    CHPP_LOGE("Datagram too short: H#%" PRIu8 ", len=%" PRIuSIZE
+              " < %" PRIuSIZE,
               handle, len, minLen);
   }
   return (len >= minLen);
@@ -466,9 +463,7 @@ static void *chppClientServiceContextOfHandle(struct ChppAppState *appContext,
       break;
     }
     default: {
-      CHPP_LOGE("Cannot provide context for unknown message type=0x%" PRIx8
-                " (handle=%" PRIu8 ")",
-                type, handle);
+      CHPP_LOGE("Unknown type=0x%" PRIx8 " (H#%" PRIu8 ")", type, handle);
       return NULL;
     }
   }
@@ -510,9 +505,8 @@ static void chppProcessPredefinedHandleDatagram(struct ChppAppState *context,
   }
 
   if (success == false) {
-    CHPP_LOGE("Predefined handle=%" PRIu8
-              " does not support message type=0x%" PRIx8 " (len=%" PRIuSIZE
-              ", transaction ID=%" PRIu8 ")",
+    CHPP_LOGE("H#%" PRIu8 " undefined msg type=0x%" PRIx8 " (len=%" PRIuSIZE
+              ", ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
                                CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -535,9 +529,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
   void *clientServiceContext =
       chppClientServiceContextOfHandle(context, rxHeader->handle, messageType);
   if (clientServiceContext == NULL) {
-    CHPP_LOGE("Negotiated handle=%" PRIu8 " for RX message type=0x%" PRIx8
-              " is missing context (len=%" PRIuSIZE ", transaction ID=%" PRIu8
-              ")",
+    CHPP_LOGE("H#%" PRIu8 " missing ctx (msg=0x%" PRIx8 " len=%" PRIuSIZE
+              ", ID=%" PRIu8 ")",
               rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
     chppEnqueueTxErrorDatagram(context->transportContext,
                                CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -547,9 +540,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
     ChppDispatchFunction *dispatchFunc =
         chppGetDispatchFunction(context, rxHeader->handle, messageType);
     if (dispatchFunc == NULL) {
-      CHPP_LOGE("Negotiated handle=%" PRIu8
-                " does not support RX message type=0x%" PRIx8 " (len=%" PRIuSIZE
-                ", transaction ID=%" PRIu8 ")",
+      CHPP_LOGE("H#%" PRIu8 " unsupported msg=0x%" PRIx8 " (len=%" PRIuSIZE
+                ", ID=%" PRIu8 ")",
                 rxHeader->handle, rxHeader->type, len, rxHeader->transaction);
       chppEnqueueTxErrorDatagram(context->transportContext,
                                  CHPP_TRANSPORT_ERROR_APPLAYER);
@@ -560,10 +552,8 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
       enum ChppAppErrorCode error =
           dispatchFunc(clientServiceContext, buf, len);
       if (error != CHPP_APP_ERROR_NONE) {
-        CHPP_LOGE("Dispatching RX datagram failed. error=0x%" PRIx16
-                  " handle=0x%" PRIx8 ", type =0x%" PRIx8
-                  ", transaction ID=%" PRIu8 ", command=0x%" PRIx16
-                  ", len=%" PRIuSIZE,
+        CHPP_LOGE("RX dispatch err=0x%" PRIx16 " H#%" PRIu8 " type=0x%" PRIx8
+                  " ID=%" PRIu8 " cmd=0x%" PRIx16 " len=%" PRIuSIZE,
                   error, rxHeader->handle, rxHeader->type,
                   rxHeader->transaction, rxHeader->command, len);
 
@@ -627,7 +617,7 @@ void chppAppInitTransient(struct ChppAppState *appContext,
   CHPP_NOT_NULL(appContext);
   CHPP_NOT_NULL(transportContext);
 
-  CHPP_LOGI("Initializing the CHPP app layer");
+  CHPP_LOGD("App Init");
 
   // Don't reset entire ChppAppState to avoid clearing non-transient
   // contents e.g. discovery mutex/condvar/states.
@@ -661,7 +651,7 @@ void chppAppInitTransient(struct ChppAppState *appContext,
 }
 
 void chppAppDeinit(struct ChppAppState *appContext) {
-  CHPP_LOGI("Deinitializing the CHPP app layer");
+  CHPP_LOGD("App deinit");
 
 #ifdef CHPP_CLIENT_ENABLED
   chppDeregisterCommonClients(appContext);
@@ -681,18 +671,18 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (len == 0) {
-    CHPP_LOGE("chppAppProcessRxDatagram called with payload length of 0");
+    CHPP_LOGE("App rx w/ len 0");
     CHPP_DEBUG_ASSERT(false);
 
   } else if (len < sizeof(struct ChppAppHeader)) {
     uint8_t *handle = (uint8_t *)buf;
-    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for handle=%" PRIu8,
-              len, *handle);
+    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for H#%" PRIu8, len,
+              *handle);
 
   } else {
-    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for handle=%" PRIu8
-              ", type=0x%" PRIx8 ", transaction ID=%" PRIu8 ", error=%" PRIu8
-              ", command=0x%" PRIx16,
+    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for H#%" PRIu8
+              " type=0x%" PRIx8 " transaction ID=%" PRIu8 " err=%" PRIu8
+              " command=0x%" PRIx16,
               len, rxHeader->handle, rxHeader->type, rxHeader->transaction,
               rxHeader->error, rxHeader->command);
   }
@@ -725,8 +715,8 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
         ChppNotifierFunction *ResetNotifierFunction =
             chppGetClientResetNotifierFunction(context, clientIndex);
 
-        CHPP_LOGI(
-            "Client #%" PRIu8 " (handle=%d) reset notifier %s", clientIndex,
+        CHPP_LOGD(
+            "Client #%" PRIu8 " (H#%d) reset notifier %s", clientIndex,
             CHPP_SERVICE_HANDLE_OF_INDEX(i),
             (ResetNotifierFunction == NULL) ? "is unsupported" : "starting");
 
@@ -742,7 +732,7 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
     ChppNotifierFunction *ResetNotifierFunction =
         chppGetServiceResetNotifierFunction(context, i);
 
-    CHPP_LOGI("Service #%" PRIu8 " (handle=%d) reset notifier %s", i,
+    CHPP_LOGD("Service #%" PRIu8 " (H#%d) reset notifier %s", i,
               CHPP_SERVICE_HANDLE_OF_INDEX(i),
               (ResetNotifierFunction == NULL) ? "is unsupported" : "starting");
 
