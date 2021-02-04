@@ -881,6 +881,33 @@ TEST_F(TransportTests, Discovery) {
   EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
 }
 
+/**
+ * Unopened clients should not crash upon an unsolicitated service response.
+ */
+TEST_F(TransportTests, UnopenedClient) {
+  size_t len = 0;
+  uint8_t *buf = (uint8_t *)chppMalloc(100);
+
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+
+  ChppAppHeader *appHeader = addAppHeaderToBuf(buf, &len);
+  appHeader->handle = CHPP_HANDLE_NEGOTIATED_RANGE_START + 1;
+  appHeader->command = CHPP_WIFI_CONFIGURE_SCAN_MONITOR_ASYNC;
+  appHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+  len = sizeof(struct ChppWifiConfigureScanMonitorAsyncResponse);
+
+  ASSERT_EQ(mAppContext.registeredServiceCount, kServiceCount);
+
+  chppAppProcessRxDatagram(&mAppContext, buf, len);
+
+  EXPECT_EQ(mTransportContext.txStatus.packetCodeToSend,
+            CHPP_TRANSPORT_ERROR_APPLAYER);
+}
+
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));
 
