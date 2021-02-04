@@ -292,7 +292,7 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("WWAN GetCapabilities request failed at service. error=%" PRIu8,
+    CHPP_LOGE("GetCapabilities failed at service. err=%" PRIu8,
               rxHeader->error);
     CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
 
@@ -300,7 +300,7 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppWwanGetCapabilitiesParameters *result =
         &((struct ChppWwanGetCapabilitiesResponse *)buf)->params;
 
-    CHPP_LOGI("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
+    CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 #ifdef CHPP_WWAN_DEFAULT_CAPABILITIES
     if (result->capabilities != CHPP_WWAN_DEFAULT_CAPABILITIES) {
@@ -327,7 +327,7 @@ static void chppWwanGetCapabilitiesResult(
 static void chppWwanGetCellInfoAsyncResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   UNUSED_VAR(clientContext);
-  CHPP_LOGI("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
+  CHPP_LOGD("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
 
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct chreWwanCellInfoResult *chre = NULL;
@@ -339,9 +339,7 @@ static void chppWwanGetCellInfoAsyncResult(
       // But no error reported
       CHPP_PROD_ASSERT(false);
     } else {
-      CHPP_LOGE(
-          "WWAN GetCellInfoAsync request failed at service. error=%" PRIu8,
-          rxHeader->error);
+      CHPP_LOGE("GetCellInfo failed at service err=%" PRIu8, rxHeader->error);
     }
 
   } else {
@@ -351,10 +349,8 @@ static void chppWwanGetCellInfoAsyncResult(
         chppWwanCellInfoResultToChre((struct ChppWwanCellInfoResult *)buf, len);
 
     if (chre == NULL) {
-      CHPP_LOGE(
-          "chppWwanGetCellInfoAsyncResult CHPP -> CHRE conversion failed. "
-          "Input len=%" PRIuSIZE ", service error=%" PRIu8,
-          len, rxHeader->error);
+      CHPP_LOGE("Cell info conversion failed len=%" PRIuSIZE " err=%" PRIu8,
+                len, rxHeader->error);
     }
   }
 
@@ -405,7 +401,7 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   gSystemApi = systemApi;
   gCallbacks = callbacks;
 
-  CHPP_LOGI("WWAN client opening");
+  CHPP_LOGD("WWAN client opening");
 
   // Wait for discovery to complete for "open" call to succeed
   if (chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
