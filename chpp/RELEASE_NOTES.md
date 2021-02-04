@@ -75,7 +75,7 @@ This release contains additional clients, a virtual link layer for testing (e.g.
 
   - Platform-specific time functionality (platform_time.h)
 
-### 2020-10-01 (this)
+### 2020-10-01 (95829e3)
 
 This release updates client functionality using the parser, adds a transport-layer loopback mechanism for testing and debugging, and includes several important bug fixes.
 
@@ -93,3 +93,27 @@ This release updates client functionality using the parser, adds a transport-lay
   - Corrected loopback assert
   - Slimmer OOM logging
   - Parser code and header files were relocated
+
+### 2021-02-03 (this)
+
+In addition to enhancements and bug fixes, this release enables error and reset handling and several other features.
+
+- New functionality
+
+  - ARQ implementation. Note that it is necessary to either implement chppNotifierTimedWait() or a single-threaded workaround as described in QUICKSTART.md to detect timeouts
+  - Checksum support via IEEE CRC-32. A sample implementation is provided, but it is expected that most devices have optimized implementations available or may prefer implementations with alternate optimization criteria
+  - Timesync functionality and timestamp offset correction for WiFi and WWAN measurements
+  - Reset handling throughout the transport layer, clients, and services, opening and recovering state as needed
+  - WiFi RTT client and service support
+  - Multiple loopback client support
+  - Transport-layer-loopback client validates response and returns the result
+  - Support for pseudo-opening services at the client, so they appear always available
+  - Correct responses generated at clients when async requests fail at services
+
+- Cleanup and bug fixes
+
+  - Client and service fixes including length and bound checks, missing implementations
+  - Parser fixes including empty pointers set to null, compatibility with processors lacking unaligned access support
+  - Stability fixes throughout CHPP and tests
+  - Improved compiler compatibility for C99+ and pre-C99 systems (even though CHPP does not officially support pre-C99)
+  - Updated documentation and logging
