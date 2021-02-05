@@ -293,10 +293,14 @@ struct ChppClient {
 
   //! Pointer to the function that dispatches incoming service responses for the
   //! client.
+  //! Service responses are only dispatched to clients that have been opened or
+  //! are in the process of being (re)opened. @see ChppOpenState
   ChppDispatchFunction *responseDispatchFunctionPtr;
 
   //! Pointer to the function that dispatches incoming service notifications for
   //! the client.
+  //! Service notifications are only dispatched to clients that have been
+  //! opened. @see ChppOpenState
   ChppDispatchFunction *notificationDispatchFunctionPtr;
 
   //! Pointer to the function that initializes the client (after it is matched
