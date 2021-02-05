@@ -63,10 +63,18 @@
 #define CHRE_MUST_USE_RESULT
 #endif
 
-#else  // if !defined(__GNUC__) && !defined(__clang__)
+#elif defined(IS_CHPP_BUILD)
+// These macros need to be defined for CHPP on other compilers
+
+#define CHRE_LOG_PREAMBLE
+#define CHRE_LOG_EPILOGUE
+#define CHRE_DEPRECATED_PREAMBLE
+#define CHRE_DEPRECATED_EPILOGUE
+#define CHRE_MUST_USE_RESULT
+
+#else
 
 #error Need to add support for new compiler
 
 #endif
-
 #endif  // CHRE_UTIL_TOOLCHAIN_H_
