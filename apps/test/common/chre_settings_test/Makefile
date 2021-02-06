@@ -51,6 +51,7 @@ COMMON_CFLAGS += -I$(NANOAPP_PATH)/inc
 CHRE_NANOAPP_USES_GNSS = true
 CHRE_NANOAPP_USES_WIFI = true
 CHRE_NANOAPP_USES_WWAN = true
+CHRE_NANOAPP_USES_AUDIO = true
 
 # Makefile Includes ############################################################
 
