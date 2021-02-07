@@ -17,6 +17,12 @@
 #ifndef CHPP_LOG_H_
 #define CHPP_LOG_H_
 
+// Defines CHRE macros that are necessary to compile CHPP (for compilers other
+// than GCC / clang)
+#ifndef IS_CHPP_BUILD
+#define IS_CHPP_BUILD
+#endif
+
 #include "chpp/platform/platform_log.h"
 #include "chre/util/log_common.h"
 
