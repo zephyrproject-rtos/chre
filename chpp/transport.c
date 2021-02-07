@@ -311,7 +311,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
                 context->rxHeader.seq, context->rxHeader.length);
 
     } else {
-      CHPP_LOGD("RX good packet. payload len=%" PRIu16 ", seq=%" PRIu8
+      CHPP_LOGI("RX good packet. payload len=%" PRIu16 ", seq=%" PRIu8
                 ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
@@ -1125,7 +1125,7 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
   CHPP_NOT_NULL(buf);
   CHPP_NOT_NULL(context);
 
-  CHPP_LOGI("RX %" PRIuSIZE " bytes: state=%" PRIu8, len,
+  CHPP_LOGD("RX %" PRIuSIZE " bytes: state=%" PRIu8, len,
             context->rxStatus.state);
 
   size_t consumed = 0;
