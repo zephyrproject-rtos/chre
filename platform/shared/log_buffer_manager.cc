@@ -77,6 +77,7 @@ void LogBufferManager::onLogsSentToHost() {
 }
 
 void LogBufferManager::sendLogsToHost() {
+  bool logWasSent = false;
   if (EventLoopManagerSingleton::get()
           ->getEventLoop()
           .getPowerControlManager()
@@ -93,7 +94,11 @@ void LogBufferManager::sendLogsToHost() {
           EventLoopManagerSingleton::get()->getHostCommsManager();
       hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied,
                                     static_cast<uint32_t>(numDroppedLogs));
+      logWasSent = true;
     }
+  }
+  if (!logWasSent) {
+    onLogsSentToHost();
   }
 }
 
