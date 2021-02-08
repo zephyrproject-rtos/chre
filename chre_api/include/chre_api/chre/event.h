@@ -236,6 +236,40 @@ extern "C" {
  */
 #define CHRE_HOST_ENDPOINT_UNSPECIFIED  UINT16_C(0xFFFE)
 
+/**
+ * Bitmask values that can be given as input to the messagePermissions parameter
+ * of chreSendMessageWithPermissions(). These values are typically used by
+ * nanoapps when they used data from the corresponding CHRE APIs to produce the
+ * message contents being sent and is used to attribute permissions usage on
+ * the Android side. See chreSendMessageWithPermissions() for more details on
+ * how these values are used when sending a message.
+ *
+ * Values in the range
+ * [CHRE_MESSAGE_PERMISSION_VENDOR_START, CHRE_MESSAGE_PERMISSION_VENDOR_END]
+ * are reserved for vendors to use when adding support for permission-gated APIs
+ * in their implementations.
+ *
+ * On the Android side, CHRE permissions are mapped as follows:
+ * - CHRE_MESSAGE_PERMISSION_AUDIO: android.permission.RECORD_AUDIO
+ * - CHRE_MESSAGE_PERMISSION_GNSS, CHRE_MESSAGE_PERMISSION_WIFI, and
+ *   CHRE_MESSAGE_PERMISSION_WWAN: android.permission.ACCESS_FINE_LOCATION, and
+ *   android.permissions.ACCESS_BACKGROUND_LOCATION
+ *
+ * @since v1.5
+ *
+ * @defgroup CHRE_MESSAGE_PERMISSION
+ * @{
+ */
+
+#define CHRE_MESSAGE_PERMISSION_NONE UINT32_C(0)
+#define CHRE_MESSAGE_PERMISSION_AUDIO UINT32_C(1)
+#define CHRE_MESSAGE_PERMISSION_GNSS (UINT32_C(1) << 1)
+#define CHRE_MESSAGE_PERMISSION_WIFI (UINT32_C(1) << 2)
+#define CHRE_MESSAGE_PERMISSION_WWAN (UINT32_C(1) << 3)
+#define CHRE_MESSAGE_PERMISSION_VENDOR_START (UINT32_C(1) << 24)
+#define CHRE_MESSAGE_PERMISSION_VENDOR_END (UINT32_C(1) << 31)
+
+/** @} */
 
 /**
  * Data provided with CHRE_EVENT_MESSAGE_FROM_HOST.
@@ -408,6 +442,21 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
     CHRE_DEPRECATED("Use chreSendMessageToHostEndpoint instead");
 
 /**
+ * Send a message to the host, using CHRE_MESSAGE_PERMISSION_NONE for the
+ * associated message permissions. This method must only be used if no data
+ * provided by CHRE's audio, GNSS, WiFi, and WWAN APIs was used to produce the
+ * contents of the message being sent. Refer to chreSendMessageWithPermissions()
+ * for further details.
+ *
+ * @see chreSendMessageWithPermissions
+ *
+ * @since v1.1
+ */
+bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
+                                   uint32_t messageType, uint16_t hostEndpoint,
+                                   chreMessageFreeFunction *freeCallback);
+
+/**
  * Send a message to the host, waking it up if it is currently asleep.
  *
  * This message is by definition arbitrarily defined.  Since we're not
@@ -430,6 +479,23 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
  * implementations (although on some implementations less calls to this
  * method may be necessary).
  *
+ * When sending a message to the host, the ContextHub service will enforce
+ * the host client has been granted Android-level permissions corresponding to
+ * the ones the nanoapp declares it uses through CHRE_NANOAPP_USES_AUDIO, etc.
+ * In addition to this, the permissions bitmask provided as input to this method
+ * results in the Android framework using app-ops to verify and log access upon
+ * message delivery to an application. This is primarily useful for ensuring
+ * accurate attribution for messages generated using permission-controlled data.
+ * The bitmask declared by the nanoapp for this message must be a
+ * subset of the permissions it declared it would use at build time or the
+ * message will be rejected.
+ *
+ * Nanoapps must use this method if the data they are sending contains or was
+ * derived from any data sampled through CHRE's audio, GNSS, WiFi, or WWAN APIs.
+ * Additionally, if vendors add APIs to expose data that would be guarded by a
+ * permission in Android, vendors must support declaring a message permission
+ * through this method.
+ *
  * @param message  Pointer to a block of memory to send to the host.
  *     NULL is acceptable only if messageSize is 0.  If non-NULL, this
  *     must be a legitimate pointer (that is, unlike chreSendEvent(), a small
@@ -447,7 +513,13 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
  *     host side, and nanoapps may learn of the host endpoint ID of an intended
  *     recipient via an initial message sent by the host.  This parameter is
  *     always treated as CHRE_HOST_ENDPOINT_BROADCAST if running on a CHRE API
- *     v1.0 implementation.
+ *     v1.0 implementation. CHRE_HOST_ENDPOINT_BROADCAST isn't allowed to be
+ *     specified if anything other than CHRE_MESSAGE_PERMISSION_NONE is given
+ *     as messagePermissions since doing so would potentially attribute
+ *     permissions usage to host clients that don't intend to consume the data.
+ * @param messagePermissions Bitmasked CHRE_MESSAGE_PERMISSION_ values that will
+ *     be converted to corresponding Android-level permissions and attributed
+ *     the host endpoint upon consumption of the message.
  * @param freeCallback  A pointer to a callback function.  After the lifetime
  *     of 'message' is over (which does not assure that 'message' made it to
  *     the host, just that the transport layer no longer needs this memory),
@@ -461,11 +533,12 @@ bool chreSendMessageToHost(void *message, uint32_t messageSize,
  *
  * @see chreMessageFreeFunction
  *
- * @since v1.1
+ * @since v1.5
  */
-bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
-                                   uint32_t messageType, uint16_t hostEndpoint,
-                                   chreMessageFreeFunction *freeCallback);
+bool chreSendMessageWithPermissions(void *message, size_t messageSize,
+                                    uint32_t messageType, uint16_t hostEndpoint,
+                                    uint32_t messagePermissions,
+                                    chreMessageFreeFunction *freeCallback);
 
 /**
  * Queries for information about a nanoapp running in the system.
