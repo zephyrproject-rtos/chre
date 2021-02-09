@@ -1249,6 +1249,10 @@ uint64_t chppTransportGetTimeUntilNextDoWorkNs(
       (context->resetState == CHPP_RESET_STATE_PERMANENT_FAILURE)) {
     return CHPP_TRANSPORT_TIMEOUT_INFINITE;
 
+  } else if (context->txStatus.lastTxTimeNs == 0) {
+    // No packets sent yet
+    return CHPP_TRANSPORT_TX_TIMEOUT_NS;
+
   } else if (time >
              CHPP_TRANSPORT_TX_TIMEOUT_NS + context->txStatus.lastTxTimeNs) {
     return CHPP_TRANSPORT_TIMEOUT_IMMEDIATE;
