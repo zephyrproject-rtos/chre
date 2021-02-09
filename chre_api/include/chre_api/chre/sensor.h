@@ -597,6 +597,20 @@ struct chreSensorInfo {
      * @since v1.1
      */
     uint64_t minInterval;
+
+    /**
+     * Uniquely identifies the sensor for a given type. A value of 0 indicates
+     * that this is the "default" sensor, which is returned by
+     * chreSensorFindDefault().
+     *
+     * The sensor index of a given type must be stable across boots (i.e. must
+     * not change), and a different sensor of the same type must have different
+     * sensor index values, and the set of sensorIndex values for a given sensor
+     * type must be continuguous.
+     *
+     * @since v1.5
+     */
+    uint8_t sensorIndex;
 };
 
 /**
@@ -693,6 +707,34 @@ struct chreSensorFlushCompleteEvent {
  * @return true if a sensor was found, false otherwise.
  */
 bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle);
+
+/**
+ * Finds a sensor of a given index and sensor type.
+ *
+ * For CHRE implementations that support multiple sensors of the same sensor
+ * type, this method can be used to get the non-default sensor(s). The default
+ * sensor, as defined in the chreSensorFindDefault(), will be returned if
+ * a sensor index of zero is specified.
+ *
+ * A simple example of iterating all available sensors of a given type is
+ * provided here:
+ *
+ * uint32_t handle;
+ * for (uint8_t i = 0; chreSensorFind(sensorType, i, &handle); i++) {
+ *   chreLog(CHRE_LOG_INFO,
+ *           "Found sensor index %" PRIu8 ", which has handle %" PRIu32,
+ *           i, handle);
+ * }
+ *
+ * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
+ * @param sensorIndex The index of the desired sensor.
+ * @param handle  If a sensor is found, then the memory will be filled with
+ *     the value for the sensor's handle.  This argument must be non-NULL.
+ * @return true if a sensor was found, false otherwise.
+ *
+ * @since v1.5
+ */
+bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex, uint32_t *handle);
 
 /**
  * Get the chreSensorInfo struct for a given sensor.
