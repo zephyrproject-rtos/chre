@@ -94,7 +94,7 @@ This release updates client functionality using the parser, adds a transport-lay
   - Slimmer OOM logging
   - Parser code and header files were relocated
 
-### 2021-02-03 (this)
+### 2021-02-08 (this)
 
 In addition to enhancements and bug fixes, this release enables error and reset handling and several other features.
 
