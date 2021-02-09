@@ -173,6 +173,20 @@ extern "C" {
     (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_STEP_COUNTER)
 
 /**
+ * nanoappHandleEvent argument: struct chreSensorFloatData
+ *
+ * The value of the data is the measured hinge angle between 0 and 360 degrees
+ * inclusive.
+ *
+ * This is backed by the same algorithm that feeds Android's
+ * SENSOR_TYPE_HINGE_ANGLE.
+ *
+ * @since v1.5
+ */
+#define CHRE_EVENT_SENSOR_HINGE_ANGLE_DATA \
+    (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_HINGE_ANGLE)
+
+/**
  * nanoappHandleEvent argument: struct chreSensorThreeAxisData
  *
  * The data can be interpreted using the 'x', 'y', and 'z' fields within

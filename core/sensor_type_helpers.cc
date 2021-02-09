@@ -34,6 +34,7 @@ ReportingMode SensorTypeHelpers::getReportingMode(uint8_t sensorType) {
     case CHRE_SENSOR_TYPE_LIGHT:
     case CHRE_SENSOR_TYPE_PROXIMITY:
     case CHRE_SENSOR_TYPE_STEP_COUNTER:
+    case CHRE_SENSOR_TYPE_HINGE_ANGLE:
       return ReportingMode::OnChange;
     default:
       return ReportingMode::Continuous;
@@ -109,6 +110,7 @@ size_t SensorTypeHelpers::getLastEventSize(uint8_t sensorType) {
       case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
       case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
       case CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE:
+      case CHRE_SENSOR_TYPE_HINGE_ANGLE:
         return sizeof(chreSensorFloatData);
       case CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT:
       case CHRE_SENSOR_TYPE_STATIONARY_DETECT:
@@ -155,6 +157,8 @@ const char *SensorTypeHelpers::getSensorTypeName(uint8_t sensorType) {
       return "Step Detect";
     case CHRE_SENSOR_TYPE_STEP_COUNTER:
       return "Step Counter";
+    case CHRE_SENSOR_TYPE_HINGE_ANGLE:
+      return "Hinge Angle";
     case CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE:
       return "Accelerometer Temp";
     case CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE:
@@ -202,6 +206,7 @@ void SensorTypeHelpers::getLastSample(uint8_t sensorType,
   } else {
     switch (sensorType) {
       case CHRE_SENSOR_TYPE_LIGHT:
+      case CHRE_SENSOR_TYPE_HINGE_ANGLE:
         copyLastSample<chreSensorFloatData>(&event->floatData,
                                             &lastEvent->floatData);
         break;
