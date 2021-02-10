@@ -17,6 +17,8 @@
 #ifndef CHRE_UTIL_SYSTEM_NAPP_PERMISSONS
 #define CHRE_UTIL_SYSTEM_NAPP_PERMISSONS
 
+#include <stdint.h>
+
 namespace chre {
 
 /**
