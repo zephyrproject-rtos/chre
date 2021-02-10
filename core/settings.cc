@@ -27,7 +27,9 @@ namespace chre {
 namespace {
 
 //! The current state for each setting.
-SettingState gSettingStateList[static_cast<size_t>(Setting::SETTING_MAX)];
+SettingState gSettingStateList[static_cast<size_t>(Setting::SETTING_MAX)] = {
+    SettingState::ENABLED, SettingState::ENABLED, SettingState::ENABLED,
+    SettingState::DISABLED};
 
 /**
  * @param setting The setting to get the index for.
@@ -68,33 +70,35 @@ const char *getSettingStateString(Setting setting) {
   return "unknown";
 }
 
+void settingsChangedCallback(uint16_t /* type */, void *data, void *extraData) {
+  Setting setting = NestedDataPtr<Setting>(data);
+  SettingState settingState = NestedDataPtr<SettingState>(extraData);
+
+  setSettingState(setting, settingState);
+
+  LOGD("Setting changed callback called for setting %u state %u",
+       static_cast<uint8_t>(setting), static_cast<uint8_t>(settingState));
+
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()->getGnssManager().onSettingChanged(
+      setting, settingState);
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()->getAudioRequestManager().onSettingChanged(
+      setting, settingState);
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
+}
+
 }  // anonymous namespace
 
 void postSettingChange(Setting setting, SettingState state) {
   LOGD("Posting setting change: setting type %" PRIu8 " state %" PRIu8,
        static_cast<uint8_t>(setting), static_cast<uint8_t>(state));
-  struct SettingChange {
-    Setting setting;
-    SettingState state;
 
-    SettingChange(Setting setting, SettingState state) {
-      this->setting = setting;
-      this->state = state;
-    }
-  };
-
-  auto callback = [](uint16_t /* type */, void *data, void * /*extraData*/) {
-    SettingChange settingChange = NestedDataPtr<SettingChange>(data);
-    setSettingState(settingChange.setting, settingChange.state);
-#ifdef CHRE_GNSS_SUPPORT_ENABLED
-    EventLoopManagerSingleton::get()->getGnssManager().onSettingChanged(
-        settingChange.setting, settingChange.state);
-#endif  // CHRE_GNSS_SUPPORT_ENABLED
-  };
-
-  NestedDataPtr<SettingChange> settingChange(SettingChange(setting, state));
   EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::SettingChangeEvent, settingChange, callback);
+      SystemCallbackType::SettingChangeEvent, NestedDataPtr<Setting>(setting),
+      settingsChangedCallback, NestedDataPtr<SettingState>(state));
 }
 
 SettingState getSettingState(Setting setting) {
@@ -114,6 +118,8 @@ void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
                   getSettingStateString(Setting::WIFI_AVAILABLE));
   debugDump.print("\n Airplane mode %s",
                   getSettingStateString(Setting::AIRPLANE_MODE));
+  debugDump.print("\n Microphone Disable %s",
+                  getSettingStateString(Setting::GLOBAL_MIC_DISABLE));
 }
 
 }  // namespace chre
