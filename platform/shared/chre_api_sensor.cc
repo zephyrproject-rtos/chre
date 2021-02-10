@@ -95,6 +95,15 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
 #endif
 }
 
+DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
+                               uint32_t *handle) {
+  // TODO(b/179728033): Implement this
+  UNUSED_VAR(sensorType);
+  UNUSED_VAR(sensorIndex);
+  UNUSED_VAR(handle);
+  return false;
+}
+
 DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
                                   struct chreSensorInfo *info) {
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
