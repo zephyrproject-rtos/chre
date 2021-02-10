@@ -45,6 +45,11 @@ using ::android::hardware::contexthub::V1_0::Result;
 class GenericContextHubV1_2 : public GenericContextHubBase<V1_2::IContexthub> {
  public:
   // TODO(b/166846988): Implement new methods.
+  Return<void> getHubs_1_2(
+      V1_2::IContexthub::getHubs_1_2_cb /*_hidl_cb*/) override {
+    return Void();
+  }
+
   Return<Result> registerCallback_1_2(
       uint32_t /* hubId */, const sp<IContexthubCallback> & /* cb */) override {
     return Result::UNKNOWN_FAILURE;
