@@ -20,22 +20,22 @@
 namespace chre {
 
 /**
- * Enum declaring the various nanoapp permissions that can be declared. Nanoapps
+ * Enum declaring the various CHRE permissions that can be declared. Nanoapps
  * built against CHRE API v1.5+ must contain the respective permission for the
  * set of APIs they attempt to call. For example, CHRE_NANOAPP_USES_WIFI must
  * be declared by the nanoapp in order for it to make use of any WiFi APIs.
  *
- * The 10 most-significant bits are reserved for vendor use and must be used if
- * a vendor API allows access to privacy sensitive information that is guarded
- * by a permission on the Android side (e.g. location).
+ * The 8 most-significant bits (MSBs) are reserved for vendor use and must be
+ * used if a vendor API allows access to privacy sensitive information that is
+ * guarded by a permission on the Android side (e.g. location).
  */
 enum class NanoappPermissions : uint32_t {
-  NANOAPP_USES_NOTHING = 0,
-  NANOAPP_USES_AUDIO = 1,
-  NANOAPP_USES_GNSS = 1 << 1,
-  NANOAPP_USES_WIFI = 1 << 2,
-  NANOAPP_USES_WWAN = 1 << 3,
-  NANOAPP_USES_ANYTHING = 0xffffffff,
+  CHRE_PERMS_NOTHING = 0,
+  CHRE_PERMS_AUDIO = 1,
+  CHRE_PERMS_GNSS = 1 << 1,
+  CHRE_PERMS_WIFI = 1 << 2,
+  CHRE_PERMS_WWAN = 1 << 3,
+  CHRE_PERMS_EVERYTHING = 0xffffffff,
 };
 
 }  // namespace chre
