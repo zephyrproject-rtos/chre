@@ -740,6 +740,10 @@ bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle);
  *           i, handle);
  * }
  *
+ * If this method is invoked for CHRE versions prior to v1.5, invocations with
+ * sensorIndex value of 0 will be equivalent to using chreSensorFindDefault, and
+ * if sensorIndex is non-zero will return false.
+ *
  * @param sensorType One of the CHRE_SENSOR_TYPE_* constants.
  * @param sensorIndex The index of the desired sensor.
  * @param handle  If a sensor is found, then the memory will be filled with
