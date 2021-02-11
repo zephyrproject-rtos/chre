@@ -67,6 +67,18 @@ java_library {
 }
 
 java_library {
+    name: "ping_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./ping_test.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
     name: "chre_test_common_java_proto",
     host_supported: true,
     srcs: [
