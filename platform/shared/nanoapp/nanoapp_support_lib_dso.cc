@@ -38,16 +38,16 @@ namespace {
 constexpr uint32_t kNanoappPermissions =
     0
 #ifdef CHRE_NANOAPP_USES_AUDIO
-    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_AUDIO)
+    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_AUDIO)
 #endif
 #ifdef CHRE_NANOAPP_USES_GNSS
-    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_GNSS)
+    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_GNSS)
 #endif
 #ifdef CHRE_NANOAPP_USES_WIFI
-    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_WIFI)
+    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_WIFI)
 #endif
 #ifdef CHRE_NANOAPP_USES_WWAN
-    | static_cast<uint32_t>(chre::NanoappPermissions::NANOAPP_USES_WWAN)
+    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_WWAN)
 #endif
     ;
 
