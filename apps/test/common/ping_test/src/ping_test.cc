@@ -17,10 +17,70 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include <pb_decode.h>
+
+#include "chre/util/nanoapp/log.h"
+#include "ping_test.nanopb.h"
+#include "send_message.h"
+
+#define LOG_TAG "[PingTest]"
+
 namespace chre {
 
+namespace {
+
+//! The message payload to use when responding to a ping request.
+const char *kPingResponseMsg = "Pong!";
+
+void handleMessageFromHost(uint32_t senderInstanceId,
+                           const chreMessageFromHostData *hostData) {
+  bool success = false;
+  uint32_t messageType = hostData->messageType;
+  if (senderInstanceId != CHRE_INSTANCE_ID) {
+    LOGE("Incorrect sender instance id: %" PRIu32, senderInstanceId);
+  } else if (messageType != ping_test_MessageType_PING_COMMAND) {
+    LOGE("Invalid message type %" PRIu32, messageType);
+  } else {
+    pb_istream_t istream = pb_istream_from_buffer(
+        static_cast<const pb_byte_t *>(hostData->message),
+        hostData->messageSize);
+    ping_test_PingCommand command = ping_test_PingCommand_init_default;
+
+    if (!pb_decode(&istream, ping_test_PingCommand_fields, &command)) {
+      LOGE("Failed to decode ping command error %s", PB_GET_ERROR(&istream));
+    } else {
+      uint32_t permissions = command.permissions;
+      LOGI("Got ping command message with permission 0x%" PRIx32, permissions);
+      // TODO(b/179948640): Replace with chreSendMessageWithPermissions
+      success = chreSendMessageToHostEndpoint(
+          const_cast<char *>(kPingResponseMsg), strlen(kPingResponseMsg) + 1,
+          0 /* messageType */, hostData->hostEndpoint,
+          nullptr /* freeCallback */);
+    }
+  }
+
+  if (!success) {
+    test_shared::sendTestResultToHost(
+        hostData->hostEndpoint,
+        ping_test_MessageType_TEST_RESULT /* messageType */,
+        false /* success */);
+  }
+}
+
+}  // anonymous namespace
+
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {}
+                                   uint16_t eventType, const void *eventData) {
+  if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
+    handleMessageFromHost(
+        senderInstanceId,
+        static_cast<const chreMessageFromHostData *>(eventData));
+  } else {
+    LOGW("Got unknown event type from senderInstanceId %" PRIu32
+         " and with eventType %" PRIu16,
+         senderInstanceId, eventType);
+  }
+}
 
 extern "C" bool nanoappStart(void) {
   return true;
