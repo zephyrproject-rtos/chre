@@ -406,7 +406,7 @@ uint32_t PlatformNanoapp::getAppPermissions() const {
   return (supportsAppPermissions())
              ? mAppInfo->appPermissions
              : static_cast<uint32_t>(
-                   chre::NanoappPermissions::NANOAPP_USES_NOTHING);
+                   chre::NanoappPermissions::CHRE_PERMS_NOTHING);
 }
 
 const char *PlatformNanoapp::getAppName() const {
