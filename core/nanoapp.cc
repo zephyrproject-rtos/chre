@@ -144,4 +144,9 @@ void Nanoapp::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("%" PRIu16 " ]\n", mWakeupBuckets.front());
 }
 
+bool Nanoapp::permitPermissionUse(uint32_t permission) const {
+  return !supportsAppPermissions() ||
+         ((getAppPermissions() & permission) == permission);
+}
+
 }  // namespace chre

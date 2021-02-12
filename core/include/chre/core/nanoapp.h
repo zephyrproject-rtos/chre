@@ -25,6 +25,7 @@
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/system/napp_permissions.h"
 
 namespace chre {
 
@@ -178,6 +179,11 @@ class Nanoapp : public PlatformNanoapp {
    * @param debugDump The object that is printed into for debug dump logs.
    */
   void logStateToBuffer(DebugDumpWrapper &debugDump) const;
+
+  /**
+   * @return true if the nanoapp is permitted to use the provided permission.
+   */
+  bool permitPermissionUse(uint32_t permission) const;
 
  private:
   uint32_t mInstanceId = kInvalidInstanceId;
