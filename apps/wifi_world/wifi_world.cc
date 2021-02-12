@@ -404,6 +404,8 @@ void nanoappEnd() {
 
 #include "chre/platform/static_nanoapp_init.h"
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/util/system/napp_permissions.h"
 
-CHRE_STATIC_NANOAPP_INIT(WifiWorld, chre::kWifiWorldAppId, 0);
+CHRE_STATIC_NANOAPP_INIT(WifiWorld, chre::kWifiWorldAppId, 0,
+                         chre::NanoappPermissions::CHRE_PERMS_WIFI);
 #endif  // CHRE_NANOAPP_INTERNAL
