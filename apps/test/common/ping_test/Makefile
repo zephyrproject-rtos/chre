@@ -46,6 +46,11 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 # Includes
 COMMON_CFLAGS += -I$(TEST_SHARED_PATH)/inc
 
+# Permission declarations ######################################################
+
+# Use the audio compile-time flags to check permissions behavior
+CHRE_NANOAPP_USES_AUDIO = true
+
 # Makefile Includes ############################################################
 
 include $(CHRE_PREFIX)/build/nanoapp/app.mk
