@@ -281,7 +281,8 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
   HostProtocolChre::encodeNanoappMessage(
       builder, msgToHost->appId, msgToHost->toHostData.messageType,
       msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
-      msgToHost->message.size());
+      msgToHost->message.size(), msgToHost->permissions,
+      msgToHost->toHostData.messagePermissions);
 
   int result = copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 

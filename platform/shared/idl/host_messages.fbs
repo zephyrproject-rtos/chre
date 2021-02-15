@@ -26,6 +26,17 @@ table NanoappMessage {
 
   /// Vector containing arbitrary application-specific message data
   message:[ubyte] (required);
+
+  /// List of Android permissions that cover the contents of a message from a
+  /// nanoapp to the host.
+  /// These permissions are used to record and attribute access to
+  /// permissions-controlled resources.
+  message_permissions:uint;
+
+  /// List of Android permissions declared by the nanoapp / granted to the host.
+  /// For messages from a nanoaapp to the host, this must be a superset of
+  /// message_permissions.
+  permissions:uint;
 }
 
 table HubInfoRequest {}
