@@ -52,8 +52,12 @@ struct HostMessage : public NonCopyable {
       //! Application-specific message ID
       uint32_t messageType;
 
-      //! Padding used to align this structure with chreMessageFromHostData
-      uint32_t reserved;
+      //! List of Android permissions that cover the contents of the message.
+      //! These permissions are used to record and attribute access to
+      //! permissions-controlled resources.
+      //! Note that these permissions must always be a subset of uint32_t
+      //! permissions. Otherwise, the message will be dropped.
+      uint32_t messagePermissions;
 
       //! Message free callback supplied by the nanoapp. Must only be invoked
       //! from the EventLoop where the nanoapp runs.
@@ -67,6 +71,11 @@ struct HostMessage : public NonCopyable {
 
   //! Source/destination nanoapp ID
   uint64_t appId;
+
+  //! List of Android permissions declared by the nanoapp / granted to the host.
+  //! For nanoaapp->host messages, this must be a superset of
+  //! messagePermissions.
+  uint32_t permissions;
 
   //! Application-defined message data
   Buffer<uint8_t> message;
@@ -99,6 +108,9 @@ class HostCommsManager : public HostLink {
    *        receive this message
    * @param freeCallback Optional callback to invoke when the messageData is no
    *        longer needed (the message has been sent or an error occurred)
+   * @param messagePermissions List of Android permissions that cover the
+   *        contents of the message. These permissions are used to record and
+   *        attribute access to permissions-controlled resources.
    *
    * @return true if the message was accepted into the outbound message queue.
    *         If this function returns false, it does *not* invoke freeCallback.
@@ -110,6 +122,7 @@ class HostCommsManager : public HostLink {
   bool sendMessageToHostFromNanoapp(Nanoapp *nanoapp, void *messageData,
                                     size_t messageSize, uint32_t messageType,
                                     uint16_t hostEndpoint,
+                                    uint32_t messagePermissions,
                                     chreMessageFreeFunction *freeCallback);
 
   /**

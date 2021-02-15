@@ -24,11 +24,9 @@
 
 namespace chre {
 
-constexpr uint32_t kMessageToHostReservedFieldValue = UINT32_MAX;
-
 bool HostCommsManager::sendMessageToHostFromNanoapp(
     Nanoapp *nanoapp, void *messageData, size_t messageSize,
-    uint32_t messageType, uint16_t hostEndpoint,
+    uint32_t messageType, uint16_t hostEndpoint, uint32_t messagePermissions,
     chreMessageFreeFunction *freeCallback) {
   bool success = false;
   if (messageSize > 0 && messageData == nullptr) {
@@ -48,11 +46,9 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
       msgToHost->message.wrap(static_cast<uint8_t *>(messageData), messageSize);
       msgToHost->toHostData.hostEndpoint = hostEndpoint;
       msgToHost->toHostData.messageType = messageType;
+      msgToHost->toHostData.messagePermissions = messagePermissions;
+      msgToHost->permissions = nanoapp->getAppPermissions();
       msgToHost->toHostData.nanoappFreeFunction = freeCallback;
-
-      // Populate a special value to help disambiguate message direction when
-      // debugging
-      msgToHost->toHostData.reserved = kMessageToHostReservedFieldValue;
 
       // Let the nanoapp know that it woke up the host and record it
       bool hostWasAwake = EventLoopManagerSingleton::get()
