@@ -44,21 +44,13 @@ using ::android::hardware::contexthub::V1_0::Result;
 
 class GenericContextHubV1_2 : public GenericContextHubBase<V1_2::IContexthub> {
  public:
-  // TODO(b/166846988): Implement new methods.
-  Return<void> getHubs_1_2(
-      V1_2::IContexthub::getHubs_1_2_cb /*_hidl_cb*/) override {
-    return Void();
-  }
+  Return<void> getHubs_1_2(V1_2::IContexthub::getHubs_1_2_cb _hidl_cb) override;
 
   Return<Result> registerCallback_1_2(
-      uint32_t /* hubId */, const sp<IContexthubCallback> & /* cb */) override {
-    return Result::UNKNOWN_FAILURE;
-  }
+      uint32_t hubId, const sp<IContexthubCallback> &cb) override;
 
-  Return<Result> sendMessageToHub_1_2(
-      uint32_t /* hubId */, const ContextHubMsg & /* msg */) override {
-    return Result::UNKNOWN_FAILURE;
-  }
+  Return<Result> sendMessageToHub_1_2(uint32_t hubId,
+                                      const ContextHubMsg &msg) override;
 
   Return<void> onSettingChanged(V1_1::Setting setting,
                                 V1_1::SettingValue newValue) override;
