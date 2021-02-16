@@ -121,4 +121,4 @@ void nanoappEnd() {
 }  // namespace chre
 
 CHRE_STATIC_NANOAPP_INIT(Spammer, chre::kSpammerAppId, 0,
-                         chre::NanoappPermissions::CHRE_PERMS_NOTHING);
+                         chre::NanoappPermissions::CHRE_PERMS_NONE);
