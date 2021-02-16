@@ -22,6 +22,9 @@
 #define LCI_IE_ALT_TYPE_BITS 4
 #define LCI_IE_ALT_BITS 30
 
+// The LCI subelement ID.
+#define LCI_SUBELEMENT_ID 0
+
 /************************************************
  *  Private functions
  ***********************************************/
@@ -104,44 +107,61 @@ static int32_t convert30BitTwosComplementToInt32(uint32_t input) {
   return (int32_t)input;
 }
 
+static void decodeLciSubelement(const uint8_t *lciSubelement,
+                                struct chreWifiLci *out) {
+  uint8_t lciDataTmp[CHRE_LCI_SUBELEMENT_DATA_LEN_BYTES];
+  size_t bufferBitPos = 0;
+  uint64_t x;
+
+  // First, reverse the bits to get the LSB first per specs.
+  for (size_t i = 0; i < CHRE_LCI_SUBELEMENT_DATA_LEN_BYTES; i++) {
+    lciDataTmp[i] = reverseBits(lciSubelement[i]);
+  }
+
+  out->latitudeUncertainty =
+      (uint8_t)getField(lciDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
+
+  x = getField(lciDataTmp, LCI_IE_LAT_LONG_BITS, &bufferBitPos);
+  out->latitude = convert34BitTwosComplementToInt64(x);
+
+  out->longitudeUncertainty =
+      (uint8_t)getField(lciDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
+
+  x = getField(lciDataTmp, LCI_IE_LAT_LONG_BITS, &bufferBitPos);
+  out->longitude = convert34BitTwosComplementToInt64(x);
+
+  out->altitudeType =
+      (uint8_t)getField(lciDataTmp, LCI_IE_ALT_TYPE_BITS, &bufferBitPos);
+  out->altitudeUncertainty =
+      (uint8_t)getField(lciDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
+
+  x = getField(lciDataTmp, LCI_IE_ALT_BITS, &bufferBitPos);
+  out->altitude = convert30BitTwosComplementToInt32((uint32_t)x);
+}
+
 /************************************************
  *  Public functions
  ***********************************************/
 bool chreWifiLciFromIe(const uint8_t *ieData, size_t len,
                        struct chreWifiRangingResult *outResult) {
   bool success = false;
-  if (len == CHRE_LCI_IE_DATA_LEN_BYTES) {
-    uint8_t ieDataTmp[CHRE_LCI_IE_DATA_LEN_BYTES];
-    size_t bufferBitPos = 0;
-    struct chreWifiLci *out = &outResult->lci;
-    uint64_t x;
+  const size_t kHeaderLen =
+      CHRE_LCI_IE_HEADER_LEN_BYTES + CHRE_LCI_SUBELEMENT_HEADER_LEN_BYTES;
+  if (len >= kHeaderLen) {
+    size_t pos = CHRE_LCI_IE_HEADER_LEN_BYTES;
 
-    // First, reverse the bits to get the LSB first per specs.
-    for (size_t i = 0; i < CHRE_LCI_IE_DATA_LEN_BYTES; i++) {
-      ieDataTmp[i] = reverseBits(ieData[i]);
+    uint8_t subelementId = ieData[pos++];
+    uint8_t subelementLength = ieData[pos++];
+    if ((subelementId == LCI_SUBELEMENT_ID) &&
+        (len >= kHeaderLen + subelementLength)) {
+      success = true;
+      if (subelementLength < CHRE_LCI_SUBELEMENT_DATA_LEN_BYTES) {
+        outResult->flags = 0;
+      } else {
+        outResult->flags = CHRE_WIFI_RTT_RESULT_HAS_LCI;
+        decodeLciSubelement(&ieData[pos], &outResult->lci);
+      }
     }
-
-    success = true;
-
-    out->latitudeUncertainty =
-        (uint8_t)getField(ieDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
-
-    x = getField(ieDataTmp, LCI_IE_LAT_LONG_BITS, &bufferBitPos);
-    out->latitude = convert34BitTwosComplementToInt64(x);
-
-    out->longitudeUncertainty =
-        (uint8_t)getField(ieDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
-
-    x = getField(ieDataTmp, LCI_IE_LAT_LONG_BITS, &bufferBitPos);
-    out->longitude = convert34BitTwosComplementToInt64(x);
-
-    out->altitudeType =
-        (uint8_t)getField(ieDataTmp, LCI_IE_ALT_TYPE_BITS, &bufferBitPos);
-    out->altitudeUncertainty =
-        (uint8_t)getField(ieDataTmp, LCI_IE_UNCERTAINTY_BITS, &bufferBitPos);
-
-    x = getField(ieDataTmp, LCI_IE_ALT_BITS, &bufferBitPos);
-    out->altitude = convert30BitTwosComplementToInt32((uint32_t)x);
   }
 
   return success;

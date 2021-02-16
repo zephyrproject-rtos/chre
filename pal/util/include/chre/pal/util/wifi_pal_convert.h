@@ -35,8 +35,17 @@
 extern "C" {
 #endif
 
-// The bit-level definitions of the LCI IE data specified by the
+// The bit-level definitions of the LCI subelement data specified by the
 // IEEE P802.11-REVmc/D8.0.
+// | Element name (number of bytes) |
+// -------------------------------------------------------------
+// | Subelement ID (1) | Subelement length (1) |
+// | Subelement (variable)
+#define CHRE_LCI_SUBELEMENT_HEADER_LEN_BYTES 2
+
+//
+// If the subelement length is non-zero, it must be 16, and the LCI subelement
+// is represented by the following:
 // | Element name (number of bits) |
 // -------------------------------------------------------------
 // | Latitude uncertainty (6) | Latitude (34)
@@ -45,17 +54,33 @@ extern "C" {
 // | Altitude (30) | Datum (3) | RegLog Agreement (1)
 // | RegLog DSE (1) | Dependent STA (1)
 // | Version (2)
-#define CHRE_LCI_IE_DATA_LEN_BYTES 16
+#define CHRE_LCI_SUBELEMENT_DATA_LEN_BYTES 16
+
+// The LCI IE header data, as defined by figure IEEE P802.11-REVmc/D8.0
+// spec section 9.4.2.22. This header precedes the LCI subelement data defined
+// above.
+// | Element name (number of bytes) |
+// -------------------------------------------------------------
+// | Measurement token (1) | Measurement report mode (1)
+// | Measurement type (1) | Measurement (variable)
+#define CHRE_LCI_IE_HEADER_LEN_BYTES 3
 
 /**
  * Converts LCI IE data specified by IEEE P802.11-REVmc/D8.0 spec section
  * 9.4.2.22, under Measurement Report Element.
  *
+ * The input is assumed to point to the beginning of the LCI IE data, which
+ * includes the header defined above.
+ *
+ * If the input is valid, this function will return true and will store
+ * flags and lci fields in the supplied chreWifiRangingResult input.
+ *
  * @param ieData The LCI IE data array.
  * @param len The length of ieData in bytes.
  * @param out A non-null pointer to store the conversion result.
  *
- * @return true if the conversion succeeded.
+ * @return true if the conversion succeeded, and false if the input was
+ * malformed.
  */
 bool chreWifiLciFromIe(const uint8_t *ieData, size_t len,
                        struct chreWifiRangingResult *out);
