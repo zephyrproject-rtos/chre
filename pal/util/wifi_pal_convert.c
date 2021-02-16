@@ -16,8 +16,6 @@
 
 #include "chre/pal/util/wifi_pal_convert.h"
 
-#include <inttypes.h>
-
 // Constants defining the number of bits per LCI IE field.
 #define LCI_IE_UNCERTAINTY_BITS 6
 #define LCI_IE_LAT_LONG_BITS 34
