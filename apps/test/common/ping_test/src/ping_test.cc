@@ -54,7 +54,7 @@ void handleMessageFromHost(uint32_t senderInstanceId,
       // TODO(b/179948640): Replace with chreSendMessageWithPermissions
       success = chreSendMessageToHostEndpoint(
           const_cast<char *>(kPingResponseMsg), strlen(kPingResponseMsg) + 1,
-          0 /* messageType */, hostData->hostEndpoint,
+          ping_test_MessageType_PING_RESPONSE, hostData->hostEndpoint,
           nullptr /* freeCallback */);
     }
   }
