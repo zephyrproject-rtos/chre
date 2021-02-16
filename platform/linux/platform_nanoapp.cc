@@ -22,6 +22,7 @@
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/nanoapp_dso_util.h"
+#include "chre/util/system/napp_permissions.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -58,6 +59,19 @@ uint32_t PlatformNanoapp::getTargetApiVersion() const {
 
 const char *PlatformNanoapp::getAppName() const {
   return (mAppInfo != nullptr) ? mAppInfo->name : "Unknown";
+}
+
+bool PlatformNanoapp::supportsAppPermissions() const {
+  return (mAppInfo != nullptr) ? (mAppInfo->structMinorVersion >=
+                                  CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION)
+                               : false;
+}
+
+uint32_t PlatformNanoapp::getAppPermissions() const {
+  return (supportsAppPermissions())
+             ? mAppInfo->appPermissions
+             : static_cast<uint32_t>(
+                   chre::NanoappPermissions::CHRE_PERMS_NOTHING);
 }
 
 bool PlatformNanoapp::isSystemNanoapp() const {
