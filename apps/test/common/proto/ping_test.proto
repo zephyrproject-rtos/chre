@@ -19,6 +19,10 @@ enum MessageType {
   // use this message to report a failure.
   // Payload must be chre_test_common.TestResult.
   TEST_RESULT = 2;
+
+  // C2H: A message indicating a response from a ping command.
+  // Payload is arbitrary.
+  PING_RESPONSE = 3;
 }
 
 // A message to ping the nanoapp, with some optional specifications.
