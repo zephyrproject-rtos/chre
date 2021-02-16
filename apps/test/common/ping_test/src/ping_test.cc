@@ -51,11 +51,10 @@ void handleMessageFromHost(uint32_t senderInstanceId,
     } else {
       uint32_t permissions = command.permissions;
       LOGI("Got ping command message with permission 0x%" PRIx32, permissions);
-      // TODO(b/179948640): Replace with chreSendMessageWithPermissions
-      success = chreSendMessageToHostEndpoint(
+      success = chreSendMessageWithPermissions(
           const_cast<char *>(kPingResponseMsg), strlen(kPingResponseMsg) + 1,
           ping_test_MessageType_PING_RESPONSE, hostData->hostEndpoint,
-          nullptr /* freeCallback */);
+          permissions, nullptr /* freeCallback */);
     }
   }
 
