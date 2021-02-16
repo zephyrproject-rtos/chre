@@ -155,6 +155,13 @@ void nanoappEnd() {
 
 #include "chre/platform/static_nanoapp_init.h"
 #include "chre/util/nanoapp/app_id.h"
+#include "chre/util/system/napp_permissions.h"
 
-CHRE_STATIC_NANOAPP_INIT(PowerTest, chre::kPowerTestAppId, 0);
+using chre::NanoappPermissions;
+
+CHRE_STATIC_NANOAPP_INIT(PowerTest, chre::kPowerTestAppId, 0,
+                         NanoappPermissions::CHRE_PERMS_AUDIO |
+                             NanoappPermissions::CHRE_PERMS_GNSS |
+                             NanoappPermissions::CHRE_PERMS_WIFI |
+                             NanoappPermissions::CHRE_PERMS_WWAN);
 #endif  // CHRE_NANOAPP_INTERNAL
