@@ -87,5 +87,5 @@ void nanoappEnd() {
 #include "chre/util/system/napp_permissions.h"
 
 CHRE_STATIC_NANOAPP_INIT(MessageWorld, chre::kMessageWorldAppId, 0,
-                         chre::NanoappPermissions::CHRE_PERMS_NOTHING);
+                         chre::NanoappPermissions::CHRE_PERMS_NONE);
 #endif  // CHRE_NANOAPP_INTERNAL

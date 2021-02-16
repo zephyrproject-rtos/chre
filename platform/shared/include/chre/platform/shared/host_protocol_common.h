@@ -74,10 +74,10 @@ class HostProtocolCommon {
       flatbuffers::FlatBufferBuilder &builder, uint64_t appId,
       uint32_t messageType, uint16_t hostEndpoint, const void *messageData,
       size_t messageDataLen,
-      uint32_t permissions = static_cast<uint32_t>(
-          chre::NanoappPermissions::CHRE_PERMS_EVERYTHING),
-      uint32_t messagePermissions = static_cast<uint32_t>(
-          chre::NanoappPermissions::CHRE_PERMS_EVERYTHING));
+      uint32_t permissions =
+          static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_ALL),
+      uint32_t messagePermissions =
+          static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_ALL));
 
   /**
    * Adds a string to the provided builder as a byte vector.

@@ -84,5 +84,5 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
 #include "chre/util/system/napp_permissions.h"
 
 CHRE_STATIC_NANOAPP_INIT(DebugDumpWorld, chre::kDebugDumpWorldAppId, 0,
-                         chre::NanoappPermissions::CHRE_PERMS_NOTHING);
+                         chre::NanoappPermissions::CHRE_PERMS_NONE);
 #endif  // CHRE_NANOAPP_INTERNAL
