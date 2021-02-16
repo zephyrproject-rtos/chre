@@ -73,7 +73,7 @@ DLL_EXPORT bool chreSendMessageToHost(void *message, uint32_t messageSize,
       CHRE_HOST_ENDPOINT_BROADCAST, freeCallback);
 }
 
-DLL_EXPORT bool chreSendMessageToHostWithPerms(
+DLL_EXPORT bool chreSendMessageWithPermissions(
     void *message, size_t messageSize, uint32_t messageType,
     uint16_t hostEndpoint, uint32_t messagePermissions,
     chreMessageFreeFunction *freeCallback) {
@@ -103,7 +103,7 @@ DLL_EXPORT bool chreSendMessageToHostWithPerms(
 DLL_EXPORT bool chreSendMessageToHostEndpoint(
     void *message, size_t messageSize, uint32_t messageType,
     uint16_t hostEndpoint, chreMessageFreeFunction *freeCallback) {
-  return chreSendMessageToHostWithPerms(
+  return chreSendMessageWithPermissions(
       message, messageSize, messageType, hostEndpoint,
       static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_NOTHING),
       freeCallback);
