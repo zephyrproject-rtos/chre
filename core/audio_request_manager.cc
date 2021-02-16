@@ -458,15 +458,16 @@ void AudioRequestManager::onSettingChanged(Setting setting,
                                            SettingState state) {
   if (setting == Setting::GLOBAL_MIC_DISABLE) {
     for (size_t i = 0; i < mAudioRequestLists.size(); ++i) {
+      uint32_t handle = static_cast<uint32_t>(i);
       if (mAudioRequestLists[i].available) {
         if (state == SettingState::ENABLED) {
-          LOGD("Canceling data event request for handle %u", i);
-          postAudioSamplingChangeEvents(i, true /* suspended */);
-          mPlatformAudio.cancelAudioDataEventRequest(i);
+          LOGD("Canceling data event request for handle %" PRIu32, handle);
+          postAudioSamplingChangeEvents(handle, true /* suspended */);
+          mPlatformAudio.cancelAudioDataEventRequest(handle);
         } else {
-          LOGD("Scheduling data event for handle %u", i);
-          postAudioSamplingChangeEvents(i, false /* suspended */);
-          scheduleNextAudioDataEvent(i);
+          LOGD("Scheduling data event for handle %" PRIu32, handle);
+          postAudioSamplingChangeEvents(handle, false /* suspended */);
+          scheduleNextAudioDataEvent(handle);
         }
       }
     }
