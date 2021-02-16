@@ -105,4 +105,4 @@ void nanoappEnd() {}
 }  // namespace chre
 
 CHRE_STATIC_NANOAPP_INIT(UnloadTester, chre::kUnloadTesterAppId, kAppVersion,
-                         chre::NanoappPermissions::CHRE_PERMS_NOTHING);
+                         chre::NanoappPermissions::CHRE_PERMS_NONE);
