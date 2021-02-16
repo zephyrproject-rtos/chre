@@ -31,7 +31,7 @@ namespace chre {
  * used if a vendor API allows access to privacy sensitive information that is
  * guarded by a permission on the Android side (e.g. location).
  */
-enum class NanoappPermissions : uint32_t {
+enum NanoappPermissions : uint32_t {
   CHRE_PERMS_NOTHING = 0,
   CHRE_PERMS_AUDIO = 1,
   CHRE_PERMS_GNSS = 1 << 1,
