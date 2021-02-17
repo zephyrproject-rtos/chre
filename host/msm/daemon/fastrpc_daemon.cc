@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
+// Disable verbose logging
+// TODO: use property_get_bool to make verbose logging runtime configurable
+// #define LOG_NDEBUG 0
+
 #include "fastrpc_daemon.h"
+
+#include "generated/chre_slpi.h"
+
+// TODO: The following conditional compilation needs to be removed, and done
+// for all platforms after verifying that it works on older devices where
+// we're currently not defining this macro
+#ifdef CHRE_DAEMON_LOAD_INTO_SENSORSPD
+#include "remote.h"
+
+#define ITRANSPORT_PREFIX "'\":;./\\"
+#endif  // CHRE_DAEMON_LOAD_INTO_SENSORSPD
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
@@ -94,7 +109,11 @@ void FastRpcChreDaemon::deinit() {
 void FastRpcChreDaemon::run() {
   constexpr char kChreSocketName[] = "chre";
   auto serverCb = [&](uint16_t clientId, void *data, size_t len) {
-    sendMessageToChre(clientId, data, len);
+    if (mCrashDetected) {
+      LOGW("Dropping data, CHRE restart in process...");
+    } else {
+      sendMessageToChre(clientId, data, len);
+    }
   };
 
   // TODO: take 2nd argument as command-line parameter
@@ -140,9 +159,7 @@ void FastRpcChreDaemon::onMessageReceived(const unsigned char *messageBuffer,
   fbs::ChreMessage messageType;
   if (!HostProtocolHost::extractHostClientIdAndType(
           messageBuffer, messageLen, &hostClientId, &messageType)) {
-    LOGW(
-        "Failed to extract host client ID from message - sending "
-        "broadcast");
+    LOGW("Failed to extract host client ID from message - sending broadcast");
     hostClientId = ::chre::kHostClientIdUnspecified;
   }
 
@@ -184,8 +201,8 @@ void FastRpcChreDaemon::monitorThreadEntry() {
 
   int ret = chre_slpi_wait_on_thread_exit();
   if (!wasShutdownRequested()) {
-    LOGE("Detected unexpected CHRE thread exit (%d)\n", ret);
-    exit(EXIT_FAILURE);
+    LOGE("Monitor detected unexpected CHRE thread exit (%d)", ret);
+    onRemoteCrashDetected();
   }
   LOGD("Monitor thread exited");
 }
@@ -210,11 +227,8 @@ void FastRpcChreDaemon::msgToHostThreadEntry() {
     } else if (result == CHRE_FASTRPC_SUCCESS && messageLen > 0) {
       onMessageReceived(messageBuffer, messageLen);
     } else if (!wasShutdownRequested()) {
-      LOGE(
-          "Received an unknown result (%d) and no shutdown was requested. "
-          "Quitting",
-          result);
-      exit(-1);
+      LOGE("get_message_to_host returned unexpected error (%d)", result);
+      onRemoteCrashDetected();
     } else {
       // Received an unknown result but a shutdown was requested. Break from
       // the loop to allow the daemon to cleanup.
@@ -248,8 +262,8 @@ int64_t FastRpcChreDaemon::getTimeOffset(bool *success) {
     uint64_t qTimerNanos = (qTimerCount / qTimerFreq);
     if (qTimerNanos > UINT64_MAX / kOneSecondInNanoseconds) {
       LOGE(
-          "CNTVCT_EL0 conversion to nanoseconds overflowed during time sync."
-          " Aborting time sync.");
+          "CNTVCT_EL0 conversion to nanoseconds overflowed during time sync. "
+          "Aborting time sync.");
       *success = false;
     } else {
       qTimerNanos *= kOneSecondInNanoseconds;
@@ -280,6 +294,23 @@ ChreLogMessageParserBase FastRpcChreDaemon::getLogMessageParser() {
   // Logging is being routed through ashLog
   return ChreLogMessageParserBase();
 #endif
+}
+
+void FastRpcChreDaemon::onRemoteCrashDetected() {
+  // After a DSP crash, we delay a short period of time before exiting. This is
+  // primarily to avoid any potential race conditions arising from trying to
+  // initialize CHRE very early in the DSP boot flow. Normally the firmware is
+  // reloaded within a second or so, but we use a longer time here to have some
+  // padding to handle cases where the system is slower than usual, etc.
+  constexpr auto kDelayAfterCrash = std::chrono::seconds(3);
+
+  // It's technically fine if multiple threads race here, but to avoid duplicate
+  // logs, give the first one to reach this point a shorter delay than others
+  bool firstDetection = !mCrashDetected.exchange(true);
+  auto delay = (firstDetection) ? kDelayAfterCrash : kDelayAfterCrash * 2;
+  std::this_thread::sleep_for(delay);
+  LOGE("Exiting daemon");
+  std::exit(EXIT_FAILURE);
 }
 
 }  // namespace chre
