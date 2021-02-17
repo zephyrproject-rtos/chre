@@ -46,6 +46,13 @@
 #endif
 
 /**
+ * Checks if a bitmask contains the specified value
+ */
+#ifndef BITMASK_HAS_VALUE
+#define BITMASK_HAS_VALUE(mask, value) ((mask & value) == value)
+#endif
+
+/**
  * Min/max macros.
  */
 #ifndef MIN
