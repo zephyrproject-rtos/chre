@@ -20,6 +20,7 @@
 #include "generic_context_hub_v1_2.h"
 
 #include "context_hub_settings_util.h"
+#include "permissions_util.h"
 
 #include <chrono>
 #include <cinttypes>
@@ -39,13 +40,45 @@ using ::android::hardware::Return;
 using ::android::hardware::contexthub::common::implementation::getFbsSetting;
 using ::android::hardware::contexthub::common::implementation::
     getFbsSettingValue;
+using ::android::hardware::contexthub::common::implementation::
+    kSupportedPermissions;
+using ::android::hardware::contexthub::V1_X::implementation::
+    IContextHubCallbackWrapperBase;
+using ::android::hardware::contexthub::V1_X::implementation::
+    IContextHubCallbackWrapperV1_2;
 using ::flatbuffers::FlatBufferBuilder;
 
+using V1_0::ContextHub;
 using V1_1::SettingValue;
+using V1_2::IContexthub;
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
 namespace fbs = ::chre::fbs;
+
+Return<void> GenericContextHubV1_2::getHubs_1_2(
+    IContexthub::getHubs_1_2_cb _hidl_cb) {
+  std::vector<ContextHub> retHubs;
+  getHubs([&retHubs](std::vector<ContextHub> hubs) { retHubs = hubs; });
+  _hidl_cb(retHubs, kSupportedPermissions);
+
+  return Void();
+}
+
+Return<Result> GenericContextHubV1_2::registerCallback_1_2(
+    uint32_t hubId, const sp<IContexthubCallback> &cb) {
+  sp<IContextHubCallbackWrapperBase> wrappedCallback;
+  if (cb != nullptr) {
+    wrappedCallback = new IContextHubCallbackWrapperV1_2(cb);
+  }
+  return registerCallbackCommon(hubId, wrappedCallback);
+}
+
+Return<Result> GenericContextHubV1_2::sendMessageToHub_1_2(
+    uint32_t hubId, const ContextHubMsg &msg) {
+  // Other V1.2 fields are only used from nanoapp -> host messages.
+  return sendMessageToHub(hubId, msg.msg_1_0);
+}
 
 Return<void> GenericContextHubV1_2::onSettingChanged(V1_1::Setting setting,
                                                      SettingValue newValue) {

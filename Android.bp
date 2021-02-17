@@ -118,10 +118,12 @@ cc_library_shared {
     relative_install_path: "hw",
     srcs: [
         "host/hal_generic/V1_0/generic_context_hub_v1_0.cc",
+        "host/hal_generic/common/permissions_util.cc",
     ],
     cflags: ["-Wall", "-Werror"],
     header_libs: [
         "android.hardware.contexthub@1.X-shared-impl",
+        "android.hardware.contexthub@1.X-common-utils",
     ],
     shared_libs: [
         "libcutils",
@@ -129,6 +131,8 @@ cc_library_shared {
         "libhidlbase",
         "libutils",
         "android.hardware.contexthub@1.0",
+        "android.hardware.contexthub@1.1",
+        "android.hardware.contexthub@1.2",
     ],
     static_libs: ["chre_client"],
 }
@@ -142,11 +146,13 @@ cc_binary {
         "host/hal_generic/V1_1/generic_context_hub_v1_1.cc",
         "host/hal_generic/V1_1/service.cc",
         "host/hal_generic/common/context_hub_settings_util.cc",
+        "host/hal_generic/common/permissions_util.cc",
     ],
     init_rc: ["host/hal_generic/V1_1/android.hardware.contexthub@1.1-service-generic.rc"],
     cflags: ["-Wall", "-Werror"],
     header_libs: [
         "android.hardware.contexthub@1.X-shared-impl",
+        "android.hardware.contexthub@1.X-common-utils",
     ],
     shared_libs: [
         "libcutils",
@@ -170,11 +176,13 @@ cc_binary {
         "host/hal_generic/V1_2/generic_context_hub_v1_2.cc",
         "host/hal_generic/V1_2/service.cc",
         "host/hal_generic/common/context_hub_settings_util.cc",
+        "host/hal_generic/common/permissions_util.cc",
     ],
     init_rc: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-service-generic.rc"],
     cflags: ["-Wall", "-Werror"],
     header_libs: [
         "android.hardware.contexthub@1.X-shared-impl",
+        "android.hardware.contexthub@1.X-common-utils",
     ],
     shared_libs: [
         "libcutils",
@@ -200,6 +208,7 @@ cc_binary {
         "host/hal_generic/V1_2/generic_context_hub_v1_2.cc",
         "host/hal_generic/V1_2/service.cc",
         "host/hal_generic/common/context_hub_settings_util.cc",
+        "host/hal_generic/common/permissions_util.cc",
     ],
     init_rc: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-service-small_fragments.rc"],
     cflags: [
@@ -209,6 +218,7 @@ cc_binary {
     ],
     header_libs: [
         "android.hardware.contexthub@1.X-shared-impl",
+        "android.hardware.contexthub@1.X-common-utils",
     ],
     shared_libs: [
         "libcutils",
