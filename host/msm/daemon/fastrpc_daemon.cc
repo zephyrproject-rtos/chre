@@ -183,7 +183,7 @@ void FastRpcChreDaemon::monitorThreadEntry() {
   LOGD("Monitor thread started");
 
   int ret = chre_slpi_wait_on_thread_exit();
-  if (wasShutdownRequested()) {
+  if (!wasShutdownRequested()) {
     LOGE("Detected unexpected CHRE thread exit (%d)\n", ret);
     exit(EXIT_FAILURE);
   }
