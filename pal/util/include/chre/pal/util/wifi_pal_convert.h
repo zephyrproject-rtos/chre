@@ -26,6 +26,7 @@
  * the PAL interface.
  */
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 
