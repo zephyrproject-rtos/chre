@@ -28,28 +28,16 @@
 #include "chre_host/socket_server.h"
 #include "chre_host/st_hal_lpma_handler.h"
 
-#include "generated/chre_slpi.h"
-
 #include <utils/SystemClock.h>
-
-// Disable verbose logging
-// TODO: use property_get_bool to make verbose logging runtime configurable
-// #define LOG_NDEBUG 0
+#include <atomic>
+#include <optional>
+#include <thread>
 
 #ifdef CHRE_USE_TOKENIZED_LOGGING
 #include "chre_host/tokenized_log_message_parser.h"
 #else
 #include "chre_host/log_message_parser_base.h"
 #endif
-
-// TODO: The following conditional compilation needs to be removed, and done
-// for all platforms after verifying that it works on older devices where
-// we're currently not defining this macro
-#ifdef CHRE_DAEMON_LOAD_INTO_SENSORSPD
-#include "remote.h"
-
-#define ITRANSPORT_PREFIX "'\":;./\\"
-#endif  // CHRE_DAEMON_LOAD_INTO_SENSORSPD
 
 namespace android {
 namespace chre {
@@ -84,6 +72,7 @@ class FastRpcChreDaemon : public ChreDaemonBase {
  private:
   std::optional<std::thread> mMonitorThread;
   std::optional<std::thread> mMsgToHostThread;
+  std::atomic_bool mCrashDetected = false;
   SocketServer mServer;
   ChreLogMessageParserBase mLogger;
   StHalLpmaHandler mLpmaHandler;
@@ -112,6 +101,11 @@ class FastRpcChreDaemon : public ChreDaemonBase {
    * Entry point for the thread that receives messages sent by CHRE.
    */
   void msgToHostThreadEntry();
+
+  /**
+   * Handles the case where the remote end (SLPI, ADSP, etc) has crashed.
+   */
+  void onRemoteCrashDetected();
 
   /**
    * Get the Log Message Parser configured for this platform
