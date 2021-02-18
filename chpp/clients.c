@@ -63,29 +63,28 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState);
  * @return Indicates whetherthe client is ready.
  */
 static bool chppIsClientApiReady(struct ChppClientState *clientState) {
-  const uint64_t timeoutNs = DEFAULT_CLIENT_REQUEST_TIMEOUT_NS;
   bool result = false;
 
-  if (clientState->initialized &&
-      clientState->openState != CHPP_OPEN_STATE_CLOSED) {
-    result = true;
-
-    if (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN) {
-      // Wait for service to be reopened
-      chppMutexLock(&clientState->responseMutex);
-
-      while (result && !clientState->responseReady) {
-        result = chppConditionVariableTimedWait(&clientState->responseCondVar,
-                                                &clientState->responseMutex,
-                                                timeoutNs);
-      }
-      if (!clientState->responseReady) {
-        CHPP_LOGE("Reopen timeout after %" PRIu64 " ms",
-                  timeoutNs / CHPP_NSEC_PER_MSEC);
-        result = false;
+  if (clientState->initialized) {
+    switch (clientState->openState) {
+      case (CHPP_OPEN_STATE_CLOSED):
+      case (CHPP_OPEN_STATE_PSEUDO_OPEN):
+      case (CHPP_OPEN_STATE_WAITING_TO_OPEN): {
+        // result remains false
+        break;
       }
 
-      chppMutexUnlock(&clientState->responseMutex);
+      case (CHPP_OPEN_STATE_OPENED): {
+        result = true;
+        break;
+      }
+
+      case (CHPP_OPEN_STATE_OPENING): {
+        // Allow the open request to go through
+        clientState->openState = CHPP_OPEN_STATE_WAITING_TO_OPEN;
+        result = true;
+        break;
+      }
     }
   }
 
@@ -300,7 +299,7 @@ bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
                                        struct ChppRequestResponseState *rRState,
                                        void *buf, size_t len) {
   return chppSendTimestampedRequestAndWaitTimeout(
-      clientState, rRState, buf, len, DEFAULT_CLIENT_REQUEST_TIMEOUT_NS);
+      clientState, rRState, buf, len, CHPP_DEFAULT_CLIENT_REQUEST_TIMEOUT_NS);
 }
 
 bool chppSendTimestampedRequestAndWaitTimeout(
@@ -349,14 +348,13 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
 
   } else if (reopen) {
     CHPP_LOGW("Reopening service after reset");
-    clientState->openState = CHPP_OPEN_STATE_REOPENING;
+    clientState->openState = CHPP_OPEN_STATE_OPENING;
     if (!chppSendTimestampedRequestOrFail(clientState, openRRState, request,
                                           sizeof(*request))) {
       clientState->openState = CHPP_OPEN_STATE_CLOSED;
       CHPP_LOGE("Failed to reopen service");
       CHPP_PROD_ASSERT(false);
     } else {
-      clientState->openState = CHPP_OPEN_STATE_WAITING_TO_REOPEN;
       result = true;
     }
 
@@ -383,16 +381,10 @@ void chppClientProcessOpenResponse(struct ChppClientState *clientState,
 
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE("Service %sopen failed at service",
-              (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN)
-                  ? "re"
-                  : "");
+    CHPP_LOGE("Service open failed at service");
     clientState->openState = CHPP_OPEN_STATE_CLOSED;
   } else {
-    CHPP_LOGI("Service %sopen succeeded at service",
-              (clientState->openState == CHPP_OPEN_STATE_WAITING_TO_REOPEN)
-                  ? "re"
-                  : "");
+    CHPP_LOGI("Service open succeeded at service");
     clientState->openState = CHPP_OPEN_STATE_OPENED;
   }
 }

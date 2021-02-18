@@ -149,12 +149,11 @@ enum ChppAppErrorCode {
  * Open status for clients / services.
  */
 enum ChppOpenState {
-  CHPP_OPEN_STATE_CLOSED = 0,
-  CHPP_OPEN_STATE_PSEUDO_OPEN = 1,  // Closed but open always returns success
-  CHPP_OPEN_STATE_OPENING = 2,      // Enables the open request to pass through
-  CHPP_OPEN_STATE_OPENED = 3,       // Opened
-  CHPP_OPEN_STATE_REOPENING = 4,    // Enables the open request to pass through
-  CHPP_OPEN_STATE_WAITING_TO_REOPEN = 5,  // Waiting to reopen asynchronously
+  CHPP_OPEN_STATE_CLOSED = 0,           // Closed
+  CHPP_OPEN_STATE_PSEUDO_OPEN = 1,      // Closed but open returns success
+  CHPP_OPEN_STATE_OPENING = 2,          // Enables the open request to pass
+  CHPP_OPEN_STATE_WAITING_TO_OPEN = 3,  // Waiting for open response
+  CHPP_OPEN_STATE_OPENED = 4,           // Opened
 };
 
 /**
