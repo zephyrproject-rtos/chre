@@ -323,9 +323,7 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
       struct ChppClientState *clientContext =
           (struct ChppClientState *)chppClientServiceContextOfHandle(
               context, handle, type);
-      if ((clientContext->openState != CHPP_OPEN_STATE_OPENED) &&
-          (clientContext->openState != CHPP_OPEN_STATE_OPENING) &&
-          (clientContext->openState != CHPP_OPEN_STATE_REOPENING)) {
+      if (clientContext->openState == CHPP_OPEN_STATE_CLOSED) {
         CHPP_LOGE("Rx service response but client closed");
       } else {
         return chppClientOfHandle(context, handle)->responseDispatchFunctionPtr;
@@ -341,8 +339,8 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
       struct ChppClientState *clientContext =
           (struct ChppClientState *)chppClientServiceContextOfHandle(
               context, handle, type);
-      if (clientContext->openState != CHPP_OPEN_STATE_OPENED) {
-        CHPP_LOGE("Rx service notification but client not open");
+      if (clientContext->openState == CHPP_OPEN_STATE_CLOSED) {
+        CHPP_LOGE("Rx service notification but client closed");
       } else {
         return chppClientOfHandle(context, handle)
             ->notificationDispatchFunctionPtr;
