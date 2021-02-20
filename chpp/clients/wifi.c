@@ -405,8 +405,8 @@ static void chppWifiGetCapabilitiesResult(
               result->capabilities);
 #ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
     if (result->capabilities != CHPP_WIFI_DEFAULT_CAPABILITIES) {
-      CHPP_LOGE("Unexpected capability: expected 0x%" PRIx32,
-                CHPP_WIFI_DEFAULT_CAPABILITIES);
+      CHPP_LOGE("Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
       CHPP_PROD_ASSERT(false);
     }
 #endif
