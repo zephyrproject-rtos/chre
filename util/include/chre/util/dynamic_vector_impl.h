@@ -50,6 +50,10 @@ DynamicVector<ElementType> &DynamicVector<ElementType>::operator=(
     mSize = other.mSize;
     mCapacity = other.mCapacity;
 
+    // TODO(178963854): Assert added to help debug b/178963854 - remove once
+    // that is resolved
+    CHRE_ASSERT(mSize <= mCapacity);
+
     other.mData = nullptr;
     other.mSize = 0;
     other.mCapacity = 0;
@@ -77,6 +81,9 @@ const ElementType *DynamicVector<ElementType>::data() const {
 template <typename ElementType>
 typename DynamicVector<ElementType>::size_type
 DynamicVector<ElementType>::size() const {
+  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
+  // is resolved
+  CHRE_ASSERT(mSize <= mCapacity);
   return mSize;
 }
 
@@ -94,6 +101,9 @@ bool DynamicVector<ElementType>::empty() const {
 template <typename ElementType>
 void DynamicVector<ElementType>::pop_back() {
   CHRE_ASSERT(!empty());
+  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
+  // is resolved
+  CHRE_ASSERT(mSize <= mCapacity);
   erase(mSize - 1);
 }
 
@@ -114,6 +124,9 @@ bool DynamicVector<ElementType>::doPushBack(const ElementType &element,
                                             std::false_type) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
+    // TODO(178963854): Assert added to help debug b/178963854 - remove once
+    // that is resolved
+    CHRE_ASSERT(mSize < mCapacity);
     new (&data()[mSize++]) ElementType(element);
   }
 
@@ -124,6 +137,9 @@ template <typename ElementType>
 bool DynamicVector<ElementType>::push_back(ElementType &&element) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
+    // TODO(178963854): Assert added to help debug b/178963854 - remove once
+    // that is resolved
+    CHRE_ASSERT(mSize < mCapacity);
     new (&data()[mSize++]) ElementType(std::move(element));
   }
 
@@ -135,6 +151,9 @@ template <typename... Args>
 bool DynamicVector<ElementType>::emplace_back(Args &&... args) {
   bool spaceAvailable = prepareForPush();
   if (spaceAvailable) {
+    // TODO(178963854): Assert added to help debug b/178963854 - remove once
+    // that is resolved
+    CHRE_ASSERT(mSize < mCapacity);
     new (&data()[mSize++]) ElementType(std::forward<Args>(args)...);
   }
 
@@ -143,6 +162,9 @@ bool DynamicVector<ElementType>::emplace_back(Args &&... args) {
 
 template <typename ElementType>
 ElementType &DynamicVector<ElementType>::operator[](size_type index) {
+  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
+  // is resolved
+  CHRE_ASSERT(mSize <= mCapacity);
   CHRE_ASSERT(index < mSize);
   return data()[index];
 }
@@ -150,6 +172,9 @@ ElementType &DynamicVector<ElementType>::operator[](size_type index) {
 template <typename ElementType>
 const ElementType &DynamicVector<ElementType>::operator[](
     size_type index) const {
+  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
+  // is resolved
+  CHRE_ASSERT(mSize <= mCapacity);
   CHRE_ASSERT(index < mSize);
   return data()[index];
 }
