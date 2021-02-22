@@ -140,13 +140,12 @@ void SensorRequestManager::init() {
 bool SensorRequestManager::getSensorHandle(uint8_t sensorType,
                                            uint8_t sensorIndex,
                                            uint32_t *sensorHandle) const {
-  // TODO(b/179728033): Use sensorIndex
-  UNUSED_VAR(sensorIndex);
   CHRE_ASSERT(sensorHandle);
 
   bool sensorHandleIsValid = false;
   for (uint32_t i = 0; i < mSensors.size(); i++) {
-    if (mSensors[i].getSensorType() == sensorType) {
+    if ((mSensors[i].getSensorType() == sensorType) &&
+        (mSensors[i].getSensorIndex() == sensorIndex)) {
       sensorHandleIsValid = true;
       *sensorHandle = i;
       break;
