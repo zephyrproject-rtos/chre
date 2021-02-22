@@ -56,11 +56,20 @@ class SensorRequestManager : public NonCopyable {
    * supplied sensorHandle is only populated if the sensor type is known.
    *
    * @param sensorType The type of the sensor.
+   * @param sensorIndex The index of the sensor.
    * @param sensorHandle A non-null pointer to a uint32_t to use as a sensor
    *                     handle for nanoapps.
    * @return true if the supplied sensor type is available for use.
    */
-  bool getSensorHandle(uint8_t sensorType, uint32_t *sensorHandle) const;
+  bool getSensorHandle(uint8_t sensorType, uint8_t sensorIndex,
+                       uint32_t *sensorHandle) const;
+
+  /**
+   * Same as getSensorHandle() but with the default sensor index.
+   */
+  bool getSensorHandle(uint8_t sensorType, uint32_t *sensorHandle) const {
+    return getSensorHandle(sensorType, CHRE_SENSOR_INDEX_DEFAULT, sensorHandle);
+  }
 
   /**
    * Sets a sensor request for the given nanoapp for the provided sensor handle.

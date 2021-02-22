@@ -138,7 +138,10 @@ void SensorRequestManager::init() {
 }
 
 bool SensorRequestManager::getSensorHandle(uint8_t sensorType,
+                                           uint8_t sensorIndex,
                                            uint32_t *sensorHandle) const {
+  // TODO(b/179728033): Use sensorIndex
+  UNUSED_VAR(sensorIndex);
   CHRE_ASSERT(sensorHandle);
 
   bool sensorHandleIsValid = false;
