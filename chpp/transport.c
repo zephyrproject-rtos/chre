@@ -79,6 +79,10 @@ static void chppResetTransportContext(struct ChppTransportState *context);
 // Exposed for testing
 size_t chppDequeueTxDatagram(struct ChppTransportState *context);
 
+// TODO(b/178963854): remove once fixed
+extern void chreCheckFor178963854(void);
+void __attribute__((weak)) chreCheckFor178963854() {}
+
 /************************************************
  *  Private Functions
  ***********************************************/
@@ -910,6 +914,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
 
     chppMutexUnlock(&context->mutex);
   }
+
+  chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
 }
 
 /**
@@ -1311,6 +1317,7 @@ bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
         CHPP_LOGE("RESET-ACK timeout; giving up");
         context->resetState = CHPP_RESET_STATE_PERMANENT_FAILURE;
       }
+      chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
     }
   }
 
@@ -1319,6 +1326,7 @@ bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
                            signals & CHPP_TRANSPORT_SIGNAL_PLATFORM_MASK);
   }
 
+  chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
   return true;
 }
 
@@ -1349,6 +1357,7 @@ void chppLinkSendDoneCb(struct ChppPlatformLinkParameters *params,
 void chppDatagramProcessDoneCb(struct ChppTransportState *context,
                                uint8_t *buf) {
   UNUSED_VAR(context);
+  chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
 
   CHPP_FREE_AND_NULLIFY(buf);
 }

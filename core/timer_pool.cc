@@ -21,9 +21,20 @@
 #include "chre/platform/system_time.h"
 #include "chre/util/lock_guard.h"
 
+// TODO(b/178963854): Remove once fixed
+extern "C" {
+void chreCheckFor178963854() {
+  auto &timerPool =
+      chre::EventLoopManagerSingleton::get()->getEventLoop().getTimerPool();
+  auto pair = timerPool.getSizeCapacityPair();
+  CHRE_ASSERT(pair.first <= pair.second);
+}
+}
+
 namespace chre {
 
 TimerPool::TimerPool() {
+  chreCheckFor178963854();
   if (!mSystemTimer.init()) {
     FATAL_ERROR("Failed to initialize a system timer for the TimerPool");
   }
