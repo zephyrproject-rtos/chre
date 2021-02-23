@@ -428,6 +428,13 @@ extern "C" {
 #define CHRE_SENSOR_LATENCY_DEFAULT  UINT64_C(-1)
 
 /**
+ * A sensor index value indicating that it is the default sensor.
+ *
+ * @see chreSensorFind
+ */
+#define CHRE_SENSOR_INDEX_DEFAULT  UINT8_C(0)
+
+/**
  * Special value indicating non-importance of the batch interval.
  *
  * @see chreSensorConfigureWithBatchInterval
