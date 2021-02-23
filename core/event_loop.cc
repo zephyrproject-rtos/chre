@@ -29,6 +29,9 @@
 #include "chre/util/time.h"
 #include "chre_api/chre/version.h"
 
+extern void chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
+void __attribute__((weak)) chreCheckFor178963854() {}
+
 namespace chre {
 
 // Out of line declaration required for nonintegral static types
@@ -393,6 +396,7 @@ bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp> &app) {
   // TODO: cleaner way to set/clear this? RAII-style?
   mCurrentApp = app.get();
   Event *event = app->processNextEvent();
+  chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
   mCurrentApp = nullptr;
 
   if (event->isUnreferenced()) {
@@ -424,6 +428,7 @@ void EventLoop::distributeEvent(Event *event) {
     }
     freeEvent(event);
   }
+  chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
 }
 
 void EventLoop::flushInboundEventQueue() {
@@ -442,6 +447,7 @@ void EventLoop::freeEvent(Event *event) {
     // TODO: find a better way to set the context to the creator of the event
     mCurrentApp = lookupAppByInstanceId(event->senderInstanceId);
     event->invokeFreeCallback();
+    chreCheckFor178963854();  // TODO(b/178963854): remove once fixed
     mCurrentApp = nullptr;
   }
 
