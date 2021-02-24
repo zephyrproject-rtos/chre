@@ -904,13 +904,16 @@ bool chreWifiRequestScanAsync(const struct chreWifiScanParams *params,
  * @note Requires WiFi permission
  */
 static inline bool chreWifiRequestScanAsyncDefault(const void *cookie) {
-    struct chreWifiScanParams params = {};
-    params.scanType         = CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE;
-    params.maxScanAgeMs     = 5000;  // 5 seconds
-    params.frequencyListLen = 0;
-    params.ssidListLen      = 0;
-    params.radioChainPref   = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT;
-    params.channelSet       = CHRE_WIFI_CHANNEL_SET_NON_DFS;
+    static const struct chreWifiScanParams params = {
+        /*.scanType=*/         CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE,
+        /*.maxScanAgeMs=*/     5000,  // 5 seconds
+        /*.frequencyListLen=*/ 0,
+        /*.frequencyList=*/    NULL,
+        /*.ssidListLen=*/      0,
+        /*.ssidList=*/         NULL,
+        /*.radioChainPref=*/   CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+        /*.channelSet=*/       CHRE_WIFI_CHANNEL_SET_NON_DFS
+    };
     return chreWifiRequestScanAsync(&params, cookie);
 }
 
