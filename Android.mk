@@ -29,6 +29,9 @@ include $(CLEAR_VARS)
 # libadsprpc is converted as blueprint targets can't depend on targets exposed
 # by makefiles
 LOCAL_MODULE := chre
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0 SPDX-license-identifier-BSD
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/NOTICE
 LOCAL_MODULE_OWNER := google
 LOCAL_MODULE_TAGS := optional
 LOCAL_VENDOR_MODULE := true
