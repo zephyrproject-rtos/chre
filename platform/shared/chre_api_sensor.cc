@@ -64,6 +64,11 @@ void rewriteToBigImageSensorType(uint8_t *sensorType) {
         // defined(CHRE_SENSORS_SUPPORT_ENABLED)
 
 DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
+  return chreSensorFind(sensorType, CHRE_SENSOR_INDEX_DEFAULT, handle);
+}
+
+DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
+                               uint32_t *handle) {
 #if CHRE_SENSORS_SUPPORT_ENABLED
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   // HACK: as SEE does not support software batching in uimg via QCM/uQSockets,
@@ -87,21 +92,13 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
 
   return EventLoopManagerSingleton::get()
       ->getSensorRequestManager()
-      .getSensorHandle(sensorType, handle);
+      .getSensorHandle(sensorType, sensorIndex, handle);
 #else  // CHRE_SENSORS_SUPPORT_ENABLED
-  UNUSED_VAR(sensorType);
-  UNUSED_VAR(handle);
-  return false;
-#endif
-}
-
-DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
-                               uint32_t *handle) {
-  // TODO(b/179728033): Implement this
   UNUSED_VAR(sensorType);
   UNUSED_VAR(sensorIndex);
   UNUSED_VAR(handle);
   return false;
+#endif
 }
 
 DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
