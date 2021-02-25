@@ -38,6 +38,10 @@ const char *PlatformSensor::getSensorName() const {
   return mSensorInfo->sensorName;
 }
 
+uint8_t PlatformSensor::getSensorIndex() const {
+  return CHRE_SENSOR_INDEX_DEFAULT;
+}
+
 PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   *this = std::move(other);
 }

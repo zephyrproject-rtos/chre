@@ -52,6 +52,10 @@ PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   *this = std::move(other);
 }
 
+uint8_t PlatformSensor::getSensorIndex() const {
+  return CHRE_SENSOR_INDEX_DEFAULT;
+}
+
 PlatformSensor &PlatformSensor::operator=(PlatformSensor &&other) {
   // Note: if this implementation is ever changed to depend on "this" containing
   // initialized values, the move constructor implementation must be updated.
