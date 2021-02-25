@@ -17,6 +17,7 @@
 #include "chre/core/sensor_request_manager.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/util/macros.h"
 #include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/version.h"
