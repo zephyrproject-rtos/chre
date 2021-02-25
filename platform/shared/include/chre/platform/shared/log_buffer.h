@@ -131,6 +131,14 @@ class LogBuffer {
   size_t copyLogs(void *destination, size_t size, size_t *numLogsDropped);
 
   /**
+   *
+   * @param logSize The size of the log text in bytes.
+   * @return true if log would cause an overflow of the buffer and would
+   * overwrite a log if it was pushed onto the buffer.
+   */
+  bool logWouldCauseOverflow(size_t logSize);
+
+  /**
    * Transfer all data from one log buffer to another. The destination log
    * buffer must have equal or greater capacity than this buffer. This method is
    * thread-safe and will ensure that logs are kept in FIFO ordering during a

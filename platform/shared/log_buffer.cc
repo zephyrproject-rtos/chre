@@ -115,6 +115,12 @@ size_t LogBuffer::copyLogs(void *destination, size_t size,
   return copySize;
 }
 
+bool LogBuffer::logWouldCauseOverflow(size_t logSize) {
+  LockGuard<Mutex> lock(mBufferDataLock);
+  return (getBufferSize() + logSize + kLogDataOffset + 1 /* nullptr */ >
+          mBufferMaxSize);
+}
+
 void LogBuffer::transferTo(LogBuffer & /*buffer*/) {
   // TODO(b/146164384): Implement
 }
