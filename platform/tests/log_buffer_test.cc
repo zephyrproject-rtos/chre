@@ -249,6 +249,40 @@ TEST(LogBuffer, WouldCauseOverflowTest) {
   ASSERT_TRUE(logBuffer.logWouldCauseOverflow(2));
 }
 
+TEST(LogBuffer, TransferTest) {
+  char buffer[kDefaultBufferSize];
+  const size_t kOutBufferSize = 10;
+  char outBuffer[kOutBufferSize];
+  size_t numLogsDropped;
+  TestLogBufferCallback callback;
+  LogBuffer logBufferFrom(&callback, buffer, kDefaultBufferSize);
+  LogBuffer logBufferTo(&callback, buffer, kDefaultBufferSize);
+
+  const char *str1 = "str1";
+  const char *str2 = "str2";
+  const char *str3 = "str3";
+
+  logBufferFrom.handleLog(LogBufferLogLevel::INFO, 0, str1);
+  logBufferFrom.handleLog(LogBufferLogLevel::INFO, 0, str2);
+  logBufferFrom.handleLog(LogBufferLogLevel::INFO, 0, str3);
+
+  logBufferFrom.transferTo(logBufferTo);
+
+  // The logs should have the text of each of the logs pushed onto the From
+  // buffer in FIFO ordering.
+  logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
+  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str1) == 0);
+  logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
+  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str2) == 0);
+  logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
+  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str3) == 0);
+
+  size_t bytesCopied =
+      logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
+  // There should have been no logs left in the To buffer for that last copyLogs
+  ASSERT_EQ(bytesCopied, 0);
+}
+
 // TODO(srok): Add multithreaded tests
 
 }  // namespace chre
