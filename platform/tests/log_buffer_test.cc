@@ -29,7 +29,7 @@ namespace chre {
 
 class TestLogBufferCallback : public LogBufferCallbackInterface {
  public:
-  void onLogsReady(LogBuffer * /*logBuffer*/) {
+  void onLogsReady() {
     // Do nothing
   }
 };
