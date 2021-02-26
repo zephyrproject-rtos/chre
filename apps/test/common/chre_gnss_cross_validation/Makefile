@@ -1,5 +1,5 @@
 #
-# CHRE GNSS Concurrent Cross Validation Test Nanoapp Makefile
+# CHRE GNSS Cross Validation Test Nanoapp Makefile
 #
 # Environment Checks ###########################################################
 ifeq ($(CHRE_PREFIX),)
@@ -14,16 +14,16 @@ endif
 
 # Nanoapp Configuration ########################################################
 
-NANOAPP_NAME = chre_gnss_concurrent_cross_validation
+NANOAPP_NAME = chre_gnss_cross_validation
 NANOAPP_ID = 0x476f6f6754000006
-NANOAPP_NAME_STRING = \"CHRE\ GNSS\ Concurrent\ Cross\ Validation\ Test\"
+NANOAPP_NAME_STRING = \"CHRE\ GNSS\ Cross\ Validation\ Test\"
 NANOAPP_VERSION = 0x00000001
 
-NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_gnss_concurrent_cross_validation
+NANOAPP_PATH = $(CHRE_PREFIX)/apps/test/common/chre_gnss_cross_validation
 
 # Source Code ##################################################################
 
-COMMON_SRCS += $(NANOAPP_PATH)/src/chre_gnss_concurrent_cross_validation.cc
+COMMON_SRCS += $(NANOAPP_PATH)/src/chre_gnss_cross_validation.cc
 
 # Compiler Flags ###############################################################
 
