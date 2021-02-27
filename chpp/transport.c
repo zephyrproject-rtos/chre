@@ -557,7 +557,7 @@ static void chppClearRxDatagram(struct ChppTransportState *context) {
  * @return True if and only if the checksum is correct.
  */
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
-#ifdef CHPP_CHECKSUM_ENABLED
+#if defined(CHPP_CHECKSUM_ENABLED) || defined(CHPP_CHECKSUM_ENABLED_IN)
   uint32_t crc = chppCrc32(0, (const uint8_t *)&context->rxHeader,
                            sizeof(context->rxHeader));
   crc = chppCrc32(
@@ -571,7 +571,7 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
   CHPP_LOGD("Unconditionally assuming Rx checksum=0x%" PRIx32 " is correct",
             crc);
 
-#endif  // CHPP_CHECKSUM_ENABLED
+#endif  // defined(CHPP_CHECKSUM_ENABLED) || defined(CHPP_CHECKSUM_ENABLED_IN)
 
   if (context->rxFooter.checksum != crc) {
     CHPP_LOGE("Rx packet with BAD checksum: footer=0x%" PRIx32
@@ -720,14 +720,14 @@ static size_t chppAddPreamble(uint8_t *buf) {
  */
 static void chppAddFooter(struct PendingTxPacket *packet) {
   struct ChppTransportFooter footer;
-#ifdef CHPP_CHECKSUM_ENABLED
+#if defined(CHPP_CHECKSUM_ENABLED) || defined(CHPP_CHECKSUM_ENABLED_OUT)
   footer.checksum = chppCrc32(0, &packet->payload[CHPP_PREAMBLE_LEN_BYTES],
                               packet->length - CHPP_PREAMBLE_LEN_BYTES);
 #else
   footer.checksum = 1;
   CHPP_LOGD("Using default value of 0x%" PRIx32 " as checksum",
             footer.checksum);
-#endif  // CHPP_CHECKSUM_ENABLED
+#endif  // defined(CHPP_CHECKSUM_ENABLED) || defined(CHPP_CHECKSUM_ENABLED_OUT)
 
   CHPP_LOGD("Adding transport footer. Checksum=0x%" PRIx32 ", len: %" PRIuSIZE
             " -> %" PRIuSIZE,
