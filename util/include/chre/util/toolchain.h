@@ -57,9 +57,12 @@
 //      (void) !foo();
 //      //     ^-- here
 //    }
+#if defined __has_attribute
 #if __has_attribute(warn_unused_result)
 #define CHRE_MUST_USE_RESULT __attribute__((warn_unused_result))
-#else
+#endif
+#endif
+#ifndef CHRE_MUST_USE_RESULT
 #define CHRE_MUST_USE_RESULT
 #endif
 
