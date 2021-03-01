@@ -358,8 +358,8 @@ static void chppWiFiRecoverScanMonitor(
 
     if (!chppWifiClientConfigureScanMonitor(true)) {
       clientContext->scanMonitorSilenceCallback = false;
-      CHPP_LOGE("Unable to re-enable WiFi scan monitoring after reset");
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT_LOG(false,
+                      "Unable to re-enable WiFi scan monitoring after reset");
     }
   }
 }
@@ -403,12 +403,11 @@ static void chppWifiGetCapabilitiesResult(
 
     CHPP_LOGD("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
+
 #ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
-    if (result->capabilities != CHPP_WIFI_DEFAULT_CAPABILITIES) {
-      CHPP_LOGE("Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
-                result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
-      CHPP_PROD_ASSERT(false);
-    }
+    CHPP_ASSERT_LOG((result->capabilities == CHPP_WIFI_DEFAULT_CAPABILITIES),
+                    "Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                    result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
 #endif
 
     clientContext->capabilities = result->capabilities;
@@ -434,7 +433,7 @@ static void chppWifiConfigureScanMonitorResult(
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
       // But no error reported
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT(false);
     } else {
       CHPP_LOGD(
           "Scan monitor failed at service. "
@@ -486,7 +485,7 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
       // But no error reported
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT(false);
     } else {
       CHPP_LOGD("Scan request failed at service. err=%" PRIu8, rxHeader->error);
       gCallbacks->scanResponseCallback(false, CHRE_ERROR);
