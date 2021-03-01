@@ -264,7 +264,7 @@ bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
       *chreSetting = Setting::GLOBAL_MIC_DISABLE;
       break;
     default:
-      LOGE("Unknown setting %" PRIu8, setting);
+      LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));
       success = false;
   }
 
@@ -282,7 +282,7 @@ bool HostProtocolChre::getSettingStateFromFbs(fbs::SettingState state,
       *chreSettingState = SettingState::ENABLED;
       break;
     default:
-      LOGE("Unknown state %" PRIu8, state);
+      LOGE("Unknown state %" PRIu8, static_cast<uint8_t>(state));
       success = false;
   }
 
