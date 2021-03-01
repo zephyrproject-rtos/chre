@@ -219,6 +219,36 @@ TEST(LogBuffer, TruncateLongLog) {
   EXPECT_EQ(bytesCopied, 255);
 }
 
+TEST(LogBuffer, WouldCauseOverflowTest) {
+  char buffer[kDefaultBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  // With an empty buffer inerting one character should not overflow
+  // ASSERT because if this fails the next ASSERT statement is undefined most
+  // likely.
+  ASSERT_FALSE(logBuffer.logWouldCauseOverflow(1));
+
+  // This for loop adds 1000 bytes of data. There is 24 bytes of space left in
+  // the buffer after this loop.
+  for (size_t i = 0; i < 10; i++) {
+    std::string testLogStrStr(94, 'a');
+    const char *testLogStr = testLogStrStr.c_str();
+    logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
+  }
+
+  std::string testLogStrStr(11, 'a');
+  const char *testLogStr = testLogStrStr.c_str();
+  // After this log entry there is room enough for a log of character size 1.
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
+
+  // There should be just enough space for this log
+  ASSERT_FALSE(logBuffer.logWouldCauseOverflow(1));
+
+  // Inserting any more than a one char log should cause overflow
+  ASSERT_TRUE(logBuffer.logWouldCauseOverflow(2));
+}
+
 // TODO(srok): Add multithreaded tests
 
 }  // namespace chre
