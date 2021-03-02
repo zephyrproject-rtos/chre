@@ -18,6 +18,7 @@
 
 #include "chpp/common/wifi_types.h"
 #include "chpp/memory.h"
+#include "chre/test/common/macros.h"
 
 #include <cstring>
 
@@ -280,9 +281,7 @@ void validateRangingParams(const chreWifiRangingParams &chreParams) {
       memcpy(&currentRangingTarget,
              chppRangingList + (i * sizeof(ChppWifiRangingTarget)),
              sizeof(ChppWifiRangingTarget));
-
       SCOPED_TRACE(i);
-
       EXPECT_EQ(currentRangingTarget.macAddress[0],
                 chreParams.targetList[i].macAddress[0]);
       EXPECT_EQ(currentRangingTarget.macAddress[1],
