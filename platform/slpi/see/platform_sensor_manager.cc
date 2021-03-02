@@ -142,6 +142,17 @@ uint8_t getUimgSensorType(uint8_t sensorType) {
 
 #endif  // CHRE_SLPI_UIMG_ENABLED
 
+#ifndef CHRE_LOG_ONLY_NO_SENSOR
+/**
+ * Callback function which will run after a delay if a required sensor is not
+ * found.
+ */
+void crashAfterSensorNotFoundCallback(uint16_t /* eventType */,
+                                      void * /* eventData */) {
+  FATAL_ERROR("Missing required sensor(s)");
+}
+#endif
+
 void handleMissingSensor() {
   // Try rebooting if a sensor is missing, which might help recover from a
   // transient failure/race condition at startup. But to avoid endless crashes,
@@ -151,12 +162,13 @@ void handleMissingSensor() {
   // SLPI SSR).
 #ifndef CHRE_LOG_ONLY_NO_SENSOR
   if (SystemTime::getMonotonicTime() < (kDefaultSeeWaitTimeout + Seconds(15))) {
-    FATAL_ERROR("Missing required sensor(s)");
-  } else
-#endif
-  {
-    LOGE("Missing required sensor(s)");
+    Nanoseconds delay(5 * Seconds(60).toRawNanoseconds());  // 5 minutes
+    EventLoopManagerSingleton::get()->setDelayedCallback(
+        SystemCallbackType::DelayedFatalError, nullptr,
+        crashAfterSensorNotFoundCallback, delay);
   }
+#endif
+  LOGE("Missing required sensor(s)");
 }
 
 /**
