@@ -1069,10 +1069,6 @@ static void chppReset(struct ChppTransportState *transportContext,
       transportContext->rxHeader.packetCode;
   transportContext->rxStatus.expectedSeq = transportContext->rxHeader.seq + 1;
 
-  // Initialize app layer
-  chppAppInitTransient(appContext, transportContext,
-                       appContext->clientServiceSet);
-
   // Send reset-ACK
   chppMutexUnlock(&transportContext->mutex);
   chppTransportSendReset(transportContext, resetType);
@@ -1089,8 +1085,10 @@ void chppTransportInit(struct ChppTransportState *transportContext,
                        struct ChppAppState *appContext) {
   CHPP_NOT_NULL(transportContext);
   CHPP_NOT_NULL(appContext);
+  CHPP_ASSERT_LOG(!transportContext->initialized,
+                  "CHPP transport already initialized");
 
-  CHPP_LOGD("Initializing the CHPP transport layer");
+  CHPP_LOGD("Initializing CHPP transport");
 
   chppResetTransportContext(transportContext);
   chppMutexInit(&transportContext->mutex);
@@ -1098,20 +1096,22 @@ void chppTransportInit(struct ChppTransportState *transportContext,
   chppConditionVariableInit(&transportContext->resetCondVar);
 
   transportContext->appContext = appContext;
+  transportContext->initialized = true;
+
   chppPlatformLinkInit(&transportContext->linkParams);
 }
 
 void chppTransportDeinit(struct ChppTransportState *transportContext) {
   CHPP_NOT_NULL(transportContext);
-
-  CHPP_LOGD("Deinitializing the CHPP transport layer");
+  CHPP_ASSERT_LOG(transportContext->initialized,
+                  "CHPP transport already deinitialized");
 
   chppPlatformLinkDeinit(&transportContext->linkParams);
   chppConditionVariableDeinit(&transportContext->resetCondVar);
   chppNotifierDeinit(&transportContext->notifier);
   chppMutexDeinit(&transportContext->mutex);
 
-  // TODO: Do other cleanup
+  transportContext->initialized = false;
 }
 
 bool chppTransportWaitForResetComplete(

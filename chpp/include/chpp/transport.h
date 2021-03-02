@@ -407,6 +407,7 @@ struct ChppTransportState {
 
   struct ChppMutex mutex;          // Lock for transport state (i.e. context)
   struct ChppNotifier notifier;    // Notifier for main thread
+  bool initialized;                // Has been initialized
   enum ChppResetState resetState;  // Maintains state of a reset
   uint16_t resetCount;             // (Unsuccessful) reset attempts
   uint64_t resetTimeNs;            // Time of last reset
