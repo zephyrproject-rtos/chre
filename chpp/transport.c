@@ -964,7 +964,8 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     if (len < sizeof(struct ChppAppHeader)) {
       CHPP_LOGI("Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " H#%" PRIu8
                 " pending=%" PRIu8,
-                packetCode, len, *handle, context->txDatagramQueue.pending + 1);
+                packetCode, len, *handle,
+                (uint8_t)(context->txDatagramQueue.pending + 1));
     } else {
       struct ChppAppHeader *header = buf;
       CHPP_LOGI("Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " H#%" PRIu8
@@ -972,7 +973,7 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
                 " pending=%" PRIu8,
                 packetCode, len, header->handle, header->type,
                 header->transaction, header->error, header->command,
-                context->txDatagramQueue.pending + 1);
+                (uint8_t)(context->txDatagramQueue.pending + 1));
     }
 
     chppMutexLock(&context->mutex);
