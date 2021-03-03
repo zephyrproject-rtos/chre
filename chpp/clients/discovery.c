@@ -101,6 +101,13 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
                                             const uint8_t *buf, size_t len) {
   CHPP_DEBUG_ASSERT(len >= sizeof(struct ChppAppHeader));
 
+  if (context->isDiscoveryComplete) {
+    CHPP_LOGE("Duplicate discovery response");
+    // Notify any clients waiting on discovery completion
+    chppConditionVariableSignal(&context->discoveryCv);
+    return;
+  }
+
   const struct ChppDiscoveryResponse *response =
       (const struct ChppDiscoveryResponse *)buf;
   size_t servicesLen = len - sizeof(struct ChppAppHeader);
@@ -240,16 +247,22 @@ ChppNotifierFunction *chppGetClientMatchNotifierFunction(
  ***********************************************/
 
 void chppDiscoveryInit(struct ChppAppState *context) {
-  if (!context->isDiscoveryClientInitialized) {
-    chppMutexInit(&context->discoveryMutex);
-    chppConditionVariableInit(&context->discoveryCv);
-    context->matchedClientCount = 0;
-    context->isDiscoveryComplete = false;
-    context->isDiscoveryClientInitialized = true;
-  }
+  CHPP_ASSERT_LOG(!context->isDiscoveryClientInitialized,
+                  "Discovery client already initialized");
+
+  CHPP_LOGD("Initializing CHPP discovery client");
+  chppMutexInit(&context->discoveryMutex);
+  chppConditionVariableInit(&context->discoveryCv);
+  context->matchedClientCount = 0;
+  context->isDiscoveryComplete = false;
+  context->isDiscoveryClientInitialized = true;
 }
 
 void chppDiscoveryDeinit(struct ChppAppState *context) {
+  CHPP_ASSERT_LOG(context->isDiscoveryClientInitialized,
+                  "Discovery client already deinitialized");
+
+  CHPP_LOGD("Deinitializing CHPP discovery client");
   chppConditionVariableDeinit(&context->discoveryCv);
   chppMutexDeinit(&context->discoveryMutex);
   context->isDiscoveryClientInitialized = false;
@@ -293,6 +306,13 @@ bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
 }
 
 void chppInitiateDiscovery(struct ChppAppState *context) {
+  if (context->isDiscoveryComplete) {
+    CHPP_LOGE("Duplicate discovery init");
+    // Notify any clients waiting on discovery completion
+    chppConditionVariableSignal(&context->discoveryCv);
+    return;
+  }
+
   for (uint8_t i = 0; i < CHPP_MAX_DISCOVERED_SERVICES; i++) {
     context->clientIndexOfServiceIndex[i] = CHPP_CLIENT_INDEX_NONE;
   }
@@ -301,11 +321,6 @@ void chppInitiateDiscovery(struct ChppAppState *context) {
   request->handle = CHPP_HANDLE_DISCOVERY;
   request->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
   request->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
-
-  chppMutexLock(&context->discoveryMutex);
-  context->matchedClientCount = 0;
-  context->isDiscoveryComplete = false;
-  chppMutexUnlock(&context->discoveryMutex);
 
   chppEnqueueTxDatagramOrFail(context->transportContext, request,
                               sizeof(*request));

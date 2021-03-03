@@ -421,22 +421,6 @@ void chppAppInitWithClientServiceSet(
     struct ChppClientServiceSet clientServiceSet);
 
 /**
- * Similar to chppAppInitWithClientServiceSet(), but to be invoked during
- * execution of CHPP when only part of the appContext needs to be initialized.
- * In contrast, chppAppInitWithClientServiceSet resets all fields of appContext
- * to zero
- *
- * @param appContext Maintains status for each app layer instance.
- * @param transportContext The transport layer status struct associated with
- * this app layer instance.
- * @param clientServiceSet Bitmap specifying the client/service endpoints to be
- * enabled.
- */
-void chppAppInitTransient(struct ChppAppState *appContext,
-                          struct ChppTransportState *transportContext,
-                          struct ChppClientServiceSet clientServiceSet);
-
-/**
  * Deinitializes the CHPP app layer for e.g. clean shutdown.
  *
  * @param appContext A non-null pointer to ChppAppState initialized previously
