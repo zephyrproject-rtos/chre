@@ -122,18 +122,14 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
     }
   }
 
-  CHPP_LOGI(
-      "Loopback client processed service response. Test %s. response "
-      "len=%" PRIuSIZE ", request len=%" PRIuSIZE ", error code=0x%" PRIx16
-      ", first err=%" PRIuSIZE ", total errors=%" PRIuSIZE,
-      (context->loopbackClientContext->testResult.error == CHPP_APP_ERROR_NONE)
-          ? "succeeded"
-          : "failed",
-      context->loopbackClientContext->testResult.responseLen,
-      context->loopbackClientContext->testResult.requestLen,
-      context->loopbackClientContext->testResult.error,
-      context->loopbackClientContext->testResult.firstError,
-      context->loopbackClientContext->testResult.byteErrors);
+  CHPP_LOGI("Loopback client RX response. Error code=0x%" PRIx16
+            ", response len=%" PRIuSIZE ", request len=%" PRIuSIZE
+            ", first err=%" PRIuSIZE ", total err=%" PRIuSIZE,
+            context->loopbackClientContext->testResult.error,
+            context->loopbackClientContext->testResult.responseLen,
+            context->loopbackClientContext->testResult.requestLen,
+            context->loopbackClientContext->testResult.firstError,
+            context->loopbackClientContext->testResult.byteErrors);
 
   // Notify waiting (synchronous) client
   chppMutexLock(&context->loopbackClientContext->client.responseMutex);
@@ -148,8 +144,7 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
 struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
                                                   const uint8_t *buf,
                                                   size_t len) {
-  CHPP_LOGI("Running loopback test with payload len=%" PRIuSIZE
-            ", request len=%" PRIuSIZE,
+  CHPP_LOGI("Loopback test. payload len=%" PRIuSIZE ", request len=%" PRIuSIZE,
             len, len + CHPP_LOOPBACK_HEADER_LEN);
 
   if (!chppWaitForDiscoveryComplete(context,
