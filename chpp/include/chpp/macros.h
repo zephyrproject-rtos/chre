@@ -47,21 +47,22 @@ extern "C" {
 #define CHPP_ASSERT(var) assert(var)
 #endif
 
+#ifndef CHPP_ASSERT_LOG
+#define CHPP_ASSERT_LOG(var, fmt, ...) \
+  do {                                 \
+    if (!(var)) {                      \
+      CHPP_LOGE(fmt, ##__VA_ARGS__);   \
+      CHPP_ASSERT(false);              \
+    }                                  \
+  } while (0)
+#endif
+
 #ifndef CHPP_NOT_NULL
 #define CHPP_NOT_NULL(var) CHPP_ASSERT((var) != NULL)
 #endif
 
 #ifndef CHPP_DEBUG_ASSERT
 #define CHPP_DEBUG_ASSERT(var) CHPP_ASSERT(var)
-#endif
-
-// Asserts to be enabled for production software
-#ifndef CHPP_PROD_ASSERT
-#ifdef CHPP_PROD_ASSERT_ENABLED
-#define CHPP_PROD_ASSERT(var) CHPP_ASSERT(var)
-#else
-#define CHPP_PROD_ASSERT(var)
-#endif
 #endif
 
 #ifndef PRIu64  // Pre-C99 lacks PRIu64 support. Note that the correct

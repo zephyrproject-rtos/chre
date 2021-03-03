@@ -1445,11 +1445,9 @@ uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
 void chppTransportSendReset(struct ChppTransportState *context,
                             enum ChppTransportPacketAttributes resetType) {
   // Make sure CHPP is in an initialized state
-  if (context->txDatagramQueue.pending > 0 ||
-      context->txDatagramQueue.front != 0) {
-    CHPP_LOGE("Send reset, but not initialized");
-    CHPP_ASSERT(false);
-  }
+  CHPP_ASSERT_LOG((context->txDatagramQueue.pending == 0 &&
+                   context->txDatagramQueue.front == 0),
+                  "Send reset but not initialized");
 
   struct ChppTransportConfiguration *config =
       chppMalloc(sizeof(struct ChppTransportConfiguration));

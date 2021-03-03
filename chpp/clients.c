@@ -352,8 +352,7 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
     if (!chppSendTimestampedRequestOrFail(clientState, openRRState, request,
                                           sizeof(*request))) {
       clientState->openState = CHPP_OPEN_STATE_CLOSED;
-      CHPP_LOGE("Failed to reopen service");
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT_LOG(false, "Failed to reopen service");
     } else {
       result = true;
     }
