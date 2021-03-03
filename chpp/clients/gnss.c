@@ -385,12 +385,11 @@ static void chppGnssGetCapabilitiesResult(
 
     CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
+
 #ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
-    if (result->capabilities != CHPP_GNSS_DEFAULT_CAPABILITIES) {
-      CHPP_LOGE("Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
-                result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
-      CHPP_PROD_ASSERT(false);
-    }
+    CHPP_ASSERT_LOG((result->capabilities == CHPP_GNSS_DEFAULT_CAPABILITIES),
+                    "Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                    result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
 #endif
 
     clientContext->capabilities = result->capabilities;
@@ -416,7 +415,7 @@ static void chppGnssControlLocationSessionResult(
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
       // But no error reported
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT(false);
     } else {
       CHPP_LOGE("ControlLocation failed at service: %" PRIu8, rxHeader->error);
       gCallbacks->locationStatusChangeCallback(false, CHRE_ERROR);
@@ -456,7 +455,7 @@ static void chppGnssControlMeasurementSessionResult(
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
       // But no error reported
-      CHPP_PROD_ASSERT(false);
+      CHPP_ASSERT(false);
     } else {
       CHPP_LOGE("Measurement failed at service err=%" PRIu8, rxHeader->error);
       gCallbacks->measurementStatusChangeCallback(false, CHRE_ERROR);
