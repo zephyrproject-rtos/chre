@@ -19,6 +19,7 @@
 
 #include "chre_host/daemon_base.h"
 #include "chre_host/log.h"
+#include "chre_host/napp_header.h"
 
 #include <json/json.h>
 
@@ -74,20 +75,6 @@ void ChreDaemonBase::loadPreloadedNanoapp(const std::string &directory,
 bool ChreDaemonBase::loadNanoapp(const std::vector<uint8_t> &header,
                                  const std::string &nanoappName,
                                  uint32_t transactionId) {
-  // This struct comes from build/build_template.mk and must not be modified.
-  // Refer to that file for more details.
-  struct NanoAppBinaryHeader {
-    uint32_t headerVersion;
-    uint32_t magic;
-    uint64_t appId;
-    uint32_t appVersion;
-    uint32_t flags;
-    uint64_t hwHubType;
-    uint8_t targetChreApiMajorVersion;
-    uint8_t targetChreApiMinorVersion;
-    uint8_t reserved[6];
-  } __attribute__((packed));
-
   bool success = false;
   if (header.size() != sizeof(NanoAppBinaryHeader)) {
     LOGE("Header size mismatch");
