@@ -110,7 +110,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
   CHPP_LOGD(
       "Timesync client processed response. request t=%" PRIu64
       ", response t=%" PRIu64 ", service t=%" PRIu64 ", req2srv=%" PRIu64
-      ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", RTT=%" PRIu64 ", updated=%s",
+      ", srv2res=%" PRIi64 ", offset=%" PRIi64 ", RTT=%" PRIu64 ", updated=%d",
       context->timesyncClientContext->measureOffset.requestTimeNs,
       context->timesyncClientContext->measureOffset.responseTimeNs,
       response->timeNs,
@@ -120,8 +120,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
                 response->timeNs),
       context->timesyncClientContext->timesyncResult.offsetNs,
       context->timesyncClientContext->timesyncResult.rttNs,
-      (context->timesyncClientContext->timesyncResult.rttNs == rttNs) ? "yes"
-                                                                      : "no");
+      (context->timesyncClientContext->timesyncResult.rttNs == rttNs));
 
   // Notify waiting (synchronous) client
   chppMutexLock(&context->timesyncClientContext->client.responseMutex);

@@ -448,9 +448,9 @@ static void chppWifiConfigureScanMonitorResult(
 
     gWifiClientContext.scanMonitorEnabled = result->enabled;
     CHPP_LOGD(
-        "chppWifiConfigureScanMonitorResult received enable=%s, "
+        "chppWifiConfigureScanMonitorResult received enable=%d, "
         "errorCode=%" PRIu8,
-        result->enabled ? "true" : "false", result->errorCode);
+        result->enabled, result->errorCode);
 
     if (!gWifiClientContext.scanMonitorSilenceCallback) {
       // Per the scanMonitorStatusChangeCallback API contract, unsolicited
@@ -495,8 +495,7 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
     struct ChppWifiRequestScanResponseParameters *result =
         &((struct ChppWifiRequestScanResponse *)buf)->params;
 
-    CHPP_LOGI("Scan request %ssuccessful at service",
-              result->pending ? "accepted and " : "FAILURE - accepted but un");
+    CHPP_LOGI("Scan request success=%d (at service)", result->pending);
 
     gCallbacks->scanResponseCallback(result->pending, result->errorCode);
   }
