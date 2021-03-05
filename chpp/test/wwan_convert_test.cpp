@@ -88,7 +88,12 @@ const chreWwanCellInfoResult kChreResultTwoCell = {
 // clang-format on
 
 void compareCellInfo(const chreWwanCellInfo *chre,
-                     const ChppWwanCellInfo *chpp) {
+                     const ChppWwanCellInfo *chppIn) {
+  // Local variable needed to avoid unaligned memory access.
+  ChppWwanCellInfo chppLocal;
+  memcpy(&chppLocal, chppIn, sizeof(ChppWwanCellInfo));
+  const ChppWwanCellInfo *chpp = &chppLocal;
+
   EXPECT_EQ(chpp->timeStamp, chre->timeStamp);
   EXPECT_EQ(chpp->cellInfoType, chre->cellInfoType);
   EXPECT_EQ(chpp->timeStampType, chre->timeStampType);
