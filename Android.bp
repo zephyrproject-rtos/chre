@@ -296,6 +296,15 @@ cc_library_headers {
     host_supported: true,
 }
 
+cc_library_headers {
+    name: "chre_test_common",
+    vendor: true,
+    export_include_dirs: [
+        "test/common/include",
+    ],
+    host_supported: true,
+}
+
 cc_library_static {
     name: "chre_pal_linux",
     vendor: true,

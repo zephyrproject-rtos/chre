@@ -125,6 +125,9 @@ cc_test_host {
         "-Wcast-align",
         "-Wsign-compare",
     ],
+    header_libs: [
+        "chre_test_common",
+    ],
     srcs: [
         "test/wifi_convert_test.cpp",
         "test/wwan_convert_test.cpp"
