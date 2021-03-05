@@ -194,9 +194,8 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     }
   }
 
-  CHPP_LOGD("Successfully matched %" PRIu8
-            " clients with services, out of a total of %" PRIu8
-            " registered clients and %" PRIu8 " discovered services",
+  CHPP_LOGD("Matched %" PRIu8 " out of %" PRIu8 " clients and %" PRIu8
+            " services",
             matchedClients, context->registeredClientCount, serviceCount);
 
   // Notify any clients waiting on discovery completion
@@ -215,10 +214,9 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
       ChppNotifierFunction *MatchNotifierFunction =
           chppGetClientMatchNotifierFunction(context, clientIndex);
 
-      CHPP_LOGD(
-          "Client #%" PRIu8 " (H#%d) match notifier %s", clientIndex,
-          CHPP_SERVICE_HANDLE_OF_INDEX(i),
-          (MatchNotifierFunction == NULL) ? "is unsupported" : "starting");
+      CHPP_LOGD("Client #%" PRIu8 " (H#%d) match notifier found=%d",
+                clientIndex, CHPP_SERVICE_HANDLE_OF_INDEX(i),
+                (MatchNotifierFunction != NULL));
 
       if (MatchNotifierFunction != NULL) {
         MatchNotifierFunction(context->registeredClientContexts[clientIndex]);
