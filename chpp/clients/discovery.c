@@ -103,8 +103,6 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
 
   if (context->isDiscoveryComplete) {
     CHPP_LOGE("Duplicate discovery response");
-    // Notify any clients waiting on discovery completion
-    chppConditionVariableSignal(&context->discoveryCv);
     return;
   }
 
@@ -306,8 +304,6 @@ bool chppDispatchDiscoveryServiceResponse(struct ChppAppState *context,
 void chppInitiateDiscovery(struct ChppAppState *context) {
   if (context->isDiscoveryComplete) {
     CHPP_LOGE("Duplicate discovery init");
-    // Notify any clients waiting on discovery completion
-    chppConditionVariableSignal(&context->discoveryCv);
     return;
   }
 
