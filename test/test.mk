@@ -29,6 +29,10 @@ COMMON_SRCS += $(CHRE_PREFIX)/core/tests/request_multiplexer_test.cc
 COMMON_SRCS += $(CHRE_PREFIX)/core/tests/sensor_request_test.cc
 COMMON_SRCS += $(CHRE_PREFIX)/core/tests/wifi_scan_request_test.cc
 
+# CHPP tests
+COMMON_SRCS += $(CHRE_PREFIX)/chpp/test/wifi_convert_test.cpp
+COMMON_SRCS += $(CHRE_PREFIX)/chpp/test/wwan_convert_test.cpp
+
 # PAL unit tests
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/pal/tests/include
 
