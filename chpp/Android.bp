@@ -81,10 +81,10 @@ cc_library_static {
         "services/wifi.c",
         "services/wwan.c",
         "platform/pal_api.c",
-        "platform/linux/crc.c",
         "platform/linux/link.c",
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
+        "platform/shared/crc.c",
     ],
     export_include_dirs: [
         "platform/linux/include",
