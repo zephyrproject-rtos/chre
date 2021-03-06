@@ -13,6 +13,7 @@ Implement the platform-specific functionality utilized by CHPP. These can be fou
 1. Mutexes (or other resource sharing mechanism)
 1. Condition variables
 1. Logging (including defining CHPP_LOGx, CHPP_LOG_OOM, PRIuSIZE)
+1. CRC32 (a half-byte algorithm is provided in platform/shared, but it is recommended to use a platform-optimized / hardware algorithm when available)
 
 Sample Linux implementations are provided.
 
