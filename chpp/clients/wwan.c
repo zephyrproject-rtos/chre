@@ -292,9 +292,10 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GetCapabilities failed at service. err=%" PRIu8,
-              rxHeader->error);
-    CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
+    CHPP_LOGE("GetCapabilities failed at service err=%" PRIu8, rxHeader->error);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      CHPP_LOGE("Missing err");
+    }
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =
@@ -333,12 +334,9 @@ static void chppWwanGetCellInfoAsyncResult(
 
   if (len == sizeof(struct ChppAppHeader)) {
     // Short response length indicates an error
-
+    CHPP_LOGE("GetCellInfo failed at service err=%" PRIu8, rxHeader->error);
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      // But no error reported
-      CHPP_ASSERT(false);
-    } else {
-      CHPP_LOGE("GetCellInfo failed at service err=%" PRIu8, rxHeader->error);
+      CHPP_LOGE("Missing err");
     }
 
   } else {
