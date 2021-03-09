@@ -13,11 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <cinttypes>
+
+#include "chre/util/nanoapp/log.h"
 
 #include <general_test/basic_audio_test.h>
 
 #include <shared/send_message.h>
 #include <shared/time_util.h>
+
+#define LOG_TAG "[ChreBasicAudioTest]"
 
 using nanoapp_testing::kOneSecondInNanoseconds;
 using nanoapp_testing::sendFatalFailureToHost;
@@ -241,12 +246,18 @@ void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
     } else {
       // Per the CHRE Audio API requirements, it is expected that we exactly
       // the number of samples that we ask for - we verify that here.
-      const size_t kNumSamplesExpected =
-          audioSource.minBufferDuration * kRequiredSampleRate;
+      const size_t kNumSamplesExpected = audioSource.minBufferDuration /
+                                         kOneSecondInNanoseconds *
+                                         kRequiredSampleRate;
       if (dataEvent->sampleCount != kNumSamplesExpected) {
-        sendFatalFailureToHost(
-            "Failed to receive the expected number of samples in audio data "
-            "event");
+        LOGE("Unexpected num samples - Expected: %u, Actual: %" PRIu32,
+             kNumSamplesExpected, dataEvent->sampleCount);
+        uint32_t sampleCountDifference =
+            (kNumSamplesExpected > dataEvent->sampleCount)
+                ? (kNumSamplesExpected - dataEvent->sampleCount)
+                : (dataEvent->sampleCount - kNumSamplesExpected);
+        sendFatalFailureToHost("Unexpected number of samples received",
+                               &sampleCountDifference);
       }
     }
   }
