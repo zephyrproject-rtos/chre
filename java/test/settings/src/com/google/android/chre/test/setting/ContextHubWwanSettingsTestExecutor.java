@@ -119,7 +119,7 @@ public class ContextHubWwanSettingsTestExecutor {
         Assert.assertTrue(isAirplaneModeOn() == airplaneModeExpected);
 
         try {
-            Thread.sleep(1000);  // wait for setting to propagate
+            Thread.sleep(3000);  // wait for setting to propagate
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
