@@ -395,7 +395,9 @@ static void chppWifiGetCapabilitiesResult(
   if (len < sizeof(struct ChppWifiGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
     CHPP_LOGE("GetCapabilities failed at service err=%" PRIu8, rxHeader->error);
-    CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      CHPP_LOGE("Missing err");
+    }
 
   } else {
     struct ChppWifiGetCapabilitiesParameters *result =
@@ -431,14 +433,11 @@ static void chppWifiConfigureScanMonitorResult(
     // Short response length indicates an error
 
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("Scan monitor failed at service err=%" PRIu8, rxHeader->error);
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      // But no error reported
-      CHPP_ASSERT(false);
+      CHPP_LOGE("Missing err");
     } else {
-      CHPP_LOGD(
-          "Scan monitor failed at service. "
-          "err=%" PRIu8,
-          rxHeader->error);
+      // TODO (b/182309999): Remove else and always call
       gCallbacks->scanMonitorStatusChangeCallback(false, CHRE_ERROR);
     }
 
@@ -483,11 +482,11 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
     // Short response length indicates an error
 
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("Scan request failed at service err=%" PRIu8, rxHeader->error);
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      // But no error reported
-      CHPP_ASSERT(false);
+      CHPP_LOGE("Missing err");
     } else {
-      CHPP_LOGD("Scan request failed at service. err=%" PRIu8, rxHeader->error);
+      // TODO (b/182309999): Remove else and always call
       gCallbacks->scanResponseCallback(false, CHRE_ERROR);
     }
 
@@ -518,9 +517,13 @@ static void chppWifiRequestRangingResult(
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE("Ranging request failed at service. err=%" PRIu8,
-              rxHeader->error);
-    gCallbacks->rangingEventCallback(CHRE_ERROR, NULL);
+    CHPP_LOGE("Ranging request failed at service err=%" PRIu8, rxHeader->error);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      CHPP_LOGE("Missing err");
+    } else {
+      // TODO (b/182309999): Remove else and always call
+      gCallbacks->rangingEventCallback(CHRE_ERROR, NULL);
+    }
 
   } else {
     CHPP_LOGD("Ranging request accepted at service");
