@@ -74,6 +74,8 @@ class HostMessageHandlers {
 
   static void handleSettingChangeMessage(fbs::Setting setting,
                                          fbs::SettingState state);
+
+  static void handleSelfTestRequest(uint16_t hostClientId);
 };
 
 /**
@@ -228,6 +230,12 @@ class HostProtocolChre : public HostProtocolCommon {
    */
   static bool getSettingStateFromFbs(fbs::SettingState state,
                                      SettingState *chreSettingState);
+
+  /**
+   * Encodes a message notifying the result of a self test.
+   */
+  static void encodeSelfTestResponse(ChreFlatBufferBuilder &builder,
+                                     uint16_t hostClientId, bool success);
 };
 
 }  // namespace chre

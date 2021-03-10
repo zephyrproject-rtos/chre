@@ -133,6 +133,10 @@ class SocketCallbacks : public SocketClient::ICallbacks,
     LOGI("Got unload nanoapp response, transaction ID 0x%" PRIx32 " result %d",
          response.transaction_id, response.success);
   }
+
+  void handleSelfTestResponse(const ::chre::fbs::SelfTestResponseT &response) {
+    LOGI("Got self test response with success %d", response.success);
+  }
 };
 
 void requestHubInfo(SocketClient &client) {
@@ -261,6 +265,16 @@ void sendUnloadNanoappRequest(SocketClient &client, uint64_t appId) {
   }
 }
 
+void sendSelfTestRequest(SocketClient &client) {
+  FlatBufferBuilder builder(48);
+  HostProtocolHost::encodeSelfTestRequest(builder);
+
+  LOGI("Sending self test");
+  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+    LOGE("Failed to send message");
+  }
+}
+
 }  // anonymous namespace
 
 static void usage(const std::string &name) {
@@ -272,7 +286,7 @@ static void usage(const std::string &name) {
       name +
       " load <nanoapp-id> <nanoapp-so-path> [app-version] [api-version]\n  " +
       name + " load_with_header <nanoapp-so-path> <nanoapp-header-path>\n  " +
-      name + " unload <nanoapp-id>\n";
+      name + " unload <nanoapp-id>\n " + name + " self_test\n";
 
   LOGI("%s", output.c_str());
 }
@@ -353,6 +367,9 @@ int main(int argc, char *argv[]) {
     }
     std::istringstream(idstr) >> std::setbase(0) >> id;
     sendUnloadNanoappRequest(client, id);
+  } else if (cmd == "self_test") {
+    sendSelfTestRequest(client);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
   } else {
     LOGE("Invalid command provided!");
     usage(name);

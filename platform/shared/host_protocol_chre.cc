@@ -117,6 +117,11 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         break;
       }
 
+      case fbs::ChreMessage::SelfTestRequest: {
+        HostMessageHandlers::handleSelfTestRequest(hostClientId);
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -245,6 +250,14 @@ void HostProtocolChre::encodeLowPowerMicAccessRelease(
   auto request = fbs::CreateLowPowerMicAccessRelease(builder);
   finalize(builder, fbs::ChreMessage::LowPowerMicAccessRelease,
            request.Union());
+}
+
+void HostProtocolChre::encodeSelfTestResponse(ChreFlatBufferBuilder &builder,
+                                              uint16_t hostClientId,
+                                              bool success) {
+  auto response = fbs::CreateSelfTestResponse(builder, success);
+  finalize(builder, fbs::ChreMessage::SelfTestResponse, response.Union(),
+           hostClientId);
 }
 
 bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,

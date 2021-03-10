@@ -71,6 +71,9 @@ class IChreMessageHandlers {
 
   virtual void handleDebugDumpResponse(
       const ::chre::fbs::DebugDumpResponseT & /*response*/){};
+
+  virtual void handleSelfTestResponse(
+      const ::chre::fbs::SelfTestResponseT & /*response*/){};
 };
 
 /**
@@ -225,6 +228,11 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
   static void encodeSettingChangeNotification(
       flatbuffers::FlatBufferBuilder &builder, ::chre::fbs::Setting setting,
       ::chre::fbs::SettingState newState);
+
+  /**
+   * Encodes a message to request CHRE to perform a self test.
+   */
+  static void encodeSelfTestRequest(flatbuffers::FlatBufferBuilder &builder);
 };
 
 }  // namespace chre
