@@ -375,9 +375,10 @@ static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppGnssGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GNSS GetCapabilities failed at service. err=%" PRIu8,
-              rxHeader->error);
-    CHPP_ASSERT(rxHeader->error != CHPP_APP_ERROR_NONE);
+    CHPP_LOGE("GetCapabilities failed at service err=%" PRIu8, rxHeader->error);
+    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
+      CHPP_LOGE("Missing err");
+    }
 
   } else {
     struct ChppGnssGetCapabilitiesParameters *result =
@@ -413,11 +414,11 @@ static void chppGnssControlLocationSessionResult(
     // Short response length indicates an error
 
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("ControlLocation failed at service err=%" PRIu8, rxHeader->error);
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      // But no error reported
-      CHPP_ASSERT(false);
+      CHPP_LOGE("Missing err");
     } else {
-      CHPP_LOGE("ControlLocation failed at service: %" PRIu8, rxHeader->error);
+      // TODO (b/182309999): Remove else and always call
       gCallbacks->locationStatusChangeCallback(false, CHRE_ERROR);
     }
 
@@ -453,11 +454,11 @@ static void chppGnssControlMeasurementSessionResult(
     // Short response length indicates an error
 
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+    CHPP_LOGE("Measurement failed at service err=%" PRIu8, rxHeader->error);
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      // But no error reported
-      CHPP_ASSERT(false);
+      CHPP_LOGE("Missing err");
     } else {
-      CHPP_LOGE("Measurement failed at service err=%" PRIu8, rxHeader->error);
+      // TODO (b/182309999): Remove else and always call
       gCallbacks->measurementStatusChangeCallback(false, CHRE_ERROR);
     }
 
@@ -493,7 +494,7 @@ static void chppGnssConfigurePassiveLocationListenerResult(
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE("Passive scan failed at service %" PRIu8, rxHeader->error);
+    CHPP_LOGE("Passive scan failed at service err=%" PRIu8, rxHeader->error);
     CHPP_DEBUG_ASSERT(false);
 
   } else {
