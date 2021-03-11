@@ -83,6 +83,10 @@ bool HostProtocolHost::decodeMessageFromChre(const void *message,
         handlers.handleDebugDumpResponse(*msg.AsDebugDumpResponse());
         break;
 
+      case fbs::ChreMessage::SelfTestResponse:
+        handlers.handleSelfTestResponse(*msg.AsSelfTestResponse());
+        break;
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(msg.type));
@@ -201,6 +205,12 @@ void HostProtocolHost::encodeSettingChangeNotification(
       fbs::CreateSettingChangeMessage(builder, setting, newState);
   finalize(builder, fbs::ChreMessage::SettingChangeMessage,
            notification.Union());
+}
+
+void HostProtocolHost::encodeSelfTestRequest(
+    flatbuffers::FlatBufferBuilder &builder) {
+  auto request = fbs::CreateSelfTestRequest(builder);
+  finalize(builder, fbs::ChreMessage::SelfTestRequest, request.Union());
 }
 
 }  // namespace chre
