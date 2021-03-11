@@ -298,6 +298,15 @@ table LogMessageV2 {
   num_logs_dropped:uint;
 }
 
+// A request to perform basic internal self-test in CHRE. The test to be performed
+// is platform-dependent, and can be used to check if the system is functioning
+// properly. This message should be used for debugging/testing.
+table SelfTestRequest {}
+table SelfTestResponse {
+  // True if the self-test succeeded.
+  success:bool;
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -331,6 +340,9 @@ union ChreMessage {
   SettingChangeMessage,
 
   LogMessageV2,
+
+  SelfTestRequest,
+  SelfTestResponse,
 }
 
 struct HostAddress {
