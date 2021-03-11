@@ -112,6 +112,8 @@ class LogBuffer {
   void handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
                    const char *logFormat, va_list args);
 
+  // TODO(b/179786399): Remove the copyLogs method when the LogBufferManager is
+  // refactored to no longer use it.
   /**
    * Copy out as many logs as will fit into destination buffer as they are
    * formatted internally. The memory where the logs were stored will be freed.
@@ -140,7 +142,9 @@ class LogBuffer {
 
   /**
    * Transfer all data from one log buffer to another. The destination log
-   * buffer must have equal or greater capacity than this buffer. This method is
+   * buffer must have equal or greater capacity than this buffer. The
+   * otherBuffer will be reset prior to this buffer's data being transferred to
+   * it and after the transfer this buffer will be reset. This method is
    * thread-safe and will ensure that logs are kept in FIFO ordering during a
    * transfer operation.
    *
@@ -162,11 +166,6 @@ class LogBuffer {
                                  size_t thresholdBytes = 0);
 
  private:
-  /**
-   * @return The current buffer size.
-   */
-  size_t getBufferSize() const;
-
   /**
    * Increment the value and take the modulus of the max size of the buffer.
    *
@@ -215,6 +214,14 @@ class LogBuffer {
    */
   size_t getLogDataLength(size_t startingIndex);
 
+  /**
+   * Thread safe.
+   *
+   * Empty out the log entries currently in the buffer and reset the number of
+   * logs dropped.
+   */
+  void reset();
+
   //! The number of bytes in a log entry of the buffer before the log data is
   //! encountered.
   static constexpr size_t kLogDataOffset = 5;
@@ -230,7 +237,7 @@ class LogBuffer {
    * Since dataLength cannot be greater than uint8_t the max size of the data
    * portion can be max 255.
    */
-  uint8_t *mBufferData;
+  uint8_t *const mBufferData;
 
   // TODO(b/170870354): Create a cirular buffer class to reuse this concept in
   // other parts of CHRE
@@ -257,8 +264,8 @@ class LogBuffer {
   size_t mNotificationThresholdBytes = 0;
 
   // TODO(srok): Optimize the locking scheme
-  //! The mutex guarding the buffer data bytes array
-  Mutex mBufferDataLock;
+  //! The mutex guarding all thread safe operations.
+  Mutex mLock;
 };
 
 }  // namespace chre
