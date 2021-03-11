@@ -23,6 +23,8 @@ import androidx.test.InstrumentationRegistry;
 import com.google.android.chre.nanoapp.proto.ChreSettingsTest;
 import com.google.android.utils.chre.ChreTestUtil;
 
+import org.junit.Assert;
+
 /**
  * A test to check for behavior when MIC_DISABLE  settings are changed.
  */
@@ -72,6 +74,12 @@ public class ContextHubMicDisableSettingsTestExecutor {
         String settingEnableStr = disableAccess ? "enable" : "disable";
         ChreTestUtil.executeShellCommand(mInstrumentation,
                 "cmd sensor_privacy " + settingEnableStr + " 0 microphone");
+
+        try {
+            Thread.sleep(1000);   // wait for setting to propagate
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     /**
