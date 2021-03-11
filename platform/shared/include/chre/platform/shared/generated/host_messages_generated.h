@@ -69,6 +69,12 @@ struct SettingChangeMessageBuilder;
 struct LogMessageV2;
 struct LogMessageV2Builder;
 
+struct SelfTestRequest;
+struct SelfTestRequestBuilder;
+
+struct SelfTestResponse;
+struct SelfTestResponseBuilder;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -165,11 +171,13 @@ enum class ChreMessage : uint8_t {
   LowPowerMicAccessRelease = 17,
   SettingChangeMessage = 18,
   LogMessageV2 = 19,
+  SelfTestRequest = 20,
+  SelfTestResponse = 21,
   MIN = NONE,
-  MAX = LogMessageV2
+  MAX = SelfTestResponse
 };
 
-inline const ChreMessage (&EnumValuesChreMessage())[20] {
+inline const ChreMessage (&EnumValuesChreMessage())[22] {
   static const ChreMessage values[] = {
     ChreMessage::NONE,
     ChreMessage::NanoappMessage,
@@ -190,13 +198,15 @@ inline const ChreMessage (&EnumValuesChreMessage())[20] {
     ChreMessage::LowPowerMicAccessRequest,
     ChreMessage::LowPowerMicAccessRelease,
     ChreMessage::SettingChangeMessage,
-    ChreMessage::LogMessageV2
+    ChreMessage::LogMessageV2,
+    ChreMessage::SelfTestRequest,
+    ChreMessage::SelfTestResponse
   };
   return values;
 }
 
 inline const char * const *EnumNamesChreMessage() {
-  static const char * const names[21] = {
+  static const char * const names[23] = {
     "NONE",
     "NanoappMessage",
     "HubInfoRequest",
@@ -217,13 +227,15 @@ inline const char * const *EnumNamesChreMessage() {
     "LowPowerMicAccessRelease",
     "SettingChangeMessage",
     "LogMessageV2",
+    "SelfTestRequest",
+    "SelfTestResponse",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameChreMessage(ChreMessage e) {
-  if (flatbuffers::IsOutRange(e, ChreMessage::NONE, ChreMessage::LogMessageV2)) return "";
+  if (flatbuffers::IsOutRange(e, ChreMessage::NONE, ChreMessage::SelfTestResponse)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesChreMessage()[index];
 }
@@ -308,6 +320,14 @@ template<> struct ChreMessageTraits<chre::fbs::LogMessageV2> {
   static const ChreMessage enum_value = ChreMessage::LogMessageV2;
 };
 
+template<> struct ChreMessageTraits<chre::fbs::SelfTestRequest> {
+  static const ChreMessage enum_value = ChreMessage::SelfTestRequest;
+};
+
+template<> struct ChreMessageTraits<chre::fbs::SelfTestResponse> {
+  static const ChreMessage enum_value = ChreMessage::SelfTestResponse;
+};
+
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
 bool VerifyChreMessageVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
@@ -316,8 +336,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) HostAddress FLATBUFFERS_FINAL_CLASS {
   uint16_t client_id_;
 
  public:
-  HostAddress() {
-    memset(static_cast<void *>(this), 0, sizeof(HostAddress));
+  HostAddress()
+      : client_id_(0) {
   }
   HostAddress(uint16_t _client_id)
       : client_id_(flatbuffers::EndianScalar(_client_id)) {
@@ -407,7 +427,6 @@ struct NanoappMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  NanoappMessageBuilder &operator=(const NanoappMessageBuilder &);
   flatbuffers::Offset<NanoappMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappMessage>(end);
@@ -469,7 +488,6 @@ struct HubInfoRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  HubInfoRequestBuilder &operator=(const HubInfoRequestBuilder &);
   flatbuffers::Offset<HubInfoRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoRequest>(end);
@@ -610,7 +628,6 @@ struct HubInfoResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  HubInfoResponseBuilder &operator=(const HubInfoResponseBuilder &);
   flatbuffers::Offset<HubInfoResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoResponse>(end);
@@ -697,7 +714,6 @@ struct NanoappListRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  NanoappListRequestBuilder &operator=(const NanoappListRequestBuilder &);
   flatbuffers::Offset<NanoappListRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListRequest>(end);
@@ -775,7 +791,6 @@ struct NanoappListEntryBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  NanoappListEntryBuilder &operator=(const NanoappListEntryBuilder &);
   flatbuffers::Offset<NanoappListEntry> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListEntry>(end);
@@ -827,7 +842,6 @@ struct NanoappListResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  NanoappListResponseBuilder &operator=(const NanoappListResponseBuilder &);
   flatbuffers::Offset<NanoappListResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListResponse>(end);
@@ -1003,7 +1017,6 @@ struct LoadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LoadNanoappRequestBuilder &operator=(const LoadNanoappRequestBuilder &);
   flatbuffers::Offset<LoadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappRequest>(end);
@@ -1112,7 +1125,6 @@ struct LoadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LoadNanoappResponseBuilder &operator=(const LoadNanoappResponseBuilder &);
   flatbuffers::Offset<LoadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappResponse>(end);
@@ -1176,7 +1188,6 @@ struct UnloadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  UnloadNanoappRequestBuilder &operator=(const UnloadNanoappRequestBuilder &);
   flatbuffers::Offset<UnloadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappRequest>(end);
@@ -1230,7 +1241,6 @@ struct UnloadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  UnloadNanoappResponseBuilder &operator=(const UnloadNanoappResponseBuilder &);
   flatbuffers::Offset<UnloadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappResponse>(end);
@@ -1289,7 +1299,6 @@ struct LogMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LogMessageBuilder &operator=(const LogMessageBuilder &);
   flatbuffers::Offset<LogMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessage>(end);
@@ -1342,7 +1351,6 @@ struct TimeSyncMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
   flatbuffers::Offset<TimeSyncMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncMessage>(end);
@@ -1378,7 +1386,6 @@ struct DebugDumpRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  DebugDumpRequestBuilder &operator=(const DebugDumpRequestBuilder &);
   flatbuffers::Offset<DebugDumpRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpRequest>(end);
@@ -1420,7 +1427,6 @@ struct DebugDumpDataBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  DebugDumpDataBuilder &operator=(const DebugDumpDataBuilder &);
   flatbuffers::Offset<DebugDumpData> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpData>(end);
@@ -1482,7 +1488,6 @@ struct DebugDumpResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  DebugDumpResponseBuilder &operator=(const DebugDumpResponseBuilder &);
   flatbuffers::Offset<DebugDumpResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpResponse>(end);
@@ -1518,7 +1523,6 @@ struct TimeSyncRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TimeSyncRequestBuilder &operator=(const TimeSyncRequestBuilder &);
   flatbuffers::Offset<TimeSyncRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncRequest>(end);
@@ -1552,7 +1556,6 @@ struct LowPowerMicAccessRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LowPowerMicAccessRequestBuilder &operator=(const LowPowerMicAccessRequestBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRequest>(end);
@@ -1584,7 +1587,6 @@ struct LowPowerMicAccessReleaseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LowPowerMicAccessReleaseBuilder &operator=(const LowPowerMicAccessReleaseBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRelease> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRelease>(end);
@@ -1635,7 +1637,6 @@ struct SettingChangeMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  SettingChangeMessageBuilder &operator=(const SettingChangeMessageBuilder &);
   flatbuffers::Offset<SettingChangeMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SettingChangeMessage>(end);
@@ -1704,7 +1705,6 @@ struct LogMessageV2Builder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  LogMessageV2Builder &operator=(const LogMessageV2Builder &);
   flatbuffers::Offset<LogMessageV2> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessageV2>(end);
@@ -1731,6 +1731,76 @@ inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2Direct(
       _fbb,
       buffer__,
       num_logs_dropped);
+}
+
+struct SelfTestRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SelfTestRequestBuilder Builder;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+};
+
+struct SelfTestRequestBuilder {
+  typedef SelfTestRequest Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  explicit SelfTestRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SelfTestRequest> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SelfTestRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SelfTestRequest> CreateSelfTestRequest(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  SelfTestRequestBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+struct SelfTestResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SelfTestResponseBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_SUCCESS = 4
+  };
+  bool success() const {
+    return GetField<uint8_t>(VT_SUCCESS, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_SUCCESS) &&
+           verifier.EndTable();
+  }
+};
+
+struct SelfTestResponseBuilder {
+  typedef SelfTestResponse Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_success(bool success) {
+    fbb_.AddElement<uint8_t>(SelfTestResponse::VT_SUCCESS, static_cast<uint8_t>(success), 0);
+  }
+  explicit SelfTestResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SelfTestResponse> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SelfTestResponse>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool success = false) {
+  SelfTestResponseBuilder builder_(_fbb);
+  builder_.add_success(success);
+  return builder_.Finish();
 }
 
 /// The top-level container that encapsulates all possible messages. Note that
@@ -1806,6 +1876,12 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const chre::fbs::LogMessageV2 *message_as_LogMessageV2() const {
     return message_type() == chre::fbs::ChreMessage::LogMessageV2 ? static_cast<const chre::fbs::LogMessageV2 *>(message()) : nullptr;
+  }
+  const chre::fbs::SelfTestRequest *message_as_SelfTestRequest() const {
+    return message_type() == chre::fbs::ChreMessage::SelfTestRequest ? static_cast<const chre::fbs::SelfTestRequest *>(message()) : nullptr;
+  }
+  const chre::fbs::SelfTestResponse *message_as_SelfTestResponse() const {
+    return message_type() == chre::fbs::ChreMessage::SelfTestResponse ? static_cast<const chre::fbs::SelfTestResponse *>(message()) : nullptr;
   }
   /// The originating or destination client ID on the host side, used to direct
   /// responses only to the client that sent the request. Although initially
@@ -1902,6 +1978,14 @@ template<> inline const chre::fbs::LogMessageV2 *MessageContainer::message_as<ch
   return message_as_LogMessageV2();
 }
 
+template<> inline const chre::fbs::SelfTestRequest *MessageContainer::message_as<chre::fbs::SelfTestRequest>() const {
+  return message_as_SelfTestRequest();
+}
+
+template<> inline const chre::fbs::SelfTestResponse *MessageContainer::message_as<chre::fbs::SelfTestResponse>() const {
+  return message_as_SelfTestResponse();
+}
+
 struct MessageContainerBuilder {
   typedef MessageContainer Table;
   flatbuffers::FlatBufferBuilder &fbb_;
@@ -1919,7 +2003,6 @@ struct MessageContainerBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  MessageContainerBuilder &operator=(const MessageContainerBuilder &);
   flatbuffers::Offset<MessageContainer> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MessageContainer>(end);
@@ -2020,6 +2103,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::LogMessageV2: {
       auto ptr = reinterpret_cast<const chre::fbs::LogMessageV2 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::SelfTestRequest: {
+      auto ptr = reinterpret_cast<const chre::fbs::SelfTestRequest *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::SelfTestResponse: {
+      auto ptr = reinterpret_cast<const chre::fbs::SelfTestResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
