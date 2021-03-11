@@ -52,10 +52,10 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
     }
     size_t totalLogSize = kLogDataOffset + logLen;
     {
-      LockGuard<Mutex> lockGuard(mBufferDataLock);
+      LockGuard<Mutex> lockGuard(mLock);
       // Invalidate memory allocated for log at head while the buffer is greater
       // than max size
-      while (getBufferSize() + totalLogSize > mBufferMaxSize) {
+      while (mBufferDataSize + totalLogSize > mBufferMaxSize) {
         mNumLogsDropped++;
         size_t logSize;
         mBufferDataHeadIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
@@ -78,7 +78,7 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
         break;
       }
       case LogBufferNotificationSetting::THRESHOLD: {
-        if (getBufferSize() > mNotificationThresholdBytes) {
+        if (mBufferDataSize > mNotificationThresholdBytes) {
           mCallback->onLogsReady(this);
         }
         break;
@@ -89,20 +89,20 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
 
 size_t LogBuffer::copyLogs(void *destination, size_t size,
                            size_t *numLogsDropped) {
-  LockGuard<Mutex> lock(mBufferDataLock);
+  LockGuard<Mutex> lock(mLock);
 
   size_t copySize = 0;
 
-  if (size != 0 && destination != nullptr && getBufferSize() != 0) {
-    if (size >= getBufferSize()) {
-      copySize = getBufferSize();
+  if (size != 0 && destination != nullptr && mBufferDataSize != 0) {
+    if (size >= mBufferDataSize) {
+      copySize = mBufferDataSize;
     } else {
       size_t logSize;
       // There is guaranteed to be a null terminator within the max log length
       // number of bytes so logStartIndex will not be maxBytes + 1
       size_t logStartIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
       while (copySize + logSize <= size &&
-             copySize + logSize <= getBufferSize()) {
+             copySize + logSize <= mBufferDataSize) {
         copySize += logSize;
         logStartIndex = getNextLogIndex(logStartIndex, &logSize);
       }
@@ -116,25 +116,35 @@ size_t LogBuffer::copyLogs(void *destination, size_t size,
 }
 
 bool LogBuffer::logWouldCauseOverflow(size_t logSize) {
-  LockGuard<Mutex> lock(mBufferDataLock);
-  return (getBufferSize() + logSize + kLogDataOffset + 1 /* nullptr */ >
+  LockGuard<Mutex> lock(mLock);
+  return (mBufferDataSize + logSize + kLogDataOffset + 1 /* nullptr */ >
           mBufferMaxSize);
 }
 
-void LogBuffer::transferTo(LogBuffer & /*buffer*/) {
-  // TODO(b/146164384): Implement
+void LogBuffer::transferTo(LogBuffer &buffer) {
+  // The buffer being transferred to should be as big or bigger.
+  CHRE_ASSERT(buffer.mBufferMaxSize >= mBufferMaxSize);
+  buffer.reset();
+
+  {
+    LockGuard<Mutex> lockGuard(buffer.mLock);
+    size_t numLogsDropped;
+    size_t bytesCopied =
+        copyLogs(buffer.mBufferData, buffer.mBufferMaxSize, &numLogsDropped);
+    buffer.mBufferDataTailIndex = bytesCopied % buffer.mBufferMaxSize;
+    buffer.mBufferDataSize = bytesCopied;
+    buffer.mNumLogsDropped = numLogsDropped;
+  }
+
+  reset();
 }
 
 void LogBuffer::updateNotificationSetting(LogBufferNotificationSetting setting,
                                           size_t thresholdBytes) {
-  LockGuard<Mutex> lock(mBufferDataLock);
+  LockGuard<Mutex> lock(mLock);
 
   mNotificationSetting = setting;
   mNotificationThresholdBytes = thresholdBytes;
-}
-
-size_t LogBuffer::getBufferSize() const {
-  return mBufferDataSize;
 }
 
 size_t LogBuffer::incrementAndModByBufferMaxSize(size_t originalVal,
@@ -195,6 +205,14 @@ size_t LogBuffer::getLogDataLength(size_t startingIndex) {
     currentIndex = incrementAndModByBufferMaxSize(currentIndex, 1);
   }
   return numBytes;
+}
+
+void LogBuffer::reset() {
+  LockGuard<Mutex> lock(mLock);
+  mBufferDataHeadIndex = 0;
+  mBufferDataTailIndex = 0;
+  mBufferDataSize = 0;
+  mNumLogsDropped = 0;
 }
 
 }  // namespace chre
