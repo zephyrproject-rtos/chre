@@ -26,6 +26,7 @@
 #include <sys/types.h>
 
 #include <fstream>
+#include <future>
 #include <sstream>
 #include <thread>
 
@@ -136,7 +137,15 @@ class SocketCallbacks : public SocketClient::ICallbacks,
 
   void handleSelfTestResponse(const ::chre::fbs::SelfTestResponseT &response) {
     LOGI("Got self test response with success %d", response.success);
+    mResultPromise.set_value(response.success);
   }
+
+  std::future<bool> getResultFuture() {
+    return mResultPromise.get_future();
+  }
+
+ private:
+  std::promise<bool> mResultPromise;
 };
 
 void requestHubInfo(SocketClient &client) {
@@ -299,12 +308,11 @@ int main(int argc, char *argv[]) {
   SocketClient client;
   sp<SocketCallbacks> callbacks = new SocketCallbacks();
 
+  bool success = true;
   if (!client.connect("chre", callbacks)) {
     LOGE("Couldn't connect to socket");
-    return -1;
-  }
-
-  if (cmd.empty()) {
+    success = false;
+  } else if (cmd.empty()) {
     requestHubInfo(client);
     requestNanoappList(client);
     sendMessageToNanoapp(client);
@@ -323,10 +331,10 @@ int main(int argc, char *argv[]) {
     if (headerPath.empty() || binaryPath.empty()) {
       LOGE("Arguments not provided!");
       usage(name);
-      return -1;
+      success = false;
+    } else {
+      sendLoadNanoappRequest(client, headerPath.c_str(), binaryPath.c_str());
     }
-
-    sendLoadNanoappRequest(client, headerPath.c_str(), binaryPath.c_str());
   } else if (cmd == "load") {
     const std::string idstr{argi < argc ? argv[argi++] : ""};
     const std::string path{argi < argc ? argv[argi++] : ""};
@@ -342,20 +350,21 @@ int main(int argc, char *argv[]) {
     if (idstr.empty() || path.empty()) {
       LOGE("Arguments not provided!");
       usage(name);
-      return -1;
+      success = false;
+    } else {
+      std::istringstream(idstr) >> std::setbase(0) >> id;
+      if (!appVerStr.empty()) {
+        std::istringstream(appVerStr) >> std::setbase(0) >> appVersion;
+      }
+      if (!apiVerStr.empty()) {
+        std::istringstream(apiVerStr) >> std::setbase(0) >> apiVersion;
+      }
+      if (!tcmCapStr.empty()) {
+        std::istringstream(tcmCapStr) >> tcmApp;
+      }
+      sendLoadNanoappRequest(client, path.c_str(), id, appVersion, apiVersion,
+                             tcmApp);
     }
-    std::istringstream(idstr) >> std::setbase(0) >> id;
-    if (!appVerStr.empty()) {
-      std::istringstream(appVerStr) >> std::setbase(0) >> appVersion;
-    }
-    if (!apiVerStr.empty()) {
-      std::istringstream(apiVerStr) >> std::setbase(0) >> apiVersion;
-    }
-    if (!tcmCapStr.empty()) {
-      std::istringstream(tcmCapStr) >> tcmApp;
-    }
-    sendLoadNanoappRequest(client, path.c_str(), id, appVersion, apiVersion,
-                           tcmApp);
   } else if (cmd == "unload") {
     const std::string idstr{argi < argc ? argv[argi++] : ""};
     uint64_t id = 0;
@@ -363,18 +372,26 @@ int main(int argc, char *argv[]) {
     if (idstr.empty()) {
       LOGE("Arguments not provided!");
       usage(name);
-      return -1;
+      success = false;
+    } else {
+      std::istringstream(idstr) >> std::setbase(0) >> id;
+      sendUnloadNanoappRequest(client, id);
     }
-    std::istringstream(idstr) >> std::setbase(0) >> id;
-    sendUnloadNanoappRequest(client, id);
   } else if (cmd == "self_test") {
     sendSelfTestRequest(client);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    std::future<bool> future = callbacks->getResultFuture();
+    std::future_status status = future.wait_for(std::chrono::seconds(5));
+
+    if (status != std::future_status::ready) {
+      LOGE("Self test timed out");
+    } else {
+      success = future.get();
+    }
   } else {
     LOGE("Invalid command provided!");
     usage(name);
-    return -1;
   }
 
-  return 0;
+  return success ? 0 : -1;
 }
