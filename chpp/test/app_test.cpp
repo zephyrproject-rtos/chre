@@ -141,17 +141,19 @@ TEST_F(AppTestBase, Timesync) {
 
   CHPP_LOGI("Starting timesync test...");
 
-  struct ChppTimesyncResult result =
-      chppTimesyncMeasureOffset(&mClientAppContext);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  EXPECT_TRUE(chppTimesyncMeasureOffset(&mClientAppContext));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  EXPECT_EQ(result.error, CHPP_APP_ERROR_NONE);
+  EXPECT_EQ(chppTimesyncGetResult(&mClientAppContext)->error,
+            CHPP_APP_ERROR_NONE);
 
-  EXPECT_LT(result.rttNs, kMaxRtt);
-  EXPECT_NE(result.rttNs, 0);
+  EXPECT_LT(chppTimesyncGetResult(&mClientAppContext)->rttNs, kMaxRtt);
+  EXPECT_NE(chppTimesyncGetResult(&mClientAppContext)->rttNs, 0);
 
-  EXPECT_LT(result.offsetNs, kMaxOffset);
-  EXPECT_GT(result.offsetNs, -kMaxOffset);
-  EXPECT_NE(result.offsetNs, 0);
+  EXPECT_LT(chppTimesyncGetResult(&mClientAppContext)->offsetNs, kMaxOffset);
+  EXPECT_GT(chppTimesyncGetResult(&mClientAppContext)->offsetNs, -kMaxOffset);
+  EXPECT_NE(chppTimesyncGetResult(&mClientAppContext)->offsetNs, 0);
 }
 
 TEST_F(AppTestBase, DiscoveryMatched) {

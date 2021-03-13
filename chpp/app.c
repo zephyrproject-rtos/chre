@@ -727,6 +727,10 @@ void chppAppProcessRxReset(struct ChppAppState *context) {
       ResetNotifierFunction(context->registeredServiceContexts[i]);
     }
   }
+
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  chppTimesyncClientReset(context);
+#endif
 }
 
 void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
