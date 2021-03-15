@@ -313,7 +313,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (context->resetState == CHPP_RESET_STATE_RESETTING) {
       CHPP_LOGE("RX packet discarded seq=%" PRIu8 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
-
+      chppRxAbortPacket(context);
     } else {
       CHPP_LOGI("RX good packet. payload len=%" PRIu16 ", seq=%" PRIu8
                 ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8,
