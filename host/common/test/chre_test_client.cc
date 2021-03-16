@@ -41,7 +41,7 @@
  * Usage:
  *  chre_test_client load <nanoapp-id> <nanoapp-so-path> \
  *      [app-version] [api-version] [tcm-capable] [nanoapp-header-path]
- *  chre_test_client load_with_header <nanoapp-so-path> <nanoapp-header-path>
+ *  chre_test_client load_with_header <nanoapp-header-path> <nanoapp-so-path>
  *  chre_test_client unload <nanoapp-id>
  */
 
@@ -294,7 +294,7 @@ static void usage(const std::string &name) {
       "Usage:\n  " +
       name +
       " load <nanoapp-id> <nanoapp-so-path> [app-version] [api-version]\n  " +
-      name + " load_with_header <nanoapp-so-path> <nanoapp-header-path>\n  " +
+      name + " load_with_header <nanoapp-header-path> <nanoapp-so-path>\n  " +
       name + " unload <nanoapp-id>\n " + name + " self_test\n";
 
   LOGI("%s", output.c_str());
