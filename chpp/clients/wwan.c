@@ -520,6 +520,10 @@ void chppDeregisterWwanClient(struct ChppAppState *appContext) {
   UNUSED_VAR(appContext);
 }
 
+struct ChppClientState *getChppWwanClientState(void) {
+  return &gWwanClientContext.client;
+}
+
 #ifdef CHPP_CLIENT_ENABLED_WWAN
 
 #ifdef CHPP_CLIENT_ENABLED_CHRE_WWAN
