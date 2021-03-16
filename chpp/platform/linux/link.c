@@ -44,15 +44,28 @@ static void *linkSendThread(void *arg) {
       break;
     }
     if (signal & SIGNAL_DATA) {
+      enum ChppLinkErrorCode error;
+
       chppMutexLock(&params->mutex);
-      bool success = params->linkEstablished;
-      if (success && params->remoteTransportContext != NULL) {
-        success = chppRxDataCb(params->remoteTransportContext, params->buf,
-                               params->bufLen);
+
+      if (params->remoteTransportContext == NULL) {
+        CHPP_LOGW("remoteTransportContext is NULL");
+        error = CHPP_LINK_ERROR_NONE_SENT;
+
+      } else if (!params->linkEstablished) {
+        error = CHPP_LINK_ERROR_NO_LINK;
+
+      } else if (!chppRxDataCb(params->remoteTransportContext, params->buf,
+                               params->bufLen)) {
+        error = CHPP_LINK_ERROR_UNSPECIFIED;
+
+      } else {
+        error = CHPP_LINK_ERROR_NONE_SENT;
       }
+
       params->bufLen = 0;
-      chppLinkSendDoneCb(params, success ? CHPP_LINK_ERROR_NONE_SENT
-                                         : CHPP_LINK_ERROR_UNSPECIFIED);
+      chppLinkSendDoneCb(params, error);
+
       chppMutexUnlock(&params->mutex);
     }
   }
