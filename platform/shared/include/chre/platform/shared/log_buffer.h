@@ -60,11 +60,8 @@ class LogBufferCallbackInterface {
    * call copyLogs because the buffer internal state has changed to suit the
    * requirements for alerting the platform that logs are ready to be copied
    * out of buffer.
-   *
-   * @param logBuffer The log buffer instance that the platform should copy logs
-   * from.
    */
-  virtual void onLogsReady(LogBuffer *logBuffer) = 0;
+  virtual void onLogsReady() = 0;
 };
 
 /**
@@ -78,7 +75,7 @@ class LogBuffer {
 
   /**
    * @param callback The callback object that will receive notifications about
-   *                 the state of the log buffer.
+   *                 the state of the log buffer or nullptr if it is not needed.
    * @param buffer The buffer location that will store log data.
    *                    message.
    * @param bufferSize The number of bytes in the buffer. This value must be >
@@ -165,6 +162,39 @@ class LogBuffer {
   void updateNotificationSetting(LogBufferNotificationSetting setting,
                                  size_t thresholdBytes = 0);
 
+  /**
+   * Thread safe.
+   *
+   * Empty out the log entries currently in the buffer and reset the number of
+   * logs dropped.
+   */
+  void reset();
+
+  /**
+   * The data inside the buffer that is returned may be altered by
+   * another thread so it is up to the calling code to ensure that race
+   * conditions do not occur on writes to the data.
+   *
+   * @return The pointer to the underlying data buffer.
+   */
+  const uint8_t *getBufferData();
+
+  /**
+   * Thread safe.
+   *
+   * @return The current buffer size.
+   */
+  size_t getBufferSize();
+
+  /**
+   *
+   * Thread safe.
+   *
+   * @return The number of logs dropped since the object was last reset or
+   * instantiated.
+   */
+  size_t getNumLogsDropped();
+
  private:
   /**
    * Increment the value and take the modulus of the max size of the buffer.
@@ -213,14 +243,6 @@ class LogBuffer {
    *         then kLogMaxSize - kLogDataOffset + 1 is returned.
    */
   size_t getLogDataLength(size_t startingIndex);
-
-  /**
-   * Thread safe.
-   *
-   * Empty out the log entries currently in the buffer and reset the number of
-   * logs dropped.
-   */
-  void reset();
 
   //! The number of bytes in a log entry of the buffer before the log data is
   //! encountered.

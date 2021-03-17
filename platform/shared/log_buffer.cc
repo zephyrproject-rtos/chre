@@ -69,19 +69,21 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
       copyToBuffer(logLen, tempBuffer);
       copyToBuffer(1, reinterpret_cast<const void *>("\0"));
     }
-    switch (mNotificationSetting) {
-      case LogBufferNotificationSetting::ALWAYS: {
-        mCallback->onLogsReady(this);
-        break;
-      }
-      case LogBufferNotificationSetting::NEVER: {
-        break;
-      }
-      case LogBufferNotificationSetting::THRESHOLD: {
-        if (mBufferDataSize > mNotificationThresholdBytes) {
-          mCallback->onLogsReady(this);
+    if (mCallback != nullptr) {
+      switch (mNotificationSetting) {
+        case LogBufferNotificationSetting::ALWAYS: {
+          mCallback->onLogsReady();
+          break;
         }
-        break;
+        case LogBufferNotificationSetting::NEVER: {
+          break;
+        }
+        case LogBufferNotificationSetting::THRESHOLD: {
+          if (mBufferDataSize > mNotificationThresholdBytes) {
+            mCallback->onLogsReady();
+          }
+          break;
+        }
       }
     }
   }
@@ -147,6 +149,28 @@ void LogBuffer::updateNotificationSetting(LogBufferNotificationSetting setting,
   mNotificationThresholdBytes = thresholdBytes;
 }
 
+void LogBuffer::reset() {
+  LockGuard<Mutex> lock(mLock);
+  mBufferDataHeadIndex = 0;
+  mBufferDataTailIndex = 0;
+  mBufferDataSize = 0;
+  mNumLogsDropped = 0;
+}
+
+const uint8_t *LogBuffer::getBufferData() {
+  return mBufferData;
+}
+
+size_t LogBuffer::getBufferSize() {
+  LockGuard<Mutex> lockGuard(mLock);
+  return mBufferDataSize;
+}
+
+size_t LogBuffer::getNumLogsDropped() {
+  LockGuard<Mutex> lockGuard(mLock);
+  return mNumLogsDropped;
+}
+
 size_t LogBuffer::incrementAndModByBufferMaxSize(size_t originalVal,
                                                  size_t incrementBy) const {
   return (originalVal + incrementBy) % mBufferMaxSize;
@@ -205,14 +229,6 @@ size_t LogBuffer::getLogDataLength(size_t startingIndex) {
     currentIndex = incrementAndModByBufferMaxSize(currentIndex, 1);
   }
   return numBytes;
-}
-
-void LogBuffer::reset() {
-  LockGuard<Mutex> lock(mLock);
-  mBufferDataHeadIndex = 0;
-  mBufferDataTailIndex = 0;
-  mBufferDataSize = 0;
-  mNumLogsDropped = 0;
 }
 
 }  // namespace chre

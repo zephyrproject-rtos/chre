@@ -33,7 +33,7 @@ extern "C" {
 /**
  * Log via the PlatformLogBufferSingleton vaLog method.
  *
- * Defined in platform/shared/platform_log_buffer.cc
+ * Defined in platform/shared/log_buffer_manager.cc
  *
  * @param chreLogLevel The log level.
  * @param format The format string.
