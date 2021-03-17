@@ -52,6 +52,9 @@ enum ChppLinkErrorCode {
   //! Out of memory
   CHPP_LINK_ERROR_OOM = 4,
 
+  //! Link not established
+  CHPP_LINK_ERROR_NO_LINK = 5,
+
   //! Unspecified failure
   CHPP_LINK_ERROR_UNSPECIFIED = 255
 };
