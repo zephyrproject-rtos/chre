@@ -22,6 +22,9 @@
 #include <stdint.h>
 
 #include "chpp/app.h"
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
+#include "chpp/clients/discovery.h"
+#endif
 #ifdef CHPP_CLIENT_ENABLED_GNSS
 #include "chpp/clients/gnss.h"
 #endif
@@ -48,6 +51,8 @@
  ***********************************************/
 
 static bool chppIsClientApiReady(struct ChppClientState *clientState);
+ChppClientDeinitFunction *chppGetClientDeinitFunction(
+    struct ChppAppState *context, uint8_t index);
 
 /************************************************
  *  Private Functions
@@ -89,10 +94,25 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
   }
 
   if (!result) {
-    CHPP_LOGE("Client not ready (init=%d, open=%" PRIu8 ")",
-              clientState->initialized, clientState->openState);
+    CHPP_LOGE("Client not ready (everInit=%d, init=%d, open=%" PRIu8 ")",
+              clientState->everInitialized, clientState->initialized,
+              clientState->openState);
   }
   return result;
+}
+
+/**
+ * Returns the deinitialization function pointer of a particular negotiated
+ * client.
+ *
+ * @param context Maintains status for each app layer instance.
+ * @param index Index of the registered client.
+ *
+ * @return Pointer to the match notification function.
+ */
+ChppClientDeinitFunction *chppGetClientDeinitFunction(
+    struct ChppAppState *context, uint8_t index) {
+  return context->registeredClients[index]->deinitFunctionPtr;
 }
 
 /************************************************
@@ -102,18 +122,6 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
 void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
   CHPP_LOGD("Registering Clients");
-
-#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
-  if (context->clientServiceSet.loopbackClient) {
-    chppLoopbackClientInit(context);
-  }
-#endif
-
-#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
-  if (context->clientServiceSet.timesyncClient) {
-    chppTimesyncClientInit(context);
-  }
-#endif
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   if (context->clientServiceSet.wwanClient) {
@@ -138,18 +146,6 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
   CHPP_LOGD("Deregistering Clients");
 
-#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
-  if (context->clientServiceSet.loopbackClient) {
-    chppLoopbackClientDeinit(context);
-  }
-#endif
-
-#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
-  if (context->clientServiceSet.timesyncClient) {
-    chppTimesyncClientDeinit(context);
-  }
-#endif
-
 #ifdef CHPP_CLIENT_ENABLED_WWAN
   if (context->clientServiceSet.wwanClient) {
     chppDeregisterWwanClient(context);
@@ -167,26 +163,6 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
     chppDeregisterGnssClient(context);
   }
 #endif
-}
-
-void chppClientInit(struct ChppClientState *clientContext, uint8_t handle) {
-  CHPP_ASSERT_LOG(!clientContext->initialized,
-                  "Client H#%" PRIu8 " already initialized", handle);
-
-  clientContext->handle = handle;
-  chppMutexInit(&clientContext->responseMutex);
-  chppConditionVariableInit(&clientContext->responseCondVar);
-  clientContext->initialized = true;
-}
-
-void chppClientDeinit(struct ChppClientState *clientContext) {
-  CHPP_ASSERT_LOG(clientContext->initialized,
-                  "Client H#%" PRIu8 " already deinitialized",
-                  clientContext->handle);
-
-  clientContext->initialized = false;
-  chppConditionVariableDeinit(&clientContext->responseCondVar);
-  chppMutexDeinit(&clientContext->responseMutex);
 }
 
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
@@ -213,6 +189,91 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
               newClient->descriptor.version.patch, newClient->minLength);
 
     appContext->registeredClientCount++;
+  }
+}
+
+void chppInitBasicClients(struct ChppAppState *context) {
+  UNUSED_VAR(context);
+  CHPP_LOGD("Initializing basic clients");
+
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
+  if (context->clientServiceSet.loopbackClient) {
+    chppLoopbackClientInit(context);
+  }
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  if (context->clientServiceSet.timesyncClient) {
+    chppTimesyncClientInit(context);
+  }
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
+  chppDiscoveryInit(context);
+#endif
+}
+
+void chppClientInit(struct ChppClientState *clientContext, uint8_t handle) {
+  CHPP_ASSERT_LOG(!clientContext->initialized,
+                  "Client H#%" PRIu8 " already initialized", handle);
+
+  if (!clientContext->everInitialized) {
+    clientContext->handle = handle;
+    chppMutexInit(&clientContext->responseMutex);
+    chppConditionVariableInit(&clientContext->responseCondVar);
+    clientContext->everInitialized = true;
+  }
+
+  clientContext->initialized = true;
+}
+
+void chppClientDeinit(struct ChppClientState *clientContext) {
+  CHPP_ASSERT_LOG(clientContext->initialized,
+                  "Client H#%" PRIu8 " already deinitialized",
+                  clientContext->handle);
+
+  clientContext->initialized = false;
+}
+
+void chppDeinitBasicClients(struct ChppAppState *context) {
+  UNUSED_VAR(context);
+  CHPP_LOGD("Deinitializing basic clients");
+
+#ifdef CHPP_CLIENT_ENABLED_LOOPBACK
+  if (context->clientServiceSet.loopbackClient) {
+    chppLoopbackClientDeinit(context);
+  }
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  if (context->clientServiceSet.timesyncClient) {
+    chppTimesyncClientDeinit(context);
+  }
+#endif
+
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
+  chppDiscoveryDeinit(context);
+#endif
+}
+
+void chppDeinitMatchedClients(struct ChppAppState *context) {
+  CHPP_LOGD("Deinitializing matched clients");
+
+  for (uint8_t i = 0; i < context->discoveredServiceCount; i++) {
+    uint8_t clientIndex = context->clientIndexOfServiceIndex[i];
+    if (clientIndex != CHPP_CLIENT_INDEX_NONE) {
+      // Discovered service has a matched client
+      ChppClientDeinitFunction *clientDeinitFunction =
+          chppGetClientDeinitFunction(context, clientIndex);
+
+      CHPP_LOGD("Client #%" PRIu8 " (H#%d) deinit fp found=%d", clientIndex,
+                CHPP_SERVICE_HANDLE_OF_INDEX(i),
+                (clientDeinitFunction != NULL));
+
+      if (clientDeinitFunction != NULL) {
+        clientDeinitFunction(context->registeredClientContexts[clientIndex]);
+      }
+    }
   }
 }
 
