@@ -81,6 +81,15 @@
 #endif
 #define LOGD(fmt, ...) LOGD_TAG(LOG_TAG, fmt, ##__VA_ARGS__)
 
+// Map LOGV to LOGD as CHRE doesn't support it yet.
+#if NANOAPP_MINIMUM_LOG_LEVEL >= CHRE_LOG_LEVEL_VERBOSE
+#define LOGV_TAG(tag, fmt, ...) \
+  CHRE_LOG_TAG(CHRE_LOG_DEBUG, tag, fmt, ##__VA_ARGS__)
+#else
+#define LOGV_TAG(tag, fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
+#endif
+#define LOGV(fmt, ...) LOGV_TAG(LOG_TAG, fmt, ##__VA_ARGS__)
+
 #else
 
 // For static nanoapps, reroute to the internal framework logging macro so that
@@ -105,6 +114,8 @@
 #define LOGI_TAG_SENSITIVE_INFO LOGI_TAG
 #define LOGD_SENSITIVE_INFO LOGD
 #define LOGD_TAG_SENSITIVE_INFO LOGD_TAG
+#define LOGV_SENSITIVE_INFO LOGV
+#define LOGV_TAG_SENSITIVE_INFO LOGV_TAG
 #else
 #define LOGE_SENSITIVE_INFO(fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
 #define LOGE_TAG_SENSITIVE_INFO(tag, fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
@@ -114,6 +125,8 @@
 #define LOGI_TAG_SENSITIVE_INFO(tag, fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
 #define LOGD_SENSITIVE_INFO(fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
 #define LOGD_TAG_SENSITIVE_INFO(tag, fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
+#define LOGV_SENSITIVE_INFO(fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
+#define LOGV_TAG_SENSITIVE_INFO(tag, fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
 #endif
 
 #endif  // CHRE_UTIL_NANOAPP_LOG_H_
