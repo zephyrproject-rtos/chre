@@ -180,6 +180,7 @@ SLPI_QSH_SRCS += platform/slpi/qsh/qsh_shim.cc
 ifeq ($(CHRE_USE_BUFFERED_LOGGING), true)
 SLPI_QSH_SRCS += platform/shared/log_buffer.cc
 SLPI_QSH_SRCS += platform/shared/log_buffer_manager.cc
+SLPI_QSH_SRCS += platform/slpi/log_buffer_manager.cc
 endif
 
 

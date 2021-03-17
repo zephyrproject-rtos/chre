@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_LOG_BUFFER_MANAGER_BUFFER_H_
 #define CHRE_PLATFORM_LOG_BUFFER_MANAGER_BUFFER_H_
 
+#include "chre/platform/assert.h"
 #include "chre/platform/mutex.h"
 #include "chre/platform/shared/log_buffer.h"
 #include "chre/util/singleton.h"
@@ -33,6 +34,14 @@ namespace chre {
  * is not available and then send them off when the host becomes available. Uses
  * the LogBuffer API to buffer the logs in memory.
  *
+ * The manager uses two LogBuffer objects to handle flushing logs to the host at
+ * the same time as handling more incoming logs. Incoming logs are always put
+ * into the primary buffer first. The secondary buffer takes all the logs
+ * currently in the primary buffer before the logs are sent off to the host
+ * because the secondary buffer is the memory location passed to the
+ * HostLink::sendLogs API. Logs are also flushed to the secondary buffer from
+ * the primary buffer when the primary buffer fills up.
+ *
  * When implementing this class in platform code. Use the singleton defined
  * after this class and pass logs to the log or logVa methods. Initialize the
  * singleton before using it. Call the onLogsSentToHost callback immediately
@@ -40,8 +49,11 @@ namespace chre {
  */
 class LogBufferManager : public LogBufferCallbackInterface {
  public:
-  LogBufferManager()
-      : mLogBuffer(this, mLogBufferData, sizeof(mLogBufferData)) {}
+  LogBufferManager(uint8_t *primaryBufferData, uint8_t *secondaryBufferData,
+                   size_t bufferSize)
+      : mPrimaryLogBuffer(this, primaryBufferData, bufferSize),
+        mSecondaryLogBuffer(nullptr /* callback */, secondaryBufferData,
+                            bufferSize) {}
 
   ~LogBufferManager() = default;
 
@@ -60,7 +72,7 @@ class LogBufferManager : public LogBufferCallbackInterface {
   /**
    * Overrides required method from LogBufferCallbackInterface.
    */
-  void onLogsReady(LogBuffer *logBuffer) final;
+  void onLogsReady() final;
 
   /**
    * Flush any logs that might be in the default log buffer.
@@ -80,18 +92,23 @@ class LogBufferManager : public LogBufferCallbackInterface {
   void sendLogsToHost();
 
  private:
-  LogBuffer *getLogBuffer();
-
-  uint8_t *getTempLogBufferData();
-
   /*
    * @return The LogBuffer log level for the given CHRE log level.
    */
   LogBufferLogLevel chreToLogBufferLogLevel(chreLogLevel chreLogLevel);
 
-  LogBuffer mLogBuffer;
-  uint8_t mLogBufferData[CHRE_LOG_BUFFER_DATA_SIZE];
-  uint8_t mTempLogBufferData[sizeof(mLogBufferData)];
+  /**
+   * Perform any setup needed by the plaform before the secondary buffer is
+   * used.
+   *
+   * Implemented by the platform.
+   */
+  void preSecondaryBufferUse() const;
+
+  LogBuffer mPrimaryLogBuffer;
+  LogBuffer mSecondaryLogBuffer;
+
+  size_t mNumLogsDroppedTotal = 0;
 
   bool mLogFlushToHostPending = false;
   bool mLogsBecameReadyWhileFlushPending = false;

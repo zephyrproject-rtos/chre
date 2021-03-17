@@ -36,9 +36,7 @@ void sendBufferedLogMessageCallback(uint16_t /* eventType */, void * /* data */,
   LogBufferManagerSingleton::get()->sendLogsToHost();
 }
 
-void LogBufferManager::onLogsReady(LogBuffer *logBuffer) {
-  // TODO(b/174676964): Have the LogBufferManager class also send logs to host
-  // if the AP just awoke.
+void LogBufferManager::onLogsReady() {
   LockGuard<Mutex> lockGuard(mFlushLogsMutex);
   if (!mLogFlushToHostPending) {
     if (EventLoopManagerSingleton::isInitialized() &&
@@ -57,7 +55,7 @@ void LogBufferManager::onLogsReady(LogBuffer *logBuffer) {
 }
 
 void LogBufferManager::flushLogs() {
-  onLogsReady(&mLogBuffer);
+  onLogsReady();
 }
 
 void LogBufferManager::onLogsSentToHost() {
@@ -67,6 +65,7 @@ void LogBufferManager::onLogsSentToHost() {
     shouldPostCallback = mLogsBecameReadyWhileFlushPending;
     mLogsBecameReadyWhileFlushPending = false;
     mLogFlushToHostPending = shouldPostCallback;
+    mSecondaryLogBuffer.reset();
   }
   if (shouldPostCallback) {
     Nanoseconds delay(Milliseconds(10).toRawNanoseconds());
@@ -82,23 +81,30 @@ void LogBufferManager::sendLogsToHost() {
           ->getEventLoop()
           .getPowerControlManager()
           .hostIsAwake()) {
-    LogBufferManager *platformLog = LogBufferManagerSingleton::get();
-    LogBuffer *logBuffer = platformLog->getLogBuffer();
-    uint8_t *tempLogBufferData =
-        reinterpret_cast<uint8_t *>(platformLog->getTempLogBufferData());
-    size_t numDroppedLogs;
-    size_t bytesCopied = logBuffer->copyLogs(
-        tempLogBufferData, sizeof(mLogBufferData), &numDroppedLogs);
-    if (bytesCopied > 0) {
-      auto &hostCommsMgr =
-          EventLoopManagerSingleton::get()->getHostCommsManager();
-      hostCommsMgr.sendLogMessageV2(tempLogBufferData, bytesCopied,
-                                    static_cast<uint32_t>(numDroppedLogs));
+    auto &hostCommsMgr =
+        EventLoopManagerSingleton::get()->getHostCommsManager();
+    preSecondaryBufferUse();
+    if (mSecondaryLogBuffer.getBufferSize() == 0) {
+      mPrimaryLogBuffer.transferTo(mSecondaryLogBuffer);
+    }
+    // If the primary buffer was not flushed to the secondary buffer then set
+    // the flag that will cause sendLogsToHost to be run again after
+    // onLogsSentToHost has been called and the secondary buffer has been
+    // cleared out.
+    if (mPrimaryLogBuffer.getBufferSize() > 0) {
+      mLogsBecameReadyWhileFlushPending = true;
+    }
+    if (mSecondaryLogBuffer.getBufferSize() > 0) {
+      mNumLogsDroppedTotal += mSecondaryLogBuffer.getNumLogsDropped();
+      hostCommsMgr.sendLogMessageV2(mSecondaryLogBuffer.getBufferData(),
+                                    mSecondaryLogBuffer.getBufferSize(),
+                                    mNumLogsDroppedTotal);
+
       logWasSent = true;
     }
-  }
-  if (!logWasSent) {
-    onLogsSentToHost();
+    if (!logWasSent) {
+      onLogsSentToHost();
+    }
   }
 }
 
@@ -115,15 +121,20 @@ void LogBufferManager::logVa(chreLogLevel logLevel, const char *formatStr,
   uint64_t timeNs = SystemTime::getMonotonicTime().toRawNanoseconds();
   uint32_t timeMs =
       static_cast<uint32_t>(timeNs / kOneMillisecondInNanoseconds);
-  mLogBuffer.handleLogVa(logBufLogLevel, timeMs, formatStr, args);
-}
-
-LogBuffer *LogBufferManager::getLogBuffer() {
-  return &mLogBuffer;
-}
-
-uint8_t *LogBufferManager::getTempLogBufferData() {
-  return mTempLogBufferData;
+  // Copy the va_list before getting size from vsnprintf so that the next
+  // argument that will be accessed in buffer.handleLogVa is the starting one.
+  va_list getSizeArgs;
+  va_copy(getSizeArgs, args);
+  size_t logSize = vsnprintf(nullptr, 0, formatStr, getSizeArgs);
+  va_end(getSizeArgs);
+  if (mPrimaryLogBuffer.logWouldCauseOverflow(logSize)) {
+    LockGuard<Mutex> lockGuard(mFlushLogsMutex);
+    if (!mLogFlushToHostPending) {
+      preSecondaryBufferUse();
+      mPrimaryLogBuffer.transferTo(mSecondaryLogBuffer);
+    }
+  }
+  mPrimaryLogBuffer.handleLogVa(logBufLogLevel, timeMs, formatStr, args);
 }
 
 LogBufferLogLevel LogBufferManager::chreToLogBufferLogLevel(
