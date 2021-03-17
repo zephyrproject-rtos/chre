@@ -49,9 +49,6 @@ class GenericContextHubV1_2 : public GenericContextHubBase<V1_2::IContexthub> {
   Return<Result> registerCallback_1_2(
       uint32_t hubId, const sp<IContexthubCallback> &cb) override;
 
-  Return<Result> sendMessageToHub_1_2(uint32_t hubId,
-                                      const ContextHubMsg &msg) override;
-
   Return<void> onSettingChanged(V1_1::Setting setting,
                                 V1_1::SettingValue newValue) override;
 
