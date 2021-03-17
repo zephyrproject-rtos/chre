@@ -247,8 +247,13 @@ void chppDiscoveryInit(struct ChppAppState *context) {
                   "Discovery client already initialized");
 
   CHPP_LOGD("Initializing CHPP discovery client");
-  chppMutexInit(&context->discoveryMutex);
-  chppConditionVariableInit(&context->discoveryCv);
+
+  if (!context->isDiscoveryClientInitialized) {
+    chppMutexInit(&context->discoveryMutex);
+    chppConditionVariableInit(&context->discoveryCv);
+    context->isDiscoveryClientInitialized = true;
+  }
+
   context->matchedClientCount = 0;
   context->isDiscoveryComplete = false;
   context->isDiscoveryClientInitialized = true;
@@ -259,8 +264,6 @@ void chppDiscoveryDeinit(struct ChppAppState *context) {
                   "Discovery client already deinitialized");
 
   CHPP_LOGD("Deinitializing CHPP discovery client");
-  chppConditionVariableDeinit(&context->discoveryCv);
-  chppMutexDeinit(&context->discoveryMutex);
   context->isDiscoveryClientInitialized = false;
 }
 
