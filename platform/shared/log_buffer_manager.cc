@@ -31,11 +31,6 @@ void chrePlatformLogToBuffer(chreLogLevel chreLogLevel, const char *format,
 
 namespace chre {
 
-void sendBufferedLogMessageCallback(uint16_t /* eventType */, void * /* data */,
-                                    void * /* extraData */) {
-  LogBufferManagerSingleton::get()->sendLogsToHost();
-}
-
 void LogBufferManager::onLogsReady() {
   LockGuard<Mutex> lockGuard(mFlushLogsMutex);
   if (!mLogFlushToHostPending) {
@@ -44,10 +39,8 @@ void LogBufferManager::onLogsReady() {
             ->getEventLoop()
             .getPowerControlManager()
             .hostIsAwake()) {
-      EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::SendBufferedLogMessage, nullptr,
-          sendBufferedLogMessageCallback);
       mLogFlushToHostPending = true;
+      mSendLogsToHostCondition.notify_one();
     }
   } else {
     mLogsBecameReadyWhileFlushPending = true;
@@ -59,51 +52,47 @@ void LogBufferManager::flushLogs() {
 }
 
 void LogBufferManager::onLogsSentToHost() {
-  bool shouldPostCallback = false;
-  {
-    LockGuard<Mutex> lockGuard(mFlushLogsMutex);
-    shouldPostCallback = mLogsBecameReadyWhileFlushPending;
-    mLogsBecameReadyWhileFlushPending = false;
-    mLogFlushToHostPending = shouldPostCallback;
-    mSecondaryLogBuffer.reset();
-  }
-  if (shouldPostCallback) {
-    Nanoseconds delay(Milliseconds(10).toRawNanoseconds());
-    EventLoopManagerSingleton::get()->setDelayedCallback(
-        SystemCallbackType::SendBufferedLogMessage, nullptr,
-        sendBufferedLogMessageCallback, delay);
-  }
+  LockGuard<Mutex> lockGuard(mFlushLogsMutex);
+  onLogsSentToHostLocked();
 }
 
-void LogBufferManager::sendLogsToHost() {
-  bool logWasSent = false;
-  if (EventLoopManagerSingleton::get()
-          ->getEventLoop()
-          .getPowerControlManager()
-          .hostIsAwake()) {
-    auto &hostCommsMgr =
-        EventLoopManagerSingleton::get()->getHostCommsManager();
-    preSecondaryBufferUse();
-    if (mSecondaryLogBuffer.getBufferSize() == 0) {
-      mPrimaryLogBuffer.transferTo(mSecondaryLogBuffer);
+void LogBufferManager::startSendLogsToHostLoop() {
+  LockGuard<Mutex> lockGuard(mFlushLogsMutex);
+  // TODO(b/181871430): Allow this loop to exit for certain platforms
+  while (true) {
+    while (!mLogFlushToHostPending) {
+      mSendLogsToHostCondition.wait(mFlushLogsMutex);
     }
-    // If the primary buffer was not flushed to the secondary buffer then set
-    // the flag that will cause sendLogsToHost to be run again after
-    // onLogsSentToHost has been called and the secondary buffer has been
-    // cleared out.
-    if (mPrimaryLogBuffer.getBufferSize() > 0) {
-      mLogsBecameReadyWhileFlushPending = true;
-    }
-    if (mSecondaryLogBuffer.getBufferSize() > 0) {
-      mNumLogsDroppedTotal += mSecondaryLogBuffer.getNumLogsDropped();
-      hostCommsMgr.sendLogMessageV2(mSecondaryLogBuffer.getBufferData(),
-                                    mSecondaryLogBuffer.getBufferSize(),
-                                    mNumLogsDroppedTotal);
-
-      logWasSent = true;
+    bool logWasSent = false;
+    if (EventLoopManagerSingleton::get()
+            ->getEventLoop()
+            .getPowerControlManager()
+            .hostIsAwake()) {
+      auto &hostCommsMgr =
+          EventLoopManagerSingleton::get()->getHostCommsManager();
+      preSecondaryBufferUse();
+      if (mSecondaryLogBuffer.getBufferSize() == 0) {
+        mPrimaryLogBuffer.transferTo(mSecondaryLogBuffer);
+      }
+      // If the primary buffer was not flushed to the secondary buffer then set
+      // the flag that will cause sendLogsToHost to be run again after
+      // onLogsSentToHost has been called and the secondary buffer has been
+      // cleared out.
+      if (mPrimaryLogBuffer.getBufferSize() > 0) {
+        mLogsBecameReadyWhileFlushPending = true;
+      }
+      if (mSecondaryLogBuffer.getBufferSize() > 0) {
+        mNumLogsDroppedTotal += mSecondaryLogBuffer.getNumLogsDropped();
+        mFlushLogsMutex.unlock();
+        hostCommsMgr.sendLogMessageV2(mSecondaryLogBuffer.getBufferData(),
+                                      mSecondaryLogBuffer.getBufferSize(),
+                                      mNumLogsDroppedTotal);
+        logWasSent = true;
+        mFlushLogsMutex.lock();
+      }
     }
     if (!logWasSent) {
-      onLogsSentToHost();
+      onLogsSentToHostLocked();
     }
   }
 }
@@ -148,6 +137,15 @@ LogBufferLogLevel LogBufferManager::chreToLogBufferLogLevel(
       return LogBufferLogLevel::INFO;
     default:  // CHRE_LOG_DEBUG
       return LogBufferLogLevel::DEBUG;
+  }
+}
+
+void LogBufferManager::onLogsSentToHostLocked() {
+  mLogFlushToHostPending = mLogsBecameReadyWhileFlushPending;
+  mLogsBecameReadyWhileFlushPending = false;
+  mSecondaryLogBuffer.reset();
+  if (mLogFlushToHostPending) {
+    mSendLogsToHostCondition.notify_one();
   }
 }
 
