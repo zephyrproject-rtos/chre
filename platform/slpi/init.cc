@@ -101,6 +101,9 @@ bool gThreadRunning;
 int gTlsKey;
 bool gTlsKeyValid;
 
+// TODO(b/181871430): Enable buffered logging for QSH. The QSH implementation
+// will not log currently.
+
 #ifdef CHRE_USE_BUFFERED_LOGGING
 
 //! Primary and secondary log buffers for the LogBufferManager
