@@ -27,10 +27,4 @@
 #define LOG_TAG "[PowerTest]"
 #endif  // CHRE_TCM_BUILD
 
-#ifdef CHRE_POWER_TEST_ENABLE_LOGV
-#define LOGV LOGD
-#else
-#define LOGV(fmt, ...) CHRE_LOG_NULL(fmt, ##__VA_ARGS__)
-#endif
-
 #endif  // CHRE_POWER_TEST_COMMON_H_

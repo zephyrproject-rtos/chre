@@ -27,7 +27,6 @@ COMMON_CFLAGS += -I$(CHRE_PREFIX)/util/include
 
 # Defines
 COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG
-# COMMON_CFLAGS += -DCHRE_POWER_TEST_ENABLE_LOGV
 
 # Flatbuffers configuration
 include $(CHRE_PREFIX)/external/flatbuffers/flatbuffers.mk
