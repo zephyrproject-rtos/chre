@@ -98,6 +98,15 @@ void Nanoapp::configureDebugDumpEvent(bool enable) {
   }
 }
 
+void Nanoapp::configureUserSettingEvent(uint8_t setting, bool enable) {
+  if (enable) {
+    registerForBroadcastEvent(CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT + setting);
+  } else {
+    unregisterForBroadcastEvent(CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT +
+                                setting);
+  }
+}
+
 Event *Nanoapp::processNextEvent() {
   Event *event = mEventQueue.pop();
 
