@@ -74,12 +74,6 @@ Return<Result> GenericContextHubV1_2::registerCallback_1_2(
   return registerCallbackCommon(hubId, wrappedCallback);
 }
 
-Return<Result> GenericContextHubV1_2::sendMessageToHub_1_2(
-    uint32_t hubId, const ContextHubMsg &msg) {
-  // Other V1.2 fields are only used from nanoapp -> host messages.
-  return sendMessageToHub(hubId, msg.msg_1_0);
-}
-
 Return<void> GenericContextHubV1_2::onSettingChanged(V1_1::Setting setting,
                                                      SettingValue newValue) {
   return onSettingChanged_1_2(reinterpret_cast<V1_2::Setting &>(setting),
