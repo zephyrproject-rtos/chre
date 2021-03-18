@@ -139,8 +139,12 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
         int authorization = mAuthorizationUpdateQueue.poll(2, TimeUnit.SECONDS);
         Assert.assertEquals(authorization, ContextHubManager.AUTHORIZATION_DENIED);
 
-        Assert.assertEquals(mContextHubClient.sendMessageToNanoApp(message),
-                ContextHubTransaction.RESULT_FAILED_PERMISSION_DENIED);
+        try {
+            mContextHubClient.sendMessageToNanoApp(message);
+            Assert.fail("Sent message to nanoapp even though permissions were denied");
+        } catch (SecurityException e) {
+            // Expected
+        }
         Assert.assertTrue(mAuthorizationUpdateQueue.isEmpty());
         Assert.assertFalse(mHubResetDuringTest.get());
     }
