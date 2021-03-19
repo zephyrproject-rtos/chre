@@ -113,9 +113,6 @@ const struct chrePalWwanApi *chrePalWwanGetApi(uint32_t requestedApiVersion) {
 
   if (!CHRE_PAL_VERSIONS_ARE_COMPATIBLE(kApi.moduleVersion,
                                         requestedApiVersion)) {
-    LOGE("Incompatible version: requested 0x%" PRIx32
-         " module version 0x%" PRIx32,
-         requestedApiVersion, kApi.moduleVersion);
     return nullptr;
   } else {
     return &kApi;
