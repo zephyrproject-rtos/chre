@@ -31,10 +31,10 @@ extern "C" {
 #endif
 
 /**
- * Default number of measurements for timesync
+ * Maximum timesync step change at each measurement
  */
-#ifndef CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT
-#define CHPP_CLIENT_TIMESYNC_DEFAULT_MEASUREMENT_COUNT 5
+#ifndef CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS
+#define CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS (100 * CHPP_NSEC_PER_MSEC)
 #endif
 
 /**
@@ -73,24 +73,33 @@ void chppTimesyncClientInit(struct ChppAppState *context);
 void chppTimesyncClientDeinit(struct ChppAppState *context);
 
 /**
+ * Resets the client.
+ *
+ * @param context Maintains status for each app layer instance.
+ */
+void chppTimesyncClientReset(struct ChppAppState *context);
+
+/**
  * Dispatches an Rx Datagram from the transport layer that is determined to
  * be for the CHPP Timesync Client.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input (response) datagram. Cannot be null.
  * @param len Length of input data in bytes.
+ *
+ * @return Indicates success or failure.
  */
 bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
                                          const uint8_t *buf, size_t len);
 
 /**
  * Initiates a CHPP timesync to measure time offset of the service.
- * Note that only one measurement may be run at any time.
  *
  * @param context Maintains status for each app layer instance.
+ *
+ * @return Indicates success or failure.
  */
-struct ChppTimesyncResult chppTimesyncMeasureOffset(
-    struct ChppAppState *context);
+bool chppTimesyncMeasureOffset(struct ChppAppState *context);
 
 /**
  * Provides the time offset of the service. If the latest measurement is within
@@ -104,6 +113,16 @@ struct ChppTimesyncResult chppTimesyncMeasureOffset(
  */
 int64_t chppTimesyncGetOffset(struct ChppAppState *context,
                               uint64_t maxTimesyncAgeNs);
+
+/**
+ * Provides the raw results of the latest timesync measurement.
+ *
+ * @param context Maintains status for each app layer instance.
+ *
+ * @return Latest result.
+ */
+const struct ChppTimesyncResult *chppTimesyncGetResult(
+    struct ChppAppState *context);
 
 #ifdef __cplusplus
 }

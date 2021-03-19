@@ -34,10 +34,14 @@
  * provided to CHPP.
  *
  * @param context Maintains status for each app layer instance.
- * @param requestHeader Request datagram header. Cannot be null.
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
  */
 static void chppTimesyncGetTime(struct ChppAppState *context,
-                                const struct ChppAppHeader *requestHeader) {
+                                const uint8_t *buf, size_t len) {
+  UNUSED_VAR(len);
+  const struct ChppAppHeader *requestHeader = (const struct ChppAppHeader *)buf;
+
   struct ChppTimesyncResponse *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppTimesyncResponse);
   size_t responseLen = sizeof(*response);
@@ -69,7 +73,7 @@ bool chppDispatchTimesyncClientRequest(struct ChppAppState *context,
 
   switch (rxHeader->command) {
     case CHPP_TIMESYNC_COMMAND_GETTIME: {
-      chppTimesyncGetTime(context, rxHeader);
+      chppTimesyncGetTime(context, buf, len);
       break;
     }
     default: {
