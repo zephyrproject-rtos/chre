@@ -554,8 +554,13 @@ static void chppWifiScanEventNotification(
     CHPP_LOGE("Scan event conversion failed: len=%" PRIuSIZE, len);
   } else {
 #ifdef CHPP_CLIENT_ENABLED_TIMESYNC
-    chre->referenceTime -= (uint64_t)chppTimesyncGetOffset(
-        gWifiClientContext.client.appContext, CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
+    uint64_t correctedTime =
+        chre->referenceTime -
+        (uint64_t)chppTimesyncGetOffset(gWifiClientContext.client.appContext,
+                                        CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
+    CHPP_LOGD("WiFi scan time corrected from %" PRIu64 "to %" PRIu64,
+              chre->referenceTime, correctedTime);
+    chre->referenceTime = correctedTime;
 #endif
 
     gCallbacks->scanEventCallback(chre);
