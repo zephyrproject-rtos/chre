@@ -85,10 +85,6 @@ DLL_EXPORT bool chreSendMessageWithPermissions(
     LOGW("Rejecting message to host from app instance %" PRIu32
          " because it's stopping",
          nanoapp->getInstanceId());
-  } else if (!BITMASK_HAS_VALUE(nanoapp->getAppPermissions(),
-                                messagePermissions)) {
-    LOGE("Message perms %" PRIx32 " not subset of napp perms %" PRIx32,
-         messagePermissions, nanoapp->getAppPermissions());
   } else {
     auto &hostCommsManager =
         EventLoopManagerSingleton::get()->getHostCommsManager();
