@@ -760,7 +760,8 @@ static void usage() {
       " chre_power_test_client unloadall\n"
       " chre_power_test_client timer <optional: tcm> <enable> <interval_ns>\n"
       " chre_power_test_client wifi <optional: tcm> <enable> <interval_ns>"
-      " <optional: wifi_scan_type> <optional: wifi_radio_chain>\n"
+      " <optional: wifi_scan_type> <optional: wifi_radio_chain>"
+      " <optional: wifi_channel_set>\n"
       " chre_power_test_client gnss <optional: tcm> <enable> <interval_ms>"
       " <next_fix_ms>\n"
       " chre_power_test_client cell <optional: tcm> <enable> <interval_ns>\n"
@@ -807,15 +808,20 @@ static void usage() {
       " provide the interval and latency.\n"
       "\n"
       "<wifi_scan_type>:\n"
-      " active (default when omitted)\n"
+      " active\n"
       " active_passive_dfs\n"
       " passive\n"
+      " no_preference (default when omitted)\n"
       "\n"
       "<wifi_radio_chain>:\n"
       " default (default when omitted)\n"
       " low_latency\n"
       " low_power\n"
-      " high_accuracy\n");
+      " high_accuracy\n"
+      "\n"
+      "<wifi_channel_set>:\n"
+      " non_dfs (default when omitted)\n"
+      " all\n");
 }
 
 void createRequestMessage(Command commandEnum, FlatBufferBuilder &fbb,
