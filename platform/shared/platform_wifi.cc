@@ -89,8 +89,7 @@ bool PlatformWifi::requestScan(const struct chreWifiScanParams *params) {
   if (mWifiApi != nullptr) {
     prePalApiCall();
 
-    // TODO(174240925): remove the version check override
-    if (true || mWifiApi->moduleVersion < CHRE_PAL_WIFI_API_V1_5) {
+    if (mWifiApi->moduleVersion < CHRE_PAL_WIFI_API_V1_5) {
       const struct chreWifiScanParams paramsCompat =
           translateToLegacyWifiScanParams(params);
       return mWifiApi->requestScan(&paramsCompat);
