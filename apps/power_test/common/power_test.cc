@@ -96,7 +96,9 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
     case CHRE_EVENT_WIFI_SCAN_RESULT: {
       const struct chreWifiScanEvent *event =
           static_cast<const struct chreWifiScanEvent *>(eventData);
-      LOGD("Wifi scan received with %" PRIu8 " results", event->resultCount);
+      LOGD("Wifi scan received with %" PRIu8 " results, scanType %" PRIu8
+           ", radioChainPref %" PRIu8,
+           event->resultCount, event->scanType, event->radioChainPref);
       break;
     }
     case CHRE_EVENT_GNSS_ASYNC_RESULT: {
