@@ -482,7 +482,9 @@ void SensorRequestManager::handleSamplingStatusUpdate(
   Sensor *sensor =
       EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
           sensorHandle);
-  if (sensor != nullptr && !sensor->isOneShot()) {
+  if (sensor == nullptr || sensor->isOneShot()) {
+    releaseSamplingStatusUpdate(status);
+  } else {
     sensor->setSamplingStatus(*status);
 
     auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
