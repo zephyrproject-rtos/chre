@@ -150,6 +150,32 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
     }
 
     /**
+     * Runs the test where an app attempts to send a message with data covered
+     * by permissions.
+     */
+    public void messagePermissionsTest() throws Exception {
+        // Defined in chre/util/system/napp_permissions.h
+        final int audioPermission = 1;
+        PingTest.PingCommand command =
+                PingTest.PingCommand.newBuilder().setPermissions(audioPermission).build();
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNanoAppId, PingTest.MessageType.PING_COMMAND_VALUE,
+                command.toByteArray());
+        int result = mContextHubClient.sendMessageToNanoApp(message);
+        if (result != ContextHubTransaction.RESULT_SUCCESS) {
+            Assert.fail("Failed to send message: result = " + result);
+        }
+
+        try {
+            NanoAppMessage msg = mMessageQueue.poll(2, TimeUnit.SECONDS);
+            Assert.assertNotNull("Timed out waiting for a message", msg);
+            Log.d(TAG, "Got message from nanoapp: " + msg);
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    /**
      * Cleans up the test, should be invoked in e.g. @After method.
      */
     public void deinit() {
