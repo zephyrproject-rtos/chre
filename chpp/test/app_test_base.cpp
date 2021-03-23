@@ -26,6 +26,7 @@
 
 #include "chpp/app.h"
 #include "chpp/macros.h"
+#include "chpp/platform/utils.h"
 #include "chpp/transport.h"
 
 namespace chpp {
@@ -43,6 +44,7 @@ void *workThread(void *arg) {
 }  // anonymous namespace
 
 void AppTestBase::SetUp() {
+  chppClearTotalAllocBytes();
   memset(&mClientTransportContext.linkParams, 0,
          sizeof(mClientTransportContext.linkParams));
   memset(&mServiceTransportContext.linkParams, 0,
@@ -92,17 +94,19 @@ void AppTestBase::SetUp() {
 }
 
 void AppTestBase::TearDown() {
+  // Stop the work threads first to avoid any transient activity.
   chppWorkThreadStop(&mClientTransportContext);
+  chppWorkThreadStop(&mServiceTransportContext);
   pthread_join(mClientWorkThread, NULL);
+  pthread_join(mServiceWorkThread, NULL);
 
   chppAppDeinit(&mClientAppContext);
   chppTransportDeinit(&mClientTransportContext);
 
-  chppWorkThreadStop(&mServiceTransportContext);
-  pthread_join(mServiceWorkThread, NULL);
-
   chppAppDeinit(&mServiceAppContext);
   chppTransportDeinit(&mServiceTransportContext);
+
+  EXPECT_EQ(chppGetTotalAllocBytes(), 0);
 }
 
 }  // namespace chpp
