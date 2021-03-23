@@ -52,7 +52,7 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
       msgToHost->toHostData.hostEndpoint = hostEndpoint;
       msgToHost->toHostData.messageType = messageType;
       msgToHost->toHostData.messagePermissions = messagePermissions;
-      msgToHost->permissions = nanoapp->getAppPermissions();
+      msgToHost->toHostData.appPermissions = nanoapp->getAppPermissions();
       msgToHost->toHostData.nanoappFreeFunction = freeCallback;
 
       // Let the nanoapp know that it woke up the host and record it
