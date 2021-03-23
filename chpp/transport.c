@@ -35,6 +35,8 @@
  *  Prototypes
  ***********************************************/
 
+static void chppClearTxQueue(struct ChppTransportState *context);
+
 static void chppSetRxState(struct ChppTransportState *context,
                            enum ChppRxState newState);
 static size_t chppConsumePreamble(struct ChppTransportState *context,
@@ -86,6 +88,18 @@ void __attribute__((weak)) chreCheckFor178963854() {}
 /************************************************
  *  Private Functions
  ***********************************************/
+
+/**
+ * Clears the TX queue of any pending packets.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
+static void chppClearTxQueue(struct ChppTransportState *context) {
+  while (context->txDatagramQueue.pending > 0) {
+    chppDequeueTxDatagram(context);
+  }
+  context->txStatus.hasPacketsToSend = false;
+}
 
 /**
  * Called any time the Rx state needs to be changed. Ensures that the location
@@ -1094,6 +1108,8 @@ void chppTransportDeinit(struct ChppTransportState *transportContext) {
   chppConditionVariableDeinit(&transportContext->resetCondVar);
   chppNotifierDeinit(&transportContext->notifier);
   chppMutexDeinit(&transportContext->mutex);
+
+  chppClearTxQueue(transportContext);
 
   transportContext->initialized = false;
 }
