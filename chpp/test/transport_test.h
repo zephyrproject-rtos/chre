@@ -42,7 +42,7 @@ CHPP_PACKED_END
  *  Functions necessary for unit testing
  ***********************************************/
 
-bool chppDequeueTxDatagram(struct ChppTransportState *context);
+size_t chppDequeueTxDatagram(struct ChppTransportState *context);
 
 #ifdef __cplusplus
 }
