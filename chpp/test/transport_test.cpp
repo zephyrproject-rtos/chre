@@ -35,6 +35,7 @@
 #include "chpp/crc.h"
 #include "chpp/macros.h"
 #include "chpp/memory.h"
+#include "chpp/platform/utils.h"
 #include "chpp/services/discovery.h"
 #include "chpp/services/loopback.h"
 #include "chpp/transport.h"
@@ -65,6 +66,7 @@ constexpr int kServiceCount = 3;
 class TransportTests : public testing::TestWithParam<int> {
  protected:
   void SetUp() override {
+    chppClearTotalAllocBytes();
     memset(&mTransportContext.linkParams, 0,
            sizeof(mTransportContext.linkParams));
     mTransportContext.linkParams.linkEstablished = true;
@@ -82,6 +84,8 @@ class TransportTests : public testing::TestWithParam<int> {
   void TearDown() override {
     chppAppDeinit(&mAppContext);
     chppTransportDeinit(&mTransportContext);
+
+    EXPECT_EQ(chppGetTotalAllocBytes(), 0);
   }
 
   ChppTransportState mTransportContext = {};
@@ -900,6 +904,52 @@ TEST_F(TransportTests, UnopenedClient) {
 
   EXPECT_EQ(mTransportContext.txStatus.packetCodeToSend,
             CHPP_TRANSPORT_ERROR_APPLAYER);
+}
+
+TEST_F(TransportTests, DiscardedPacketTest) {
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  // Send packet to RX thread after manually setting to resetting state.
+  // We expect this packet to get dropped, but this test checks for any
+  // problematic behavior (e.g. memory leaks).
+  mTransportContext.resetState = CHPP_RESET_STATE_RESETTING;
+
+  size_t loc = 0;
+  addPreambleToBuf(mBuf, &loc);
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+
+  ChppAppHeader *appHeader = addAppHeaderToBuf(mBuf, &loc);
+  appHeader->handle = CHPP_HANDLE_DISCOVERY;
+  appHeader->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
+  appHeader->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+
+  ChppServiceDescriptor wwanServiceDescriptor = {};
+  static const uint8_t uuid[CHPP_SERVICE_UUID_LEN] = CHPP_UUID_WWAN_STANDARD;
+  memcpy(&wwanServiceDescriptor.uuid, &uuid,
+         sizeof(wwanServiceDescriptor.uuid));
+  static const char name[CHPP_SERVICE_NAME_MAX_LEN] = "WWAN";
+  memcpy(&wwanServiceDescriptor.name, &name,
+         sizeof(wwanServiceDescriptor.name));
+  wwanServiceDescriptor.version.major = 1;
+  wwanServiceDescriptor.version.minor = 0;
+  wwanServiceDescriptor.version.patch = 0;
+
+  memcpy(&mBuf[loc], &wwanServiceDescriptor, sizeof(ChppServiceDescriptor));
+  loc += sizeof(ChppServiceDescriptor);
+
+  transHeader->length = static_cast<uint16_t>(
+      loc - sizeof(ChppTransportHeader) - CHPP_PREAMBLE_LEN_BYTES);
+
+  addTransportFooterToBuf(mBuf, &loc);
+
+  mAppContext.clientIndexOfServiceIndex[0] = CHPP_CLIENT_INDEX_NONE;
+
+  EXPECT_TRUE(chppRxDataCb(&mTransportContext, mBuf, loc));
+
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
 }
 
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
