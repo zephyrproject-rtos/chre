@@ -213,7 +213,7 @@ std::unordered_map<string, WifiRadioChain> wifiRadioChainMap{
     {"default", WifiRadioChain::DEFAULT},
     {"low_latency", WifiRadioChain::LOW_LATENCY},
     {"low_power", WifiRadioChain::LOW_POWER},
-    {"higi_accuracy", WifiRadioChain::HIGH_ACCURACY}};
+    {"high_accuracy", WifiRadioChain::HIGH_ACCURACY}};
 
 std::unordered_map<string, WifiChannelSet> wifiChannelSetMap{
     {"non_dfs", WifiChannelSet::NON_DFS}, {"all", WifiChannelSet::ALL}};
