@@ -820,6 +820,10 @@ void chppDeregisterWifiClient(struct ChppAppState *appContext) {
   UNUSED_VAR(appContext);
 }
 
+struct ChppClientState *getChppWifiClientState(void) {
+  return &gWifiClientContext.client;
+}
+
 #ifdef CHPP_CLIENT_ENABLED_WIFI
 
 #ifdef CHPP_CLIENT_ENABLED_CHRE_WIFI

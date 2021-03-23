@@ -808,6 +808,10 @@ void chppDeregisterGnssClient(struct ChppAppState *appContext) {
   UNUSED_VAR(appContext);
 }
 
+struct ChppClientState *getChppGnssClientState(void) {
+  return &gGnssClientContext.client;
+}
+
 #ifdef CHPP_CLIENT_ENABLED_GNSS
 
 #ifdef CHPP_CLIENT_ENABLED_CHRE_GNSS
