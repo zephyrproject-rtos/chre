@@ -52,6 +52,10 @@ struct HostMessage : public NonCopyable {
       //! Application-specific message ID
       uint32_t messageType;
 
+      //! List of Android permissions declared by the nanoapp. This must be a
+      //! superset of messagePermissions.
+      uint32_t appPermissions;
+
       //! List of Android permissions that cover the contents of the message.
       //! These permissions are used to record and attribute access to
       //! permissions-controlled resources.
@@ -71,11 +75,6 @@ struct HostMessage : public NonCopyable {
 
   //! Source/destination nanoapp ID
   uint64_t appId;
-
-  //! List of Android permissions declared by the nanoapp / granted to the host.
-  //! For nanoaapp->host messages, this must be a superset of
-  //! messagePermissions.
-  uint32_t permissions;
 
   //! Application-defined message data
   Buffer<uint8_t> message;
