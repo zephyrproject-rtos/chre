@@ -55,7 +55,8 @@ static void chppProcessTransportLoopbackResponse(
     struct ChppTransportState *context);
 #endif
 static void chppReset(struct ChppTransportState *context,
-                      enum ChppTransportPacketAttributes resetType);
+                      enum ChppTransportPacketAttributes resetType,
+                      enum ChppTransportErrorCode error);
 static void chppProcessResetAck(struct ChppTransportState *context);
 static void chppProcessRxPayload(struct ChppTransportState *context);
 static void chppClearRxDatagram(struct ChppTransportState *context);
@@ -291,9 +292,12 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET) {
-      CHPP_LOGI("RX RESET packet. seq=%" PRIu8, context->rxHeader.seq);
+      CHPP_LOGI("RX RESET packet seq=%" PRIu8 " err=%" PRIu8,
+                context->rxHeader.seq,
+                CHPP_TRANSPORT_GET_ERROR(context->rxHeader.packetCode));
       chppMutexUnlock(&context->mutex);
-      chppReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK);
+      chppReset(context, CHPP_TRANSPORT_ATTR_RESET_ACK,
+                CHPP_TRANSPORT_ERROR_NONE);
       chppMutexLock(&context->mutex);
 
     } else if (context->resetState == CHPP_RESET_STATE_PERMANENT_FAILURE) {
@@ -844,7 +848,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
         CHPP_LOGE("Resetting after %d retries", CHPP_TRANSPORT_MAX_RETX);
 
         chppMutexUnlock(&context->mutex);
-        chppReset(context, CHPP_TRANSPORT_ATTR_RESET);
+        chppReset(context, CHPP_TRANSPORT_ATTR_RESET,
+                  CHPP_TRANSPORT_ERROR_MAX_RETRIES);
         chppMutexLock(&context->mutex);
       }
 
@@ -1034,9 +1039,11 @@ static void chppResetTransportContext(struct ChppTransportState *context) {
  * @param transportContext Maintains status for each transport layer instance.
  * @param resetType Type of reset to send after resetting CHPP (reset vs.
  * reset-ack), as defined in the ChppTransportPacketAttributes struct.
+ * @param error Provides the error that led to the reset.
  */
 static void chppReset(struct ChppTransportState *transportContext,
-                      enum ChppTransportPacketAttributes resetType) {
+                      enum ChppTransportPacketAttributes resetType,
+                      enum ChppTransportErrorCode error) {
   // TODO: Configure transport layer based on (optional?) received config before
   // datagram is wiped
 
@@ -1074,7 +1081,7 @@ static void chppReset(struct ChppTransportState *transportContext,
 
   // Send reset-ACK
   chppMutexUnlock(&transportContext->mutex);
-  chppTransportSendReset(transportContext, resetType);
+  chppTransportSendReset(transportContext, resetType, error);
 
   // Inform the App Layer
   chppAppProcessRxReset(appContext);
@@ -1182,11 +1189,8 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
 void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
   chppMutexLock(&context->mutex);
 
-  // Implicit NACK. Set received error code accordingly
-  context->rxStatus.receivedPacketCode = CHPP_TRANSPORT_ERROR_TIMEOUT;
-
-  // Enqueue Tx packet which will be a retransmission based on the above
-  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
+  // Implicit NACK. Enqueue Tx packet which will be a retransmission
+  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_TIMEOUT);
 
   chppMutexUnlock(&context->mutex);
 }
@@ -1272,7 +1276,8 @@ uint64_t chppTransportGetTimeUntilNextDoWorkNs(
 }
 
 void chppWorkThreadStart(struct ChppTransportState *context) {
-  chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET);
+  chppTransportSendReset(context, CHPP_TRANSPORT_ATTR_RESET,
+                         CHPP_TRANSPORT_ERROR_NONE);
   CHPP_LOGD("CHPP Work Thread started");
 
   uint32_t signals;
@@ -1315,7 +1320,8 @@ bool chppWorkThreadHandleSignal(struct ChppTransportState *context,
       if (context->resetCount < CHPP_TRANSPORT_MAX_RESET) {
         CHPP_LOGE("RESET-ACK timeout; retrying");
         context->resetCount++;
-        chppReset(context, CHPP_TRANSPORT_ATTR_RESET);
+        chppReset(context, CHPP_TRANSPORT_ATTR_RESET,
+                  CHPP_TRANSPORT_ERROR_TIMEOUT);
       } else {
         CHPP_LOGE("RESET-ACK timeout; giving up");
         context->resetState = CHPP_RESET_STATE_PERMANENT_FAILURE;
@@ -1446,7 +1452,8 @@ uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
 }
 
 void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType) {
+                            enum ChppTransportPacketAttributes resetType,
+                            enum ChppTransportErrorCode error) {
   // Make sure CHPP is in an initialized state
   CHPP_ASSERT_LOG((context->txDatagramQueue.pending == 0 &&
                    context->txDatagramQueue.front == 0),
@@ -1483,8 +1490,7 @@ void chppTransportSendReset(struct ChppTransportState *context,
 
   context->resetTimeNs = chppGetCurrentTimeNs();
 
-  chppEnqueueTxDatagram(
-      context,
-      CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, CHPP_TRANSPORT_ERROR_NONE),
-      config, sizeof(*config));
+  chppEnqueueTxDatagram(context,
+                        CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, error),
+                        config, sizeof(*config));
 }

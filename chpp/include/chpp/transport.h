@@ -166,10 +166,12 @@ enum ChppTransportErrorCode {
   CHPP_TRANSPORT_ERROR_HEADER = 4,
   //! Out of order
   CHPP_TRANSPORT_ERROR_ORDER = 5,
+  //! Timeout
+  CHPP_TRANSPORT_ERROR_TIMEOUT = 6,
+  //! Too many retries
+  CHPP_TRANSPORT_ERROR_MAX_RETRIES = 7,
   //! Message incomprehensible at App Layer
-  CHPP_TRANSPORT_ERROR_APPLAYER = 6,
-  //! Timeout (implicit, deduced and used internally only)
-  CHPP_TRANSPORT_ERROR_TIMEOUT = 0xF,
+  CHPP_TRANSPORT_ERROR_APPLAYER = 0xF,
 };
 
 /**
@@ -687,9 +689,11 @@ uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
  * @param transportContext Maintains status for each transport layer instance.
  * @param resetType Distinguishes a reset from a reset-ack, as defined in the
  * ChppTransportPacketAttributes struct.
+ * @param error Provides the error that led to the reset.
  */
 void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType);
+                            enum ChppTransportPacketAttributes resetType,
+                            enum ChppTransportErrorCode error);
 
 #ifdef __cplusplus
 }
