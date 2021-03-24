@@ -273,8 +273,8 @@ bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
     case fbs::Setting::AIRPLANE_MODE:
       *chreSetting = Setting::AIRPLANE_MODE;
       break;
-    case fbs::Setting::GLOBAL_MIC_DISABLE:
-      *chreSetting = Setting::GLOBAL_MIC_DISABLE;
+    case fbs::Setting::MICROPHONE:
+      *chreSetting = Setting::MICROPHONE;
       break;
     default:
       LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));

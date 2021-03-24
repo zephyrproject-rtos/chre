@@ -108,9 +108,9 @@ enum class Setting : int8_t {
   LOCATION = 0,
   WIFI_AVAILABLE = 1,
   AIRPLANE_MODE = 2,
-  GLOBAL_MIC_DISABLE = 3,
+  MICROPHONE = 3,
   MIN = LOCATION,
-  MAX = GLOBAL_MIC_DISABLE
+  MAX = MICROPHONE
 };
 
 inline const Setting (&EnumValuesSetting())[4] {
@@ -118,7 +118,7 @@ inline const Setting (&EnumValuesSetting())[4] {
     Setting::LOCATION,
     Setting::WIFI_AVAILABLE,
     Setting::AIRPLANE_MODE,
-    Setting::GLOBAL_MIC_DISABLE
+    Setting::MICROPHONE
   };
   return values;
 }
@@ -128,14 +128,14 @@ inline const char * const *EnumNamesSetting() {
     "LOCATION",
     "WIFI_AVAILABLE",
     "AIRPLANE_MODE",
-    "GLOBAL_MIC_DISABLE",
+    "MICROPHONE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameSetting(Setting e) {
-  if (flatbuffers::IsOutRange(e, Setting::LOCATION, Setting::GLOBAL_MIC_DISABLE)) return "";
+  if (flatbuffers::IsOutRange(e, Setting::LOCATION, Setting::MICROPHONE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesSetting()[index];
 }
@@ -561,8 +561,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) HostAddress FLATBUFFERS_FINAL_CLASS {
   uint16_t client_id_;
 
  public:
-  HostAddress()
-      : client_id_(0) {
+  HostAddress() {
+    memset(static_cast<void *>(this), 0, sizeof(HostAddress));
   }
   HostAddress(uint16_t _client_id)
       : client_id_(flatbuffers::EndianScalar(_client_id)) {
@@ -578,12 +578,19 @@ FLATBUFFERS_STRUCT_END(HostAddress, 2);
 
 struct NanoappMessageT : public flatbuffers::NativeTable {
   typedef NanoappMessage TableType;
-  uint64_t app_id = 0;
-  uint32_t message_type = 0;
-  uint16_t host_endpoint = 65534;
-  std::vector<uint8_t> message{};
-  uint32_t message_permissions = 0;
-  uint32_t permissions = 0;
+  uint64_t app_id;
+  uint32_t message_type;
+  uint16_t host_endpoint;
+  std::vector<uint8_t> message;
+  uint32_t message_permissions;
+  uint32_t permissions;
+  NanoappMessageT()
+      : app_id(0),
+        message_type(0),
+        host_endpoint(65534),
+        message_permissions(0),
+        permissions(0) {
+  }
 };
 
 /// Represents a message sent to/from a nanoapp from/to a client on the host
@@ -687,6 +694,7 @@ struct NanoappMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappMessageBuilder &operator=(const NanoappMessageBuilder &);
   flatbuffers::Offset<NanoappMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappMessage>(end);
@@ -736,6 +744,8 @@ flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::FlatBuffer
 
 struct HubInfoRequestT : public flatbuffers::NativeTable {
   typedef HubInfoRequest TableType;
+  HubInfoRequestT() {
+  }
 };
 
 struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -758,6 +768,7 @@ struct HubInfoRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  HubInfoRequestBuilder &operator=(const HubInfoRequestBuilder &);
   flatbuffers::Offset<HubInfoRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoRequest>(end);
@@ -775,18 +786,29 @@ flatbuffers::Offset<HubInfoRequest> CreateHubInfoRequest(flatbuffers::FlatBuffer
 
 struct HubInfoResponseT : public flatbuffers::NativeTable {
   typedef HubInfoResponse TableType;
-  std::vector<int8_t> name{};
-  std::vector<int8_t> vendor{};
-  std::vector<int8_t> toolchain{};
-  uint32_t platform_version = 0;
-  uint32_t toolchain_version = 0;
-  float peak_mips = 0.0f;
-  float stopped_power = 0.0f;
-  float sleep_power = 0.0f;
-  float peak_power = 0.0f;
-  uint32_t max_msg_len = 0;
-  uint64_t platform_id = 0;
-  uint32_t chre_platform_version = 0;
+  std::vector<int8_t> name;
+  std::vector<int8_t> vendor;
+  std::vector<int8_t> toolchain;
+  uint32_t platform_version;
+  uint32_t toolchain_version;
+  float peak_mips;
+  float stopped_power;
+  float sleep_power;
+  float peak_power;
+  uint32_t max_msg_len;
+  uint64_t platform_id;
+  uint32_t chre_platform_version;
+  HubInfoResponseT()
+      : platform_version(0),
+        toolchain_version(0),
+        peak_mips(0.0f),
+        stopped_power(0.0f),
+        sleep_power(0.0f),
+        peak_power(0.0f),
+        max_msg_len(0),
+        platform_id(0),
+        chre_platform_version(0) {
+  }
 };
 
 struct HubInfoResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -956,6 +978,7 @@ struct HubInfoResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  HubInfoResponseBuilder &operator=(const HubInfoResponseBuilder &);
   flatbuffers::Offset<HubInfoResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoResponse>(end);
@@ -1030,6 +1053,8 @@ flatbuffers::Offset<HubInfoResponse> CreateHubInfoResponse(flatbuffers::FlatBuff
 
 struct NanoappListRequestT : public flatbuffers::NativeTable {
   typedef NanoappListRequest TableType;
+  NanoappListRequestT() {
+  }
 };
 
 struct NanoappListRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1052,6 +1077,7 @@ struct NanoappListRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListRequestBuilder &operator=(const NanoappListRequestBuilder &);
   flatbuffers::Offset<NanoappListRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListRequest>(end);
@@ -1069,11 +1095,18 @@ flatbuffers::Offset<NanoappListRequest> CreateNanoappListRequest(flatbuffers::Fl
 
 struct NanoappListEntryT : public flatbuffers::NativeTable {
   typedef NanoappListEntry TableType;
-  uint64_t app_id = 0;
-  uint32_t version = 0;
-  bool enabled = true;
-  bool is_system = false;
-  uint32_t permissions = 0;
+  uint64_t app_id;
+  uint32_t version;
+  bool enabled;
+  bool is_system;
+  uint32_t permissions;
+  NanoappListEntryT()
+      : app_id(0),
+        version(0),
+        enabled(true),
+        is_system(false),
+        permissions(0) {
+  }
 };
 
 struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1159,6 +1192,7 @@ struct NanoappListEntryBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListEntryBuilder &operator=(const NanoappListEntryBuilder &);
   flatbuffers::Offset<NanoappListEntry> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListEntry>(end);
@@ -1186,7 +1220,9 @@ flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(flatbuffers::FlatBu
 
 struct NanoappListResponseT : public flatbuffers::NativeTable {
   typedef NanoappListResponse TableType;
-  std::vector<std::unique_ptr<chre::fbs::NanoappListEntryT>> nanoapps{};
+  std::vector<std::unique_ptr<chre::fbs::NanoappListEntryT>> nanoapps;
+  NanoappListResponseT() {
+  }
 };
 
 struct NanoappListResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1224,6 +1260,7 @@ struct NanoappListResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListResponseBuilder &operator=(const NanoappListResponseBuilder &);
   flatbuffers::Offset<NanoappListResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListResponse>(end);
@@ -1253,16 +1290,26 @@ flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(flatbuffers::
 
 struct LoadNanoappRequestT : public flatbuffers::NativeTable {
   typedef LoadNanoappRequest TableType;
-  uint32_t transaction_id = 0;
-  uint64_t app_id = 0;
-  uint32_t app_version = 0;
-  uint32_t target_api_version = 0;
-  std::vector<uint8_t> app_binary{};
-  uint32_t fragment_id = 0;
-  uint32_t total_app_size = 0;
-  std::vector<int8_t> app_binary_file_name{};
-  uint32_t app_flags = 0;
-  bool respond_before_start = false;
+  uint32_t transaction_id;
+  uint64_t app_id;
+  uint32_t app_version;
+  uint32_t target_api_version;
+  std::vector<uint8_t> app_binary;
+  uint32_t fragment_id;
+  uint32_t total_app_size;
+  std::vector<int8_t> app_binary_file_name;
+  uint32_t app_flags;
+  bool respond_before_start;
+  LoadNanoappRequestT()
+      : transaction_id(0),
+        app_id(0),
+        app_version(0),
+        target_api_version(0),
+        fragment_id(0),
+        total_app_size(0),
+        app_flags(0),
+        respond_before_start(false) {
+  }
 };
 
 /// Represents a request for loading a nanoapp.
@@ -1449,6 +1496,7 @@ struct LoadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LoadNanoappRequestBuilder &operator=(const LoadNanoappRequestBuilder &);
   flatbuffers::Offset<LoadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappRequest>(end);
@@ -1515,9 +1563,14 @@ flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(flatbuffers::Fl
 
 struct LoadNanoappResponseT : public flatbuffers::NativeTable {
   typedef LoadNanoappResponse TableType;
-  uint32_t transaction_id = 0;
-  bool success = false;
-  uint32_t fragment_id = 0;
+  uint32_t transaction_id;
+  bool success;
+  uint32_t fragment_id;
+  LoadNanoappResponseT()
+      : transaction_id(0),
+        success(false),
+        fragment_id(0) {
+  }
 };
 
 struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1579,6 +1632,7 @@ struct LoadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LoadNanoappResponseBuilder &operator=(const LoadNanoappResponseBuilder &);
   flatbuffers::Offset<LoadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappResponse>(end);
@@ -1602,9 +1656,14 @@ flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(flatbuffers::
 
 struct UnloadNanoappRequestT : public flatbuffers::NativeTable {
   typedef UnloadNanoappRequest TableType;
-  uint32_t transaction_id = 0;
-  uint64_t app_id = 0;
-  bool allow_system_nanoapp_unload = false;
+  uint32_t transaction_id;
+  uint64_t app_id;
+  bool allow_system_nanoapp_unload;
+  UnloadNanoappRequestT()
+      : transaction_id(0),
+        app_id(0),
+        allow_system_nanoapp_unload(false) {
+  }
 };
 
 struct UnloadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1664,6 +1723,7 @@ struct UnloadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  UnloadNanoappRequestBuilder &operator=(const UnloadNanoappRequestBuilder &);
   flatbuffers::Offset<UnloadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappRequest>(end);
@@ -1687,8 +1747,12 @@ flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(flatbuffers
 
 struct UnloadNanoappResponseT : public flatbuffers::NativeTable {
   typedef UnloadNanoappResponse TableType;
-  uint32_t transaction_id = 0;
-  bool success = false;
+  uint32_t transaction_id;
+  bool success;
+  UnloadNanoappResponseT()
+      : transaction_id(0),
+        success(false) {
+  }
 };
 
 struct UnloadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1735,6 +1799,7 @@ struct UnloadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  UnloadNanoappResponseBuilder &operator=(const UnloadNanoappResponseBuilder &);
   flatbuffers::Offset<UnloadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappResponse>(end);
@@ -1756,7 +1821,9 @@ flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(flatbuffe
 
 struct LogMessageT : public flatbuffers::NativeTable {
   typedef LogMessage TableType;
-  std::vector<int8_t> buffer{};
+  std::vector<int8_t> buffer;
+  LogMessageT() {
+  }
 };
 
 /// Represents log messages from CHRE.
@@ -1807,6 +1874,7 @@ struct LogMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LogMessageBuilder &operator=(const LogMessageBuilder &);
   flatbuffers::Offset<LogMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessage>(end);
@@ -1835,7 +1903,10 @@ flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferBuilder 
 
 struct TimeSyncMessageT : public flatbuffers::NativeTable {
   typedef TimeSyncMessage TableType;
-  int64_t offset = 0;
+  int64_t offset;
+  TimeSyncMessageT()
+      : offset(0) {
+  }
 };
 
 /// Represents a message sent to CHRE to indicate AP timestamp for time sync
@@ -1873,6 +1944,7 @@ struct TimeSyncMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
   flatbuffers::Offset<TimeSyncMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncMessage>(end);
@@ -1892,6 +1964,8 @@ flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::FlatBuff
 
 struct DebugDumpRequestT : public flatbuffers::NativeTable {
   typedef DebugDumpRequest TableType;
+  DebugDumpRequestT() {
+  }
 };
 
 /// A request to gather and return debugging information. Only one debug dump
@@ -1918,6 +1992,7 @@ struct DebugDumpRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpRequestBuilder &operator=(const DebugDumpRequestBuilder &);
   flatbuffers::Offset<DebugDumpRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpRequest>(end);
@@ -1935,7 +2010,9 @@ flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(flatbuffers::FlatBu
 
 struct DebugDumpDataT : public flatbuffers::NativeTable {
   typedef DebugDumpData TableType;
-  std::vector<int8_t> debug_str{};
+  std::vector<int8_t> debug_str;
+  DebugDumpDataT() {
+  }
 };
 
 struct DebugDumpData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1973,6 +2050,7 @@ struct DebugDumpDataBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpDataBuilder &operator=(const DebugDumpDataBuilder &);
   flatbuffers::Offset<DebugDumpData> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpData>(end);
@@ -2001,8 +2079,12 @@ flatbuffers::Offset<DebugDumpData> CreateDebugDumpData(flatbuffers::FlatBufferBu
 
 struct DebugDumpResponseT : public flatbuffers::NativeTable {
   typedef DebugDumpResponse TableType;
-  bool success = false;
-  uint32_t data_count = 0;
+  bool success;
+  uint32_t data_count;
+  DebugDumpResponseT()
+      : success(false),
+        data_count(0) {
+  }
 };
 
 struct DebugDumpResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2052,6 +2134,7 @@ struct DebugDumpResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpResponseBuilder &operator=(const DebugDumpResponseBuilder &);
   flatbuffers::Offset<DebugDumpResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpResponse>(end);
@@ -2073,6 +2156,8 @@ flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffers::Flat
 
 struct TimeSyncRequestT : public flatbuffers::NativeTable {
   typedef TimeSyncRequest TableType;
+  TimeSyncRequestT() {
+  }
 };
 
 /// A request from CHRE for host to initiate a time sync message
@@ -2097,6 +2182,7 @@ struct TimeSyncRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  TimeSyncRequestBuilder &operator=(const TimeSyncRequestBuilder &);
   flatbuffers::Offset<TimeSyncRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncRequest>(end);
@@ -2114,6 +2200,8 @@ flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::FlatBuff
 
 struct LowPowerMicAccessRequestT : public flatbuffers::NativeTable {
   typedef LowPowerMicAccessRequest TableType;
+  LowPowerMicAccessRequestT() {
+  }
 };
 
 /// Request from CHRE to enable direct access to data from the low-power
@@ -2140,6 +2228,7 @@ struct LowPowerMicAccessRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LowPowerMicAccessRequestBuilder &operator=(const LowPowerMicAccessRequestBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRequest>(end);
@@ -2157,6 +2246,8 @@ flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequest(fla
 
 struct LowPowerMicAccessReleaseT : public flatbuffers::NativeTable {
   typedef LowPowerMicAccessRelease TableType;
+  LowPowerMicAccessReleaseT() {
+  }
 };
 
 /// Notification from CHRE that it no longer needs direct access to low-power
@@ -2181,6 +2272,7 @@ struct LowPowerMicAccessReleaseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LowPowerMicAccessReleaseBuilder &operator=(const LowPowerMicAccessReleaseBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRelease> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRelease>(end);
@@ -2198,8 +2290,12 @@ flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRelease(fla
 
 struct SettingChangeMessageT : public flatbuffers::NativeTable {
   typedef SettingChangeMessage TableType;
-  chre::fbs::Setting setting = chre::fbs::Setting::LOCATION;
-  chre::fbs::SettingState state = chre::fbs::SettingState::DISABLED;
+  chre::fbs::Setting setting;
+  chre::fbs::SettingState state;
+  SettingChangeMessageT()
+      : setting(chre::fbs::Setting::LOCATION),
+        state(chre::fbs::SettingState::DISABLED) {
+  }
 };
 
 /// Notification from the host that a system setting has changed
@@ -2249,6 +2345,7 @@ struct SettingChangeMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SettingChangeMessageBuilder &operator=(const SettingChangeMessageBuilder &);
   flatbuffers::Offset<SettingChangeMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SettingChangeMessage>(end);
@@ -2270,8 +2367,11 @@ flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flatbuffers
 
 struct LogMessageV2T : public flatbuffers::NativeTable {
   typedef LogMessageV2 TableType;
-  std::vector<int8_t> buffer{};
-  uint32_t num_logs_dropped = 0;
+  std::vector<int8_t> buffer;
+  uint32_t num_logs_dropped;
+  LogMessageV2T()
+      : num_logs_dropped(0) {
+  }
 };
 
 /// Represents V2 log messages from CHRE.
@@ -2335,6 +2435,7 @@ struct LogMessageV2Builder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LogMessageV2Builder &operator=(const LogMessageV2Builder &);
   flatbuffers::Offset<LogMessageV2> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessageV2>(end);
@@ -2367,6 +2468,8 @@ flatbuffers::Offset<LogMessageV2> CreateLogMessageV2(flatbuffers::FlatBufferBuil
 
 struct SelfTestRequestT : public flatbuffers::NativeTable {
   typedef SelfTestRequest TableType;
+  SelfTestRequestT() {
+  }
 };
 
 struct SelfTestRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2389,6 +2492,7 @@ struct SelfTestRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SelfTestRequestBuilder &operator=(const SelfTestRequestBuilder &);
   flatbuffers::Offset<SelfTestRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SelfTestRequest>(end);
@@ -2406,7 +2510,10 @@ flatbuffers::Offset<SelfTestRequest> CreateSelfTestRequest(flatbuffers::FlatBuff
 
 struct SelfTestResponseT : public flatbuffers::NativeTable {
   typedef SelfTestResponse TableType;
-  bool success = false;
+  bool success;
+  SelfTestResponseT()
+      : success(false) {
+  }
 };
 
 struct SelfTestResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2442,6 +2549,7 @@ struct SelfTestResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SelfTestResponseBuilder &operator=(const SelfTestResponseBuilder &);
   flatbuffers::Offset<SelfTestResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SelfTestResponse>(end);
@@ -2461,8 +2569,10 @@ flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(flatbuffers::FlatBu
 
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
-  chre::fbs::ChreMessageUnion message{};
-  std::unique_ptr<chre::fbs::HostAddress> host_addr{};
+  chre::fbs::ChreMessageUnion message;
+  std::unique_ptr<chre::fbs::HostAddress> host_addr;
+  MessageContainerT() {
+  }
 };
 
 /// The top-level container that encapsulates all possible messages. Note that
@@ -2675,6 +2785,7 @@ struct MessageContainerBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  MessageContainerBuilder &operator=(const MessageContainerBuilder &);
   flatbuffers::Offset<MessageContainer> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MessageContainer>(end);
@@ -2699,7 +2810,7 @@ inline flatbuffers::Offset<MessageContainer> CreateMessageContainer(
 flatbuffers::Offset<MessageContainer> CreateMessageContainer(flatbuffers::FlatBufferBuilder &_fbb, const MessageContainerT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline NanoappMessageT *NanoappMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<NanoappMessageT>(new NanoappMessageT());
+  std::unique_ptr<chre::fbs::NanoappMessageT> _o = std::unique_ptr<chre::fbs::NanoappMessageT>(new NanoappMessageT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2710,7 +2821,7 @@ inline void NanoappMessage::UnPackTo(NanoappMessageT *_o, const flatbuffers::res
   { auto _e = app_id(); _o->app_id = _e; }
   { auto _e = message_type(); _o->message_type = _e; }
   { auto _e = host_endpoint(); _o->host_endpoint = _e; }
-  { auto _e = message(); if (_e) { _o->message.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->message.begin()); } }
+  { auto _e = message(); if (_e) { _o->message.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->message[_i] = _e->Get(_i); } } }
   { auto _e = message_permissions(); _o->message_permissions = _e; }
   { auto _e = permissions(); _o->permissions = _e; }
 }
@@ -2740,7 +2851,7 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessage(flatbuffers::Fla
 }
 
 inline HubInfoRequestT *HubInfoRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<HubInfoRequestT>(new HubInfoRequestT());
+  std::unique_ptr<chre::fbs::HubInfoRequestT> _o = std::unique_ptr<chre::fbs::HubInfoRequestT>(new HubInfoRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2763,7 +2874,7 @@ inline flatbuffers::Offset<HubInfoRequest> CreateHubInfoRequest(flatbuffers::Fla
 }
 
 inline HubInfoResponseT *HubInfoResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<HubInfoResponseT>(new HubInfoResponseT());
+  std::unique_ptr<chre::fbs::HubInfoResponseT> _o = std::unique_ptr<chre::fbs::HubInfoResponseT>(new HubInfoResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2771,9 +2882,9 @@ inline HubInfoResponseT *HubInfoResponse::UnPack(const flatbuffers::resolver_fun
 inline void HubInfoResponse::UnPackTo(HubInfoResponseT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = name(); if (_e) { _o->name.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->name.begin()); } }
-  { auto _e = vendor(); if (_e) { _o->vendor.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->vendor.begin()); } }
-  { auto _e = toolchain(); if (_e) { _o->toolchain.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->toolchain.begin()); } }
+  { auto _e = name(); if (_e) { _o->name.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->name[_i] = _e->Get(_i); } } }
+  { auto _e = vendor(); if (_e) { _o->vendor.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->vendor[_i] = _e->Get(_i); } } }
+  { auto _e = toolchain(); if (_e) { _o->toolchain.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->toolchain[_i] = _e->Get(_i); } } }
   { auto _e = platform_version(); _o->platform_version = _e; }
   { auto _e = toolchain_version(); _o->toolchain_version = _e; }
   { auto _e = peak_mips(); _o->peak_mips = _e; }
@@ -2822,7 +2933,7 @@ inline flatbuffers::Offset<HubInfoResponse> CreateHubInfoResponse(flatbuffers::F
 }
 
 inline NanoappListRequestT *NanoappListRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<NanoappListRequestT>(new NanoappListRequestT());
+  std::unique_ptr<chre::fbs::NanoappListRequestT> _o = std::unique_ptr<chre::fbs::NanoappListRequestT>(new NanoappListRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2845,7 +2956,7 @@ inline flatbuffers::Offset<NanoappListRequest> CreateNanoappListRequest(flatbuff
 }
 
 inline NanoappListEntryT *NanoappListEntry::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<NanoappListEntryT>(new NanoappListEntryT());
+  std::unique_ptr<chre::fbs::NanoappListEntryT> _o = std::unique_ptr<chre::fbs::NanoappListEntryT>(new NanoappListEntryT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2883,7 +2994,7 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(flatbuffers:
 }
 
 inline NanoappListResponseT *NanoappListResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<NanoappListResponseT>(new NanoappListResponseT());
+  std::unique_ptr<chre::fbs::NanoappListResponseT> _o = std::unique_ptr<chre::fbs::NanoappListResponseT>(new NanoappListResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2909,7 +3020,7 @@ inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(flatbu
 }
 
 inline LoadNanoappRequestT *LoadNanoappRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LoadNanoappRequestT>(new LoadNanoappRequestT());
+  std::unique_ptr<chre::fbs::LoadNanoappRequestT> _o = std::unique_ptr<chre::fbs::LoadNanoappRequestT>(new LoadNanoappRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2921,10 +3032,10 @@ inline void LoadNanoappRequest::UnPackTo(LoadNanoappRequestT *_o, const flatbuff
   { auto _e = app_id(); _o->app_id = _e; }
   { auto _e = app_version(); _o->app_version = _e; }
   { auto _e = target_api_version(); _o->target_api_version = _e; }
-  { auto _e = app_binary(); if (_e) { _o->app_binary.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->app_binary.begin()); } }
+  { auto _e = app_binary(); if (_e) { _o->app_binary.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->app_binary[_i] = _e->Get(_i); } } }
   { auto _e = fragment_id(); _o->fragment_id = _e; }
   { auto _e = total_app_size(); _o->total_app_size = _e; }
-  { auto _e = app_binary_file_name(); if (_e) { _o->app_binary_file_name.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->app_binary_file_name.begin()); } }
+  { auto _e = app_binary_file_name(); if (_e) { _o->app_binary_file_name.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->app_binary_file_name[_i] = _e->Get(_i); } } }
   { auto _e = app_flags(); _o->app_flags = _e; }
   { auto _e = respond_before_start(); _o->respond_before_start = _e; }
 }
@@ -2962,7 +3073,7 @@ inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequest(flatbuff
 }
 
 inline LoadNanoappResponseT *LoadNanoappResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LoadNanoappResponseT>(new LoadNanoappResponseT());
+  std::unique_ptr<chre::fbs::LoadNanoappResponseT> _o = std::unique_ptr<chre::fbs::LoadNanoappResponseT>(new LoadNanoappResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -2994,7 +3105,7 @@ inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(flatbu
 }
 
 inline UnloadNanoappRequestT *UnloadNanoappRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<UnloadNanoappRequestT>(new UnloadNanoappRequestT());
+  std::unique_ptr<chre::fbs::UnloadNanoappRequestT> _o = std::unique_ptr<chre::fbs::UnloadNanoappRequestT>(new UnloadNanoappRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3026,7 +3137,7 @@ inline flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(flat
 }
 
 inline UnloadNanoappResponseT *UnloadNanoappResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<UnloadNanoappResponseT>(new UnloadNanoappResponseT());
+  std::unique_ptr<chre::fbs::UnloadNanoappResponseT> _o = std::unique_ptr<chre::fbs::UnloadNanoappResponseT>(new UnloadNanoappResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3055,7 +3166,7 @@ inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(fl
 }
 
 inline LogMessageT *LogMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LogMessageT>(new LogMessageT());
+  std::unique_ptr<chre::fbs::LogMessageT> _o = std::unique_ptr<chre::fbs::LogMessageT>(new LogMessageT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3063,7 +3174,7 @@ inline LogMessageT *LogMessage::UnPack(const flatbuffers::resolver_function_t *_
 inline void LogMessage::UnPackTo(LogMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = buffer(); if (_e) { _o->buffer.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->buffer.begin()); } }
+  { auto _e = buffer(); if (_e) { _o->buffer.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<LogMessage> LogMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LogMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -3081,7 +3192,7 @@ inline flatbuffers::Offset<LogMessage> CreateLogMessage(flatbuffers::FlatBufferB
 }
 
 inline TimeSyncMessageT *TimeSyncMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<TimeSyncMessageT>(new TimeSyncMessageT());
+  std::unique_ptr<chre::fbs::TimeSyncMessageT> _o = std::unique_ptr<chre::fbs::TimeSyncMessageT>(new TimeSyncMessageT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3107,7 +3218,7 @@ inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(flatbuffers::F
 }
 
 inline DebugDumpRequestT *DebugDumpRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<DebugDumpRequestT>(new DebugDumpRequestT());
+  std::unique_ptr<chre::fbs::DebugDumpRequestT> _o = std::unique_ptr<chre::fbs::DebugDumpRequestT>(new DebugDumpRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3130,7 +3241,7 @@ inline flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(flatbuffers:
 }
 
 inline DebugDumpDataT *DebugDumpData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<DebugDumpDataT>(new DebugDumpDataT());
+  std::unique_ptr<chre::fbs::DebugDumpDataT> _o = std::unique_ptr<chre::fbs::DebugDumpDataT>(new DebugDumpDataT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3138,7 +3249,7 @@ inline DebugDumpDataT *DebugDumpData::UnPack(const flatbuffers::resolver_functio
 inline void DebugDumpData::UnPackTo(DebugDumpDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = debug_str(); if (_e) { _o->debug_str.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->debug_str.begin()); } }
+  { auto _e = debug_str(); if (_e) { _o->debug_str.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->debug_str[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<DebugDumpData> DebugDumpData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DebugDumpDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -3156,7 +3267,7 @@ inline flatbuffers::Offset<DebugDumpData> CreateDebugDumpData(flatbuffers::FlatB
 }
 
 inline DebugDumpResponseT *DebugDumpResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<DebugDumpResponseT>(new DebugDumpResponseT());
+  std::unique_ptr<chre::fbs::DebugDumpResponseT> _o = std::unique_ptr<chre::fbs::DebugDumpResponseT>(new DebugDumpResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3185,7 +3296,7 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(flatbuffer
 }
 
 inline TimeSyncRequestT *TimeSyncRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<TimeSyncRequestT>(new TimeSyncRequestT());
+  std::unique_ptr<chre::fbs::TimeSyncRequestT> _o = std::unique_ptr<chre::fbs::TimeSyncRequestT>(new TimeSyncRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3208,7 +3319,7 @@ inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(flatbuffers::F
 }
 
 inline LowPowerMicAccessRequestT *LowPowerMicAccessRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LowPowerMicAccessRequestT>(new LowPowerMicAccessRequestT());
+  std::unique_ptr<chre::fbs::LowPowerMicAccessRequestT> _o = std::unique_ptr<chre::fbs::LowPowerMicAccessRequestT>(new LowPowerMicAccessRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3231,7 +3342,7 @@ inline flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequ
 }
 
 inline LowPowerMicAccessReleaseT *LowPowerMicAccessRelease::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LowPowerMicAccessReleaseT>(new LowPowerMicAccessReleaseT());
+  std::unique_ptr<chre::fbs::LowPowerMicAccessReleaseT> _o = std::unique_ptr<chre::fbs::LowPowerMicAccessReleaseT>(new LowPowerMicAccessReleaseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3254,7 +3365,7 @@ inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRele
 }
 
 inline SettingChangeMessageT *SettingChangeMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<SettingChangeMessageT>(new SettingChangeMessageT());
+  std::unique_ptr<chre::fbs::SettingChangeMessageT> _o = std::unique_ptr<chre::fbs::SettingChangeMessageT>(new SettingChangeMessageT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3283,7 +3394,7 @@ inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(flat
 }
 
 inline LogMessageV2T *LogMessageV2::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<LogMessageV2T>(new LogMessageV2T());
+  std::unique_ptr<chre::fbs::LogMessageV2T> _o = std::unique_ptr<chre::fbs::LogMessageV2T>(new LogMessageV2T());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3291,7 +3402,7 @@ inline LogMessageV2T *LogMessageV2::UnPack(const flatbuffers::resolver_function_
 inline void LogMessageV2::UnPackTo(LogMessageV2T *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = buffer(); if (_e) { _o->buffer.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->buffer.begin()); } }
+  { auto _e = buffer(); if (_e) { _o->buffer.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->buffer[_i] = _e->Get(_i); } } }
   { auto _e = num_logs_dropped(); _o->num_logs_dropped = _e; }
 }
 
@@ -3312,7 +3423,7 @@ inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2(flatbuffers::FlatBuf
 }
 
 inline SelfTestRequestT *SelfTestRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<SelfTestRequestT>(new SelfTestRequestT());
+  std::unique_ptr<chre::fbs::SelfTestRequestT> _o = std::unique_ptr<chre::fbs::SelfTestRequestT>(new SelfTestRequestT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3335,7 +3446,7 @@ inline flatbuffers::Offset<SelfTestRequest> CreateSelfTestRequest(flatbuffers::F
 }
 
 inline SelfTestResponseT *SelfTestResponse::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<SelfTestResponseT>(new SelfTestResponseT());
+  std::unique_ptr<chre::fbs::SelfTestResponseT> _o = std::unique_ptr<chre::fbs::SelfTestResponseT>(new SelfTestResponseT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -3361,7 +3472,7 @@ inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(flatbuffers:
 }
 
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<MessageContainerT>(new MessageContainerT());
+  std::unique_ptr<chre::fbs::MessageContainerT> _o = std::unique_ptr<chre::fbs::MessageContainerT>(new MessageContainerT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }

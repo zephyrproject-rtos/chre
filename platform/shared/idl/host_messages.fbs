@@ -258,7 +258,7 @@ enum Setting : byte {
   LOCATION = 0,
   WIFI_AVAILABLE,
   AIRPLANE_MODE,
-  GLOBAL_MIC_DISABLE,
+  MICROPHONE,
 }
 
 /// An enum describing the state of a setting.
