@@ -182,8 +182,7 @@ enum ChppTransportErrorCode {
   ((enum ChppTransportPacketAttributes)( \
       (value)&CHPP_TRANSPORT_ATTR_MASK))  // TODO: Consider checking if this
                                           // maps into a valid enum
-#define CHPP_TRANSPORT_SET_ATTR(code, value) \
-  code = ((code & CHPP_TRANSPORT_ERROR_MASK) | value)
+
 enum ChppTransportPacketAttributes {
   //! None
   CHPP_TRANSPORT_ATTR_NONE = CHPP_TRANSPORT_ATTR_VALUE(0),
@@ -198,7 +197,8 @@ enum ChppTransportPacketAttributes {
 };
 
 #define CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(attr, error) \
-  ((uint8_t)(attr) | (uint8_t)(error))
+  ((uint8_t)(attr & CHPP_TRANSPORT_ATTR_MASK) |         \
+   (uint8_t)(error & CHPP_TRANSPORT_ERROR_MASK))
 
 /**
  * CHPP Transport Layer header (not including the preamble)
