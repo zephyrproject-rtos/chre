@@ -405,8 +405,8 @@ static void chppProcessTransportLoopbackRequest(
     context->pendingTxPacket.length += sizeof(*txHeader);
 
     *txHeader = context->rxHeader;
-    CHPP_TRANSPORT_SET_ATTR(txHeader->packetCode,
-                            CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE);
+    txHeader->packetCode = CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
+        CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE, txHeader->packetCode);
 
     size_t payloadLen =
         MIN(context->rxDatagram.length, CHPP_TRANSPORT_TX_MTU_BYTES);
@@ -821,7 +821,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     context->pendingTxPacket.length += sizeof(*txHeader);
 
     txHeader->packetCode = context->txStatus.packetCodeToSend;
-    context->txStatus.packetCodeToSend = CHPP_TRANSPORT_ERROR_NONE;
+    context->txStatus.packetCodeToSend = CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
+        context->txStatus.packetCodeToSend, CHPP_TRANSPORT_ERROR_NONE);
 
     txHeader->ackSeq = context->rxStatus.expectedSeq;
     context->txStatus.sentAckSeq = txHeader->ackSeq;
@@ -1245,8 +1246,7 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
     }
   }
   chppEnqueueTxPacket(context, CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
-                                   CHPP_TRANSPORT_ATTR_NONE,
-                                   CHPP_TRANSPORT_GET_ERROR(errorCode)));
+                                   CHPP_TRANSPORT_ATTR_NONE, errorCode));
 }
 
 uint64_t chppTransportGetTimeUntilNextDoWorkNs(
@@ -1409,8 +1409,8 @@ uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
             .payload[context->pendingTxPacket.length];
     context->pendingTxPacket.length += sizeof(*txHeader);
 
-    CHPP_TRANSPORT_SET_ATTR(txHeader->packetCode,
-                            CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST);
+    txHeader->packetCode = CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
+        CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST, txHeader->packetCode);
 
     size_t payloadLen = MIN(len, CHPP_TRANSPORT_TX_MTU_BYTES);
     txHeader->length = (uint16_t)payloadLen;
