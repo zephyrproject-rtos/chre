@@ -94,7 +94,7 @@ This release updates client functionality using the parser, adds a transport-lay
   - Slimmer OOM logging
   - Parser code and header files were relocated
 
-### 2021-02-08 (this)
+### 2021-02-08 (f1d249c)
 
 In addition to enhancements and bug fixes, this release enables error and reset handling and several other features.
 
@@ -117,3 +117,20 @@ In addition to enhancements and bug fixes, this release enables error and reset 
   - Stability fixes throughout CHPP and tests
   - Improved compiler compatibility for C99+ and pre-C99 systems (even though CHPP does not officially support pre-C99)
   - Updated documentation and logging
+
+### 2021-03-23 (this)
+
+This release updates the built-in timesync and checksum functionality and addresses bugs and compatibility issues.
+
+- Updated functionality
+
+  - Timesync is redesigned to become non-blocking
+  - Outgoing checksums are enabled by default
+  - An updated sample CRC32 implementation is provided (It is still expected that devices that have existing, optimized implementations use their own)
+  - Client deinitialization and reset support
+
+- Cleanup and bug fixes
+
+  - Logging updates, including avoiding %s for compatibility
+  - Stability fixes throughout CHPP and tests, including the reopening flow, permanent_failure state, and a memory leak
+  - Testing improvements
