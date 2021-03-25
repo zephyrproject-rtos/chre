@@ -188,6 +188,15 @@ extern "C" {
 #define CHRE_EVENT_AUDIO_LAST_EVENT  UINT16_C(0x033F)
 
 /**
+ * First event in the block reserved for settings changed notifications.
+ * These events are defined in chre/user_settings.h
+ *
+ * @since v1.5
+ */
+#define CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT UINT16_C(0x340)
+#define CHRE_EVENT_SETTING_CHANGED_LAST_EVENT  UINT16_C(0x34F)
+
+/**
  * First in the extended range of values dedicated for internal CHRE
  * implementation usage.
  *
