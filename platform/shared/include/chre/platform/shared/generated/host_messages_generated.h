@@ -85,9 +85,9 @@ enum class Setting : int8_t {
   LOCATION = 0,
   WIFI_AVAILABLE = 1,
   AIRPLANE_MODE = 2,
-  GLOBAL_MIC_DISABLE = 3,
+  MICROPHONE = 3,
   MIN = LOCATION,
-  MAX = GLOBAL_MIC_DISABLE
+  MAX = MICROPHONE
 };
 
 inline const Setting (&EnumValuesSetting())[4] {
@@ -95,7 +95,7 @@ inline const Setting (&EnumValuesSetting())[4] {
     Setting::LOCATION,
     Setting::WIFI_AVAILABLE,
     Setting::AIRPLANE_MODE,
-    Setting::GLOBAL_MIC_DISABLE
+    Setting::MICROPHONE
   };
   return values;
 }
@@ -105,14 +105,14 @@ inline const char * const *EnumNamesSetting() {
     "LOCATION",
     "WIFI_AVAILABLE",
     "AIRPLANE_MODE",
-    "GLOBAL_MIC_DISABLE",
+    "MICROPHONE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameSetting(Setting e) {
-  if (flatbuffers::IsOutRange(e, Setting::LOCATION, Setting::GLOBAL_MIC_DISABLE)) return "";
+  if (flatbuffers::IsOutRange(e, Setting::LOCATION, Setting::MICROPHONE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesSetting()[index];
 }
@@ -336,8 +336,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) HostAddress FLATBUFFERS_FINAL_CLASS {
   uint16_t client_id_;
 
  public:
-  HostAddress()
-      : client_id_(0) {
+  HostAddress() {
+    memset(static_cast<void *>(this), 0, sizeof(HostAddress));
   }
   HostAddress(uint16_t _client_id)
       : client_id_(flatbuffers::EndianScalar(_client_id)) {
@@ -427,6 +427,7 @@ struct NanoappMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappMessageBuilder &operator=(const NanoappMessageBuilder &);
   flatbuffers::Offset<NanoappMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappMessage>(end);
@@ -488,6 +489,7 @@ struct HubInfoRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  HubInfoRequestBuilder &operator=(const HubInfoRequestBuilder &);
   flatbuffers::Offset<HubInfoRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoRequest>(end);
@@ -628,6 +630,7 @@ struct HubInfoResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  HubInfoResponseBuilder &operator=(const HubInfoResponseBuilder &);
   flatbuffers::Offset<HubInfoResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<HubInfoResponse>(end);
@@ -714,6 +717,7 @@ struct NanoappListRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListRequestBuilder &operator=(const NanoappListRequestBuilder &);
   flatbuffers::Offset<NanoappListRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListRequest>(end);
@@ -791,6 +795,7 @@ struct NanoappListEntryBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListEntryBuilder &operator=(const NanoappListEntryBuilder &);
   flatbuffers::Offset<NanoappListEntry> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListEntry>(end);
@@ -842,6 +847,7 @@ struct NanoappListResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  NanoappListResponseBuilder &operator=(const NanoappListResponseBuilder &);
   flatbuffers::Offset<NanoappListResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NanoappListResponse>(end);
@@ -1017,6 +1023,7 @@ struct LoadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LoadNanoappRequestBuilder &operator=(const LoadNanoappRequestBuilder &);
   flatbuffers::Offset<LoadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappRequest>(end);
@@ -1125,6 +1132,7 @@ struct LoadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LoadNanoappResponseBuilder &operator=(const LoadNanoappResponseBuilder &);
   flatbuffers::Offset<LoadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LoadNanoappResponse>(end);
@@ -1188,6 +1196,7 @@ struct UnloadNanoappRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  UnloadNanoappRequestBuilder &operator=(const UnloadNanoappRequestBuilder &);
   flatbuffers::Offset<UnloadNanoappRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappRequest>(end);
@@ -1241,6 +1250,7 @@ struct UnloadNanoappResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  UnloadNanoappResponseBuilder &operator=(const UnloadNanoappResponseBuilder &);
   flatbuffers::Offset<UnloadNanoappResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<UnloadNanoappResponse>(end);
@@ -1299,6 +1309,7 @@ struct LogMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LogMessageBuilder &operator=(const LogMessageBuilder &);
   flatbuffers::Offset<LogMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessage>(end);
@@ -1351,6 +1362,7 @@ struct TimeSyncMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  TimeSyncMessageBuilder &operator=(const TimeSyncMessageBuilder &);
   flatbuffers::Offset<TimeSyncMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncMessage>(end);
@@ -1386,6 +1398,7 @@ struct DebugDumpRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpRequestBuilder &operator=(const DebugDumpRequestBuilder &);
   flatbuffers::Offset<DebugDumpRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpRequest>(end);
@@ -1427,6 +1440,7 @@ struct DebugDumpDataBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpDataBuilder &operator=(const DebugDumpDataBuilder &);
   flatbuffers::Offset<DebugDumpData> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpData>(end);
@@ -1488,6 +1502,7 @@ struct DebugDumpResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  DebugDumpResponseBuilder &operator=(const DebugDumpResponseBuilder &);
   flatbuffers::Offset<DebugDumpResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DebugDumpResponse>(end);
@@ -1523,6 +1538,7 @@ struct TimeSyncRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  TimeSyncRequestBuilder &operator=(const TimeSyncRequestBuilder &);
   flatbuffers::Offset<TimeSyncRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TimeSyncRequest>(end);
@@ -1556,6 +1572,7 @@ struct LowPowerMicAccessRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LowPowerMicAccessRequestBuilder &operator=(const LowPowerMicAccessRequestBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRequest>(end);
@@ -1587,6 +1604,7 @@ struct LowPowerMicAccessReleaseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LowPowerMicAccessReleaseBuilder &operator=(const LowPowerMicAccessReleaseBuilder &);
   flatbuffers::Offset<LowPowerMicAccessRelease> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LowPowerMicAccessRelease>(end);
@@ -1637,6 +1655,7 @@ struct SettingChangeMessageBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SettingChangeMessageBuilder &operator=(const SettingChangeMessageBuilder &);
   flatbuffers::Offset<SettingChangeMessage> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SettingChangeMessage>(end);
@@ -1705,6 +1724,7 @@ struct LogMessageV2Builder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  LogMessageV2Builder &operator=(const LogMessageV2Builder &);
   flatbuffers::Offset<LogMessageV2> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LogMessageV2>(end);
@@ -1749,6 +1769,7 @@ struct SelfTestRequestBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SelfTestRequestBuilder &operator=(const SelfTestRequestBuilder &);
   flatbuffers::Offset<SelfTestRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SelfTestRequest>(end);
@@ -1788,6 +1809,7 @@ struct SelfTestResponseBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  SelfTestResponseBuilder &operator=(const SelfTestResponseBuilder &);
   flatbuffers::Offset<SelfTestResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SelfTestResponse>(end);
@@ -2003,6 +2025,7 @@ struct MessageContainerBuilder {
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
+  MessageContainerBuilder &operator=(const MessageContainerBuilder &);
   flatbuffers::Offset<MessageContainer> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MessageContainer>(end);
