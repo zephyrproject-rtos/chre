@@ -274,7 +274,8 @@ bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
       *chreSetting = Setting::AIRPLANE_MODE;
       break;
     case fbs::Setting::MICROPHONE:
-      *chreSetting = Setting::MICROPHONE;
+      // TODO(b/183026207): Change the setting's enum name
+      *chreSetting = Setting::GLOBAL_MIC_DISABLE;
       break;
     default:
       LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));
