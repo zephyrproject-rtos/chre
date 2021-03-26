@@ -119,7 +119,7 @@ void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
   debugDump.print("\n Airplane mode %s",
                   getSettingStateString(Setting::AIRPLANE_MODE));
   debugDump.print("\n Microphone Disable %s",
-                  getSettingStateString(Setting::GLOBAL_MIC_DISABLE));
+                  getSettingStateString(Setting::MICROPHONE));
 }
 
 }  // namespace chre
