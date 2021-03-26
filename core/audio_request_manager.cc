@@ -206,7 +206,7 @@ bool AudioRequestManager::doConfigureSource(uint32_t instanceId,
   }
 
   if (success &&
-      (getSettingState(Setting::GLOBAL_MIC_DISABLE) != SettingState::ENABLED)) {
+      (getSettingState(Setting::MICROPHONE) != SettingState::ENABLED)) {
     scheduleNextAudioDataEvent(handle);
     updatePlatformHandleEnabled(handle, lastNumRequests);
   }
@@ -257,7 +257,7 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
 
   if (success) {
     bool suspended =
-        (getSettingState(Setting::GLOBAL_MIC_DISABLE) == SettingState::ENABLED);
+        (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED);
     postAudioSamplingChangeEvent(instanceId, handle, requestList.available,
                                  suspended);
   }
@@ -346,8 +346,8 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
                                                       bool available) {
   if (handle < mAudioRequestLists.size()) {
     if (mAudioRequestLists[handle].available != available) {
-      bool suspended = (getSettingState(Setting::GLOBAL_MIC_DISABLE) ==
-                        SettingState::ENABLED);
+      bool suspended =
+          (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED);
       mAudioRequestLists[handle].available = available;
       postAudioSamplingChangeEvents(handle, suspended);
     }
@@ -359,7 +359,7 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
 }
 
 void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
-  if (getSettingState(Setting::GLOBAL_MIC_DISABLE) == SettingState::ENABLED) {
+  if (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED) {
     LOGD("Mic access disabled, doing nothing");
     return;
   }
@@ -456,7 +456,7 @@ void AudioRequestManager::freeAudioDataEventCallback(uint16_t eventType,
 
 void AudioRequestManager::onSettingChanged(Setting setting,
                                            SettingState state) {
-  if (setting == Setting::GLOBAL_MIC_DISABLE) {
+  if (setting == Setting::MICROPHONE) {
     for (size_t i = 0; i < mAudioRequestLists.size(); ++i) {
       uint32_t handle = static_cast<uint32_t>(i);
       if (mAudioRequestLists[i].available) {
