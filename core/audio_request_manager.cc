@@ -206,7 +206,7 @@ bool AudioRequestManager::doConfigureSource(uint32_t instanceId,
   }
 
   if (success &&
-      (getSettingState(Setting::MICROPHONE) != SettingState::ENABLED)) {
+      (getSettingState(Setting::MICROPHONE) != SettingState::DISABLED)) {
     scheduleNextAudioDataEvent(handle);
     updatePlatformHandleEnabled(handle, lastNumRequests);
   }
@@ -257,7 +257,7 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
 
   if (success) {
     bool suspended =
-        (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED);
+        (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED);
     postAudioSamplingChangeEvent(instanceId, handle, requestList.available,
                                  suspended);
   }
@@ -347,7 +347,7 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
   if (handle < mAudioRequestLists.size()) {
     if (mAudioRequestLists[handle].available != available) {
       bool suspended =
-          (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED);
+          (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED);
       mAudioRequestLists[handle].available = available;
       postAudioSamplingChangeEvents(handle, suspended);
     }
@@ -359,7 +359,7 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
 }
 
 void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
-  if (getSettingState(Setting::MICROPHONE) == SettingState::ENABLED) {
+  if (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED) {
     LOGD("Mic access disabled, doing nothing");
     return;
   }
@@ -460,7 +460,7 @@ void AudioRequestManager::onSettingChanged(Setting setting,
     for (size_t i = 0; i < mAudioRequestLists.size(); ++i) {
       uint32_t handle = static_cast<uint32_t>(i);
       if (mAudioRequestLists[i].available) {
-        if (state == SettingState::ENABLED) {
+        if (state == SettingState::DISABLED) {
           LOGD("Canceling data event request for handle %" PRIu32, handle);
           postAudioSamplingChangeEvents(handle, true /* suspended */);
           mPlatformAudio.cancelAudioDataEventRequest(handle);

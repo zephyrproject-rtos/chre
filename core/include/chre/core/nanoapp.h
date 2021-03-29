@@ -150,6 +150,18 @@ class Nanoapp : public PlatformNanoapp {
   void configureDebugDumpEvent(bool enable);
 
   /**
+   * Configures whether a user settings event will be sent to the nanoapp
+   * for a specified setting (@see CHRE_USER_SETTINGS)
+   * Nanoapps are not sent user settings events by default.
+   *
+   * @param setting The user setting that the nanoapp wishes to configure
+   * events for.
+   *
+   * @param enable true if events are to be sent, false otherwise.
+   */
+  void configureUserSettingEvent(uint8_t setting, bool enable);
+
+  /**
    * Sends the next event in the queue to the nanoapp and returns the processed
    * event. The hasPendingEvent() method should be tested before invoking this.
    *
