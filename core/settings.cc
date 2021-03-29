@@ -22,14 +22,16 @@
 #include "chre/platform/log.h"
 #include "chre/util/nested_data_ptr.h"
 
+#include "chre_api/chre/user_settings.h"
+
 namespace chre {
 
 namespace {
 
+constexpr size_t kNumSettings = static_cast<size_t>(Setting::SETTING_MAX);
+
 //! The current state for each setting.
-SettingState gSettingStateList[static_cast<size_t>(Setting::SETTING_MAX)] = {
-    SettingState::ENABLED, SettingState::ENABLED, SettingState::ENABLED,
-    SettingState::DISABLED};
+SettingState gSettingStateList[kNumSettings];
 
 /**
  * @param setting The setting to get the index for.
@@ -49,7 +51,7 @@ bool getIndexForSetting(Setting setting, size_t *index) {
 void setSettingState(Setting setting, SettingState state) {
   size_t index;
   if (!getIndexForSetting(setting, &index)) {
-    LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));
+    LOGE("Unknown setting %" PRId8, static_cast<int8_t>(setting));
   } else {
     gSettingStateList[index] = state;
   }
@@ -70,7 +72,23 @@ const char *getSettingStateString(Setting setting) {
   return "unknown";
 }
 
-void settingsChangedCallback(uint16_t /* type */, void *data, void *extraData) {
+void sendSettingChangedNotification(Setting setting, SettingState state) {
+  auto *eventData = memoryAlloc<struct chreUserSettingChangedEvent>();
+  auto settingAsInt = static_cast<uint8_t>(setting);
+  uint16_t eventType = CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT + settingAsInt;
+
+  if (eventData != nullptr) {
+    eventData->setting = settingAsInt;
+    eventData->settingState = static_cast<int8_t>(state);
+
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        eventType, eventData, freeEventDataCallback, kBroadcastInstanceId);
+  } else {
+    LOG_OOM();
+  }
+}
+
+void settingChangedCallback(uint16_t /* type */, void *data, void *extraData) {
   Setting setting = NestedDataPtr<Setting>(data);
   SettingState settingState = NestedDataPtr<SettingState>(extraData);
 
@@ -88,6 +106,8 @@ void settingsChangedCallback(uint16_t /* type */, void *data, void *extraData) {
   EventLoopManagerSingleton::get()->getAudioRequestManager().onSettingChanged(
       setting, settingState);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+  sendSettingChangedNotification(setting, settingState);
 }
 
 }  // anonymous namespace
@@ -98,7 +118,7 @@ void postSettingChange(Setting setting, SettingState state) {
 
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::SettingChangeEvent, NestedDataPtr<Setting>(setting),
-      settingsChangedCallback, NestedDataPtr<SettingState>(state));
+      settingChangedCallback, NestedDataPtr<SettingState>(state));
 }
 
 SettingState getSettingState(Setting setting) {
@@ -108,7 +128,16 @@ SettingState getSettingState(Setting setting) {
   }
 
   LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));
-  return SettingState::SETTING_STATE_MAX;
+  return SettingState::UNKNOWN;
+}
+
+int8_t getSettingStateAsInt8(uint8_t setting) {
+  int8_t state = CHRE_USER_SETTING_STATE_UNKNOWN;
+  if (setting < static_cast<uint8_t>(Setting::SETTING_MAX)) {
+    auto settingEnum = static_cast<Setting>(setting);
+    state = static_cast<int8_t>(getSettingState(settingEnum));
+  }
+  return state;
 }
 
 void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
@@ -118,7 +147,7 @@ void logSettingStateToBuffer(DebugDumpWrapper &debugDump) {
                   getSettingStateString(Setting::WIFI_AVAILABLE));
   debugDump.print("\n Airplane mode %s",
                   getSettingStateString(Setting::AIRPLANE_MODE));
-  debugDump.print("\n Microphone Disable %s",
+  debugDump.print("\n Microphone Access %s",
                   getSettingStateString(Setting::MICROPHONE));
 }
 
