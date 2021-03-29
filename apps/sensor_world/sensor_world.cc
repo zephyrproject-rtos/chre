@@ -51,6 +51,7 @@ constexpr bool kEnableDefault = !kBreakIt;
 
 struct SensorState {
   const uint8_t type;
+  const uint8_t sensorIndex;
   uint32_t handle;
   bool isInitialized;
   bool enable;
@@ -62,6 +63,7 @@ struct SensorState {
 SensorState sensors[] = {
     {
         .type = CHRE_SENSOR_TYPE_ACCELEROMETER,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -71,6 +73,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = false,  // InstantMotion is triggered by Prox
@@ -80,6 +83,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_STATIONARY_DETECT,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = false,  // StationaryDetect is triggered by Prox
@@ -89,6 +93,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_GYROSCOPE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -98,6 +103,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -107,6 +113,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_PRESSURE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -116,6 +123,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_LIGHT,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -125,6 +133,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_PROXIMITY,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -134,6 +143,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_STEP_DETECT,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -143,6 +153,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_STEP_COUNTER,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -152,6 +163,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -161,6 +173,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -170,6 +183,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -179,6 +193,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -188,6 +203,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -197,6 +213,7 @@ SensorState sensors[] = {
     },
     {
         .type = CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD,
+        .sensorIndex = 0,
         .handle = 0,
         .isInitialized = false,
         .enable = kEnableDefault,
@@ -292,7 +309,8 @@ bool nanoappStart() {
 
   for (size_t i = 0; i < ARRAY_SIZE(sensors); i++) {
     SensorState &sensor = sensors[i];
-    sensor.isInitialized = chreSensorFindDefault(sensor.type, &sensor.handle);
+    sensor.isInitialized =
+        chreSensorFind(sensor.type, sensor.sensorIndex, &sensor.handle);
     LOGI("Sensor %zu initialized: %s with handle %" PRIu32, i,
          sensor.isInitialized ? "true" : "false", sensor.handle);
 
