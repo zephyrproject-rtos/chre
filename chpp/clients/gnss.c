@@ -184,47 +184,53 @@ static enum ChppAppErrorCode chppDispatchGnssResponse(void *clientContext,
 
   switch (rxHeader->command) {
     case CHPP_GNSS_OPEN: {
-      chppClientTimestampResponse(&gnssClientContext->open, rxHeader);
-      chppClientProcessOpenResponse(&gnssClientContext->client, buf, len);
-      if (gnssClientContext->requestStateResyncPending) {
-        gCallbacks->requestStateResync();
-        gnssClientContext->requestStateResyncPending = false;
+      if (chppClientTimestampResponse(&gnssClientContext->open, rxHeader)) {
+        chppClientProcessOpenResponse(&gnssClientContext->client, buf, len);
+        if (gnssClientContext->requestStateResyncPending) {
+          gCallbacks->requestStateResync();
+          gnssClientContext->requestStateResyncPending = false;
+        }
       }
       break;
     }
 
     case CHPP_GNSS_CLOSE: {
-      chppClientTimestampResponse(&gnssClientContext->close, rxHeader);
-      chppGnssCloseResult(gnssClientContext, buf, len);
+      if (chppClientTimestampResponse(&gnssClientContext->close, rxHeader)) {
+        chppGnssCloseResult(gnssClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_GNSS_GET_CAPABILITIES: {
-      chppClientTimestampResponse(&gnssClientContext->getCapabilities,
-                                  rxHeader);
-      chppGnssGetCapabilitiesResult(gnssClientContext, buf, len);
+      if (chppClientTimestampResponse(&gnssClientContext->getCapabilities,
+                                      rxHeader)) {
+        chppGnssGetCapabilitiesResult(gnssClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_GNSS_CONTROL_LOCATION_SESSION: {
-      chppClientTimestampResponse(&gnssClientContext->controlLocationSession,
-                                  rxHeader);
-      chppGnssControlLocationSessionResult(gnssClientContext, buf, len);
+      if (chppClientTimestampResponse(
+              &gnssClientContext->controlLocationSession, rxHeader)) {
+        chppGnssControlLocationSessionResult(gnssClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_GNSS_CONTROL_MEASUREMENT_SESSION: {
-      chppClientTimestampResponse(&gnssClientContext->controlMeasurementSession,
-                                  rxHeader);
-      chppGnssControlMeasurementSessionResult(gnssClientContext, buf, len);
+      if (chppClientTimestampResponse(
+              &gnssClientContext->controlMeasurementSession, rxHeader)) {
+        chppGnssControlMeasurementSessionResult(gnssClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_GNSS_CONFIGURE_PASSIVE_LOCATION_LISTENER: {
-      chppClientTimestampResponse(&gnssClientContext->passiveLocationListener,
-                                  rxHeader);
-      chppGnssConfigurePassiveLocationListenerResult(gnssClientContext, buf,
-                                                     len);
+      if (chppClientTimestampResponse(
+              &gnssClientContext->passiveLocationListener, rxHeader)) {
+        chppGnssConfigurePassiveLocationListenerResult(gnssClientContext, buf,
+                                                       len);
+      }
       break;
     }
 

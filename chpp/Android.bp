@@ -112,6 +112,7 @@ cc_test_host {
         "test/app_test_base.cpp",
         "test/app_test.cpp",
         "test/transport_test.cpp",
+        "test/clients_test.cpp",
     ],
     test_suites: [
         // Needed to support running on TreeHugger
