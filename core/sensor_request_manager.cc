@@ -237,6 +237,12 @@ bool SensorRequestManager::setSensorRequest(
           }
         }
       } else {
+        // Ensure bias events stay requested if they were previously enabled.
+        const SensorRequest &previousRequest =
+            sensor.getRequestMultiplexer().getRequests()[requestIndex];
+        if (previousRequest.getBiasUpdatesRequested()) {
+          request.setBiasUpdatesRequested(true);
+        }
         // The request changes the mode to the enabled state and there was an
         // existing request. The existing request is updated.
         success = updateRequest(sensor, requestIndex, request, &requestChanged);
@@ -699,9 +705,11 @@ bool SensorRequestManager::updateRequest(Sensor &sensor, size_t updateIndex,
   bool success = true;
   SensorRequestMultiplexer &multiplexer = sensor.getRequestMultiplexer();
   SensorRequest previousRequest = multiplexer.getRequests()[updateIndex];
+  SensorRequest prevMaxRequest = sensor.getMaximalRequest();
+
   multiplexer.updateRequest(updateIndex, request, requestChanged);
   if (*requestChanged) {
-    success = configurePlatformSensor(sensor, previousRequest);
+    success = configurePlatformSensor(sensor, prevMaxRequest);
     if (!success) {
       // Roll back the request since sending it to the sensor failed. The
       // request will roll back to the previous maximal. The sensor is
