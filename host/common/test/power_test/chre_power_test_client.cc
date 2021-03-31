@@ -207,7 +207,8 @@ std::unordered_map<string, SensorType> sensorTypeMap{
 std::unordered_map<string, WifiScanType> wifiScanTypeMap{
     {"active", WifiScanType::ACTIVE},
     {"active_passive_dfs", WifiScanType::ACTIVE_PLUS_PASSIVE_DFS},
-    {"passive", WifiScanType::PASSIVE}};
+    {"passive", WifiScanType::PASSIVE},
+    {"no_preference", WifiScanType::NO_PREFERENCE}};
 
 std::unordered_map<string, WifiRadioChain> wifiRadioChainMap{
     {"default", WifiRadioChain::DEFAULT},
