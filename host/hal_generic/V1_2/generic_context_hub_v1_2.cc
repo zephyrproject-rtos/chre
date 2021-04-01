@@ -86,14 +86,6 @@ Return<void> GenericContextHubV1_2::onSettingChanged_1_2(
   fbs::SettingState fbsState;
   if (getFbsSetting(setting, &fbsSetting) &&
       getFbsSettingValue(newValue, &fbsState)) {
-    if (fbsSetting == fbs::Setting::MICROPHONE) {
-      // TODO(b/183026207): The microphone state was flipped in the HAL,
-      // and we flip it back here temporarily, until the settings changed
-      // notifications are implemented.
-      fbsState = (fbsState == fbs::SettingState::ENABLED)
-                     ? fbs::SettingState::DISABLED
-                     : fbs::SettingState::ENABLED;
-    }
     FlatBufferBuilder builder(64);
     HostProtocolHost::encodeSettingChangeNotification(builder, fbsSetting,
                                                       fbsState);
