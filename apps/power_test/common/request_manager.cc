@@ -149,11 +149,11 @@ void RequestManager::wifiTimerCallback() const {
   struct chreWifiScanParams params = {};
   params.scanType = mWifiScanType;
   params.radioChainPref = mWifiRadioChain;
-  params.radioChainPref = mWifiChannelSet;
+  params.channelSet = mWifiChannelSet;
   bool success = chreWifiRequestScanAsync(&params, nullptr /*cookie*/);
   LOGI("Requested WiFi - success %d, scanType %" PRIu8 " radioChain %" PRIu8
        " channelSet %" PRIu8,
-       success, mWifiScanType, mWifiRadioChain, mWifiChannelSet);
+       success, params.scanType, params.radioChainPref, params.channelSet);
 }
 
 bool RequestManager::requestGnssLocation(
