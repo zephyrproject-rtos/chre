@@ -87,8 +87,9 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
   CHPP_NOT_NULL(context->loopbackClientContext);
   CHPP_NOT_NULL(context->loopbackClientContext->loopbackData);
 
-  chppClientTimestampResponse(&context->loopbackClientContext->runLoopbackTest,
-                              (const struct ChppAppHeader *)response);
+  CHPP_ASSERT(chppClientTimestampResponse(
+      &context->loopbackClientContext->runLoopbackTest,
+      (const struct ChppAppHeader *)response));
 
   context->loopbackClientContext->testResult.error = CHPP_APP_ERROR_NONE;
   context->loopbackClientContext->testResult.responseLen = len;

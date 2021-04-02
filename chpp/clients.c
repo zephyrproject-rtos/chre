@@ -316,32 +316,28 @@ void chppClientTimestampRequest(struct ChppRequestResponseState *rRState,
 bool chppClientTimestampResponse(struct ChppRequestResponseState *rRState,
                                  const struct ChppAppHeader *responseHeader) {
   uint64_t previousResponseTime = rRState->responseTimeNs;
-  rRState->responseTimeNs = chppGetCurrentTimeNs();
+  bool success = false;
+  uint64_t responseTime = chppGetCurrentTimeNs();
 
   if (rRState->requestTimeNs == CHPP_TIME_NONE) {
-    CHPP_LOGE("Resp with no req t=%" PRIu64, rRState->responseTimeNs);
+    CHPP_LOGE("Resp with no req t=%" PRIu64, responseTime);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
-    rRState->responseTimeNs = chppGetCurrentTimeNs();
     CHPP_LOGW("Extra response at t=%" PRIu64 " for request at t=%" PRIu64,
-              rRState->responseTimeNs, rRState->responseTimeNs);
+              responseTime, rRState->requestTimeNs);
 
+  } else if (responseHeader->transaction != rRState->transaction) {
+    CHPP_LOGE("Invalid resp ID=%" PRIu8 " at t=%" PRIu64 " expected=%" PRIu8,
+              responseHeader->transaction, responseTime, rRState->transaction);
   } else {
     CHPP_LOGD("Received response at t=%" PRIu64 " for request at t=%" PRIu64
               " (RTT=%" PRIu64 ")",
-              rRState->responseTimeNs, rRState->responseTimeNs,
-              rRState->responseTimeNs - rRState->requestTimeNs);
+              responseTime, rRState->requestTimeNs,
+              responseTime - rRState->requestTimeNs);
+    rRState->responseTimeNs = responseTime;
+    success = true;
   }
-
-  // TODO: Also check for timeout
-  if (responseHeader->transaction != rRState->transaction) {
-    CHPP_LOGE("Invalid resp ID=%" PRIu8 " at t=%" PRIu64 " expected=%" PRIu8,
-              responseHeader->transaction, rRState->responseTimeNs,
-              rRState->transaction);
-    return false;
-  } else {
-    return true;
-  }
+  return success;
 }
 
 bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
