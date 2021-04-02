@@ -652,6 +652,10 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
               .length);
 
       context->rxStatus.receivedAckSeq = rxAckSeq;
+      if (context->txStatus.retxCount > 1) {
+        CHPP_LOGW("Packet retx'd %" PRIuSIZE " times (seq %" PRIu8 ")",
+                  context->txStatus.retxCount, context->rxHeader.seq);
+      }
       context->txStatus.retxCount = 0;
 
       // Process and if necessary pop from Tx datagram queue
@@ -928,7 +932,7 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
   chppMutexUnlock(&context->mutex);
 
   if (havePacketForLinkLayer) {
-    CHPP_LOGI("TX->Link: len=%" PRIuSIZE " flags=0x%" PRIx8 " code=0x%" PRIx8
+    CHPP_LOGD("TX->Link: len=%" PRIuSIZE " flags=0x%" PRIx8 " code=0x%" PRIx8
               " ackSeq=%" PRIu8 " seq=%" PRIu8 " payloadLen=%" PRIu16
               " pending=%" PRIu8,
               context->pendingTxPacket.length, txHeader->flags,
