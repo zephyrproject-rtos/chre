@@ -19,10 +19,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <map>
 #include <queue>
 #include <string>
 
 #include "chre_host/host_protocol_host.h"
+#include "chre_host/log_message_parser_base.h"
+#include "chre_host/socket_server.h"
 
 namespace android {
 namespace chre {
@@ -56,18 +59,7 @@ class ChreDaemonBase {
    * @param length The size of the data to send.
    * @return true if successful, false otherwise.
    */
-  virtual bool sendMessageToChre(uint16_t clientId, void *data,
-                                 size_t dataLen) = 0;
-
-  /**
-   * Interface to a callback that is called when the Daemon receives a
-   * message, which needs to be implemented by the Platform Daemon.
-   *
-   * @param message A buffer containing the message
-   * @param messageLen size of the message buffer in bytes
-   */
-  virtual void onMessageReceived(const unsigned char *message,
-                                 size_t messageLen) = 0;
+  bool sendMessageToChre(uint16_t clientId, void *data, size_t dataLen);
 
   /**
    * Function to query if a graceful shutdown of CHRE was requested
@@ -177,11 +169,38 @@ class ChreDaemonBase {
                              bool logOnError);
 
   /**
+   * Interface to a callback that is called when the Daemon receives a message.
+   *
+   * @param message A buffer containing the message
+   * @param messageLen size of the message buffer in bytes
+   */
+  void onMessageReceived(const unsigned char *message, size_t messageLen);
+
+  /**
    * Handles a message that is directed towards the daemon.
    *
    * @param message The message sent to the daemon.
    */
   virtual void handleDaemonMessage(const uint8_t *message);
+
+  /**
+   * Platform-specific method to actually do the message sending requested by
+   * sendMessageToChre.
+   */
+  virtual bool doSendMessage(void *data, size_t dataLen) = 0;
+
+  /**
+   * Enables or disables LPMA (low power microphone access).
+   */
+  virtual void configureLpma(bool enabled) = 0;
+
+  /**
+   * @return logger used by the underlying platform.
+   */
+  virtual ChreLogMessageParserBase *getLogger() = 0;
+
+  //! Server used to communicate with daemon clients
+  SocketServer mServer;
 
  private:
   //! Set to true when we request a graceful shutdown of CHRE

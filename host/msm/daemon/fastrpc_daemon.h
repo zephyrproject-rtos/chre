@@ -25,7 +25,6 @@
 
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre_host/daemon_base.h"
-#include "chre_host/socket_server.h"
 #include "chre_host/st_hal_lpma_handler.h"
 
 #include <utils/SystemClock.h>
@@ -64,16 +63,21 @@ class FastRpcChreDaemon : public ChreDaemonBase {
    */
   void run();
 
-  bool sendMessageToChre(uint16_t clientId, void *data, size_t length);
+ protected:
+  bool doSendMessage(void *data, size_t length) override;
 
-  void onMessageReceived(const unsigned char *messageBuffer,
-                         size_t messageLen) override;
+  void configureLpma(bool enabled) override {
+    mLpmaHandler.enable(enabled);
+  }
+
+  ChreLogMessageParserBase *getLogger() override {
+    return &mLogger;
+  }
 
  private:
   std::optional<std::thread> mMonitorThread;
   std::optional<std::thread> mMsgToHostThread;
   std::atomic_bool mCrashDetected = false;
-  SocketServer mServer;
   ChreLogMessageParserBase mLogger;
   StHalLpmaHandler mLpmaHandler;
 
@@ -106,13 +110,6 @@ class FastRpcChreDaemon : public ChreDaemonBase {
    * Handles the case where the remote end (SLPI, ADSP, etc) has crashed.
    */
   void onRemoteCrashDetected();
-
-  /**
-   * Get the Log Message Parser configured for this platform
-   *
-   * @return An instance of a log message parser
-   */
-  ChreLogMessageParserBase getLogMessageParser();
 };
 
 }  // namespace chre
