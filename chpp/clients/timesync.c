@@ -103,45 +103,45 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 
   const struct ChppTimesyncResponse *response =
       (const struct ChppTimesyncResponse *)buf;
-  chppClientTimestampResponse(&context->timesyncClientContext->measureOffset,
-                              &response->header);
+  if (chppClientTimestampResponse(
+          &context->timesyncClientContext->measureOffset, &response->header)) {
+    context->timesyncClientContext->timesyncResult.rttNs =
+        context->timesyncClientContext->measureOffset.responseTimeNs -
+        context->timesyncClientContext->measureOffset.requestTimeNs;
+    int64_t offsetNs =
+        (int64_t)(response->timeNs -
+                  context->timesyncClientContext->measureOffset.responseTimeNs);
+    int64_t offsetChangeNs =
+        offsetNs - context->timesyncClientContext->timesyncResult.offsetNs;
 
-  context->timesyncClientContext->timesyncResult.rttNs =
-      context->timesyncClientContext->measureOffset.responseTimeNs -
-      context->timesyncClientContext->measureOffset.requestTimeNs;
-  int64_t offsetNs =
-      (int64_t)(response->timeNs -
+    int64_t clippedOffsetChangeNs = offsetChangeNs;
+    if (context->timesyncClientContext->timesyncResult.offsetNs != 0) {
+      clippedOffsetChangeNs = MIN(clippedOffsetChangeNs,
+                                  (int64_t)CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS);
+      clippedOffsetChangeNs = MAX(clippedOffsetChangeNs,
+                                  -(int64_t)CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS);
+    }
+
+    context->timesyncClientContext->timesyncResult.offsetNs +=
+        clippedOffsetChangeNs;
+
+    if (offsetChangeNs != clippedOffsetChangeNs) {
+      CHPP_LOGW("Drift=%" PRIi64 " clipped to %" PRIi64 " at t=%" PRIu64,
+                offsetChangeNs, clippedOffsetChangeNs,
                 context->timesyncClientContext->measureOffset.responseTimeNs);
-  int64_t offsetChangeNs =
-      offsetNs - context->timesyncClientContext->timesyncResult.offsetNs;
+    } else {
+      context->timesyncClientContext->timesyncResult.measurementTimeNs =
+          context->timesyncClientContext->measureOffset.responseTimeNs;
+    }
 
-  int64_t clippedOffsetChangeNs = offsetChangeNs;
-  if (context->timesyncClientContext->timesyncResult.offsetNs != 0) {
-    clippedOffsetChangeNs =
-        MIN(clippedOffsetChangeNs, (int64_t)CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS);
-    clippedOffsetChangeNs = MAX(clippedOffsetChangeNs,
-                                -(int64_t)CHPP_CLIENT_TIMESYNC_MAX_CHANGE_NS);
+    context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
+
+    CHPP_LOGI("Timesync RTT=%" PRIu64 " correction=%" PRIi64 " offset=%" PRIi64
+              " t=%" PRIu64,
+              context->timesyncClientContext->timesyncResult.rttNs,
+              clippedOffsetChangeNs, offsetNs,
+              context->timesyncClientContext->timesyncResult.measurementTimeNs);
   }
-
-  context->timesyncClientContext->timesyncResult.offsetNs +=
-      clippedOffsetChangeNs;
-
-  if (offsetChangeNs != clippedOffsetChangeNs) {
-    CHPP_LOGW("Drift=%" PRIi64 " clipped to %" PRIi64 " at t=%" PRIu64,
-              offsetChangeNs, clippedOffsetChangeNs,
-              context->timesyncClientContext->measureOffset.responseTimeNs);
-  } else {
-    context->timesyncClientContext->timesyncResult.measurementTimeNs =
-        context->timesyncClientContext->measureOffset.responseTimeNs;
-  }
-
-  context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
-
-  CHPP_LOGI("Timesync RTT=%" PRIu64 " correction=%" PRIi64 " offset=%" PRIi64
-            " t=%" PRIu64,
-            context->timesyncClientContext->timesyncResult.rttNs,
-            clippedOffsetChangeNs, offsetNs,
-            context->timesyncClientContext->timesyncResult.measurementTimeNs);
 
   return true;
 }

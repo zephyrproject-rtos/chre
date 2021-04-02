@@ -159,28 +159,32 @@ static enum ChppAppErrorCode chppDispatchWwanResponse(void *clientContext,
 
   switch (rxHeader->command) {
     case CHPP_WWAN_OPEN: {
-      chppClientTimestampResponse(&wwanClientContext->open, rxHeader);
-      chppClientProcessOpenResponse(&wwanClientContext->client, buf, len);
+      if (chppClientTimestampResponse(&wwanClientContext->open, rxHeader)) {
+        chppClientProcessOpenResponse(&wwanClientContext->client, buf, len);
+      }
       break;
     }
 
     case CHPP_WWAN_CLOSE: {
-      chppClientTimestampResponse(&wwanClientContext->close, rxHeader);
-      chppWwanCloseResult(wwanClientContext, buf, len);
+      if (chppClientTimestampResponse(&wwanClientContext->close, rxHeader)) {
+        chppWwanCloseResult(wwanClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_WWAN_GET_CAPABILITIES: {
-      chppClientTimestampResponse(&wwanClientContext->getCapabilities,
-                                  rxHeader);
-      chppWwanGetCapabilitiesResult(wwanClientContext, buf, len);
+      if (chppClientTimestampResponse(&wwanClientContext->getCapabilities,
+                                      rxHeader)) {
+        chppWwanGetCapabilitiesResult(wwanClientContext, buf, len);
+      }
       break;
     }
 
     case CHPP_WWAN_GET_CELLINFO_ASYNC: {
-      chppClientTimestampResponse(&wwanClientContext->getCellInfoAsync,
-                                  rxHeader);
-      chppWwanGetCellInfoAsyncResult(wwanClientContext, buf, len);
+      if (chppClientTimestampResponse(&wwanClientContext->getCellInfoAsync,
+                                      rxHeader)) {
+        chppWwanGetCellInfoAsyncResult(wwanClientContext, buf, len);
+      }
       break;
     }
 
