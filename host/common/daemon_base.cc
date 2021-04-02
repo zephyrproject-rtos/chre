@@ -146,6 +146,65 @@ bool ChreDaemonBase::sendTimeSyncWithRetry(size_t numRetries,
   return success;
 }
 
+bool ChreDaemonBase::sendMessageToChre(uint16_t clientId, void *data,
+                                       size_t length) {
+  bool success = false;
+  if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
+    LOGE("Couldn't set host client ID in message container!");
+  } else {
+    LOGV("Delivering message from host (size %zu)", length);
+    getLogger()->dump(static_cast<const uint8_t *>(data), length);
+    success = doSendMessage(data, length);
+  }
+
+  return success;
+}
+
+void ChreDaemonBase::onMessageReceived(const unsigned char *messageBuffer,
+                                       size_t messageLen) {
+  getLogger()->dump(messageBuffer, messageLen);
+
+  uint16_t hostClientId;
+  fbs::ChreMessage messageType;
+  if (!HostProtocolHost::extractHostClientIdAndType(
+          messageBuffer, messageLen, &hostClientId, &messageType)) {
+    LOGW("Failed to extract host client ID from message - sending broadcast");
+    hostClientId = ::chre::kHostClientIdUnspecified;
+  }
+
+  if (messageType == fbs::ChreMessage::LogMessage) {
+    std::unique_ptr<fbs::MessageContainerT> container =
+        fbs::UnPackMessageContainer(messageBuffer);
+    const auto *logMessage = container->message.AsLogMessage();
+    const std::vector<int8_t> &logData = logMessage->buffer;
+
+    getLogger()->log(reinterpret_cast<const uint8_t *>(logData.data()),
+                     logData.size());
+  } else if (messageType == fbs::ChreMessage::LogMessageV2) {
+    std::unique_ptr<fbs::MessageContainerT> container =
+        fbs::UnPackMessageContainer(messageBuffer);
+    const auto *logMessage = container->message.AsLogMessageV2();
+    const std::vector<int8_t> &logData = logMessage->buffer;
+    uint32_t numLogsDropped = logMessage->num_logs_dropped;
+
+    getLogger()->logV2(reinterpret_cast<const uint8_t *>(logData.data()),
+                       logData.size(), numLogsDropped);
+  } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
+    sendTimeSync(true /* logOnError */);
+  } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {
+    configureLpma(true /* enabled */);
+  } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
+    configureLpma(false /* enabled */);
+  } else if (hostClientId == kHostClientIdDaemon) {
+    handleDaemonMessage(messageBuffer);
+  } else if (hostClientId == ::chre::kHostClientIdUnspecified) {
+    mServer.sendToAllClients(messageBuffer, static_cast<size_t>(messageLen));
+  } else {
+    mServer.sendToClientById(messageBuffer, static_cast<size_t>(messageLen),
+                             hostClientId);
+  }
+}
+
 bool ChreDaemonBase::readFileContents(const char *filename,
                                       std::vector<uint8_t> *buffer) {
   bool success = false;

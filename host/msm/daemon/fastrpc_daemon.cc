@@ -56,7 +56,12 @@ bool FastRpcChreDaemon::init() {
 
   int rc = -1;
 
-  mLogger = getLogMessageParser();
+#ifdef CHRE_USE_TOKENIZED_LOGGING
+  mLogger = ChreTokenizedLogMessageParser();
+#else
+  // Logging is being routed through ashLog
+  mLogger = ChreLogMessageParserBase();
+#endif
 
 #ifdef CHRE_DAEMON_LOAD_INTO_SENSORSPD
   remote_handle remote_handle_fd = 0xFFFFFFFF;
@@ -120,8 +125,7 @@ void FastRpcChreDaemon::run() {
   mServer.run(kChreSocketName, true /* allowSocketCreation */, serverCb);
 }
 
-bool FastRpcChreDaemon::sendMessageToChre(uint16_t clientId, void *data,
-                                          size_t length) {
+bool FastRpcChreDaemon::doSendMessage(void *data, size_t length) {
   // This limitation is due to FastRPC, but there's no case
   // where we should come close to this limit
   constexpr size_t kMaxPayloadSize = 1024 * 1024;  // 1 MiB
@@ -131,11 +135,7 @@ bool FastRpcChreDaemon::sendMessageToChre(uint16_t clientId, void *data,
   bool success = false;
   if (length > kMaxPayloadSize) {
     LOGE("Message too large (got %zu, max %zu bytes)", length, kMaxPayloadSize);
-  } else if (!HostProtocolHost::mutateHostClientId(data, length, clientId)) {
-    LOGE("Couldn't set host client ID in message container!");
   } else {
-    LOGV("Delivering message from host (size %zu)", length);
-    mLogger.dump(static_cast<const uint8_t *>(data), length);
     int ret = chre_slpi_deliver_message_from_host(
         static_cast<const unsigned char *>(data), static_cast<int>(length));
     if (ret != CHRE_FASTRPC_SUCCESS) {
@@ -146,54 +146,6 @@ bool FastRpcChreDaemon::sendMessageToChre(uint16_t clientId, void *data,
   }
 
   return success;
-}
-
-// TODO: Consider moving platform independent parts of this function
-// to the base class, revisit when implementing the daemon for
-// another platform.
-void FastRpcChreDaemon::onMessageReceived(const unsigned char *messageBuffer,
-                                          size_t messageLen) {
-  mLogger.dump(messageBuffer, messageLen);
-
-  uint16_t hostClientId;
-  fbs::ChreMessage messageType;
-  if (!HostProtocolHost::extractHostClientIdAndType(
-          messageBuffer, messageLen, &hostClientId, &messageType)) {
-    LOGW("Failed to extract host client ID from message - sending broadcast");
-    hostClientId = ::chre::kHostClientIdUnspecified;
-  }
-
-  if (messageType == fbs::ChreMessage::LogMessage) {
-    std::unique_ptr<fbs::MessageContainerT> container =
-        fbs::UnPackMessageContainer(messageBuffer);
-    const auto *logMessage = container->message.AsLogMessage();
-    const std::vector<int8_t> &logData = logMessage->buffer;
-
-    mLogger.log(reinterpret_cast<const uint8_t *>(logData.data()),
-                logData.size());
-  } else if (messageType == fbs::ChreMessage::LogMessageV2) {
-    std::unique_ptr<fbs::MessageContainerT> container =
-        fbs::UnPackMessageContainer(messageBuffer);
-    const auto *logMessage = container->message.AsLogMessageV2();
-    const std::vector<int8_t> &logData = logMessage->buffer;
-    uint32_t numLogsDropped = logMessage->num_logs_dropped;
-
-    mLogger.logV2(reinterpret_cast<const uint8_t *>(logData.data()),
-                  logData.size(), numLogsDropped);
-  } else if (messageType == fbs::ChreMessage::TimeSyncRequest) {
-    sendTimeSync(true /* logOnError */);
-  } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRequest) {
-    mLpmaHandler.enable(true);
-  } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
-    mLpmaHandler.enable(false);
-  } else if (hostClientId == kHostClientIdDaemon) {
-    handleDaemonMessage(messageBuffer);
-  } else if (hostClientId == ::chre::kHostClientIdUnspecified) {
-    mServer.sendToAllClients(messageBuffer, static_cast<size_t>(messageLen));
-  } else {
-    mServer.sendToClientById(messageBuffer, static_cast<size_t>(messageLen),
-                             hostClientId);
-  }
 }
 
 void FastRpcChreDaemon::monitorThreadEntry() {
@@ -285,15 +237,6 @@ int64_t FastRpcChreDaemon::getTimeOffset(bool *success) {
 #endif
 
   return timeOffset;
-}
-
-ChreLogMessageParserBase FastRpcChreDaemon::getLogMessageParser() {
-#ifdef CHRE_USE_TOKENIZED_LOGGING
-  return ChreTokenizedLogMessageParser();
-#else
-  // Logging is being routed through ashLog
-  return ChreLogMessageParserBase();
-#endif
 }
 
 void FastRpcChreDaemon::onRemoteCrashDetected() {
