@@ -328,7 +328,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppRxAbortPacket(context);
 
     } else {
-      CHPP_LOGI("RX good packet. len=%" PRIu16 ", seq=%" PRIu8
+      CHPP_LOGD("RX good packet. len=%" PRIu16 ", seq=%" PRIu8
                 ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", code=0x%" PRIx8,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
