@@ -328,8 +328,8 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppRxAbortPacket(context);
 
     } else {
-      CHPP_LOGI("RX good packet. payload len=%" PRIu16 ", seq=%" PRIu8
-                ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", packetCode=0x%" PRIx8,
+      CHPP_LOGI("RX good packet. len=%" PRIu16 ", seq=%" PRIu8
+                ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", code=0x%" PRIx8,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
                 context->rxHeader.packetCode);
@@ -994,27 +994,24 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
     CHPP_DEBUG_ASSERT(false);
 
   } else {
-    uint8_t *handle = buf;
-
-    if (len < sizeof(struct ChppAppHeader)) {
-      CHPP_LOGI("Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " H#%" PRIu8
-                " pending=%" PRIu8,
-                packetCode, len, *handle,
-                (uint8_t)(context->txDatagramQueue.pending + 1));
+    if ((len < sizeof(struct ChppAppHeader)) ||
+        (CHPP_TRANSPORT_GET_ATTR(packetCode) != 0)) {
+      CHPP_LOGI(
+          "Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " pending=%" PRIu8,
+          packetCode, len, (uint8_t)(context->txDatagramQueue.pending + 1));
     } else {
       struct ChppAppHeader *header = buf;
-      CHPP_LOGI("Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " H#%" PRIu8
-                " type=0x%" PRIx8 " ID=%" PRIu8 " err=%" PRIu8 " cmd=0x%" PRIx16
-                " pending=%" PRIu8,
-                packetCode, len, header->handle, header->type,
-                header->transaction, header->error, header->command,
-                (uint8_t)(context->txDatagramQueue.pending + 1));
+      CHPP_LOGI(
+          "Enqueue TX: len=%" PRIuSIZE " H#%" PRIu8 " type=0x%" PRIx8
+          " ID=%" PRIu8 " err=%" PRIu8 " cmd=0x%" PRIx16 " pending=%" PRIu8,
+          len, header->handle, header->type, header->transaction, header->error,
+          header->command, (uint8_t)(context->txDatagramQueue.pending + 1));
     }
 
     chppMutexLock(&context->mutex);
 
     if (context->txDatagramQueue.pending >= CHPP_TX_DATAGRAM_QUEUE_LEN) {
-      CHPP_LOGE("Cannot enqueue TX datagram: H#%" PRIu8, *handle);
+      CHPP_LOGE("Cannot enqueue TX datagram");
 
     } else {
       uint16_t end =
