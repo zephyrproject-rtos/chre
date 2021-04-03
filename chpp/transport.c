@@ -334,6 +334,8 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
                 context->rxHeader.packetCode);
 
+      context->rxStatus.lastGoodPacketTimeMs =
+          (uint32_t)(chppGetCurrentTimeNs() / CHPP_NSEC_PER_MSEC);
       context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
       chppRegisterRxAck(context);
 
@@ -1170,6 +1172,9 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
 
   CHPP_LOGD("RX %" PRIuSIZE " bytes: state=%" PRIu8, len,
             context->rxStatus.state);
+  context->rxStatus.lastDataTimeMs =
+      (uint32_t)(chppGetCurrentTimeNs() / CHPP_NSEC_PER_MSEC);
+  context->rxStatus.numTotalDataBytes += len;
 
   size_t consumed = 0;
   while (consumed < len) {

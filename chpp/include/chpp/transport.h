@@ -319,6 +319,14 @@ struct ChppRxStatus {
   //! Last received ACK sequence number (i.e. next expected sequence number for
   //! an outgoing payload-bearing packet)
   uint8_t receivedAckSeq;
+
+  //! The timestamp when the transport received any data through chppRxDataCb.
+  uint32_t lastDataTimeMs;
+  //! The total number of data received in chppRxDataCb.
+  size_t numTotalDataBytes;
+
+  //! The timestamp when the transport received a good RX packet.
+  uint32_t lastGoodPacketTimeMs;
 };
 
 struct ChppTxStatus {
