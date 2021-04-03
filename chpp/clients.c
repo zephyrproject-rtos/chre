@@ -283,6 +283,7 @@ struct ChppAppHeader *chppAllocClientRequest(
     result->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
     result->transaction = clientState->transaction;
     result->error = CHPP_APP_ERROR_NONE;
+    result->command = CHPP_APP_COMMAND_NONE;
 
     clientState->transaction++;
   }
