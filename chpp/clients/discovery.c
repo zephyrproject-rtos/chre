@@ -126,9 +126,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     CHPP_DEBUG_ASSERT(false);
   }
 
-  CHPP_LOGD("Attempting to match %" PRIu8 " registered clients and %" PRIu8
-            " discovered services",
-            context->registeredClientCount, serviceCount);
+  CHPP_LOGI("Discovered %" PRIu8 " services", serviceCount);
 
   uint8_t matchedClients = 0;
   for (uint8_t i = 0; i < MIN(serviceCount, CHPP_MAX_DISCOVERED_SERVICES);
