@@ -69,6 +69,11 @@ extern "C" {
 #define CHPP_CLIENT_INDEX_NONE 0xff
 
 /**
+ * App layer command at initialization.
+ */
+#define CHPP_APP_COMMAND_NONE 0
+
+/**
  * Handle Numbers in ChppAppHeader
  */
 enum ChppHandleNumber {

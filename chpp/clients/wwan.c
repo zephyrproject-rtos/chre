@@ -365,6 +365,7 @@ static void chppWwanGetCellInfoAsyncResult(
       chre->cellInfoCount = 0;
       chre->reserved = 0;
       chre->cookie = 0;
+      chre->cells = NULL;
     }
 
   } else {
