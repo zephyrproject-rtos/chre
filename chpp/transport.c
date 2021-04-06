@@ -971,6 +971,24 @@ static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
 }
 
 /**
+ * @return A human readable form of the packet attribution.
+ */
+static const char *chppGetPacketAttrStr(uint8_t packetCode) {
+  switch (CHPP_TRANSPORT_GET_ATTR(packetCode)) {
+    case CHPP_TRANSPORT_ATTR_RESET:
+      return "(RESET)";
+    case CHPP_TRANSPORT_ATTR_RESET_ACK:
+      return "(RESET-ACK)";
+    case CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST:
+      return "(LOOP-REQ)";
+    case CHPP_TRANSPORT_ATTR_LOOPBACK_RESPONSE:
+      return "(LOOP-RES)";
+    default:
+      return "";
+  }
+}
+
+/**
  * Enqueues an outgoing datagram of a specified length. The payload must have
  * been allocated by the caller using chppMalloc.
  *
@@ -998,9 +1016,10 @@ static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
   } else {
     if ((len < sizeof(struct ChppAppHeader)) ||
         (CHPP_TRANSPORT_GET_ATTR(packetCode) != 0)) {
-      CHPP_LOGI(
-          "Enqueue TX: code=0x%" PRIx8 " len=%" PRIuSIZE " pending=%" PRIu8,
-          packetCode, len, (uint8_t)(context->txDatagramQueue.pending + 1));
+      CHPP_LOGI("Enqueue TX: code=0x%" PRIx8 "%s len=%" PRIuSIZE
+                " pending=%" PRIu8,
+                packetCode, chppGetPacketAttrStr(packetCode), len,
+                (uint8_t)(context->txDatagramQueue.pending + 1));
     } else {
       struct ChppAppHeader *header = buf;
       CHPP_LOGI(
@@ -1508,9 +1527,9 @@ void chppTransportSendReset(struct ChppTransportState *context,
 
   // Send out the reset datagram
   if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    CHPP_LOGI("Sending RESET-ACK");
+    CHPP_LOGD("Sending RESET-ACK");
   } else {
-    CHPP_LOGI("Sending RESET");
+    CHPP_LOGD("Sending RESET");
   }
 
   if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
