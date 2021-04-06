@@ -315,6 +315,8 @@ void chppInitiateDiscovery(struct ChppAppState *context) {
   struct ChppAppHeader *request = chppMalloc(sizeof(struct ChppAppHeader));
   request->handle = CHPP_HANDLE_DISCOVERY;
   request->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+  request->transaction = 0;
+  request->error = CHPP_APP_ERROR_NONE;
   request->command = CHPP_DISCOVERY_COMMAND_DISCOVER_ALL;
 
   chppEnqueueTxDatagramOrFail(context->transportContext, request,

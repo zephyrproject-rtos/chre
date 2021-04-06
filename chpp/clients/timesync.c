@@ -56,12 +56,11 @@ void chppTimesyncClientInit(struct ChppAppState *context) {
   context->timesyncClientContext =
       chppMalloc(sizeof(struct ChppTimesyncClientState));
   CHPP_NOT_NULL(context->timesyncClientContext);
+  memset(context->timesyncClientContext, 0,
+         sizeof(struct ChppTimesyncClientState));
 
   context->timesyncClientContext->client.appContext = context;
   context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
-  context->timesyncClientContext->timesyncResult.offsetNs = 0;
-  context->timesyncClientContext->timesyncResult.rttNs = 0;
-  context->timesyncClientContext->timesyncResult.measurementTimeNs = 0;
 
   chppClientInit(&context->timesyncClientContext->client, CHPP_HANDLE_TIMESYNC);
   context->timesyncClientContext->timesyncResult.error =
