@@ -295,4 +295,22 @@ void chreDebugDumpLog(const char *formatStr, ...) {
   }
 }
 
+WEAK_SYMBOL
+int8_t chreUserSettingGetState(uint8_t setting) {
+  int8_t settingState = CHRE_USER_SETTING_STATE_UNKNOWN;
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreUserSettingGetState);
+  if (fptr != nullptr) {
+    settingState = fptr(setting);
+  }
+  return settingState;
+}
+
+WEAK_SYMBOL
+void chreUserSettingConfigureEvents(uint8_t setting, bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreUserSettingConfigureEvents);
+  if (fptr != nullptr) {
+    fptr(setting, enable);
+  }
+}
+
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT
