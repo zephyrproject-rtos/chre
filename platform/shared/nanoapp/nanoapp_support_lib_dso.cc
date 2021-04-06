@@ -296,6 +296,21 @@ void chreDebugDumpLog(const char *formatStr, ...) {
 }
 
 WEAK_SYMBOL
+bool chreSendMessageWithPermissions(void *message, size_t messageSize,
+                                    uint32_t messageType, uint16_t hostEndpoint,
+                                    uint32_t messagePermissions,
+                                    chreMessageFreeFunction *freeCallback) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreSendMessageWithPermissions);
+  if (fptr != nullptr) {
+    return fptr(message, messageSize, messageType, hostEndpoint,
+                messagePermissions, freeCallback);
+  } else {
+    return chreSendMessageToHostEndpoint(message, messageSize, messageType,
+                                         hostEndpoint, freeCallback);
+  }
+}
+
+WEAK_SYMBOL
 int8_t chreUserSettingGetState(uint8_t setting) {
   int8_t settingState = CHRE_USER_SETTING_STATE_UNKNOWN;
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreUserSettingGetState);
