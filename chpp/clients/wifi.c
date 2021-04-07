@@ -345,7 +345,7 @@ static void chppWifiClientNotifyMatch(void *clientContext) {
       (struct ChppWifiClientState *)clientContext;
 
   if (wifiClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
-    CHPP_LOGI("Previously pseudo-open WiFi client reopening");
+    CHPP_LOGD("Previously pseudo-open WiFi client reopening");
     chppClientSendOpenRequest(&gWifiClientContext.client,
                               &gWifiClientContext.open, CHPP_WIFI_OPEN,
                               /*reopen=*/true);
