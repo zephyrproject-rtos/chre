@@ -452,7 +452,7 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
-void chppAppProcessRxReset(struct ChppAppState *context);
+void chppAppProcessReset(struct ChppAppState *context);
 
 /**
  * Convert UUID to a human-readable, null-terminated string.
