@@ -351,7 +351,7 @@ static void chppGnssClientNotifyMatch(void *clientContext) {
       (struct ChppGnssClientState *)clientContext;
 
   if (gnssClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
-    CHPP_LOGI("Previously pseudo-open GNSS client reopening");
+    CHPP_LOGD("Previously pseudo-open GNSS client reopening");
     chppClientSendOpenRequest(&gGnssClientContext.client,
                               &gGnssClientContext.open, CHPP_GNSS_OPEN,
                               /*reopen=*/true);

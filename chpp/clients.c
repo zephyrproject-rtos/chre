@@ -412,7 +412,7 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
     CHPP_LOG_OOM();
 
   } else if (reopen) {
-    CHPP_LOGW("Reopening service");
+    CHPP_LOGD("Reopening service");
     uint8_t priorState = clientState->openState;
     clientState->openState = CHPP_OPEN_STATE_OPENING;
     if (!chppSendTimestampedRequestOrFail(clientState, openRRState, request,
@@ -427,7 +427,7 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
     }
 
   } else {
-    CHPP_LOGI("Opening service");
+    CHPP_LOGD("Opening service");
     clientState->openState = CHPP_OPEN_STATE_OPENING;
     if (!chppSendTimestampedRequestAndWait(clientState, openRRState, request,
                                            sizeof(*request))) {
