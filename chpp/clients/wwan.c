@@ -259,7 +259,7 @@ static void chppWwanClientNotifyMatch(void *clientContext) {
       (struct ChppWwanClientState *)clientContext;
 
   if (wwanClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
-    CHPP_LOGI("Previously pseudo-open WWAN client reopening");
+    CHPP_LOGD("Previously pseudo-open WWAN client reopening");
     chppClientSendOpenRequest(&gWwanClientContext.client,
                               &gWwanClientContext.open, CHPP_WWAN_OPEN,
                               /*reopen=*/true);
