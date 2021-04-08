@@ -225,6 +225,16 @@ class LogBuffer {
   void copyFromBuffer(size_t size, void *destination);
 
   /**
+   * Same as copyLogs method but requires that a lock already be held.
+   */
+  size_t copyLogsLocked(void *destination, size_t size, size_t *numLogsDropped);
+
+  /**
+   * Same as reset method but requires that a lock already be held.
+   */
+  void resetLocked();
+
+  /**
    * Get next index indicating the start of a log entry from the starting
    * index of a previous log entry.
    *
