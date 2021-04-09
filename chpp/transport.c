@@ -590,7 +590,8 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
     CHPP_LOGE("Rx BAD checksum: footer=0x%" PRIx32 ", calc=0x%" PRIx32
               ", len=%" PRIuSIZE,
               context->rxFooter.checksum, crc,
-              context->rxHeader.length + sizeof(struct ChppTransportHeader));
+              (size_t)(context->rxHeader.length +
+                       sizeof(struct ChppTransportHeader)));
   }
 
   return (context->rxFooter.checksum == crc);
