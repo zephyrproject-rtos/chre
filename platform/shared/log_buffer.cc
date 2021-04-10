@@ -92,29 +92,7 @@ void LogBuffer::handleLogVa(LogBufferLogLevel logLevel, uint32_t timestampMs,
 size_t LogBuffer::copyLogs(void *destination, size_t size,
                            size_t *numLogsDropped) {
   LockGuard<Mutex> lock(mLock);
-
-  size_t copySize = 0;
-
-  if (size != 0 && destination != nullptr && mBufferDataSize != 0) {
-    if (size >= mBufferDataSize) {
-      copySize = mBufferDataSize;
-    } else {
-      size_t logSize;
-      // There is guaranteed to be a null terminator within the max log length
-      // number of bytes so logStartIndex will not be maxBytes + 1
-      size_t logStartIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
-      while (copySize + logSize <= size &&
-             copySize + logSize <= mBufferDataSize) {
-        copySize += logSize;
-        logStartIndex = getNextLogIndex(logStartIndex, &logSize);
-      }
-    }
-    copyFromBuffer(copySize, destination);
-  }
-
-  *numLogsDropped = mNumLogsDropped;
-
-  return copySize;
+  return copyLogsLocked(destination, size, numLogsDropped);
 }
 
 bool LogBuffer::logWouldCauseOverflow(size_t logSize) {
@@ -124,21 +102,24 @@ bool LogBuffer::logWouldCauseOverflow(size_t logSize) {
 }
 
 void LogBuffer::transferTo(LogBuffer &buffer) {
-  // The buffer being transferred to should be as big or bigger.
-  CHRE_ASSERT(buffer.mBufferMaxSize >= mBufferMaxSize);
-  buffer.reset();
-
+  LockGuard<Mutex> lockGuardOther(buffer.mLock);
+  size_t numLogsDropped;
+  size_t bytesCopied;
   {
-    LockGuard<Mutex> lockGuard(buffer.mLock);
-    size_t numLogsDropped;
-    size_t bytesCopied =
-        copyLogs(buffer.mBufferData, buffer.mBufferMaxSize, &numLogsDropped);
-    buffer.mBufferDataTailIndex = bytesCopied % buffer.mBufferMaxSize;
-    buffer.mBufferDataSize = bytesCopied;
-    buffer.mNumLogsDropped = numLogsDropped;
-  }
+    LockGuard<Mutex> lockGuardThis(mLock);
+    // The buffer being transferred to should be as big or bigger.
+    CHRE_ASSERT(buffer.mBufferMaxSize >= mBufferMaxSize);
 
-  reset();
+    buffer.resetLocked();
+
+    bytesCopied = copyLogsLocked(buffer.mBufferData, buffer.mBufferMaxSize,
+                                 &numLogsDropped);
+
+    resetLocked();
+  }
+  buffer.mBufferDataTailIndex = bytesCopied % buffer.mBufferMaxSize;
+  buffer.mBufferDataSize = bytesCopied;
+  buffer.mNumLogsDropped = numLogsDropped;
 }
 
 void LogBuffer::updateNotificationSetting(LogBufferNotificationSetting setting,
@@ -151,10 +132,7 @@ void LogBuffer::updateNotificationSetting(LogBufferNotificationSetting setting,
 
 void LogBuffer::reset() {
   LockGuard<Mutex> lock(mLock);
-  mBufferDataHeadIndex = 0;
-  mBufferDataTailIndex = 0;
-  mBufferDataSize = 0;
-  mNumLogsDropped = 0;
+  resetLocked();
 }
 
 const uint8_t *LogBuffer::getBufferData() {
@@ -204,6 +182,39 @@ void LogBuffer::copyFromBuffer(size_t size, void *destination) {
   mBufferDataSize -= size;
   mBufferDataHeadIndex =
       incrementAndModByBufferMaxSize(mBufferDataHeadIndex, size);
+}
+
+size_t LogBuffer::copyLogsLocked(void *destination, size_t size,
+                                 size_t *numLogsDropped) {
+  size_t copySize = 0;
+
+  if (size != 0 && destination != nullptr && mBufferDataSize != 0) {
+    if (size >= mBufferDataSize) {
+      copySize = mBufferDataSize;
+    } else {
+      size_t logSize;
+      // There is guaranteed to be a null terminator within the max log length
+      // number of bytes so logStartIndex will not be maxBytes + 1
+      size_t logStartIndex = getNextLogIndex(mBufferDataHeadIndex, &logSize);
+      while (copySize + logSize <= size &&
+             copySize + logSize <= mBufferDataSize) {
+        copySize += logSize;
+        logStartIndex = getNextLogIndex(logStartIndex, &logSize);
+      }
+    }
+    copyFromBuffer(copySize, destination);
+  }
+
+  *numLogsDropped = mNumLogsDropped;
+
+  return copySize;
+}
+
+void LogBuffer::resetLocked() {
+  mBufferDataHeadIndex = 0;
+  mBufferDataTailIndex = 0;
+  mBufferDataSize = 0;
+  mNumLogsDropped = 0;
 }
 
 size_t LogBuffer::getNextLogIndex(size_t startingIndex, size_t *logSize) {
