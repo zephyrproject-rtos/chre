@@ -27,6 +27,7 @@ TEST_SHARED_PATH = $(CHRE_PREFIX)/apps/test/common/shared
 NANOPB_EXTENSION = nanopb
 
 NANOPB_SRCS += $(NANOAPP_PATH)/../proto/chre_test_common.proto
+NANOPB_SRCS += $(NANOAPP_PATH)/../proto/permission_test.proto
 NANOPB_PROTO_PATH = $(NANOAPP_PATH)/../proto
 NANOPB_INCLUDES = $(NANOPB_PROTO_PATH)
 NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
@@ -35,6 +36,7 @@ NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
 
 COMMON_SRCS += $(NANOAPP_PATH)/src/permission_test.cc
 COMMON_SRCS += $(TEST_SHARED_PATH)/src/send_message.cc
+COMMON_SRCS += $(CHRE_PREFIX)/util/nanoapp/callbacks.cc
 
 # Compiler Flags ###############################################################
 
@@ -43,6 +45,19 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 
 # Includes
 COMMON_CFLAGS += -I$(TEST_SHARED_PATH)/inc
+
+# DO NOT USE. This macro is only meant to be used in this test nanoapp and
+# should never be used in production nanoapps. Please use the
+# CHRE_NANOAPP_USES_X macros there instead to ensure the right permissions are
+# declared.
+COMMON_CFLAGS += -DCHRE_TEST_NANOAPP_PERMS=0
+
+# Permission declarations ######################################################
+
+CHRE_NANOAPP_USES_AUDIO = true
+CHRE_NANOAPP_USES_GNSS = true
+CHRE_NANOAPP_USES_WIFI = true
+CHRE_NANOAPP_USES_WWAN = true
 
 # Makefile Includes ############################################################
 
