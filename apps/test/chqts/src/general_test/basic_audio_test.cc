@@ -282,6 +282,16 @@ void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
   }
 }
 
+bool isAudioSupported() {
+  struct chreAudioSource source;
+  constexpr uint32_t kRequiredAudioHandle = 0;
+  // If the DUT supports CHRE audio, then audio handle 0 is required to be
+  // valid. There is the risk that the chreAudioGetSource function might
+  // legitimately fail however - we should replace this function when CHRE
+  // audio capabilities in b/185155280 are implemented.
+  // TODO (b/185155280): fix this query
+  return chreAudioGetSource(kRequiredAudioHandle, &source);
+}
 }  // anonymous namespace
 
 BasicAudioTest::BasicAudioTest()
@@ -293,11 +303,16 @@ void BasicAudioTest::setUp(uint32_t messageSize, const void * /* message */) {
                            &messageSize);
   }
 
-  validateAudioSources();
+  if (!isAudioSupported()) {
+    sendSuccessToHost();
 
-  mState = State::kExpectingAudioData;
+  } else {
+    validateAudioSources();
 
-  requestAudioData();
+    mState = State::kExpectingAudioData;
+
+    requestAudioData();
+  }
 }
 
 void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
