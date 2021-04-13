@@ -42,6 +42,29 @@ void testLocationSessionAsync() {
   }
 }
 
+void testMeasurementSessionAsync() {
+  if (!chreGnssMeasurementSessionStartAsync(1000 /* minIntervalMs */,
+                                            nullptr /* cookie */)) {
+    nanoapp_testing::sendFatalFailureToHost(
+        "Failed to start a measurement session");
+  }
+  if (!chreGnssMeasurementSessionStopAsync(nullptr /* cookie */)) {
+    nanoapp_testing::sendFatalFailureToHost(
+        "Failed to stop a measurement session");
+  }
+}
+
+void testPassiveListener() {
+  if (!chreGnssConfigurePassiveLocationListener(true /* enable */)) {
+    nanoapp_testing::sendFatalFailureToHost(
+        "Failed to enable passive location listener");
+  }
+  if (!chreGnssConfigurePassiveLocationListener(false /* enable */)) {
+    nanoapp_testing::sendFatalFailureToHost(
+        "Failed to disable passive location listener");
+  }
+}
+
 }  // anonymous namespace
 
 BasicGnssTest::BasicGnssTest() : Test(CHRE_API_VERSION_1_1) {}
@@ -55,8 +78,16 @@ void BasicGnssTest::setUp(uint32_t messageSize, const void * /* message */) {
 
     if (capabilities & CHRE_GNSS_CAPABILITIES_LOCATION) {
       testLocationSessionAsync();
-      // TODO: Add tests for chreGnssMeasurementXxx and
-      //       chreGnssConfigurePassiveLocationListener
+    }
+
+    if (capabilities & CHRE_GNSS_CAPABILITIES_MEASUREMENTS) {
+      testMeasurementSessionAsync();
+    }
+
+    if ((mApiVersion >= CHRE_API_VERSION_1_5) ||
+        (capabilities &
+         CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER)) {
+      testPassiveListener();
     }
 
     nanoapp_testing::sendSuccessToHost();
@@ -67,7 +98,8 @@ void BasicGnssTest::handleEvent(uint32_t /* senderInstanceId */,
                                 uint16_t eventType,
                                 const void * /* eventData */) {
   if (eventType != CHRE_EVENT_GNSS_ASYNC_RESULT &&
-      eventType != CHRE_EVENT_GNSS_LOCATION) {
+      eventType != CHRE_EVENT_GNSS_LOCATION &&
+      eventType != CHRE_EVENT_GNSS_DATA) {
     unexpectedEvent(eventType);
   }
 }
