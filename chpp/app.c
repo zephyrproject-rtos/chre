@@ -691,7 +691,7 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
   chppDatagramProcessDoneCb(context->transportContext, buf);
 }
 
-void chppAppProcessRxReset(struct ChppAppState *context) {
+void chppAppProcessReset(struct ChppAppState *context) {
 #ifdef CHPP_CLIENT_ENABLED_DISCOVERY
   if (!context->isDiscoveryComplete) {
     chppInitiateDiscovery(context);
