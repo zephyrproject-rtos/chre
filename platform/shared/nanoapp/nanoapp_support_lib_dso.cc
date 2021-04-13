@@ -35,20 +35,33 @@
 
 namespace {
 
-constexpr uint32_t kNanoappPermissions =
-    0
+constexpr uint32_t kNanoappPermissions = 0
+// DO NOT USE this macro outside of specific CHQTS nanoapps. This is only used
+// to allow testing of invalid permission declarations.
+#ifdef CHRE_TEST_NANOAPP_PERMS
+                                         | CHRE_TEST_NANOAPP_PERMS
+#else
 #ifdef CHRE_NANOAPP_USES_AUDIO
-    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_AUDIO)
+                                         | static_cast<uint32_t>(
+                                               chre::NanoappPermissions::
+                                                   CHRE_PERMS_AUDIO)
 #endif
 #ifdef CHRE_NANOAPP_USES_GNSS
-    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_GNSS)
+                                         | static_cast<uint32_t>(
+                                               chre::NanoappPermissions::
+                                                   CHRE_PERMS_GNSS)
 #endif
 #ifdef CHRE_NANOAPP_USES_WIFI
-    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_WIFI)
+                                         | static_cast<uint32_t>(
+                                               chre::NanoappPermissions::
+                                                   CHRE_PERMS_WIFI)
 #endif
 #ifdef CHRE_NANOAPP_USES_WWAN
-    | static_cast<uint32_t>(chre::NanoappPermissions::CHRE_PERMS_WWAN)
+                                         | static_cast<uint32_t>(
+                                               chre::NanoappPermissions::
+                                                   CHRE_PERMS_WWAN)
 #endif
+#endif  // CHRE_TEST_NANOAPP_PERMS
     ;
 
 #if defined(CHRE_SLPI_UIMG_ENABLED) || defined(CHRE_TCM_ENABLED)
