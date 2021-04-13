@@ -27,6 +27,15 @@ namespace chre {
 
 namespace {
 
+#if CHRE_FIRST_SUPPORTED_API_VERSION < CHRE_API_VERSION_1_5
+#define CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+#endif
+
+#ifdef CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+constexpr uint16_t kGroupIdMaskGnssMeasurementPreV1_5 = (1 << 0);
+constexpr uint16_t kGroupIdMaskGnssMeasurementFromV1_5 = (1 << 1);
+#endif  // CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+
 bool getCallbackType(uint16_t eventType, SystemCallbackType *callbackType) {
   bool success = true;
   switch (eventType) {
@@ -264,8 +273,31 @@ void GnssSession::handleReportEvent(void *event) {
         (getSettingState(Setting::LOCATION) == SettingState::DISABLED)) {
       freeReportEventCallback(reportEventType, data);
     } else {
+      uint16_t groupIdMask = kDefaultTargetGroupMask;
+
+#ifdef CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+      if (reportEventType == CHRE_EVENT_GNSS_DATA) {
+        auto *event = static_cast<struct chreGnssDataEvent *>(data);
+        if (event->measurement_count > CHRE_GNSS_MAX_MEASUREMENT_PRE_1_5) {
+          auto newData = chre::MakeUnique<struct chreGnssDataEvent>();
+          if (newData.isNull()) {
+            LOG_OOM();
+          } else {
+            memcpy(newData.get(), data, sizeof(struct chreGnssDataEvent));
+            newData->measurement_count = CHRE_GNSS_MAX_MEASUREMENT_PRE_1_5;
+            EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+                reportEventType, newData.release(), freeEventDataCallback,
+                kBroadcastInstanceId, kGroupIdMaskGnssMeasurementPreV1_5);
+          }
+
+          groupIdMask = kGroupIdMaskGnssMeasurementFromV1_5;
+        }
+      }
+#endif  // CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          reportEventType, data, freeReportEventCallback);
+          reportEventType, data, freeReportEventCallback, kBroadcastInstanceId,
+          groupIdMask);
     }
   };
 
@@ -502,7 +534,8 @@ bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
         if (!success) {
           LOG_OOM();
         } else {
-          nanoapp->registerForBroadcastEvent(kReportEventType);
+          uint16_t groupIdMask = getGroupIdMask(*nanoapp);
+          nanoapp->registerForBroadcastEvent(kReportEventType, groupIdMask);
         }
       }
     } else if (hasExistingRequest) {
@@ -522,6 +555,18 @@ bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
   }
 
   return success;
+}
+
+uint16_t GnssSession::getGroupIdMask(const Nanoapp &nanoapp) const {
+  uint16_t mask = kDefaultTargetGroupMask;
+#ifdef CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+  if (kReportEventType == CHRE_EVENT_GNSS_DATA) {
+    mask = (nanoapp.getTargetApiVersion() < CHRE_API_VERSION_1_5)
+               ? kGroupIdMaskGnssMeasurementPreV1_5
+               : kGroupIdMaskGnssMeasurementFromV1_5;
+  }
+#endif  // CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+  return mask;
 }
 
 bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
