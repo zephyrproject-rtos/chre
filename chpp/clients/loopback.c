@@ -148,8 +148,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
   CHPP_LOGI("Loopback test. payload len=%" PRIuSIZE ", request len=%" PRIuSIZE,
             len, len + CHPP_LOOPBACK_HEADER_LEN);
 
-  if (!chppWaitForDiscoveryComplete(context,
-                                    CHPP_DISCOVERY_DEFAULT_TIMEOUT_MS)) {
+  if (!chppWaitForDiscoveryComplete(context, CHPP_MSEC_PER_SEC /* 1s */)) {
     static const struct ChppLoopbackTestResult result = {
         .error = CHPP_APP_ERROR_NOT_READY,
     };
