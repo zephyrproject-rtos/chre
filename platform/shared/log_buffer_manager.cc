@@ -146,7 +146,9 @@ void LogBufferManager::onLogsSentToHostLocked(bool success) {
   if (success) {
     mSecondaryLogBuffer.reset();
   }
-  mLogFlushToHostPending = mLogsBecameReadyWhileFlushPending;
+  // If there is a failure to send a log through do not try to send another
+  // one to avoid an infinite loop occurring
+  mLogFlushToHostPending = mLogsBecameReadyWhileFlushPending && success;
   mLogsBecameReadyWhileFlushPending = false;
   if (mLogFlushToHostPending) {
     mSendLogsToHostCondition.notify_one();
