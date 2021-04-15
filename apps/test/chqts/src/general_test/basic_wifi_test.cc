@@ -98,7 +98,17 @@ void testConfigureScanMonitorAsync(bool enable, const void *cookie) {
  * if API call fails.
  */
 void testRequestScanAsync() {
-  if (!chreWifiRequestScanAsyncDefault(&kOnDemandScanCookie)) {
+  constexpr struct chreWifiScanParams kParams = {
+      /*.scanType=*/CHRE_WIFI_SCAN_TYPE_ACTIVE,
+      /*.maxScanAgeMs=*/5000,  // 5 seconds
+      /*.frequencyListLen=*/0,
+      /*.frequencyList=*/NULL,
+      /*.ssidListLen=*/0,
+      /*.ssidList=*/NULL,
+      /*.radioChainPref=*/CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+      /*.channelSet=*/CHRE_WIFI_CHANNEL_SET_NON_DFS};
+
+  if (!chreWifiRequestScanAsync(&kParams, &kOnDemandScanCookie)) {
     sendFatalFailureToHost("Failed to request for on-demand WiFi scan.");
   }
 }
