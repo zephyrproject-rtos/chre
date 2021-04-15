@@ -28,6 +28,7 @@ java_library {
 
     static_libs: [
         "androidx.test.rules",
+        "permission_test_java_proto",
         "ping_test_java_proto",
         "chre_test_common_java_proto",
         "chre-test-utils",
