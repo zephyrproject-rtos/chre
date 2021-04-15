@@ -16,7 +16,6 @@
 package com.google.android.chre.test.permissions;
 
 import android.app.Instrumentation;
-import android.content.Context;
 import android.hardware.location.ContextHubClient;
 import android.hardware.location.ContextHubClientCallback;
 import android.hardware.location.ContextHubInfo;
@@ -28,20 +27,22 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.google.android.chre.nanoapp.proto.PingTest;
+import com.google.android.chre.nanoapp.proto.ChreTestCommon;
+import com.google.android.chre.nanoapp.proto.PermissionTest;
 import com.google.android.utils.chre.ChreTestUtil;
 
 import org.junit.Assert;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A class that can execute the CHRE permissions test.
+ * A class that can execute the permission gated API test.
  */
-public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback {
-    private static final String TAG = "ContextHubPermissionsTestExecutor";
+public class ContextHubChrePermissionsTestExecutor extends ContextHubClientCallback {
+    private static final String TAG = "ContextHubChrePermissionsTestExecutor";
 
     private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
 
@@ -55,24 +56,16 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
 
     private final ContextHubInfo mContextHubInfo;
 
-    private final Context mContext;
-
-    private final String mPackageName;
-
     private AtomicBoolean mHubResetDuringTest = new AtomicBoolean();
 
     private LinkedBlockingDeque<NanoAppMessage> mMessageQueue = new LinkedBlockingDeque<>();
 
-    private LinkedBlockingDeque<Integer> mAuthorizationUpdateQueue = new LinkedBlockingDeque<>();
-
-    public ContextHubPermissionsTestExecutor(
+    public ContextHubChrePermissionsTestExecutor(
             ContextHubManager manager, ContextHubInfo info, NanoAppBinary binary) {
         mContextHubManager = manager;
         mContextHubInfo = info;
         mNanoAppBinary = binary;
         mNanoAppId = mNanoAppBinary.getNanoAppId();
-        mContext = mInstrumentation.getTargetContext();
-        mPackageName = mContext.getPackageName();
 
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
         Assert.assertTrue(mContextHubClient != null);
@@ -81,18 +74,8 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
     @Override
     public void onMessageFromNanoApp(ContextHubClient client, NanoAppMessage message) {
         if (message.getNanoAppId() == mNanoAppId) {
-            Log.e(TAG, "Got message from nanoapp: type " + message.getMessageType());
+            Log.d(TAG, "Got message from nanoapp: type " + message.getMessageType());
             mMessageQueue.add(message);
-        }
-    }
-
-    @Override
-    public void onClientAuthorizationChanged(
-            ContextHubClient client, long nanoAppId, int authorization) {
-        if (nanoAppId == mNanoAppId) {
-            Log.d(TAG, "onClientAuthorizationChanged: nanoapp ID " + nanoAppId + " auth state "
-                    + authorization);
-            mAuthorizationUpdateQueue.add(authorization);
         }
     }
 
@@ -111,67 +94,34 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
     /**
      * Runs the test where an app is forced to the denied authentication state.
      */
-    public void permissionsDisabledTest() throws Exception {
-        PingTest.PingCommand command =
-                PingTest.PingCommand.newBuilder().build();
+    public void checkPermissionGatedApisTest() throws Exception {
         NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
-                mNanoAppId, PingTest.MessageType.PING_COMMAND_VALUE,
-                command.toByteArray());
+                mNanoAppId, PermissionTest.MessageType.TEST_COMMAND_VALUE,
+                new byte[0] /* messageBody */);
         int result = mContextHubClient.sendMessageToNanoApp(message);
         if (result != ContextHubTransaction.RESULT_SUCCESS) {
             Assert.fail("Failed to send message: result = " + result);
         }
 
+        NanoAppMessage rcvdMsg = null;
         try {
-            NanoAppMessage msg = mMessageQueue.poll(2, TimeUnit.SECONDS);
-            Assert.assertNotNull("Timed out waiting for a message", msg);
-            Log.d(TAG, "Got message from nanoapp: " + msg);
+            rcvdMsg = mMessageQueue.poll(2, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
 
-        // No need to grant our package again since the denial will be tied to
-        // the current contexthubclient which is only used by this test.
-        ChreTestUtil.executeShellCommand(mInstrumentation,
-                "cmd contexthub deny " + mContextHubInfo.getId()
-                + " " + mContext.getPackageName() + " " + mNanoAppId);
+        Assert.assertNotNull("Timed out waiting for a message", rcvdMsg);
+        Log.d(TAG, "Got message from nanoapp: " + rcvdMsg);
 
-        int authorization = mAuthorizationUpdateQueue.poll(2, TimeUnit.SECONDS);
-        Assert.assertEquals(authorization, ContextHubManager.AUTHORIZATION_DENIED);
-
-        try {
-            mContextHubClient.sendMessageToNanoApp(message);
-            Assert.fail("Sent message to nanoapp even though permissions were denied");
-        } catch (SecurityException e) {
-            // Expected
-        }
-        Assert.assertTrue(mAuthorizationUpdateQueue.isEmpty());
-        Assert.assertFalse(mHubResetDuringTest.get());
-    }
-
-    /**
-     * Runs the test where an app attempts to send a message with data covered
-     * by permissions.
-     */
-    public void messagePermissionsTest() throws Exception {
-        // Defined in chre/util/system/napp_permissions.h
-        final int audioPermission = 1;
-        PingTest.PingCommand command =
-                PingTest.PingCommand.newBuilder().setPermissions(audioPermission).build();
-        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
-                mNanoAppId, PingTest.MessageType.PING_COMMAND_VALUE,
-                command.toByteArray());
-        int result = mContextHubClient.sendMessageToNanoApp(message);
-        if (result != ContextHubTransaction.RESULT_SUCCESS) {
-            Assert.fail("Failed to send message: result = " + result);
-        }
-
-        try {
-            NanoAppMessage msg = mMessageQueue.poll(2, TimeUnit.SECONDS);
-            Assert.assertNotNull("Timed out waiting for a message", msg);
-            Log.d(TAG, "Got message from nanoapp: " + msg);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+        Assert.assertEquals(PermissionTest.MessageType.TEST_RESULT_VALUE, rcvdMsg.getMessageType());
+        ChreTestCommon.TestResult resultProto =
+                ChreTestCommon.TestResult.parseFrom(rcvdMsg.getMessageBody());
+        if (resultProto.hasErrorMessage()) {
+            Assert.assertEquals(new String(resultProto.getErrorMessage().toByteArray(),
+                                           StandardCharsets.UTF_8),
+                                ChreTestCommon.TestResult.Code.PASSED, resultProto.getCode());
+        } else {
+            Assert.assertEquals(ChreTestCommon.TestResult.Code.PASSED, resultProto.getCode());
         }
     }
 
@@ -181,5 +131,6 @@ public class ContextHubPermissionsTestExecutor extends ContextHubClientCallback 
     public void deinit() {
         ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo, mNanoAppId);
         mContextHubClient.close();
+        Assert.assertFalse(mHubResetDuringTest.get());
     }
 }
