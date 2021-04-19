@@ -246,11 +246,11 @@ void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
     } else {
       // Per the CHRE Audio API requirements, it is expected that we exactly
       // the number of samples that we ask for - we verify that here.
-      const size_t kNumSamplesExpected = audioSource.minBufferDuration /
-                                         kOneSecondInNanoseconds *
-                                         kRequiredSampleRate;
+      const auto kNumSamplesExpected =
+          static_cast<uint32_t>(audioSource.minBufferDuration *
+                                kRequiredSampleRate / kOneSecondInNanoseconds);
       if (dataEvent->sampleCount != kNumSamplesExpected) {
-        LOGE("Unexpected num samples - Expected: %u, Actual: %" PRIu32,
+        LOGE("Unexpected num samples - Expected: %" PRIu32 ", Actual: %" PRIu32,
              kNumSamplesExpected, dataEvent->sampleCount);
         uint32_t sampleCountDifference =
             (kNumSamplesExpected > dataEvent->sampleCount)
