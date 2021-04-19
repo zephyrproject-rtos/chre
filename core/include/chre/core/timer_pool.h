@@ -17,8 +17,6 @@
 #ifndef CHRE_CORE_TIMER_POOL_H_
 #define CHRE_CORE_TIMER_POOL_H_
 
-#include <utility>  // TODO(b/178963854): remove once fixed
-
 #include "chre_api/chre/re.h"
 
 #include "chre/core/event_loop_common.h"
@@ -107,12 +105,6 @@ class TimerPool : public NonCopyable {
    */
   bool cancelSystemTimer(TimerHandle timerHandle) {
     return cancelTimer(kSystemInstanceId, timerHandle);
-  }
-
-  // TODO(b/178963854): remove once fixed
-  inline std::pair<size_t, size_t> getSizeCapacityPair() {
-    return std::pair<size_t, size_t>(mTimerRequests.size(),
-                                     mTimerRequests.capacity());
   }
 
  private:
