@@ -25,10 +25,6 @@ namespace chre {
 
 DynamicVectorBase::DynamicVectorBase(DynamicVectorBase &&other)
     : mData(other.mData), mSize(other.mSize), mCapacity(other.mCapacity) {
-  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
-  // is resolved
-  CHRE_ASSERT(mSize <= mCapacity);
-
   other.mData = nullptr;
   other.mSize = 0;
   other.mCapacity = 0;
@@ -68,10 +64,6 @@ size_t DynamicVectorBase::getNextGrowthCapacity() const {
 }
 
 void DynamicVectorBase::doErase(size_t index, size_t elementSize) {
-  // TODO(178963854): Assert added to help debug b/178963854 - remove once that
-  // is resolved
-  CHRE_ASSERT(mSize <= mCapacity);
-
   mSize--;
   size_t moveAmount = (mSize - index) * elementSize;
   memmove(static_cast<uint8_t *>(mData) + (index * elementSize),
