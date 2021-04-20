@@ -28,11 +28,13 @@ class ClientsTest : public testing::Test {
 TEST_F(ClientsTest, RequestResponseTimestampValid) {
   struct ChppAppHeader *reqHeader =
       chppAllocClientRequestCommand(&mClientState, 0 /* command */);
-  chppClientTimestampRequest(&mRRState, reqHeader);
+  chppClientTimestampRequest(&mClientState, &mRRState, reqHeader,
+                             CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
 
   struct ChppAppHeader *respHeader =
       chppAllocServiceResponse(reqHeader, sizeof(*reqHeader));
-  ASSERT_TRUE(chppClientTimestampResponse(&mRRState, respHeader));
+  ASSERT_TRUE(
+      chppClientTimestampResponse(&mClientState, &mRRState, respHeader));
 
   chppFree(reqHeader);
   chppFree(respHeader);
@@ -41,12 +43,15 @@ TEST_F(ClientsTest, RequestResponseTimestampValid) {
 TEST_F(ClientsTest, RequestResponseTimestampDuplicate) {
   struct ChppAppHeader *reqHeader =
       chppAllocClientRequestCommand(&mClientState, 0 /* command */);
-  chppClientTimestampRequest(&mRRState, reqHeader);
+  chppClientTimestampRequest(&mClientState, &mRRState, reqHeader,
+                             CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
 
   struct ChppAppHeader *respHeader =
       chppAllocServiceResponse(reqHeader, sizeof(*reqHeader));
-  ASSERT_TRUE(chppClientTimestampResponse(&mRRState, respHeader));
-  ASSERT_FALSE(chppClientTimestampResponse(&mRRState, respHeader));
+  ASSERT_TRUE(
+      chppClientTimestampResponse(&mClientState, &mRRState, respHeader));
+  ASSERT_FALSE(
+      chppClientTimestampResponse(&mClientState, &mRRState, respHeader));
 
   chppFree(reqHeader);
   chppFree(respHeader);
@@ -55,13 +60,15 @@ TEST_F(ClientsTest, RequestResponseTimestampDuplicate) {
 TEST_F(ClientsTest, RequestResponseTimestampInvalidId) {
   struct ChppAppHeader *reqHeader =
       chppAllocClientRequestCommand(&mClientState, 0 /* command */);
-  chppClientTimestampRequest(&mRRState, reqHeader);
+  chppClientTimestampRequest(&mClientState, &mRRState, reqHeader,
+                             CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
 
   struct ChppAppHeader *newReqHeader =
       chppAllocClientRequestCommand(&mClientState, 0 /* command */);
   struct ChppAppHeader *respHeader =
       chppAllocServiceResponse(newReqHeader, sizeof(*reqHeader));
-  ASSERT_FALSE(chppClientTimestampResponse(&mRRState, respHeader));
+  ASSERT_FALSE(
+      chppClientTimestampResponse(&mClientState, &mRRState, respHeader));
 
   chppFree(reqHeader);
   chppFree(newReqHeader);
