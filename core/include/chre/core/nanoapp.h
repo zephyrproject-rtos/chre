@@ -91,23 +91,32 @@ class Nanoapp : public PlatformNanoapp {
    * @return true if the nanoapp should receive broadcast events with the given
    *         type
    */
-  bool isRegisteredForBroadcastEvent(uint16_t eventType) const;
+  bool isRegisteredForBroadcastEvent(uint16_t eventType,
+                                     uint16_t targetGroupIdMask) const;
 
   /**
    * Updates the Nanoapp's registration so that it will receive broadcast events
-   * with the given event ID.
+   * with the given event type.
    *
-   * @return true if the event is newly registered
+   * @param eventType The event type that the nanoapp will now be registered to
+   *     receive
+   * @param groupIdMask A mask of group IDs to register the nanoapp for. If an
+   *     event is sent that targets any of the group IDs in the mask, it will
+   *     be delivered to the nanoapp.
    */
-  bool registerForBroadcastEvent(uint16_t eventId);
+  void registerForBroadcastEvent(
+      uint16_t eventType, uint16_t groupIdMask = kDefaultTargetGroupMask);
 
   /**
    * Updates the Nanoapp's registration so that it will not receive broadcast
-   * events with the given event ID.
+   * events with the given event type.
    *
-   * @return true if the event was previously registered
+   * @param eventType The event type that the nanoapp will be unregistered from
+   *    assuming the group ID also matches a valid entry.
+   * @param groupIdMask The mask of group IDs that will be unregistered from.
    */
-  bool unregisterForBroadcastEvent(uint16_t eventId);
+  void unregisterForBroadcastEvent(
+      uint16_t eventType, uint16_t groupIdMask = kDefaultTargetGroupMask);
 
   /**
    * Adds an event to this nanoapp's queue of pending events.
@@ -214,13 +223,27 @@ class Nanoapp : public PlatformNanoapp {
   //! wakeups over time intervals.
   FixedSizeVector<uint16_t, kMaxSizeWakeupBuckets> mWakeupBuckets;
 
+  //! Metadata needed for keeping track of the registered events for this
+  //! nanoapp.
+  struct EventRegistration {
+    EventRegistration(uint16_t eventType_, uint16_t groupIdMask_)
+        : eventType(eventType_), groupIdMask(groupIdMask_) {}
+
+    uint16_t eventType;
+    uint16_t groupIdMask;
+  };
+
   //! The set of broadcast events that this app is registered for.
   // TODO: Implement a set container and replace DynamicVector here. There may
   // also be a better way of handling this (perhaps we map event type to apps
   // who care about them).
-  DynamicVector<uint16_t> mRegisteredEvents;
+  DynamicVector<EventRegistration> mRegisteredEvents;
 
   EventRefQueue mEventQueue;
+
+  //! @return index of event registration if found. mRegisteredEvents.size() if
+  //!     not.
+  size_t registrationIndex(uint16_t eventType) const;
 };
 
 }  // namespace chre
