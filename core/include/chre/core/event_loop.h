@@ -159,15 +159,21 @@ class EventLoop : public NonCopyable {
    *
    * Safe to call from any thread.
    *
+   * @param eventType Event type identifier, which implies the type of eventData
+   * @param eventData The data being posted
    * @param freeCallback Function to invoke to when the event has been processed
    *        by all recipients; this must be safe to call immediately, to handle
    *        the case where CHRE is shutting down
+   * @param targetInstanceId The instance ID of the destination of this event
+   * @param targetGroupMask Mask used to limit the recipients that are
+   *        registered to receive this event
    *
    * @see postLowPriorityEventOrFree
    */
   void postEventOrDie(uint16_t eventType, void *eventData,
                       chreEventCompleteFunction *freeCallback,
-                      uint32_t targetInstanceId = kBroadcastInstanceId);
+                      uint32_t targetInstanceId = kBroadcastInstanceId,
+                      uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
    * Posts an event to a nanoapp that is currently running (or all nanoapps if
@@ -178,10 +184,13 @@ class EventLoop : public NonCopyable {
    *
    * @param eventType Event type identifier, which implies the type of eventData
    * @param eventData The data being posted
-   * @param freeCallback The callback to invoke when the event is no longer
-   *        needed
+   * @param freeCallback Function to invoke to when the event has been processed
+   *        by all recipients; this must be safe to call immediately, to handle
+   *        the case where CHRE is shutting down
    * @param senderInstanceId The instance ID of the sender of this event
    * @param targetInstanceId The instance ID of the destination of this event
+   * @param targetGroupMask Mask used to limit the recipients that are
+   *        registered to receive this event
    *
    * @return true if the event was successfully added to the queue.
    *
@@ -191,7 +200,8 @@ class EventLoop : public NonCopyable {
       uint16_t eventType, void *eventData,
       chreEventCompleteFunction *freeCallback,
       uint32_t senderInstanceId = kSystemInstanceId,
-      uint32_t targetInstanceId = kBroadcastInstanceId);
+      uint32_t targetInstanceId = kBroadcastInstanceId,
+      uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
    * Posts an event for processing by the system from within the context of the
@@ -375,7 +385,8 @@ class EventLoop : public NonCopyable {
   bool allocateAndPostEvent(uint16_t eventType, void *eventData,
                             chreEventCompleteFunction *freeCallback,
                             uint32_t senderInstanceId,
-                            uint32_t targetInstanceId);
+                            uint32_t targetInstanceId,
+                            uint16_t targetGroupMask);
 
   /**
    * Do one round of Nanoapp event delivery, only considering events in
