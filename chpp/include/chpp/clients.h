@@ -148,9 +148,11 @@ void chppDeregisterCommonClients(struct ChppAppState *context);
  *
  * @param appContext Maintains status for each app layer instance.
  * @param clientContext Maintains status for each client instance.
+ * @param clientState State variable of the client.
  * @param newClient The client to be registered on this platform.
  */
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
+                        struct ChppClientState *clientState,
                         const struct ChppClient *newClient);
 
 /**
