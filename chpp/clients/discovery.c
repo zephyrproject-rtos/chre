@@ -267,19 +267,24 @@ void chppDiscoveryDeinit(struct ChppAppState *context) {
 
 bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
                                   uint64_t timeoutMs) {
-  bool success = true;
-  chppMutexLock(&context->discoveryMutex);
+  bool success = false;
 
-  while (success && !context->isDiscoveryComplete) {
-    success = chppConditionVariableTimedWait(&context->discoveryCv,
-                                             &context->discoveryMutex,
-                                             timeoutMs * CHPP_NSEC_PER_MSEC);
+  if (!context->isDiscoveryClientInitialized) {
+    timeoutMs = 0;
+  } else {
+    success = true;
+
+    chppMutexLock(&context->discoveryMutex);
+    while (success && !context->isDiscoveryComplete) {
+      success = chppConditionVariableTimedWait(&context->discoveryCv,
+                                               &context->discoveryMutex,
+                                               timeoutMs * CHPP_NSEC_PER_MSEC);
+    }
+    chppMutexUnlock(&context->discoveryMutex);
   }
 
-  chppMutexUnlock(&context->discoveryMutex);
-
   if (!success) {
-    CHPP_LOGE("DiscoveryComplete timeout after %" PRIu64 " ms", timeoutMs);
+    CHPP_LOGE("Discovery incomplete after %" PRIu64 " ms", timeoutMs);
   }
   return success;
 }
