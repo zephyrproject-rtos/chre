@@ -64,6 +64,7 @@ enum ChppWwanCommands {
   //! Query information about the current serving cell and its neighbors.
   CHPP_WWAN_GET_CELLINFO_ASYNC = 0x0003,
 };
+#define CHPP_WWAN_CLIENT_REQUEST_MAX CHPP_WWAN_GET_CELLINFO_ASYNC
 
 #ifdef __cplusplus
 }
