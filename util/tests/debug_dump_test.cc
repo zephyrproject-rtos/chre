@@ -95,12 +95,9 @@ TEST(DebugDumpWrapper, StringForcesNewBufferWithPartlyFilledBuffer) {
 
 TEST(DebugDumpWrapper, ManyNewBuffersAllocated) {
   DebugDumpWrapper debugDump(kStandardBufferSize);
-  constexpr size_t kSizeStrings = 10;
+  const char *str = "aaaaaaaaa";
+  // Should be 12000 chars added to debugDump
   constexpr size_t kNumPrints = 1200;
-  // Should be about 12000 chars added to debugDump
-  char str[kSizeStrings];
-  memset(str, 'a', sizeof(char) * kSizeStrings);
-  str[kSizeStrings - 1] = '\0';
   for (size_t i = 0; i < kNumPrints; i++) {
     debugDump.print("%s", str);
   }
