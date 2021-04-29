@@ -96,9 +96,7 @@ include $(CHRE_PREFIX)/pal/pal.mk
 include $(CHRE_PREFIX)/platform/platform.mk
 include $(CHRE_PREFIX)/util/util.mk
 
-# Supported Variants Includes. Not all CHRE variants are supported by this
-# implementation of CHRE. Example: this CHRE implementation is never built for
-# google_cm4_nanohub as Nanohub itself is a CHRE implementation.
+# Supported variants includes.
 ifneq ($(CHRE_TARGET_EXTENSION),)
 include $(CHRE_TARGET_EXTENSION)
 endif
