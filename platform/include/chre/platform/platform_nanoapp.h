@@ -83,9 +83,7 @@ class PlatformNanoapp : public PlatformNanoappBase, public NonCopyable {
   uint32_t getAppVersion() const;
 
   /**
-   * Retrieves the API version that this nanoapp was compiled against. This
-   * function must only be called while the nanoapp is running (i.e. between
-   * calls to start() and end()).
+   * Retrieves the API version that this nanoapp was compiled against.
    */
   uint32_t getTargetApiVersion() const;
 
