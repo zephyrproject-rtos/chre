@@ -136,7 +136,7 @@ TEST(DebugDumpWrapper, BuffersClear) {
 void printVaList(DebugDumpWrapper *debugDump, const char *formatStr, ...) {
   va_list args;
   va_start(args, formatStr);
-  debugDump->print(formatStr, args);
+  debugDump->printVaList(formatStr, args);
   va_end(args);
 }
 
