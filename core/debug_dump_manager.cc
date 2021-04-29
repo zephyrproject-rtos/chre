@@ -65,7 +65,7 @@ void DebugDumpManager::appendNanoappLog(const Nanoapp &nanoapp,
                        nanoapp.getAppId());
     }
 
-    mDebugDump.print(formatStr, args);
+    mDebugDump.printVaList(formatStr, args);
   }
 }
 
