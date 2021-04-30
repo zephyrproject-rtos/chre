@@ -355,6 +355,7 @@ public class ChreCrossValidatorSensor
     * Start collecting data from AP
     */
     private void collectDataFromAp() {
+        mCollectingData.set(true);
         Assert.assertTrue(mSensorManager.registerListener(
                 this, mSensor, (int) TimeUnit.MILLISECONDS.toMicros(mSamplingIntervalInMs)));
     }
@@ -385,7 +386,6 @@ public class ChreCrossValidatorSensor
     * ms.
     */
     private void waitForDataSampling() throws AssertionError {
-        mCollectingData.set(true);
         try {
             mAwaitDataLatch.await(getAwaitDataTimeoutInMs(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
