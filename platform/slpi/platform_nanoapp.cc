@@ -189,10 +189,12 @@ void PlatformNanoapp::end() {
 }
 
 bool PlatformNanoappBase::setAppInfo(uint64_t appId, uint32_t appVersion,
-                                     const char *appFilename) {
+                                     const char *appFilename,
+                                     uint32_t targetApiVersion) {
   CHRE_ASSERT(!isLoaded());
   mExpectedAppId = appId;
   mExpectedAppVersion = appVersion;
+  mExpectedTargetApiVersion = targetApiVersion;
   size_t appFilenameLen = strlen(appFilename) + 1;
   mAppFilename = static_cast<char *>(memoryAllocBigImage(appFilenameLen));
 
@@ -209,7 +211,8 @@ bool PlatformNanoappBase::setAppInfo(uint64_t appId, uint32_t appVersion,
 
 bool PlatformNanoappBase::reserveBuffer(uint64_t appId, uint32_t appVersion,
                                         uint32_t /* appFlags */,
-                                        size_t appBinaryLen) {
+                                        size_t appBinaryLen,
+                                        uint32_t targetApiVersion) {
   CHRE_ASSERT(!isLoaded());
   bool success = false;
   constexpr size_t kMaxAppSize = 2 * 1024 * 1024;  // 2 MiB
@@ -224,6 +227,7 @@ bool PlatformNanoappBase::reserveBuffer(uint64_t appId, uint32_t appVersion,
     } else {
       mExpectedAppId = appId;
       mExpectedAppVersion = appVersion;
+      mExpectedTargetApiVersion = targetApiVersion;
       mAppBinaryLen = appBinaryLen;
       success = true;
     }
@@ -342,7 +346,8 @@ bool PlatformNanoappBase::verifyNanoappInfo() {
     if (mAppInfo == nullptr) {
       LOGE("Failed to find app info symbol: %s", dlerror());
     } else {
-      success = validateAppInfo(mExpectedAppId, mExpectedAppVersion, mAppInfo);
+      success = validateAppInfo(mExpectedAppId, mExpectedAppVersion,
+                                mExpectedTargetApiVersion, mAppInfo);
       if (!success) {
         mAppInfo = nullptr;
       } else {
@@ -393,7 +398,8 @@ uint32_t PlatformNanoapp::getAppVersion() const {
 }
 
 uint32_t PlatformNanoapp::getTargetApiVersion() const {
-  return (mAppInfo != nullptr) ? mAppInfo->targetApiVersion : 0;
+  return (mAppInfo != nullptr) ? mAppInfo->targetApiVersion
+                               : mExpectedTargetApiVersion;
 }
 
 bool PlatformNanoapp::supportsAppPermissions() const {
