@@ -152,6 +152,12 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
 
   if (nanoapp.isNull()) {
     // no-op, invalid argument
+  } else if (nanoapp->getTargetApiVersion() <
+             CHRE_FIRST_SUPPORTED_API_VERSION) {
+    LOGE("Incompatible nanoapp (target ver 0x%" PRIx32
+         ", first supported ver 0x%" PRIx32 ")",
+         nanoapp->getTargetApiVersion(),
+         static_cast<uint32_t>(CHRE_FIRST_SUPPORTED_API_VERSION));
   } else if (eventLoop.findNanoappInstanceIdByAppId(nanoapp->getAppId(),
                                                     &existingInstanceId)) {
     LOGE("App with ID 0x%016" PRIx64
