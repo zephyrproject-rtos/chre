@@ -501,7 +501,8 @@ UniquePtr<Nanoapp> handleLoadNanoappFile(uint16_t hostClientId,
 
   if (nanoapp.isNull()) {
     LOG_OOM();
-  } else if (!nanoapp->setAppInfo(appId, appVersion, appFilename) ||
+  } else if (!nanoapp->setAppInfo(appId, appVersion, appFilename,
+                                  targetApiVersion) ||
              !nanoapp->isLoaded()) {
     nanoapp.reset(nullptr);
   }
@@ -553,9 +554,9 @@ UniquePtr<Nanoapp> handleLoadNanoappData(uint16_t hostClientId,
       sLoadManager.markFailure();
     }
 
-    success =
-        sLoadManager.prepareForLoad(hostClientId, transactionId, appId,
-                                    appVersion, appFlags, totalAppBinaryLen);
+    success = sLoadManager.prepareForLoad(hostClientId, transactionId, appId,
+                                          appVersion, appFlags,
+                                          totalAppBinaryLen, targetApiVersion);
   }
   success &= sLoadManager.copyNanoappFragment(
       hostClientId, transactionId, (fragmentId == 0) ? 1 : fragmentId, buffer,

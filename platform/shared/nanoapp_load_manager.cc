@@ -21,7 +21,8 @@ namespace chre {
 bool NanoappLoadManager::prepareForLoad(uint16_t hostClientId,
                                         uint32_t transactionId, uint64_t appId,
                                         uint32_t appVersion, uint32_t appFlags,
-                                        size_t totalBinaryLen) {
+                                        size_t totalBinaryLen,
+                                        uint32_t targetApiVersion) {
   if (hasPendingLoadTransaction()) {
     LOGW(
         "Pending load transaction already exists. Overriding previous"
@@ -37,8 +38,8 @@ bool NanoappLoadManager::prepareForLoad(uint16_t hostClientId,
   if (mNanoapp.isNull()) {
     LOG_OOM();
   } else {
-    success =
-        mNanoapp->reserveBuffer(appId, appVersion, appFlags, totalBinaryLen);
+    success = mNanoapp->reserveBuffer(appId, appVersion, appFlags,
+                                      totalBinaryLen, targetApiVersion);
   }
 
   if (!success) {
