@@ -33,8 +33,8 @@ extern "C" {
 #endif
 
 /**
- * The CHRE implementation is required to provide the following
- * preprocessor defines via the build system.
+ * The CHRE implementation is required to provide the following preprocessor
+ * defines via the build system.
  *
  * CHRE_MESSAGE_TO_HOST_MAX_SIZE: The maximum size, in bytes, allowed for
  *     a message sent to chreSendMessageToHostEndpoint().  This must be at least
@@ -42,16 +42,27 @@ extern "C" {
  */
 
 #ifndef CHRE_MESSAGE_TO_HOST_MAX_SIZE
-#error CHRE_MESSAGE_TO_HOST_MAX_SIZE must be defined by the Context Hub Runtime Environment implementation
+#error CHRE_MESSAGE_TO_HOST_MAX_SIZE must be defined by the CHRE implementation
 #endif
 
 /**
- * The minimum size, in bytes, any CHRE implementation will
- * use for CHRE_MESSAGE_TO_HOST_MAX_SIZE.
+ * The minimum size, in bytes, any CHRE implementation will use for
+ * CHRE_MESSAGE_TO_HOST_MAX_SIZE is set to 1000 for v1.5+ CHRE implementations,
+ * and 128 for v1.0-v1.4 implementations (previously kept in
+ * CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE, which has been removed).
+ *
+ * All CHRE implementations supporting v1.5+ must support the raised limit of
+ * 1000 bytes, however a nanoapp compiled against v1.5 cannot assume this
+ * limit if there is a possibility their binary will run on a v1.4 or earlier
+ * implementation that had a lower limit. To allow for nanoapp compilation in
+ * these situations, CHRE_MESSAGE_TO_HOST_MAX_SIZE must be set to the minimum
+ * value the nanoapp may encounter, and CHRE_NANOAPP_SUPPORTS_PRE_V1_5 can be
+ * defined to skip the compile-time check.
  */
-#define CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE 128
-
-#if CHRE_MESSAGE_TO_HOST_MAX_SIZE < CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE
+#if (!defined(CHRE_NANOAPP_SUPPORTS_PRE_V1_5) && \
+     CHRE_MESSAGE_TO_HOST_MAX_SIZE < 1000) ||    \
+    (defined(CHRE_NANOAPP_SUPPORTS_PRE_V1_5) &&  \
+     CHRE_MESSAGE_TO_HOST_MAX_SIZE < 128)
 #error CHRE_MESSAGE_TO_HOST_MAX_SIZE is too small.
 #endif
 
@@ -510,8 +521,8 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
  *     must be a legitimate pointer (that is, unlike chreSendEvent(), a small
  *     integral value cannot be cast to a pointer for this).  Note that the
  *     caller no longer owns this memory after the call.
- * @param messageSize  The size, in bytes, of the given message.
- *     This cannot exceed CHRE_MESSAGE_TO_HOST_MAX_SIZE.
+ * @param messageSize  The size, in bytes, of the given message. If this exceeds
+ *     CHRE_MESSAGE_TO_HOST_MAX_SIZE, the message will be rejected.
  * @param messageType  Message type sent to the app on the host.
  *     NOTE: In CHRE API v1.0, support for forwarding this field to the host was
  *     not strictly required, and some implementations did not support it.
