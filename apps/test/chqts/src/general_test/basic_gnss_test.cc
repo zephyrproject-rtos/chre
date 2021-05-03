@@ -96,34 +96,42 @@ void BasicGnssTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void BasicGnssTest::handleGnssAsyncResult(const chreAsyncResult *result) {
   if (!result->success) {
-    sendFatalFailureToHost("Received unsuccessful GNSS async result");
-  } else {
-    switch (result->requestType) {
-      case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START: {
-        if (!chreGnssLocationSessionStopAsync(nullptr /* cookie */)) {
-          sendFatalFailureToHost("Failed to stop a location session");
-        }
-        break;
-      }
-      case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP: {
-        mTestSuccessMarker.markStageAndSuccessOnFinish(
-            BASIC_GNSS_TEST_STAGE_LOCATION);
-        break;
-      }
-      case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START: {
-        if (!chreGnssMeasurementSessionStopAsync(nullptr /* cookie */)) {
-          sendFatalFailureToHost("Failed to stop a measurement session");
-        }
-      }
-      case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP: {
-        mTestSuccessMarker.markStageAndSuccessOnFinish(
-            BASIC_GNSS_TEST_STAGE_MEASUREMENT);
-        break;
-      }
-      default:
-        sendFatalFailureToHost("Unexpected request type");
-        break;
+    if (result->requestType ==
+        CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP) {
+      // TODO(b/186074728): Assert this condition does not occur after resolving
+      // known issue in devices.
+      chreLog(CHRE_LOG_ERROR, "Received unsuccessful GNSS async result");
+    } else {
+      sendFatalFailureToHost("Received unsuccessful GNSS async result");
     }
+  }
+
+  switch (result->requestType) {
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START: {
+      if (!chreGnssLocationSessionStopAsync(nullptr /* cookie */)) {
+        sendFatalFailureToHost("Failed to stop a location session");
+      }
+      break;
+    }
+    case CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP: {
+      mTestSuccessMarker.markStageAndSuccessOnFinish(
+          BASIC_GNSS_TEST_STAGE_LOCATION);
+      break;
+    }
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START: {
+      if (!chreGnssMeasurementSessionStopAsync(nullptr /* cookie */)) {
+        sendFatalFailureToHost("Failed to stop a measurement session");
+      }
+      break;
+    }
+    case CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP: {
+      mTestSuccessMarker.markStageAndSuccessOnFinish(
+          BASIC_GNSS_TEST_STAGE_MEASUREMENT);
+      break;
+    }
+    default:
+      sendFatalFailureToHost("Unexpected request type");
+      break;
   }
 }
 
