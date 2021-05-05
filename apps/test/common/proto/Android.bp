@@ -100,6 +100,18 @@ java_library {
 }
 
 java_library {
+    name: "chre_stress_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./chre_stress_test.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
     name: "chre_test_common_java_proto",
     host_supported: true,
     srcs: [
