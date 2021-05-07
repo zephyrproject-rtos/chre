@@ -138,6 +138,11 @@ It is also possible to specify the client/service endpoints to be enabled at run
 This function is the interface between the CHPP Transport layer and the communications link’s Rx path (e.g. from the UART driver). This function is called when any data is received at the serial interface. The data is provided through a pointer to *buf, with its length specified as len.
 The return value from chppRxData(*buf, len) can optionally be used at the communications link driver to improve performance. When the return value is true, the driver may stop sending all-zero payloads (e.g. as might happen when a serial link is idle).
 
+## bool chppRxPacketCompleteCb(context, \*buf, len)
+
+This is an optional function that enables the link layer to indicate the end of a packet. For packets with a corrupt length field, this function can enable the link layer to explicitly NACK the bad packet earlier.
+This function is designed exclusively for link layers that can identify the end of individual packets. The availability of this information depends on the link layer implementation.
+
 ## enum ChppLinkErrorCode chppPlatformLinkSend(\*params, \*buf, len)
 
 This function is the interface between the CHPP Transport layer and the communications link’s Tx path (e.g. to the UART driver). This function is called when any data should be sent to the serial interface. The data is provided through a pointer to \*buf, with its length specified as len. The struct params is platform-specific and should include link details and parameters as initialized by the implementation.
