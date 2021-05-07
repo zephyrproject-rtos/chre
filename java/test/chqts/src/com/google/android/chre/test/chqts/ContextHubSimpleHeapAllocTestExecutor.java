@@ -19,8 +19,6 @@ import android.hardware.location.ContextHubInfo;
 import android.hardware.location.ContextHubManager;
 import android.hardware.location.NanoAppBinary;
 
-import org.junit.Assert;
-
 /**
  * Performs simple allocation and freeing from the heap.
  *
@@ -51,10 +49,10 @@ public class ContextHubSimpleHeapAllocTestExecutor extends ContextHubGeneralTest
             return;
         }
 
-        Assert.assertTrue("Multiple CONTINUE messages from nanoapp",
+        assertTrue("Multiple CONTINUE messages from nanoapp",
                 mFirstMessage);
         mFirstMessage = false;
-        Assert.assertEquals("Expected 0 bytes data from nanoapp CONTINUE; "
+        assertEquals("Expected 0 bytes data from nanoapp CONTINUE; "
                         + "got " + data.length + " bytes",
                 0, data.length);
 
