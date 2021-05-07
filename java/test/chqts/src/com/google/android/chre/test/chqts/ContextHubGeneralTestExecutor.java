@@ -192,6 +192,8 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
     public void init() {
         Assert.assertFalse("init() must not be invoked when already initialized", mInitialized);
 
+        mInitialized = true;
+
         // Initialize the CountDownLatch before run() since some nanoapps will start on load.
         mCountDownLatch = new CountDownLatch(1);
 
@@ -206,8 +208,6 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         }
 
         mErrorString.set(null);
-
-        mInitialized = true;
     }
 
     /**

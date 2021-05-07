@@ -19,8 +19,6 @@ import android.hardware.location.ContextHubInfo;
 import android.hardware.location.ContextHubManager;
 import android.hardware.location.NanoAppBinary;
 
-import org.junit.Assert;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Timer;
@@ -79,7 +77,7 @@ public class ContextHubGetTimeTestExecutor extends ContextHubGeneralTestExecutor
             return;
         }
 
-        Assert.assertEquals("Expected exactly 8 bytes with CONTINUE message.",
+        assertEquals("Expected exactly 8 bytes with CONTINUE message.",
                 8, data.length);
         long timestamp = ByteBuffer.wrap(data)
                 .order(ByteOrder.LITTLE_ENDIAN)
@@ -106,9 +104,9 @@ public class ContextHubGetTimeTestExecutor extends ContextHubGeneralTestExecutor
         }
         // This is our second call.
         long timeDifference = timestamp - mFirstTimestamp;
-        Assert.assertTrue("Subsequent timestamps did not monotonically increase",
+        assertTrue("Subsequent timestamps did not monotonically increase",
                 timeDifference > 0);
-        Assert.assertTrue("Expected timestamp difference around " + SLEEP_DURATION_NS
+        assertTrue("Expected timestamp difference around " + SLEEP_DURATION_NS
                         + " nanoseconds, but got " + timeDifference,
                 ((timeDifference > (SLEEP_DURATION_NS - TOLERANCE_NS))
                         && (timeDifference
