@@ -1,0 +1,35 @@
+syntax = "proto2";
+
+package chre_stress_test;
+
+option java_package = "com.google.android.chre.nanoapp.proto";
+option java_outer_classname = "ChreStressTest";
+
+// Nanoapp message type can be either host to chre (H2C) or chre to host (C2H)
+enum MessageType {
+  // Reserved for corrupted messages
+  UNDEFINED = 0;
+
+  // H2C: A message to start/stop the test.
+  // Payload must be TestCommand.
+  TEST_COMMAND = 1;
+
+  // C2H: A message indicating the test result. The nanoapp will only use this
+  // message to report a failure.
+  // Payload must be chre_test_common.TestResult.
+  TEST_RESULT = 2;
+}
+
+// A message to start the test.
+message TestCommand {
+  enum Feature {
+    FEATURE_UNDEFINED = 0;
+    WIFI = 1;
+  }
+
+  // The feature to test.
+  optional Feature feature = 1;
+
+  // True to start the test, false to stop.
+  optional bool start = 2;
+}
