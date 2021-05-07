@@ -17,15 +17,23 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre_stress_test_manager.h"
+
 namespace chre {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
-                                   uint16_t eventType, const void *eventData) {}
+                                   uint16_t eventType, const void *eventData) {
+  stress_test::ManagerSingleton::get()->handleEvent(senderInstanceId, eventType,
+                                                    eventData);
+}
 
 extern "C" bool nanoappStart(void) {
+  stress_test::ManagerSingleton::init();
   return true;
 }
 
-extern "C" void nanoappEnd(void) {}
+extern "C" void nanoappEnd(void) {
+  stress_test::ManagerSingleton::deinit();
+}
 
 }  // namespace chre
