@@ -539,6 +539,48 @@ static void chppWifiRequestRangingResult(
 }
 
 /**
+ * Helper function to validate incoming WiFi scan events.
+ *
+ * @param chre A non-null pointer to the event.
+ */
+static void chppCheckWifiScanEventNotification(
+    const struct chreWifiScanEvent *chre) {
+  static uint8_t sResultTotal = 0;
+  static uint8_t sResultAcc = 0;
+  static uint8_t sExpectedIndex = 0;
+  if (chre->eventIndex != sExpectedIndex) {
+    CHPP_LOGE("Unexpected scan index %" PRIu8 " exp %" PRIu8, chre->eventIndex,
+              sExpectedIndex);
+  }
+  if (chre->eventIndex == 0) {
+    if (sResultAcc < sResultTotal) {
+      CHPP_LOGE("Too few prev scan results (%" PRIu8 " missing)",
+                sResultTotal - sResultAcc);
+    }
+    sExpectedIndex = 0;
+    sResultAcc = 0;
+    sResultTotal = chre->resultTotal;
+  }
+
+  if (sResultTotal != chre->resultTotal) {
+    CHPP_LOGE("Inconsistent result total %" PRIu8 " exp %" PRIu8,
+              chre->resultTotal, sResultTotal);
+  }
+
+  sResultAcc += chre->resultCount;
+
+  if (sResultAcc >= sResultTotal) {
+    if (sResultAcc > sResultTotal) {
+      CHPP_LOGE("Too many scan results (%" PRIu8 " extra)",
+                sResultAcc - sResultTotal);
+    }
+    sExpectedIndex = 0;
+  } else {
+    sExpectedIndex++;
+  }
+}
+
+/**
  * Handles the WiFi scan event service notification.
  *
  * This function is called from chppDispatchWifiNotification().
@@ -570,6 +612,9 @@ static void chppWifiScanEventNotification(
               chre->referenceTime, correctedTime);
     chre->referenceTime = correctedTime;
 #endif
+
+    // TODO(b/186925025): Remove when bug is resolved
+    chppCheckWifiScanEventNotification(chre);
 
     gCallbacks->scanEventCallback(chre);
   }
