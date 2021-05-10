@@ -140,13 +140,15 @@ void SensorRequestManager::init() {
 
 bool SensorRequestManager::getSensorHandle(uint8_t sensorType,
                                            uint8_t sensorIndex,
+                                           uint16_t targetGroupId,
                                            uint32_t *sensorHandle) const {
   CHRE_ASSERT(sensorHandle);
 
   bool sensorHandleIsValid = false;
   for (uint32_t i = 0; i < mSensors.size(); i++) {
     if ((mSensors[i].getSensorType() == sensorType) &&
-        (mSensors[i].getSensorIndex() == sensorIndex)) {
+        (mSensors[i].getSensorIndex() == sensorIndex) &&
+        (BITMASK_HAS_VALUE(mSensors[i].getTargetGroupMask(), targetGroupId))) {
       sensorHandleIsValid = true;
       *sensorHandle = i;
       break;
@@ -194,13 +196,15 @@ bool SensorRequestManager::setSensorRequest(
           if (success) {
             cancelFlushRequests(sensorHandle, nanoapp->getInstanceId());
 
-            nanoapp->unregisterForBroadcastEvent(eventType);
+            nanoapp->unregisterForBroadcastEvent(eventType,
+                                                 sensor.getTargetGroupMask());
 
             uint16_t biasEventType;
             if (sensor.getBiasEventType(&biasEventType)) {
               // Per API requirements, turn off bias reporting when
               // unsubscribing from the sensor.
-              nanoapp->unregisterForBroadcastEvent(biasEventType);
+              nanoapp->unregisterForBroadcastEvent(biasEventType,
+                                                   sensor.getTargetGroupMask());
             }
           }
         } else {
@@ -223,10 +227,12 @@ bool SensorRequestManager::setSensorRequest(
 
         success = addRequest(sensor, request, &requestChanged);
         if (success) {
-          nanoapp->registerForBroadcastEvent(eventType);
+          nanoapp->registerForBroadcastEvent(eventType,
+                                             sensor.getTargetGroupMask());
 
           if (request.getBiasUpdatesRequested()) {
-            nanoapp->registerForBroadcastEvent(biasEventType);
+            nanoapp->registerForBroadcastEvent(biasEventType,
+                                               sensor.getTargetGroupMask());
           }
 
           // Deliver last valid event to new clients of on-change sensors
@@ -293,7 +299,8 @@ bool SensorRequestManager::removeAllRequests(uint32_t sensorHandle) {
                              ->getEventLoop()
                              .findNanoappByInstanceId(request.getInstanceId());
       if (nanoapp != nullptr) {
-        nanoapp->unregisterForBroadcastEvent(eventType);
+        nanoapp->unregisterForBroadcastEvent(eventType,
+                                             sensor.getTargetGroupMask());
       }
     }
 
@@ -368,9 +375,11 @@ bool SensorRequestManager::configureBiasEvents(Nanoapp *nanoapp,
           updateRequest(sensor, requestIndex, previousRequest, &requestChanged);
       if (success) {
         if (enable) {
-          nanoapp->registerForBroadcastEvent(eventType);
+          nanoapp->registerForBroadcastEvent(eventType,
+                                             sensor.getTargetGroupMask());
         } else {
-          nanoapp->unregisterForBroadcastEvent(eventType);
+          nanoapp->unregisterForBroadcastEvent(eventType,
+                                               sensor.getTargetGroupMask());
         }
       }
     }
@@ -426,7 +435,7 @@ void SensorRequestManager::releaseSensorDataEvent(uint16_t eventType,
   mPlatformSensorManager.releaseSensorDataEvent(eventData);
   uint8_t sensorType = getSensorTypeForSampleEventType(eventType);
   uint32_t sensorHandle;
-  if (getSensorHandle(sensorType, &sensorHandle) &&
+  if (getDefaultSensorHandle(sensorType, &sensorHandle) &&
       mSensors[sensorHandle].isOneShot()) {
     removeAllRequests(sensorHandle);
   }
@@ -463,22 +472,26 @@ void SensorRequestManager::handleSensorDataEvent(uint32_t sensorHandle,
     LOG_INVALID_HANDLE(sensorHandle);
     mPlatformSensorManager.releaseSensorDataEvent(event);
   } else {
-    if (mSensors[sensorHandle].isOnChange()) {
+    Sensor &sensor = mSensors[sensorHandle];
+    if (sensor.isOnChange()) {
       updateLastEvent(event);
     }
 
     uint16_t eventType =
-        getSampleEventTypeForSensorType(mSensors[sensorHandle].getSensorType());
+        getSampleEventTypeForSensorType(sensor.getSensorType());
 
     // Only allow dropping continuous sensor events since losing one-shot or
     // on-change events could result in nanoapps stuck in a bad state.
-    if (mSensors[sensorHandle].isContinuous()) {
+    if (sensor.isContinuous()) {
       EventLoopManagerSingleton::get()
           ->getEventLoop()
-          .postLowPriorityEventOrFree(eventType, event, sensorDataEventFree);
+          .postLowPriorityEventOrFree(eventType, event, sensorDataEventFree,
+                                      kSystemInstanceId, kBroadcastInstanceId,
+                                      sensor.getTargetGroupMask());
     } else {
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          eventType, event, sensorDataEventFree);
+          eventType, event, sensorDataEventFree, kBroadcastInstanceId,
+          sensor.getTargetGroupMask());
     }
   }
 }
@@ -533,7 +546,8 @@ void SensorRequestManager::handleBiasEvent(uint32_t sensorHandle,
       };
 
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          eventType, biasData, freeCallback);
+          eventType, biasData, freeCallback, kBroadcastInstanceId,
+          sensor->getTargetGroupMask());
     }
   }
 }
@@ -557,13 +571,12 @@ void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   for (int8_t i = static_cast<int8_t>(mSensorRequestLogs.size()) - 1; i >= 0;
        i--) {
     const auto &log = mSensorRequestLogs[static_cast<size_t>(i)];
-    uint32_t sensorHandle;
-    if (getSensorHandle(log.sensorType, &sensorHandle)) {
-      debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " sensType=%s mode=%s",
-                      log.timestamp.toRawNanoseconds(), log.instanceId,
-                      mSensors[sensorHandle].getSensorTypeName(),
-                      getSensorModeName(log.mode));
-    }
+    const Sensor &sensor = mSensors[log.sensorHandle];
+    debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " type=%s idx=%" PRIu8
+                    " mask=%" PRIx16 " mode=%s",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    sensor.getSensorTypeName(), sensor.getSensorIndex(),
+                    sensor.getTargetGroupMask(), getSensorModeName(log.mode));
 
     if (sensorModeIsContinuous(log.mode)) {
       debugDump.print(" int=%" PRIu64 " lat=%" PRIu64,
