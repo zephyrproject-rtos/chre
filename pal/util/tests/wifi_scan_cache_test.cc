@@ -191,13 +191,14 @@ void testCacheDispatch(size_t numEvents, uint32_t maxScanAgeMs,
   }
 
   struct chreWifiScanParams params = {
-      .scanType = CHRE_WIFI_SCAN_TYPE_ACTIVE,
+      .scanType = CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE,
       .maxScanAgeMs = maxScanAgeMs,
       .frequencyListLen = 0,
       .frequencyList = nullptr,
       .ssidListLen = 0,
       .ssidList = nullptr,
       .radioChainPref = CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+      .channelSet = CHRE_WIFI_CHANNEL_SET_NON_DFS,
   };
   EXPECT_EQ(chreWifiScanCacheDispatchFromCache(&params), expectSuccess);
 
