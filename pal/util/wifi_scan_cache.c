@@ -80,9 +80,26 @@ static bool isFrequencyListValid(const uint32_t *frequencyList,
 
 static bool paramsMatchScanCache(const struct chreWifiScanParams *params) {
   uint64_t timeNs = gWifiCacheState.event.referenceTime;
-  // TODO(b/174510035): Add checks for other parameters
-  return (timeNs >= gSystemApi->getCurrentTime() -
-                        (params->maxScanAgeMs * kOneMillisecondInNanoseconds));
+  bool scan_within_age =
+      (timeNs >= gSystemApi->getCurrentTime() -
+                     (params->maxScanAgeMs * kOneMillisecondInNanoseconds));
+
+  // Perform a conservative check for the params and scan cache.
+  // TODO(b/174510035): Consider optimizing for the case for channelSet ==
+  // CHRE_WIFI_CHANNEL_SET_ALL.
+  bool params_non_dfs =
+      (params->scanType == CHRE_WIFI_SCAN_TYPE_ACTIVE) ||
+      ((params->scanType == CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE) &&
+       (params->channelSet == CHRE_WIFI_CHANNEL_SET_NON_DFS));
+  bool cache_non_dfs =
+      (gWifiCacheState.event.scanType == CHRE_WIFI_SCAN_TYPE_ACTIVE) ||
+      (gWifiCacheState.event.scanType == CHRE_WIFI_SCAN_TYPE_PASSIVE);
+
+  bool cache_all_freq = (gWifiCacheState.event.scannedFreqListLen == 0);
+  bool cache_all_ssid = (gWifiCacheState.event.ssidSetSize == 0);
+
+  return scan_within_age && (params_non_dfs || !cache_non_dfs) &&
+         cache_all_freq && cache_all_ssid;
 }
 
 static bool isWifiScanCacheBusy(bool logOnBusy) {
