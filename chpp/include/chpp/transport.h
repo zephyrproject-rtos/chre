@@ -148,6 +148,14 @@ extern "C" {
               sizeof(struct ChppTransportHeader) -               \
               sizeof(struct ChppTransportFooter)))
 
+/**
+ * Maximum payload of packets at the transport layer.
+ */
+#define CHPP_TRANSPORT_RX_MTU_BYTES                                       \
+  ((uint16_t)(CHPP_PLATFORM_LINK_RX_MTU_BYTES - CHPP_PREAMBLE_LEN_BYTES - \
+              sizeof(struct ChppTransportHeader) -                        \
+              sizeof(struct ChppTransportFooter)))
+
 /************************************************
  *  Status variables to store context in lieu of global variables (this)
  ***********************************************/
