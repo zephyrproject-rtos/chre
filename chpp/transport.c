@@ -146,6 +146,7 @@ static size_t chppConsumePreamble(struct ChppTransportState *context,
   // Let's see why we exited the above loop
   if (context->rxStatus.locInState == CHPP_PREAMBLE_LEN_BYTES) {
     // Complete preamble observed, move on to next state
+    context->rxStatus.packetStartTimeNs = chppGetCurrentTimeNs();
     chppSetRxState(context, CHPP_STATE_HEADER);
   }
 
@@ -171,8 +172,8 @@ static size_t chppConsumeHeader(struct ChppTransportState *context,
       len, (sizeof(struct ChppTransportHeader) - context->rxStatus.locInState));
   memcpy(((uint8_t *)&context->rxHeader) + context->rxStatus.locInState, buf,
          bytesToCopy);
-
   context->rxStatus.locInState += bytesToCopy;
+
   if (context->rxStatus.locInState == sizeof(struct ChppTransportHeader)) {
     // Header fully copied. Move on
 
@@ -237,8 +238,8 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
   memcpy(context->rxDatagram.payload + context->rxStatus.locInDatagram, buf,
          bytesToCopy);
   context->rxStatus.locInDatagram += bytesToCopy;
-
   context->rxStatus.locInState += bytesToCopy;
+
   if (context->rxStatus.locInState == context->rxHeader.length) {
     // Entire packet payload copied. Move on
     chppSetRxState(context, CHPP_STATE_FOOTER);
@@ -360,23 +361,49 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
  * @param context Maintains status for each transport layer instance.
  */
 static void chppRxAbortPacket(struct ChppTransportState *context) {
-  if (context->rxHeader.length > 0) {
+  size_t undoLen = 0;
+  size_t undoLoc = 0;
+
+  switch (context->rxStatus.state) {
+    case (CHPP_STATE_PREAMBLE):
+    case (CHPP_STATE_HEADER): {
+      break;
+    }
+
+    case (CHPP_STATE_PAYLOAD): {
+      undoLen = context->rxHeader.length;
+      undoLoc = context->rxStatus.locInState;
+      break;
+    }
+
+    case (CHPP_STATE_FOOTER): {
+      undoLen = context->rxHeader.length;
+      undoLoc = context->rxHeader.length;
+      break;
+    }
+
+    default: {
+      CHPP_DEBUG_ASSERT(false);
+    }
+  }
+
+  if (undoLen > 0) {
     // Packet has a payload we need to discard of
 
-    context->rxDatagram.length -= context->rxHeader.length;
-    context->rxStatus.locInDatagram -= context->rxHeader.length;
+    CHPP_ASSERT(context->rxDatagram.length >= undoLen);
+    CHPP_ASSERT(context->rxStatus.locInDatagram >= undoLoc);
+    context->rxDatagram.length -= undoLen;
+    context->rxStatus.locInDatagram -= undoLoc;
 
     if (context->rxDatagram.length == 0) {
       // Discarding this packet == discarding entire datagram
-
       CHPP_FREE_AND_NULLIFY(context->rxDatagram.payload);
 
     } else {
       // Discarding this packet == discarding part of datagram
-
       uint8_t *tempPayload =
           chppRealloc(context->rxDatagram.payload, context->rxDatagram.length,
-                      context->rxDatagram.length + context->rxHeader.length);
+                      context->rxDatagram.length + undoLen);
 
       if (tempPayload == NULL) {
         CHPP_LOG_OOM();
@@ -385,6 +412,8 @@ static void chppRxAbortPacket(struct ChppTransportState *context) {
       }
     }
   }
+
+  chppSetRxState(context, CHPP_STATE_PREAMBLE);
 }
 
 /**
@@ -1185,6 +1214,15 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
                   size_t len) {
   CHPP_NOT_NULL(buf);
   CHPP_NOT_NULL(context);
+
+  chppMutexLock(&context->mutex);
+  if (context->rxStatus.state != CHPP_STATE_PREAMBLE &&
+      chppGetCurrentTimeNs() >
+          context->rxStatus.packetStartTimeNs + CHPP_TRANSPORT_RX_TIMEOUT_NS) {
+    CHPP_LOGE("Packet RX timeout");
+    chppRxAbortPacket(context);
+  }
+  chppMutexUnlock(&context->mutex);
 
   CHPP_LOGD("RX %" PRIuSIZE " bytes: state=%" PRIu8, len,
             context->rxStatus.state);

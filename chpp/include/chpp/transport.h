@@ -42,7 +42,7 @@ extern "C" {
  */
 #ifndef CHPP_TRANSPORT_RESET_TIMEOUT_NS
 #define CHPP_TRANSPORT_RESET_TIMEOUT_NS \
-  UINT64_C(1500) * CHPP_NSEC_PER_MSEC  // 1500 ms
+  (UINT64_C(1500) * CHPP_NSEC_PER_MSEC)  // 1500 ms
 #endif
 
 /**
@@ -50,7 +50,15 @@ extern "C" {
  */
 #ifndef CHPP_TRANSPORT_TX_TIMEOUT_NS
 #define CHPP_TRANSPORT_TX_TIMEOUT_NS \
-  UINT64_C(100) * CHPP_NSEC_PER_MSEC  // 100 ms
+  (UINT64_C(100) * CHPP_NSEC_PER_MSEC)  // 100 ms
+#endif
+
+/**
+ * CHPP Transport layer timeout for rx packets.
+ */
+#ifndef CHPP_TRANSPORT_RX_TIMEOUT_NS
+#define CHPP_TRANSPORT_RX_TIMEOUT_NS \
+  (UINT64_C(80) * CHPP_NSEC_PER_MSEC)  // 80 ms
 #endif
 
 /**
@@ -313,17 +321,21 @@ struct ChppRxStatus {
   //! Packet (error) code, if any, of the last received packet
   uint8_t receivedPacketCode;
 
-  //! Location counter in bytes within the current Rx datagram.
-  size_t locInDatagram;
-
   //! Last received ACK sequence number (i.e. next expected sequence number for
   //! an outgoing payload-bearing packet)
   uint8_t receivedAckSeq;
 
-  //! The timestamp when the transport received any data through chppRxDataCb.
-  uint32_t lastDataTimeMs;
+  //! Time when starting to receive the current packet (i.e. after preamble).
+  uint64_t packetStartTimeNs;
+
+  //! Location counter in bytes within the current Rx datagram.
+  size_t locInDatagram;
+
   //! The total number of data received in chppRxDataCb.
   size_t numTotalDataBytes;
+
+  //! The timestamp when the transport received any data through chppRxDataCb.
+  uint32_t lastDataTimeMs;
 
   //! The timestamp when the transport received a good RX packet.
   uint32_t lastGoodPacketTimeMs;
