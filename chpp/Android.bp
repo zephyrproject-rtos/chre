@@ -72,6 +72,7 @@ cc_library_static {
         "clients/wwan.c",
         "common/gnss_convert.c",
         "common/wifi_convert.c",
+        "common/wifi_utils.c",
         "common/wwan_convert.c",
         "services/discovery.c",
         "services/loopback.c",

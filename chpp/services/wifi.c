@@ -23,6 +23,7 @@
 #include "chpp/common/standard_uuids.h"
 #include "chpp/common/wifi.h"
 #include "chpp/common/wifi_types.h"
+#include "chpp/common/wifi_utils.h"
 #include "chpp/log.h"
 #include "chpp/macros.h"
 #include "chpp/services.h"
@@ -533,6 +534,9 @@ static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event) {
   // Craft response per parser script
   struct ChppWifiScanEventWithHeader *notification;
   size_t notificationLen;
+
+  CHPP_ASSERT(chppCheckWifiScanEventNotification(event));
+
   if (!chppWifiScanEventFromChre(event, &notification, &notificationLen)) {
     CHPP_LOGE(
         "chppWifiScanEventFromChre failed (OOM?). Transaction ID = "
@@ -600,6 +604,8 @@ static void chppWifiServiceRangingEventCallback(
 
 void chppRegisterWifiService(struct ChppAppState *appContext) {
   gWifiServiceContext.api = chrePalWifiGetApi(CHRE_PAL_WIFI_API_V1_2);
+
+  chppCheckWifiScanEventNotificationReset();
 
   if (gWifiServiceContext.api == NULL) {
     CHPP_LOGE(
