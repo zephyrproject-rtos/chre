@@ -29,12 +29,20 @@ namespace chre {
 
 namespace stress_test {
 
+namespace {
+
+constexpr chre::Nanoseconds kWifiScanInterval = chre::Seconds(5);
+
+}  // anonymous namespace
+
 void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                           const void *eventData) {
   if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
     handleMessageFromHost(
         senderInstanceId,
         static_cast<const chreMessageFromHostData *>(eventData));
+  } else if (senderInstanceId == CHRE_INSTANCE_ID) {
+    handleDataFromChre(eventType, eventData);
   } else {
     LOGW("Got unknown event type from senderInstanceId %" PRIu32
          " and with eventType %" PRIu16,
@@ -50,6 +58,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
     LOGE("Incorrect sender instance id: %" PRIu32, senderInstanceId);
   } else if (messageType != chre_stress_test_MessageType_TEST_COMMAND) {
     LOGE("Invalid message type %" PRIu32, messageType);
+  } else if (mHostEndpoint.has_value() &&
+             hostData->hostEndpoint != mHostEndpoint.value()) {
+    LOGE("Invalid host endpoint %" PRIu16 " expected %" PRIu16,
+         hostData->hostEndpoint, mHostEndpoint.value());
   } else {
     pb_istream_t istream = pb_istream_from_buffer(
         static_cast<const pb_byte_t *>(hostData->message),
@@ -63,8 +75,22 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
     } else {
       LOGI("Got message from host: feature %d start %d", testCommand.feature,
            testCommand.start);
+
       success = true;
+      switch (testCommand.feature) {
+        case chre_stress_test_TestCommand_Feature_WIFI: {
+          handleWifiStartCommand(testCommand.start);
+          break;
+        }
+        default: {
+          LOGE("Unknown feature %d", testCommand.feature);
+          success = false;
+          break;
+        }
+      }
     }
+
+    mHostEndpoint = hostData->hostEndpoint;
   }
 
   if (!success) {
@@ -73,6 +99,104 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
         chre_stress_test_MessageType_TEST_RESULT /* messageType */, success,
         nullptr /* errMessage */);
   }
+}
+
+void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
+  switch (eventType) {
+    case CHRE_EVENT_TIMER:
+      handleTimerEvent(static_cast<const uint32_t *>(eventData));
+      break;
+
+    case CHRE_EVENT_WIFI_ASYNC_RESULT:
+      handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));
+      break;
+
+    case CHRE_EVENT_WIFI_SCAN_RESULT:
+      handleWifiScanEvent(static_cast<const chreWifiScanEvent *>(eventData));
+      break;
+  }
+}
+
+void Manager::handleTimerEvent(const uint32_t *handle) {
+  if (*handle == mWifiScanTimerHandle) {
+    if (mOnDemandWifiPending) {
+      if (chreGetTime() > (mLastOnDemandWifiScanRequestTimeNs +
+                           CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS)) {
+        logAndSendFailure("Prev WiFi scan did not complete in time");
+      }
+    } else {
+      mOnDemandWifiPending =
+          chreWifiRequestScanAsyncDefault(&kOnDemandWifiScanCookie);
+      LOGI("Requested on demand wifi success ? %d", mOnDemandWifiPending);
+      if (mOnDemandWifiPending) {
+        mLastOnDemandWifiScanRequestTimeNs = chreGetTime();
+      }
+    }
+
+    requestDelayedWifiScan();
+  } else {
+    logAndSendFailure("Unknown timer handle");
+  }
+}
+
+void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
+  if (result->requestType == CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN) {
+    if (!mOnDemandWifiPending) {
+      logAndSendFailure("Received async result with no pending request");
+    } else {
+      if (result->success) {
+        LOGI("On-demand scan success");
+      } else {
+        LOGW("On-demand scan failed: code %" PRIu8, result->errorCode);
+      }
+
+      if (result->cookie != &kOnDemandWifiScanCookie) {
+        logAndSendFailure("On-demand scan cookie mismatch");
+      }
+
+      mOnDemandWifiPending = false;
+    }
+  } else {
+    logAndSendFailure("Unknown async result type");
+  }
+}
+
+void Manager::handleWifiScanEvent(const chreWifiScanEvent *event) {
+  LOGI("Received Wifi scan event of type %" PRIu8 " with %" PRIu8
+       " results at %" PRIu64 "ns",
+       event->scanType, event->resultCount, event->referenceTime);
+
+  // TODO(b/186868033): Check results
+}
+
+void Manager::handleWifiStartCommand(bool start) {
+  mWifiTestStarted = start;
+  if (start) {
+    requestDelayedWifiScan();
+  }
+}
+
+void Manager::requestDelayedWifiScan() {
+  if (mWifiTestStarted) {
+    if (chreWifiGetCapabilities() & CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN) {
+      mWifiScanTimerHandle =
+          chreTimerSet(kWifiScanInterval.toRawNanoseconds(),
+                       &mWifiScanTimerHandle /* data */, true /* oneShot */);
+      if (mWifiScanTimerHandle == CHRE_TIMER_INVALID) {
+        logAndSendFailure("Failed to set timer for delayed WiFi scan");
+      }
+    } else {
+      logAndSendFailure("Platform has no on-demand scan capability");
+    }
+  }
+}
+
+void Manager::logAndSendFailure(const char *errorMessage) {
+  LOGE("%s", errorMessage);
+  test_shared::sendTestResultWithMsgToHost(
+      mHostEndpoint.value(),
+      chre_stress_test_MessageType_TEST_RESULT /* messageType */,
+      false /* success */, errorMessage);
 }
 
 }  // namespace stress_test

@@ -22,7 +22,9 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/optional.h"
 #include "chre/util/singleton.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -48,6 +50,69 @@ class Manager {
    */
   void handleMessageFromHost(uint32_t senderInstanceId,
                              const chreMessageFromHostData *hostData);
+  /**
+   * Processes data from CHRE.
+   *
+   * @param eventType The event type as defined by CHRE.
+   * @param eventData A pointer to the data.
+   */
+  void handleDataFromChre(uint16_t eventType, const void *eventData);
+
+  /**
+   * @param handle A pointer to the timer handle.
+   */
+  void handleTimerEvent(const uint32_t *handle);
+
+  /**
+   * Handles a WiFi start command from the host.
+   *
+   * @param start true to start the test, stop otherwise.
+   */
+  void handleWifiStartCommand(bool start);
+
+  /**
+   * Handles a WiFi async result from CHRE.
+   *
+   * @param result The pointer to the result.
+   */
+  void handleWifiAsyncResult(const chreAsyncResult *result);
+
+  /**
+   * Handles a WiFi scan event from CHRE.
+   *
+   * @param result The pointer to the event.
+   */
+  void handleWifiScanEvent(const chreWifiScanEvent *event);
+
+  /**
+   * Sets up a WiFi scan request after some time.
+   */
+  void requestDelayedWifiScan();
+
+  /**
+   * Logs an error message and sends the failure to the host.
+   *
+   * @param errorMessage The error message string.
+   */
+  void logAndSendFailure(const char *errorMessage);
+
+  //! The host endpoint of the current test host.
+  chre::Optional<uint16_t> mHostEndpoint;
+
+  //! The timer handle for performing a delayed WiFi scan request.
+  uint32_t mWifiScanTimerHandle = CHRE_TIMER_INVALID;
+
+  //! true if the WiFi test has been started.
+  bool mWifiTestStarted = false;
+
+  //! true if an on-demand WiFi scan request is currently pending.
+  bool mOnDemandWifiPending = false;
+
+  //! The cookie to use for on-demand WiFi scan requests.
+  const uint32_t kOnDemandWifiScanCookie = 0xface;
+
+  //! The timestamp of the last successful on-demand WiFi scan.
+  uint64_t mLastOnDemandWifiScanRequestTimeNs = 0;
 };
 
 // The stress test manager singleton.
