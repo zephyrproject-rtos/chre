@@ -1277,25 +1277,16 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
           context->rxStatus.locInState == 0);
 }
 
-void chppTxTimeoutTimerCb(struct ChppTransportState *context) {
+void chppRxPacketCompleteCb(struct ChppTransportState *context) {
   chppMutexLock(&context->mutex);
-
-  // Implicit NACK. Enqueue Tx packet which will be a retransmission
-  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_TIMEOUT);
-
-  chppMutexUnlock(&context->mutex);
-}
-
-void chppRxTimeoutTimerCb(struct ChppTransportState *context) {
-  CHPP_LOGE("Rx timeout: state=%" PRIu8 " packet=%" PRIu8 " len=%" PRIu16,
-            context->rxStatus.state, context->rxHeader.seq,
-            context->rxHeader.length);
-
-  chppMutexLock(&context->mutex);
-
-  chppRxAbortPacket(context);
-  chppSetRxState(context, CHPP_STATE_PREAMBLE);
-
+  if (context->rxStatus.state != CHPP_STATE_PREAMBLE) {
+    CHPP_LOGE("Rx pkt ended early: state=%" PRIu8 " packet=%" PRIu8
+              " len=%" PRIu16,
+              context->rxStatus.state, context->rxHeader.seq,
+              context->rxHeader.length);
+    chppRxAbortPacket(context);
+    chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_HEADER);  // NACK
+  }
   chppMutexUnlock(&context->mutex);
 }
 
