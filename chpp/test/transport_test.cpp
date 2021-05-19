@@ -158,6 +158,18 @@ uint8_t validateChppTestResponse(void *buf, uint8_t ackSeq, uint8_t handle,
 }
 
 /**
+ * Aborts a packet and validates state.
+ *
+ * @param transportcontext Maintains status for each transport layer instance.
+ */
+void endAndValidatePacket(struct ChppTransportState *transportContext) {
+  chppRxPacketCompleteCb(transportContext);
+  EXPECT_EQ(transportContext->rxStatus.state, CHPP_STATE_PREAMBLE);
+  EXPECT_EQ(transportContext->rxStatus.locInDatagram, 0);
+  EXPECT_EQ(transportContext->rxDatagram.length, 0);
+}
+
+/**
  * Adds a preamble to a certain location in a buffer, and increases the location
  * accordingly, to account for the length of the added preamble.
  *
@@ -484,6 +496,125 @@ TEST_P(TransportTests, RxPayloadOfZeros) {
     EXPECT_EQ(mTransportContext.rxStatus.locInDatagram, 0);
     EXPECT_EQ(mTransportContext.rxDatagram.length, 0);
   }
+
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
+ * End of Packet Link Notification during preamble
+ */
+TEST_F(TransportTests, LinkSendDonePreamble) {
+  size_t payloadLen = 1000;
+  size_t partLenPreamble = CHPP_PREAMBLE_LEN_BYTES - 1;
+
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  size_t loc = 0;
+  addPreambleToBuf(mBuf, &loc);
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+  transHeader->length = static_cast<uint16_t>(payloadLen);
+  loc += payloadLen;
+  addTransportFooterToBuf(mBuf, &loc);
+
+  EXPECT_FALSE(chppRxDataCb(&mTransportContext, mBuf, partLenPreamble));
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PREAMBLE);
+  endAndValidatePacket(&mTransportContext);
+
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
+ * End of Packet Link Notification during header
+ */
+TEST_F(TransportTests, LinkSendDoneHeader) {
+  size_t payloadLen = 1000;
+  size_t partLenHeader =
+      CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) - 1;
+
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  size_t loc = 0;
+  addPreambleToBuf(mBuf, &loc);
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+  transHeader->length = static_cast<uint16_t>(payloadLen);
+  loc += payloadLen;
+  addTransportFooterToBuf(mBuf, &loc);
+
+  EXPECT_FALSE(chppRxDataCb(&mTransportContext, mBuf, partLenHeader));
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_HEADER);
+  EXPECT_EQ(mTransportContext.rxHeader.length, payloadLen);
+  endAndValidatePacket(&mTransportContext);
+
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
+ * End of Packet Link Notification during payload
+ */
+TEST_F(TransportTests, LinkSendDonePayload) {
+  size_t payloadLen = 1000;
+  size_t partLenPayload = 500;
+
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  size_t loc = 0;
+  addPreambleToBuf(mBuf, &loc);
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+  transHeader->length = static_cast<uint16_t>(payloadLen);
+  loc += payloadLen;
+  addTransportFooterToBuf(mBuf, &loc);
+
+  EXPECT_FALSE(chppRxDataCb(&mTransportContext, mBuf, partLenPayload));
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_PAYLOAD);
+  EXPECT_EQ(mTransportContext.rxHeader.length, payloadLen);
+  EXPECT_EQ(
+      mTransportContext.rxStatus.locInDatagram,
+      partLenPayload - CHPP_PREAMBLE_LEN_BYTES - sizeof(ChppTransportHeader));
+  EXPECT_EQ(mTransportContext.rxDatagram.length, payloadLen);
+  endAndValidatePacket(&mTransportContext);
+
+  chppWorkThreadStop(&mTransportContext);
+  t1.join();
+}
+
+/**
+ * End of Packet Link Notification during footer
+ */
+TEST_F(TransportTests, LinkSendDoneFooter) {
+  size_t payloadLen = 1000;
+  size_t partLenFooter = CHPP_PREAMBLE_LEN_BYTES + sizeof(ChppTransportHeader) +
+                         payloadLen + sizeof(ChppTransportFooter) - 1;
+
+  mTransportContext.rxStatus.state = CHPP_STATE_PREAMBLE;
+  mTransportContext.txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, &mTransportContext);
+  WaitForTransport(&mTransportContext);
+
+  size_t loc = 0;
+  addPreambleToBuf(mBuf, &loc);
+  ChppTransportHeader *transHeader = addTransportHeaderToBuf(mBuf, &loc);
+  transHeader->length = static_cast<uint16_t>(payloadLen);
+  loc += payloadLen;
+  addTransportFooterToBuf(mBuf, &loc);
+
+  EXPECT_FALSE(chppRxDataCb(&mTransportContext, mBuf, partLenFooter));
+  EXPECT_EQ(mTransportContext.rxStatus.state, CHPP_STATE_FOOTER);
+  EXPECT_EQ(mTransportContext.rxHeader.length, payloadLen);
+  EXPECT_EQ(mTransportContext.rxStatus.locInDatagram, payloadLen);
+  EXPECT_EQ(mTransportContext.rxDatagram.length, payloadLen);
+  endAndValidatePacket(&mTransportContext);
 
   chppWorkThreadStop(&mTransportContext);
   t1.join();
