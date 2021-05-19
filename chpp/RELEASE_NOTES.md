@@ -118,7 +118,7 @@ In addition to enhancements and bug fixes, this release enables error and reset 
   - Improved compiler compatibility for C99+ and pre-C99 systems (even though CHPP does not officially support pre-C99)
   - Updated documentation and logging
 
-### 2021-03-25 (this)
+### 2021-03-25 (f908420)
 
 This release updates the built-in timesync and checksum functionality and addresses bugs and compatibility issues.
 
@@ -133,4 +133,25 @@ This release updates the built-in timesync and checksum functionality and addres
 
   - Logging updates, including reset reasoning, avoiding %s for compatibility
   - Stability fixes and cleanup throughout CHPP and tests, including the reopening flow, permanent_failure state, and a memory leak
+  - Testing improvements
+
+### 2021-05-19 (this)
+
+This release enables better identification of end-of-packets as well as addressing bugs and compatibility issues.
+
+- Updated functionality
+
+  - Rx timeout detection
+  - Rx MTU enforcement
+  - Support for Rx end-of-packet notifications from the link layer (optional, platform dependent)
+
+- Cleanup and bug fixes
+
+  - Reset functionality cleanup, including updating the functionality of CHPP_TRANSPORT_MAX_RETX and CHPP_TRANSPORT_MAX_RESET to reflect their intent accurately
+  - Pseudo-open clients remain pseudo-open after open failures
+  - Fixed reopen failures after transport reset
+  - Added missing WiFi ranging service response
+  - Memory allocation and initialization improvements
+  - Mutex handling improvements
+  - Compatibility fixes
   - Testing improvements
