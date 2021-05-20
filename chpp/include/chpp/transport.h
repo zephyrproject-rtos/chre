@@ -63,14 +63,15 @@ extern "C" {
 
 /**
  * CHPP Transport layer maximum retransmission attempts, after which a reset is
- * attempted.
+ * attempted. Setting this to zero disables retransmissions.
  */
 #ifndef CHPP_TRANSPORT_MAX_RETX
-#define CHPP_TRANSPORT_MAX_RETX UINT16_C(5)
+#define CHPP_TRANSPORT_MAX_RETX UINT16_C(4)
 #endif
 
 /**
- * CHPP Transport layer maximum reset attempts.
+ * CHPP Transport layer maximum reset attempts. Current functional values are 1
+ * or higher (setting to 0 currently functions identically to 1).
  */
 #ifndef CHPP_TRANSPORT_MAX_RESET
 #define CHPP_TRANSPORT_MAX_RESET UINT16_C(3)
@@ -92,14 +93,12 @@ extern "C" {
 #define CHPP_TRANSPORT_FLAG_FINISHED_DATAGRAM 0x00
 // Set if packet is part of a fragmented datagram, except for the last fragment
 #define CHPP_TRANSPORT_FLAG_UNFINISHED_DATAGRAM 0x01
-// Set for first packet after bootup or to reset after irrecoverable error
-#define CHPP_TRANSPORT_FLAG_RESET 0x02
 // Reserved for future use
-#define CHPP_TRANSPORT_FLAG_RESERVED 0xfc
+#define CHPP_TRANSPORT_FLAG_RESERVED 0xfe
 /** @} */
 
 /**
- * Preamble (i.e. packet start delimiter).
+ * Preamble (i.e. packet start delimiter) for this version of CHPP is "Ch".
  * Any future backwards-incompatible versions of CHPP Transport will use a
  * different preamble.
  *
@@ -366,7 +365,7 @@ struct ChppTxStatus {
   uint8_t packetCodeToSend;
 
   //! How many times the last sent sequence number has been (re-)sent.
-  size_t retxCount;
+  size_t txAttempts;
 
   //! Time when the last packet was sent to the link layer.
   uint64_t lastTxTimeNs;
@@ -700,23 +699,6 @@ void chppDatagramProcessDoneCb(struct ChppTransportState *context,
  */
 uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
                                  uint8_t *buf, size_t len);
-/**
- * Sends a reset or reset-ack packet over the link in order to reset the remote
- * side or inform the counterpart of a reset, respectively. The transport
- * layer's configuration is sent as the payload of the reset packet.
- *
- * This function is used immediately after initialization, for example upon boot
- * (to send a reset), or when a reset packet is received and acted upon (to send
- * a reset-ack).
- *
- * @param transportContext Maintains status for each transport layer instance.
- * @param resetType Distinguishes a reset from a reset-ack, as defined in the
- * ChppTransportPacketAttributes struct.
- * @param error Provides the error that led to the reset.
- */
-void chppTransportSendReset(struct ChppTransportState *context,
-                            enum ChppTransportPacketAttributes resetType,
-                            enum ChppTransportErrorCode error);
 
 #ifdef __cplusplus
 }
