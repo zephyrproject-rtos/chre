@@ -577,8 +577,7 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
           if (response == NULL) {
             CHPP_LOG_OOM();
           } else {
-            response->error = CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
-                CHPP_TRANSPORT_ATTR_NONE, error);
+            response->error = (uint8_t)error;
             chppEnqueueTxDatagramOrFail(context->transportContext, response,
                                         sizeof(*response));
           }
