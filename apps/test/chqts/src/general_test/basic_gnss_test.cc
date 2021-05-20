@@ -96,14 +96,7 @@ void BasicGnssTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void BasicGnssTest::handleGnssAsyncResult(const chreAsyncResult *result) {
   if (!result->success) {
-    if (result->requestType ==
-        CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP) {
-      // TODO(b/187080086): Assert this condition does not occur after resolving
-      // known issue in devices.
-      chreLog(CHRE_LOG_ERROR, "Received unsuccessful GNSS async result");
-    } else {
-      sendFatalFailureToHost("Received unsuccessful GNSS async result");
-    }
+    sendFatalFailureToHost("Received unsuccessful GNSS async result");
   }
 
   switch (result->requestType) {
