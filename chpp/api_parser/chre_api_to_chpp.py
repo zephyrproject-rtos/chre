@@ -182,7 +182,7 @@ class CodeGenerator:
 
     def _gen_header_includes(self):
         """Generates #include directives for use in <service>_types.h"""
-        out = ["#include <stdbool.h>\n#include <stdint.h>\n\n"]
+        out = ["#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n\n"]
 
         includes = ["chpp/app.h", "chpp/macros.h", "chre_api/chre/version.h"]
         includes.extend(self.json['output_includes'])
