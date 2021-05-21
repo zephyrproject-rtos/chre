@@ -86,9 +86,6 @@ static void chppResetTransportContext(struct ChppTransportState *context);
 static void chppReset(struct ChppTransportState *context,
                       enum ChppTransportPacketAttributes resetType,
                       enum ChppTransportErrorCode error);
-static void chppTransportSendReset(struct ChppTransportState *context,
-                                   enum ChppTransportPacketAttributes resetType,
-                                   enum ChppTransportErrorCode error);
 
 /************************************************
  *  Private Functions
@@ -1176,64 +1173,6 @@ static void chppReset(struct ChppTransportState *transportContext,
   }
 }
 
-/**
- * Sends a reset or reset-ack packet over the link in order to reset the remote
- * side or inform the counterpart of a reset, respectively. The transport
- * layer's configuration is sent as the payload of the reset packet.
- *
- * This function is used immediately after initialization via
- * chppWorkThreadStart(), or for subsequent resets or reset-acks via
- * chppReset().
- *
- * @param transportContext Maintains status for each transport layer instance.
- * @param resetType Distinguishes a reset from a reset-ack, as defined in the
- * ChppTransportPacketAttributes struct.
- * @param error Provides the error that led to the reset.
- */
-static void chppTransportSendReset(struct ChppTransportState *context,
-                                   enum ChppTransportPacketAttributes resetType,
-                                   enum ChppTransportErrorCode error) {
-  // Make sure CHPP is in an initialized state
-  CHPP_ASSERT_LOG((context->txDatagramQueue.pending == 0 &&
-                   context->txDatagramQueue.front == 0),
-                  "Send reset but not initialized");
-
-  struct ChppTransportConfiguration *config =
-      chppMalloc(sizeof(struct ChppTransportConfiguration));
-
-  // CHPP transport version
-  config->version.major = 1;
-  config->version.minor = 0;
-  config->version.patch = 0;
-
-  // Rx MTU size
-  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
-
-  // Max Rx window size
-  // Note: current implementation does not support a window size >1
-  config->windowSize = 1;
-
-  // Advertised transport layer (ACK) timeout
-  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
-
-  // Send out the reset datagram
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    CHPP_LOGD("Sending RESET-ACK");
-  } else {
-    CHPP_LOGD("Sending RESET");
-  }
-
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    chppSetResetComplete(context);
-  }
-
-  context->resetTimeNs = chppGetCurrentTimeNs();
-
-  chppEnqueueTxDatagram(context,
-                        CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, error),
-                        config, sizeof(*config));
-}
-
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -1596,4 +1535,47 @@ uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
   }
 #endif
   return result;
+}
+
+void chppTransportSendReset(struct ChppTransportState *context,
+                            enum ChppTransportPacketAttributes resetType,
+                            enum ChppTransportErrorCode error) {
+  // Make sure CHPP is in an initialized state
+  CHPP_ASSERT_LOG((context->txDatagramQueue.pending == 0 &&
+                   context->txDatagramQueue.front == 0),
+                  "Not init to send reset");
+
+  struct ChppTransportConfiguration *config =
+      chppMalloc(sizeof(struct ChppTransportConfiguration));
+
+  // CHPP transport version
+  config->version.major = 1;
+  config->version.minor = 0;
+  config->version.patch = 0;
+
+  // Rx MTU size
+  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
+
+  // Max Rx window size
+  // Note: current implementation does not support a window size >1
+  config->windowSize = 1;
+
+  // Advertised transport layer (ACK) timeout
+  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
+
+  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+    CHPP_LOGD("Sending RESET-ACK");
+  } else {
+    CHPP_LOGD("Sending RESET");
+  }
+
+  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+    chppSetResetComplete(context);
+  }
+
+  context->resetTimeNs = chppGetCurrentTimeNs();
+
+  chppEnqueueTxDatagram(context,
+                        CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, error),
+                        config, sizeof(*config));
 }
