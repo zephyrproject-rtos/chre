@@ -118,27 +118,27 @@ Initializing CHPP involves:
 2. Calling the application and transport layers’ initialization functions (in any order)
 3. Initializing the platform-specific link layer parameters within the transport struct.
 
-## void chppTransportInit(*transportContext, *appContext)
+## void chppTransportInit(\*transportContext, \*appContext)
 
 The CHPP Transport Layer state is stored in the ChppTransportState struct transportContext, and passed around between various functions. It is necessary to initialize the transport layer state for each transport layer instance on every platform.
 Each transport layer instance is associated with a single application layer instance. appContext points to the application layer status struct associated with this transport layer instance.
 After calling chppTransportInit, it is also necessary to separately initialize the platform-specific values of transportContext.linkParams.
 
-## void chppAppInit(*transportContext, *appContext)
+## void chppAppInit(\*transportContext, \*appContext)
 
 The CHPP Application Layer state is stored in the ChppAppState struct appContext, and passed around between various functions. It is necessary to initialize the application layer state for each application layer instance on every platform.
 Each application layer instance is associated with a single transport layer instance. transportContext points to the transport layer status struct associated with this application layer instance.
 
-## void chppAppInitWithClientServiceSet(*transportContext, *appContext, clientServiceSet)
+## void chppAppInitWithClientServiceSet(\*transportContext, \*appContext, clientServiceSet)
 
 It is also possible to specify the client/service endpoints to be enabled at runtime.
 
-## bool chppRxDataCb(context, \*buf, len)
+## bool chppRxDataCb(\*transportContext, \*buf, len)
 
 This function is the interface between the CHPP Transport layer and the communications link’s Rx path (e.g. from the UART driver). This function is called when any data is received at the serial interface. The data is provided through a pointer to *buf, with its length specified as len.
 The return value from chppRxData(*buf, len) can optionally be used at the communications link driver to improve performance. When the return value is true, the driver may stop sending all-zero payloads (e.g. as might happen when a serial link is idle).
 
-## bool chppRxPacketCompleteCb(context, \*buf, len)
+## bool chppRxPacketCompleteCb(\*transportContext)
 
 This is an optional function that enables the link layer to indicate the end of a packet. For packets with a corrupt length field, this function can enable the link layer to explicitly NACK the bad packet earlier.
 This function is designed exclusively for link layers that can identify the end of individual packets. The availability of this information depends on the link layer implementation.
@@ -154,11 +154,11 @@ This function returns CHPP_LINK_ERROR_NONE_SENT if the platform implementation f
 Notifies the transport layer that the link layer is done sending the previous payload (as provided to platformLinkSend() through buf and len) and can accept more data.
 On systems that implement the link layer Tx asynchronously, where platformLinkSend() returns False before consuming the payload provided to it, the platform implementation must call this function after platformLinkSend() is done with the payload (i.e. buf and len).
 
-## void chppWorkThreadStart(\*context)
+## void chppWorkThreadStart(\*transportContext)
 
 Starts the main thread for CHPP's Transport Layer. This thread needs to be started after the Transport Layer is initialized through chppTransportInit() and provided with the transport layer context struct.
 
-## void chppWorkThreadStop(\*context)
+## void chppWorkThreadStop(\*transportContext)
 
 Stops the main thread for CHPP's Transport Layer that has been started by calling chppWorkThreadStart(). Stopping this thread may be necessary for testing and debugging purposes. The parameter context provides the transport layer context struct.
 
