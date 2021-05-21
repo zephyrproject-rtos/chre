@@ -700,6 +700,26 @@ void chppDatagramProcessDoneCb(struct ChppTransportState *context,
 uint8_t chppRunTransportLoopback(struct ChppTransportState *context,
                                  uint8_t *buf, size_t len);
 
+/**
+ * Sends a reset or reset-ack packet over the link in order to reset the remote
+ * side or inform the counterpart of a reset, respectively. The transport
+ * layer's configuration is sent as the payload of the reset packet.
+ *
+ * This function is typically used only internally, either immediately after
+ * initialization via chppWorkThreadStart() or for subsequent resets or
+ * reset-acks via chppReset(). However, implementations that do not rely on
+ * chppWorkThreadStart() would require to call this function after initializing
+ * CHPP.
+ *
+ * @param transportContext Maintains status for each transport layer instance.
+ * @param resetType Distinguishes a reset from a reset-ack, as defined in the
+ * ChppTransportPacketAttributes struct.
+ * @param error Provides the error that led to the reset.
+ */
+void chppTransportSendReset(struct ChppTransportState *context,
+                            enum ChppTransportPacketAttributes resetType,
+                            enum ChppTransportErrorCode error);
+
 #ifdef __cplusplus
 }
 #endif
