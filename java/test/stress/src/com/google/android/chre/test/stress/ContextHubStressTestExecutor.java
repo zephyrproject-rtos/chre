@@ -120,16 +120,8 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
         mCountDownLatch = new CountDownLatch(1);
 
         // TODO(b/186868033): Add other features
-        ChreStressTest.TestCommand testCommand = ChreStressTest.TestCommand.newBuilder()
-                .setFeature(ChreStressTest.TestCommand.Feature.WIFI).setStart(true).build();
-
-        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
-                mNanoAppId, ChreStressTest.MessageType.TEST_COMMAND_VALUE,
-                testCommand.toByteArray());
-        int result = mContextHubClient.sendMessageToNanoApp(message);
-        if (result != ContextHubTransaction.RESULT_SUCCESS) {
-            Assert.fail("Failed to send message: result = " + result);
-        }
+        sendTestStartMessage(ChreStressTest.TestCommand.Feature.WIFI);
+        sendTestStartMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION);
 
         try {
             mCountDownLatch.await(timeout, unit);
@@ -159,6 +151,22 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
         if (mChreReset.get()) {
             Assert.fail("CHRE reset during the test");
+        }
+    }
+
+    /**
+     * @param feature The feature to start testing for.
+     */
+    private void sendTestStartMessage(ChreStressTest.TestCommand.Feature feature) {
+        ChreStressTest.TestCommand testCommand = ChreStressTest.TestCommand.newBuilder()
+                .setFeature(feature).setStart(true).build();
+
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNanoAppId, ChreStressTest.MessageType.TEST_COMMAND_VALUE,
+                testCommand.toByteArray());
+        int result = mContextHubClient.sendMessageToNanoApp(message);
+        if (result != ContextHubTransaction.RESULT_SUCCESS) {
+            Assert.fail("Failed to send message: result = " + result);
         }
     }
 }
