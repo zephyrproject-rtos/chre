@@ -34,104 +34,6 @@
 #include <string.h>
 
 namespace chre {
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) && \
-    defined(CHRE_SENSORS_SUPPORT_ENABLED)
-namespace {
-void rewriteToChreEventType(uint16_t *eventType) {
-  CHRE_ASSERT(eventType);
-
-  // HACK: as SEE does not support software batching in uimg via
-  // QCM/uQSockets, we rewrite requests for accel and uncal accel/gyro/mag
-  // from big image nanoapps to respective vendor types in
-  // chreSensorFindDefault(), which is implemented as sensor data routed
-  // through CM/QMI and supports batching. Rewrite sensor data arriving
-  // on this event type to the vanilla sensor event type so that this appears
-  // transparent to the nanoapp.
-  // TODO(P2-5673a9): work with QC to determine a better long-term solution
-  constexpr uint16_t kAccelBigImageEventType =
-      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 3);
-  constexpr uint16_t kUncalAccelBigImageEventType =
-      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 6);
-  constexpr uint16_t kUncalGyroBigImageEventType =
-      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 7);
-  constexpr uint16_t kUncalMagBigImageEventType =
-      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 8);
-  constexpr uint16_t kLightBigImageEventType =
-      (CHRE_EVENT_SENSOR_DATA_EVENT_BASE + CHRE_SENSOR_TYPE_VENDOR_START + 9);
-
-  if (*eventType == kAccelBigImageEventType) {
-    *eventType = CHRE_EVENT_SENSOR_ACCELEROMETER_DATA;
-  } else if (*eventType == kUncalAccelBigImageEventType) {
-    *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_DATA;
-  } else if (*eventType == kUncalGyroBigImageEventType) {
-    *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_DATA;
-  } else if (*eventType == kUncalMagBigImageEventType) {
-    *eventType = CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_DATA;
-  } else if (*eventType == kLightBigImageEventType) {
-    *eventType = CHRE_EVENT_SENSOR_LIGHT_DATA;
-  }
-}
-
-/**
- * Helper function to get the sensor type of a big-image variant of a sensor.
- *
- * @param sensorType The sensor type to convert from.
- *
- * @return The sensor type of the corresponding big-image sensor, or the input
- *     sensor type if one does not exist.
- */
-uint8_t getBigImageSensorType(uint8_t sensorType) {
-  switch (sensorType) {
-    case CHRE_SENSOR_TYPE_ACCELEROMETER:
-      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL;
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER:
-      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL;
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE:
-      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
-    case CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD:
-      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
-    case CHRE_SENSOR_TYPE_LIGHT:
-      return CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
-    default:
-      return sensorType;
-  }
-}
-
-/**
- * Helper function to get the handle of a big-image variant of a sensor.
- *
- * @param sensorHandle The sensor handle to convert from.
- *
- * @return The handle of the corresponding big-image sensor, or the input sensor
- *     handle if one does not exist.
- */
-uint32_t getBigImageSensorHandle(uint32_t sensorHandle) {
-  Sensor *sensor =
-      EventLoopManagerSingleton::get()->getSensorRequestManager().getSensor(
-          sensorHandle);
-  uint8_t bigImageType = getBigImageSensorType(sensor->getSensorType());
-  uint32_t bigImageHandle;
-  EventLoopManagerSingleton::get()->getSensorRequestManager().getSensorHandle(
-      bigImageType, &bigImageHandle);
-  return bigImageHandle;
-}
-
-/**
- * @return true if the given event type is a bias info event.
- */
-bool isBiasEventType(uint16_t eventType) {
-  return eventType == CHRE_EVENT_SENSOR_ACCELEROMETER_BIAS_INFO ||
-         eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_ACCELEROMETER_BIAS_INFO ||
-         eventType == CHRE_EVENT_SENSOR_GYROSCOPE_BIAS_INFO ||
-         eventType == CHRE_EVENT_SENSOR_UNCALIBRATED_GYROSCOPE_BIAS_INFO ||
-         eventType == CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_BIAS_INFO ||
-         eventType ==
-             CHRE_EVENT_SENSOR_UNCALIBRATED_GEOMAGNETIC_FIELD_BIAS_INFO;
-}
-
-}  //  anonymous namespace
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) &&
-        // defined(CHRE_SENSORS_SUPPORT_ENABLED)
 
 PlatformNanoapp::~PlatformNanoapp() {
   closeNanoapp();
@@ -153,28 +55,7 @@ void PlatformNanoapp::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                                   const void *eventData) {
   if (!isUimgApp()) {
     slpiForceBigImage();
-
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) && \
-    defined(CHRE_SENSORS_SUPPORT_ENABLED)
-    rewriteToChreEventType(&eventType);
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) &&
-        // defined(CHRE_SENSORS_SUPPORT_ENABLED)
   }
-
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) && \
-    defined(CHRE_SENSORS_SUPPORT_ENABLED)
-  // NOTE: Since SeeCalHelper does not internally differentiate calibration
-  //       between big/micro image, convert the sensor handle to the appropriate
-  //       one when delivering a bias info event to the nanoapp.
-  chreSensorThreeAxisData bias;
-  if (eventData != nullptr && !isUimgApp() && isBiasEventType(eventType)) {
-    bias = *static_cast<const chreSensorThreeAxisData *>(eventData);
-    bias.header.sensorHandle =
-        getBigImageSensorHandle(bias.header.sensorHandle);
-    eventData = &bias;
-  }
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) &&
-        // defined(CHRE_SENSORS_SUPPORT_ENABLED)
 
   mAppInfo->entryPoints.handleEvent(senderInstanceId, eventType, eventData);
 }
