@@ -16,11 +16,12 @@
 
 #include <gtest/gtest.h>
 
+#include <stddef.h>
+#include <cstring>
+
 #include "chpp/common/wifi_types.h"
 #include "chpp/memory.h"
 #include "chre/test/common/macros.h"
-
-#include <cstring>
 
 namespace {
 
