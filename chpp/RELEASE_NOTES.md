@@ -135,7 +135,7 @@ This release updates the built-in timesync and checksum functionality and addres
   - Stability fixes and cleanup throughout CHPP and tests, including the reopening flow, permanent_failure state, and a memory leak
   - Testing improvements
 
-### 2021-05-19 (this)
+### 2021-05-24 (this)
 
 This release enables better identification of end-of-packets as well as addressing bugs and compatibility issues.
 
