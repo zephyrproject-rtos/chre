@@ -42,6 +42,15 @@ class Manager {
                    const void *eventData);
 
  private:
+  struct AsyncRequest {
+    AsyncRequest(const void *cookie_) {
+      cookie = cookie_;
+    }
+
+    uint64_t requestTimeNs = chreGetTime();
+    const void *cookie;
+  };
+
   /**
    * Handles a message from the host.
    *
@@ -97,7 +106,7 @@ class Manager {
   void logAndSendFailure(const char *errorMessage);
 
   //! The host endpoint of the current test host.
-  chre::Optional<uint16_t> mHostEndpoint;
+  Optional<uint16_t> mHostEndpoint;
 
   //! The timer handle for performing a delayed WiFi scan request.
   uint32_t mWifiScanTimerHandle = CHRE_TIMER_INVALID;
@@ -105,14 +114,11 @@ class Manager {
   //! true if the WiFi test has been started.
   bool mWifiTestStarted = false;
 
-  //! true if an on-demand WiFi scan request is currently pending.
-  bool mOnDemandWifiPending = false;
-
   //! The cookie to use for on-demand WiFi scan requests.
   const uint32_t kOnDemandWifiScanCookie = 0xface;
 
-  //! The timestamp of the last successful on-demand WiFi scan.
-  uint64_t mLastOnDemandWifiScanRequestTimeNs = 0;
+  //! The pending WiFi scan request.
+  Optional<AsyncRequest> mWifiScanAsyncRequest;
 };
 
 // The stress test manager singleton.
