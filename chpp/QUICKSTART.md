@@ -25,8 +25,10 @@ The APIs that are needed to tie CHPP to the serial port are as follows. Details 
 1. void chppPlatformLinkDeinit(\*params)
 1. void chppPlatformLinkReset(\*params)
 1. enum ChppLinkErrorCode chppPlatformLinkSend(\*params, \*buf, len)
+1. Depending on implementation, void chppLinkSendDoneCb(\*params)
 1. void chppPlatformLinkDoWork(\*params)
-1. bool chppRxDataCb(context, \*buf, len)
+1. bool chppRxDataCb(\*context, \*buf, len)
+1. Optionally, chppRxPacketCompleteCb(\*context)
 
 In addition, the system must implement and initialize the platform-specific linkParams data structure as part of platform_link.h
 
