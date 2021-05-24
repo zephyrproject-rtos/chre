@@ -119,17 +119,16 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
 
 void Manager::handleTimerEvent(const uint32_t *handle) {
   if (*handle == mWifiScanTimerHandle) {
-    if (mOnDemandWifiPending) {
-      if (chreGetTime() > (mLastOnDemandWifiScanRequestTimeNs +
+    if (mWifiScanAsyncRequest.has_value()) {
+      if (chreGetTime() > (mWifiScanAsyncRequest->requestTimeNs +
                            CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS)) {
         logAndSendFailure("Prev WiFi scan did not complete in time");
       }
     } else {
-      mOnDemandWifiPending =
-          chreWifiRequestScanAsyncDefault(&kOnDemandWifiScanCookie);
-      LOGI("Requested on demand wifi success ? %d", mOnDemandWifiPending);
-      if (mOnDemandWifiPending) {
-        mLastOnDemandWifiScanRequestTimeNs = chreGetTime();
+      bool success = chreWifiRequestScanAsyncDefault(&kOnDemandWifiScanCookie);
+      LOGI("Requested on demand wifi success ? %d", success);
+      if (success) {
+        mWifiScanAsyncRequest = AsyncRequest(&kOnDemandWifiScanCookie);
       }
     }
 
@@ -141,29 +140,27 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
 
 void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
   if (result->requestType == CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN) {
-    if (!mOnDemandWifiPending) {
-      logAndSendFailure("Received async result with no pending request");
+    if (result->success) {
+      LOGI("On-demand scan success");
     } else {
-      if (result->success) {
-        LOGI("On-demand scan success");
-      } else {
-        LOGW("On-demand scan failed: code %" PRIu8, result->errorCode);
-      }
-
-      if (result->cookie != &kOnDemandWifiScanCookie) {
-        logAndSendFailure("On-demand scan cookie mismatch");
-      }
-
-      mOnDemandWifiPending = false;
+      LOGW("On-demand scan failed: code %" PRIu8, result->errorCode);
     }
+
+    if (!mWifiScanAsyncRequest.has_value()) {
+      logAndSendFailure("Received async result with no pending request");
+    } else if (result->cookie != mWifiScanAsyncRequest->cookie) {
+      logAndSendFailure("On-demand scan cookie mismatch");
+    }
+
+    mWifiScanAsyncRequest.reset();
   } else {
-    logAndSendFailure("Unknown async result type");
+    logAndSendFailure("Unknown WiFi async result type");
   }
 }
 
 void Manager::handleWifiScanEvent(const chreWifiScanEvent *event) {
   LOGI("Received Wifi scan event of type %" PRIu8 " with %" PRIu8
-       " results at %" PRIu64 "ns",
+       " results at %" PRIu64 " ns",
        event->scanType, event->resultCount, event->referenceTime);
 
   // TODO(b/186868033): Check results
