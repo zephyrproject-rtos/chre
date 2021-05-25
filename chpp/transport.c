@@ -951,9 +951,8 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
 
       } else {
         chppAddPayload(context);
+        context->txStatus.txAttempts++;
       }
-
-      context->txStatus.txAttempts++;
 
     } else {
       // No payload
