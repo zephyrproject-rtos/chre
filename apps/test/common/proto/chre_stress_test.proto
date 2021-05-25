@@ -25,6 +25,8 @@ message TestCommand {
   enum Feature {
     FEATURE_UNDEFINED = 0;
     WIFI = 1;
+    GNSS_LOCATION = 2;
+    GNSS_MEASUREMENT = 3;
   }
 
   // The feature to test.
