@@ -73,23 +73,20 @@ class Manager {
   void handleTimerEvent(const uint32_t *handle);
 
   /**
-   * Handles a WiFi start command from the host.
+   * Handles a start command from the host.
    *
    * @param start true to start the test, stop otherwise.
    */
   void handleWifiStartCommand(bool start);
+  void handleGnssLocationStartCommand(bool start);
 
   /**
-   * Handles a WiFi async result from CHRE.
-   *
-   * @param result The pointer to the result.
+   * @param result The WiFi async result from CHRE.
    */
   void handleWifiAsyncResult(const chreAsyncResult *result);
 
   /**
-   * Handles a WiFi scan event from CHRE.
-   *
-   * @param result The pointer to the event.
+   * @param result The WiFi scan event from CHRE.
    */
   void handleWifiScanEvent(const chreWifiScanEvent *event);
 
@@ -105,20 +102,48 @@ class Manager {
    */
   void logAndSendFailure(const char *errorMessage);
 
+  /**
+   * Sets a timer and asserts success.
+   *
+   * @param delayNs The delay of the timer in nanoseconds.
+   * @param oneShot true if the timer request is one-shot.
+   * @param timerHandle A non-null pointer to where the timer handle is stored.
+   */
+  void setTimer(uint64_t delayNs, bool oneShot, uint32_t *timerHandle);
+
+  /**
+   * Makes the next location request.
+   */
+  void makeGnssLocationRequest();
+
+  /**
+   * @param result The GNSS async result from CHRE.
+   */
+  void handleGnssAsyncResult(const chreAsyncResult *result);
+
+  /**
+   * @param event The GNSS location event from CHRE.
+   */
+  void handleGnssLocationEvent(const chreGnssLocationEvent *event);
+
   //! The host endpoint of the current test host.
   Optional<uint16_t> mHostEndpoint;
 
   //! The timer handle for performing a delayed WiFi scan request.
   uint32_t mWifiScanTimerHandle = CHRE_TIMER_INVALID;
+  uint32_t mGnssLocationTimerHandle = CHRE_TIMER_INVALID;
 
   //! true if the WiFi test has been started.
   bool mWifiTestStarted = false;
+  bool mGnssLocationTestStarted = false;
 
   //! The cookie to use for on-demand WiFi scan requests.
   const uint32_t kOnDemandWifiScanCookie = 0xface;
+  const uint32_t kGnssLocationCookie = 0xbeef;
 
-  //! The pending WiFi scan request.
+  //! The pending requests.
   Optional<AsyncRequest> mWifiScanAsyncRequest;
+  Optional<AsyncRequest> mGnssLocationAsyncRequest;
 };
 
 // The stress test manager singleton.
