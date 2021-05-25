@@ -47,6 +47,15 @@ class PlatformSensorManager : public PlatformSensorManagerBase {
    *
    * @return A DynamicVector to populate with the list of sensors the framework
    *     can send requests to.
+   *
+   * @note For the returned list of sensors, the following requirements MUST be
+   *     respected:
+   *     -  A given sensor's target group mask MUST NOT overlap with another
+   *        sensor's target group mask if both have the same index and type.
+   *     -  One-shot sensors MUST only appear once in this list. i.e. they
+   *        cannot support multiple indices / target group ID masks.
+   *     -  There cannot be multiple sensors with the same index of the same
+   *        type.
    */
   DynamicVector<Sensor> getSensors();
 
@@ -129,6 +138,13 @@ class PlatformSensorManager : public PlatformSensorManagerBase {
    * @return true if the request was accepted.
    */
   bool flush(const Sensor &sensor, uint32_t *flushRequestId);
+
+  /**
+   * @return the target group ID for a given nanoapp. This mapping is not
+   *     allowed to change based on state that can change after a nanoapp is
+   *     loaded and must remain constant for the lifetime of the nanoapp.
+   */
+  uint16_t getTargetGroupId(const Nanoapp &nanoapp) const;
 
   //! Methods that allow the platform to free the data given via the below
   //! event handlers
