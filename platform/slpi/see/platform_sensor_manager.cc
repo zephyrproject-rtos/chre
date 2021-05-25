@@ -227,9 +227,11 @@ bool getSensorTypeFromDataType(const char *dataType, bool calibrated,
   }
 #endif
 
+#ifdef CHRE_SLPI_UIMG_ENABLED
   if (bigImage && !sensorTypeSupportsBigImage(*sensorType)) {
     success = false;
   }
+#endif
 
   return success;
 }
