@@ -153,6 +153,9 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
     requestDelayedWifiScan();
   } else if (*handle == mGnssLocationTimerHandle) {
     makeGnssLocationRequest();
+  } else if (*handle == mGnssAsyncTimerHandle &&
+             mGnssLocationAsyncRequest.has_value()) {
+    logAndSendFailure("GNSS async result timed out");
   } else {
     logAndSendFailure("Unknown timer handle");
   }
@@ -167,7 +170,7 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
     }
 
     if (!mWifiScanAsyncRequest.has_value()) {
-      logAndSendFailure("Received async result with no pending request");
+      logAndSendFailure("Received WiFi async result with no pending request");
     } else if (result->cookie != mWifiScanAsyncRequest->cookie) {
       logAndSendFailure("On-demand scan cookie mismatch");
     }
@@ -178,9 +181,23 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
   }
 }
 
-void Manager::handleGnssAsyncResult(const chreAsyncResult * /* result */) {
-  LOGI("Got GNSS async result!");
-  // TODO(b/186868033): Check results
+void Manager::handleGnssAsyncResult(const chreAsyncResult *result) {
+  if ((result->requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START) ||
+      (result->requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP)) {
+    if (!mGnssLocationAsyncRequest.has_value()) {
+      logAndSendFailure(
+          "Received location async result with no pending request");
+    } else if (!result->success) {
+      logAndSendFailure("Async location failure");
+    } else if (result->cookie != mGnssLocationAsyncRequest->cookie) {
+      logAndSendFailure("Location cookie mismatch");
+    }
+
+    cancelTimer(&mGnssAsyncTimerHandle);
+    mGnssLocationAsyncRequest.reset();
+  } else {
+    logAndSendFailure("Unknown GNSS async result type");
+  }
 }
 
 void Manager::handleGnssLocationEvent(const chreGnssLocationEvent *event) {
@@ -226,6 +243,15 @@ void Manager::setTimer(uint64_t delayNs, bool oneShot, uint32_t *timerHandle) {
   }
 }
 
+void Manager::cancelTimer(uint32_t *timerHandle) {
+  if (*timerHandle != CHRE_TIMER_INVALID) {
+    if (!chreTimerCancel(*timerHandle)) {
+      logAndSendFailure("Failed to cancel timer");
+    }
+    *timerHandle = CHRE_TIMER_INVALID;
+  }
+}
+
 void Manager::makeGnssLocationRequest() {
   // The list of location intervals to iterate; wraps around.
   static const uint32_t kMinIntervalMsList[] = {1000, 0};
@@ -245,10 +271,12 @@ void Manager::makeGnssLocationRequest() {
   LOGI("Configure GNSS location interval %" PRIu32 " ms success ? %d",
        minIntervalMs, success);
 
-  // TODO(b/186868033): Verify async result comes on time.
-
   if (!success) {
     logAndSendFailure("Failed to make location request");
+  } else {
+    mGnssLocationAsyncRequest = AsyncRequest(&kGnssLocationCookie);
+    setTimer(CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS, true /* oneShot */,
+             &mGnssAsyncTimerHandle);
   }
 }
 
