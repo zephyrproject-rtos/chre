@@ -103,13 +103,14 @@ class Manager {
   void logAndSendFailure(const char *errorMessage);
 
   /**
-   * Sets a timer and asserts success.
+   * Sets/cancels a timer and asserts success.
    *
    * @param delayNs The delay of the timer in nanoseconds.
    * @param oneShot true if the timer request is one-shot.
    * @param timerHandle A non-null pointer to where the timer handle is stored.
    */
   void setTimer(uint64_t delayNs, bool oneShot, uint32_t *timerHandle);
+  void cancelTimer(uint32_t *timerHandle);
 
   /**
    * Makes the next location request.
@@ -132,6 +133,7 @@ class Manager {
   //! The timer handle for performing a delayed WiFi scan request.
   uint32_t mWifiScanTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mGnssLocationTimerHandle = CHRE_TIMER_INVALID;
+  uint32_t mGnssAsyncTimerHandle = CHRE_TIMER_INVALID;
 
   //! true if the WiFi test has been started.
   bool mWifiTestStarted = false;
