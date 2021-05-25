@@ -414,8 +414,11 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
         len);
     error = CHPP_APP_ERROR_INVALID_ARG;
 
-  } else if (!wifiServiceContext->api->requestScan(chre)) {
-    error = CHPP_APP_ERROR_UNSPECIFIED;
+  } else {
+    if (!wifiServiceContext->api->requestScan(chre)) {
+      error = CHPP_APP_ERROR_UNSPECIFIED;
+    }
+    chppFree(chre);
   }
 
   return error;
@@ -452,22 +455,26 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
         len);
     error = CHPP_APP_ERROR_INVALID_ARG;
 
-  } else if (!wifiServiceContext->api->requestRanging(chre)) {
-    error = CHPP_APP_ERROR_UNSPECIFIED;
-
   } else {
-    struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
-    size_t responseLen = sizeof(*response);
+    if (!wifiServiceContext->api->requestRanging(chre)) {
+      error = CHPP_APP_ERROR_UNSPECIFIED;
 
-    if (response == NULL) {
-      CHPP_LOG_OOM();
-      error = CHPP_APP_ERROR_OOM;
     } else {
-      chppSendTimestampedResponseOrFail(
-          &wifiServiceContext->service,
-          &wifiServiceContext->requestRangingAsync, response, responseLen);
+      struct ChppAppHeader *response =
+          chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
+
+      if (response == NULL) {
+        CHPP_LOG_OOM();
+        error = CHPP_APP_ERROR_OOM;
+      } else {
+        chppSendTimestampedResponseOrFail(
+            &wifiServiceContext->service,
+            &wifiServiceContext->requestRangingAsync, response, responseLen);
+      }
     }
+
+    chppFree(chre);
   }
 
   return error;
