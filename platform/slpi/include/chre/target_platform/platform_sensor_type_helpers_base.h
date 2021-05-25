@@ -49,6 +49,15 @@ enum class SensorSampleType {
 };
 
 /**
+ * The group IDs that the SEE sensor driver supports placing nanoapps into such
+ * that they can be targeted separately by the sensor driver.
+ */
+enum NanoappGroupIds {
+  MicroImage = 1 << 0,
+  BigImage = 1 << 1,
+};
+
+/**
  * Exposes SLPI-specific methods used by platform code and the SLPI-specific
  * PlatformSensorTypeHelpers implementation to transform sensor types as needed.
  */

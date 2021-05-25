@@ -29,40 +29,6 @@ using chre::SensorRequest;
 
 using chre::getSensorModeFromEnum;
 
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) && \
-    defined(CHRE_SENSORS_SUPPORT_ENABLED)
-namespace {
-bool isBigImageSensorType(uint8_t sensorType) {
-  return (sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL ||
-          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL ||
-          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO ||
-          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG ||
-          sensorType == CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT);
-}
-
-/**
- * Rewrites the provided sensorType to its big-image counterpart if it exists.
- */
-void rewriteToBigImageSensorType(uint8_t *sensorType) {
-  CHRE_ASSERT(sensorType);
-
-  if (*sensorType == CHRE_SENSOR_TYPE_ACCELEROMETER) {
-    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_ACCEL;
-  } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER) {
-    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_ACCEL;
-  } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE) {
-    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_GYRO;
-  } else if (*sensorType == CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD) {
-    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_UNCAL_MAG;
-  } else if (*sensorType == CHRE_SENSOR_TYPE_LIGHT) {
-    *sensorType = CHRE_SLPI_SENSOR_TYPE_BIG_IMAGE_LIGHT;
-  }
-}
-
-}  //  anonymous namespace
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED) &&
-        // defined(CHRE_SENSORS_SUPPORT_ENABLED)
-
 DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
   return chreSensorFind(sensorType, CHRE_SENSOR_INDEX_DEFAULT, handle);
 }
@@ -71,25 +37,6 @@ DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
                                uint32_t *handle) {
 #if CHRE_SENSORS_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
-  // HACK: as SEE does not support software batching in uimg via QCM/uQSockets,
-  // reroute requests for accel and uncal accel/gyro/mag from a big image
-  // nanoapp to a separate sensor type internally. These are the only always-on
-  // sensors used today by big image nanoapps, and this change allows these
-  // requests to transparently go to a separate sensor implementation that
-  // supports uimg batching via CM/QMI.
-  // TODO(P2-5673a9): work with QC to determine a better long-term solution
-  if (!nanoapp->isUimgApp()) {
-    // Since we have an accompanying hack in PlatformNanoapp::handleEvent(),
-    // hide the vendor sensor type from big image nanoapps as we're unable to
-    // deliver events for it
-    if (isBigImageSensorType(sensorType)) {
-      return false;
-    }
-    rewriteToBigImageSensorType(&sensorType);
-  }
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
-
   return EventLoopManagerSingleton::get()
       ->getSensorRequestManager()
       .getSensorHandleForNanoapp(sensorType, sensorIndex, *nanoapp, handle);
@@ -113,16 +60,6 @@ DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
     success = EventLoopManagerSingleton::get()
                   ->getSensorRequestManager()
                   .getSensorInfo(sensorHandle, *nanoapp, info);
-
-    // The distinction between big/uimg accel and uncal accel/gyro/mag should
-    // be abstracted away from big image nanoapps, so overwrite any platform
-    // implementation here.
-#if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
-    if (!nanoapp->isUimgApp()) {
-      chre::PlatformSensorTypeHelpers::rewriteToChreSensorType(
-          &info->sensorType);
-    }
-#endif  // defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   }
   return success;
 #else   // CHRE_SENSORS_SUPPORT_ENABLED
