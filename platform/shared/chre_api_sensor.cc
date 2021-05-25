@@ -70,6 +70,7 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
 DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
                                uint32_t *handle) {
 #if CHRE_SENSORS_SUPPORT_ENABLED
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 #if defined(CHRE_SLPI_SEE) && defined(CHRE_SLPI_UIMG_ENABLED)
   // HACK: as SEE does not support software batching in uimg via QCM/uQSockets,
   // reroute requests for accel and uncal accel/gyro/mag from a big image
@@ -78,7 +79,6 @@ DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
   // requests to transparently go to a separate sensor implementation that
   // supports uimg batching via CM/QMI.
   // TODO(P2-5673a9): work with QC to determine a better long-term solution
-  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   if (!nanoapp->isUimgApp()) {
     // Since we have an accompanying hack in PlatformNanoapp::handleEvent(),
     // hide the vendor sensor type from big image nanoapps as we're unable to
@@ -92,7 +92,7 @@ DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
 
   return EventLoopManagerSingleton::get()
       ->getSensorRequestManager()
-      .getSensorHandle(sensorType, sensorIndex, handle);
+      .getSensorHandleForNanoapp(sensorType, sensorIndex, *nanoapp, handle);
 #else  // CHRE_SENSORS_SUPPORT_ENABLED
   UNUSED_VAR(sensorType);
   UNUSED_VAR(sensorIndex);
