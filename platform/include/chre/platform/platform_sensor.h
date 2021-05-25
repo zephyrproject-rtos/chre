@@ -70,6 +70,11 @@ class PlatformSensor : public PlatformSensorBase, public NonCopyable {
    */
   uint8_t getSensorIndex() const;
 
+  /**
+   * @return The mask of groups that events this sensor produces should target.
+   */
+  uint16_t getTargetGroupMask() const;
+
  protected:
   /**
    * Default constructor that puts this instance in an unspecified state.
