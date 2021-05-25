@@ -42,6 +42,10 @@ uint8_t PlatformSensor::getSensorIndex() const {
   return CHRE_SENSOR_INDEX_DEFAULT;
 }
 
+uint16_t PlatformSensor::getTargetGroupMask() const {
+  return kDefaultTargetGroupMask;
+}
+
 PlatformSensor::PlatformSensor(PlatformSensor &&other) {
   *this = std::move(other);
 }
