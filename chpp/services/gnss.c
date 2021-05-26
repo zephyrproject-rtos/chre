@@ -358,9 +358,11 @@ static enum ChppAppErrorCode chppGnssServiceGetCapabilities(
 /**
  * Start/stop/modify the GNSS location session.
  *
- * This function returns an error code synchronously. A subsequent call to
- * chppGnssServiceLocationEventCallback() will be used to communicate the
- * location fixes.
+ * This function returns an error code synchronously.
+ * A subsequent call to chppGnssServiceLocationStatusChangeCallback() will be
+ * used to communicate the result of this request (as a service response).
+ * A subsequent call to chppGnssServiceLocationEventCallback() will be used to
+ * communicate the location fixes (as service notifications).
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
@@ -395,9 +397,11 @@ static enum ChppAppErrorCode chppGnssServiceControlLocationSession(
 /**
  * Start/stop/modify the raw GNSS measurement session.
  *
- * This function returns an error code synchronously. A subsequent call to
- * chppGnssServiceMeasurementEventCallback() will be used to communicate the
- * location fixes.
+ * This function returns an error code synchronously.
+ * A subsequent call to chppGnssServiceMeasurementStatusChangeCallback() will be
+ * used to communicate the result of this request (as a service response).
+ * A subsequent call to chppGnssServiceMeasurementEventCallback() will be used
+ * to communicate the measurements (as service notifications).
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
@@ -432,9 +436,9 @@ static enum ChppAppErrorCode chppGnssServiceControlMeasurementSession(
  * Configures whether to opportunistically deliver any location fixes produced
  * for other clients of the GNSS engine.
  *
- * This function returns an error code synchronously. A subsequent call to
- * chppGnssServiceLocationEventCallback() will be used to communicate the
- * location fixes.
+ * This function returns an error code synchronously.
+ * A subsequent call to chppGnssServiceLocationEventCallback() will be used to
+ * communicate the location fixes (as service notifications).
  *
  * @param serviceContext Maintains status for each service instance.
  * @param requestHeader App layer header of the request.
@@ -458,6 +462,21 @@ static enum ChppAppErrorCode chppGnssServiceConfigurePassiveLocationListener(
     if (!gnssServiceContext->api->configurePassiveLocationListener(
             parameters->enable)) {
       error = CHPP_APP_ERROR_UNSPECIFIED;
+
+    } else {
+      struct ChppAppHeader *response =
+          chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
+
+      if (response == NULL) {
+        CHPP_LOG_OOM();
+        error = CHPP_APP_ERROR_OOM;
+      } else {
+        chppSendTimestampedResponseOrFail(
+            &gnssServiceContext->service,
+            &gnssServiceContext->configurePassiveLocationListener, response,
+            responseLen);
+      }
     }
   }
 
