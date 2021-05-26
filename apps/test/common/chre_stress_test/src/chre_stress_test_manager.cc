@@ -218,6 +218,8 @@ void Manager::handleWifiStartCommand(bool start) {
   mWifiTestStarted = start;
   if (start) {
     requestDelayedWifiScan();
+  } else {
+    cancelTimer(&mWifiScanTimerHandle);
   }
 }
 
@@ -260,11 +262,16 @@ void Manager::makeGnssLocationRequest() {
   static const uint32_t kMinIntervalMsList[] = {1000, 0};
   static size_t sIntervalIndex = 0;
 
-  uint32_t minIntervalMs = kMinIntervalMsList[sIntervalIndex];
-  sIntervalIndex = (sIntervalIndex + 1) % ARRAY_SIZE(kMinIntervalMsList);
+  uint32_t minIntervalMs = 0;
+  if (mGnssLocationTestStarted) {
+    minIntervalMs = kMinIntervalMsList[sIntervalIndex];
+    sIntervalIndex = (sIntervalIndex + 1) % ARRAY_SIZE(kMinIntervalMsList);
+  } else {
+    sIntervalIndex = 0;
+  }
 
   bool success = false;
-  if (minIntervalMs > 0 && mGnssLocationTestStarted) {
+  if (minIntervalMs > 0) {
     success = chreGnssLocationSessionStartAsync(
         minIntervalMs, 0 /* minTimeToNextFixMs */, &kGnssLocationCookie);
   } else {
