@@ -34,6 +34,16 @@ namespace {
 
 constexpr chre::Nanoseconds kWifiScanInterval = chre::Seconds(5);
 
+bool isRequestTypeForLocation(uint8_t requestType) {
+  return (requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START) ||
+         (requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP);
+}
+
+bool isRequestTypeForMeasurement(uint8_t requestType) {
+  return (requestType == CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_START) ||
+         (requestType == CHRE_GNSS_REQUEST_TYPE_MEASUREMENT_SESSION_STOP);
+}
+
 }  // anonymous namespace
 
 void Manager::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
@@ -87,6 +97,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
           handleGnssLocationStartCommand(testCommand.start);
           break;
         }
+        case chre_stress_test_TestCommand_Feature_GNSS_MEASUREMENT: {
+          handleGnssMeasurementStartCommand(testCommand.start);
+          break;
+        }
         default: {
           LOGE("Unknown feature %d", testCommand.feature);
           success = false;
@@ -129,6 +143,10 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
           static_cast<const chreGnssLocationEvent *>(eventData));
       break;
 
+    case CHRE_EVENT_GNSS_DATA:
+      handleGnssDataEvent(static_cast<const chreGnssDataEvent *>(eventData));
+      break;
+
     default:
       LOGW("Unknown event type %" PRIu16, eventType);
       break;
@@ -153,9 +171,14 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
     requestDelayedWifiScan();
   } else if (*handle == mGnssLocationTimerHandle) {
     makeGnssLocationRequest();
-  } else if (*handle == mGnssAsyncTimerHandle &&
+  } else if (*handle == mGnssMeasurementTimerHandle) {
+    makeGnssMeasurementRequest();
+  } else if (*handle == mGnssLocationAsyncTimerHandle &&
              mGnssLocationAsyncRequest.has_value()) {
-    logAndSendFailure("GNSS async result timed out");
+    logAndSendFailure("GNSS location async result timed out");
+  } else if (*handle == mGnssMeasurementAsyncTimerHandle &&
+             mGnssMeasurementAsyncRequest.has_value()) {
+    logAndSendFailure("GNSS measurement async result timed out");
   } else {
     logAndSendFailure("Unknown timer handle");
   }
@@ -182,26 +205,41 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
 }
 
 void Manager::handleGnssAsyncResult(const chreAsyncResult *result) {
-  if ((result->requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_START) ||
-      (result->requestType == CHRE_GNSS_REQUEST_TYPE_LOCATION_SESSION_STOP)) {
-    if (!mGnssLocationAsyncRequest.has_value()) {
-      logAndSendFailure(
-          "Received location async result with no pending request");
-    } else if (!result->success) {
-      logAndSendFailure("Async location failure");
-    } else if (result->cookie != mGnssLocationAsyncRequest->cookie) {
-      logAndSendFailure("Location cookie mismatch");
-    }
-
-    cancelTimer(&mGnssAsyncTimerHandle);
-    mGnssLocationAsyncRequest.reset();
+  if (isRequestTypeForLocation(result->requestType)) {
+    validateGnssAsyncResult(result, mGnssLocationAsyncRequest,
+                            &mGnssLocationAsyncTimerHandle);
+  } else if (isRequestTypeForMeasurement(result->requestType)) {
+    validateGnssAsyncResult(result, mGnssMeasurementAsyncRequest,
+                            &mGnssMeasurementAsyncTimerHandle);
   } else {
     logAndSendFailure("Unknown GNSS async result type");
   }
 }
 
+void Manager::validateGnssAsyncResult(const chreAsyncResult *result,
+                                      Optional<AsyncRequest> &request,
+                                      uint32_t *asyncTimerHandle) {
+  if (!request.has_value()) {
+    logAndSendFailure("Received GNSS async result with no pending request");
+  } else if (!result->success) {
+    logAndSendFailure("Async GNSS failure");
+  } else if (result->cookie != request->cookie) {
+    logAndSendFailure("GNSS async cookie mismatch");
+  }
+
+  cancelTimer(asyncTimerHandle);
+  request.reset();
+}
+
 void Manager::handleGnssLocationEvent(const chreGnssLocationEvent *event) {
   LOGI("Received GNSS location event at %" PRIu64 " ns", event->timestamp);
+
+  // TODO(b/186868033): Check results
+}
+
+void Manager::handleGnssDataEvent(const chreGnssDataEvent *event) {
+  LOGI("Received GNSS measurement event at %" PRIu64 " ns",
+       event->clock.time_ns);
 
   // TODO(b/186868033): Check results
 }
@@ -232,9 +270,29 @@ void Manager::handleGnssLocationStartCommand(bool start) {
 
     if (start) {
       setTimer(kTimerDelayNs, false /* oneShot */, &mGnssLocationTimerHandle);
+    } else {
+      cancelTimer(&mGnssLocationTimerHandle);
     }
   } else {
     logAndSendFailure("Platform has no location capability");
+  }
+}
+
+void Manager::handleGnssMeasurementStartCommand(bool start) {
+  constexpr uint64_t kTimerDelayNs = Seconds(60).toRawNanoseconds();
+
+  if (chreGnssGetCapabilities() & CHRE_GNSS_CAPABILITIES_MEASUREMENTS) {
+    mGnssMeasurementTestStarted = start;
+    makeGnssMeasurementRequest();
+
+    if (start) {
+      setTimer(kTimerDelayNs, false /* oneShot */,
+               &mGnssMeasurementTimerHandle);
+    } else {
+      cancelTimer(&mGnssMeasurementTimerHandle);
+    }
+  } else {
+    logAndSendFailure("Platform has no GNSS measurement capability");
   }
 }
 
@@ -286,7 +344,40 @@ void Manager::makeGnssLocationRequest() {
   } else {
     mGnssLocationAsyncRequest = AsyncRequest(&kGnssLocationCookie);
     setTimer(CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS, true /* oneShot */,
-             &mGnssAsyncTimerHandle);
+             &mGnssLocationAsyncTimerHandle);
+  }
+}
+
+void Manager::makeGnssMeasurementRequest() {
+  // The list of measurement intervals to iterate; wraps around.
+  static const uint32_t kMinIntervalMsList[] = {1000, 0};
+  static size_t sIntervalIndex = 0;
+
+  uint32_t minIntervalMs = 0;
+  if (mGnssMeasurementTestStarted) {
+    minIntervalMs = kMinIntervalMsList[sIntervalIndex];
+    sIntervalIndex = (sIntervalIndex + 1) % ARRAY_SIZE(kMinIntervalMsList);
+  } else {
+    sIntervalIndex = 0;
+  }
+
+  bool success = false;
+  if (minIntervalMs > 0) {
+    success = chreGnssMeasurementSessionStartAsync(minIntervalMs,
+                                                   &kGnssMeasurementCookie);
+  } else {
+    success = chreGnssMeasurementSessionStopAsync(&kGnssMeasurementCookie);
+  }
+
+  LOGI("Configure GNSS measurement interval %" PRIu32 " ms success ? %d",
+       minIntervalMs, success);
+
+  if (!success) {
+    logAndSendFailure("Failed to make measurement request");
+  } else {
+    mGnssMeasurementAsyncRequest = AsyncRequest(&kGnssMeasurementCookie);
+    setTimer(CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS, true /* oneShot */,
+             &mGnssMeasurementAsyncTimerHandle);
   }
 }
 
