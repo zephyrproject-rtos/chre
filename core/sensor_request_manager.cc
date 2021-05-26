@@ -261,7 +261,7 @@ bool SensorRequestManager::setSensorRequest(
       }
 
       if (success) {
-        addSensorRequestLog(nanoapp->getInstanceId(), sensorType, request);
+        addSensorRequestLog(nanoapp->getInstanceId(), sensorHandle, request);
       }
     }
   }
@@ -671,10 +671,10 @@ void SensorRequestManager::cancelFlushRequests(uint32_t sensorHandle,
 }
 
 void SensorRequestManager::addSensorRequestLog(
-    uint32_t nanoappInstanceId, uint8_t sensorType,
+    uint32_t nanoappInstanceId, uint32_t sensorHandle,
     const SensorRequest &sensorRequest) {
   mSensorRequestLogs.kick_push(SensorRequestLog(
-      SystemTime::getMonotonicTime(), nanoappInstanceId, sensorType,
+      SystemTime::getMonotonicTime(), nanoappInstanceId, sensorHandle,
       sensorRequest.getMode(), sensorRequest.getInterval(),
       sensorRequest.getLatency()));
 }
