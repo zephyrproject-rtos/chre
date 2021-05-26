@@ -466,11 +466,11 @@ class SensorRequestManager : public NonCopyable {
    * off if full.
    *
    * @param nanoappInstanceId Instance ID of the nanoapp that made the request.
-   * @param sensorType The sensor type of requested sensor.
+   * @param sensorHandle The sensor handle for the sensor request being added.
    * @param sensorRequest The SensorRequest object holding params about
    *    request.
    */
-  void addSensorRequestLog(uint32_t nanoappInstanceId, uint8_t sensorType,
+  void addSensorRequestLog(uint32_t nanoappInstanceId, uint32_t sensorHandle,
                            const SensorRequest &sensorRequest);
 
   /**
