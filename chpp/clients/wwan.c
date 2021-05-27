@@ -504,8 +504,11 @@ static bool chppWwanClientGetCellInfoAsync(void) {
  */
 static void chppWwanClientReleaseCellInfoResult(
     struct chreWwanCellInfoResult *result) {
-  void *cells = CHPP_CONST_CAST_POINTER(result->cells);
-  CHPP_FREE_AND_NULLIFY(cells);
+  if (result->cellInfoCount > 0) {
+    void *cells = CHPP_CONST_CAST_POINTER(result->cells);
+    CHPP_FREE_AND_NULLIFY(cells);
+  }
+
   CHPP_FREE_AND_NULLIFY(result);
 }
 

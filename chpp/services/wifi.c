@@ -418,7 +418,12 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
     if (!wifiServiceContext->api->requestScan(chre)) {
       error = CHPP_APP_ERROR_UNSPECIFIED;
     }
-    chppFree(chre);
+
+    if (chre->ssidListLen > 0) {
+      void *ssidList = CHPP_CONST_CAST_POINTER(chre->ssidList);
+      CHPP_FREE_AND_NULLIFY(ssidList);
+    }
+    CHPP_FREE_AND_NULLIFY(chre);
   }
 
   return error;
@@ -474,7 +479,11 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
       }
     }
 
-    chppFree(chre);
+    if (chre->targetListLen > 0) {
+      void *targetList = CHPP_CONST_CAST_POINTER(chre->targetList);
+      CHPP_FREE_AND_NULLIFY(targetList);
+    }
+    CHPP_FREE_AND_NULLIFY(chre);
   }
 
   return error;

@@ -767,10 +767,16 @@ static bool chppWifiClientRequestScan(const struct chreWifiScanParams *params) {
  * @param event Location event to be released.
  */
 static void chppWifiClientReleaseScanEvent(struct chreWifiScanEvent *event) {
-  void *scannedFreqList = CHPP_CONST_CAST_POINTER(event->scannedFreqList);
-  CHPP_FREE_AND_NULLIFY(scannedFreqList);
-  void *results = CHPP_CONST_CAST_POINTER(event->results);
-  CHPP_FREE_AND_NULLIFY(results);
+  if (event->scannedFreqListLen > 0) {
+    void *scannedFreqList = CHPP_CONST_CAST_POINTER(event->scannedFreqList);
+    CHPP_FREE_AND_NULLIFY(scannedFreqList);
+  }
+
+  if (event->resultCount > 0) {
+    void *results = CHPP_CONST_CAST_POINTER(event->results);
+    CHPP_FREE_AND_NULLIFY(results);
+  }
+
   CHPP_FREE_AND_NULLIFY(event);
 }
 
@@ -812,8 +818,11 @@ static bool chppWifiClientRequestRanging(
  */
 static void chppWifiClientReleaseRangingEvent(
     struct chreWifiRangingEvent *event) {
-  void *results = CHPP_CONST_CAST_POINTER(event->results);
-  CHPP_FREE_AND_NULLIFY(results);
+  if (event->resultCount > 0) {
+    void *results = CHPP_CONST_CAST_POINTER(event->results);
+    CHPP_FREE_AND_NULLIFY(results);
+  }
+
   CHPP_FREE_AND_NULLIFY(event);
 }
 
