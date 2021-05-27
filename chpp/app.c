@@ -40,6 +40,7 @@
 #include "chpp/services/loopback.h"
 #include "chpp/services/nonhandle.h"
 #include "chpp/services/timesync.h"
+#include "chre_api/chre/common.h"
 
 /************************************************
  *  Prototypes
@@ -740,4 +741,23 @@ void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
       uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
       uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14],
       uuid[15]);
+}
+
+uint8_t chppAppErrorToChreError(uint8_t chppError) {
+  switch (chppError) {
+    case CHPP_APP_ERROR_NONE:
+    case CHPP_APP_ERROR_INVALID_ARG:
+    case CHPP_APP_ERROR_BUSY:
+    case CHPP_APP_ERROR_OOM:
+    case CHPP_APP_ERROR_UNSUPPORTED:
+    case CHPP_APP_ERROR_TIMEOUT:
+    case CHPP_APP_ERROR_DISABLED:
+    case CHPP_APP_ERROR_RATELIMITED: {
+      // CHRE and CHPP error values are identical in these cases
+      return chppError;
+    }
+    default: {
+      return CHRE_ERROR;
+    }
+  }
 }

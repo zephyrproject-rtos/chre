@@ -463,6 +463,15 @@ void chppAppProcessReset(struct ChppAppState *context);
 void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
                    char strOut[CHPP_SERVICE_UUID_STRING_LEN]);
 
+/**
+ * Maps a CHPP app layer error to a CHRE error.
+ *
+ * @param chppError CHPP app layer error (from enum ChppAppErrorCode).
+ *
+ * @return CHRE error (from enum chreError).
+ */
+uint8_t chppAppErrorToChreError(uint8_t error);
+
 #ifdef __cplusplus
 }
 #endif
