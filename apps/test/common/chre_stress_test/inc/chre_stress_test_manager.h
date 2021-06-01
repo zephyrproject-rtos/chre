@@ -98,11 +98,11 @@ class Manager {
   void requestDelayedWifiScan();
 
   /**
-   * Logs an error message and sends the failure to the host.
+   * Sends the failure to the host.
    *
    * @param errorMessage The error message string.
    */
-  void logAndSendFailure(const char *errorMessage);
+  void sendFailure(const char *errorMessage);
 
   /**
    * Sets/cancels a timer and asserts success.
