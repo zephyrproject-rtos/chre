@@ -275,10 +275,14 @@ bool chppWaitForDiscoveryComplete(struct ChppAppState *context,
     success = true;
 
     chppMutexLock(&context->discoveryMutex);
-    while (success && !context->isDiscoveryComplete) {
-      success = chppConditionVariableTimedWait(&context->discoveryCv,
-                                               &context->discoveryMutex,
-                                               timeoutMs * CHPP_NSEC_PER_MSEC);
+    if (timeoutMs == 0) {
+      success = context->isDiscoveryComplete;
+    } else {
+      while (success && !context->isDiscoveryComplete) {
+        success = chppConditionVariableTimedWait(
+            &context->discoveryCv, &context->discoveryMutex,
+            timeoutMs * CHPP_NSEC_PER_MSEC);
+      }
     }
     chppMutexUnlock(&context->discoveryMutex);
   }
