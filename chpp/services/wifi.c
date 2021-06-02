@@ -419,6 +419,10 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
       error = CHPP_APP_ERROR_UNSPECIFIED;
     }
 
+    if (chre->frequencyListLen > 0) {
+      void *frequencyList = CHPP_CONST_CAST_POINTER(chre->frequencyList);
+      CHPP_FREE_AND_NULLIFY(frequencyList);
+    }
     if (chre->ssidListLen > 0) {
       void *ssidList = CHPP_CONST_CAST_POINTER(chre->ssidList);
       CHPP_FREE_AND_NULLIFY(ssidList);
