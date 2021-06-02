@@ -101,6 +101,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
           handleGnssMeasurementStartCommand(testCommand.start);
           break;
         }
+        case chre_stress_test_TestCommand_Feature_WWAN: {
+          handleWwanStartCommand(testCommand.start);
+          break;
+        }
         default: {
           LOGE("Unknown feature %d", testCommand.feature);
           success = false;
@@ -147,6 +151,11 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
       handleGnssDataEvent(static_cast<const chreGnssDataEvent *>(eventData));
       break;
 
+    case CHRE_EVENT_WWAN_CELL_INFO_RESULT:
+      handleCellInfoResult(
+          static_cast<const chreWwanCellInfoResult *>(eventData));
+      break;
+
     default:
       LOGW("Unknown event type %" PRIu16, eventType);
       break;
@@ -179,6 +188,8 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
   } else if (*handle == mGnssMeasurementAsyncTimerHandle &&
              mGnssMeasurementAsyncRequest.has_value()) {
     logAndSendFailure("GNSS measurement async result timed out");
+  } else if (*handle == mWwanTimerHandle) {
+    makeWwanCellInfoRequest();
   } else {
     logAndSendFailure("Unknown timer handle");
   }
@@ -252,6 +263,18 @@ void Manager::handleWifiScanEvent(const chreWifiScanEvent *event) {
   // TODO(b/186868033): Check results
 }
 
+void Manager::handleCellInfoResult(const chreWwanCellInfoResult *event) {
+  LOGI("Received cell info result");
+
+  mWwanCellInfoAsyncRequest.reset();
+  if (event->errorCode != CHRE_ERROR_NONE) {
+    LOGE("Cell info request failed with error code %" PRIu8, event->errorCode);
+    logAndSendFailure("Cell info request failed");
+  } else {
+    // TODO(b/186868033): Check results
+  }
+}
+
 void Manager::handleWifiStartCommand(bool start) {
   mWifiTestStarted = start;
   if (start) {
@@ -293,6 +316,23 @@ void Manager::handleGnssMeasurementStartCommand(bool start) {
     }
   } else {
     logAndSendFailure("Platform has no GNSS measurement capability");
+  }
+}
+
+void Manager::handleWwanStartCommand(bool start) {
+  constexpr uint64_t kTimerDelayNs = CHRE_ASYNC_RESULT_TIMEOUT_NS;
+
+  if (chreWwanGetCapabilities() & CHRE_WWAN_GET_CELL_INFO) {
+    mWwanTestStarted = start;
+    makeWwanCellInfoRequest();
+
+    if (start) {
+      setTimer(kTimerDelayNs, false /* oneShot */, &mWwanTimerHandle);
+    } else {
+      cancelTimer(&mWwanTimerHandle);
+    }
+  } else {
+    logAndSendFailure("Platform has no WWAN cell info capability");
   }
 }
 
@@ -388,6 +428,27 @@ void Manager::requestDelayedWifiScan() {
                &mWifiScanTimerHandle);
     } else {
       logAndSendFailure("Platform has no on-demand scan capability");
+    }
+  }
+}
+
+void Manager::makeWwanCellInfoRequest() {
+  if (mWwanTestStarted) {
+    if (mWwanCellInfoAsyncRequest.has_value()) {
+      if (chreGetTime() > mWwanCellInfoAsyncRequest->requestTimeNs +
+                              CHRE_ASYNC_RESULT_TIMEOUT_NS) {
+        logAndSendFailure("Prev cell info request did not complete in time");
+      }
+    } else {
+      bool success = chreWwanGetCellInfoAsync(&kWwanCellInfoCookie);
+
+      LOGI("Cell info request success ? %d", success);
+
+      if (!success) {
+        logAndSendFailure("Failed to make cell info request");
+      } else {
+        mWwanCellInfoAsyncRequest = AsyncRequest(&kWwanCellInfoCookie);
+      }
     }
   }
 }
