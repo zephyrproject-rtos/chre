@@ -148,7 +148,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
   CHPP_LOGI("Loopback test. payload len=%" PRIuSIZE ", request len=%" PRIuSIZE,
             len, len + CHPP_LOOPBACK_HEADER_LEN);
 
-  if (!chppWaitForDiscoveryComplete(context, CHPP_MSEC_PER_SEC /* 1s */)) {
+  if (!chppWaitForDiscoveryComplete(context, 0 /* timeoutMs */)) {
     static const struct ChppLoopbackTestResult result = {
         .error = CHPP_APP_ERROR_NOT_READY,
     };
@@ -194,11 +194,12 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
         context->loopbackClientContext->loopbackData = buf;
         memcpy(&loopbackRequest[CHPP_LOOPBACK_HEADER_LEN], buf, len);
 
-        if (!chppSendTimestampedRequestAndWait(
+        if (!chppSendTimestampedRequestAndWaitTimeout(
                 &context->loopbackClientContext->client,
                 &context->loopbackClientContext->runLoopbackTest,
                 loopbackRequest,
-                context->loopbackClientContext->testResult.requestLen)) {
+                context->loopbackClientContext->testResult.requestLen,
+                CHPP_NSEC_PER_SEC /* 1s */)) {
           context->loopbackClientContext->testResult.error =
               CHPP_APP_ERROR_UNSPECIFIED;
         }  // else {context->loopbackClientContext->testResult is now populated}
