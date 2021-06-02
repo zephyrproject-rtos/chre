@@ -27,6 +27,7 @@ message TestCommand {
     WIFI = 1;
     GNSS_LOCATION = 2;
     GNSS_MEASUREMENT = 3;
+    WWAN = 4;
   }
 
   // The feature to test.
