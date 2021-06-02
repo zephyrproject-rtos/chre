@@ -25,6 +25,7 @@
 #include <thread>
 
 #include "chpp/app.h"
+#include "chpp/clients/discovery.h"
 #include "chpp/macros.h"
 #include "chpp/platform/utils.h"
 #include "chpp/transport.h"
@@ -91,6 +92,9 @@ void AppTestBase::SetUp() {
 
   constexpr uint64_t kResetWaitTimeMs = 1500;
   chppTransportWaitForResetComplete(&mClientTransportContext, kResetWaitTimeMs);
+
+  constexpr uint64_t kDiscoveryWaitTimeMs = 5000;
+  chppWaitForDiscoveryComplete(&mClientAppContext, kDiscoveryWaitTimeMs);
 }
 
 void AppTestBase::TearDown() {
