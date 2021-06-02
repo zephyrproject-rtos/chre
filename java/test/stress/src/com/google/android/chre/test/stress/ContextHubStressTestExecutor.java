@@ -123,6 +123,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
         sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, true /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, true /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, true /* start */);
+        sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, true /* start */);
 
         try {
             mCountDownLatch.await(timeout, unit);
@@ -143,6 +144,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
         sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, false /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, false /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, false /* start */);
+        sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, false /* start */);
 
         try {
             // Add a short delay to make sure the stop command did not cause issues.
