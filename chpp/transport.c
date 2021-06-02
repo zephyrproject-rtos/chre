@@ -316,14 +316,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       CHPP_LOGI("RX RESET-ACK packet. seq=%" PRIu8, context->rxHeader.seq);
       chppProcessResetAck(context);
 
-#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
-      chppMutexUnlock(&context->mutex);
-      chppInitiateDiscovery(context->appContext);
-      chppMutexLock(&context->mutex);
-#else
-      chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
-#endif
-
     } else if (context->resetState == CHPP_RESET_STATE_RESETTING) {
       CHPP_LOGE("RX discarded in reset. seq=%" PRIu8 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
@@ -536,6 +528,18 @@ static void chppProcessResetAck(struct ChppTransportState *context) {
 
   chppDatagramProcessDoneCb(context, context->rxDatagram.payload);
   chppClearRxDatagram(context);
+
+#ifdef CHPP_CLIENT_ENABLED_DISCOVERY
+  if (!context->appContext->isDiscoveryComplete) {
+    chppMutexUnlock(&context->mutex);
+    chppInitiateDiscovery(context->appContext);
+    chppMutexLock(&context->mutex);
+  } else {
+    chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
+  }
+#else
+  chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
+#endif
 }
 
 /**
