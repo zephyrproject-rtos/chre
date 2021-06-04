@@ -120,22 +120,29 @@ static bool isWifiScanCacheBusy(bool logOnBusy) {
 }
 
 static void chreWifiScanCacheDispatchAll(void) {
-  uint8_t eventIndex = 0;
   gSystemApi->log(CHRE_LOG_DEBUG, "Dispatching %" PRIu8 " events",
                   gWifiCacheState.event.resultTotal);
-  for (uint16_t i = 0; i < gWifiCacheState.event.resultTotal;
-       i += CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT) {
-    gWifiCacheState.event.resultCount =
-        MIN(CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT,
-            (uint8_t)(gWifiCacheState.event.resultTotal - i));
-    gWifiCacheState.event.eventIndex = eventIndex++;
-    gWifiCacheState.event.results = &gWifiCacheState.resultList[i];
-
-    // TODO(b/174511061): The current approach only works for situations where
-    // the event is released immediately. Add a way to handle this scenario
-    // (e.g. an array of chreWifiScanEvent's).
-    gWifiCacheState.numWifiEventsPendingRelease++;
+  if (gWifiCacheState.event.resultTotal == 0) {
+    gWifiCacheState.event.eventIndex = 0;
+    gWifiCacheState.event.resultCount = 0;
+    gWifiCacheState.event.results = NULL;
     gCallbacks->scanEventCallback(&gWifiCacheState.event);
+  } else {
+    uint8_t eventIndex = 0;
+    for (uint16_t i = 0; i < gWifiCacheState.event.resultTotal;
+         i += CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT) {
+      gWifiCacheState.event.resultCount =
+          MIN(CHRE_PAL_WIFI_SCAN_CACHE_MAX_RESULT_COUNT,
+              (uint8_t)(gWifiCacheState.event.resultTotal - i));
+      gWifiCacheState.event.eventIndex = eventIndex++;
+      gWifiCacheState.event.results = &gWifiCacheState.resultList[i];
+
+      // TODO(b/174511061): The current approach only works for situations where
+      // the event is released immediately. Add a way to handle this scenario
+      // (e.g. an array of chreWifiScanEvent's).
+      gWifiCacheState.numWifiEventsPendingRelease++;
+      gCallbacks->scanEventCallback(&gWifiCacheState.event);
+    }
   }
 }
 
