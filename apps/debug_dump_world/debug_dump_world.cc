@@ -57,6 +57,11 @@ void handleDebugDumpEvent() {
   chreDebugDumpLog("  Debug event count: %" PRIu32 "\n", ++gEventCount);
   chreDebugDumpLog("  Total dwell time: %" PRIu64 " us\n",
                    gDwellTimeNs / chre::kOneMicrosecondInNanoseconds);
+
+  // Prefer the utility macro if you'll log a float, to suppress double
+  // promotion warnings arising from varargs
+  float floatVal = 1.23f;
+  CHRE_DEBUG_DUMP_LOG("  This is a float: %f", floatVal);
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
