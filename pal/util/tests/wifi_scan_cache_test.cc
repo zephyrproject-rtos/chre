@@ -54,6 +54,7 @@ chre::Optional<WifiScanResponse> gWifiScanResponse;
 chre::FixedSizeVector<chreWifiScanResult, CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY>
     gWifiScanResultList;
 chre::Optional<chreWifiScanEvent> gExpectedWifiScanEvent;
+bool gWifiScanEventCompleted;
 
 /************************************************
  *  Test class
@@ -114,6 +115,10 @@ void chreWifiScanEventCallback(struct chreWifiScanEvent *event) {
     gWifiScanResultList.push_back(result);
   }
 
+  if (gWifiScanResultList.size() == event->resultTotal) {
+    gWifiScanEventCompleted = true;
+  }
+
   chreWifiScanCacheReleaseScanEvent(event);
 }
 
@@ -142,6 +147,7 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
                                uint16_t scannedFreqListLen,
                                bool activeScanResult = true,
                                bool scanMonitoringEnabled = false) {
+  gWifiScanEventCompleted = false;
   beginDefaultWifiCache(scannedFreqList, scannedFreqListLen, activeScanResult);
 
   chreWifiScanResult result = {};
@@ -165,6 +171,7 @@ void cacheDefaultWifiCacheTest(size_t numEvents,
   if (activeScanResult || scanMonitoringEnabled) {
     numEventsExpected = std::min(
         numEvents, static_cast<size_t>(CHRE_PAL_WIFI_SCAN_CACHE_CAPACITY));
+    ASSERT_TRUE(gWifiScanEventCompleted);
   }
 
   ASSERT_EQ(gWifiScanResultList.size(), numEventsExpected);
