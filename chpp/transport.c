@@ -46,7 +46,7 @@ static size_t chppConsumePayload(struct ChppTransportState *context,
                                  const uint8_t *buf, size_t len);
 static size_t chppConsumeFooter(struct ChppTransportState *context,
                                 const uint8_t *buf, size_t len);
-static void chppRxAbortPacket(struct ChppTransportState *context);
+static void chppAbortRxPacket(struct ChppTransportState *context);
 #ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
 static void chppProcessTransportLoopbackRequest(
     struct ChppTransportState *context);
@@ -57,6 +57,7 @@ static void chppProcessTransportLoopbackResponse(
 #endif
 static void chppSetResetComplete(struct ChppTransportState *context);
 static void chppProcessResetAck(struct ChppTransportState *context);
+static void chppProcessRxPacket(struct ChppTransportState *context);
 static void chppProcessRxPayload(struct ChppTransportState *context);
 static void chppClearRxDatagram(struct ChppTransportState *context);
 static bool chppRxChecksumIsOk(const struct ChppTransportState *context);
@@ -292,7 +293,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (!chppRxChecksumIsOk(context)) {
       CHPP_LOGE("Bad checksum. seq=%" PRIu8 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
-      chppRxAbortPacket(context);
+      chppAbortRxPacket(context);
       chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_CHECKSUM);  // NACK
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
@@ -309,7 +310,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       // Only a reset is accepted in this state
       CHPP_LOGE("RX discarded in perm fail. seq=%" PRIu8 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
-      chppRxAbortPacket(context);
+      chppAbortRxPacket(context);
 
     } else if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
                CHPP_TRANSPORT_ATTR_RESET_ACK) {
@@ -319,7 +320,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
     } else if (context->resetState == CHPP_RESET_STATE_RESETTING) {
       CHPP_LOGE("RX discarded in reset. seq=%" PRIu8 " len=%" PRIu16,
                 context->rxHeader.seq, context->rxHeader.length);
-      chppRxAbortPacket(context);
+      chppAbortRxPacket(context);
 
     } else {
       CHPP_LOGD("RX good packet. len=%" PRIu16 ", seq=%" PRIu8
@@ -327,22 +328,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
                 context->rxHeader.length, context->rxHeader.seq,
                 context->rxHeader.ackSeq, context->rxHeader.flags,
                 context->rxHeader.packetCode);
-
-      uint64_t now = chppGetCurrentTimeNs();
-      context->rxStatus.lastGoodPacketTimeMs =
-          (uint32_t)(now / CHPP_NSEC_PER_MSEC);
-      context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
-      chppRegisterRxAck(context);
-
-      if (context->txDatagramQueue.pending > 0) {
-        // There are packets to send out (could be new or retx)
-        chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
-      }
-
-      if (context->rxHeader.length > 0) {
-        // Process payload and send ACK
-        chppProcessRxPayload(context);
-      }
+      chppProcessRxPacket(context);
     }
 
     // Done with this packet. Wait for next packet
@@ -358,7 +344,7 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
  *
  * @param context Maintains status for each transport layer instance.
  */
-static void chppRxAbortPacket(struct ChppTransportState *context) {
+static void chppAbortRxPacket(struct ChppTransportState *context) {
   size_t undoLen = 0;
   size_t undoLoc = 0;
 
@@ -543,13 +529,53 @@ static void chppProcessResetAck(struct ChppTransportState *context) {
 }
 
 /**
+ * Process a received, checksum-validated packet.
+ *
+ * @param context Maintains status for each transport layer instance.
+ */
+static void chppProcessRxPacket(struct ChppTransportState *context) {
+  uint64_t now = chppGetCurrentTimeNs();
+  context->rxStatus.lastGoodPacketTimeMs = (uint32_t)(now / CHPP_NSEC_PER_MSEC);
+  context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
+  chppRegisterRxAck(context);
+
+  enum ChppTransportErrorCode errorCode = CHPP_TRANSPORT_ERROR_NONE;
+  if (context->rxHeader.length > 0 &&
+      context->rxHeader.seq != context->rxStatus.expectedSeq) {
+    // Out of order payload
+    errorCode = CHPP_TRANSPORT_ERROR_ORDER;
+  }
+
+  if (context->txDatagramQueue.pending > 0 ||
+      errorCode == CHPP_TRANSPORT_ERROR_ORDER) {
+    // There are packets to send out (could be new or retx)
+    // Note: For a future ACK window > 1, makes more sense to cap the NACKs
+    // to one instead of flooding with out of order NACK errors.
+    chppEnqueueTxPacket(context, CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(
+                                     CHPP_TRANSPORT_ATTR_NONE, errorCode));
+  }
+
+  if (errorCode == CHPP_TRANSPORT_ERROR_ORDER) {
+    CHPP_LOGE("Out of order RX discarded. seq=%" PRIu8 "expect=%" PRIu8
+              " len=%" PRIu16,
+              context->rxHeader.seq, context->rxStatus.expectedSeq,
+              context->rxHeader.length);
+    chppAbortRxPacket(context);
+
+  } else if (context->rxHeader.length > 0) {
+    // Process payload and send ACK
+    chppProcessRxPayload(context);
+  }
+}
+
+/**
  * Process the payload of a validated payload-bearing packet and send out the
  * ACK.
  *
  * @param context Maintains status for each transport layer instance.
  */
 static void chppProcessRxPayload(struct ChppTransportState *context) {
-  context->rxStatus.expectedSeq++;  // chppRxHeaderCheck() has already confirmed
+  context->rxStatus.expectedSeq++;  // chppProcessRxPacket() already confirms
                                     // that context->rxStatus.expectedSeq ==
                                     // context->rxHeader.seq, protecting against
                                     // duplicate and out-of-order packets.
@@ -644,19 +670,7 @@ static enum ChppTransportErrorCode chppRxHeaderCheck(
     const struct ChppTransportState *context) {
   enum ChppTransportErrorCode result = CHPP_TRANSPORT_ERROR_NONE;
 
-  bool invalidSeqNo = (context->rxHeader.seq != context->rxStatus.expectedSeq);
-  bool invalidLen = (context->rxHeader.length > CHPP_TRANSPORT_RX_MTU_BYTES);
-
-  bool hasPayload = (context->rxHeader.length > 0);
-  bool regularPacket = (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
-                        CHPP_TRANSPORT_ATTR_NONE);
-
-  if (hasPayload && regularPacket && invalidSeqNo) {
-    // Note: For a future ACK window > 1, might make more sense to keep quiet
-    // instead of flooding with out of order NACK errors
-    result = CHPP_TRANSPORT_ERROR_ORDER;
-
-  } else if (hasPayload && invalidLen) {
+  if (context->rxHeader.length > CHPP_TRANSPORT_RX_MTU_BYTES) {
     result = CHPP_TRANSPORT_ERROR_HEADER;
   }
 
@@ -1239,7 +1253,7 @@ bool chppRxDataCb(struct ChppTransportState *context, const uint8_t *buf,
       chppGetCurrentTimeNs() >
           context->rxStatus.packetStartTimeNs + CHPP_TRANSPORT_RX_TIMEOUT_NS) {
     CHPP_LOGE("Packet RX timeout");
-    chppRxAbortPacket(context);
+    chppAbortRxPacket(context);
   }
   chppMutexUnlock(&context->mutex);
 
@@ -1295,7 +1309,7 @@ void chppRxPacketCompleteCb(struct ChppTransportState *context) {
               " len=%" PRIu16,
               context->rxStatus.state, context->rxHeader.seq,
               context->rxHeader.length);
-    chppRxAbortPacket(context);
+    chppAbortRxPacket(context);
     chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_HEADER);  // NACK
   }
   chppMutexUnlock(&context->mutex);
