@@ -593,6 +593,24 @@ static void chppWifiRangingEventNotification(
   buf += sizeof(struct ChppAppHeader);
   len -= sizeof(struct ChppAppHeader);
 
+  // Timestamp correction prior to conversion to avoid const casting issues.
+#ifdef CHPP_CLIENT_ENABLED_TIMESYNC
+  struct ChppWifiRangingEvent *event = (struct ChppWifiRangingEvent *)buf;
+
+  for (size_t i = 0; i < event->resultCount; i++) {
+    struct ChppWifiRangingResult *results =
+        (struct ChppWifiRangingResult *)&buf[event->results.offset];
+
+    uint64_t correctedTime =
+        results[i].timestamp -
+        (uint64_t)chppTimesyncGetOffset(gWifiClientContext.client.appContext,
+                                        CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
+    CHPP_LOGD("WiFi ranging result time corrected from %" PRIu64 "to %" PRIu64,
+              results[i].timestamp, correctedTime);
+    results[i].timestamp = correctedTime;
+  }
+#endif
+
   struct chreWifiRangingEvent *chre =
       chppWifiRangingEventToChre((struct ChppWifiRangingEvent *)buf, len);
 
