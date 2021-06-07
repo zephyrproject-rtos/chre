@@ -60,6 +60,11 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
     private CountDownLatch mCountDownLatch;
 
+    // Set to true to have the test suite only load the nanoapp and start the test.
+    // This can be useful for long-running stress tests, where we do not want to wait a fixed
+    // time to wait for successful completion.
+    private boolean mLoadAndStartOnly = false;
+
     public ContextHubStressTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
         mNanoAppBinary = binary;
@@ -106,6 +111,15 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
      * Should be invoked before run() is invoked to set up the test, e.g. in a @Before method.
      */
     public void init() {
+        init(false /* loadAndStartOnly */);
+    }
+
+    /**
+     * Same version of init, but specifies mLoadAndStartOnly.
+     * @param loadAndStartOnly Sets mLoadAndStartOnly.
+     */
+    public void init(boolean loadAndStartOnly) {
+        mLoadAndStartOnly = loadAndStartOnly;
         ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNanoAppBinary);
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
         Assert.assertTrue(mContextHubClient != null);
@@ -119,38 +133,39 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
         mTestResult.set(null);
         mCountDownLatch = new CountDownLatch(1);
 
-        // TODO(b/186868033): Add other features
         sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, true /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, true /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, true /* start */);
         sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, true /* start */);
 
-        try {
-            mCountDownLatch.await(timeout, unit);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
-        }
-
-        if (mTestResult.get() != null
-                && mTestResult.get().getCode() == ChreTestCommon.TestResult.Code.FAILED) {
-            if (mTestResult.get().hasErrorMessage()) {
-                Assert.fail(new String(mTestResult.get().getErrorMessage().toByteArray(),
-                        StandardCharsets.UTF_8));
-            } else {
-                Assert.fail("Stress test failed");
+        if (!mLoadAndStartOnly) {
+            try {
+                mCountDownLatch.await(timeout, unit);
+            } catch (InterruptedException e) {
+                Assert.fail(e.getMessage());
             }
-        }
 
-        sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, false /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, false /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, false /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, false /* start */);
+            if (mTestResult.get() != null
+                    && mTestResult.get().getCode() == ChreTestCommon.TestResult.Code.FAILED) {
+                if (mTestResult.get().hasErrorMessage()) {
+                    Assert.fail(new String(mTestResult.get().getErrorMessage().toByteArray(),
+                            StandardCharsets.UTF_8));
+                } else {
+                    Assert.fail("Stress test failed");
+                }
+            }
 
-        try {
-            // Add a short delay to make sure the stop command did not cause issues.
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+            sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, false /* start */);
+            sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, false /* start */);
+            sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, false /* start */);
+            sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, false /* start */);
+
+            try {
+                // Add a short delay to make sure the stop command did not cause issues.
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                Assert.fail(e.getMessage());
+            }
         }
     }
 
@@ -158,7 +173,9 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
      * Cleans up the test, should be invoked in e.g. @After method.
      */
     public void deinit() {
-        ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo, mNanoAppId);
+        if (!mLoadAndStartOnly) {
+            ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo, mNanoAppId);
+        }
         if (mContextHubClient != null) {
             mContextHubClient.close();
         }
