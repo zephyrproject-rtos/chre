@@ -517,9 +517,8 @@ static void chppWwanClientReleaseCellInfoResult(
  ***********************************************/
 
 void chppRegisterWwanClient(struct ChppAppState *appContext) {
-  gWwanClientContext.client.appContext = appContext;
   chppRegisterClient(appContext, (void *)&gWwanClientContext,
-                     &kWwanClientConfig);
+                     &gWwanClientContext.client, &kWwanClientConfig);
 }
 
 void chppDeregisterWwanClient(struct ChppAppState *appContext) {

@@ -843,9 +843,8 @@ static void chppWifiClientReleaseRangingEvent(
  ***********************************************/
 
 void chppRegisterWifiClient(struct ChppAppState *appContext) {
-  gWifiClientContext.client.appContext = appContext;
   chppRegisterClient(appContext, (void *)&gWifiClientContext,
-                     &kWifiClientConfig);
+                     &gWifiClientContext.client, &kWifiClientConfig);
 }
 
 void chppDeregisterWifiClient(struct ChppAppState *appContext) {
