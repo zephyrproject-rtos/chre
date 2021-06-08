@@ -354,7 +354,8 @@ void BasicWifiTest::handleEvent(uint32_t /* senderInstanceId */,
           sendFatalFailureToHost(
               "Did not receive chreWifiScanResult within 50 milliseconds.");
         }
-        mStartTimestampNs = 0;
+        // Do not reset mStartTimestampNs here, because it is used for the
+        // subsequent RTT ranging timestamp validation.
         validateWifiScanEvent(result);
       }
       break;
