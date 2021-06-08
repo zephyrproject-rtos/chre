@@ -122,6 +122,7 @@ enum ChppWifiCommands {
   //! Request that the WiFi chipset perform RTT ranging.
   CHPP_WIFI_REQUEST_RANGING_ASYNC = 0x0005,
 };
+#define CHPP_WIFI_CLIENT_REQUEST_MAX CHPP_WIFI_REQUEST_RANGING_ASYNC
 
 #ifdef __cplusplus
 }
