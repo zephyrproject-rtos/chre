@@ -152,8 +152,9 @@ enum ChppGnssCommands {
 
   //!  Notification with raw GNSS measurement results.
   CHPP_GNSS_MEASUREMENT_RESULT_NOTIFICATION = 0x0008,
-
 };
+#define CHPP_GNSS_CLIENT_REQUEST_MAX \
+  CHPP_GNSS_CONFIGURE_PASSIVE_LOCATION_LISTENER
 
 #ifdef __cplusplus
 }
