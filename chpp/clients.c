@@ -166,6 +166,7 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 }
 
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
+                        struct ChppClientState *clientState,
                         const struct ChppClient *newClient) {
   CHPP_NOT_NULL(newClient);
 
@@ -174,6 +175,7 @@ void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
               appContext->registeredClientCount);
 
   } else {
+    clientState->appContext = appContext;
     appContext->registeredClients[appContext->registeredClientCount] =
         newClient;
     appContext->registeredClientContexts[appContext->registeredClientCount] =
