@@ -321,10 +321,10 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
       break;
     }
     case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE: {
-      struct ChppClientState *clientContext =
+      struct ChppClientState *clientState =
           (struct ChppClientState *)chppClientServiceContextOfHandle(
               context, handle, type);
-      if (clientContext->openState == CHPP_OPEN_STATE_CLOSED) {
+      if (clientState->openState == CHPP_OPEN_STATE_CLOSED) {
         CHPP_LOGE("Rx service response but client closed");
       } else {
         return chppClientOfHandle(context, handle)->responseDispatchFunctionPtr;
@@ -337,10 +337,10 @@ ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
       break;
     }
     case CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION: {
-      struct ChppClientState *clientContext =
+      struct ChppClientState *clientState =
           (struct ChppClientState *)chppClientServiceContextOfHandle(
               context, handle, type);
-      if (clientContext->openState == CHPP_OPEN_STATE_CLOSED) {
+      if (clientState->openState == CHPP_OPEN_STATE_CLOSED) {
         CHPP_LOGE("Rx service notification but client closed");
       } else {
         return chppClientOfHandle(context, handle)
@@ -587,15 +587,15 @@ static void chppProcessNegotiatedHandleDatagram(struct ChppAppState *context,
         // Datagram is a service response. Check for synchronous operation and
         // notify waiting client if needed.
 
-        struct ChppClientState *clientContext =
+        struct ChppClientState *clientState =
             (struct ChppClientState *)clientServiceContext;
-        chppMutexLock(&clientContext->responseMutex);
-        clientContext->responseReady = true;
+        chppMutexLock(&clientState->responseMutex);
+        clientState->responseReady = true;
         CHPP_LOGD(
             "Finished dispatching a service response. Notifying a potential "
             "synchronous client");
-        chppConditionVariableSignal(&clientContext->responseCondVar);
-        chppMutexUnlock(&clientContext->responseMutex);
+        chppConditionVariableSignal(&clientState->responseCondVar);
+        chppMutexUnlock(&clientState->responseMutex);
       }
     }
   }
