@@ -335,12 +335,17 @@ static void chppWwanGetCellInfoAsyncResult(
 
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct chreWwanCellInfoResult *chre = NULL;
+  uint8_t errorCode = CHRE_ERROR;
 
   if (len == sizeof(struct ChppAppHeader)) {
     // Short response length indicates an error
     CHPP_LOGE("GetCellInfo failed at service err=%" PRIu8, rxHeader->error);
+
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
       CHPP_LOGE("Missing err");
+      errorCode = CHPP_APP_ERROR_INVALID_LENGTH;
+    } else {
+      errorCode = chppAppErrorToChreError(rxHeader->error);
     }
 
   } else {
@@ -361,7 +366,7 @@ static void chppWwanGetCellInfoAsyncResult(
       CHPP_LOG_OOM();
     } else {
       chre->version = CHRE_WWAN_CELL_INFO_RESULT_VERSION;
-      chre->errorCode = CHRE_ERROR;
+      chre->errorCode = errorCode;
       chre->cellInfoCount = 0;
       chre->reserved = 0;
       chre->cookie = 0;
