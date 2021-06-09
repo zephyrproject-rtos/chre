@@ -170,7 +170,20 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
         sendFailure("Prev WiFi scan did not complete in time");
       }
     } else {
-      bool success = chreWifiRequestScanAsyncDefault(&kOnDemandWifiScanCookie);
+      // NOTE: We set the maxScanAgeMs to something smaller than the WiFi
+      // scan periodicity to ensure new scans are generated.
+      static const struct chreWifiScanParams params = {
+          /*.scanType=*/CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE,
+          /*.maxScanAgeMs=*/2000,  // 2 seconds
+          /*.frequencyListLen=*/0,
+          /*.frequencyList=*/NULL,
+          /*.ssidListLen=*/0,
+          /*.ssidList=*/NULL,
+          /*.radioChainPref=*/CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+          /*.channelSet=*/CHRE_WIFI_CHANNEL_SET_NON_DFS};
+
+      bool success =
+          chreWifiRequestScanAsync(&params, &kOnDemandWifiScanCookie);
       LOGI("Requested on demand wifi success ? %d", success);
       if (success) {
         mWifiScanAsyncRequest = AsyncRequest(&kOnDemandWifiScanCookie);
