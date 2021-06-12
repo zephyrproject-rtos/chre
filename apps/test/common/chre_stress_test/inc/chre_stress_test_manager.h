@@ -105,6 +105,7 @@ class Manager {
    * Sets up a WiFi scan request after some time.
    */
   void requestDelayedWifiScan();
+  void handleDelayedWifiTimer();
 
   /**
    * Sends the failure to the host.
@@ -164,6 +165,7 @@ class Manager {
 
   //! The timer handle for performing requests.
   uint32_t mWifiScanTimerHandle = CHRE_TIMER_INVALID;
+  uint32_t mWifiScanAsyncTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mGnssLocationTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mGnssLocationAsyncTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mGnssMeasurementTimerHandle = CHRE_TIMER_INVALID;
