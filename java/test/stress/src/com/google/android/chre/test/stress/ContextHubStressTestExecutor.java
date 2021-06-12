@@ -116,6 +116,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
     /**
      * Same version of init, but specifies mLoadAndStartOnly.
+     *
      * @param loadAndStartOnly Sets mLoadAndStartOnly.
      */
     public void init(boolean loadAndStartOnly) {
@@ -127,16 +128,22 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
     /**
      * @param timeout The amount of time to run the stress test.
-     * @param unit The unit for timeout.
+     * @param unit    The unit for timeout.
      */
     public void runStressTest(long timeout, TimeUnit unit) {
+        ChreStressTest.TestCommand.Feature[] features = {
+                ChreStressTest.TestCommand.Feature.WIFI,
+                ChreStressTest.TestCommand.Feature.GNSS_LOCATION,
+                ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT,
+                ChreStressTest.TestCommand.Feature.WWAN,
+        };
+
         mTestResult.set(null);
         mCountDownLatch = new CountDownLatch(1);
 
-        sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, true /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, true /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, true /* start */);
-        sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, true /* start */);
+        for (ChreStressTest.TestCommand.Feature feature : features) {
+            sendTestMessage(feature, true /* start */);
+        }
 
         if (!mLoadAndStartOnly) {
             try {
@@ -155,10 +162,9 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
                 }
             }
 
-            sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI, false /* start */);
-            sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_LOCATION, false /* start */);
-            sendTestMessage(ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT, false /* start */);
-            sendTestMessage(ChreStressTest.TestCommand.Feature.WWAN, false /* start */);
+            for (ChreStressTest.TestCommand.Feature feature : features) {
+                sendTestMessage(feature, false /* start */);
+            }
 
             try {
                 // Add a short delay to make sure the stop command did not cause issues.
@@ -187,7 +193,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
     /**
      * @param feature The feature to start testing for.
-     * @param start true to start the test, false to stop.
+     * @param start   true to start the test, false to stop.
      */
     private void sendTestMessage(ChreStressTest.TestCommand.Feature feature, boolean start) {
         ChreStressTest.TestCommand testCommand = ChreStressTest.TestCommand.newBuilder()
