@@ -164,33 +164,9 @@ void Manager::handleDataFromChre(uint16_t eventType, const void *eventData) {
 
 void Manager::handleTimerEvent(const uint32_t *handle) {
   if (*handle == mWifiScanTimerHandle) {
-    if (mWifiScanAsyncRequest.has_value()) {
-      if (chreGetTime() > (mWifiScanAsyncRequest->requestTimeNs +
-                           CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS)) {
-        sendFailure("Prev WiFi scan did not complete in time");
-      }
-    } else {
-      // NOTE: We set the maxScanAgeMs to something smaller than the WiFi
-      // scan periodicity to ensure new scans are generated.
-      static const struct chreWifiScanParams params = {
-          /*.scanType=*/CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE,
-          /*.maxScanAgeMs=*/2000,  // 2 seconds
-          /*.frequencyListLen=*/0,
-          /*.frequencyList=*/NULL,
-          /*.ssidListLen=*/0,
-          /*.ssidList=*/NULL,
-          /*.radioChainPref=*/CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
-          /*.channelSet=*/CHRE_WIFI_CHANNEL_SET_NON_DFS};
-
-      bool success =
-          chreWifiRequestScanAsync(&params, &kOnDemandWifiScanCookie);
-      LOGI("Requested on demand wifi success ? %d", success);
-      if (success) {
-        mWifiScanAsyncRequest = AsyncRequest(&kOnDemandWifiScanCookie);
-      }
-    }
-
-    requestDelayedWifiScan();
+    handleDelayedWifiTimer();
+  } else if (*handle == mWifiScanAsyncTimerHandle) {
+    sendFailure("WiFi scan request timed out");
   } else if (*handle == mGnssLocationTimerHandle) {
     makeGnssLocationRequest();
   } else if (*handle == mGnssMeasurementTimerHandle) {
@@ -208,6 +184,30 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
   }
 }
 
+void Manager::handleDelayedWifiTimer() {
+  // NOTE: We set the maxScanAgeMs to something smaller than the WiFi
+  // scan periodicity to ensure new scans are generated.
+  static const struct chreWifiScanParams params = {
+      /*.scanType=*/CHRE_WIFI_SCAN_TYPE_NO_PREFERENCE,
+      /*.maxScanAgeMs=*/2000,  // 2 seconds
+      /*.frequencyListLen=*/0,
+      /*.frequencyList=*/NULL,
+      /*.ssidListLen=*/0,
+      /*.ssidList=*/NULL,
+      /*.radioChainPref=*/CHRE_WIFI_RADIO_CHAIN_PREF_DEFAULT,
+      /*.channelSet=*/CHRE_WIFI_CHANNEL_SET_NON_DFS};
+
+  bool success = chreWifiRequestScanAsync(&params, &kOnDemandWifiScanCookie);
+  LOGI("Requested on demand wifi success ? %d", success);
+  if (!success) {
+    sendFailure("Failed to make WiFi scan request");
+  } else {
+    mWifiScanAsyncRequest = AsyncRequest(&kOnDemandWifiScanCookie);
+    setTimer(CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS, true /* oneShot */,
+             &mWifiScanAsyncTimerHandle);
+  }
+}
+
 void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
   if (result->requestType == CHRE_WIFI_REQUEST_TYPE_REQUEST_SCAN) {
     if (result->success) {
@@ -222,7 +222,9 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
       sendFailure("On-demand scan cookie mismatch");
     }
 
+    cancelTimer(&mWifiScanAsyncTimerHandle);
     mWifiScanAsyncRequest.reset();
+    requestDelayedWifiScan();
   } else {
     sendFailure("Unknown WiFi async result type");
   }
