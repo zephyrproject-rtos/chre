@@ -316,8 +316,26 @@ struct ChppClient {
   //! Pointer to the function that deinitializes the client.
   ChppClientDeinitFunction *deinitFunctionPtr;
 
+  //! Pointer to the client's array of request-response states. May be NULL if
+  //! rRStateCount is 0.
+  struct ChppRequestResponseState *rRStates;
+
+  //! Number of request-response states in the rRStates array. This is a
+  //! uint16_t to match the uint16_t command in struct ChppAppHeader.
+  uint16_t rRStateCount;
+
   //! Minimum valid length of datagrams for the service.
   size_t minLength;
+};
+
+/**
+ * Request status for clients.
+ */
+enum ChppRequestState {
+  CHPP_REQUEST_STATE_NONE = 0,              // No request sent ever
+  CHPP_REQUEST_STATE_REQUEST_SENT = 1,      // Sent but no response yet
+  CHPP_REQUEST_STATE_RESPONSE_RCV = 2,      // Sent and response received
+  CHPP_REQUEST_STATE_RESPONSE_TIMEOUT = 3,  // Timeout. Responded as need be
 };
 
 /**
@@ -327,9 +345,15 @@ struct ChppClient {
  * client or service (one per every every request/response functionality).
  */
 struct ChppRequestResponseState {
-  uint64_t requestTimeNs;   // Time of the last request
-  uint64_t responseTimeNs;  // Time of the last response
-  uint8_t transaction;      // Transaction ID for the last request/response
+  uint64_t requestTimeNs;  // Time of the last request
+  uint64_t
+      responseTimeNs;  // If requestState is CHPP_REQUEST_STATE_REQUEST_SENT,
+                       // indicates the timeout time for the request
+                       // If requestState is CHPP_REQUEST_STATE_RESPONSE_RCV,
+                       // indicates when the response was received
+
+  uint8_t requestState;  // From enum ChppRequestState
+  uint8_t transaction;   // Transaction ID for the last request/response
 };
 
 /**
@@ -364,6 +388,8 @@ struct ChppAppState {
   const struct ChppClient *registeredClients[CHPP_MAX_REGISTERED_CLIENTS];
 
   void *registeredClientContexts[CHPP_MAX_REGISTERED_CLIENTS];
+
+  uint64_t nextRequestTimeoutNs;
 
   uint8_t
       clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
