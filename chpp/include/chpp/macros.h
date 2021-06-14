@@ -43,6 +43,10 @@ extern "C" {
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+#endif
+
 #ifndef CHPP_ASSERT
 #define CHPP_ASSERT(var) assert(var)
 #endif
@@ -88,6 +92,7 @@ extern "C" {
 
 // Time-related macros
 #define CHPP_TIME_NONE 0
+#define CHPP_TIME_MAX UINT64_MAX
 #define CHPP_MSEC_PER_SEC UINT64_C(1000)
 #define CHPP_USEC_PER_MSEC UINT64_C(1000)
 #define CHPP_NSEC_PER_USEC UINT64_C(1000)
