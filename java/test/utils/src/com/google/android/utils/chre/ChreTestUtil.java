@@ -157,22 +157,27 @@ public class ChreTestUtil {
     public static String executeShellCommand(Instrumentation instrumentation, String command) {
         final ParcelFileDescriptor pfd = instrumentation.getUiAutomation()
                 .executeShellCommand(command);
-        StringBuilder out = new StringBuilder();
         try (InputStream in = new FileInputStream(pfd.getFileDescriptor())) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in,
-                    StandardCharsets.UTF_8));
-            String str = null;
-            while ((str = br.readLine()) != null) {
-                out.append(str);
-            }
-
-            closeOrAssert(br);
-        } catch (IOException e) {
+            return readFromInputStream(in);
+        } catch (Exception e) {
             Assert.fail(e.getMessage());
+        } finally {
+            closeOrAssert(pfd);
         }
+        return null;
+    }
 
-        closeOrAssert(pfd);
-        return out.toString();
+    /**
+     * Executes a given shell command using the app context rather than the shells so that the app's
+     * permissions are used.
+     *
+     * @param command         The shell command to execute.
+     * @return The string output.
+     */
+    public static String executeShellCommandWithAppPerms(String command) throws Exception {
+        final Process process = Runtime.getRuntime().exec(command);
+        process.waitFor();
+        return readFromInputStream(process.getInputStream());
     }
 
     /**
@@ -242,6 +247,19 @@ public class ChreTestUtil {
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
+    }
+
+    private static String readFromInputStream(InputStream in) throws Exception {
+        StringBuilder out = new StringBuilder();
+        BufferedReader br = new BufferedReader(new InputStreamReader(in,
+                StandardCharsets.UTF_8));
+        String str = null;
+        while ((str = br.readLine()) != null) {
+            out.append(str);
+        }
+
+        closeOrAssert(br);
+        return out.toString();
     }
 
     /**
