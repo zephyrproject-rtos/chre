@@ -58,6 +58,27 @@ static void chppGnssClientNotifyMatch(void *clientContext);
  ***********************************************/
 
 /**
+ * Structure to maintain state for the GNSS client and its Request/Response
+ * (RR) functionality.
+ */
+struct ChppGnssClientState {
+  struct ChppClientState client;     // GNSS client state
+  const struct chrePalGnssApi *api;  // GNSS PAL API
+
+  struct ChppRequestResponseState rRState[CHPP_GNSS_CLIENT_REQUEST_MAX + 1];
+
+  uint32_t capabilities;           // Cached GetCapabilities result
+  bool requestStateResyncPending;  // requestStateResync() is waiting to be
+                                   // processed
+};
+
+// Note: This global definition of gGnssClientContext supports only one
+// instance of the CHPP GNSS client at a time.
+struct ChppGnssClientState gGnssClientContext;
+static const struct chrePalSystemApi *gSystemApi;
+static const struct chrePalGnssCallbacks *gCallbacks;
+
+/**
  * Configuration parameters for this client
  */
 static const struct ChppClient kGnssClientConfig = {
@@ -86,30 +107,15 @@ static const struct ChppClient kGnssClientConfig = {
     // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppGnssClientDeinit,
 
+    // Pointer to array of request-response states
+    .rRStates = gGnssClientContext.rRState,
+
+    // Number of request-response states in the rRStates array.
+    .rRStateCount = ARRAY_SIZE(gGnssClientContext.rRState),
+
     // Min length is the entire header
     .minLength = sizeof(struct ChppAppHeader),
 };
-
-/**
- * Structure to maintain state for the GNSS client and its Request/Response
- * (RR) functionality.
- */
-struct ChppGnssClientState {
-  struct ChppClientState client;     // GNSS client state
-  const struct chrePalGnssApi *api;  // GNSS PAL API
-
-  struct ChppRequestResponseState rRState[CHPP_GNSS_CLIENT_REQUEST_MAX + 1];
-
-  uint32_t capabilities;           // Cached GetCapabilities result
-  bool requestStateResyncPending;  // requestStateResync() is waiting to be
-                                   // processed
-};
-
-// Note: This global definition of gGnssClientContext supports only one
-// instance of the CHPP GNSS client at a time.
-struct ChppGnssClientState gGnssClientContext;
-static const struct chrePalSystemApi *gSystemApi;
-static const struct chrePalGnssCallbacks *gCallbacks;
 
 /************************************************
  *  Prototypes
@@ -177,6 +183,7 @@ static enum ChppAppErrorCode chppDispatchGnssResponse(void *clientContext,
     error = CHPP_APP_ERROR_INVALID_COMMAND;
 
   } else if (!chppClientTimestampResponse(
+                 &gnssClientContext->client,
                  &gnssClientContext->rRState[rxHeader->command], rxHeader)) {
     error = CHPP_APP_ERROR_UNEXPECTED_RESPONSE;
 
@@ -707,7 +714,7 @@ static bool chppGnssClientControlLocationSession(bool enable,
     result = chppSendTimestampedRequestOrFail(
         &gGnssClientContext.client,
         &gGnssClientContext.rRState[CHPP_GNSS_CONTROL_LOCATION_SESSION],
-        request, sizeof(*request));
+        request, sizeof(*request), CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS);
   }
 
   return result;
@@ -753,7 +760,7 @@ static bool chppGnssClientControlMeasurementSession(bool enable,
     result = chppSendTimestampedRequestOrFail(
         &gGnssClientContext.client,
         &gGnssClientContext.rRState[CHPP_GNSS_CONTROL_MEASUREMENT_SESSION],
-        request, sizeof(*request));
+        request, sizeof(*request), CHRE_GNSS_ASYNC_RESULT_TIMEOUT_NS);
   }
 
   return result;
@@ -800,7 +807,7 @@ static bool chppGnssClientConfigurePassiveLocationListener(bool enable) {
         &gGnssClientContext.client,
         &gGnssClientContext
              .rRState[CHPP_GNSS_CONFIGURE_PASSIVE_LOCATION_LISTENER],
-        request, sizeof(*request));
+        request, sizeof(*request), CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT);
   }
 
   return result;

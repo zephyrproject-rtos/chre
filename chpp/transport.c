@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "chpp/app.h"
+#include "chpp/clients.h"
 #include "chpp/clients/discovery.h"
 #include "chpp/crc.h"
 #include "chpp/link.h"
@@ -77,8 +78,6 @@ static void chppClearTxDatagramQueue(struct ChppTransportState *context);
 static void chppTransportDoWork(struct ChppTransportState *context);
 static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
                                         const uint8_t *buf, size_t len);
-static void chppAppendToPendingTxPacket(struct PendingTxPacket *packet,
-                                        const uint8_t *buf, size_t len);
 static const char *chppGetPacketAttrStr(uint8_t packetCode);
 static bool chppEnqueueTxDatagram(struct ChppTransportState *context,
                                   uint8_t packetCode, void *buf, size_t len);
@@ -87,6 +86,8 @@ static void chppResetTransportContext(struct ChppTransportState *context);
 static void chppReset(struct ChppTransportState *context,
                       enum ChppTransportPacketAttributes resetType,
                       enum ChppTransportErrorCode error);
+struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
+    struct ChppTransportState *context);
 
 /************************************************
  *  Private Functions
@@ -925,10 +926,11 @@ static void chppClearTxDatagramQueue(struct ChppTransportState *context) {
  * @param context Maintains status for each transport layer instance.
  */
 static void chppTransportDoWork(struct ChppTransportState *context) {
-  // Note: For a future ACK window >1, there needs to be a loop outside the lock
   bool havePacketForLinkLayer = false;
   struct ChppTransportHeader *txHeader;
+  struct ChppAppHeader *timeoutResponse;
 
+  // Note: For a future ACK window >1, there needs to be a loop outside the lock
   chppMutexLock(&context->mutex);
 
   if (context->txStatus.hasPacketsToSend && !context->txStatus.linkBusy) {
@@ -1007,6 +1009,15 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
       // here to release the contents of pendingTxPacket.
       chppLinkSendDoneCb(&context->linkParams, error);
     }
+  }
+
+  timeoutResponse = chppTransportGetClientRequestTimeoutResponse(context);
+  if (timeoutResponse != NULL) {
+    CHPP_LOGE("Response timeout H#%" PRIu8 " cmd=%" PRIu16 " ID=%" PRIu8,
+              timeoutResponse->handle, timeoutResponse->command,
+              timeoutResponse->transaction);
+    chppAppProcessRxDatagram(context->appContext, (uint8_t *)timeoutResponse,
+                             sizeof(struct ChppAppHeader));
   }
 }
 
@@ -1191,6 +1202,78 @@ static void chppReset(struct ChppTransportState *transportContext,
   }
 }
 
+/**
+ * Checks for a timed out client request and generates a timeout response if a
+ * client request timeout has occurred.
+ *
+ * @param context Maintains status for each transport layer instance.
+ * @return App layer response header if a timeout has occurred. Null otherwise.
+ */
+struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
+    struct ChppTransportState *context) {
+  struct ChppAppHeader *response = NULL;
+
+  bool timeoutClientFound = false;
+  uint8_t timedOutClient;
+  uint16_t timedOutCmd;
+
+  chppMutexLock(&context->mutex);
+
+  if (context->appContext->nextRequestTimeoutNs <= chppGetCurrentTimeNs()) {
+    // Determine which request has timed out
+
+    uint64_t lowestTimeout = CHPP_TIME_MAX;
+    for (uint8_t clientIdx = 0;
+         clientIdx < context->appContext->registeredClientCount; clientIdx++) {
+      for (uint16_t cmdIdx = 0;
+           cmdIdx <
+           context->appContext->registeredClients[clientIdx]->rRStateCount;
+           cmdIdx++) {
+        struct ChppRequestResponseState *rRState =
+            &context->appContext->registeredClients[clientIdx]
+                 ->rRStates[cmdIdx];
+
+        if (rRState->requestState == CHPP_REQUEST_STATE_REQUEST_SENT &&
+            rRState->responseTimeNs != CHPP_TIME_NONE &&
+            rRState->responseTimeNs < lowestTimeout) {
+          lowestTimeout = rRState->responseTimeNs;
+          timedOutClient = clientIdx;
+          timedOutCmd = cmdIdx;
+          timeoutClientFound = true;
+        }
+      }
+    }
+
+    if (!timeoutClientFound) {
+      CHPP_LOGE("Timeout at %" PRIu64 " but no client",
+                context->appContext->nextRequestTimeoutNs);
+      chppClientRecalculateNextTimeout(context->appContext);
+    }
+  }
+
+  if (timeoutClientFound) {
+    CHPP_LOGE("Client=%" PRIu8 " cmd=%" PRIu16 " timed out", timedOutClient,
+              timedOutCmd);
+    response = chppMalloc(sizeof(struct ChppAppHeader));
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      response->handle = CHPP_SERVICE_HANDLE_OF_INDEX(timedOutClient);
+      response->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+      response->transaction =
+          context->appContext->registeredClients[timedOutClient]
+              ->rRStates[timedOutCmd]
+              .transaction;
+      response->error = CHPP_APP_ERROR_TIMEOUT;
+      response->command = timedOutCmd;
+    }
+  }
+
+  chppMutexUnlock(&context->mutex);
+
+  return response;
+}
+
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -1362,23 +1445,27 @@ void chppEnqueueTxErrorDatagram(struct ChppTransportState *context,
 
 uint64_t chppTransportGetTimeUntilNextDoWorkNs(
     struct ChppTransportState *context) {
-  uint64_t time = chppGetCurrentTimeNs();
+  uint64_t currentTime = chppGetCurrentTimeNs();
+  uint64_t nextDoWorkTime = context->appContext->nextRequestTimeoutNs;
 
-  if ((!context->txStatus.hasPacketsToSend &&
-       (context->resetState != CHPP_RESET_STATE_RESETTING)) ||
-      (context->resetState == CHPP_RESET_STATE_PERMANENT_FAILURE)) {
+  if (context->txStatus.hasPacketsToSend ||
+      context->resetState == CHPP_RESET_STATE_RESETTING) {
+    nextDoWorkTime =
+        MIN(nextDoWorkTime, CHPP_TRANSPORT_TX_TIMEOUT_NS +
+                                ((context->txStatus.lastTxTimeNs == 0)
+                                     ? currentTime
+                                     : context->txStatus.lastTxTimeNs));
+  }
+
+  CHPP_LOGD("NextDoWork=%" PRIu64 " currentTime=%" PRIu64 " delta=%" PRId64,
+            nextDoWorkTime, currentTime, nextDoWorkTime - currentTime);
+
+  if (nextDoWorkTime == CHPP_TIME_MAX) {
     return CHPP_TRANSPORT_TIMEOUT_INFINITE;
-
-  } else if (context->txStatus.lastTxTimeNs == 0) {
-    // No packets sent yet
-    return CHPP_TRANSPORT_TX_TIMEOUT_NS;
-
-  } else if (time >
-             CHPP_TRANSPORT_TX_TIMEOUT_NS + context->txStatus.lastTxTimeNs) {
+  } else if (nextDoWorkTime <= currentTime) {
     return CHPP_TRANSPORT_TIMEOUT_IMMEDIATE;
-
   } else {
-    return CHPP_TRANSPORT_TX_TIMEOUT_NS + context->txStatus.lastTxTimeNs - time;
+    return nextDoWorkTime - currentTime;
   }
 }
 
