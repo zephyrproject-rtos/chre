@@ -28,6 +28,7 @@ cc_library_static {
     name: "chre_chpp_linux",
     vendor: true,
     cflags: [
+        "-std=c89",
         "-Wall",
         "-Wcast-align",
         "-Wcast-qual",

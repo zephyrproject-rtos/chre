@@ -529,7 +529,7 @@ static void chppProcessPredefinedHandleDatagram(struct ChppAppState *context,
 
 /**
  * Processes a received datagram that is determined to be for a negotiated CHPP
- * service. Responds with an error if unsuccessful.
+ * client or service. Responds with an error if unsuccessful.
  *
  * @param context Maintains status for each app layer instance.
  * @param buf Input data. Cannot be null.
@@ -626,6 +626,7 @@ void chppAppInitWithClientServiceSet(
 
   appContext->clientServiceSet = clientServiceSet;
   appContext->transportContext = transportContext;
+  appContext->nextRequestTimeoutNs = CHPP_TIME_MAX;
 
   chppPalSystemApiInit(appContext);
 
