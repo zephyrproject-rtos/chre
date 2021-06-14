@@ -38,7 +38,7 @@ static void *linkSendThread(void *arg) {
   struct ChppPlatformLinkParameters *params =
       (struct ChppPlatformLinkParameters *)arg;
   while (true) {
-    uint32_t signal = chppNotifierTimedWait(&params->notifier, UINT64_MAX);
+    uint32_t signal = chppNotifierTimedWait(&params->notifier, CHPP_TIME_MAX);
 
     if (signal & SIGNAL_EXIT) {
       break;

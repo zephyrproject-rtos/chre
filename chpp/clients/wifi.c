@@ -66,6 +66,28 @@ static void chppWifiClientNotifyMatch(void *clientContext);
  ***********************************************/
 
 /**
+ * Structure to maintain state for the WiFi client and its Request/Response
+ * (RR) functionality.
+ */
+struct ChppWifiClientState {
+  struct ChppClientState client;     // WiFi client state
+  const struct chrePalWifiApi *api;  // WiFi PAL API
+
+  struct ChppRequestResponseState rRState[CHPP_WIFI_CLIENT_REQUEST_MAX + 1];
+
+  uint32_t capabilities;            // Cached GetCapabilities result
+  bool scanMonitorEnabled;          // Scan monitoring is enabled
+  bool scanMonitorSilenceCallback;  // Silence callback during recovery from a
+                                    // service reset
+};
+
+// Note: This global definition of gWifiClientContext supports only one
+// instance of the CHPP WiFi client at a time.
+struct ChppWifiClientState gWifiClientContext;
+static const struct chrePalSystemApi *gSystemApi;
+static const struct chrePalWifiCallbacks *gCallbacks;
+
+/**
  * Configuration parameters for this client
  */
 static const struct ChppClient kWifiClientConfig = {
@@ -94,31 +116,15 @@ static const struct ChppClient kWifiClientConfig = {
     // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppWifiClientDeinit,
 
+    // Pointer to array of request-response states
+    .rRStates = gWifiClientContext.rRState,
+
+    // Number of request-response states in the rRStates array.
+    .rRStateCount = ARRAY_SIZE(gWifiClientContext.rRState),
+
     // Min length is the entire header
     .minLength = sizeof(struct ChppAppHeader),
 };
-
-/**
- * Structure to maintain state for the WiFi client and its Request/Response
- * (RR) functionality.
- */
-struct ChppWifiClientState {
-  struct ChppClientState client;     // WiFi client state
-  const struct chrePalWifiApi *api;  // WiFi PAL API
-
-  struct ChppRequestResponseState rRState[CHPP_WIFI_CLIENT_REQUEST_MAX + 1];
-
-  uint32_t capabilities;            // Cached GetCapabilities result
-  bool scanMonitorEnabled;          // Scan monitoring is enabled
-  bool scanMonitorSilenceCallback;  // Silence callback during recovery from a
-                                    // service reset
-};
-
-// Note: This global definition of gWifiClientContext supports only one
-// instance of the CHPP WiFi client at a time.
-struct ChppWifiClientState gWifiClientContext;
-static const struct chrePalSystemApi *gSystemApi;
-static const struct chrePalWifiCallbacks *gCallbacks;
 
 /************************************************
  *  Prototypes
@@ -183,6 +189,7 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
     error = CHPP_APP_ERROR_INVALID_COMMAND;
 
   } else if (!chppClientTimestampResponse(
+                 &wifiClientContext->client,
                  &wifiClientContext->rRState[rxHeader->command], rxHeader)) {
     error = CHPP_APP_ERROR_UNEXPECTED_RESPONSE;
 
@@ -729,7 +736,7 @@ static bool chppWifiClientConfigureScanMonitor(bool enable) {
     result = chppSendTimestampedRequestOrFail(
         &gWifiClientContext.client,
         &gWifiClientContext.rRState[CHPP_WIFI_CONFIGURE_SCAN_MONITOR_ASYNC],
-        request, sizeof(*request));
+        request, sizeof(*request), CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT);
   }
 
   return result;
@@ -761,7 +768,7 @@ static bool chppWifiClientRequestScan(const struct chreWifiScanParams *params) {
     result = chppSendTimestampedRequestOrFail(
         &gWifiClientContext.client,
         &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_SCAN_ASYNC], request,
-        requestLen);
+        requestLen, CHRE_WIFI_SCAN_RESULT_TIMEOUT_NS);
   }
 
   return result;
@@ -812,7 +819,7 @@ static bool chppWifiClientRequestRanging(
     result = chppSendTimestampedRequestOrFail(
         &gWifiClientContext.client,
         &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_RANGING_ASYNC], request,
-        requestLen);
+        requestLen, CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS);
   }
 
   return result;

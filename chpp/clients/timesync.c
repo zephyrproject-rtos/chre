@@ -103,6 +103,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
   const struct ChppTimesyncResponse *response =
       (const struct ChppTimesyncResponse *)buf;
   if (chppClientTimestampResponse(
+          &context->timesyncClientContext->client,
           &context->timesyncClientContext->measureOffset, &response->header)) {
     context->timesyncClientContext->timesyncResult.rttNs =
         context->timesyncClientContext->measureOffset.responseTimeNs -
@@ -165,7 +166,7 @@ bool chppTimesyncMeasureOffset(struct ChppAppState *context) {
   } else if (!chppSendTimestampedRequestOrFail(
                  &context->timesyncClientContext->client,
                  &context->timesyncClientContext->measureOffset, request,
-                 requestLen)) {
+                 requestLen, CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE)) {
     context->timesyncClientContext->timesyncResult.error =
         CHPP_APP_ERROR_UNSPECIFIED;
 
