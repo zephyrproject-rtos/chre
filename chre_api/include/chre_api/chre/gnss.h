@@ -149,13 +149,8 @@ extern "C" {
 /**
  * The maximum number of instances of struct chreGnssMeasurement that may be
  * included in a single struct chreGnssDataEvent.
- *
- * The value of this struct was increased from 64 to 128 in CHRE v1.5. For
- * nanoapps targeting CHRE v1.4 or lower, the measurement_count will be capped
- * at 64.
  */
-#define CHRE_GNSS_MAX_MEASUREMENT  UINT8_C(128)
-#define CHRE_GNSS_MAX_MEASUREMENT_PRE_1_5  UINT8_C(64)
+#define CHRE_GNSS_MAX_MEASUREMENT  UINT8_C(64)
 
 // Flags indicating the GNSS measurement state (ref: GnssMeasurementState)
 #define CHRE_GNSS_MEASUREMENT_STATE_UNKNOWN                UINT16_C(0)
