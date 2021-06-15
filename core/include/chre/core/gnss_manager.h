@@ -291,14 +291,6 @@ class GnssSession {
                       uint32_t instanceId);
 
   /**
-   * @param nanoapp A reference to the nanoapp.
-   *
-   * @return The group ID mask that should be used to broadcast the event for
-   * this GNSS session given the nanoapp.
-   */
-  uint16_t getGroupIdMask(const Nanoapp &nanoapp) const;
-
-  /**
    * Posts the result of a GNSS session add/remove request.
    *
    * @param instanceId The nanoapp instance ID that made the request.
