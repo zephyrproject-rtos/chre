@@ -21,9 +21,14 @@
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre_api/chre/gnss.h"
 #include "chre_api/chre/version.h"
 
 #include <algorithm>
+
+#if CHRE_FIRST_SUPPORTED_API_VERSION < CHRE_API_VERSION_1_5
+#define CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+#endif
 
 namespace chre {
 
@@ -122,7 +127,11 @@ Event *Nanoapp::processNextEvent() {
 
   CHRE_ASSERT_LOG(event != nullptr, "Tried delivering event, but queue empty");
   if (event != nullptr) {
-    handleEvent(event->senderInstanceId, event->eventType, event->eventData);
+    if (event->eventType == CHRE_EVENT_GNSS_DATA) {
+      handleGnssMeasurementDataEvent(event);
+    } else {
+      handleEvent(event->senderInstanceId, event->eventType, event->eventData);
+    }
   }
 
   return event;
@@ -177,6 +186,23 @@ size_t Nanoapp::registrationIndex(uint16_t eventType) const {
     }
   }
   return foundIndex;
+}
+
+void Nanoapp::handleGnssMeasurementDataEvent(const Event *event) {
+#ifdef CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+  const struct chreGnssDataEvent *data =
+      static_cast<const struct chreGnssDataEvent *>(event->eventData);
+  if (getTargetApiVersion() < CHRE_API_VERSION_1_5 &&
+      data->measurement_count > CHRE_GNSS_MAX_MEASUREMENT_PRE_1_5) {
+    chreGnssDataEvent localEvent;
+    memcpy(&localEvent, data, sizeof(struct chreGnssDataEvent));
+    localEvent.measurement_count = CHRE_GNSS_MAX_MEASUREMENT_PRE_1_5;
+    handleEvent(event->senderInstanceId, event->eventType, &localEvent);
+  } else
+#endif  // CHRE_GNSS_MEASUREMENT_BACK_COMPAT_ENABLED
+  {
+    handleEvent(event->senderInstanceId, event->eventType, event->eventData);
+  }
 }
 
 }  // namespace chre
