@@ -791,12 +791,13 @@ static void loadPreloadedNanoapps() {
       "/vendor/etc/chre/preloaded_nanoapps.json";
   std::ifstream configFileStream(kPreloadedNanoappsConfigPath);
 
-  Json::Reader reader;
+  Json::CharReaderBuilder builder;
   Json::Value config;
   if (!configFileStream) {
     LOGE("Failed to open config file '%s': %d (%s)",
          kPreloadedNanoappsConfigPath, errno, strerror(errno));
-  } else if (!reader.parse(configFileStream, config)) {
+  } else if (!Json::parseFromStream(builder, configFileStream, &config,
+                                    /* errorMessage = */ nullptr)) {
     LOGE("Failed to parse nanoapp config file");
   } else if (!config.isMember("nanoapps") || !config.isMember("source_dir")) {
     LOGE("Malformed preloaded nanoapps config");
