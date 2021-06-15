@@ -244,6 +244,14 @@ class Nanoapp : public PlatformNanoapp {
   //! @return index of event registration if found. mRegisteredEvents.size() if
   //!     not.
   size_t registrationIndex(uint16_t eventType) const;
+
+  /**
+   * A special function to deliver GNSS measurement events to nanoapps and
+   * handles version compatibility.
+   *
+   * @param event The pointer to the event
+   */
+  void handleGnssMeasurementDataEvent(const Event *event);
 };
 
 }  // namespace chre
