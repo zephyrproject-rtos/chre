@@ -63,9 +63,9 @@ class ClientsTest : public testing::Test {
 
 void getClientRRStateInputCheck(struct ChppClientState *clientState,
                                 struct ChppAppHeader *header) {
+  ASSERT_TRUE(clientState != NULL);
   uint8_t clientIdx = clientState->index;
 
-  ASSERT_TRUE(clientState != NULL);
   ASSERT_TRUE(clientState->appContext != NULL);
   ASSERT_TRUE(clientState->appContext->registeredClients != NULL);
   ASSERT_TRUE(clientState->appContext->registeredClients[clientIdx] != NULL);
@@ -111,9 +111,9 @@ void registerAndValidateRequestForTimeout(struct ChppClientState *clientState,
 void registerAndValidateResponseForTimeout(struct ChppClientState *clientState,
                                            const struct ChppAppHeader *header,
                                            uint64_t expectedTimeNs) {
+  ASSERT_FALSE(clientState == NULL);
   uint8_t clientIdx = clientState->index;
 
-  ASSERT_FALSE(clientState == NULL);
   ASSERT_FALSE(clientState->appContext == NULL);
   ASSERT_FALSE(clientState->appContext->registeredClients == NULL);
   ASSERT_FALSE(clientState->appContext->registeredClients[clientIdx] == NULL);
