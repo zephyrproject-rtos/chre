@@ -132,7 +132,7 @@ public class ContextHubFrameworkPermissionsTestExecutor extends ContextHubClient
 
         // No need to grant our package again since the denial will be tied to
         // the current contexthubclient which is only used by this test.
-        ChreTestUtil.executeShellCommand(mInstrumentation,
+        ChreTestUtil.executeShellCommandWithAppPerms(
                 "cmd contexthub deny " + mContextHubInfo.getId()
                 + " " + mContext.getPackageName() + " " + mNanoAppId);
 
