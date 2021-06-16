@@ -85,6 +85,14 @@ class GnssSession {
   void handleReportEvent(void *event);
 
   /**
+   * @return true if an async response is pending from GNSS. This method should
+   * be used to check if a GNSS session request is in flight.
+   */
+  bool asyncResponsePending() const {
+    return !mStateTransitions.empty() || mInternalRequestPending;
+  }
+
+  /**
    * Invoked when the host notifies CHRE of a settings change.
    *
    * @param setting The setting that changed.
@@ -93,7 +101,9 @@ class GnssSession {
   void onSettingChanged(Setting setting, SettingState state);
 
   /**
-   * Updates the platform GNSS request according to the current state.
+   * Updates the platform GNSS request according to the current state. It should
+   * be used to synchronize the GNSS to the desired state, e.g. for setting
+   * updates or handling a state resync request.
    *
    * @param forceUpdate If true, force the platform GNSS request to be made.
    *
