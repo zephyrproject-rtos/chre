@@ -257,6 +257,10 @@ void GnssSession::handleStatusChange(bool enabled, uint8_t errorCode) {
 }
 
 void GnssSession::handleReportEvent(void *event) {
+  if (mRequests.empty()) {
+    LOGW("Unexpected %s event", mName);
+  }
+
   auto callback = [](uint16_t type, void *data, void * /*extraData*/) {
     uint16_t reportEventType;
     if (!getReportEventType(static_cast<SystemCallbackType>(type),
@@ -279,7 +283,7 @@ void GnssSession::handleReportEvent(void *event) {
 
 void GnssSession::onSettingChanged(Setting setting, SettingState state) {
   if (setting == Setting::LOCATION) {
-    if (!mStateTransitions.empty()) {
+    if (asyncResponsePending()) {
       // A request is in progress, so we wait until the async response arrives
       // to handle the state change.
       mSettingChangePending = true;
@@ -291,23 +295,25 @@ void GnssSession::onSettingChanged(Setting setting, SettingState state) {
 }
 
 bool GnssSession::updatePlatformRequest(bool forceUpdate) {
-  SettingState state = getSettingState(Setting::LOCATION);
-  bool chreDisable =
-      ((state == SettingState::DISABLED) && (mPlatformEnabled || forceUpdate));
-  bool chreEnable = ((state == SettingState::ENABLED) &&
-                     (!mPlatformEnabled || forceUpdate) && !mRequests.empty());
+  SettingState locationSetting = getSettingState(Setting::LOCATION);
+
+  bool desiredPlatformState =
+      (locationSetting == SettingState::ENABLED) && !mRequests.empty();
+  bool shouldUpdatePlatform =
+      forceUpdate ||
+      (desiredPlatformState != mPlatformEnabled) /* (enable/disable) */;
 
   bool requestPending = false;
-  if (chreEnable || chreDisable) {
-    if (controlPlatform(chreEnable, mCurrentInterval,
+  if (shouldUpdatePlatform) {
+    if (controlPlatform(desiredPlatformState, mCurrentInterval,
                         Milliseconds(0) /* minTimeToNext */)) {
-      LOGD("Configured GNSS %s: setting state %" PRIu8, mName,
-           static_cast<uint8_t>(state));
-      addSessionRequestLog(CHRE_INSTANCE_ID, mCurrentInterval, chreEnable);
+      LOGD("Configured GNSS %s: enable %d", mName, desiredPlatformState);
+      addSessionRequestLog(CHRE_INSTANCE_ID, mCurrentInterval,
+                           desiredPlatformState);
       requestPending = true;
     } else {
-      LOGE("Failed to configure GNSS %s: setting state %" PRIu8, mName,
-           static_cast<uint8_t>(state));
+      LOGE("Failed to configure GNSS %s: enable %d", mName,
+           desiredPlatformState);
     }
   }
 
@@ -315,7 +321,7 @@ bool GnssSession::updatePlatformRequest(bool forceUpdate) {
 }
 
 void GnssSession::handleRequestStateResyncCallbackSync() {
-  if (!mStateTransitions.empty()) {
+  if (asyncResponsePending()) {
     // A request is in progress, so we wait until the async response arrives
     // to handle the resync callback.
     mResyncPending = true;
@@ -563,7 +569,7 @@ void GnssSession::postAsyncResultEventFatal(uint32_t instanceId, bool success,
 void GnssSession::handleStatusChangeSync(bool enabled, uint8_t errorCode) {
   bool success = (errorCode == CHRE_ERROR_NONE);
 
-  CHRE_ASSERT_LOG(!mStateTransitions.empty() || mInternalRequestPending,
+  CHRE_ASSERT_LOG(asyncResponsePending(),
                   "handleStatusChangeSync called with no transitions");
   if (mInternalRequestPending) {
     // Silently handle internal requests from CHRE, since they are not pushed
