@@ -207,14 +207,21 @@ static enum ChppAppErrorCode chppWwanServiceOpen(
 
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
-  if (!wwanServiceContext->api->open(
-          wwanServiceContext->service.appContext->systemApi, &palCallbacks)) {
-    CHPP_LOGE("CHPP WWAN PAL API initialization failed");
+  if (wwanServiceContext->service.openState == CHPP_OPEN_STATE_OPENED) {
+    CHPP_LOGE("WWAN service already open");
+    CHPP_DEBUG_ASSERT(false);
+    error = CHPP_APP_ERROR_INVALID_COMMAND;
+
+  } else if (!wwanServiceContext->api->open(
+                 wwanServiceContext->service.appContext->systemApi,
+                 &palCallbacks)) {
+    CHPP_LOGE("WWAN PAL open failed");
     CHPP_DEBUG_ASSERT(false);
     error = CHPP_APP_ERROR_BEYOND_CHPP;
 
   } else {
-    CHPP_LOGI("CHPP WWAN service initialized");
+    CHPP_LOGI("WWAN service opened");
+    wwanServiceContext->service.openState = CHPP_OPEN_STATE_OPENED;
 
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
@@ -247,7 +254,9 @@ static enum ChppAppErrorCode chppWwanServiceClose(
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   wwanServiceContext->api->close();
-  CHPP_LOGI("CHPP WWAN service deinitialized");
+  wwanServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
+
+  CHPP_LOGI("WWAN service closed");
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
