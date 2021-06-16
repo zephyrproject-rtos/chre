@@ -231,8 +231,6 @@ static enum ChppAppErrorCode chppDispatchGnssRequest(void *serviceContext,
 static enum ChppAppErrorCode chppGnssServiceOpen(
     struct ChppGnssServiceState *gnssServiceContext,
     struct ChppAppHeader *requestHeader) {
-  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
-
   static const struct chrePalGnssCallbacks palCallbacks = {
       .requestStateResync = chppGnssServiceRequestStateResyncCallback,
       .locationStatusChangeCallback =
@@ -243,14 +241,23 @@ static enum ChppAppErrorCode chppGnssServiceOpen(
       .measurementEventCallback = chppGnssServiceMeasurementEventCallback,
   };
 
-  if (!gnssServiceContext->api->open(
-          gnssServiceContext->service.appContext->systemApi, &palCallbacks)) {
-    error = CHPP_APP_ERROR_BEYOND_CHPP;
-    CHPP_LOGE("CHPP GNSS PAL API initialization failed");
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
+  if (gnssServiceContext->service.openState == CHPP_OPEN_STATE_OPENED) {
+    CHPP_LOGE("GNSS service already open");
     CHPP_DEBUG_ASSERT(false);
+    error = CHPP_APP_ERROR_INVALID_COMMAND;
+
+  } else if (!gnssServiceContext->api->open(
+                 gnssServiceContext->service.appContext->systemApi,
+                 &palCallbacks)) {
+    CHPP_LOGE("GNSS PAL open failed");
+    CHPP_DEBUG_ASSERT(false);
+    error = CHPP_APP_ERROR_BEYOND_CHPP;
 
   } else {
-    CHPP_LOGI("CHPP GNSS service initialized");
+    CHPP_LOGI("GNSS service opened");
+    gnssServiceContext->service.openState = CHPP_OPEN_STATE_OPENED;
 
     struct ChppAppHeader *response =
         chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
@@ -283,7 +290,9 @@ static enum ChppAppErrorCode chppGnssServiceClose(
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   gnssServiceContext->api->close();
-  CHPP_LOGI("CHPP GNSS service deinitialized");
+  gnssServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
+
+  CHPP_LOGI("GNSS service closed");
 
   struct ChppAppHeader *response =
       chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
