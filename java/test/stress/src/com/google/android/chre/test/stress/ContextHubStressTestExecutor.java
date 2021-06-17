@@ -132,7 +132,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
      */
     public void runStressTest(long timeout, TimeUnit unit) {
         ChreStressTest.TestCommand.Feature[] features = {
-                ChreStressTest.TestCommand.Feature.WIFI,
+                ChreStressTest.TestCommand.Feature.WIFI_ON_DEMAND_SCAN,
                 ChreStressTest.TestCommand.Feature.GNSS_LOCATION,
                 ChreStressTest.TestCommand.Feature.GNSS_MEASUREMENT,
                 ChreStressTest.TestCommand.Feature.WWAN,
