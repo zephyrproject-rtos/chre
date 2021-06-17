@@ -15,6 +15,8 @@
  */
 package com.google.android.chre.test.stress;
 
+import android.app.Instrumentation;
+import android.content.Context;
 import android.hardware.location.ContextHubClient;
 import android.hardware.location.ContextHubClientCallback;
 import android.hardware.location.ContextHubInfo;
@@ -22,7 +24,10 @@ import android.hardware.location.ContextHubManager;
 import android.hardware.location.ContextHubTransaction;
 import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
+import android.net.wifi.WifiManager;
 import android.util.Log;
+
+import androidx.test.InstrumentationRegistry;
 
 import com.google.android.chre.nanoapp.proto.ChreStressTest;
 import com.google.android.chre.nanoapp.proto.ChreTestCommon;
@@ -65,6 +70,10 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
     // time to wait for successful completion.
     private boolean mLoadAndStartOnly = false;
 
+    private final AtomicBoolean mWifiScanMonitorTriggered = new AtomicBoolean(false);
+
+    private final Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
+
     public ContextHubStressTestExecutor(ContextHubManager manager, ContextHubInfo info,
             NanoAppBinary binary) {
         mNanoAppBinary = binary;
@@ -76,6 +85,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
     @Override
     public void onMessageFromNanoApp(ContextHubClient client, NanoAppMessage message) {
         if (message.getNanoAppId() == mNanoAppId) {
+            Log.d(TAG, "Got message from nanoapp: " + message);
             boolean valid = false;
             switch (message.getMessageType()) {
                 case ChreStressTest.MessageType.TEST_RESULT_VALUE: {
@@ -86,6 +96,11 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
                     } catch (InvalidProtocolBufferException e) {
                         Log.e(TAG, "Failed to parse message: " + e.getMessage());
                     }
+                    break;
+                }
+                case ChreStressTest.MessageType.TEST_WIFI_SCAN_MONITOR_TRIGGERED_VALUE: {
+                    mWifiScanMonitorTriggered.set(true);
+                    valid = true;
                     break;
                 }
                 default: {
@@ -111,7 +126,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
      * Should be invoked before run() is invoked to set up the test, e.g. in a @Before method.
      */
     public void init() {
-        init(false /* loadAndStartOnly */);
+        init(false /* loadAndStartOnly */, false /* unloadOnly */);
     }
 
     /**
@@ -120,8 +135,21 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
      * @param loadAndStartOnly Sets mLoadAndStartOnly.
      */
     public void init(boolean loadAndStartOnly) {
+        init(loadAndStartOnly, false /* unloadOnly */);
+    }
+
+    /**
+     * Same version of init, but specifies mLoadAndStartOnly and unloadOnly.
+     *
+     * @param loadAndStartOnly Sets mLoadAndStartOnly.
+     * @param unloadOnly       Set to true if the nanoapp is already loaded.
+     */
+    public void init(boolean loadAndStartOnly, boolean unloadOnly) {
         mLoadAndStartOnly = loadAndStartOnly;
-        ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNanoAppBinary);
+        if (!unloadOnly) {
+            ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo,
+                    mNanoAppBinary);
+        }
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
         Assert.assertTrue(mContextHubClient != null);
     }
@@ -152,15 +180,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
                 Assert.fail(e.getMessage());
             }
 
-            if (mTestResult.get() != null
-                    && mTestResult.get().getCode() == ChreTestCommon.TestResult.Code.FAILED) {
-                if (mTestResult.get().hasErrorMessage()) {
-                    Assert.fail(new String(mTestResult.get().getErrorMessage().toByteArray(),
-                            StandardCharsets.UTF_8));
-                } else {
-                    Assert.fail("Stress test failed");
-                }
-            }
+            checkTestFailure();
 
             for (ChreStressTest.TestCommand.Feature feature : features) {
                 sendTestMessage(feature, false /* start */);
@@ -173,6 +193,50 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
                 Assert.fail(e.getMessage());
             }
         }
+    }
+
+    /**
+     * Sends a command to enable scan monitoring.
+     */
+    public void sendScanMonitorCommand() {
+        sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI_SCAN_MONITOR, true /* start */);
+    }
+
+    /**
+     * A test to verify whether a scan monitor request persists through WLAN restarts.
+     *
+     * The test framework is expected to perform the following operations prior to running this
+     * method.
+     * 1. Load the nanoapp through init() (with loadAndStartOnly enabled)
+     * 2. Invoke sendScanMonitorCommand
+     * 3. Restart the WLAN.
+     * 4. Keep the nanoapp loaded, and then run this test.
+     * 5. Unload the nanoapp after this test ends.
+     */
+    public void runWifiScanMonitorRestartTest() {
+        // Since the host connection may have reset, inform the nanoapp about this event.
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNanoAppId, ChreStressTest.MessageType.TEST_HOST_RESTARTED_VALUE,
+                new byte[0]);
+        sendMessageToNanoApp(message);
+
+        WifiManager manager = (WifiManager) mInstrumentation.getContext().getSystemService(
+                Context.WIFI_SERVICE);
+        Assert.assertNotNull(manager);
+
+        mWifiScanMonitorTriggered.set(false);
+        mCountDownLatch = new CountDownLatch(1);
+        manager.startScan();
+
+        try {
+            mCountDownLatch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
+        Assert.assertTrue(mWifiScanMonitorTriggered.get());
+        checkTestFailure();
+
+        sendTestMessage(ChreStressTest.TestCommand.Feature.WIFI_SCAN_MONITOR, false /* start */);
     }
 
     /**
@@ -202,9 +266,25 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
         NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
                 mNanoAppId, ChreStressTest.MessageType.TEST_COMMAND_VALUE,
                 testCommand.toByteArray());
+        sendMessageToNanoApp(message);
+    }
+
+    private void sendMessageToNanoApp(NanoAppMessage message) {
         int result = mContextHubClient.sendMessageToNanoApp(message);
         if (result != ContextHubTransaction.RESULT_SUCCESS) {
             Assert.fail("Failed to send message: result = " + result);
+        }
+    }
+
+    private void checkTestFailure() {
+        if (mTestResult.get() != null
+                && mTestResult.get().getCode() == ChreTestCommon.TestResult.Code.FAILED) {
+            if (mTestResult.get().hasErrorMessage()) {
+                Assert.fail(new String(mTestResult.get().getErrorMessage().toByteArray(),
+                        StandardCharsets.UTF_8));
+            } else {
+                Assert.fail("Stress test failed");
+            }
         }
     }
 }
