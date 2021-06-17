@@ -1197,9 +1197,7 @@ static void chppReset(struct ChppTransportState *transportContext,
   chppTransportSendReset(transportContext, resetType, error);
 
   // Inform the App Layer
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    chppAppProcessReset(appContext);
-  }
+  chppAppProcessReset(appContext);
 }
 
 /**
