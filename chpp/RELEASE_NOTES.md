@@ -135,7 +135,7 @@ This release updates the built-in timesync and checksum functionality and addres
   - Stability fixes and cleanup throughout CHPP and tests, including the reopening flow, permanent_failure state, and a memory leak
   - Testing improvements
 
-### 2021-05-24 (this)
+### 2021-05-24 (c9bfae3)
 
 This release enables better identification of end-of-packets as well as addressing bugs and compatibility issues.
 
@@ -154,4 +154,24 @@ This release enables better identification of end-of-packets as well as addressi
   - Memory allocation and initialization improvements
   - Mutex handling improvements
   - Compatibility fixes
+  - Testing improvements
+
+### 2021-06-17 (this)
+
+This release adds request timeout support at the client and addresses several bugs and compatibility issues throughout CHPP, including fixing open-state tracking at the service. Note that with the corrected open-state tracking, it is essential for services to correctly implement the close() PAL API so that it disables any ongoing requests and returns to a clean state.
+
+- Updated functionality
+
+  - Client request timeout support
+
+- Cleanup and bug fixes
+
+  - Service open-state tracking
+  - Memory handling fixes
+  - Added GNSS passive location listener service response
+  - Enforced error code requirements on service responses
+  - Fixed ARQ handling of duplicate packets
+  - Client request/response state refactoring
+  - Client registration cleanup
+  - Reset handling fixes
   - Testing improvements
