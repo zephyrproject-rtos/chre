@@ -90,6 +90,7 @@ class Manager {
   void handleGnssLocationStartCommand(bool start);
   void handleGnssMeasurementStartCommand(bool start);
   void handleWwanStartCommand(bool start);
+  void handleWifiScanMonitoringCommand(bool start);
 
   /**
    * @param result The WiFi async result from CHRE.
@@ -171,12 +172,16 @@ class Manager {
   uint32_t mGnssMeasurementTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mGnssMeasurementAsyncTimerHandle = CHRE_TIMER_INVALID;
   uint32_t mWwanTimerHandle = CHRE_TIMER_INVALID;
+  uint32_t mWifiScanMonitorAsyncTimerHandle = CHRE_TIMER_INVALID;
 
   //! true if the test has been started for the feature.
   bool mWifiTestStarted = false;
   bool mGnssLocationTestStarted = false;
   bool mGnssMeasurementTestStarted = false;
   bool mWwanTestStarted = false;
+
+  //! true if scan monitor is enabled for the nanoapp.
+  bool mWifiScanMonitorEnabled = false;
 
   //! The cookie to use for requests.
   const uint32_t kOnDemandWifiScanCookie = 0xface;
