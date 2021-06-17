@@ -89,7 +89,7 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
 
       success = true;
       switch (testCommand.feature) {
-        case chre_stress_test_TestCommand_Feature_WIFI: {
+        case chre_stress_test_TestCommand_Feature_WIFI_ON_DEMAND_SCAN: {
           handleWifiStartCommand(testCommand.start);
           break;
         }
@@ -103,6 +103,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
         }
         case chre_stress_test_TestCommand_Feature_WWAN: {
           handleWwanStartCommand(testCommand.start);
+          break;
+        }
+        case chre_stress_test_TestCommand_Feature_WIFI_SCAN_MONITOR: {
+          handleWifiScanMonitoringCommand(testCommand.start);
           break;
         }
         default: {
@@ -179,6 +183,8 @@ void Manager::handleTimerEvent(const uint32_t *handle) {
     sendFailure("GNSS measurement async result timed out");
   } else if (*handle == mWwanTimerHandle) {
     makeWwanCellInfoRequest();
+  } else if (*handle == mWifiScanMonitorAsyncTimerHandle) {
+    sendFailure("WiFi scan monitor request timed out");
   } else {
     sendFailure("Unknown timer handle");
   }
@@ -225,6 +231,15 @@ void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
     cancelTimer(&mWifiScanAsyncTimerHandle);
     mWifiScanAsyncRequest.reset();
     requestDelayedWifiScan();
+  } else if (result->requestType ==
+             CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR) {
+    if (!result->success) {
+      LOGE("Scan monitor async failure: code %" PRIu8, result->errorCode);
+      sendFailure("Scan monitor async failed");
+    }
+
+    cancelTimer(&mWifiScanMonitorAsyncTimerHandle);
+    mWifiScanMonitorEnabled = (result->cookie != nullptr);
   } else {
     sendFailure("Unknown WiFi async result type");
   }
@@ -288,6 +303,13 @@ void Manager::handleWifiScanEvent(const chreWifiScanEvent *event) {
   if (event->eventIndex == 0) {
     checkTimestamp(event->referenceTime, mPrevWifiScanEventTimestampNs);
     mPrevWifiScanEventTimestampNs = event->referenceTime;
+  }
+
+  if (mWifiScanMonitorEnabled) {
+    chreSendMessageToHostEndpoint(
+        nullptr, 0,
+        chre_stress_test_MessageType_TEST_WIFI_SCAN_MONITOR_TRIGGERED,
+        mHostEndpoint.value(), nullptr /* freeCallback */);
   }
 }
 
@@ -368,6 +390,24 @@ void Manager::handleWwanStartCommand(bool start) {
     }
   } else {
     sendFailure("Platform has no WWAN cell info capability");
+  }
+}
+
+void Manager::handleWifiScanMonitoringCommand(bool start) {
+  if (chreWifiGetCapabilities() & CHRE_WIFI_CAPABILITIES_SCAN_MONITORING) {
+    const uint32_t kWifiScanMonitorEnabledCookie = 0x1234;
+    bool success = chreWifiConfigureScanMonitorAsync(
+        start, start ? &kWifiScanMonitorEnabledCookie : nullptr);
+    LOGI("Scan monitor enable %d request success ? %d", start, success);
+
+    if (!success) {
+      sendFailure("Scan monitor request failed");
+    } else {
+      setTimer(CHRE_ASYNC_RESULT_TIMEOUT_NS, true /* oneShot */,
+               &mWifiScanMonitorAsyncTimerHandle);
+    }
+  } else {
+    sendFailure("Platform has no WiFi scan monitoring capability");
   }
 }
 
