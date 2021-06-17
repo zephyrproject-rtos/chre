@@ -472,13 +472,13 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
                               size_t len);
 
 /**
- * Used by the transport layer to notify the app layer of a received reset. In
- * turn, this function notifies clients and services to allow them to reset or
- * recover state as necessary.
+ * Used by the transport layer to notify the app layer of a reset during
+ * operation. This function is called after the transport layer has sent a reset
+ * or reset-ack packet.
+ * In turn, this function notifies clients and services to allow them to reset
+ * or recover state as necessary.
  *
  * @param context Maintains status for each app layer instance.
- * @param buf Input data. Cannot be null.
- * @param len Length of input data in bytes.
  */
 void chppAppProcessReset(struct ChppAppState *context);
 
