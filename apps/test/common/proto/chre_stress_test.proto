@@ -24,6 +24,12 @@ enum MessageType {
   // to verify that the scan monitoring feature is working.
   // No payload.
   TEST_WIFI_SCAN_MONITOR_TRIGGERED = 3;
+
+  // H2C: A message indicating that the host client has restarted. The nanoapp
+  // should use this message to update its host endpoint tracking when sending
+  // unicast messages.
+  // No payload.
+  TEST_HOST_RESTARTED = 4;
 }
 
 // A message to start the test.
