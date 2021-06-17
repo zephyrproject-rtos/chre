@@ -354,14 +354,14 @@ bool Manager::validateAsyncResult(const chreAsyncResult *result,
   if (result->cookie != expectedCookie) {
     LOGE("Unexpected cookie on async result");
   } else {
-    chreError expectedErrorCode =
-        (mTestSession->featureState == FeatureState::ENABLED)
-            ? CHRE_ERROR_NONE
-            : CHRE_ERROR_FUNCTION_DISABLED;
+    bool featureEnabled = (mTestSession->featureState == FeatureState::ENABLED);
+    bool disabledErrorCode =
+        (result->errorCode == CHRE_ERROR_FUNCTION_DISABLED);
 
-    if (result->errorCode != expectedErrorCode) {
-      LOGE("Unexpected async result: error code %" PRIu8 " expect %" PRIu8,
-           result->errorCode, expectedErrorCode);
+    if (featureEnabled && disabledErrorCode) {
+      LOGE("Got disabled error code when feature is enabled");
+    } else if (!featureEnabled && !disabledErrorCode) {
+      LOGE("Got non-disabled error code when feature is disabled");
     } else {
       success = true;
     }
