@@ -18,16 +18,25 @@ enum MessageType {
   // message to report a failure.
   // Payload must be chre_test_common.TestResult.
   TEST_RESULT = 2;
+
+  // C2H: A message indicating that the stress test nanoapp has received a
+  // WiFi scan while enabling scan monitoring. This can be used for the host
+  // to verify that the scan monitoring feature is working.
+  // No payload.
+  TEST_WIFI_SCAN_MONITOR_TRIGGERED = 3;
 }
 
 // A message to start the test.
 message TestCommand {
   enum Feature {
     FEATURE_UNDEFINED = 0;
-    WIFI = 1;
+    // WiFi stress testing, no scan monitoring.
+    WIFI_ON_DEMAND_SCAN = 1;
     GNSS_LOCATION = 2;
     GNSS_MEASUREMENT = 3;
     WWAN = 4;
+    // Enables WiFi scan monitoring only.
+    WIFI_SCAN_MONITOR = 5;
   }
 
   // The feature to test.
