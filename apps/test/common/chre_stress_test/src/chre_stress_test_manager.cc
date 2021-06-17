@@ -67,6 +67,10 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
   uint32_t messageType = hostData->messageType;
   if (senderInstanceId != CHRE_INSTANCE_ID) {
     LOGE("Incorrect sender instance id: %" PRIu32, senderInstanceId);
+  } else if (messageType == chre_stress_test_MessageType_TEST_HOST_RESTARTED) {
+    // Do nothing and only update the host endpoint
+    mHostEndpoint = hostData->hostEndpoint;
+    success = true;
   } else if (messageType != chre_stress_test_MessageType_TEST_COMMAND) {
     LOGE("Invalid message type %" PRIu32, messageType);
   } else if (mHostEndpoint.has_value() &&
