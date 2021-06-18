@@ -242,10 +242,12 @@ static void chppWwanClientNotifyReset(void *clientContext) {
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;
 
-  if (wwanClientContext->client.openState != CHPP_OPEN_STATE_OPENED) {
-    CHPP_LOGW("WWAN client reset but client wasn't open");
+  if (wwanClientContext->client.openState != CHPP_OPEN_STATE_OPENED &&
+      wwanClientContext->client.openState != CHPP_OPEN_STATE_PSEUDO_OPEN) {
+    CHPP_LOGW("WWAN client reset but wasn't open");
   } else {
-    CHPP_LOGI("WWAN client reopening");
+    CHPP_LOGI("WWAN client reopening from state=%" PRIu8,
+              wwanClientContext->client.openState);
     chppClientSendOpenRequest(&gWwanClientContext.client,
                               &gWwanClientContext.rRState[CHPP_WWAN_OPEN],
                               CHPP_WWAN_OPEN,
