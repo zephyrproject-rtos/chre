@@ -22,7 +22,11 @@
 #include <shared/send_message.h>
 #include <shared/time_util.h>
 
+#include "chre/util/nanoapp/log.h"
+
 #include <chre.h>
+
+#define LOG_TAG "[BasicSensorTest]"
 
 using nanoapp_testing::kOneMillisecondInNanoseconds;
 using nanoapp_testing::kOneSecondInNanoseconds;
@@ -88,6 +92,12 @@ void BasicSensorTestBase::setUp(uint32_t messageSize,
     sendFatalFailureToHost("Beginning message expects 0 additional bytes, got ",
                            &messageSize);
   }
+
+  sendStartTestMessage();
+}
+
+void BasicSensorTestBase::sendStartTestMessage() {
+  mState = State::kPreStart;
   // Most tests start running in the constructor.  However, since this
   // is a base class, and we invoke abstract methods when running our
   // test, we don't start until after the class has been fully
@@ -169,11 +179,27 @@ void BasicSensorTestBase::checkPassiveConfigure() {
 
 void BasicSensorTestBase::startTest() {
   mState = State::kPreConfigure;
-  if (!chreSensorFindDefault(getSensorType(), &mSensorHandle)) {
+
+  bool found = false;
+  if (mApiVersion >= CHRE_API_VERSION_1_5) {
+    found =
+        chreSensorFind(getSensorType(), mCurrentSensorIndex, &mSensorHandle);
+    if (!found && chreSensorFind(getSensorType(), mCurrentSensorIndex + 1,
+                                 &mSensorHandle)) {
+      sendFatalFailureToHostUint8("Missing sensor index ", mCurrentSensorIndex);
+      return;
+    }
+  } else {
+    found = chreSensorFindDefault(getSensorType(), &mSensorHandle);
+  }
+
+  if (!found) {
     sendStringToHost(MessageType::kSkipped,
                      "No default sensor found for optional sensor.");
     return;
   }
+
+  LOGI("Starting test for sensor index %" PRIu8, mCurrentSensorIndex);
 
   chreSensorInfo info;
   if (!chreGetSensorInfo(mSensorHandle, &info)) {
@@ -291,8 +317,23 @@ void BasicSensorTestBase::finishTest() {
       }
     }
   }
-  mState = State::kFinished;
-  sendSuccessToHost();
+
+  LOGI("Test passed for sensor index %" PRIu8, mCurrentSensorIndex);
+
+  bool finished = true;
+  if (mApiVersion >= CHRE_API_VERSION_1_5) {
+    mCurrentSensorIndex++;
+    uint32_t sensorHandle;
+    if (chreSensorFind(getSensorType(), mCurrentSensorIndex, &sensorHandle)) {
+      finished = false;
+      sendStartTestMessage();
+    }
+  }
+
+  if (finished) {
+    mState = State::kFinished;
+    sendSuccessToHost();
+  }
 }
 
 void BasicSensorTestBase::verifyEventHeader(const chreSensorDataHeader *header,
