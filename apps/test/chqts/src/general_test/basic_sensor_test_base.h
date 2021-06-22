@@ -42,6 +42,11 @@ class BasicSensorTestBase : public Test {
   void setUp(uint32_t messageSize, const void *message) override;
 
   /**
+   * Sends a message to itself to trigger startTest();
+   */
+  void sendStartTestMessage();
+
+  /**
    * Abstract method indicating which sensor type this is.
    *
    * @returns One of the CHRE_SENSOR_TYPE_* constants.
@@ -101,6 +106,9 @@ class BasicSensorTestBase : public Test {
   chreSensorSamplingStatus mNewStatus;
 
   bool mSupportsPassiveMode = true;
+
+  // The current sensor index that we are testing for.
+  uint8_t mCurrentSensorIndex = 0;
 
   void startTest();
   void finishTest();
