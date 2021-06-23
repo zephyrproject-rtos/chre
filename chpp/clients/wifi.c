@@ -316,6 +316,8 @@ static void chppWifiClientNotifyReset(void *clientContext) {
   struct ChppWifiClientState *wifiClientContext =
       (struct ChppWifiClientState *)clientContext;
 
+  chppClientCloseOpenRequests(&wifiClientContext->client, &kWifiClientConfig,
+                              false /* clearOnly */);
   chppCheckWifiScanEventNotificationReset();
 
   if (wifiClientContext->client.openState != CHPP_OPEN_STATE_OPENED &&
@@ -324,8 +326,8 @@ static void chppWifiClientNotifyReset(void *clientContext) {
   } else {
     CHPP_LOGI("WiFi client reopening from state=%" PRIu8,
               wifiClientContext->client.openState);
-    chppClientSendOpenRequest(&gWifiClientContext.client,
-                              &gWifiClientContext.rRState[CHPP_WIFI_OPEN],
+    chppClientSendOpenRequest(&wifiClientContext->client,
+                              &wifiClientContext->rRState[CHPP_WIFI_OPEN],
                               CHPP_WIFI_OPEN,
                               /*reopen=*/true);
   }
@@ -342,8 +344,8 @@ static void chppWifiClientNotifyMatch(void *clientContext) {
 
   if (wifiClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
     CHPP_LOGD("Previously pseudo-open WiFi client reopening");
-    chppClientSendOpenRequest(&gWifiClientContext.client,
-                              &gWifiClientContext.rRState[CHPP_WIFI_OPEN],
+    chppClientSendOpenRequest(&wifiClientContext->client,
+                              &wifiClientContext->rRState[CHPP_WIFI_OPEN],
                               CHPP_WIFI_OPEN,
                               /*reopen=*/true);
   }
@@ -669,6 +671,8 @@ static void chppWifiClientClose(void) {
                  sizeof(*request))) {
     gWifiClientContext.client.openState = CHPP_OPEN_STATE_CLOSED;
     gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
+    chppClientCloseOpenRequests(&gWifiClientContext.client, &kWifiClientConfig,
+                                true /* clearOnly */);
   }
 }
 

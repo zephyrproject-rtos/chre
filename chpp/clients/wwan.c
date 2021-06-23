@@ -239,14 +239,17 @@ static void chppWwanClientNotifyReset(void *clientContext) {
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;
 
+  chppClientCloseOpenRequests(&wwanClientContext->client, &kWwanClientConfig,
+                              false /* clearOnly */);
+
   if (wwanClientContext->client.openState != CHPP_OPEN_STATE_OPENED &&
       wwanClientContext->client.openState != CHPP_OPEN_STATE_PSEUDO_OPEN) {
     CHPP_LOGW("WWAN client reset but wasn't open");
   } else {
     CHPP_LOGI("WWAN client reopening from state=%" PRIu8,
               wwanClientContext->client.openState);
-    chppClientSendOpenRequest(&gWwanClientContext.client,
-                              &gWwanClientContext.rRState[CHPP_WWAN_OPEN],
+    chppClientSendOpenRequest(&wwanClientContext->client,
+                              &wwanClientContext->rRState[CHPP_WWAN_OPEN],
                               CHPP_WWAN_OPEN,
                               /*reopen=*/true);
   }
@@ -263,8 +266,8 @@ static void chppWwanClientNotifyMatch(void *clientContext) {
 
   if (wwanClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
     CHPP_LOGD("Previously pseudo-open WWAN client reopening");
-    chppClientSendOpenRequest(&gWwanClientContext.client,
-                              &gWwanClientContext.rRState[CHPP_WWAN_OPEN],
+    chppClientSendOpenRequest(&wwanClientContext->client,
+                              &wwanClientContext->rRState[CHPP_WWAN_OPEN],
                               CHPP_WWAN_OPEN,
                               /*reopen=*/true);
   }
@@ -447,6 +450,8 @@ static void chppWwanClientClose(void) {
                  sizeof(*request))) {
     gWwanClientContext.client.openState = CHPP_OPEN_STATE_CLOSED;
     gWwanClientContext.capabilities = CHRE_WWAN_CAPABILITIES_NONE;
+    chppClientCloseOpenRequests(&gWwanClientContext.client, &kWwanClientConfig,
+                                true /* clearOnly */);
   }
 }
 
