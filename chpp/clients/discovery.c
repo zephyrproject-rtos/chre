@@ -120,7 +120,7 @@ static void chppDiscoveryProcessDiscoverAll(struct ChppAppState *context,
     CHPP_DEBUG_ASSERT(false);
   }
 
-  if (serviceCount >= CHPP_MAX_DISCOVERED_SERVICES) {
+  if (serviceCount > CHPP_MAX_DISCOVERED_SERVICES) {
     CHPP_LOGE("Service count=%" PRIu8 " larger than max=%d", serviceCount,
               CHPP_MAX_DISCOVERED_SERVICES);
     CHPP_DEBUG_ASSERT(false);

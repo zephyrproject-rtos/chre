@@ -106,9 +106,6 @@ static const struct ChppClient kWwanClientConfig = {
     // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppWwanClientDeinit,
 
-    // Pointer to array of request-response states
-    .rRStates = gWwanClientContext.rRState,
-
     // Number of request-response states in the rRStates array.
     .rRStateCount = ARRAY_SIZE(gWwanClientContext.rRState),
 
@@ -534,7 +531,8 @@ static void chppWwanClientReleaseCellInfoResult(
 
 void chppRegisterWwanClient(struct ChppAppState *appContext) {
   chppRegisterClient(appContext, (void *)&gWwanClientContext,
-                     &gWwanClientContext.client, &kWwanClientConfig);
+                     &gWwanClientContext.client, gWwanClientContext.rRState,
+                     &kWwanClientConfig);
 }
 
 void chppDeregisterWwanClient(struct ChppAppState *appContext) {
