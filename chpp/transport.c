@@ -1228,7 +1228,7 @@ struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
            context->appContext->registeredClients[clientIdx]->rRStateCount;
            cmdIdx++) {
         struct ChppRequestResponseState *rRState =
-            &context->appContext->registeredClients[clientIdx]
+            &context->appContext->registeredClientStates[clientIdx]
                  ->rRStates[cmdIdx];
 
         if (rRState->requestState == CHPP_REQUEST_STATE_REQUEST_SENT &&
@@ -1259,7 +1259,7 @@ struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
       response->handle = CHPP_SERVICE_HANDLE_OF_INDEX(timedOutClient);
       response->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
       response->transaction =
-          context->appContext->registeredClients[timedOutClient]
+          context->appContext->registeredClientStates[timedOutClient]
               ->rRStates[timedOutCmd]
               .transaction;
       response->error = CHPP_APP_ERROR_TIMEOUT;
