@@ -19,6 +19,8 @@
 
 #include <general_test/test.h>
 
+#include "chre/util/optional.h"
+
 #include <chre.h>
 
 namespace general_test {
@@ -109,6 +111,9 @@ class BasicSensorTestBase : public Test {
 
   // The current sensor index that we are testing for.
   uint8_t mCurrentSensorIndex = 0;
+
+  // The sensor handle for the previous sensor tested.
+  chre::Optional<uint32_t> mPrevSensorHandle;
 
   void startTest();
   void finishTest();
