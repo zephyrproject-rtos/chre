@@ -326,6 +326,7 @@ void BasicSensorTestBase::finishTest() {
     uint32_t sensorHandle;
     if (chreSensorFind(getSensorType(), mCurrentSensorIndex, &sensorHandle)) {
       finished = false;
+      mPrevSensorHandle = mSensorHandle;
       sendStartTestMessage();
     }
   }
@@ -438,27 +439,34 @@ void BasicSensorTestBase::handleBiasEvent(
 
 void BasicSensorTestBase::handleSamplingChangeEvent(
     const chreSensorSamplingStatusEvent *eventData) {
+  if (mPrevSensorHandle.has_value() &&
+      (mPrevSensorHandle.value() == eventData->sensorHandle)) {
+    // We can get a "DONE" event from the previous sensor for multi-sensor
+    // devices, so we ignore these events.
+    return;
+  }
+
   if (eventData->sensorHandle != mSensorHandle) {
     sendFatalFailureToHost("SamplingChangeEvent for wrong sensor handle:",
                            &eventData->sensorHandle);
   }
-  if (mState == State::kFinished) {
-    // TODO: If we strictly define whether this event is or isn't
-    //     generated upon being DONE with a sensor, then we can perform
-    //     a strict check here.  For now, we just let this go.
-    return;
-  }
-  // Passive sensor requests do not guarantee sensors will always be enabled.
-  // Bypass 'enabled' check for passive configurations.
-  if (!eventData->status.enabled) {
-    sendFatalFailureToHost("SamplingChangeEvent disabled the sensor.");
-  }
 
-  if ((mNewStatus.interval != eventData->status.interval) ||
-      (mNewStatus.latency != eventData->status.latency)) {
-    // This is from someone other than us.  Let's note that so we know
-    // our consistency checks are invalid.
-    mExternalSamplingStatusChange = true;
+  // TODO: If we strictly define whether this event is or isn't
+  //     generated upon being DONE with a sensor, then we can perform
+  //     a strict check here.  For now, we just let this go.
+  if (mState != State::kFinished) {
+    // Passive sensor requests do not guarantee sensors will always be enabled.
+    // Bypass 'enabled' check for passive configurations.
+    if (!eventData->status.enabled) {
+      sendFatalFailureToHost("SamplingChangeEvent disabled the sensor.");
+    }
+
+    if ((mNewStatus.interval != eventData->status.interval) ||
+        (mNewStatus.latency != eventData->status.latency)) {
+      // This is from someone other than us.  Let's note that so we know
+      // our consistency checks are invalid.
+      mExternalSamplingStatusChange = true;
+    }
   }
 }
 
@@ -502,9 +510,6 @@ void BasicSensorTestBase::handleEvent(uint32_t senderInstanceId,
     if ((eventType == kStartEvent) && (mState == State::kPreStart)) {
       startTest();
     }
-  } else if ((mState == State::kPreStart) || (mState == State::kPreConfigure)) {
-    unexpectedEvent(eventType);
-
   } else if (senderInstanceId != CHRE_INSTANCE_ID) {
     sendFatalFailureToHost("Unexpected senderInstanceId:", &senderInstanceId);
 
