@@ -368,6 +368,20 @@ void chppClientProcessOpenResponse(struct ChppClientState *clientState,
  */
 void chppClientRecalculateNextTimeout(struct ChppAppState *context);
 
+/**
+ * Closes any remaining open requests for a given client by sending a timeout.
+ * This function is used when a client is reset.
+ *
+ * @param clientState State variable of the client.
+ * @param client The client for whech to clear out open requests.
+ * @param clearOnly If true, indicates that a timeout response shouldn't be
+ *     sent to the client. This must only be set if the requests are being
+ *     cleared as part of the client closing.
+ */
+void chppClientCloseOpenRequests(struct ChppClientState *clientState,
+                                 const struct ChppClient *client,
+                                 bool clearOnly);
+
 #ifdef __cplusplus
 }
 #endif
