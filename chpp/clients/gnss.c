@@ -319,6 +319,9 @@ static void chppGnssClientNotifyReset(void *clientContext) {
   struct ChppGnssClientState *gnssClientContext =
       (struct ChppGnssClientState *)clientContext;
 
+  chppClientCloseOpenRequests(&gnssClientContext->client, &kGnssClientConfig,
+                              false /* clearOnly */);
+
   if (gnssClientContext->client.openState != CHPP_OPEN_STATE_OPENED &&
       gnssClientContext->client.openState != CHPP_OPEN_STATE_PSEUDO_OPEN) {
     CHPP_LOGW("GNSS client reset but wasn't open");
@@ -642,6 +645,8 @@ static void chppGnssClientClose(void) {
                  sizeof(*request))) {
     gGnssClientContext.client.openState = CHPP_OPEN_STATE_CLOSED;
     gGnssClientContext.capabilities = CHRE_GNSS_CAPABILITIES_NONE;
+    chppClientCloseOpenRequests(&gGnssClientContext.client, &kGnssClientConfig,
+                                true /* clearOnly */);
   }
 }
 
