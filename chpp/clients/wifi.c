@@ -116,9 +116,6 @@ static const struct ChppClient kWifiClientConfig = {
     // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppWifiClientDeinit,
 
-    // Pointer to array of request-response states
-    .rRStates = gWifiClientContext.rRState,
-
     // Number of request-response states in the rRStates array.
     .rRStateCount = ARRAY_SIZE(gWifiClientContext.rRState),
 
@@ -848,7 +845,8 @@ static void chppWifiClientReleaseRangingEvent(
 
 void chppRegisterWifiClient(struct ChppAppState *appContext) {
   chppRegisterClient(appContext, (void *)&gWifiClientContext,
-                     &gWifiClientContext.client, &kWifiClientConfig);
+                     &gWifiClientContext.client, gWifiClientContext.rRState,
+                     &kWifiClientConfig);
 }
 
 void chppDeregisterWifiClient(struct ChppAppState *appContext) {

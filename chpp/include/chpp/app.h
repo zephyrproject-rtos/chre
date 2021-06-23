@@ -38,7 +38,7 @@ extern "C" {
  * predefined services), if not defined by the build system.
  */
 #ifndef CHPP_MAX_REGISTERED_SERVICES
-#define CHPP_MAX_REGISTERED_SERVICES 5
+#define CHPP_MAX_REGISTERED_SERVICES 1
 #endif
 
 /**
@@ -46,7 +46,7 @@ extern "C" {
  * predefined clients), if not defined by the build system.
  */
 #ifndef CHPP_MAX_REGISTERED_CLIENTS
-#define CHPP_MAX_REGISTERED_CLIENTS 5
+#define CHPP_MAX_REGISTERED_CLIENTS 1
 #endif
 
 /**
@@ -316,10 +316,6 @@ struct ChppClient {
   //! Pointer to the function that deinitializes the client.
   ChppClientDeinitFunction *deinitFunctionPtr;
 
-  //! Pointer to the client's array of request-response states. May be NULL if
-  //! rRStateCount is 0.
-  struct ChppRequestResponseState *rRStates;
-
   //! Number of request-response states in the rRStates array. This is a
   //! uint16_t to match the uint16_t command in struct ChppAppHeader.
   uint16_t rRStateCount;
@@ -383,9 +379,12 @@ struct ChppAppState {
 
   void *registeredServiceContexts[CHPP_MAX_REGISTERED_SERVICES];
 
-  uint8_t registeredClientCount;  // Number of services currently registered
+  uint8_t registeredClientCount;  // Number of clients currently registered
 
   const struct ChppClient *registeredClients[CHPP_MAX_REGISTERED_CLIENTS];
+
+  const struct ChppClientState
+      *registeredClientStates[CHPP_MAX_REGISTERED_CLIENTS];
 
   void *registeredClientContexts[CHPP_MAX_REGISTERED_CLIENTS];
 

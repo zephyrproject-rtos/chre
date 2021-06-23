@@ -69,8 +69,9 @@ void getClientRRStateInputCheck(struct ChppClientState *clientState,
   ASSERT_TRUE(clientState->appContext != NULL);
   ASSERT_TRUE(clientState->appContext->registeredClients != NULL);
   ASSERT_TRUE(clientState->appContext->registeredClients[clientIdx] != NULL);
-  ASSERT_TRUE(clientState->appContext->registeredClients[clientIdx]->rRStates !=
-              NULL);
+  ASSERT_TRUE(
+      clientState->appContext->registeredClientStates[clientIdx]->rRStates !=
+      NULL);
   ASSERT_LT(
       header->command,
       clientState->appContext->registeredClients[clientIdx]->rRStateCount);
@@ -81,7 +82,7 @@ struct ChppRequestResponseState *getClientRRState(
   getClientRRStateInputCheck(clientState, header);
 
   uint8_t clientIdx = clientState->index;
-  return &(clientState->appContext->registeredClients[clientIdx]
+  return &(clientState->appContext->registeredClientStates[clientIdx]
                ->rRStates[header->command]);
 }
 
@@ -118,13 +119,14 @@ void registerAndValidateResponseForTimeout(struct ChppClientState *clientState,
   ASSERT_FALSE(clientState->appContext->registeredClients == NULL);
   ASSERT_FALSE(clientState->appContext->registeredClients[clientIdx] == NULL);
   ASSERT_FALSE(
-      clientState->appContext->registeredClients[clientIdx]->rRStates == NULL);
+      clientState->appContext->registeredClientStates[clientIdx]->rRStates ==
+      NULL);
   ASSERT_LT(
       header->command,
       clientState->appContext->registeredClients[clientIdx]->rRStateCount);
 
   struct ChppRequestResponseState *rRState =
-      &(clientState->appContext->registeredClients[clientIdx]
+      &(clientState->appContext->registeredClientStates[clientIdx]
             ->rRStates[header->command]);
   chppClientTimestampResponse(clientState, rRState, header);
 

@@ -107,9 +107,6 @@ static const struct ChppClient kGnssClientConfig = {
     // Service notification dispatch function pointer
     .deinitFunctionPtr = &chppGnssClientDeinit,
 
-    // Pointer to array of request-response states
-    .rRStates = gGnssClientContext.rRState,
-
     // Number of request-response states in the rRStates array.
     .rRStateCount = ARRAY_SIZE(gGnssClientContext.rRState),
 
@@ -822,7 +819,8 @@ static bool chppGnssClientConfigurePassiveLocationListener(bool enable) {
 
 void chppRegisterGnssClient(struct ChppAppState *appContext) {
   chppRegisterClient(appContext, (void *)&gGnssClientContext,
-                     &gGnssClientContext.client, &kGnssClientConfig);
+                     &gGnssClientContext.client, gGnssClientContext.rRState,
+                     &kGnssClientConfig);
 }
 
 void chppDeregisterGnssClient(struct ChppAppState *appContext) {
