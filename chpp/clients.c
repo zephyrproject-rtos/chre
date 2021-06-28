@@ -418,8 +418,17 @@ bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
   chppClientTimestampRequest(clientState, rRState, buf, timeoutNs);
   clientState->responseReady = false;
 
-  return chppEnqueueTxDatagramOrFail(clientState->appContext->transportContext,
-                                     buf, len);
+  bool success = chppEnqueueTxDatagramOrFail(
+      clientState->appContext->transportContext, buf, len);
+
+  // Failure to enqueue a TX datagram means that a request was known to be not
+  // transmitted. We explicitly set requestState to be in the NONE state, so
+  // that unintended app layer timeouts do not occur.
+  if (!success) {
+    rRState->requestState = CHPP_REQUEST_STATE_NONE;
+  }
+
+  return success;
 }
 
 bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
