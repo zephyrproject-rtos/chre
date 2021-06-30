@@ -80,11 +80,6 @@ class Manager {
   bool mApDataCollectionDone = false;
   bool mChreDataCollectionDone = false;
 
-  bool mWifiAsyncResultDone = false;
-  bool mReceiveUseScanResultsThresholdMessageDone = false;
-
-  bool mUseScanResultsSizeThreshold = false;
-
   /**
    * This is the fraction of the number of results in the greater set of
    * scan results between the AP and CHRE that the lesser set can differ by.
@@ -150,14 +145,6 @@ class Manager {
    * @param hostData The message.
    */
   void handleDataMessage(const chreMessageFromHostData *hostData);
-
-  /**
-   * Handle a use scan results size threshold message from the host.
-   *
-   * @param hostData The message.
-   */
-  void handleUseScanResultsSizeThresholdMessage(
-      const chreMessageFromHostData *hostData);
 
   /**
    * Handle a wifi scan result event from a CHRE event.
