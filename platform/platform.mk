@@ -105,6 +105,7 @@ SLPI_SRCS += platform/shared/nanoapp/nanoapp_dso_util.cc
 SLPI_SRCS += platform/shared/pal_system_api.cc
 SLPI_SRCS += platform/shared/pw_tokenized_log.cc
 SLPI_SRCS += platform/shared/system_time.cc
+SLPI_SRCS += platform/shared/version.cc
 SLPI_SRCS += platform/slpi/chre_api_re.cc
 SLPI_SRCS += platform/slpi/fatal_error.cc
 SLPI_SRCS += platform/slpi/host_link.cc
@@ -222,6 +223,7 @@ SIM_SRCS += platform/shared/pal_sensor_stub.cc
 SIM_SRCS += platform/shared/pal_system_api.cc
 SIM_SRCS += platform/shared/platform_sensor_manager.cc
 SIM_SRCS += platform/shared/system_time.cc
+SIM_SRCS += platform/shared/version.cc
 
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
