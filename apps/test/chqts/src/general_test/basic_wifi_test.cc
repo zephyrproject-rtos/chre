@@ -24,12 +24,15 @@
 #include <shared/send_message.h>
 #include <shared/time_util.h>
 
+#include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
 #include "chre/util/unique_ptr.h"
 
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendFatalFailureToHostUint8;
 using nanoapp_testing::sendSuccessToHost;
+
+#define LOG_TAG "[BasicWifiTest]"
 
 /*
  * Test to check expected functionality of the CHRE WiFi APIs.
@@ -345,26 +348,24 @@ void BasicWifiTest::handleEvent(uint32_t /* senderInstanceId */,
       }
       const auto *result = static_cast<const chreWifiScanEvent *>(eventData);
 
-      if (isActiveWifiScanType(result)) {
-        // The first chreWifiScanResult is expected to come immediately,
-        // but a long delay is possible if it's implemented incorrectly,
-        // e.g. the async result comes right away (before the scan is actually
-        // completed), then there's a long delay to the scan result.
-        constexpr uint64_t maxDelayNs =
-            100 * chre::kOneMillisecondInNanoseconds;
-        bool delayExceeded = (mStartTimestampNs != 0) &&
-                             (chreGetTime() - mStartTimestampNs > maxDelayNs);
-        if (delayExceeded) {
-          sendFatalFailureToHost(
-              "Did not receive chreWifiScanResult within 100 milliseconds.");
-        }
-        // Do not reset mStartTimestampNs here, because it is used for the
-        // subsequent RTT ranging timestamp validation.
-        validateWifiScanEvent(result);
-      } else {
-        sendFatalFailureToHostUint8("Unexpected scan type %d",
-                                    result->scanType);
+      if (!isActiveWifiScanType(result)) {
+        LOGW("Received unexpected scan type %" PRIu8, result->scanType);
       }
+
+      // The first chreWifiScanResult is expected to come immediately,
+      // but a long delay is possible if it's implemented incorrectly,
+      // e.g. the async result comes right away (before the scan is actually
+      // completed), then there's a long delay to the scan result.
+      constexpr uint64_t maxDelayNs = 100 * chre::kOneMillisecondInNanoseconds;
+      bool delayExceeded = (mStartTimestampNs != 0) &&
+                           (chreGetTime() - mStartTimestampNs > maxDelayNs);
+      if (delayExceeded) {
+        sendFatalFailureToHost(
+            "Did not receive chreWifiScanResult within 100 milliseconds.");
+      }
+      // Do not reset mStartTimestampNs here, because it is used for the
+      // subsequent RTT ranging timestamp validation.
+      validateWifiScanEvent(result);
       break;
     }
     case CHRE_EVENT_WIFI_RANGING_RESULT: {
