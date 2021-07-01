@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,24 @@
  * limitations under the License.
  */
 
-#include "chre/core/init.h"
-
-#include "chre/core/event_loop_manager.h"
-#include "chre/platform/system_time.h"
 #include "chre/platform/version.h"
-#include "chre/util/singleton.h"
+#include "chre/util/macros.h"
 
-static const char *kChreVersionString = chre::getChreVersionString();
+#ifndef CHRE_VERSION_STRING
+#define CHRE_VERSION_STRING "undefined"
+#endif  // CHRE_VERSION_STRING
 
 namespace chre {
 
-void init() {
-  LOGI("CHRE init, version: %s", kChreVersionString);
+//! The CHRE version string is placed in its own section so that it can be
+//! removed before hashing to check whether there has been a change in the
+//! compiled binary.
+DLL_EXPORT extern "C" const char _chreVersionString[]
+    __attribute__((section(".unstable_id"))) __attribute__((aligned(8))) =
+        CHRE_VERSION_STRING;
 
-  SystemTime::init();
-  EventLoopManagerSingleton::init();
-}
-
-void deinit() {
-  EventLoopManagerSingleton::deinit();
-
-  LOGD("CHRE deinit");
+const char *getChreVersionString() {
+  return _chreVersionString;
 }
 
 }  // namespace chre
