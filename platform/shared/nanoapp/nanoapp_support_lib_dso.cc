@@ -108,18 +108,16 @@ void nanoappHandleEventCompat(uint32_t senderInstanceId, uint16_t eventType,
 
 }  // anonymous namespace
 
-//! Additional symbol used to determine the given unstable ID that was provided
-//! when building this nanoapp, if any. The symbol is placed in its own section
-//! so it be stripped to determine if the nanoapp changed compared to a previous
-//! version. We also align the variable to match the minimum alignment of the
-//! surrounding sections, since for compilers with a default size-1 alignment,
-//! there might be a spill-over from the previous segment if not zero-padded,
-//! when we attempt to read the string.
-#ifdef NANOAPP_UNSTABLE_ID
+//! Used to determine the given unstable ID that was provided when building this
+//! nanoapp, if any. The symbol is placed in its own section so it can be
+//! stripped to determine if the nanoapp changed compared to a previous version.
+//! We also align the variable to match the minimum alignment of the surrounding
+//! sections, since for compilers with a default size-1 alignment, there might
+//! be a spill-over from the previous segment if not zero-padded, when we
+//! attempt to read the string.
 DLL_EXPORT extern "C" const char _chreNanoappUnstableId[]
     __attribute__((section(".unstable_id"))) __attribute__((aligned(8))) =
         NANOAPP_UNSTABLE_ID;
-#endif  // NANOAPP_UNSTABLE_ID
 
 DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
     /* magic */ CHRE_NSL_NANOAPP_INFO_MAGIC,
@@ -145,7 +143,7 @@ DLL_EXPORT extern "C" const struct chreNslNanoappInfo _chreNslDsoNanoappInfo = {
 #endif
         /* end */ nanoappEnd,
     },
-    /* appVersionString */ NANOAPP_VERSION_STRING,
+    /* appVersionString */ _chreNanoappUnstableId,
     /* appPermissions */ kNanoappPermissions,
 };
 
