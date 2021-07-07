@@ -86,8 +86,10 @@ static void chppResetTransportContext(struct ChppTransportState *context);
 static void chppReset(struct ChppTransportState *context,
                       enum ChppTransportPacketAttributes resetType,
                       enum ChppTransportErrorCode error);
+#ifdef CHPP_CLIENT_ENABLED
 struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
     struct ChppTransportState *context);
+#endif
 
 /************************************************
  *  Private Functions
@@ -1011,7 +1013,9 @@ static void chppTransportDoWork(struct ChppTransportState *context) {
     }
   }
 
+#ifdef CHPP_CLIENT_ENABLED
   timeoutResponse = chppTransportGetClientRequestTimeoutResponse(context);
+#endif
   if (timeoutResponse != NULL) {
     CHPP_LOGE("Response timeout H#%" PRIu8 " cmd=%" PRIu16 " ID=%" PRIu8,
               timeoutResponse->handle, timeoutResponse->command,
@@ -1207,6 +1211,7 @@ static void chppReset(struct ChppTransportState *transportContext,
  * @param context Maintains status for each transport layer instance.
  * @return App layer response header if a timeout has occurred. Null otherwise.
  */
+#ifdef CHPP_CLIENT_ENABLED
 struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
     struct ChppTransportState *context) {
   struct ChppAppHeader *response = NULL;
@@ -1271,6 +1276,7 @@ struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
 
   return response;
 }
+#endif
 
 /************************************************
  *  Public Functions
