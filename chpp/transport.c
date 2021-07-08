@@ -529,6 +529,11 @@ static void chppProcessResetAck(struct ChppTransportState *context) {
 #else
   chppEnqueueTxPacket(context, CHPP_TRANSPORT_ERROR_NONE);
 #endif
+
+  // Inform the App Layer that a reset has completed
+  chppMutexUnlock(&context->mutex);
+  chppAppProcessReset(context->appContext);
+  chppMutexLock(&context->mutex);
 }
 
 /**
@@ -1200,8 +1205,10 @@ static void chppReset(struct ChppTransportState *transportContext,
   chppMutexUnlock(&transportContext->mutex);
   chppTransportSendReset(transportContext, resetType, error);
 
-  // Inform the App Layer
-  chppAppProcessReset(appContext);
+  // Inform the App Layer that a reset has completed
+  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+    chppAppProcessReset(appContext);
+  }  // else reset is sent out. Rx of reset-ack will indicate completion.
 }
 
 /**

@@ -243,7 +243,7 @@ static void chppWwanClientNotifyReset(void *clientContext) {
                               false /* clearOnly */);
 
   if (wwanClientContext->client.openState != CHPP_OPEN_STATE_OPENED &&
-      wwanClientContext->client.openState != CHPP_OPEN_STATE_PSEUDO_OPEN) {
+      !wwanClientContext->client.pseudoOpen) {
     CHPP_LOGW("WWAN client reset but wasn't open");
   } else {
     CHPP_LOGI("WWAN client reopening from state=%" PRIu8,
@@ -251,7 +251,7 @@ static void chppWwanClientNotifyReset(void *clientContext) {
     chppClientSendOpenRequest(&wwanClientContext->client,
                               &wwanClientContext->rRState[CHPP_WWAN_OPEN],
                               CHPP_WWAN_OPEN,
-                              /*reopen=*/true);
+                              /*blocking=*/false);
   }
 }
 
@@ -264,12 +264,12 @@ static void chppWwanClientNotifyMatch(void *clientContext) {
   struct ChppWwanClientState *wwanClientContext =
       (struct ChppWwanClientState *)clientContext;
 
-  if (wwanClientContext->client.openState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
-    CHPP_LOGD("Previously pseudo-open WWAN client reopening");
+  if (wwanClientContext->client.pseudoOpen) {
+    CHPP_LOGD("Pseudo-open WWAN client opening");
     chppClientSendOpenRequest(&wwanClientContext->client,
                               &wwanClientContext->rRState[CHPP_WWAN_OPEN],
                               CHPP_WWAN_OPEN,
-                              /*reopen=*/true);
+                              /*blocking=*/false);
   }
 }
 
@@ -303,10 +303,7 @@ static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
     struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GetCapabilities failed at service err=%" PRIu8, rxHeader->error);
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      CHPP_LOGE("Missing err");
-    }
+    CHPP_LOGE("GetCapabilities resp. too short. err=%" PRIu8, rxHeader->error);
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =
@@ -346,10 +343,9 @@ static void chppWwanGetCellInfoAsyncResult(
 
   if (len == sizeof(struct ChppAppHeader)) {
     // Short response length indicates an error
-    CHPP_LOGE("GetCellInfo failed at service err=%" PRIu8, rxHeader->error);
+    CHPP_LOGE("GetCellInfo resp. too short. err=%" PRIu8, rxHeader->error);
 
     if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      CHPP_LOGE("Missing err");
       errorCode = CHPP_APP_ERROR_INVALID_LENGTH;
     } else {
       errorCode = chppAppErrorToChreError(rxHeader->error);
@@ -423,7 +419,7 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
     result = chppClientSendOpenRequest(
         &gWwanClientContext.client, &gWwanClientContext.rRState[CHPP_WWAN_OPEN],
         CHPP_WWAN_OPEN,
-        /*reopen=*/false);
+        /*blocking=*/true);
   }
 
 #ifdef CHPP_WWAN_CLIENT_OPEN_ALWAYS_SUCCESS
