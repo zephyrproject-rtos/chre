@@ -157,10 +157,9 @@ enum ChppAppErrorCode {
  */
 enum ChppOpenState {
   CHPP_OPEN_STATE_CLOSED = 0,           // Closed
-  CHPP_OPEN_STATE_PSEUDO_OPEN = 1,      // Closed but open returns success
-  CHPP_OPEN_STATE_OPENING = 2,          // Enables the open request to pass
-  CHPP_OPEN_STATE_WAITING_TO_OPEN = 3,  // Waiting for open response
-  CHPP_OPEN_STATE_OPENED = 4,           // Opened
+  CHPP_OPEN_STATE_OPENING = 1,          // Enables the open request to pass
+  CHPP_OPEN_STATE_WAITING_TO_OPEN = 2,  // Waiting for open response
+  CHPP_OPEN_STATE_OPENED = 3,           // Opened
 };
 
 /**
