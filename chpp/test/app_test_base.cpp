@@ -56,6 +56,11 @@ void AppTestBase::SetUp() {
   mClientTransportContext.linkParams.linkThreadName = "Link to service";
   mClientTransportContext.linkParams.workThreadName = "Client work";
 
+  mClientTransportContext.linkParams.remoteTransportContext =
+      &mServiceTransportContext;
+  mServiceTransportContext.linkParams.remoteTransportContext =
+      &mClientTransportContext;
+
   struct ChppClientServiceSet set;
   memset(&set, 0, sizeof(set));
   set.wifiClient = 1;
@@ -66,27 +71,23 @@ void AppTestBase::SetUp() {
   chppTransportInit(&mClientTransportContext, &mClientAppContext);
   chppAppInitWithClientServiceSet(&mClientAppContext, &mClientTransportContext,
                                   set);
+  pthread_create(&mClientWorkThread, NULL, workThread,
+                 &mClientTransportContext);
+
+  // Wait a bit to emulate the scenario where the remote is not yet up
+  std::this_thread::sleep_for(std::chrono::milliseconds(450));
 
   memset(&set, 0, sizeof(set));
   set.wifiService = 1;
   set.gnssService = 1;
   set.wwanService = 1;
+
   chppTransportInit(&mServiceTransportContext, &mServiceAppContext);
   chppAppInitWithClientServiceSet(&mServiceAppContext,
                                   &mServiceTransportContext, set);
-
-  mClientTransportContext.linkParams.remoteTransportContext =
-      &mServiceTransportContext;
-  mServiceTransportContext.linkParams.remoteTransportContext =
-      &mClientTransportContext;
-
-  pthread_create(&mClientWorkThread, NULL, workThread,
-                 &mClientTransportContext);
-
-  // Wait a bit to emulate the scenario where the remote is not yet up
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   pthread_create(&mServiceWorkThread, NULL, workThread,
                  &mServiceTransportContext);
+
   mClientTransportContext.linkParams.linkEstablished = true;
   mServiceTransportContext.linkParams.linkEstablished = true;
 
