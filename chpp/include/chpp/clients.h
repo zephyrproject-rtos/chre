@@ -76,6 +76,7 @@ struct ChppClientState {
   uint8_t transaction;  // Next Transaction ID to be used
 
   uint8_t openState;         // As defined in enum ChppOpenState
+  bool pseudoOpen : 1;       // Client to be opened upon a reset
   bool initialized : 1;      // Is initialized
   bool everInitialized : 1;  // Synchronization primitives initialized
 
@@ -336,22 +337,21 @@ bool chppSendTimestampedRequestAndWaitTimeout(
 void chppClientPseudoOpen(struct ChppClientState *clientState);
 
 /**
- * Sends a client request for the open command. Setting reopen to true indicates
- * that the service is being reopened.
- *
- * The command will be sent non-blocking if reopening after a reset, and
- * blocking otherwise.
+ * Sends a client request for the open command in a blocking or non-blocking
+ * manner.
+ * A non-blocking open is used to for reopening a service after a reset or for
+ * opening a pseudo-open service.
  *
  * @param clientState State variable of the client.
  * @param openRRState Request/response state for the open command.
  * @param openCommand Open command to be sent.
- * @param reopen Indicates that this is a reopen (vs. initial open) request.
+ * @param blocking Indicates a blocking (vs. non-blocking) open request.
  *
  * @return Indicates success or failure.
  */
 bool chppClientSendOpenRequest(struct ChppClientState *clientState,
                                struct ChppRequestResponseState *openRRState,
-                               uint16_t openCommand, bool reopen);
+                               uint16_t openCommand, bool blocking);
 
 /**
  * Processes a service response for the open command.

@@ -73,7 +73,6 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
   if (clientState->initialized) {
     switch (clientState->openState) {
       case (CHPP_OPEN_STATE_CLOSED):
-      case (CHPP_OPEN_STATE_PSEUDO_OPEN):
       case (CHPP_OPEN_STATE_WAITING_TO_OPEN): {
         // result remains false
         break;
@@ -467,15 +466,14 @@ bool chppSendTimestampedRequestAndWaitTimeout(
 }
 
 void chppClientPseudoOpen(struct ChppClientState *clientState) {
-  if (clientState->openState == CHPP_OPEN_STATE_CLOSED) {
-    clientState->openState = CHPP_OPEN_STATE_PSEUDO_OPEN;
-  }
+  clientState->pseudoOpen = true;
 }
 
 bool chppClientSendOpenRequest(struct ChppClientState *clientState,
                                struct ChppRequestResponseState *openRRState,
-                               uint16_t openCommand, bool reopen) {
+                               uint16_t openCommand, bool blocking) {
   bool result = false;
+  uint8_t priorState = clientState->openState;
 
 #ifdef CHPP_CLIENT_ENABLED_TIMESYNC
   chppTimesyncMeasureOffset(clientState->appContext);
@@ -487,31 +485,28 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
   if (request == NULL) {
     CHPP_LOG_OOM();
 
-  } else if (reopen) {
-    CHPP_LOGD("Reopening service");
-    uint8_t priorState = clientState->openState;
+  } else {
     clientState->openState = CHPP_OPEN_STATE_OPENING;
-    if (!chppSendTimestampedRequestOrFail(
-            clientState, openRRState, request, sizeof(*request),
-            CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE)) {
-      clientState->openState = CHPP_OPEN_STATE_CLOSED;
-      CHPP_LOGE("Failed to reopen service in state %" PRIu8, priorState);
-      if (priorState == CHPP_OPEN_STATE_PSEUDO_OPEN) {
-        clientState->openState = CHPP_OPEN_STATE_PSEUDO_OPEN;
-      }
+
+    if (blocking) {
+      CHPP_LOGD("Opening service - blocking");
+      result = chppSendTimestampedRequestAndWait(clientState, openRRState,
+                                                 request, sizeof(*request));
     } else {
-      result = true;
+      CHPP_LOGD("Opening service - non-blocking");
+      result = chppSendTimestampedRequestOrFail(
+          clientState, openRRState, request, sizeof(*request),
+          CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
     }
 
-  } else {
-    CHPP_LOGD("Opening service");
-    clientState->openState = CHPP_OPEN_STATE_OPENING;
-    if (!chppSendTimestampedRequestAndWait(clientState, openRRState, request,
-                                           sizeof(*request))) {
+    if (!result) {
+      CHPP_LOGE("Service open fail from state=%" PRIu8 " psudo=%d blocking=%d",
+                priorState, clientState->pseudoOpen, blocking);
       clientState->openState = CHPP_OPEN_STATE_CLOSED;
-      CHPP_LOGE("Failed to open service");
+
+    } else if (blocking) {
+      result = (clientState->openState == CHPP_OPEN_STATE_OPENED);
     }
-    result = (clientState->openState == CHPP_OPEN_STATE_OPENED);
   }
 
   return result;
