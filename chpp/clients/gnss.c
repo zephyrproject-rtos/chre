@@ -392,11 +392,9 @@ static void chppGnssGetCapabilitiesResult(
     CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
-#ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_GNSS_DEFAULT_CAPABILITIES),
                     "GNSS capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
-#endif
 
     clientContext->capabilities = result->capabilities;
   }
@@ -602,10 +600,10 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
         /*blocking=*/true);
   }
 
-#ifdef CHPP_GNSS_CLIENT_OPEN_ALWAYS_SUCCESS
+  // Since CHPP_GNSS_DEFAULT_CAPABILITIES is mandatory, we can always
+  // pseudo-open and return true. Otherwise, these should have been gated.
   chppClientPseudoOpen(&gGnssClientContext.client);
   result = true;
-#endif
 
   return result;
 }
@@ -638,11 +636,7 @@ static void chppGnssClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppGnssClientGetCapabilities(void) {
-#ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
   uint32_t capabilities = CHPP_GNSS_DEFAULT_CAPABILITIES;
-#else
-  uint32_t capabilities = CHRE_GNSS_CAPABILITIES_NONE;
-#endif
 
   if (gGnssClientContext.capabilities != CHRE_GNSS_CAPABILITIES_NONE) {
     // Result already cached

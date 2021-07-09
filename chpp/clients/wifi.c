@@ -408,11 +408,9 @@ static void chppWifiGetCapabilitiesResult(
     CHPP_LOGD("chppWifiGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
-#ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_WIFI_DEFAULT_CAPABILITIES),
                     "WiFi capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
-#endif
 
     clientContext->capabilities = result->capabilities;
   }
@@ -630,10 +628,10 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
         /*blocking=*/true);
   }
 
-#ifdef CHPP_WIFI_CLIENT_OPEN_ALWAYS_SUCCESS
+  // Since CHPP_WIFI_DEFAULT_CAPABILITIES is mandatory, we can always
+  // pseudo-open and return true. Otherwise, these should have been gated.
   chppClientPseudoOpen(&gWifiClientContext.client);
   result = true;
-#endif
 
   return result;
 }
@@ -666,11 +664,7 @@ static void chppWifiClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppWifiClientGetCapabilities(void) {
-#ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
   uint32_t capabilities = CHPP_WIFI_DEFAULT_CAPABILITIES;
-#else
-  uint32_t capabilities = CHRE_WIFI_CAPABILITIES_NONE;
-#endif
 
   if (gWifiClientContext.capabilities != CHRE_WIFI_CAPABILITIES_NONE) {
     // Result already cached

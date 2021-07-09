@@ -57,6 +57,9 @@ cc_library_static {
         "-DCHPP_MAX_REGISTERED_CLIENTS=3",
         "-DCHPP_MAX_REGISTERED_SERVICES=3",
         "-DCHPP_DEBUG_ASSERT_ENABLED",
+        "-DCHPP_WIFI_DEFAULT_CAPABILITIES=0xf",
+        "-DCHPP_WWAN_DEFAULT_CAPABILITIES=0x1",
+        "-DCHPP_GNSS_DEFAULT_CAPABILITIES=0x7",
         // clock_gettime() requires _POSIX_C_SOURCE >= 199309L
         "-D_POSIX_C_SOURCE=199309L",
         // Required for pthread_setname_np()
@@ -114,6 +117,9 @@ cc_test_host {
         "-DCHPP_CHECKSUM_ENABLED",
         "-DCHPP_MAX_REGISTERED_CLIENTS=3",
         "-DCHPP_MAX_REGISTERED_SERVICES=3",
+        "-DCHPP_WIFI_DEFAULT_CAPABILITIES=0xf",
+        "-DCHPP_WWAN_DEFAULT_CAPABILITIES=0x1",
+        "-DCHPP_GNSS_DEFAULT_CAPABILITIES=0x7",
     ],
     srcs: [
         "test/app_test_base.cpp",

@@ -311,11 +311,9 @@ static void chppWwanGetCapabilitiesResult(
     CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
-#ifdef CHPP_WWAN_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_WWAN_DEFAULT_CAPABILITIES),
                     "WWAN capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_WWAN_DEFAULT_CAPABILITIES);
-#endif
 
     clientContext->capabilities = result->capabilities;
   }
@@ -412,10 +410,10 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
         /*blocking=*/true);
   }
 
-#ifdef CHPP_WWAN_CLIENT_OPEN_ALWAYS_SUCCESS
+  // Since CHPP_WWAN_DEFAULT_CAPABILITIES is mandatory, we can always
+  // pseudo-open and return true. Otherwise, these should have been gated.
   chppClientPseudoOpen(&gWwanClientContext.client);
   result = true;
-#endif
 
   return result;
 }
@@ -448,11 +446,7 @@ static void chppWwanClientClose(void) {
  * @return Capabilities flags.
  */
 static uint32_t chppWwanClientGetCapabilities(void) {
-#ifdef CHPP_WWAN_DEFAULT_CAPABILITIES
   uint32_t capabilities = CHPP_WWAN_DEFAULT_CAPABILITIES;
-#else
-  uint32_t capabilities = CHRE_WWAN_CAPABILITIES_NONE;
-#endif
 
   if (gWwanClientContext.capabilities != CHRE_WWAN_CAPABILITIES_NONE) {
     // Result already cached
