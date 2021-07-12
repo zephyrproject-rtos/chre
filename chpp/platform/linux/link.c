@@ -53,11 +53,13 @@ static void *linkSendThread(void *arg) {
         error = CHPP_LINK_ERROR_NONE_SENT;
 
       } else if (!params->linkEstablished) {
+        CHPP_LOGE("No (fake) link");
         error = CHPP_LINK_ERROR_NO_LINK;
 
       } else if (!chppRxDataCb(params->remoteTransportContext, params->buf,
                                params->bufLen)) {
-        error = CHPP_LINK_ERROR_UNSPECIFIED;
+        CHPP_LOGW("chppRxDataCb return state!=preamble (packet incomplete)");
+        error = CHPP_LINK_ERROR_NONE_SENT;
 
       } else {
         error = CHPP_LINK_ERROR_NONE_SENT;
@@ -74,6 +76,7 @@ static void *linkSendThread(void *arg) {
 }
 
 void chppPlatformLinkInit(struct ChppPlatformLinkParameters *params) {
+  params->bufLen = 0;
   chppMutexInit(&params->mutex);
   chppNotifierInit(&params->notifier);
   pthread_create(&params->linkSendThread, NULL /* attr */, linkSendThread,
