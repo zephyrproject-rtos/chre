@@ -37,6 +37,8 @@ namespace {
 
 TEST_F(AppTestBase, SimpleStartStop) {
   // Simple test to make sure start/stop work threads work without crashing
+  ASSERT_TRUE(mClientTransportContext.linkParams.linkEstablished);
+  ASSERT_TRUE(mServiceTransportContext.linkParams.linkEstablished);
 }
 
 TEST_F(AppTestBase, TransportLayerLoopback) {
