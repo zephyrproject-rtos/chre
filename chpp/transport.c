@@ -1270,7 +1270,7 @@ struct ChppAppHeader *chppTransportGetClientRequestTimeoutResponse(
 
     if (!timeoutClientFound) {
       CHPP_LOGE("Timeout at %" PRIu64 " but no client",
-                context->appContext->nextRequestTimeoutNs);
+                context->appContext->nextRequestTimeoutNs / CHPP_NSEC_PER_MSEC);
       chppClientRecalculateNextTimeout(context->appContext);
     }
   }
@@ -1489,7 +1489,9 @@ uint64_t chppTransportGetTimeUntilNextDoWorkNs(
   }
 
   CHPP_LOGD("NextDoWork=%" PRIu64 " currentTime=%" PRIu64 " delta=%" PRId64,
-            nextDoWorkTime, currentTime, nextDoWorkTime - currentTime);
+            nextDoWorkTime / CHPP_NSEC_PER_MSEC,
+            currentTime / CHPP_NSEC_PER_MSEC,
+            (nextDoWorkTime - currentTime) / (int64_t)CHPP_NSEC_PER_MSEC);
 
   if (nextDoWorkTime == CHPP_TIME_MAX) {
     return CHPP_TRANSPORT_TIMEOUT_INFINITE;
