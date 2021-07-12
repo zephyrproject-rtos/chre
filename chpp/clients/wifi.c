@@ -557,7 +557,8 @@ static void chppWifiScanEventNotification(
         (uint64_t)chppTimesyncGetOffset(gWifiClientContext.client.appContext,
                                         CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
     CHPP_LOGD("WiFi scan time corrected from %" PRIu64 "to %" PRIu64,
-              chre->referenceTime, correctedTime);
+              chre->referenceTime / CHPP_NSEC_PER_MSEC,
+              correctedTime / CHPP_NSEC_PER_MSEC);
     chre->referenceTime = correctedTime;
 #endif
 
@@ -599,7 +600,8 @@ static void chppWifiRangingEventNotification(
         (uint64_t)chppTimesyncGetOffset(gWifiClientContext.client.appContext,
                                         CHPP_WIFI_MAX_TIMESYNC_AGE_NS);
     CHPP_LOGD("WiFi ranging result time corrected from %" PRIu64 "to %" PRIu64,
-              results[i].timestamp, correctedTime);
+              results[i].timestamp / CHPP_NSEC_PER_MSEC,
+              correctedTime / CHPP_NSEC_PER_MSEC);
     results[i].timestamp = correctedTime;
   }
 #endif
