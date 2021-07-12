@@ -148,7 +148,8 @@ void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
                                  struct ChppAppHeader *requestHeader) {
   if (rRState->responseTimeNs == CHPP_TIME_NONE &&
       rRState->requestTimeNs != CHPP_TIME_NONE) {
-    CHPP_LOGE("Duplicate request rx at %" PRIu64 " ns", rRState->requestTimeNs);
+    CHPP_LOGE("Duplicate request rx at t=%" PRIu64,
+              rRState->requestTimeNs / CHPP_NSEC_PER_MSEC);
   }
   rRState->requestTimeNs = chppGetCurrentTimeNs();
   rRState->responseTimeNs = CHPP_TIME_NONE;
@@ -160,17 +161,21 @@ void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState) {
   rRState->responseTimeNs = chppGetCurrentTimeNs();
 
   if (rRState->requestTimeNs == CHPP_TIME_NONE) {
-    CHPP_LOGE("Tx response w/ no req t=%" PRIu64, rRState->responseTimeNs);
+    CHPP_LOGE("Tx response w/ no req t=%" PRIu64,
+              rRState->responseTimeNs / CHPP_NSEC_PER_MSEC);
 
   } else if (previousResponseTime != CHPP_TIME_NONE) {
     CHPP_LOGW("Resend response t=%" PRIu64 " for request at t=%" PRIu64,
-              rRState->responseTimeNs, rRState->responseTimeNs);
+              rRState->responseTimeNs / CHPP_NSEC_PER_MSEC,
+              rRState->responseTimeNs / CHPP_NSEC_PER_MSEC);
 
   } else {
     CHPP_LOGD("Sending initial response at t=%" PRIu64
               " for request at t=%" PRIu64 " (RTT=%" PRIu64 ")",
-              rRState->responseTimeNs, rRState->responseTimeNs,
-              rRState->responseTimeNs - rRState->requestTimeNs);
+              rRState->responseTimeNs / CHPP_NSEC_PER_MSEC,
+              rRState->responseTimeNs / CHPP_NSEC_PER_MSEC,
+              (rRState->responseTimeNs - rRState->requestTimeNs) /
+                  CHPP_NSEC_PER_MSEC);
   }
 }
 
