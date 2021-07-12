@@ -126,9 +126,11 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
         clippedOffsetChangeNs;
 
     if (offsetChangeNs != clippedOffsetChangeNs) {
-      CHPP_LOGW("Drift=%" PRIi64 " clipped to %" PRIi64 " at t=%" PRIu64,
-                offsetChangeNs, clippedOffsetChangeNs,
-                context->timesyncClientContext->measureOffset.responseTimeNs);
+      CHPP_LOGW("Drift=%" PRId64 " clipped to %" PRId64 " at t=%" PRIu64,
+                offsetChangeNs / (int64_t)CHPP_NSEC_PER_MSEC,
+                clippedOffsetChangeNs / (int64_t)CHPP_NSEC_PER_MSEC,
+                context->timesyncClientContext->measureOffset.responseTimeNs /
+                    CHPP_NSEC_PER_MSEC);
     } else {
       context->timesyncClientContext->timesyncResult.measurementTimeNs =
           context->timesyncClientContext->measureOffset.responseTimeNs;
@@ -136,11 +138,14 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 
     context->timesyncClientContext->timesyncResult.error = CHPP_APP_ERROR_NONE;
 
-    CHPP_LOGI("Timesync RTT=%" PRIu64 " correction=%" PRIi64 " offset=%" PRIi64
+    CHPP_LOGI("Timesync RTT=%" PRIu64 " correction=%" PRId64 " offset=%" PRId64
               " t=%" PRIu64,
-              context->timesyncClientContext->timesyncResult.rttNs,
-              clippedOffsetChangeNs, offsetNs,
-              context->timesyncClientContext->timesyncResult.measurementTimeNs);
+              context->timesyncClientContext->timesyncResult.rttNs /
+                  CHPP_NSEC_PER_MSEC,
+              clippedOffsetChangeNs / (int64_t)CHPP_NSEC_PER_MSEC,
+              offsetNs / (int64_t)CHPP_NSEC_PER_MSEC,
+              context->timesyncClientContext->timesyncResult.measurementTimeNs /
+                  CHPP_NSEC_PER_MSEC);
   }
 
   return true;
@@ -148,7 +153,8 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
 
 bool chppTimesyncMeasureOffset(struct ChppAppState *context) {
   bool result = false;
-  CHPP_LOGI("Measuring timesync t=%" PRIu64, chppGetCurrentTimeNs());
+  CHPP_LOGI("Measuring timesync t=%" PRIu64,
+            chppGetCurrentTimeNs() / CHPP_NSEC_PER_MSEC);
 
   CHPP_NOT_NULL(context->timesyncClientContext);
 
@@ -189,9 +195,10 @@ int64_t chppTimesyncGetOffset(struct ChppAppState *context,
   if (timesyncNeverDone || timesyncIsStale) {
     chppTimesyncMeasureOffset(context);
   } else {
-    CHPP_LOGD("No need to timesync at t~=%" PRIu64 "offset=%" PRIi64,
-              chppGetCurrentTimeNs(),
-              context->timesyncClientContext->timesyncResult.offsetNs);
+    CHPP_LOGD("No need to timesync at t~=%" PRIu64 "offset=%" PRId64,
+              chppGetCurrentTimeNs() / CHPP_NSEC_PER_MSEC,
+              context->timesyncClientContext->timesyncResult.offsetNs /
+                  (int64_t)CHPP_NSEC_PER_MSEC);
   }
 
   return context->timesyncClientContext->timesyncResult.offsetNs;
