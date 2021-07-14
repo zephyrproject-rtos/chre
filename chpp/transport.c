@@ -508,20 +508,6 @@ static void chppSetResetComplete(struct ChppTransportState *context) {
  * @param context Maintains status for each transport layer instance.
  */
 static void chppProcessResetAck(struct ChppTransportState *context) {
-  if (context->resetState == CHPP_RESET_STATE_NONE) {
-    CHPP_LOGE("Unexpected reset-ack seq=%" PRIu8 " code=0x%" PRIx8,
-              context->rxHeader.seq, context->rxHeader.packetCode);
-    // In a reset race condition with both endpoints sending resets and
-    // reset-acks, the sent resets and reset-acks will both have a sequence
-    // number of 0.
-    // By ignoring the received reset-ack, the next expected sequence number
-    // will remain at 1 (following a reset with a sequence number of 0).
-    // Therefore, no further correction is necessary (beyond ignoring the
-    // received reset-ack), as the next packet (e.g. discovery) will have a
-    // sequence number of 1.
-    return;
-  }
-
   chppSetResetComplete(context);
   context->rxStatus.receivedPacketCode = context->rxHeader.packetCode;
   context->rxStatus.expectedSeq = context->rxHeader.seq + 1;
