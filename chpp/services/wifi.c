@@ -580,7 +580,7 @@ static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event) {
   struct ChppWifiScanEventWithHeader *notification;
   size_t notificationLen;
 
-  CHPP_ASSERT(chppCheckWifiScanEventNotification(event));
+  CHPP_DEBUG_ASSERT(chppCheckWifiScanEventNotification(event));
 
   if (!chppWifiScanEventFromChre(event, &notification, &notificationLen)) {
     CHPP_LOGE(
