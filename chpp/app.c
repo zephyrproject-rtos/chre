@@ -268,36 +268,46 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
         break;
 
       default:
-        CHPP_LOGE("Invalid predefined handle %" PRIu8, handle);
+        CHPP_LOGE("Invalid H#%" PRIu8, handle);
     }
 
   } else {  // Negotiated
     enum ChppMessageType messageType =
         CHPP_APP_GET_MESSAGE_TYPE(rxHeader->type);
+
     switch (messageType) {
       case CHPP_MESSAGE_TYPE_CLIENT_REQUEST:
       case CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION: {
-        minLen = chppServiceOfHandle(context, handle)->minLength;
+        const struct ChppService *service =
+            chppServiceOfHandle(context, handle);
+        if (service != NULL) {
+          minLen = service->minLength;
+        }
         break;
       }
       case CHPP_MESSAGE_TYPE_SERVICE_RESPONSE:
       case CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION: {
-        minLen = chppClientOfHandle(context, handle)->minLength;
+        const struct ChppClient *client = chppClientOfHandle(context, handle);
+        if (client != NULL) {
+          minLen = client->minLength;
+        }
         break;
       }
       default: {
-        CHPP_LOGE("Invalid message type %d", messageType);
         break;
       }
     }
+
+    if (minLen == SIZE_MAX) {
+      CHPP_LOGE("Invalid type=%d or H#%" PRIu8, messageType, handle);
+    }
   }
 
-  if (len < minLen) {
-    CHPP_LOGE("Datagram too short: H#%" PRIu8 ", len=%" PRIuSIZE
-              " < %" PRIuSIZE,
-              handle, len, minLen);
+  if ((len < minLen) && (minLen != SIZE_MAX)) {
+    CHPP_LOGE("Datagram len=%" PRIuSIZE " < %" PRIuSIZE " for H#%" PRIu8, len,
+              minLen, handle);
   }
-  return (len >= minLen);
+  return (len >= minLen) && (minLen != SIZE_MAX);
 }
 
 /**
@@ -315,6 +325,10 @@ static bool chppDatagramLenIsOk(struct ChppAppState *context,
 ChppDispatchFunction *chppGetDispatchFunction(struct ChppAppState *context,
                                               uint8_t handle,
                                               enum ChppMessageType type) {
+  // chppDatagramLenIsOk() has already confirmed that the handle # is valid.
+  // Therefore, no additional checks are necessary for chppClientOfHandle(),
+  // chppServiceOfHandle(), or chppClientServiceContextOfHandle().
+
   switch (CHPP_APP_GET_MESSAGE_TYPE(type)) {
     case CHPP_MESSAGE_TYPE_CLIENT_REQUEST: {
       return chppServiceOfHandle(context, handle)->requestDispatchFunctionPtr;
@@ -384,42 +398,50 @@ ChppNotifierFunction *chppGetServiceResetNotifierFunction(
 }
 
 /**
- * Returns a pointer to the ChppService struct of a particular negotiated
- * service handle.
+ * Returns a pointer to the ChppService struct of the service matched to a
+ * negotiated handle. Returns null if a service doesn't exist for the handle.
  *
  * @param context Maintains status for each app layer instance.
- * @param handle Handle number for the service.
+ * @param handle Handle number.
  *
  * @return Pointer to the ChppService struct of a particular service handle.
  */
 static inline const struct ChppService *chppServiceOfHandle(
     struct ChppAppState *context, uint8_t handle) {
-  CHPP_DEBUG_ASSERT(CHPP_SERVICE_INDEX_OF_HANDLE(handle) <
-                    context->registeredServiceCount);
-  return context->registeredServices[CHPP_SERVICE_INDEX_OF_HANDLE(handle)];
+  uint8_t serviceIndex = CHPP_SERVICE_INDEX_OF_HANDLE(handle);
+  if (serviceIndex < context->registeredServiceCount) {
+    return context->registeredServices[serviceIndex];
+  }
+
+  return NULL;
 }
 
 /**
- * Returns a pointer to the ChppClient struct of a particular negotiated
- * handle. Returns null if a client doesn't exist for the handle.
+ * Returns a pointer to the ChppClient struct of the client matched to a
+ * negotiated handle. Returns null if a client doesn't exist for the handle.
  *
  * @param context Maintains status for each app layer instance.
- * @param handle Handle number for the service.
+ * @param handle Handle number.
  *
  * @return Pointer to the ChppClient struct matched to a particular handle.
  */
 static inline const struct ChppClient *chppClientOfHandle(
     struct ChppAppState *context, uint8_t handle) {
-  CHPP_DEBUG_ASSERT(
-      context->clientIndexOfServiceIndex[CHPP_SERVICE_INDEX_OF_HANDLE(handle)] <
-      context->registeredClientCount);
-  return context->registeredClients[context->clientIndexOfServiceIndex
-                                        [CHPP_SERVICE_INDEX_OF_HANDLE(handle)]];
+  uint8_t serviceIndex = CHPP_SERVICE_INDEX_OF_HANDLE(handle);
+  if (serviceIndex < context->discoveredServiceCount) {
+    uint8_t clientIndex = context->clientIndexOfServiceIndex[serviceIndex];
+    if (clientIndex < context->registeredClientCount) {
+      return context->registeredClients[clientIndex];
+    }
+  }
+
+  return NULL;
 }
 
 /**
  * Returns a pointer to the service struct of a particular negotiated service
  * handle.
+ * It is up to the caller to ensure the handle number is valid.
  *
  * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
@@ -437,6 +459,7 @@ static inline void *chppServiceContextOfHandle(struct ChppAppState *context,
 /**
  * Returns a pointer to the client struct of a particular negotiated client
  * handle.
+ * It is up to the caller to ensure the handle number is valid.
  *
  * @param context Maintains status for each app layer instance.
  * @param handle Handle number for the service.
@@ -455,6 +478,7 @@ static inline void *chppClientContextOfHandle(struct ChppAppState *context,
 /**
  * Returns a pointer to the client/service struct of a particular negotiated
  * client/service handle.
+ * It is up to the caller to ensure the handle number is valid.
  *
  * @param appContext Maintains status for each app layer instance.
  * @param handle Handle number for the service.
@@ -677,7 +701,11 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
               rxHeader->error, rxHeader->command);
   }
 
-  if (chppDatagramLenIsOk(context, rxHeader, len)) {
+  if (!chppDatagramLenIsOk(context, rxHeader, len)) {
+    chppEnqueueTxErrorDatagram(context->transportContext,
+                               CHPP_TRANSPORT_ERROR_APPLAYER);
+
+  } else {
     if (rxHeader->handle == CHPP_HANDLE_NONE) {
       chppDispatchNonHandle(context, buf, len);
 
