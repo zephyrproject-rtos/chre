@@ -562,7 +562,7 @@ static void chppWifiScanEventNotification(
     chre->referenceTime = correctedTime;
 #endif
 
-    CHPP_ASSERT(chppCheckWifiScanEventNotification(chre));
+    CHPP_DEBUG_ASSERT(chppCheckWifiScanEventNotification(chre));
 
     gCallbacks->scanEventCallback(chre);
   }
