@@ -365,8 +365,7 @@ static void chppWiFiRecoverScanMonitor(
 
     if (!chppWifiClientConfigureScanMonitor(true)) {
       clientContext->scanMonitorSilenceCallback = false;
-      CHPP_DEBUG_ASSERT_LOG(
-          false, "Unable to re-enable WiFi scan monitoring after reset");
+      CHPP_DEBUG_ASSERT_LOG(false, "Failed to re-enable WiFi scan monitoring");
     }
   }
 }
@@ -400,8 +399,7 @@ static void chppWifiCloseResult(struct ChppWifiClientState *clientContext,
 static void chppWifiGetCapabilitiesResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWifiGetCapabilitiesResponse)) {
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GetCapabilities resp. too short. err=%" PRIu8, rxHeader->error);
+    CHPP_LOGE("Bad WiFi capabilities len=%" PRIuSIZE, len);
 
   } else {
     struct ChppWifiGetCapabilitiesParameters *result =
@@ -412,7 +410,7 @@ static void chppWifiGetCapabilitiesResult(
 
 #ifdef CHPP_WIFI_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_WIFI_DEFAULT_CAPABILITIES),
-                    "Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                    "WiFi capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
 #endif
 
@@ -435,15 +433,8 @@ static void chppWifiConfigureScanMonitorResult(
 
   if (len < sizeof(struct ChppWifiConfigureScanMonitorAsyncResponse)) {
     // Short response length indicates an error
-
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("ScanMonitor resp. too short. err=%" PRIu8, rxHeader->error);
-
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      rxHeader->error = CHPP_APP_ERROR_INVALID_LENGTH;
-    }
     gCallbacks->scanMonitorStatusChangeCallback(
-        false, chppAppErrorToChreError(rxHeader->error));
+        false, chppAppShortResponseErrorHandler(buf, len, "ScanMonitor"));
 
   } else {
     struct ChppWifiConfigureScanMonitorAsyncResponseParameters *result =
@@ -484,20 +475,13 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
 
   if (len < sizeof(struct ChppWifiRequestScanResponse)) {
     // Short response length indicates an error
-
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("ScanRequest resp. too short. err=%" PRIu8, rxHeader->error);
-
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      rxHeader->error = CHPP_APP_ERROR_INVALID_LENGTH;
-    }
-    gCallbacks->scanResponseCallback(false,
-                                     chppAppErrorToChreError(rxHeader->error));
+    gCallbacks->scanResponseCallback(
+        false, chppAppShortResponseErrorHandler(buf, len, "ScanRequest"));
 
   } else {
     struct ChppWifiRequestScanResponseParameters *result =
         &((struct ChppWifiRequestScanResponse *)buf)->params;
-    CHPP_LOGI("Scan request success=%d (at service)", result->pending);
+    CHPP_LOGI("Scan request success=%d at service", result->pending);
     gCallbacks->scanResponseCallback(result->pending, result->errorCode);
   }
 }
@@ -519,7 +503,7 @@ static void chppWifiRequestRangingResult(
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE("RangingRequest failed at service err=%" PRIu8, rxHeader->error);
+    CHPP_LOGE("Ranging failed at service" PRIu8);
     gCallbacks->rangingEventCallback(chppAppErrorToChreError(rxHeader->error),
                                      NULL);
 
@@ -549,7 +533,7 @@ static void chppWifiScanEventNotification(
       chppWifiScanEventToChre((struct ChppWifiScanEvent *)buf, len);
 
   if (chre == NULL) {
-    CHPP_LOGE("Scan event conversion failed: len=%" PRIuSIZE, len);
+    CHPP_LOGE("Scan event conversion failed len=%" PRIuSIZE, len);
   } else {
 #ifdef CHPP_CLIENT_ENABLED_TIMESYNC
     uint64_t correctedTime =

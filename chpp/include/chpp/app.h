@@ -500,6 +500,18 @@ void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
  */
 uint8_t chppAppErrorToChreError(uint8_t error);
 
+/**
+ * Handles logging and error conversion when an app layer response is too short.
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ * @param responseName Name of the request/response to be logged.
+ *
+ * @return CHRE error (from enum chreError).
+ */
+uint8_t chppAppShortResponseErrorHandler(uint8_t *buf, size_t len,
+                                         const char *responseName);
+
 #ifdef __cplusplus
 }
 #endif

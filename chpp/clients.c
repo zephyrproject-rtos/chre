@@ -396,7 +396,7 @@ bool chppClientTimestampResponse(struct ChppClientState *clientState,
     }
 
     default: {
-      CHPP_DEBUG_ASSERT(false);
+      CHPP_DEBUG_ASSERT_LOG(false, "Invalid req state");
     }
   }
 

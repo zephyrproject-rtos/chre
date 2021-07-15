@@ -383,8 +383,7 @@ static void chppGnssCloseResult(struct ChppGnssClientState *clientContext,
 static void chppGnssGetCapabilitiesResult(
     struct ChppGnssClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppGnssGetCapabilitiesResponse)) {
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GetCapabilities resp. too short. err=%" PRIu8, rxHeader->error);
+    CHPP_LOGE("Bad GNSS capabilities len=%" PRIuSIZE, len);
 
   } else {
     struct ChppGnssGetCapabilitiesParameters *result =
@@ -395,7 +394,7 @@ static void chppGnssGetCapabilitiesResult(
 
 #ifdef CHPP_GNSS_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_GNSS_DEFAULT_CAPABILITIES),
-                    "Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                    "GNSS capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
 #endif
 
@@ -418,15 +417,8 @@ static void chppGnssControlLocationSessionResult(
 
   if (len < sizeof(struct ChppGnssControlLocationSessionResponse)) {
     // Short response length indicates an error
-
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("ControlLocation resp. too short. err=%" PRIu8, rxHeader->error);
-
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      rxHeader->error = CHPP_APP_ERROR_INVALID_LENGTH;
-    }
     gCallbacks->locationStatusChangeCallback(
-        false, chppAppErrorToChreError(rxHeader->error));
+        false, chppAppShortResponseErrorHandler(buf, len, "ControlLocation"));
 
   } else {
     struct ChppGnssControlLocationSessionResponse *result =
@@ -458,15 +450,8 @@ static void chppGnssControlMeasurementSessionResult(
 
   if (len < sizeof(struct ChppGnssControlMeasurementSessionResponse)) {
     // Short response length indicates an error
-
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("Measurement resp. too short. err=%" PRIu8, rxHeader->error);
-
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      rxHeader->error = CHPP_APP_ERROR_INVALID_LENGTH;
-    }
     gCallbacks->measurementStatusChangeCallback(
-        false, chppAppErrorToChreError(rxHeader->error));
+        false, chppAppShortResponseErrorHandler(buf, len, "Measurement"));
 
   } else {
     struct ChppGnssControlMeasurementSessionResponse *result =
@@ -500,8 +485,7 @@ static void chppGnssConfigurePassiveLocationListenerResult(
   struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
 
   if (rxHeader->error != CHPP_APP_ERROR_NONE) {
-    CHPP_LOGE("Passive scan failed at service err=%" PRIu8, rxHeader->error);
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "Passive scan failed at service");
 
   } else {
     CHPP_LOGD(

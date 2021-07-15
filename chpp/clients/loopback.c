@@ -124,9 +124,9 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
     }
   }
 
-  CHPP_LOGI("Loopback client RX response. Error code=0x%" PRIx16
-            ", response len=%" PRIuSIZE ", request len=%" PRIuSIZE
-            ", first err=%" PRIuSIZE ", total err=%" PRIuSIZE,
+  CHPP_LOGI("Loopback client RX err=0x%" PRIx16 " len=%" PRIuSIZE
+            " req len=%" PRIuSIZE " first err=%" PRIuSIZE
+            " total err=%" PRIuSIZE,
             context->loopbackClientContext->testResult.error,
             context->loopbackClientContext->testResult.responseLen,
             context->loopbackClientContext->testResult.requestLen,
@@ -146,8 +146,8 @@ bool chppDispatchLoopbackServiceResponse(struct ChppAppState *context,
 struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
                                                   const uint8_t *buf,
                                                   size_t len) {
-  CHPP_LOGI("Loopback test. payload len=%" PRIuSIZE ", request len=%" PRIuSIZE,
-            len, len + CHPP_LOOPBACK_HEADER_LEN);
+  CHPP_LOGI("Loopback client TX len=%" PRIuSIZE,
+            len + CHPP_LOOPBACK_HEADER_LEN);
 
   if (!chppWaitForDiscoveryComplete(context, 0 /* timeoutMs */)) {
     static const struct ChppLoopbackTestResult result = {
@@ -159,8 +159,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
   CHPP_NOT_NULL(context->loopbackClientContext);
   if (context->loopbackClientContext->testResult.error ==
       CHPP_APP_ERROR_BLOCKED) {
-    CHPP_LOGE("Loopback test cannot be run while another is in progress");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "Another loopback in progress");
 
   } else {
     context->loopbackClientContext->testResult.error = CHPP_APP_ERROR_BLOCKED;
@@ -176,7 +175,7 @@ struct ChppLoopbackTestResult chppRunLoopbackTest(struct ChppAppState *context,
         CHPP_TIME_NONE;
 
     if (len == 0) {
-      CHPP_LOGE("Loopback payload too short (0)");
+      CHPP_LOGE("Loopback payload=0!");
       context->loopbackClientContext->testResult.error =
           CHPP_APP_ERROR_INVALID_LENGTH;
 

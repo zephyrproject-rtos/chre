@@ -302,8 +302,7 @@ static void chppWwanCloseResult(struct ChppWwanClientState *clientContext,
 static void chppWwanGetCapabilitiesResult(
     struct ChppWwanClientState *clientContext, uint8_t *buf, size_t len) {
   if (len < sizeof(struct ChppWwanGetCapabilitiesResponse)) {
-    struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
-    CHPP_LOGE("GetCapabilities resp. too short. err=%" PRIu8, rxHeader->error);
+    CHPP_LOGE("Bad WWAN capabilities len=%" PRIuSIZE, len);
 
   } else {
     struct ChppWwanGetCapabilitiesParameters *result =
@@ -314,7 +313,7 @@ static void chppWwanGetCapabilitiesResult(
 
 #ifdef CHPP_WWAN_DEFAULT_CAPABILITIES
     CHPP_ASSERT_LOG((result->capabilities == CHPP_WWAN_DEFAULT_CAPABILITIES),
-                    "Unexpected capability 0x%" PRIx32 " != 0x%" PRIx32,
+                    "WWAN capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_WWAN_DEFAULT_CAPABILITIES);
 #endif
 
@@ -337,19 +336,11 @@ static void chppWwanGetCellInfoAsyncResult(
   UNUSED_VAR(clientContext);
   CHPP_LOGD("chppWwanGetCellInfoAsyncResult received data len=%" PRIuSIZE, len);
 
-  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
   struct chreWwanCellInfoResult *chre = NULL;
   uint8_t errorCode = CHRE_ERROR;
 
   if (len == sizeof(struct ChppAppHeader)) {
-    // Short response length indicates an error
-    CHPP_LOGE("GetCellInfo resp. too short. err=%" PRIu8, rxHeader->error);
-
-    if (rxHeader->error == CHPP_APP_ERROR_NONE) {
-      errorCode = CHPP_APP_ERROR_INVALID_LENGTH;
-    } else {
-      errorCode = chppAppErrorToChreError(rxHeader->error);
-    }
+    errorCode = chppAppShortResponseErrorHandler(buf, len, "GetCellInfo");
 
   } else {
     buf += sizeof(struct ChppAppHeader);
@@ -358,8 +349,7 @@ static void chppWwanGetCellInfoAsyncResult(
         chppWwanCellInfoResultToChre((struct ChppWwanCellInfoResult *)buf, len);
 
     if (chre == NULL) {
-      CHPP_LOGE("Cell info conversion failed len=%" PRIuSIZE " err=%" PRIu8,
-                len, rxHeader->error);
+      CHPP_LOGE("Cell info conversion failed len=%" PRIuSIZE, len);
     }
   }
 

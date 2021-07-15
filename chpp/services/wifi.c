@@ -238,15 +238,13 @@ static enum ChppAppErrorCode chppWifiServiceOpen(
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   if (wifiServiceContext->service.openState == CHPP_OPEN_STATE_OPENED) {
-    CHPP_LOGE("WiFi service already open");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "WiFi service already open");
     error = CHPP_APP_ERROR_INVALID_COMMAND;
 
   } else if (!wifiServiceContext->api->open(
                  wifiServiceContext->service.appContext->systemApi,
                  &palCallbacks)) {
-    CHPP_LOGE("WiFi PAL open failed");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "WiFi PAL open failed");
     error = CHPP_APP_ERROR_BEYOND_CHPP;
 
   } else {
@@ -670,10 +668,8 @@ void chppRegisterWifiService(struct ChppAppState *appContext) {
   chppCheckWifiScanEventNotificationReset();
 
   if (gWifiServiceContext.api == NULL) {
-    CHPP_LOGE(
-        "WiFi PAL API version not compatible with CHPP. Cannot register WiFi "
-        "service");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false,
+                          "WiFi PAL API incompatible. Cannot register service");
 
   } else {
     gWifiServiceContext.service.appContext = appContext;
