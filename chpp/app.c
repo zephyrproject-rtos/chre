@@ -690,13 +690,16 @@ void chppAppProcessRxDatagram(struct ChppAppState *context, uint8_t *buf,
 
   } else if (len < sizeof(struct ChppAppHeader)) {
     uint8_t *handle = (uint8_t *)buf;
-    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for H#%" PRIu8, len,
-              *handle);
+    CHPP_LOGD("RX datagram len=%" PRIuSIZE " H#%" PRIu8, len, *handle);
 
+  } else if (rxHeader->error != CHPP_APP_ERROR_NONE) {
+    CHPP_LOGE("RX datagram len=%" PRIuSIZE " H#%" PRIu8 " type=0x%" PRIx8
+              " ID=%" PRIu8 " ERR=%" PRIu8 " cmd=0x%" PRIx16,
+              len, rxHeader->handle, rxHeader->type, rxHeader->transaction,
+              rxHeader->error, rxHeader->command);
   } else {
-    CHPP_LOGD("App layer RX datagram (len=%" PRIuSIZE ") for H#%" PRIu8
-              " type=0x%" PRIx8 " transaction ID=%" PRIu8 " err=%" PRIu8
-              " command=0x%" PRIx16,
+    CHPP_LOGD("RX datagram len=%" PRIuSIZE " H#%" PRIu8 " type=0x%" PRIx8
+              " ID=%" PRIu8 " err=%" PRIu8 " cmd=0x%" PRIx16,
               len, rxHeader->handle, rxHeader->type, rxHeader->transaction,
               rxHeader->error, rxHeader->command);
   }

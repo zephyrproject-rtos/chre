@@ -60,6 +60,8 @@ static void chppDiscoveryDiscoverAll(
     CHPP_ASSERT(false);
 
   } else {
+    CHPP_LOGI("Discovery resp count=%" PRIu8, context->registeredServiceCount);
+
     response->header.error = CHPP_APP_ERROR_NONE;
 
     // Populate list of services
