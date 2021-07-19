@@ -577,24 +577,32 @@ static void chppWifiServiceScanResponseCallback(bool pending,
  */
 static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event) {
   // Craft response per parser script
-  struct ChppWifiScanEventWithHeader *notification;
-  size_t notificationLen;
+  struct ChppWifiScanEventWithHeader *notification = NULL;
+  size_t notificationLen = 0;
 
   CHPP_DEBUG_ASSERT(chppCheckWifiScanEventNotification(event));
 
   if (!chppWifiScanEventFromChre(event, &notification, &notificationLen)) {
-    CHPP_LOGE(
-        "chppWifiScanEventFromChre failed (OOM?). Transaction ID = "
-        "%" PRIu8,
-        gWifiServiceContext.requestScanAsync.transaction);
-    // TODO: consider sending an error response if this fails
+    CHPP_LOGE("ScanEvent conversion failed (OOM?). ID=%" PRIu8,
+              gWifiServiceContext.requestScanAsync.transaction);
 
-  } else {
+    notification = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notification == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notificationLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notification != NULL) {
     notification->header.handle = gWifiServiceContext.service.handle;
     notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     notification->header.transaction =
         gWifiServiceContext.requestScanAsync.transaction;
-    notification->header.error = CHPP_APP_ERROR_NONE;
+    notification->header.error =
+        (notificationLen > sizeof(struct ChppAppHeader))
+            ? CHPP_APP_ERROR_NONE
+            : CHPP_APP_ERROR_CONVERSION_FAILED;
     notification->header.command = CHPP_WIFI_REQUEST_SCAN_ASYNC;
 
     chppEnqueueTxDatagramOrFail(
@@ -613,21 +621,30 @@ static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event) {
  */
 static void chppWifiServiceRangingEventCallback(
     uint8_t errorCode, struct chreWifiRangingEvent *event) {
-  struct ChppWifiRangingEventWithHeader *notification;
-  size_t notificationLen;
+  struct ChppWifiRangingEventWithHeader *notification = NULL;
+  size_t notificationLen = 0;
 
   if (!chppWifiRangingEventFromChre(event, &notification, &notificationLen)) {
-    CHPP_LOGE(
-        "chppWifiRangingEventFromChre failed (OOM?). Transaction ID = "
-        "%" PRIu8,
-        gWifiServiceContext.requestRangingAsync.transaction);
+    CHPP_LOGE("RangingEvent conversion failed (OOM?) ID=%" PRIu8,
+              gWifiServiceContext.requestRangingAsync.transaction);
 
-  } else {
+    notification = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notification == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notificationLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notification != NULL) {
     notification->header.handle = gWifiServiceContext.service.handle;
     notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     notification->header.transaction =
         gWifiServiceContext.requestRangingAsync.transaction;
-    notification->header.error = CHPP_APP_ERROR_NONE;
+    notification->header.error =
+        (notificationLen > sizeof(struct ChppAppHeader))
+            ? CHPP_APP_ERROR_NONE
+            : CHPP_APP_ERROR_CONVERSION_FAILED;
     notification->header.command = CHPP_WIFI_REQUEST_RANGING_ASYNC;
 
     if (errorCode != CHRE_ERROR_NONE) {
