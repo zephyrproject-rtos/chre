@@ -95,6 +95,7 @@ bool chppDispatchTimesyncServiceResponse(struct ChppAppState *context,
   CHPP_NOT_NULL(buf);
 
   if (len < sizeof(struct ChppTimesyncResponse)) {
+    CHPP_LOGE("Timesync resp short len=%" PRIuSIZE, len);
     context->timesyncClientContext->timesyncResult.error =
         CHPP_APP_ERROR_INVALID_LENGTH;
     return false;
