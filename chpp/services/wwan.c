@@ -374,20 +374,27 @@ static void chppWwanServiceCellInfoResultCallback(
       container_of(rRState, struct ChppWwanServiceState, getCellInfoAsync);
 
   // Craft response per parser script
-  struct ChppWwanCellInfoResultWithHeader *response;
-  size_t responseLen;
+  struct ChppWwanCellInfoResultWithHeader *response = NULL;
+  size_t responseLen = 0;
   if (!chppWwanCellInfoResultFromChre(result, &response, &responseLen)) {
-    CHPP_LOGE(
-        "chppWwanCellInfoResultFromChre failed (OOM?). Transaction ID = "
-        "%" PRIu8,
-        rRState->transaction);
-    // TODO: consider sending an error response if this fails
+    CHPP_LOGE("CellInfo conversion failed (OOM?) ID=%" PRIu8,
+              rRState->transaction);
 
-  } else {
+    response = chppMalloc(sizeof(struct ChppAppHeader));
+    if (response == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      responseLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (response != NULL) {
     response->header.handle = wwanServiceContext->service.handle;
     response->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
     response->header.transaction = rRState->transaction;
-    response->header.error = CHPP_APP_ERROR_NONE;
+    response->header.error = (responseLen > sizeof(struct ChppAppHeader))
+                                 ? CHPP_APP_ERROR_NONE
+                                 : CHPP_APP_ERROR_CONVERSION_FAILED;
     response->header.command = CHPP_WWAN_GET_CELLINFO_ASYNC;
 
     chppSendTimestampedResponseOrFail(&wwanServiceContext->service, rRState,

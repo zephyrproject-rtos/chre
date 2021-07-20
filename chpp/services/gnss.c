@@ -553,19 +553,30 @@ static void chppGnssServiceLocationStatusChangeCallback(bool enabled,
 static void chppGnssServiceLocationEventCallback(
     struct chreGnssLocationEvent *event) {
   // Craft response per parser script
-  struct ChppGnssLocationEventWithHeader *notification;
-  size_t notificationLen;
-  if (!chppGnssLocationEventFromChre(event, &notification, &notificationLen)) {
-    CHPP_LOGE("chppGnssLocationEventFromChre failed (OOM?)");
-    // TODO: consider sending an error response if this fails
+  struct ChppGnssLocationEventWithHeader *notification = NULL;
+  size_t notificationLen = 0;
 
-  } else {
+  if (!chppGnssLocationEventFromChre(event, &notification, &notificationLen)) {
+    CHPP_LOGE("LocationEvent conversion failed (OOM?)");
+
+    notification = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notification == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notificationLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notification != NULL) {
     notification->header.handle = gGnssServiceContext.service.handle;
     notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     notification->header.transaction =
         0;  // Because we don't know this is in response to a Location Session
             // or Passive Location Listener
-    notification->header.error = CHPP_APP_ERROR_NONE;
+    notification->header.error =
+        (notificationLen > sizeof(struct ChppAppHeader))
+            ? CHPP_APP_ERROR_NONE
+            : CHPP_APP_ERROR_CONVERSION_FAILED;
     notification->header.command = CHPP_GNSS_LOCATION_RESULT_NOTIFICATION;
 
     chppEnqueueTxDatagramOrFail(
@@ -614,21 +625,30 @@ static void chppGnssServiceMeasurementStatusChangeCallback(bool enabled,
 static void chppGnssServiceMeasurementEventCallback(
     struct chreGnssDataEvent *event) {
   // Craft response per parser script
-  struct ChppGnssDataEventWithHeader *notification;
-  size_t notificationLen;
-  if (!chppGnssDataEventFromChre(event, &notification, &notificationLen)) {
-    CHPP_LOGE(
-        "chppGnssDataEventFromChre failed (OOM?). Transaction ID = "
-        "%" PRIu8,
-        gGnssServiceContext.controlMeasurementSession.transaction);
-    // TODO: consider sending an error response if this fails
+  struct ChppGnssDataEventWithHeader *notification = NULL;
+  size_t notificationLen = 0;
 
-  } else {
+  if (!chppGnssDataEventFromChre(event, &notification, &notificationLen)) {
+    CHPP_LOGE("DataEvent conversion failed (OOM?) ID=%" PRIu8,
+              gGnssServiceContext.controlMeasurementSession.transaction);
+
+    notification = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notification == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notificationLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notification != NULL) {
     notification->header.handle = gGnssServiceContext.service.handle;
     notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     notification->header.transaction =
         gGnssServiceContext.controlMeasurementSession.transaction;
-    notification->header.error = CHPP_APP_ERROR_NONE;
+    notification->header.error =
+        (notificationLen > sizeof(struct ChppAppHeader))
+            ? CHPP_APP_ERROR_NONE
+            : CHPP_APP_ERROR_CONVERSION_FAILED;
     notification->header.command = CHPP_GNSS_MEASUREMENT_RESULT_NOTIFICATION;
 
     chppEnqueueTxDatagramOrFail(
