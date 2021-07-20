@@ -283,6 +283,25 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
   if (context->rxStatus.locInState == sizeof(struct ChppTransportFooter)) {
     // Footer copied. Move on
 
+    if (CHPP_TRANSPORT_GET_ERROR(context->rxHeader.packetCode) !=
+        CHPP_TRANSPORT_ERROR_NONE) {
+      CHPP_LOGE("RX packet len=%" PRIu16 " seq=%" PRIu8 " ackSeq=%" PRIu8
+                " attr=0x%" PRIx8 " ERR=%" PRIu8 " flags=0x%" PRIx8,
+                context->rxHeader.length, context->rxHeader.seq,
+                context->rxHeader.ackSeq,
+                (uint8_t)CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode),
+                (uint8_t)CHPP_TRANSPORT_GET_ERROR(context->rxHeader.packetCode),
+                context->rxHeader.flags);
+    } else {
+      CHPP_LOGD("RX packet len=%" PRIu16 " seq=%" PRIu8 " ackSeq=%" PRIu8
+                " attr=0x%" PRIx8 " err=%" PRIu8 " flags=0x%" PRIx8,
+                context->rxHeader.length, context->rxHeader.seq,
+                context->rxHeader.ackSeq,
+                (uint8_t)CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode),
+                (uint8_t)CHPP_TRANSPORT_GET_ERROR(context->rxHeader.packetCode),
+                context->rxHeader.flags);
+    }
+
     if (CHPP_TRANSPORT_GET_ATTR(context->rxHeader.packetCode) ==
         CHPP_TRANSPORT_ATTR_LOOPBACK_REQUEST) {
 #ifdef CHPP_SERVICE_ENABLED_TRANSPORT_LOOPBACK
@@ -328,11 +347,6 @@ static size_t chppConsumeFooter(struct ChppTransportState *context,
       chppAbortRxPacket(context);
 
     } else {
-      CHPP_LOGD("RX good packet. len=%" PRIu16 ", seq=%" PRIu8
-                ", ackSeq=%" PRIu8 ", flags=0x%" PRIx8 ", code=0x%" PRIx8,
-                context->rxHeader.length, context->rxHeader.seq,
-                context->rxHeader.ackSeq, context->rxHeader.flags,
-                context->rxHeader.packetCode);
       chppProcessRxPacket(context);
     }
 
@@ -440,10 +454,8 @@ static void chppProcessTransportLoopbackRequest(
 
     chppAddFooter(&context->pendingTxPacket);
 
-    CHPP_LOGD("Looping back incoming data (Tx packet len=%" PRIuSIZE
-              ", Tx payload len=%" PRIu16 ", Rx payload len=%" PRIuSIZE ")",
-              context->pendingTxPacket.length, txHeader->length,
-              context->rxDatagram.length);
+    CHPP_LOGI("Trans-looping back len=%" PRIu16 " RX len=%" PRIuSIZE,
+              txHeader->length, context->rxDatagram.length);
     enum ChppLinkErrorCode error = chppSendPendingPacket(context);
 
     if (error != CHPP_LINK_ERROR_NONE_QUEUED) {
@@ -564,7 +576,7 @@ static void chppProcessRxPacket(struct ChppTransportState *context) {
   }
 
   if (errorCode == CHPP_TRANSPORT_ERROR_ORDER) {
-    CHPP_LOGE("Out of order RX discarded. seq=%" PRIu8 "expect=%" PRIu8
+    CHPP_LOGE("Out of order RX discarded seq=%" PRIu8 " expect=%" PRIu8
               " len=%" PRIu16,
               context->rxHeader.seq, context->rxStatus.expectedSeq,
               context->rxHeader.length);
@@ -720,7 +732,7 @@ static void chppRegisterRxAck(struct ChppTransportState *context) {
 
       context->rxStatus.receivedAckSeq = rxAckSeq;
       if (context->txStatus.txAttempts > 1) {
-        CHPP_LOGW("Seq %" PRIu8 "ACK rcv'd after %" PRIuSIZE "retx",
+        CHPP_LOGW("Seq %" PRIu8 " ACK'd after %" PRIuSIZE " reTX",
                   context->rxHeader.seq, context->txStatus.txAttempts - 1);
       }
       context->txStatus.txAttempts = 0;
