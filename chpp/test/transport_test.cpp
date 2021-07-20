@@ -1092,7 +1092,52 @@ TEST_F(TransportTests, DiscardedPacketTest) {
   t1.join();
 }
 
+/*
+ * Correctly handle messages directed to clients / services with an invalid
+ * handle number.
+ */
+void messageToInvalidHandle(ChppTransportState *transportContext,
+                            uint8_t type) {
+  size_t len = 0;
+  uint8_t *buf = (uint8_t *)chppMalloc(100);
+
+  transportContext->txStatus.hasPacketsToSend = true;
+  std::thread t1(chppWorkThreadStart, transportContext);
+  WaitForTransport(transportContext);
+  chppWorkThreadStop(transportContext);
+  t1.join();
+
+  ChppAppHeader *appHeader = addAppHeaderToBuf(buf, &len);
+  appHeader->handle =
+      CHPP_HANDLE_NEGOTIATED_RANGE_START + CHPP_MAX_REGISTERED_CLIENTS;
+  appHeader->type = type;
+  len = sizeof(struct ChppAppHeader);
+
+  chppAppProcessRxDatagram(transportContext->appContext, buf, len);
+
+  EXPECT_EQ(transportContext->txStatus.packetCodeToSend,
+            CHPP_TRANSPORT_ERROR_APPLAYER);
+}
+
+TEST_F(TransportTests, RequestToInvalidService) {
+  messageToInvalidHandle(&mTransportContext, CHPP_MESSAGE_TYPE_CLIENT_REQUEST);
+}
+
+TEST_F(TransportTests, ResponseToInvalidClient) {
+  messageToInvalidHandle(&mTransportContext,
+                         CHPP_MESSAGE_TYPE_SERVICE_RESPONSE);
+}
+
+TEST_F(TransportTests, NotificationToInvalidService) {
+  messageToInvalidHandle(&mTransportContext,
+                         CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION);
+}
+
+TEST_F(TransportTests, NotificationToInvalidClient) {
+  messageToInvalidHandle(&mTransportContext,
+                         CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION);
+}
+
 INSTANTIATE_TEST_SUITE_P(TransportTestRange, TransportTests,
                          testing::ValuesIn(kChunkSizes));
-
 }  // namespace
