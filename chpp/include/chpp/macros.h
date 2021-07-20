@@ -76,6 +76,16 @@ extern "C" {
 #endif  // CHPP_DEBUG_ASSERT_ENABLED
 #endif  // CHPP_DEBUG_ASSERT
 
+#ifndef CHPP_DEBUG_ASSERT_LOG
+#define CHPP_DEBUG_ASSERT_LOG(var, fmt, ...) \
+  do {                                       \
+    if (!(var)) {                            \
+      CHPP_LOGE(fmt, ##__VA_ARGS__);         \
+      CHPP_DEBUG_ASSERT(false);              \
+    }                                        \
+  } while (0)
+#endif
+
 #ifndef PRIu64  // Pre-C99 lacks PRIu64 support. Note that the correct
                 // definition on pre-C99 systems would be compiler-dependent.
 #define PRIu64 "llu"
