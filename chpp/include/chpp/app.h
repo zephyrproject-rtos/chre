@@ -148,6 +148,8 @@ enum ChppAppErrorCode {
   CHPP_APP_ERROR_BEYOND_CHPP = 12,
   //! Response not matching a pending request
   CHPP_APP_ERROR_UNEXPECTED_RESPONSE = 13,
+  //! Conversion failed
+  CHPP_APP_ERROR_CONVERSION_FAILED = 14,
   //! Unspecified failure
   CHPP_APP_ERROR_UNSPECIFIED = 255
 };
