@@ -365,8 +365,8 @@ static void chppWiFiRecoverScanMonitor(
 
     if (!chppWifiClientConfigureScanMonitor(true)) {
       clientContext->scanMonitorSilenceCallback = false;
-      CHPP_ASSERT_LOG(false,
-                      "Unable to re-enable WiFi scan monitoring after reset");
+      CHPP_DEBUG_ASSERT_LOG(
+          false, "Unable to re-enable WiFi scan monitoring after reset");
     }
   }
 }
