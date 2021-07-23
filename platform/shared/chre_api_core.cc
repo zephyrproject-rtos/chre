@@ -32,7 +32,7 @@ using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
 using chre::Nanoapp;
 
-DLL_EXPORT void chreAbort(uint32_t abortCode) {
+DLL_EXPORT void chreAbort(uint32_t /* abortCode */) {
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   // TODO: we should cleanly unload the nanoapp, release all of its resources,
