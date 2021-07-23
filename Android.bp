@@ -353,6 +353,84 @@ cc_test_host {
     ],
 }
 
+cc_test_host {
+    name: "chre_simulation_tests",
+    srcs: [
+        "test/simulation/*.cc",
+    ],
+    local_include_dirs: [
+        "test/simulation/inc",
+    ],
+    static_libs: [
+        "chre_linux",
+    ],
+    cflags: [
+        "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4096",
+        "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
+        "-DCHRE_ASSERTIONS_ENABLED=true",
+        "-DCHRE_FILENAME=__FILE__",
+        "-DCHRE_FIRST_SUPPORTED_API_VERSION=CHRE_API_VERSION_1_1",
+    ],
+}
+
+cc_library_static {
+    name: "chre_linux",
+    vendor: true,
+    srcs: [
+        "core/init.cc",
+        "core/event.cc",
+        "core/event_loop.cc",
+        "core/event_loop_manager.cc",
+        "core/event_ref_queue.cc",
+        "core/nanoapp.cc",
+        "core/timer_pool.cc",
+        "platform/linux/assert.cc",
+        "platform/linux/context.cc",
+        "platform/linux/fatal_error.cc",
+        "platform/linux/host_link.cc",
+        "platform/linux/platform_nanoapp.cc",
+        "platform/linux/platform_log.cc",
+        "platform/linux/power_control_manager.cc",
+        "platform/linux/memory.cc",
+        "platform/linux/memory_manager.cc",
+        "platform/linux/system_time.cc",
+        "platform/linux/system_timer.cc",
+        "platform/shared/log_buffer.cc",
+        "platform/shared/memory_manager.cc",
+        "platform/shared/pal_system_api.cc",
+        "platform/shared/system_time.cc",
+        "platform/shared/version.cc",
+        "util/**/*.cc",
+    ],
+    export_include_dirs: [
+        "chre_api/include",
+        "chre_api/include/chre_api",
+        "core/include",
+        "pal/include",
+        "pal/util/include",
+        "platform/linux/include",
+        "platform/shared/include",
+        "platform/include",
+        "util/include",
+    ],
+    header_libs: [
+        "chre_api",
+    ],
+    cflags: [
+        "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4096",
+        "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
+        "-DCHRE_ASSERTIONS_ENABLED=true",
+        "-DCHRE_FILENAME=__FILE__",
+        "-DGTEST",
+        "-DCHRE_FIRST_SUPPORTED_API_VERSION=CHRE_API_VERSION_1_1",
+    ],
+    static_libs: [
+        "libgtest",
+        "libgmock",
+    ],
+    host_supported: true,
+}
+
 subdirs = [
     "apps/wifi_offload",
 ]
