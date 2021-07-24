@@ -42,7 +42,6 @@ cc_library_static {
         "-Wshadow",
         "-Wstrict-prototypes",
         "-Wswitch",
-        "-DCHPP_CHECKSUM_ENABLED",
         "-DCHPP_CLIENT_ENABLED_DISCOVERY",
         "-DCHPP_CLIENT_ENABLED_LOOPBACK",
         "-DCHPP_CLIENT_ENABLED_TIMESYNC",

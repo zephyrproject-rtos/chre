@@ -680,12 +680,6 @@ static bool chppRxChecksumIsOk(const struct ChppTransportState *context) {
            .payload[context->rxStatus.locInDatagram - context->rxHeader.length],
       context->rxHeader.length);
 
-#ifndef CHPP_CHECKSUM_ENABLED
-  CHPP_LOGD("Assuming Rx checksum 0x%" PRIx32 " = calculated 0x%" PRIx32,
-            context->rxFooter.checksum, crc);
-  crc = context->rxFooter.checksum;
-#endif  // CHPP_CHECKSUM_ENABLED
-
   if (context->rxFooter.checksum != crc) {
     CHPP_LOGE("RX BAD checksum: footer=0x%" PRIx32 ", calc=0x%" PRIx32
               ", len=%" PRIuSIZE,
