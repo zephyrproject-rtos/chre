@@ -35,16 +35,13 @@ DLL_EXPORT uint32_t chreWwanGetCapabilities() {
 }
 
 DLL_EXPORT bool chreWwanGetCellInfoAsync(const void *cookie) {
-  bool success = false;
 #ifdef CHRE_WWAN_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success =
-        nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WWAN) &&
-        chre::EventLoopManagerSingleton::get()
-            ->getWwanRequestManager()
-            .requestCellInfo(nanoapp, cookie);
-  }
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WWAN) &&
+         chre::EventLoopManagerSingleton::get()
+             ->getWwanRequestManager()
+             .requestCellInfo(nanoapp, cookie);
+#else
+  return false;
 #endif  // CHRE_WWAN_SUPPORT_ENABLED
-  return success;
 }

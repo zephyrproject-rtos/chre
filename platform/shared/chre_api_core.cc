@@ -53,17 +53,14 @@ DLL_EXPORT bool chreSendEvent(uint16_t eventType, void *eventData,
   // Prevent an app that is in the process of being unloaded from generating new
   // events
   bool success = false;
-  if (nanoapp != nullptr) {
-    EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-    if (eventLoop.currentNanoappIsStopping()) {
-      LOGW("Rejecting event from app instance %" PRIu32
-           " because it's stopping",
-           nanoapp->getInstanceId());
-    } else {
-      success = eventLoop.postLowPriorityEventOrFree(
-          eventType, eventData, freeCallback, nanoapp->getInstanceId(),
-          targetInstanceId);
-    }
+  EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  if (eventLoop.currentNanoappIsStopping()) {
+    LOGW("Rejecting event from app instance %" PRIu32 " because it's stopping",
+         nanoapp->getInstanceId());
+  } else {
+    success = eventLoop.postLowPriorityEventOrFree(
+        eventType, eventData, freeCallback, nanoapp->getInstanceId(),
+        targetInstanceId);
   }
   return success;
 }
@@ -83,20 +80,17 @@ DLL_EXPORT bool chreSendMessageWithPermissions(
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
   bool success = false;
-  if (nanoapp != nullptr) {
-    const EventLoop &eventLoop =
-        EventLoopManagerSingleton::get()->getEventLoop();
-    if (eventLoop.currentNanoappIsStopping()) {
-      LOGW("Rejecting message to host from app instance %" PRIu32
-           " because it's stopping",
-           nanoapp->getInstanceId());
-    } else {
-      auto &hostCommsManager =
-          EventLoopManagerSingleton::get()->getHostCommsManager();
-      success = hostCommsManager.sendMessageToHostFromNanoapp(
-          nanoapp, message, messageSize, messageType, hostEndpoint,
-          messagePermissions, freeCallback);
-    }
+  const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  if (eventLoop.currentNanoappIsStopping()) {
+    LOGW("Rejecting message to host from app instance %" PRIu32
+         " because it's stopping",
+         nanoapp->getInstanceId());
+  } else {
+    auto &hostCommsManager =
+        EventLoopManagerSingleton::get()->getHostCommsManager();
+    success = hostCommsManager.sendMessageToHostFromNanoapp(
+        nanoapp, message, messageSize, messageType, hostEndpoint,
+        messagePermissions, freeCallback);
   }
 
   if (!success && freeCallback != nullptr) {
@@ -131,16 +125,12 @@ DLL_EXPORT bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
 
 DLL_EXPORT void chreConfigureNanoappInfoEvents(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    nanoapp->configureNanoappInfoEvents(enable);
-  }
+  nanoapp->configureNanoappInfoEvents(enable);
 }
 
 DLL_EXPORT void chreConfigureHostSleepStateEvents(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    nanoapp->configureHostSleepEvents(enable);
-  }
+  nanoapp->configureHostSleepEvents(enable);
 }
 
 DLL_EXPORT bool chreIsHostAwake() {
@@ -152,7 +142,5 @@ DLL_EXPORT bool chreIsHostAwake() {
 
 DLL_EXPORT void chreConfigureDebugDumpEvent(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    nanoapp->configureDebugDumpEvent(enable);
-  }
+  nanoapp->configureDebugDumpEvent(enable);
 }

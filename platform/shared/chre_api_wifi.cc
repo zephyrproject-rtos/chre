@@ -36,47 +36,38 @@ DLL_EXPORT uint32_t chreWifiGetCapabilities() {
 
 DLL_EXPORT bool chreWifiConfigureScanMonitorAsync(bool enable,
                                                   const void *cookie) {
-  bool success = false;
 #ifdef CHRE_WIFI_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success =
-        nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
-        EventLoopManagerSingleton::get()
-            ->getWifiRequestManager()
-            .configureScanMonitor(nanoapp, enable, cookie);
-  }
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
+         EventLoopManagerSingleton::get()
+             ->getWifiRequestManager()
+             .configureScanMonitor(nanoapp, enable, cookie);
+#else
+  return false;
 #endif  // CHRE_WIFI_SUPPORT_ENABLED
-  return success;
 }
 
 DLL_EXPORT bool chreWifiRequestScanAsync(
     const struct chreWifiScanParams *params, const void *cookie) {
-  bool success = false;
 #ifdef CHRE_WIFI_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success =
-        nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
-        EventLoopManagerSingleton::get()->getWifiRequestManager().requestScan(
-            nanoapp, params, cookie);
-  }
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
+         EventLoopManagerSingleton::get()->getWifiRequestManager().requestScan(
+             nanoapp, params, cookie);
+#else
+  return false;
 #endif  // CHRE_WIFI_SUPPORT_ENABLED
-  return success;
 }
 
 DLL_EXPORT bool chreWifiRequestRangingAsync(
     const struct chreWifiRangingParams *params, const void *cookie) {
-  bool success = false;
 #ifdef CHRE_WIFI_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success =
-        nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
-        EventLoopManagerSingleton::get()
-            ->getWifiRequestManager()
-            .requestRanging(nanoapp, params, cookie);
-  }
-#endif  // CHRE_WIFI_SUPPORT_ENABLED
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_WIFI) &&
+         EventLoopManagerSingleton::get()
+             ->getWifiRequestManager()
+             .requestRanging(nanoapp, params, cookie);
+#else
   return false;
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
 }

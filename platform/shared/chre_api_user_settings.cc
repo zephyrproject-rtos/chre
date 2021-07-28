@@ -32,8 +32,6 @@ DLL_EXPORT int8_t chreUserSettingGetState(uint8_t setting) {
 DLL_EXPORT void chreUserSettingConfigureEvents(uint8_t setting, bool enable) {
   if (setting < static_cast<uint8_t>(Setting::SETTING_MAX)) {
     Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-    if (nanoapp != nullptr) {
-      nanoapp->configureUserSettingEvent(setting, enable);
-    }
+    nanoapp->configureUserSettingEvent(setting, enable);
   }
 }

@@ -35,32 +35,28 @@ DLL_EXPORT bool chreSensorFindDefault(uint8_t sensorType, uint32_t *handle) {
 
 DLL_EXPORT bool chreSensorFind(uint8_t sensorType, uint8_t sensorIndex,
                                uint32_t *handle) {
-  bool success = false;
 #if CHRE_SENSORS_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success = EventLoopManagerSingleton::get()
-                  ->getSensorRequestManager()
-                  .getSensorHandleForNanoapp(sensorType, sensorIndex, *nanoapp,
-                                             handle);
-  }
+  return EventLoopManagerSingleton::get()
+      ->getSensorRequestManager()
+      .getSensorHandleForNanoapp(sensorType, sensorIndex, *nanoapp, handle);
 #else  // CHRE_SENSORS_SUPPORT_ENABLED
   UNUSED_VAR(sensorType);
   UNUSED_VAR(sensorIndex);
   UNUSED_VAR(handle);
+  return false;
 #endif
-  return success;
 }
 
 DLL_EXPORT bool chreGetSensorInfo(uint32_t sensorHandle,
                                   struct chreSensorInfo *info) {
-  bool success = false;
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
   CHRE_ASSERT(info);
 
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
 
-  if ((info != nullptr) && (nanoapp != nullptr)) {
+  bool success = false;
+  if (info != nullptr) {
     success = EventLoopManagerSingleton::get()
                   ->getSensorRequestManager()
                   .getSensorInfo(sensorHandle, *nanoapp, info);
@@ -95,24 +91,21 @@ DLL_EXPORT bool chreGetSensorSamplingStatus(
 DLL_EXPORT bool chreSensorConfigure(uint32_t sensorHandle,
                                     enum chreSensorConfigureMode mode,
                                     uint64_t interval, uint64_t latency) {
-  bool success = false;
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    SensorMode sensorMode = getSensorModeFromEnum(mode);
-    SensorRequest sensorRequest(nanoapp->getInstanceId(), sensorMode,
-                                Nanoseconds(interval), Nanoseconds(latency));
-    success = EventLoopManagerSingleton::get()
-                  ->getSensorRequestManager()
-                  .setSensorRequest(nanoapp, sensorHandle, sensorRequest);
-  }
+  SensorMode sensorMode = getSensorModeFromEnum(mode);
+  SensorRequest sensorRequest(nanoapp->getInstanceId(), sensorMode,
+                              Nanoseconds(interval), Nanoseconds(latency));
+  return EventLoopManagerSingleton::get()
+      ->getSensorRequestManager()
+      .setSensorRequest(nanoapp, sensorHandle, sensorRequest);
 #else   // CHRE_SENSORS_SUPPORT_ENABLED
   UNUSED_VAR(sensorHandle);
   UNUSED_VAR(mode);
   UNUSED_VAR(interval);
   UNUSED_VAR(latency);
+  return false;
 #endif  // CHRE_SENSORS_SUPPORT_ENABLED
-  return success;
 }
 
 DLL_EXPORT bool chreSensorConfigureBiasEvents(uint32_t sensorHandle,
@@ -144,17 +137,13 @@ DLL_EXPORT bool chreSensorGetThreeAxisBias(
 
 DLL_EXPORT bool chreSensorFlushAsync(uint32_t sensorHandle,
                                      const void *cookie) {
-  bool success = false;
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  if (nanoapp != nullptr) {
-    success =
-        EventLoopManagerSingleton::get()->getSensorRequestManager().flushAsync(
-            nanoapp, sensorHandle, cookie);
-  }
+  return EventLoopManagerSingleton::get()->getSensorRequestManager().flushAsync(
+      nanoapp, sensorHandle, cookie);
 #else   // CHRE_SENSORS_SUPPORT_ENABLED
   UNUSED_VAR(sensorHandle);
   UNUSED_VAR(cookie);
+  return false;
 #endif  // CHRE_SENSORS_SUPPORT_ENABLED
-  return success;
 }
