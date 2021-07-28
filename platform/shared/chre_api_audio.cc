@@ -50,18 +50,22 @@ DLL_EXPORT bool chreAudioGetSource(uint32_t handle,
 DLL_EXPORT bool chreAudioConfigureSource(uint32_t handle, bool enable,
                                          uint64_t bufferDuration,
                                          uint64_t deliveryInterval) {
+  bool success = false;
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
-  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_AUDIO) &&
-         EventLoopManagerSingleton::get()
-             ->getAudioRequestManager()
-             .configureSource(nanoapp, handle, enable, bufferDuration,
-                              deliveryInterval);
+  if (nanoapp != nullptr) {
+    success =
+        nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_AUDIO) &&
+        EventLoopManagerSingleton::get()
+            ->getAudioRequestManager()
+            .configureSource(nanoapp, handle, enable, bufferDuration,
+                             deliveryInterval);
+  }
 #else
   UNUSED_VAR(handle);
   UNUSED_VAR(enable);
   UNUSED_VAR(bufferDuration);
   UNUSED_VAR(deliveryInterval);
-  return false;
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+  return success;
 }
