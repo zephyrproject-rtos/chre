@@ -281,7 +281,7 @@ void GnssSession::handleReportEvent(void *event) {
   }
 }
 
-void GnssSession::onSettingChanged(Setting setting, SettingState state) {
+void GnssSession::onSettingChanged(Setting setting, SettingState /*state*/) {
   if (setting == Setting::LOCATION) {
     if (asyncResponsePending()) {
       // A request is in progress, so we wait until the async response arrives

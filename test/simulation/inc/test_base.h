@@ -21,6 +21,9 @@
 
 #include <thread>
 
+#include "chre/util/time.h"
+#include "test_event_queue.h"
+
 namespace chre {
 
 /*
@@ -30,6 +33,25 @@ class TestBase : public testing::Test {
  protected:
   void SetUp() override;
   void TearDown() override;
+
+  /**
+   * This method can be overridden in a derived class if desired.
+   *
+   * @return The total runtime allowed for the entire test.
+   */
+  virtual uint64_t getTimeoutNs() const {
+    return 5 * kOneSecondInNanoseconds;
+  }
+
+  /**
+   * A convenience method to invoke waitForEvent() for the TestEventQueue
+   * singleton.
+   *
+   * @param eventType The event type to wait for.
+   */
+  void waitForEvent(uint16_t eventType) {
+    TestEventQueueSingleton::get()->waitForEvent(eventType);
+  }
 
   std::thread mChreThread;
 };

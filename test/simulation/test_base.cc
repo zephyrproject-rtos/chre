@@ -34,14 +34,37 @@ bool gNanoappStarted = false;
 
 /**
  * This base class initializes and runs the event loop.
+ *
+ * This test framework makes use of the TestEventQueue as a primary method
+ * of a test execution barrier (see its documentation for details). To simplify
+ * the test execution flow, it is encouraged that any communication between
+ * threads (e.g. a nanoapp and the main test thread) through this
+ * TestEventQueue. In this way, we can design simulation tests in a way that
+ * validates an expected sequence of events in a well-defined manner.
+ *
+ * To avoid the test from potentially stalling, we also push a timeout event
+ * to the TestEventQueue once a fixed timeout has elapsed since the start of
+ * this test.
  */
 void TestBase::SetUp() {
+  TestEventQueueSingleton::init();
   chre::PlatformLogSingleton::init();
   chre::init();
   EventLoopManagerSingleton::get()->lateInit();
 
   mChreThread = std::thread(
       []() { EventLoopManagerSingleton::get()->getEventLoop().run(); });
+
+  auto callback = [](uint16_t /*type*/, void * /* data */,
+                     void * /*extraData*/) {
+    LOGE("Test timed out ...");
+    TestEventQueueSingleton::get()->pushEvent(
+        CHRE_EVENT_SIMULATION_TEST_TIMEOUT);
+  };
+  TimerHandle handle = EventLoopManagerSingleton::get()->setDelayedCallback(
+      SystemCallbackType::DelayedFatalError, nullptr /* data */, callback,
+      Nanoseconds(getTimeoutNs()));
+  ASSERT_NE(handle, CHRE_TIMER_INVALID);
 }
 
 void TestBase::TearDown() {
@@ -50,6 +73,7 @@ void TestBase::TearDown() {
 
   chre::deinit();
   chre::PlatformLogSingleton::deinit();
+  TestEventQueueSingleton::deinit();
 }
 
 /**
@@ -74,5 +98,8 @@ TEST_F(TestBase, SimpleNanoappTest) {
 
   ASSERT_TRUE(gNanoappStarted);
 }
+
+// Explicitly instantiate the TestEventQueueSingleton to reduce codesize.
+template class Singleton<TestEventQueue>;
 
 }  // namespace chre
