@@ -34,7 +34,6 @@
 #endif
 #include "chre/platform/slpi/fastrpc.h"
 #include "chre/platform/slpi/power_control_util.h"
-#include "chre/platform/slpi/system_time.h"
 #include "chre/platform/system_time.h"
 #include "chre/platform/system_timer.h"
 #include "chre/util/fixed_size_blocking_queue.h"
@@ -921,7 +920,7 @@ void HostMessageHandlers::handleUnloadNanoappRequest(
 }
 
 void HostMessageHandlers::handleTimeSyncMessage(int64_t offset) {
-  setEstimatedHostTimeOffset(offset);
+  SystemTime::setEstimatedHostTimeOffset(offset);
 
   // Schedule a time sync request since offset may drift
   constexpr Seconds kClockDriftTimeSyncPeriod =
