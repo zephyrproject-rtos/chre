@@ -545,7 +545,7 @@ void Manager::sendFailure(const char *errorMessage) {
   test_shared::sendTestResultWithMsgToHost(
       mHostEndpoint.value(),
       chre_stress_test_MessageType_TEST_RESULT /* messageType */,
-      false /* success */, errorMessage);
+      false /* success */, errorMessage, false /* abortOnFailure */);
 }
 
 }  // namespace stress_test
