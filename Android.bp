@@ -230,6 +230,32 @@ cc_binary {
     vintf_fragments: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-generic.xml"],
 }
 
+cc_binary {
+    name: "android.hardware.contexthub-service.generic",
+    defaults: ["hidl_defaults"],
+    vendor: true,
+    relative_install_path: "hw",
+    srcs: [
+        "host/hal_generic/aidl/generic_context_hub_aidl.cc",
+        "host/hal_generic/aidl/service.cc",
+        "host/hal_generic/common/hal_chre_socket_connection.cc",
+        "host/hal_generic/common/permissions_util.cc",
+    ],
+    local_include_dirs: ["host/hal_generic/common/"],
+    init_rc: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.rc"],
+    cflags: ["-Wall", "-Werror"],
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libutils",
+        "libbase",
+        "libbinder_ndk",
+        "android.hardware.contexthub-V1-ndk",
+    ],
+    static_libs: ["chre_client"],
+    vintf_fragments: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.xml"],
+}
+
 cc_library_headers {
     name: "chre_api",
     vendor: true,
