@@ -32,12 +32,12 @@ cc_test_host {
 
     srcs: [
         // Files under test
-        "shared/dumb_allocator.cc",
+        "shared/chunk_allocator.cc",
         "shared/nano_endian.cc",
         "shared/nano_string.cc",
 
         // Testing source
-        "shared/dumb_allocator_test.cc",
+        "shared/chunk_allocator_test.cc",
         "shared/nano_endian_be_test.cc",
         "shared/nano_endian_le_test.cc",
         "shared/nano_endian_test.cc",

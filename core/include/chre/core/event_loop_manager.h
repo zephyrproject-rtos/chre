@@ -23,6 +23,7 @@
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/memory_manager.h"
 #include "chre/platform/mutex.h"
+#include "chre/util/always_false.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/singleton.h"
@@ -49,7 +50,13 @@
 #include "chre/core/wwan_request_manager.h"
 #endif  // CHRE_WWAN_SUPPORT_ENABLED
 
+#include <cstddef>
+
 namespace chre {
+
+template <typename T>
+using TypedSystemEventCallbackFunction = void(SystemCallbackType type,
+                                              UniquePtr<T> &&data);
 
 /**
  * A class that keeps track of all event loops in the system. This class
@@ -86,12 +93,69 @@ class EventLoopManager : public NonCopyable {
    * @param type An identifier for the callback, which is passed through to the
    *        callback as a uint16_t, and can also be useful for debugging
    * @param data Arbitrary data to provide to the callback
-   * @param callback Function to invoke from within the main CHRE event loop
+   * @param callback Function to invoke from within the main CHRE thread
+   * @param extraData Additional arbitrary data to provide to the callback
    */
   void deferCallback(SystemCallbackType type, void *data,
-                     SystemCallbackFunction *callback) {
-    mEventLoop.postEventOrDie(static_cast<uint16_t>(type), data, callback,
-                              kSystemInstanceId);
+                     SystemEventCallbackFunction *callback,
+                     void *extraData = nullptr) {
+    mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data, callback,
+                               extraData);
+  }
+
+  /**
+   * Alternative version of deferCallback which accepts a UniquePtr for the data
+   * passed to the callback. This overload helps ensure that type continuity is
+   * maintained with the callback, and also helps to ensure that the memory is
+   * not leaked, including when CHRE is shutting down.
+   *
+   * Safe to call from any thread.
+   *
+   * @param type An identifier for the callback, which is passed through as
+   *        uint16_t, and can also be useful for debugging
+   * @param data Pointer to arbitrary data to provide to the callback
+   * @param callback Function to invoke from within the main CHRE thread
+   */
+  template <typename T>
+  void deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
+                     TypedSystemEventCallbackFunction<T> *callback) {
+    auto outerCallback = [](uint16_t type, void *data, void *extraData) {
+      // Re-wrap eventData in UniquePtr so its destructor will get called and
+      // the memory will be freed once we leave this scope
+      UniquePtr<T> dataWrapped = UniquePtr<T>(static_cast<T *>(data));
+      auto *innerCallback =
+          reinterpret_cast<TypedSystemEventCallbackFunction<T> *>(extraData);
+      innerCallback(static_cast<SystemCallbackType>(type),
+                    std::move(dataWrapped));
+    };
+    // Pass the "inner" callback (the caller's callback) through to the "outer"
+    // callback using the extraData parameter. Note that we're leveraging the
+    // C++11 ability to cast a function pointer to void*
+    if (mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data.get(),
+                                   outerCallback,
+                                   reinterpret_cast<void *>(callback))) {
+      data.release();
+    }
+  }
+
+  //! Override that allows passing a lambda for the callback
+  template <typename T, typename LambdaT>
+  void deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
+                     LambdaT callback) {
+    deferCallback(type, std::move(data),
+                  static_cast<TypedSystemEventCallbackFunction<T> *>(callback));
+  }
+
+  //! Disallows passing a null callback, as we don't include a null check in the
+  //! outer callback to reduce code size. Note that this doesn't prevent the
+  //! caller from passing a variable which is set to nullptr at runtime, but
+  //! generally the callback is always known at compile time.
+  template <typename T>
+  void deferCallback(SystemCallbackType /*type*/, UniquePtr<T> && /*data*/,
+                     std::nullptr_t /*callback*/) {
+    static_assert(AlwaysFalse<T>::value,
+                  "deferCallback(SystemCallbackType, UniquePtr<T>, nullptr) is "
+                  "not allowed");
   }
 
   /**
@@ -104,14 +168,15 @@ class EventLoopManager : public NonCopyable {
    * @param type An identifier for the callback, which is passed through to the
    *        callback as a uint16_t, and can also be useful for debugging
    * @param data Arbitrary data to provide to the callback
-   * @param callback Function to invoke from within the main CHRE event loop
+   * @param callback Function to invoke from within the main CHRE event loop -
+   *        note that extraData is always passed back as nullptr
    * @param delay The delay to postpone posting the event
    * @return TimerHandle of the requested timer.
    *
    * @see deferCallback
    */
   TimerHandle setDelayedCallback(SystemCallbackType type, void *data,
-                                 SystemCallbackFunction *callback,
+                                 SystemEventCallbackFunction *callback,
                                  Nanoseconds delay) {
     return mEventLoop.getTimerPool().setSystemTimer(delay, callback, type,
                                                     data);

@@ -19,8 +19,8 @@
 
 TEST(PalVersionTest, CreateApiVersion) {
   constexpr uint32_t version = CHRE_PAL_CREATE_API_VERSION(3, 6);
-  EXPECT_EQ(version, 0x03060000);
-  EXPECT_EQ(CHRE_PAL_GET_API_MAJOR_VERSION(version), 3);
+  EXPECT_EQ(version, 0x03060000u);
+  EXPECT_EQ(CHRE_PAL_GET_API_MAJOR_VERSION(version), 3u);
 }
 
 TEST(PalVersionTest, CompatibilityCheck) {

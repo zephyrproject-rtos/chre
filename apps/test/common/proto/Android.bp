@@ -20,7 +20,6 @@ package {
     // all of the 'license_kinds' from "system_chre_license"
     // to get the below license kinds:
     //   SPDX-license-identifier-Apache-2.0
-    //   SPDX-license-identifier-BSD
     default_applicable_licenses: ["system_chre_license"],
 }
 
@@ -72,6 +71,42 @@ java_library {
         local_include_dirs: [
             ".",
         ],
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
+    name: "permission_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./permission_test.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
+    name: "ping_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./ping_test.proto",
+    ],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+}
+
+java_library {
+    name: "chre_stress_test_java_proto",
+    host_supported: true,
+    srcs: [
+        "./chre_stress_test.proto",
+    ],
+    proto: {
+        type: "lite",
     },
     sdk_version: "system_current",
 }

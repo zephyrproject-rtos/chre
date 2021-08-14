@@ -16,7 +16,6 @@ COMMON_SRCS += core/event_loop_manager.cc
 COMMON_SRCS += core/event_ref_queue.cc
 COMMON_SRCS += core/host_comms_manager.cc
 COMMON_SRCS += core/init.cc
-COMMON_SRCS += core/log.cc
 COMMON_SRCS += core/nanoapp.cc
 COMMON_SRCS += core/settings.cc
 COMMON_SRCS += core/static_nanoapps.cc
@@ -55,7 +54,7 @@ endif
 
 # GoogleTest Source Files ######################################################
 
-GOOGLETEST_SRCS += core/tests/audio_request_manager_test.cc
+GOOGLETEST_SRCS += core/tests/audio_util_test.cc
 GOOGLETEST_SRCS += core/tests/memory_manager_test.cc
 GOOGLETEST_SRCS += core/tests/request_multiplexer_test.cc
 GOOGLETEST_SRCS += core/tests/sensor_request_test.cc

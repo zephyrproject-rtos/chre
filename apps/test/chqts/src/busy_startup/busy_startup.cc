@@ -19,8 +19,8 @@
  *
  * This nanoapp is to confirm a number of CHRE methods can be invoked from
  * within nanoappStart().  There are other tests which test each of these
- * CHRE methods more in depth.  We're just doing a sanity check that calling
- * from nanoappStart() works at all.
+ * CHRE methods more in depth.  We're just doing a consistency check that
+ * calling from nanoappStart() works at all.
  *
  * Specifically, we're testing:
  * o chreHeapAlloc() and chreHeapFree()
