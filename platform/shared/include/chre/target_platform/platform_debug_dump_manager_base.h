@@ -14,32 +14,59 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_FREERTOS_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
-#define CHRE_PLATFORM_FREERTOS_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
+#ifndef CHRE_PLATFORM_SHARED_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
+#define CHRE_PLATFORM_SHARED_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
 
 #include <cstdbool>
 #include <cstddef>
 #include <cstdint>
 
+#ifdef CHRE_ENABLE_ASH_DEBUG_DUMP
+#include "ash/debug.h"
+#endif  // CHRE_ENABLE_ASH_DEBUG_DUMP
+
 namespace chre {
 
 /**
- * FreeRTOS-specific debug dump functionality.
+ * SLPI-specific debug dump functionality.
  */
 class PlatformDebugDumpManagerBase {
  public:
   /**
+   * Constructor that registers to the underlying debug dump utility if
+   * available.
+   */
+  PlatformDebugDumpManagerBase();
+
+  /**
+   * Destructor that unregisters to the underlying debug dump utility if
+   * available.
+   */
+  ~PlatformDebugDumpManagerBase();
+
+  /**
    * To be called when receiving a debug dump request from host.
    *
    * @param hostClientId The host client ID that requested the debug dump.
+   *
+   * @return true if successfully triggered the debug dump process.
    */
-  void onDebugDumpRequested(uint16_t hostClientId);
+  bool onDebugDumpRequested(uint16_t hostClientId);
 
   /**
    * @see PlatformDebugDumpManager::sendDebugDump
    */
   void sendDebugDumpResult(const char *debugStr, size_t debugStrSize,
                            bool complete);
+
+#ifdef CHRE_ENABLE_ASH_DEBUG_DUMP
+  /**
+   * Set the ASH debug dump handle.
+   */
+  void setHandle(uint32_t handle) {
+    mHandle = handle;
+  }
+#endif  // CHRE_ENABLE_ASH_DEBUG_DUMP
 
  protected:
   //! Host client ID that triggered the debug dump process.
@@ -51,9 +78,18 @@ class PlatformDebugDumpManagerBase {
   //! Whenther the last debug dump session has been marked complete.
   bool mComplete = true;
 
+#ifdef CHRE_ENABLE_ASH_DEBUG_DUMP
+  //! Upper bound on the largest string size that can be provided in a single
+  //! call to sendDebugDump(), including NULL termination.
+  static constexpr size_t kDebugDumpStrMaxSize = ASH_DEBUG_DUMP_STR_MAX_SIZE;
+
+  //! ASH debug dump handle.
+  uint32_t mHandle = 0;
+#else   // CHRE_ENABLE_ASH_DEBUG_DUMP
   static constexpr size_t kDebugDumpStrMaxSize = CHRE_MESSAGE_TO_HOST_MAX_SIZE;
+#endif  // CHRE_ENABLE_ASH_DEBUG_DUMP
 };
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_FREERTOS_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
+#endif  // CHRE_PLATFORM_SHARED_PLATFORM_DEBUG_DUMP_MANAGER_BASE_H_
