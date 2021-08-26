@@ -400,20 +400,23 @@ static bool chppWwanClientOpen(const struct chrePalSystemApi *systemApi,
   gCallbacks = callbacks;
 
   CHPP_LOGD("WWAN client opening");
+  if (gWwanClientContext.client.appContext == NULL) {
+    CHPP_LOGE("WWAN client app is null");
+  } else {
+    // Wait for discovery to complete for "open" call to succeed
+    if (chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
+                                     CHPP_WWAN_DISCOVERY_TIMEOUT_MS)) {
+      result = chppClientSendOpenRequest(
+          &gWwanClientContext.client,
+          &gWwanClientContext.rRState[CHPP_WWAN_OPEN], CHPP_WWAN_OPEN,
+          /*blocking=*/true);
+    }
 
-  // Wait for discovery to complete for "open" call to succeed
-  if (chppWaitForDiscoveryComplete(gWwanClientContext.client.appContext,
-                                   CHPP_WWAN_DISCOVERY_TIMEOUT_MS)) {
-    result = chppClientSendOpenRequest(
-        &gWwanClientContext.client, &gWwanClientContext.rRState[CHPP_WWAN_OPEN],
-        CHPP_WWAN_OPEN,
-        /*blocking=*/true);
+    // Since CHPP_WWAN_DEFAULT_CAPABILITIES is mandatory, we can always
+    // pseudo-open and return true. Otherwise, these should have been gated.
+    chppClientPseudoOpen(&gWwanClientContext.client);
+    result = true;
   }
-
-  // Since CHPP_WWAN_DEFAULT_CAPABILITIES is mandatory, we can always
-  // pseudo-open and return true. Otherwise, these should have been gated.
-  chppClientPseudoOpen(&gWwanClientContext.client);
-  result = true;
 
   return result;
 }

@@ -619,19 +619,22 @@ static bool chppWifiClientOpen(const struct chrePalSystemApi *systemApi,
   gCallbacks = callbacks;
 
   CHPP_LOGD("WiFi client opening");
+  if (gWifiClientContext.client.appContext == NULL) {
+    CHPP_LOGE("WiFi client app is null");
+  } else {
+    if (chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
+                                     CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
+      result = chppClientSendOpenRequest(
+          &gWifiClientContext.client,
+          &gWifiClientContext.rRState[CHPP_WIFI_OPEN], CHPP_WIFI_OPEN,
+          /*blocking=*/true);
+    }
 
-  if (chppWaitForDiscoveryComplete(gWifiClientContext.client.appContext,
-                                   CHPP_WIFI_DISCOVERY_TIMEOUT_MS)) {
-    result = chppClientSendOpenRequest(
-        &gWifiClientContext.client, &gWifiClientContext.rRState[CHPP_WIFI_OPEN],
-        CHPP_WIFI_OPEN,
-        /*blocking=*/true);
+    // Since CHPP_WIFI_DEFAULT_CAPABILITIES is mandatory, we can always
+    // pseudo-open and return true. Otherwise, these should have been gated.
+    chppClientPseudoOpen(&gWifiClientContext.client);
+    result = true;
   }
-
-  // Since CHPP_WIFI_DEFAULT_CAPABILITIES is mandatory, we can always
-  // pseudo-open and return true. Otherwise, these should have been gated.
-  chppClientPseudoOpen(&gWifiClientContext.client);
-  result = true;
 
   return result;
 }

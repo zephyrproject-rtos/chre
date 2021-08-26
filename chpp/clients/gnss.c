@@ -591,19 +591,22 @@ static bool chppGnssClientOpen(const struct chrePalSystemApi *systemApi,
   gCallbacks = callbacks;
 
   CHPP_LOGD("GNSS client opening");
+  if (gGnssClientContext.client.appContext == NULL) {
+    CHPP_LOGE("GNSS client app is null");
+  } else {
+    if (chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
+                                     CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {
+      result = chppClientSendOpenRequest(
+          &gGnssClientContext.client,
+          &gGnssClientContext.rRState[CHPP_GNSS_OPEN], CHPP_GNSS_OPEN,
+          /*blocking=*/true);
+    }
 
-  if (chppWaitForDiscoveryComplete(gGnssClientContext.client.appContext,
-                                   CHPP_GNSS_DISCOVERY_TIMEOUT_MS)) {
-    result = chppClientSendOpenRequest(
-        &gGnssClientContext.client, &gGnssClientContext.rRState[CHPP_GNSS_OPEN],
-        CHPP_GNSS_OPEN,
-        /*blocking=*/true);
+    // Since CHPP_GNSS_DEFAULT_CAPABILITIES is mandatory, we can always
+    // pseudo-open and return true. Otherwise, these should have been gated.
+    chppClientPseudoOpen(&gGnssClientContext.client);
+    result = true;
   }
-
-  // Since CHPP_GNSS_DEFAULT_CAPABILITIES is mandatory, we can always
-  // pseudo-open and return true. Otherwise, these should have been gated.
-  chppClientPseudoOpen(&gGnssClientContext.client);
-  result = true;
 
   return result;
 }
