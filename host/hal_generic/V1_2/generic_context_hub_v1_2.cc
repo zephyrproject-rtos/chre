@@ -86,10 +86,7 @@ Return<void> GenericContextHubV1_2::onSettingChanged_1_2(
   fbs::SettingState fbsState;
   if (getFbsSetting(setting, &fbsSetting) &&
       getFbsSettingValue(newValue, &fbsState)) {
-    FlatBufferBuilder builder(64);
-    HostProtocolHost::encodeSettingChangeNotification(builder, fbsSetting,
-                                                      fbsState);
-    mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
+    mConnection.sendSettingChangedNotification(fbsSetting, fbsState);
   }
 
   return Void();
