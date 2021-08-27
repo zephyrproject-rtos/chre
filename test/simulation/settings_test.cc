@@ -80,14 +80,15 @@ TEST_F(TestBase, LocationSettingsTest) {
   postSettingChange(Setting::LOCATION, SettingState::DISABLED);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
   ASSERT_EQ(getSettingState(Setting::LOCATION), SettingState::DISABLED);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(chrePalGnssIsLocationEnabled());
 
   postSettingChange(Setting::LOCATION, SettingState::ENABLED);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
   ASSERT_EQ(getSettingState(Setting::LOCATION), SettingState::ENABLED);
-  ASSERT_TRUE(chrePalGnssIsLocationEnabled());
 
   waitForEvent(CHRE_EVENT_GNSS_LOCATION);
+  ASSERT_TRUE(chrePalGnssIsLocationEnabled());
 }
 
 }  // namespace chre
