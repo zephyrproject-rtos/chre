@@ -40,6 +40,16 @@ void defaultNanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                                const void *eventData);
 void defaultNanoappEnd();
 
+/**
+ * A convenience deferred callback function that can be used to start an already
+ * loaded nanoapp.
+ *
+ * @param type The callback type.
+ * @param nanoapp A pointer to the nanoapp that is already loaded.
+ */
+void testFinishLoadingNanoappCallback(SystemCallbackType type,
+                                      UniquePtr<Nanoapp> &&nanoapp);
+
 }  // namespace chre
 
 #endif  // CHRE_SIMULATION_TEST_UTIL_H_

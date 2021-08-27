@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/util/macros.h"
 #include "chre_api/chre/version.h"
 
@@ -62,5 +63,10 @@ void defaultNanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
 }
 
 void defaultNanoappEnd(){};
+
+void testFinishLoadingNanoappCallback(SystemCallbackType /* type */,
+                                      UniquePtr<Nanoapp> &&nanoapp) {
+  EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
+}
 
 }  // namespace chre

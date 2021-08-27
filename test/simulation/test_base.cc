@@ -26,12 +26,6 @@
 
 namespace chre {
 
-namespace {
-
-bool gNanoappStarted = false;
-
-}  // anonymous namespace
-
 /**
  * This base class initializes and runs the event loop.
  *
@@ -84,19 +78,19 @@ TEST_F(TestBase, SimpleNanoappTest) {
   constexpr uint32_t kAppVersion = 0;
   constexpr uint32_t kAppPerms = 0;
 
-  gNanoappStarted = false;
   chreNanoappStartFunction *start = []() {
-    gNanoappStarted = true;
+    TestEventQueueSingleton::get()->pushEvent(
+        CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
     return true;
   };
 
   UniquePtr<Nanoapp> nanoapp =
       createStaticNanoapp("Test nanoapp", kAppId, kAppVersion, kAppPerms, start,
                           defaultNanoappHandleEvent, defaultNanoappEnd);
-
-  EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
-
-  ASSERT_TRUE(gNanoappStarted);
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::FinishLoadingNanoapp, std::move(nanoapp),
+      testFinishLoadingNanoappCallback);
+  waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
 }
 
 // Explicitly instantiate the TestEventQueueSingleton to reduce codesize.
