@@ -119,22 +119,6 @@ class Nanoapp : public PlatformNanoapp {
       uint16_t eventType, uint16_t groupIdMask = kDefaultTargetGroupMask);
 
   /**
-   * Adds an event to this nanoapp's queue of pending events.
-   */
-  void postEvent(Event *event) {
-    mEventQueue.push(event);
-  }
-
-  /**
-   * Indicates whether there are any pending events in this apps queue.
-   *
-   * @return true if there are events waiting to be processed
-   */
-  bool hasPendingEvent() {
-    return !mEventQueue.empty();
-  }
-
-  /**
    * Configures whether nanoapp info events will be sent to the nanoapp.
    * Nanoapps are not sent nanoapp start/stop events by default.
    *
@@ -171,12 +155,11 @@ class Nanoapp : public PlatformNanoapp {
   void configureUserSettingEvent(uint8_t setting, bool enable);
 
   /**
-   * Sends the next event in the queue to the nanoapp and returns the processed
-   * event. The hasPendingEvent() method should be tested before invoking this.
+   * Sends an event to the nanoapp to be processed.
    *
-   * @return A pointer to the processed event
+   * @param event A pointer to the event to be processed
    */
-  Event *processNextEvent();
+  void processEvent(Event *event);
 
   /**
    * Log info about a single host wakeup that this nanoapp triggered by storing
@@ -238,8 +221,6 @@ class Nanoapp : public PlatformNanoapp {
   // also be a better way of handling this (perhaps we map event type to apps
   // who care about them).
   DynamicVector<EventRegistration> mRegisteredEvents;
-
-  EventRefQueue mEventQueue;
 
   //! @return index of event registration if found. mRegisteredEvents.size() if
   //!     not.
