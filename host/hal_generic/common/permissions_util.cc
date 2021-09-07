@@ -25,8 +25,8 @@ namespace contexthub {
 namespace common {
 namespace implementation {
 
-hidl_vec<hidl_string> chreToAndroidPermissions(uint32_t chrePermissions) {
-  std::vector<hidl_string> androidPermissions;
+std::vector<std::string> chreToAndroidPermissions(uint32_t chrePermissions) {
+  std::vector<std::string> androidPermissions;
   if (BITMASK_HAS_VALUE(chrePermissions,
                         ::chre::NanoappPermissions::CHRE_PERMS_AUDIO)) {
     androidPermissions.push_back(kRecordAudioPerm);
@@ -42,7 +42,7 @@ hidl_vec<hidl_string> chreToAndroidPermissions(uint32_t chrePermissions) {
     androidPermissions.push_back(kBackgroundLocationPerm);
   }
 
-  return hidl_vec(androidPermissions);
+  return androidPermissions;
 }
 
 }  // namespace implementation

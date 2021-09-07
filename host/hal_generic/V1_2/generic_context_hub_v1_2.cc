@@ -42,6 +42,8 @@ using ::android::hardware::contexthub::common::implementation::
     getFbsSettingValue;
 using ::android::hardware::contexthub::common::implementation::
     kSupportedPermissions;
+using ::android::hardware::contexthub::common::implementation::
+    stringVectorToHidl;
 using ::android::hardware::contexthub::V1_X::implementation::
     IContextHubCallbackWrapperBase;
 using ::android::hardware::contexthub::V1_X::implementation::
@@ -60,7 +62,7 @@ Return<void> GenericContextHubV1_2::getHubs_1_2(
     IContexthub::getHubs_1_2_cb _hidl_cb) {
   std::vector<ContextHub> retHubs;
   getHubs([&retHubs](std::vector<ContextHub> hubs) { retHubs = hubs; });
-  _hidl_cb(retHubs, kSupportedPermissions);
+  _hidl_cb(retHubs, stringVectorToHidl(kSupportedPermissions));
 
   return Void();
 }

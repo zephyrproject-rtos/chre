@@ -23,6 +23,7 @@
 #include <optional>
 
 #include <android/hardware/contexthub/1.0/IContexthub.h>
+#include <hidl/HidlSupport.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <log/log.h>
@@ -72,6 +73,16 @@ inline constexpr uint8_t extractChreApiMinorVersion(uint32_t chreVersion) {
 
 inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   return static_cast<uint16_t>(chreVersion);
+}
+
+inline hidl_vec<hidl_string> stringVectorToHidl(
+    const std::vector<std::string> &list) {
+  std::vector<hidl_string> outList;
+  for (const std::string &item : list) {
+    outList.push_back(item);
+  }
+
+  return hidl_vec(outList);
 }
 
 /**
@@ -290,11 +301,12 @@ class GenericContextHubBase : public IContexthubT, public IChreSocketCallback {
     msg.msg_1_0.msgType = message.message_type;
     msg.msg_1_0.msg = message.message;
     // Set of nanoapp permissions required to communicate with this nanoapp.
-    msg.permissions = chreToAndroidPermissions(message.permissions);
+    msg.permissions =
+        stringVectorToHidl(chreToAndroidPermissions(message.permissions));
     // Set of permissions required to consume this message and what will be
     // attributed when the host endpoint consumes this on the Android side.
-    hidl_vec<hidl_string> msgContentPerms =
-        chreToAndroidPermissions(message.message_permissions);
+    hidl_vec<hidl_string> msgContentPerms = stringVectorToHidl(
+        chreToAndroidPermissions(message.message_permissions));
 
     invokeClientCallback(
         [&]() { return mCallbacks->handleClientMsg(msg, msgContentPerms); });
@@ -322,7 +334,8 @@ class GenericContextHubBase : public IContexthubT, public IChreSocketCallback {
         appInfo.info_1_0.appId = nanoapp->app_id;
         appInfo.info_1_0.version = nanoapp->version;
         appInfo.info_1_0.enabled = nanoapp->enabled;
-        appInfo.permissions = chreToAndroidPermissions(nanoapp->permissions);
+        appInfo.permissions =
+            stringVectorToHidl(chreToAndroidPermissions(nanoapp->permissions));
 
         appInfoList.push_back(appInfo);
       }
