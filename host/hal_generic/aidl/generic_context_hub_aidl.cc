@@ -34,6 +34,8 @@ namespace fbs = ::chre::fbs;
 using ::android::chre::FragmentedLoadTransaction;
 using ::android::chre::getStringFromByteVector;
 using ::android::hardware::contexthub::common::implementation::
+    chreToAndroidPermissions;
+using ::android::hardware::contexthub::common::implementation::
     kSupportedPermissions;
 
 namespace {
@@ -195,16 +197,65 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   return ndk::ScopedAStatus::ok();
 }
 
-void ContextHub::onNanoappMessage(
-    const ::chre::fbs::NanoappMessageT & /* message */) {}
+void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
+  if (mCallback != nullptr) {
+    ContextHubMessage outMessage;
+    outMessage.nanoappId = message.app_id;
+    outMessage.hostEndPoint = message.host_endpoint;
+    outMessage.messageType = message.message_type;
+    outMessage.messageBody = message.message;
+    outMessage.permissions = chreToAndroidPermissions(message.permissions);
+
+    std::vector<std::string> messageContentPerms =
+        chreToAndroidPermissions(message.message_permissions);
+    mCallback->handleContextHubMessage(outMessage, messageContentPerms);
+  }
+}
 
 void ContextHub::onNanoappListResponse(
-    const ::chre::fbs::NanoappListResponseT & /* response */) {}
+    const ::chre::fbs::NanoappListResponseT &response) {
+  if (mCallback != nullptr) {
+    std::vector<NanoappInfo> appInfoList;
 
-void ContextHub::onTransactionResult(uint32_t /* transactionId */,
-                                     bool /* success */) {}
+    for (const std::unique_ptr<::chre::fbs::NanoappListEntryT> &nanoapp :
+         response.nanoapps) {
+      // TODO: determine if this is really required, and if so, have
+      // HostProtocolHost strip out null entries as part of decode
+      if (nanoapp == nullptr) {
+        continue;
+      }
 
-void ContextHub::onContextHubRestarted() {}
+      ALOGV("App 0x%016" PRIx64 " ver 0x%" PRIx32 " permissions 0x%" PRIx32
+            " enabled %d system %d",
+            nanoapp->app_id, nanoapp->version, nanoapp->permissions,
+            nanoapp->enabled, nanoapp->is_system);
+      if (!nanoapp->is_system) {
+        NanoappInfo appInfo;
+
+        appInfo.nanoappId = nanoapp->app_id;
+        appInfo.nanoappVersion = nanoapp->version;
+        appInfo.enabled = nanoapp->enabled;
+        appInfo.permissions = chreToAndroidPermissions(nanoapp->permissions);
+
+        appInfoList.push_back(appInfo);
+      }
+    }
+
+    mCallback->handleNanoappInfo(appInfoList);
+  }
+}
+
+void ContextHub::onTransactionResult(uint32_t transactionId, bool success) {
+  if (mCallback != nullptr) {
+    mCallback->handleTransactionResult(transactionId, success);
+  }
+}
+
+void ContextHub::onContextHubRestarted() {
+  if (mCallback != nullptr) {
+    mCallback->handleContextHubAsyncEvent(AsyncEventType::RESTARTED);
+  }
+}
 
 void ContextHub::onDebugDumpData(
     const ::chre::fbs::DebugDumpDataT & /* data */) {}
