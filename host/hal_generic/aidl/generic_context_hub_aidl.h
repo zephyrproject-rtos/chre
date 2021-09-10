@@ -21,7 +21,9 @@
 
 #include "hal_chre_socket_connection.h"
 
+#include <map>
 #include <mutex>
+#include <optional>
 
 namespace aidl {
 namespace android {
@@ -88,6 +90,19 @@ class ContextHub : public BnContextHub,
   std::shared_ptr<IContextHubCallback> mCallback;
 
   ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
+
+  std::map<Setting, bool> mSettingEnabled;
+  std::optional<bool> mIsWifiAvailable;
+
+  bool isSettingEnabled(Setting setting) {
+    return mSettingEnabled.count(setting) > 0 ? mSettingEnabled[setting]
+                                              : false;
+  }
+
+  chre::fbs::SettingState toFbsSettingState(bool enabled) const {
+    return enabled ? chre::fbs::SettingState::ENABLED
+                   : chre::fbs::SettingState::DISABLED;
+  }
 };
 
 }  // namespace contexthub

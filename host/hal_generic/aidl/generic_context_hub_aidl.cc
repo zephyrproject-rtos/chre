@@ -53,6 +53,28 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   return static_cast<uint16_t>(chreVersion);
 }
 
+bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
+  bool foundSetting = true;
+
+  switch (setting) {
+    case Setting::LOCATION:
+      *fbsSetting = fbs::Setting::LOCATION;
+      break;
+    case Setting::AIRPLANE_MODE:
+      *fbsSetting = fbs::Setting::AIRPLANE_MODE;
+      break;
+    case Setting::MICROPHONE:
+      *fbsSetting = fbs::Setting::MICROPHONE;
+      break;
+    default:
+      foundSetting = false;
+      ALOGE("Setting update with invalid enum value %hhu", setting);
+      break;
+  }
+
+  return foundSetting;
+}
+
 // TODO(b/194285834): Implement debug dump
 
 }  // anonymous namespace
@@ -143,9 +165,33 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   return ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus ContextHub::onSettingChanged(Setting /* setting */,
-                                                  bool /* enabled */) {
-  // TODO(b/194285834): Implement this
+::ndk::ScopedAStatus ContextHub::onSettingChanged(Setting setting,
+                                                  bool enabled) {
+  mSettingEnabled[setting] = enabled;
+  fbs::Setting fbsSetting;
+  if ((setting != Setting::WIFI_MAIN) && (setting != Setting::WIFI_SCANNING) &&
+      getFbsSetting(setting, &fbsSetting)) {
+    mConnection.sendSettingChangedNotification(fbsSetting,
+                                               toFbsSettingState(enabled));
+  }
+
+  bool isWifiMainEnabled = isSettingEnabled(Setting::WIFI_MAIN);
+  bool isWifiScanEnabled = isSettingEnabled(Setting::WIFI_SCANNING);
+  bool isAirplaneModeEnabled = isSettingEnabled(Setting::AIRPLANE_MODE);
+
+  // Because the airplane mode impact on WiFi is not standardized in Android,
+  // we write a specific handling in the Context Hub HAL to inform CHRE.
+  // The following definition is a default one, and can be adjusted
+  // appropriately if necessary.
+  bool isWifiAvailable = isAirplaneModeEnabled
+                             ? (isWifiMainEnabled)
+                             : (isWifiMainEnabled || isWifiScanEnabled);
+  if (!mIsWifiAvailable.has_value() || (isWifiAvailable != mIsWifiAvailable)) {
+    mConnection.sendSettingChangedNotification(
+        fbs::Setting::WIFI_AVAILABLE, toFbsSettingState(isWifiAvailable));
+    mIsWifiAvailable = isWifiAvailable;
+  }
+
   return ndk::ScopedAStatus::ok();
 }
 
@@ -271,6 +317,7 @@ void ContextHub::onTransactionResult(uint32_t transactionId, bool success) {
 
 void ContextHub::onContextHubRestarted() {
   std::lock_guard<std::mutex> lock(mCallbackMutex);
+  mIsWifiAvailable.reset();
   if (mCallback != nullptr) {
     mCallback->handleContextHubAsyncEvent(AsyncEventType::RESTARTED);
   }
