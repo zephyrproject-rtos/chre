@@ -54,7 +54,6 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
 }
 
 // TODO(b/194285834): Implement debug dump
-// TODO(b/194285834): Implement service death handling
 
 }  // anonymous namespace
 
@@ -171,7 +170,23 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
   if (contextHubId != kDefaultHubId) {
     ALOGE("Invalid ID %" PRId32, contextHubId);
   } else {
+    std::lock_guard<std::mutex> lock(mCallbackMutex);
+    if (mCallback != nullptr) {
+      binder_status_t binder_status = AIBinder_unlinkToDeath(
+          mCallback->asBinder().get(), mDeathRecipient.get(), this);
+      if (binder_status != STATUS_OK) {
+        ALOGE("Failed to unlink to death");
+      }
+    }
+
     mCallback = cb;
+
+    binder_status_t binder_status =
+        AIBinder_linkToDeath(cb->asBinder().get(), mDeathRecipient.get(), this);
+    if (binder_status != STATUS_OK) {
+      ALOGE("Failed to link to death");
+    }
+
     success = true;
   }
 
@@ -198,6 +213,7 @@ inline constexpr uint16_t extractChrePatchVersion(uint32_t chreVersion) {
 }
 
 void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
+  std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
     ContextHubMessage outMessage;
     outMessage.nanoappId = message.app_id;
@@ -214,6 +230,7 @@ void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
 
 void ContextHub::onNanoappListResponse(
     const ::chre::fbs::NanoappListResponseT &response) {
+  std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
     std::vector<NanoappInfo> appInfoList;
 
@@ -246,12 +263,14 @@ void ContextHub::onNanoappListResponse(
 }
 
 void ContextHub::onTransactionResult(uint32_t transactionId, bool success) {
+  std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
     mCallback->handleTransactionResult(transactionId, success);
   }
 }
 
 void ContextHub::onContextHubRestarted() {
+  std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
     mCallback->handleContextHubAsyncEvent(AsyncEventType::RESTARTED);
   }
@@ -262,6 +281,17 @@ void ContextHub::onDebugDumpData(
 
 void ContextHub::onDebugDumpComplete(
     const ::chre::fbs::DebugDumpResponseT & /* response */) {}
+
+void ContextHub::handleServiceDeath() {
+  ALOGI("Context Hub Service died ...");
+  std::lock_guard<std::mutex> lock(mCallbackMutex);
+  mCallback.reset();
+}
+
+void ContextHub::onServiceDied(void *cookie) {
+  auto *contexthub = static_cast<ContextHub *>(cookie);
+  contexthub->handleServiceDeath();
+}
 
 }  // namespace contexthub
 }  // namespace hardware

@@ -21,6 +21,8 @@
 
 #include "hal_chre_socket_connection.h"
 
+#include <mutex>
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -29,6 +31,11 @@ namespace contexthub {
 class ContextHub : public BnContextHub,
                    public ::android::hardware::contexthub::common::
                        implementation::IChreSocketCallback {
+ public:
+  ContextHub()
+      : mDeathRecipient(
+            AIBinder_DeathRecipient_new(ContextHub::onServiceDied)) {}
+
   ::ndk::ScopedAStatus getContextHubs(
       std::vector<ContextHubInfo> *out_contextHubInfos) override;
   ::ndk::ScopedAStatus loadNanoapp(int32_t contextHubId,
@@ -68,11 +75,19 @@ class ContextHub : public BnContextHub,
   void onDebugDumpComplete(
       const ::chre::fbs::DebugDumpResponseT &response) override;
 
+  void handleServiceDeath();
+  static void onServiceDied(void *cookie);
+
  private:
   ::android::hardware::contexthub::common::implementation::
       HalChreSocketConnection mConnection{this};
 
+  // A mutex to protect concurrent modifications to the callback pointer and
+  // access (invocations).
+  std::mutex mCallbackMutex;
   std::shared_ptr<IContextHubCallback> mCallback;
+
+  ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
 };
 
 }  // namespace contexthub
