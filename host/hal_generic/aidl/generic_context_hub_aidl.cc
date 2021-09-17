@@ -16,8 +16,6 @@
 
 #include "generic_context_hub_aidl.h"
 
-#include <log/log.h>
-
 #include "chre_host/fragmented_load_transaction.h"
 #include "chre_host/host_protocol_host.h"
 #include "permissions_util.h"
@@ -74,8 +72,6 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
 
   return foundSetting;
 }
-
-// TODO(b/194285834): Implement debug dump
 
 }  // anonymous namespace
 
@@ -323,11 +319,25 @@ void ContextHub::onContextHubRestarted() {
   }
 }
 
-void ContextHub::onDebugDumpData(
-    const ::chre::fbs::DebugDumpDataT & /* data */) {}
+void ContextHub::onDebugDumpData(const ::chre::fbs::DebugDumpDataT &data) {
+  if (mDebugFd == kInvalidFd) {
+    ALOGW("Got unexpected debug dump data message");
+  } else {
+    writeToDebugFile(reinterpret_cast<const char *>(data.debug_str.data()),
+                     data.debug_str.size());
+  }
+}
 
 void ContextHub::onDebugDumpComplete(
-    const ::chre::fbs::DebugDumpResponseT & /* response */) {}
+    const ::chre::fbs::DebugDumpResponseT & /* response */) {
+  std::lock_guard<std::mutex> lock(mDebugDumpMutex);
+  if (!mDebugDumpPending) {
+    ALOGI("Ignoring duplicate/unsolicited debug dump response");
+  } else {
+    mDebugDumpPending = false;
+    mDebugDumpCond.notify_all();
+  }
+}
 
 void ContextHub::handleServiceDeath() {
   ALOGI("Context Hub Service died ...");
@@ -338,6 +348,40 @@ void ContextHub::handleServiceDeath() {
 void ContextHub::onServiceDied(void *cookie) {
   auto *contexthub = static_cast<ContextHub *>(cookie);
   contexthub->handleServiceDeath();
+}
+
+binder_status_t ContextHub::dump(int fd, const char ** /* args */,
+                                 uint32_t /* numArgs */) {
+  // Timeout inside CHRE is typically 5 seconds, grant 500ms extra here to let
+  // the data reach us
+  constexpr auto kDebugDumpTimeout = std::chrono::milliseconds(5500);
+
+  mDebugFd = fd;
+  if (mDebugFd < 0) {
+    ALOGW("Can't dump debug info to invalid fd %d", mDebugFd);
+  } else {
+    writeToDebugFile("-- Dumping CHRE/ASH debug info --\n");
+
+    ALOGV("Sending debug dump request");
+    std::unique_lock<std::mutex> lock(mDebugDumpMutex);
+    mDebugDumpPending = true;
+    if (!mConnection.requestDebugDump()) {
+      ALOGW("Couldn't send debug dump request");
+    } else {
+      mDebugDumpCond.wait_for(lock, kDebugDumpTimeout,
+                              [this]() { return !mDebugDumpPending; });
+      if (mDebugDumpPending) {
+        ALOGE("Timed out waiting on debug dump data");
+        mDebugDumpPending = false;
+      }
+    }
+    writeToDebugFile("\n-- End of CHRE/ASH debug info --\n");
+
+    mDebugFd = kInvalidFd;
+    ALOGV("Debug dump complete");
+  }
+
+  return STATUS_OK;
 }
 
 }  // namespace contexthub

@@ -21,6 +21,8 @@
 
 #include "hal_chre_socket_connection.h"
 
+#include <android-base/file.h>
+#include <log/log.h>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -80,6 +82,8 @@ class ContextHub : public BnContextHub,
   void handleServiceDeath();
   static void onServiceDied(void *cookie);
 
+  binder_status_t dump(int fd, const char **args, uint32_t numArgs) override;
+
  private:
   ::android::hardware::contexthub::common::implementation::
       HalChreSocketConnection mConnection{this};
@@ -94,6 +98,13 @@ class ContextHub : public BnContextHub,
   std::map<Setting, bool> mSettingEnabled;
   std::optional<bool> mIsWifiAvailable;
 
+  // Variables related to debug dump.
+  static constexpr int kInvalidFd = -1;
+  int mDebugFd = kInvalidFd;
+  bool mDebugDumpPending = false;
+  std::mutex mDebugDumpMutex;
+  std::condition_variable mDebugDumpCond;
+
   bool isSettingEnabled(Setting setting) {
     return mSettingEnabled.count(setting) > 0 ? mSettingEnabled[setting]
                                               : false;
@@ -102,6 +113,18 @@ class ContextHub : public BnContextHub,
   chre::fbs::SettingState toFbsSettingState(bool enabled) const {
     return enabled ? chre::fbs::SettingState::ENABLED
                    : chre::fbs::SettingState::DISABLED;
+  }
+
+  // Write a string to mDebugFd
+  void writeToDebugFile(const char *str) {
+    writeToDebugFile(str, strlen(str));
+  }
+
+  void writeToDebugFile(const char *str, size_t len) {
+    std::string s(str, len);
+    if (!::android::base::WriteStringToFd(s, mDebugFd)) {
+      ALOGW("Failed to write %zu bytes to debug dump fd", len);
+    }
   }
 };
 
