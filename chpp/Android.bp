@@ -62,7 +62,7 @@ cc_library_static {
         // clock_gettime() requires _POSIX_C_SOURCE >= 199309L
         "-D_POSIX_C_SOURCE=199309L",
         // Required for pthread_setname_np()
-        "-D_GNU_SOURCE"
+        "-D_GNU_SOURCE",
     ],
     conlyflags: ["-std=c11"],
     srcs: [
@@ -92,6 +92,7 @@ cc_library_static {
         "platform/linux/memory.c",
         "platform/linux/notifier.c",
         "platform/shared/crc.c",
+        "platform/linux/services/platform_gnss.c",
     ],
     export_include_dirs: [
         "platform/linux/include",
@@ -123,12 +124,13 @@ cc_test_host {
     srcs: [
         "test/app_test_base.cpp",
         "test/app_test.cpp",
+        "test/gnss_test.cpp",
         "test/transport_test.cpp",
         "test/clients_test.cpp",
     ],
     static_libs: [
         "chre_chpp_linux",
-        "chre_pal_linux"
+        "chre_pal_linux",
     ],
 }
 
