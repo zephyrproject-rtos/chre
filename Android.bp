@@ -380,6 +380,9 @@ cc_test_host {
     static_libs: [
         "libgmock",
     ],
+    sanitize: {
+        address: true,
+    },
 }
 
 cc_test_host {
