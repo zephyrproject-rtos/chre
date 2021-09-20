@@ -1709,35 +1709,38 @@ void chppTransportSendReset(struct ChppTransportState *context,
 
   struct ChppTransportConfiguration *config =
       chppMalloc(sizeof(struct ChppTransportConfiguration));
-
-  // CHPP transport version
-  config->version.major = 1;
-  config->version.minor = 0;
-  config->version.patch = 0;
-
-  // Rx MTU size
-  config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
-
-  // Max Rx window size
-  // Note: current implementation does not support a window size >1
-  config->windowSize = 1;
-
-  // Advertised transport layer (ACK) timeout
-  config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
-
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    CHPP_LOGD("Sending RESET-ACK");
+  if (config == NULL) {
+    CHPP_LOG_OOM();
   } else {
-    CHPP_LOGD("Sending RESET");
+    // CHPP transport version
+    config->version.major = 1;
+    config->version.minor = 0;
+    config->version.patch = 0;
+
+    // Rx MTU size
+    config->rxMtu = CHPP_PLATFORM_LINK_RX_MTU_BYTES;
+
+    // Max Rx window size
+    // Note: current implementation does not support a window size >1
+    config->windowSize = 1;
+
+    // Advertised transport layer (ACK) timeout
+    config->timeoutInMs = CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS;
+
+    if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+      CHPP_LOGD("Sending RESET-ACK");
+    } else {
+      CHPP_LOGD("Sending RESET");
+    }
+
+    if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
+      chppSetResetComplete(context);
+    }
+
+    context->resetTimeNs = chppGetCurrentTimeNs();
+
+    chppEnqueueTxDatagram(context,
+                          CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, error),
+                          config, sizeof(*config));
   }
-
-  if (resetType == CHPP_TRANSPORT_ATTR_RESET_ACK) {
-    chppSetResetComplete(context);
-  }
-
-  context->resetTimeNs = chppGetCurrentTimeNs();
-
-  chppEnqueueTxDatagram(context,
-                        CHPP_ATTR_AND_ERROR_TO_PACKET_CODE(resetType, error),
-                        config, sizeof(*config));
 }
