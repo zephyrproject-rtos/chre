@@ -132,6 +132,9 @@ cc_test_host {
         "chre_chpp_linux",
         "chre_pal_linux",
     ],
+    sanitize: {
+      address: true,
+    }
 }
 
 cc_test_host {
