@@ -30,6 +30,7 @@ GOOGLETEST_SRCS += util/tests/lock_guard_test.cc
 GOOGLETEST_SRCS += util/tests/memory_pool_test.cc
 GOOGLETEST_SRCS += util/tests/optional_test.cc
 GOOGLETEST_SRCS += util/tests/priority_queue_test.cc
+GOOGLETEST_SRCS += util/tests/ref_base_test.cc
 GOOGLETEST_SRCS += util/tests/singleton_test.cc
 GOOGLETEST_SRCS += util/tests/time_test.cc
 GOOGLETEST_SRCS += util/tests/unique_ptr_test.cc
