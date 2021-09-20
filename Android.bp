@@ -401,6 +401,9 @@ cc_test_host {
         "-DCHRE_FIRST_SUPPORTED_API_VERSION=CHRE_API_VERSION_1_1",
         "-DGTEST",
     ],
+    sanitize: {
+        address: true,
+    },
 }
 
 cc_library_static {
