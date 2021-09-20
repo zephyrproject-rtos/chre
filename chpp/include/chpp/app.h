@@ -188,9 +188,6 @@ struct ChppAppHeader {
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
-//! Minimum length of a header that includes upto the transaction ID
-#define CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION (3 * sizeof(uint8_t))
-
 /**
  * Function type that dispatches incoming datagrams for any client or service
  */
