@@ -1,0 +1,5 @@
+name: chre
+build:
+  cmake-ext: True
+  kconfig-ext: True
+
