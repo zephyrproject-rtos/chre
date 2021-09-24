@@ -57,6 +57,12 @@ ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
 COMMON_CFLAGS += -DCHRE_WWAN_SUPPORT_ENABLED
 endif
 
+# Optional tokenized logging support.
+ifeq ($(CHRE_TOKENIZED_LOGGING_ENABLED), true)
+COMMON_CFLAGS += -DCHRE_USE_TOKENIZED_LOGGING
+include $(CHRE_PREFIX)/build/pw_tokenizer.mk
+endif
+
 # Optional on-device unit tests support
 include $(CHRE_PREFIX)/test/test.mk
 
