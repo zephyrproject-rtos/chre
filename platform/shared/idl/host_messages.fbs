@@ -281,17 +281,34 @@ table LogMessageV2 {
   /// A buffer containing formatted log data. A flat array is used here to avoid
   /// overhead in serializing and deserializing. The format is as follows:
   ///
-  /// uint8_t                 - LogBuffer log level (1 = error, 2 = warn,
-  ///                                                3 = info,  4 = debug,
-  ///                                                5 = verbose)
+  /// uint8_t                 - Log metadata, encoded as follows:
+  ///                           [EI(Upper nibble) | Level(Lower nibble)]
+  ///                            * EI: Encoding indicator (eg: via tokenization)
+  ///                              (0 = No encoding, 1 = Tokenized log)
+  ///                            * LogBuffer log level (1 = error, 2 = warn,
+  ///                                                   3 = info,  4 = debug,
+  ///                                                   5 = verbose)
   /// uint32_t, little-endian - timestamp in milliseconds
-  /// char[]                  - message to log
-  /// char, \0                - null-terminator
+  /// char[]                  - Log data buffer
+  ///
+  /// The log data buffer format is as follows:
+  /// * Unencoded (string) logs: The log buffer can be interpreted as a NULL
+  ///   terminated string (eg: pass to string manipulation functions, get its
+  ///   size via strlen(), etc.).
+  ///
+  /// * Encoded logs: The first byte of the log buffer indicates the size of
+  ///   the actual encoded data to follow. For example, if a tokenized log of
+  ///   size 24 bytes were to be represented, a buffer of size 25 bytes would
+  ///   be needed to encode this as: [Size(1B) | Data(24B)]. A decoder would
+  ///   then have to decode this starting from a 1 byte offset from the
+  ///   received buffer.
   ///
   /// This pattern repeats until the end of the buffer for multiple log
   /// messages. The last byte will always be a null-terminator. There are no
   /// padding bytes between these fields. Treat this like a packed struct and be
   /// cautious with unaligned access when reading/writing this buffer.
+  /// Note that the log message might not be null-terminated if an encoding is
+  /// used.
   buffer:[byte];
 
   /// The number of logs dropped since CHRE started
