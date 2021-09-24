@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include "chre_host/log_message_parser.h"
 #include <endian.h>
-#include <cstdio>
-
 #include "chre/util/time.h"
-#include "chre_host/log_message_parser_base.h"
+#include "chre_host/daemon_base.h"
+#include "chre_host/log.h"
+#include "include/chre_host/log_message_parser.h"
 
 using chre::kOneMillisecondInNanoseconds;
 using chre::kOneSecondInMilliseconds;
@@ -34,10 +35,33 @@ constexpr bool kVerboseLoggingEnabled = false;
 #endif
 }  // anonymous namespace
 
-ChreLogMessageParserBase::ChreLogMessageParserBase()
+LogMessageParser::LogMessageParser()
     : mVerboseLoggingEnabled(kVerboseLoggingEnabled) {}
 
-void ChreLogMessageParserBase::dump(const uint8_t *buffer, size_t size) {
+std::unique_ptr<Detokenizer> LogMessageParser::logDetokenizerInit() {
+  constexpr const char kLogDatabaseFilePath[] =
+      "/vendor/etc/chre/libchre_log_database.bin";
+  std::vector<uint8_t> tokenData;
+  if (ChreDaemonBase::readFileContents(kLogDatabaseFilePath, &tokenData)) {
+    pw::tokenizer::TokenDatabase database =
+        pw::tokenizer::TokenDatabase::Create(tokenData);
+    if (database.ok()) {
+      LOGD("Log database initialized, creating detokenizer");
+      return std::make_unique<Detokenizer>(database);
+    } else {
+      LOGE("CHRE Token database creation not OK");
+    }
+  } else {
+    LOGE("Failed to read CHRE Token database file");
+  }
+  return std::unique_ptr<Detokenizer>(nullptr);
+}
+
+void LogMessageParser::init() {
+  mDetokenizer = logDetokenizerInit();
+}
+
+void LogMessageParser::dump(const uint8_t *buffer, size_t size) {
   if (mVerboseLoggingEnabled) {
     char line[32];
     char lineChars[32];
@@ -79,7 +103,7 @@ void ChreLogMessageParserBase::dump(const uint8_t *buffer, size_t size) {
   }
 }
 
-android_LogPriority ChreLogMessageParserBase::chreLogLevelToAndroidLogPriority(
+android_LogPriority LogMessageParser::chreLogLevelToAndroidLogPriority(
     uint8_t level) {
   switch (level) {
     case LogLevel::ERROR:
@@ -95,8 +119,19 @@ android_LogPriority ChreLogMessageParserBase::chreLogLevelToAndroidLogPriority(
   }
 }
 
-void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
-                                   size_t logBufferSize) {
+uint8_t LogMessageParser::getLogLevelFromMetadata(uint8_t metadata) {
+  // The lower nibble of the metadata denotes the loglevel, as indicated
+  // by the schema in host_messages.fbs.
+  return (metadata & 0xf);
+}
+
+bool LogMessageParser::isLogMessageEncoded(uint8_t metadata) {
+  // The upper nibble of the metadata denotes the encoding, as indicated
+  // by the schema in host_messages.fbs.
+  return (((metadata >> 4) & 0xf) != 0);
+}
+
+void LogMessageParser::log(const uint8_t *logBuffer, size_t logBufferSize) {
   size_t bufferIndex = 0;
   while (bufferIndex < logBufferSize) {
     const LogMessage *message =
@@ -110,10 +145,31 @@ void ChreLogMessageParserBase::log(const uint8_t *logBuffer,
   }
 }
 
-void ChreLogMessageParserBase::logV2(const uint8_t *logBuffer,
-                                     size_t logBufferSize,
-                                     uint32_t numLogsDropped) {
-  size_t bufferIndex = 0;
+size_t LogMessageParser::parseAndEmitTokenizedLogMessageAndGetSize(
+    const LogMessageV2 *message) {
+  size_t logMessageSize = 0;
+  auto detokenizer = mDetokenizer.get();
+  if (detokenizer != nullptr) {
+    auto *encodedLog = const_cast<EncodedLog *>(
+        reinterpret_cast<const EncodedLog *>(message->logMessage));
+    DetokenizedString detokenizedString =
+        detokenizer->Detokenize(encodedLog->data, encodedLog->size);
+    std::string decodedString = detokenizedString.BestStringWithErrors();
+    emitLogMessage(getLogLevelFromMetadata(message->metadata),
+                   le32toh(message->timestampMillis), decodedString.c_str());
+    logMessageSize = encodedLog->size + sizeof(struct EncodedLog);
+  } else {
+    LOGE("Null detokenizer! Cannot decode log message");
+  }
+  return logMessageSize;
+}
+
+void LogMessageParser::parseAndEmitLogMessage(const LogMessageV2 *message) {
+  emitLogMessage(getLogLevelFromMetadata(message->metadata),
+                 le32toh(message->timestampMillis), message->logMessage);
+}
+
+void LogMessageParser::updateAndPrintDroppedLogs(uint32_t numLogsDropped) {
   if (numLogsDropped < mNumLogsDropped) {
     LOGE(
         "The numLogsDropped value received from CHRE is less than the last "
@@ -126,26 +182,37 @@ void ChreLogMessageParserBase::logV2(const uint8_t *logBuffer,
   if (diffLogsDropped > 0) {
     LOGI("# logs dropped: %" PRIu32, diffLogsDropped);
   }
-  while (bufferIndex < logBufferSize) {
-    const LogMessageV2 *message =
-        reinterpret_cast<const LogMessageV2 *>(&logBuffer[bufferIndex]);
-    emitLogMessage(message->logLevel, le32toh(message->timestampMillis),
-                   message->logMessage);
-    bufferIndex += sizeof(LogMessageV2) +
-                   strnlen(message->logMessage, logBufferSize - bufferIndex) +
-                   1;
-  }
 }
 
-void ChreLogMessageParserBase::emitLogMessage(uint8_t level,
-                                              uint32_t timestampMillis,
-                                              const char *logMessage) {
+void LogMessageParser::emitLogMessage(uint8_t level, uint32_t timestampMillis,
+                                      const char *logMessage) {
   constexpr const char kLogTag[] = "CHRE";
   uint32_t timeSec = timestampMillis / kOneSecondInMilliseconds;
   uint32_t timeMsRemainder = timestampMillis % kOneSecondInMilliseconds;
   android_LogPriority priority = chreLogLevelToAndroidLogPriority(level);
   LOG_PRI(priority, kLogTag, kHubLogFormatStr, timeSec, timeMsRemainder,
           logMessage);
+}
+
+void LogMessageParser::logV2(const uint8_t *logBuffer, size_t logBufferSize,
+                             uint32_t numLogsDropped) {
+  updateAndPrintDroppedLogs(numLogsDropped);
+
+  size_t bufferIndex = 0;
+  while (bufferIndex < logBufferSize) {
+    const LogMessageV2 *message =
+        reinterpret_cast<const LogMessageV2 *>(&logBuffer[bufferIndex]);
+    size_t bufferIndexDelta = logBufferSize - bufferIndex;
+    size_t logMessageSize;
+    if (isLogMessageEncoded(message->metadata)) {
+      logMessageSize = parseAndEmitTokenizedLogMessageAndGetSize(message);
+    } else {
+      parseAndEmitLogMessage(message);
+      logMessageSize = strlen(message->logMessage) + 1;
+    }
+    bufferIndex +=
+        sizeof(LogMessageV2) + std::min(logMessageSize, bufferIndexDelta);
+  }
 }
 
 }  // namespace chre
