@@ -194,7 +194,6 @@ extern "C" {
  * First event in the block reserved for audio. These events are defined in
  * chre/audio.h.
  */
-
 #define CHRE_EVENT_AUDIO_FIRST_EVENT UINT16_C(0x0330)
 #define CHRE_EVENT_AUDIO_LAST_EVENT  UINT16_C(0x033F)
 
@@ -206,6 +205,13 @@ extern "C" {
  */
 #define CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT UINT16_C(0x340)
 #define CHRE_EVENT_SETTING_CHANGED_LAST_EVENT  UINT16_C(0x34F)
+
+/**
+ * First event in the block reserved for Bluetooth LE. These events are defined
+ * in chre/ble.h.
+ */
+#define CHRE_EVENT_BLE_FIRST_EVENT UINT16_C(0x0350)
+#define CHRE_EVENT_BLE_LAST_EVENT  UINT16_C(0x035F)
 
 /**
  * First in the extended range of values dedicated for internal CHRE
