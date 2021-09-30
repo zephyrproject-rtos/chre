@@ -30,11 +30,11 @@ int main() {
   ABinderProcess_setThreadPoolMaxThreadCount(0);
 
   // Make a default contexthub service
-  auto vib = ndk::SharedRefBase::make<ContextHub>();
-  const std::string vibName =
+  auto contextHub = ndk::SharedRefBase::make<ContextHub>();
+  const std::string contextHubName =
       std::string() + ContextHub::descriptor + "/default";
-  binder_status_t status =
-      AServiceManager_addService(vib->asBinder().get(), vibName.c_str());
+  binder_status_t status = AServiceManager_addService(
+      contextHub->asBinder().get(), contextHubName.c_str());
   CHECK(status == STATUS_OK);
 
   ABinderProcess_joinThreadPool();
