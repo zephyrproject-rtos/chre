@@ -26,12 +26,18 @@ enum MessageType {
   // C2H: Nanoapp informing host about the wifi capabilities it has.
   // The payload must be a WifiCapabilities message.
   WIFI_CAPABILITIES = 4;
+
+  // H2C: Host telling nanoapp whether or not to allow a certain threshold of
+  // the CHRE scan results size to be less than the AP scan results size.
+  // The payload must be a UseScanResultsSizeThreshold message.
+  USE_SCAN_RESULTS_SIZE_THRESHOLD = 5;
 }
 
 enum Step {
   // The initial step where no action is performed.
   INIT = 0;
-  // The step where the nanoapp is configured to monitor for wifi scans.
+  // The step where the nanoapp is configured to monitor for wifi scans and the
+  // scan results threshold message is sent.
   SETUP = 1;
   // The validate step where the data is gathered and compared.
   VALIDATE = 2;
@@ -67,4 +73,8 @@ message WifiScanResult {
  */
 message WifiCapabilities {
   optional uint32 wifiCapabilities = 1;
+}
+
+message UseScanResultsSizeThreshold {
+  optional bool useThreshold = 1;
 }

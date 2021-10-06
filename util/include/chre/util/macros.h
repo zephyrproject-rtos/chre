@@ -45,6 +45,24 @@
 #define STRINGIFY2(x) #x
 #endif
 
+/**
+ * Checks if a bitmask contains the specified value
+ */
+#ifndef BITMASK_HAS_VALUE
+#define BITMASK_HAS_VALUE(mask, value) ((mask & value) == value)
+#endif
+
+/**
+ * Min/max macros.
+ */
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 // Compiler-specific functionality
 #if defined(__clang__) || defined(__GNUC__)
 

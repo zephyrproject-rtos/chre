@@ -24,7 +24,7 @@
 namespace chre {
 
 void DebugDumpManager::trigger() {
-  auto callback = [](uint16_t /*eventType*/, void * /*eventData*/) {
+  auto callback = [](uint16_t /*type*/, void * /*data*/, void * /*extraData*/) {
     DebugDumpManager &debugDumpManager =
         EventLoopManagerSingleton::get()->getDebugDumpManager();
     debugDumpManager.collectFrameworkDebugDumps();
@@ -65,7 +65,7 @@ void DebugDumpManager::appendNanoappLog(const Nanoapp &nanoapp,
                        nanoapp.getAppId());
     }
 
-    mDebugDump.print(formatStr, args);
+    mDebugDump.printVaList(formatStr, args);
   }
 }
 
@@ -90,6 +90,7 @@ void DebugDumpManager::collectFrameworkDebugDumps() {
   eventLoopManager->getAudioRequestManager().logStateToBuffer(mDebugDump);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
   logSettingStateToBuffer(mDebugDump);
+  logStateToBuffer(mDebugDump);
 }
 
 void DebugDumpManager::sendFrameworkDebugDumps() {

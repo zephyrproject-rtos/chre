@@ -16,6 +16,7 @@
 #include "chre_cross_validator_wifi_manager.h"
 
 #include <stdio.h>
+#include <algorithm>
 #include <cinttypes>
 #include <cstring>
 
@@ -162,36 +163,78 @@ void Manager::handleWifiScanResult(const chreWifiScanEvent *event) {
 }
 
 void Manager::compareAndSendResultToHost() {
-  constexpr uint16_t kMaxSizeErrMsg = 1000;
-  char *errMsg = static_cast<char *>(chreHeapAlloc(kMaxSizeErrMsg));
   chre_test_common_TestResult testResult;
-  if (errMsg == nullptr) {
-    LOG_OOM();
+  // TODO(b/185188753): Log info about all scan results so that it is easier
+  // to figure out which AP or CHRE scan results are missing or corrupted.
+  if (mApScanResultsSize != mChreScanResultsSize) {
+    testResult = makeTestResultProtoMessage(
+        false, "There is a different number of AP and CHRE scan results.");
+    LOGE("AP and CHRE wifi scan result counts differ, AP = %" PRIu8
+         ", CHRE = %" PRIu8,
+         mApScanResultsSize, mChreScanResultsSize);
   } else {
-    memset(errMsg, 0, kMaxSizeErrMsg);
-    // Logging all info about the scan results for debug purposes
-    if (mApScanResultsSize != mChreScanResultsSize) {
-      testResult = makeTestResultProtoMessage(
-          false, "There is a different number of AP and CHRE scan results.");
-      LOGE("AP and CHRE wifi scan result counts differ, AP = %" PRIu8
-           ", CHRE = %" PRIu8,
-           mApScanResultsSize, mChreScanResultsSize);
-    } else {
-      for (uint8_t i = 0; i < mApScanResultsSize; i++) {
-        if (!WifiScanResult::areEqual(mApScanResults[i], mChreScanResults[i])) {
-          testResult = makeTestResultProtoMessage(
-              false, "One of the AP and CHRE scan results are not equal.");
-          LOGE("The AP and CHRE scan results are not equal on index %" PRIu8,
-               i);
-        }
-      }
-    }
-    encodeAndSendMessageToHost(
-        static_cast<const void *>(&testResult),
-        chre_test_common_TestResult_fields,
-        chre_cross_validation_wifi_MessageType_STEP_RESULT);
-    chreHeapFree(errMsg);
+    verifyScanResults(&testResult);
   }
+  encodeAndSendMessageToHost(
+      static_cast<const void *>(&testResult),
+      chre_test_common_TestResult_fields,
+      chre_cross_validation_wifi_MessageType_STEP_RESULT);
+}
+
+void Manager::verifyScanResults(chre_test_common_TestResult *testResultOut) {
+  bool allResultsValid = true;
+  for (uint8_t i = 0; i < mChreScanResultsSize; i++) {
+    const WifiScanResult &chreScanResult = mChreScanResults[i];
+    uint8_t apScanResultIndex;
+    bool didFind = getMatchingScanResult(mApScanResults, mApScanResultsSize,
+                                         chreScanResult, &apScanResultIndex);
+    // TODO(b/185188753): Log info about each result iterated through here and
+    // do not just break at the first error.
+    if (didFind) {
+      WifiScanResult &apScanResult = mApScanResults[apScanResultIndex];
+      if (apScanResult.getSeen()) {
+        *testResultOut = makeTestResultProtoMessage(
+            false, "Saw a CHRE scan result with a duplicate BSSID.");
+        allResultsValid = false;
+        break;
+      }
+      if (!WifiScanResult::areEqual(chreScanResult, apScanResult)) {
+        *testResultOut =
+            makeTestResultProtoMessage(false,
+                                       "Fields differ between an AP and "
+                                       "CHRE scan result with same Bssid.");
+        allResultsValid = false;
+        break;
+      }
+      apScanResult.didSee();
+    } else {
+      // Error CHRE BSSID does not match any AP
+      *testResultOut = makeTestResultProtoMessage(
+          false,
+          "Could not find an AP scan result with the same Bssid as a CHRE "
+          "result");
+      allResultsValid = false;
+      break;
+    }
+  }
+  if (allResultsValid) {
+    *testResultOut = makeTestResultProtoMessage(true);
+  }
+}
+
+bool Manager::getMatchingScanResult(WifiScanResult *results,
+                                    uint8_t resultsSize,
+                                    const WifiScanResult &queryResult,
+                                    uint8_t *resultIndexOut) {
+  for (uint8_t i = 0; i < resultsSize; i++) {
+    if (WifiScanResult::bssidsAreEqual(results[i], queryResult)) {
+      // Mark this scan result as already seen so that the next time it is used
+      // as a match the test will fail because of duplicate scan results.
+      *resultIndexOut = i;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Manager::encodeErrorMessage(pb_ostream_t *stream,
@@ -256,29 +299,36 @@ void Manager::encodeAndSendMessageToHost(const void *message,
 
 void Manager::handleWifiAsyncResult(const chreAsyncResult *result) {
   chre_test_common_TestResult testResult;
+  bool sendMessage = false;
   if (result->requestType == CHRE_WIFI_REQUEST_TYPE_CONFIGURE_SCAN_MONITOR) {
     if (mStep != chre_cross_validation_wifi_Step_SETUP) {
       testResult = makeTestResultProtoMessage(
           false, "Received scan monitor result event when step is not SETUP");
+      sendMessage = true;
     } else {
       if (result->success) {
         LOGD("Wifi scan monitoring setup successfully");
         testResult = makeTestResultProtoMessage(true);
+        sendMessage = true;
       } else {
         LOGE("Wifi scan monitoring setup failed async w/ error code %" PRIu8
              ".",
              result->errorCode);
         testResult = makeTestResultProtoMessage(
             false, "Wifi scan monitoring setup failed async.");
+        sendMessage = true;
       }
     }
   } else {
     testResult = makeTestResultProtoMessage(
         false, "Unknown chre async result type received");
+    sendMessage = true;
   }
-  encodeAndSendMessageToHost(
-      static_cast<void *>(&testResult), chre_test_common_TestResult_fields,
-      chre_cross_validation_wifi_MessageType_STEP_RESULT);
+  if (sendMessage) {
+    encodeAndSendMessageToHost(
+        static_cast<void *>(&testResult), chre_test_common_TestResult_fields,
+        chre_cross_validation_wifi_MessageType_STEP_RESULT);
+  }
 }
 
 }  // namespace cross_validator_wifi

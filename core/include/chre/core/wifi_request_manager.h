@@ -147,7 +147,7 @@ class WifiRequestManager : public NonCopyable {
    *        memory is guaranteed not to be modified until it has been explicitly
    *        released through the PlatformWifi instance.
    */
-  void handleScanEvent(chreWifiScanEvent *event);
+  void handleScanEvent(struct chreWifiScanEvent *event);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
@@ -235,7 +235,7 @@ class WifiRequestManager : public NonCopyable {
       mPendingRangingRequests;
 
   //! List of most recent wifi scan request logs
-  static constexpr size_t kNumWifiRequestLogs = 8;
+  static constexpr size_t kNumWifiRequestLogs = 10;
   ArrayQueue<WifiScanRequestLog, kNumWifiRequestLogs> mWifiScanRequestLogs;
 
   //! Helps ensure we don't get stuck if platform isn't behaving as expected

@@ -44,6 +44,10 @@ extern "C" {
 #include "chre/platform/slpi/qsh/qsh_shim.h"
 #endif
 
+#ifdef CHRE_USE_BUFFERED_LOGGING
+#include "chre/platform/shared/log_buffer_manager.h"
+#endif
+
 using chre::EventLoop;
 using chre::EventLoopManagerSingleton;
 using chre::LockGuard;
@@ -96,6 +100,17 @@ bool gThreadRunning;
 //! destructor callback for the host FastRPC thread.
 int gTlsKey;
 bool gTlsKeyValid;
+
+// TODO(b/181871430): Enable buffered logging for QSH. The QSH implementation
+// will not log currently.
+
+#ifdef CHRE_USE_BUFFERED_LOGGING
+
+//! Primary and secondary log buffers for the LogBufferManager
+uint8_t gPrimaryLogBufferData[CHRE_LOG_BUFFER_DATA_SIZE];
+uint8_t gSecondaryLogBufferData[CHRE_LOG_BUFFER_DATA_SIZE];
+
+#endif
 
 /**
  * Entry point for the QuRT thread that runs CHRE.
@@ -155,6 +170,12 @@ extern "C" int chre_slpi_start_thread(void) {
   // This lock ensures that we only start the thread once
   LockGuard<Mutex> lock(gThreadMutex);
   int fastRpcResult = CHRE_FASTRPC_ERROR;
+
+#ifdef CHRE_USE_BUFFERED_LOGGING
+  chre::LogBufferManagerSingleton::init(gPrimaryLogBufferData,
+                                        gSecondaryLogBufferData,
+                                        sizeof(gPrimaryLogBufferData));
+#endif
 
   if (gThreadRunning) {
     LOGE("CHRE thread already running");
