@@ -21,9 +21,6 @@
 
 /*
  * Test to check expected functionality of the CHRE GNSS APIs.
- * TODO: Currently the test only exists to verify that expected APIs are
- *       implemented and doesn't fail. Make the test more comprehensive by
- *       validating callback results, etc.
  */
 namespace general_test {
 
