@@ -491,8 +491,15 @@ public class ChreCrossValidatorSensor
         }
         // TODO(b/175795665): Assert that an acceptable amount of datapoints pass the alignment
         // phase.
-        Assert.assertTrue("Did not find matching timestamps to align AP and CHRE datapoints.",
-                !(newApSensorDatapoints.isEmpty() || newChreSensorDatapoints.isEmpty()));
+        if (newApSensorDatapoints.isEmpty() || newChreSensorDatapoints.isEmpty()) {
+            for (int i = 0; i < mApDatapointsArray.length; i++) {
+                Log.d(TAG, "AP[" + i + "] = " + mApDatapointsArray[i]);
+            }
+            for (int i = 0; i < mChreDatapointsArray.length; i++) {
+                Log.d(TAG, "CHRE[" + i + "] = " + mChreDatapointsArray[i]);
+            }
+            Assert.fail("Did not find matching timestamps to align AP and CHRE datapoints");
+        }
         mApDatapointsArray = newApSensorDatapoints.toArray(new ApSensorDatapoint[0]);
         mChreDatapointsArray = newChreSensorDatapoints.toArray(new ChreSensorDatapoint[0]);
     }
