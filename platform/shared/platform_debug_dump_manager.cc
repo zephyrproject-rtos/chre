@@ -20,6 +20,11 @@
 #include "chre/platform/log.h"
 #include "chre/target_platform/host_link_base.h"
 #include "chre/target_platform/platform_debug_dump_manager_base.h"
+#include "chre/util/macros.h"
+
+#ifdef CHPP_DEBUG_DUMP_ENABLED
+#include "chpp/platform/chpp_init.h"
+#endif  // CHPP_DEBUG_DUMP_ENABLED
 
 #ifdef CHRE_ENABLE_ASH_DEBUG_DUMP
 #include "ash/debug.h"
@@ -67,8 +72,13 @@ void PlatformDebugDumpManager::sendDebugDump(const char *debugStr,
 #endif  // CHRE_ENABLE_ASH_DEBUG_DUMP
 }
 
-void PlatformDebugDumpManager::logStateToBuffer(
-    DebugDumpWrapper & /* debugDump */) {}
+void PlatformDebugDumpManager::logStateToBuffer(DebugDumpWrapper &debugDump) {
+#ifdef CHPP_DEBUG_DUMP_ENABLED
+  chpp::logStateToBuffer(debugDump);
+#else
+  UNUSED_VAR(debugDump);
+#endif  // CHPP_DEBUG_DUMP_ENABLED
+}
 
 PlatformDebugDumpManagerBase::PlatformDebugDumpManagerBase() {
 #ifdef CHRE_ENABLE_ASH_DEBUG_DUMP

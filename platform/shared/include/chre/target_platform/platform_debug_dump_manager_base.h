@@ -28,7 +28,7 @@
 namespace chre {
 
 /**
- * SLPI-specific debug dump functionality.
+ * Base class for debug dump functionality.
  */
 class PlatformDebugDumpManagerBase {
  public:
