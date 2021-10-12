@@ -121,10 +121,6 @@ cc_test_host {
         "test/transport_test.cpp",
         "test/clients_test.cpp",
     ],
-    test_suites: [
-        // Needed to support running on TreeHugger
-        "general-tests",
-    ],
     static_libs: [
         "chre_chpp_linux",
         "chre_pal_linux"
@@ -143,10 +139,6 @@ cc_test_host {
     srcs: [
         "test/wifi_convert_test.cpp",
         "test/wwan_convert_test.cpp"
-    ],
-    test_suites: [
-        // Needed to support running on TreeHugger
-        "general-tests",
     ],
     static_libs: ["chre_chpp_linux"],
 }
