@@ -340,10 +340,6 @@ cc_test_host {
         "platform/include",
         "util/include",
     ],
-    test_suites: [
-        // Needed to support running on TreeHugger
-        "general-tests",
-    ],
     cflags: [
         "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4096",
         "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
