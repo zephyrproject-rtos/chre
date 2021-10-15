@@ -114,10 +114,7 @@ void EventLoop::run() {
     }
 
     // mEvents.pop() will be a blocking call if mEvents.empty()
-    Event *event = mEvents.pop();
-    // Need size() + 1 since the to-be-processed event has already been removed.
-    mPowerControlManager.preEventLoopProcess(mEvents.size() + 1);
-    distributeEvent(event);
+    distributeEvent(mEvents.pop());
 
     mPowerControlManager.postEventLoopProcess(mEvents.size());
   }

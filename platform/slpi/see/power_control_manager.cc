@@ -80,8 +80,6 @@ void PowerControlManagerBase::onHostWakeSuspendEvent(bool awake) {
   }
 }
 
-void PowerControlManager::preEventLoopProcess(size_t /* numPendingEvents */) {}
-
 void PowerControlManager::postEventLoopProcess(size_t numPendingEvents) {
 #ifdef CHRE_THREAD_UTIL_ENABLED
   // Although this execution point does not actually represent the start
