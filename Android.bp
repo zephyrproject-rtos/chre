@@ -426,6 +426,7 @@ cc_library_static {
         "platform/linux/context.cc",
         "platform/linux/fatal_error.cc",
         "platform/linux/host_link.cc",
+        "platform/linux/platform_debug_dump_manager.cc",
         "platform/linux/platform_nanoapp.cc",
         "platform/linux/platform_log.cc",
         "platform/linux/platform_pal.cc",

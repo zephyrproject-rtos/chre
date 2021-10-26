@@ -207,7 +207,6 @@ SIM_SRCS += platform/linux/system_time.cc
 SIM_SRCS += platform/linux/system_timer.cc
 SIM_SRCS += platform/linux/platform_nanoapp.cc
 SIM_SRCS += platform/linux/platform_sensor.cc
-SIM_SRCS += platform/linux/platform_sensor_type_helpers.cc
 SIM_SRCS += platform/shared/chre_api_audio.cc
 SIM_SRCS += platform/shared/chre_api_core.cc
 SIM_SRCS += platform/shared/chre_api_gnss.cc
