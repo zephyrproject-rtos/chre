@@ -368,6 +368,9 @@ class EventLoop : public NonCopyable {
   //! The maximum number of events ever waiting in the event pool.
   size_t mMaxEventPoolUsage = 0;
 
+  //! The number of events dropped due to capacity limits
+  uint32_t mNumDroppedLowPriEvents = 0;
+
   /**
    * Modifies the run loop state so it no longer iterates on new events. This
    * should only be invoked by the event loop when it is ready to stop

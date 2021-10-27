@@ -289,6 +289,7 @@ bool EventLoop::postLowPriorityEventOrFree(
       if (!eventPosted) {
         LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
              eventType, targetInstanceId);
+        ++mNumDroppedLowPriEvents;
       }
     }
   }
@@ -342,6 +343,8 @@ void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nEvent Loop:\n");
   debugDump.print("  Max event pool usage: %zu/%zu\n", mMaxEventPoolUsage,
                   kMaxEventCount);
+  debugDump.print("  Number of low priority events dropped: %" PRIu32 "\n",
+                  mNumDroppedLowPriEvents);
 
   Nanoseconds timeSince =
       SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
