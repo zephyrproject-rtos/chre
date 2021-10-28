@@ -28,8 +28,7 @@
  * compiling external/dynamic nanoapps.
  */
 
-#include "chre/util/entry_points.h"
-
+#include <chre.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -100,9 +99,9 @@ struct chreNslNanoappInfo {
   uint32_t appVersion;
 
   struct {
-    chreNanoappStartFunction *start;
-    chreNanoappHandleEventFunction *handleEvent;
-    chreNanoappEndFunction *end;
+    decltype(nanoappStart) *start;
+    decltype(nanoappHandleEvent) *handleEvent;
+    decltype(nanoappEnd) *end;
   } entryPoints;
 
   //! Application-specific verison string. This might contain a commit hash at
