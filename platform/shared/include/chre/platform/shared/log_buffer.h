@@ -122,7 +122,7 @@ class LogBuffer {
                    const char *logFormat, va_list args);
 
   void handleEncodedLog(LogBufferLogLevel logLevel, uint32_t timestampMs,
-                        const uint8_t *msg, size_t msgSize);
+                        const uint8_t *log, size_t logSize);
 
   // TODO(b/179786399): Remove the copyLogs method when the LogBufferManager is
   // refactored to no longer use it.
