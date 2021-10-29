@@ -223,12 +223,14 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
 
     mCallback = cb;
 
-    binder_status_t binder_status =
-        AIBinder_linkToDeath(cb->asBinder().get(), mDeathRecipient.get(), this);
-    if (binder_status != STATUS_OK) {
-      ALOGE("Failed to link to death");
-    }
+    if (cb != nullptr) {
+      binder_status_t binder_status = AIBinder_linkToDeath(
+          cb->asBinder().get(), mDeathRecipient.get(), this);
 
+      if (binder_status != STATUS_OK) {
+        ALOGE("Failed to link to death");
+      }
+    }
     success = true;
   }
 
