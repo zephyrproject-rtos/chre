@@ -26,9 +26,9 @@ namespace chre {
 
 UniquePtr<Nanoapp> createStaticNanoapp(
     const char *name, uint64_t appId, uint32_t appVersion, uint32_t appPerms,
-    chreNanoappStartFunction *nanoappStart,
-    chreNanoappHandleEventFunction *nanoappHandleEvent,
-    chreNanoappEndFunction *nanoappEnd) {
+    decltype(nanoappStart) *startFunc,
+    decltype(nanoappHandleEvent) *handleEventFunc,
+    decltype(nanoappEnd) *endFunc) {
   UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();
   static struct chreNslNanoappInfo appInfo;
   appInfo.magic = CHRE_NSL_NANOAPP_INFO_MAGIC;
@@ -40,9 +40,9 @@ UniquePtr<Nanoapp> createStaticNanoapp(
   appInfo.isTcmNanoapp = true;
   appInfo.appId = appId;
   appInfo.appVersion = appVersion;
-  appInfo.entryPoints.start = nanoappStart;
-  appInfo.entryPoints.handleEvent = nanoappHandleEvent;
-  appInfo.entryPoints.end = nanoappEnd;
+  appInfo.entryPoints.start = startFunc;
+  appInfo.entryPoints.handleEvent = handleEventFunc;
+  appInfo.entryPoints.end = endFunc;
   appInfo.appVersionString = "<undefined>";
   appInfo.appPermissions = appPerms;
   EXPECT_FALSE(nanoapp.isNull());

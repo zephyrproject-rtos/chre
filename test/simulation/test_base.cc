@@ -78,7 +78,7 @@ TEST_F(TestBase, SimpleNanoappTest) {
   constexpr uint32_t kAppVersion = 0;
   constexpr uint32_t kAppPerms = 0;
 
-  chreNanoappStartFunction *start = []() {
+  auto start = []() {
     TestEventQueueSingleton::get()->pushEvent(
         CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
     return true;

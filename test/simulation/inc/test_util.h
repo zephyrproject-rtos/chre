@@ -17,8 +17,9 @@
 #ifndef CHRE_SIMULATION_TEST_UTIL_H_
 #define CHRE_SIMULATION_TEST_UTIL_H_
 
+#include <chre/nanoapp.h>
+
 #include "chre/core/nanoapp.h"
-#include "chre/util/entry_points.h"
 #include "chre/util/unique_ptr.h"
 
 namespace chre {
@@ -28,9 +29,9 @@ namespace chre {
  */
 UniquePtr<Nanoapp> createStaticNanoapp(
     const char *name, uint64_t appId, uint32_t appVersion, uint32_t appPerms,
-    chreNanoappStartFunction *nanoappStart,
-    chreNanoappHandleEventFunction *nanoappHandleEvent,
-    chreNanoappEndFunction *nanoappEnd);
+    decltype(nanoappStart) *startFunc,
+    decltype(nanoappHandleEvent) *handleEventFunc,
+    decltype(nanoappEnd) *endFunc);
 
 /**
  * Default CHRE nanoapp entry points that don't do anything.
