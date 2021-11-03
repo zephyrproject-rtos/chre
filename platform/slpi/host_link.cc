@@ -282,7 +282,7 @@ int generateMessageToHost(const MessageToHost *msgToHost, unsigned char *buffer,
       builder, msgToHost->appId, msgToHost->toHostData.messageType,
       msgToHost->toHostData.hostEndpoint, msgToHost->message.data(),
       msgToHost->message.size(), msgToHost->toHostData.appPermissions,
-      msgToHost->toHostData.messagePermissions);
+      msgToHost->toHostData.messagePermissions, msgToHost->toHostData.wokeHost);
 
   int result = copyToHostBuffer(builder, buffer, bufferSize, messageLen);
 

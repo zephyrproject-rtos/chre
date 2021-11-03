@@ -61,10 +61,13 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
                               .getPowerControlManager()
                               .hostIsAwake();
 
+      bool wokeHost = !hostWasAwake && !mIsNanoappBlamedForWakeup;
+      msgToHost->toHostData.wokeHost = wokeHost;
+
       success = HostLink::sendMessage(msgToHost);
       if (!success) {
         mMessagePool.deallocate(msgToHost);
-      } else if (!hostWasAwake && !mIsNanoappBlamedForWakeup) {
+      } else if (wokeHost) {
         // If message successfully sent and host was suspended before sending
         EventLoopManagerSingleton::get()
             ->getEventLoop()
