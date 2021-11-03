@@ -37,6 +37,11 @@ table NanoappMessage {
   /// For messages from a nanoaapp to the host, this must be a superset of
   /// message_permissions.
   permissions:uint;
+
+  // If true, the message has awakened the host AP (i.e. the AP has transitioned
+  // from suspend to awake as a result of this message transfer). This field is
+  // only valid for messages originating from a nanoapp.
+  woke_host:bool = false;
 }
 
 table HubInfoRequest {}
