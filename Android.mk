@@ -40,6 +40,9 @@ LOCAL_INIT_RC := chre_daemon.rc
 LOCAL_CPP_EXTENSION := .cc
 LOCAL_CFLAGS += -Wall -Werror -Wextra
 
+LOCAL_TIDY_CHECKS := -google-runtime-int
+# bug:205155753, external/pigweed/pw_tokenizer/decode.cc:161 has this warning as error
+
 # Enable the LPMA feature for devices that support audio
 ifeq ($(CHRE_DAEMON_LPMA_ENABLED),true)
 LOCAL_CFLAGS += -DCHRE_DAEMON_LPMA_ENABLED
