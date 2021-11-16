@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_WIFI_REQUEST_MANAGER_H_
 #define CHRE_CORE_WIFI_REQUEST_MANAGER_H_
 
+#include "chre/core/api_manager_common.h"
 #include "chre/core/nanoapp.h"
 #include "chre/platform/platform_wifi.h"
 #include "chre/util/buffer.h"
@@ -244,6 +245,11 @@ class WifiRequestManager : public NonCopyable {
   //! System time when the last WiFi scan event was received.
   Milliseconds mLastScanEventTime;
 
+  //! ErrorCode Histogram for collected errors, the index of this array
+  //! corresponds to the type of the errorcode
+  uint32_t mScanMonitorErrorHistogram[CHRE_ERROR_SIZE] = {0};
+  uint32_t mActiveScanErrorHistogram[CHRE_ERROR_SIZE] = {0};
+
   /**
    * @return true if the scan monitor is enabled by any nanoapps.
    */
@@ -449,6 +455,16 @@ class WifiRequestManager : public NonCopyable {
    */
   static void freeWifiScanEventCallback(uint16_t eventType, void *eventData);
   static void freeWifiRangingEventCallback(uint16_t eventType, void *eventData);
+
+  /**
+   * Print API error distribution histogram to debug_dump
+   *
+   * @param eventType the type of event being freed.
+   * @param histogram pointer the error distribution histogram.
+   * @param histogramLength The number of chre error types
+   */
+  void logErrorHistogram(DebugDumpWrapper &debugDump, const uint32_t *histogram,
+                         uint8_t histogramLength) const;
 };
 
 }  // namespace chre
