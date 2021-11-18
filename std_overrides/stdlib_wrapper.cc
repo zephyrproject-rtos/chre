@@ -29,6 +29,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cinttypes>
+#include <new>
 
 #include <chre.h>
 #include "chre/util/nanoapp/assert.h"
@@ -77,4 +79,12 @@ int fprintf(FILE * /*stream*/, const char * /*fmt*/, ...) {
 size_t fwrite(const void * /*ptr*/, size_t /*size*/, size_t /*count*/,
               FILE * /*stream*/) {
   return 0;
+}
+
+void operator delete(void *ptr, std::align_val_t /* al */) {
+  chreLog(CHRE_LOG_ERROR,
+          "Nanoapp 0x%" PRIx64
+          " tried to free aligned %p via the delete operator",
+          NANOAPP_ID, ptr);
+  CHRE_ASSERT(false);
 }
