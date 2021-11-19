@@ -256,6 +256,25 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
   return ndk::ScopedAStatus::ok();
 }
 
+::ndk::ScopedAStatus ContextHub::onHostEndpointConnected(
+    const HostEndpointInfo &in_info) {
+  std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
+  mConnectedHostEndpoints.insert(in_info.hostEndpointId);
+
+  return ndk::ScopedAStatus::ok();
+}
+
+::ndk::ScopedAStatus ContextHub::onHostEndpointDisconnected(
+    char16_t in_hostEndpointId) {
+  std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
+  if (mConnectedHostEndpoints.count(in_hostEndpointId) > 0) {
+    mConnectedHostEndpoints.erase(in_hostEndpointId);
+    return ndk::ScopedAStatus::ok();
+  } else {
+    return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_ARGUMENT));
+  }
+}
+
 void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
   std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
@@ -343,8 +362,14 @@ void ContextHub::onDebugDumpComplete(
 
 void ContextHub::handleServiceDeath() {
   ALOGI("Context Hub Service died ...");
-  std::lock_guard<std::mutex> lock(mCallbackMutex);
-  mCallback.reset();
+  {
+    std::lock_guard<std::mutex> lock(mCallbackMutex);
+    mCallback.reset();
+  }
+  {
+    std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
+    mConnectedHostEndpoints.clear();
+  }
 }
 
 void ContextHub::onServiceDied(void *cookie) {

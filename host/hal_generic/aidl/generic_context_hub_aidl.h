@@ -26,6 +26,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <unordered_set>
 
 namespace aidl {
 namespace android {
@@ -64,6 +65,10 @@ class ContextHub : public BnContextHub,
   ::ndk::ScopedAStatus sendMessageToHub(int32_t contextHubId,
                                         const ContextHubMessage &message,
                                         bool *_aidl_return) override;
+  ::ndk::ScopedAStatus onHostEndpointConnected(
+      const HostEndpointInfo &in_info) override;
+  ::ndk::ScopedAStatus onHostEndpointDisconnected(
+      char16_t in_hostEndpointId) override;
 
   void onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) override;
 
@@ -97,6 +102,10 @@ class ContextHub : public BnContextHub,
 
   std::map<Setting, bool> mSettingEnabled;
   std::optional<bool> mIsWifiAvailable;
+
+  // TODO(b/194287786): Store more metadata
+  std::mutex mConnectedHostEndpointsMutex;
+  std::unordered_set<char16_t> mConnectedHostEndpoints;
 
   // Variables related to debug dump.
   static constexpr int kInvalidFd = -1;
