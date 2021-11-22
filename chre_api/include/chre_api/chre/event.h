@@ -154,6 +154,16 @@ extern "C" {
 #define CHRE_EVENT_DEBUG_DUMP  UINT16_C(0x0007)
 
 /**
+ * nanoappHandleEvent argument: struct chreHostEndpointNotification
+ *
+ * Notifications event regarding a host endpoint.
+ *
+ * @see chreConfigureHostEndpointNotifications
+ * @since v1.6
+ */
+#define CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION uint16_c(0x0008)
+
+/**
  * First possible value for CHRE_EVENT_SENSOR events.
  *
  * This allows us to separately define our CHRE_EVENT_SENSOR_* events in
@@ -385,6 +395,37 @@ struct chreNanoappInfo {
      * guaranteed to be unique among all nanoapps in the system.
      */
     uint32_t instanceId;
+};
+
+/**
+ * The types of notification events that can be included in struct
+ * chreHostEndpointNotification.
+ *
+ * @defgroup HOST_ENDPOINT_NOTIFICATION_TYPE
+ * @{
+ */
+#define HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT UINT8_C(0)
+/** @} */
+
+/**
+ * Data provided in CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION.
+ */
+struct chreHostEndpointNotification {
+    /**
+     * The ID of the host endpoint that this notification is for.
+     */
+    uint16_t hostEndpointId;
+
+    /**
+     * The type of notification this event represents, which should be
+     * one of the HOST_ENDPOINT_NOTIFICATION_TYPE_* values.
+     */
+    uint8_t notificationType;
+
+    /**
+     * Reserved for future use, must be zero.
+     */
+    uint8_t reserved;
 };
 
 /**
@@ -677,6 +718,30 @@ bool chreIsHostAwake(void);
  * @since v1.4
  */
 void chreConfigureDebugDumpEvent(bool enable);
+
+/**
+ * Configures whether this nanoapp will receive updates regarding a host
+ * endpoint that is connected with the Context Hub.
+ *
+ * If this API succeeds, the nanoapp will receive disconnection notifications,
+ * via the CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION event with type
+ * HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT, which can be invoked if the host
+ * has disconnected from the Context Hub either explicitly or implicitly (e.g.
+ * crashes). Nanoapps can use this notifications to clean up any resources
+ * associated with this host endpoint.
+ *
+ * @param hostEndpointId The host endpoint ID to configure notifications for.
+ * @param enable true to enable notifications.
+ *
+ * @return true on success
+ *
+ * @see chreMessageFromHostData
+ * @see chreHostEndpointNotification
+ * @see CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION
+ *
+ * @since v1.6
+ */
+bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId, bool enable);
 
 #ifdef __cplusplus
 }
