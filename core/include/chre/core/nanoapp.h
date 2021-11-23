@@ -189,6 +189,16 @@ class Nanoapp : public PlatformNanoapp {
    */
   bool permitPermissionUse(uint32_t permission) const;
 
+  /**
+   * Configures notification updates for a given host endpoint.
+   *
+   * @param hostEndpointId The ID of the host endpoint.
+   * @param enable true to enable notifications.
+   *
+   * @return true if the configuration is successful.
+   */
+  bool configureHostEndpointNotifications(uint16_t hostEndpointId, bool enable);
+
  private:
   uint32_t mInstanceId = kInvalidInstanceId;
 

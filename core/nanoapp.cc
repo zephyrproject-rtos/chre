@@ -198,4 +198,10 @@ void Nanoapp::handleGnssMeasurementDataEvent(const Event *event) {
   }
 }
 
+bool Nanoapp::configureHostEndpointNotifications(uint16_t /* hostEndpointId */,
+                                                 bool /* enable */) {
+  // TODO(b/194287786): Implement this
+  return false;
+}
+
 }  // namespace chre

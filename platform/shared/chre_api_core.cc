@@ -144,3 +144,9 @@ DLL_EXPORT void chreConfigureDebugDumpEvent(bool enable) {
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   nanoapp->configureDebugDumpEvent(enable);
 }
+
+DLL_EXPORT bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId,
+                                                       bool enable) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->configureHostEndpointNotifications(hostEndpointId, enable);
+}
