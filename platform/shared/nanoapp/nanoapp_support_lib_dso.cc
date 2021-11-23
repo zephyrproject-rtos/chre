@@ -344,4 +344,11 @@ void chreUserSettingConfigureEvents(uint8_t setting, bool enable) {
   }
 }
 
+WEAK_SYMBOL
+bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId,
+                                            bool enable) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreConfigureHostEndpointNotifications);
+  return (fptr != nullptr) ? fptr(hostEndpointId, enable) : false;
+}
+
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT
