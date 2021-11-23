@@ -75,6 +75,12 @@ struct SelfTestRequestT;
 struct SelfTestResponse;
 struct SelfTestResponseT;
 
+struct HostEndpointConnected;
+struct HostEndpointConnectedT;
+
+struct HostEndpointDisconnected;
+struct HostEndpointDisconnectedT;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -173,11 +179,13 @@ enum class ChreMessage : uint8_t {
   LogMessageV2 = 19,
   SelfTestRequest = 20,
   SelfTestResponse = 21,
+  HostEndpointConnected = 22,
+  HostEndpointDisconnected = 23,
   MIN = NONE,
-  MAX = SelfTestResponse
+  MAX = HostEndpointDisconnected
 };
 
-inline const ChreMessage (&EnumValuesChreMessage())[22] {
+inline const ChreMessage (&EnumValuesChreMessage())[24] {
   static const ChreMessage values[] = {
     ChreMessage::NONE,
     ChreMessage::NanoappMessage,
@@ -200,7 +208,9 @@ inline const ChreMessage (&EnumValuesChreMessage())[22] {
     ChreMessage::SettingChangeMessage,
     ChreMessage::LogMessageV2,
     ChreMessage::SelfTestRequest,
-    ChreMessage::SelfTestResponse
+    ChreMessage::SelfTestResponse,
+    ChreMessage::HostEndpointConnected,
+    ChreMessage::HostEndpointDisconnected
   };
   return values;
 }
@@ -229,13 +239,15 @@ inline const char * const *EnumNamesChreMessage() {
     "LogMessageV2",
     "SelfTestRequest",
     "SelfTestResponse",
+    "HostEndpointConnected",
+    "HostEndpointDisconnected",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameChreMessage(ChreMessage e) {
-  if (e < ChreMessage::NONE || e > ChreMessage::SelfTestResponse) return "";
+  if (e < ChreMessage::NONE || e > ChreMessage::HostEndpointDisconnected) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesChreMessage()[index];
 }
@@ -326,6 +338,14 @@ template<> struct ChreMessageTraits<SelfTestRequest> {
 
 template<> struct ChreMessageTraits<SelfTestResponse> {
   static const ChreMessage enum_value = ChreMessage::SelfTestResponse;
+};
+
+template<> struct ChreMessageTraits<HostEndpointConnected> {
+  static const ChreMessage enum_value = ChreMessage::HostEndpointConnected;
+};
+
+template<> struct ChreMessageTraits<HostEndpointDisconnected> {
+  static const ChreMessage enum_value = ChreMessage::HostEndpointDisconnected;
 };
 
 struct ChreMessageUnion {
@@ -527,6 +547,22 @@ struct ChreMessageUnion {
   const SelfTestResponseT *AsSelfTestResponse() const {
     return type == ChreMessage::SelfTestResponse ?
       reinterpret_cast<const SelfTestResponseT *>(value) : nullptr;
+  }
+  HostEndpointConnectedT *AsHostEndpointConnected() {
+    return type == ChreMessage::HostEndpointConnected ?
+      reinterpret_cast<HostEndpointConnectedT *>(value) : nullptr;
+  }
+  const HostEndpointConnectedT *AsHostEndpointConnected() const {
+    return type == ChreMessage::HostEndpointConnected ?
+      reinterpret_cast<const HostEndpointConnectedT *>(value) : nullptr;
+  }
+  HostEndpointDisconnectedT *AsHostEndpointDisconnected() {
+    return type == ChreMessage::HostEndpointDisconnected ?
+      reinterpret_cast<HostEndpointDisconnectedT *>(value) : nullptr;
+  }
+  const HostEndpointDisconnectedT *AsHostEndpointDisconnected() const {
+    return type == ChreMessage::HostEndpointDisconnected ?
+      reinterpret_cast<const HostEndpointDisconnectedT *>(value) : nullptr;
   }
 };
 
@@ -2534,6 +2570,122 @@ inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(
 
 flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(flatbuffers::FlatBufferBuilder &_fbb, const SelfTestResponseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct HostEndpointConnectedT : public flatbuffers::NativeTable {
+  typedef HostEndpointConnected TableType;
+  uint16_t host_endpoint;
+  HostEndpointConnectedT()
+      : host_endpoint(0) {
+  }
+};
+
+struct HostEndpointConnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HostEndpointConnectedT NativeTableType;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_HOST_ENDPOINT = 4
+  };
+  /// The host-side endpoint that has connected to the framework.
+  uint16_t host_endpoint() const {
+    return GetField<uint16_t>(VT_HOST_ENDPOINT, 0);
+  }
+  bool mutate_host_endpoint(uint16_t _host_endpoint) {
+    return SetField<uint16_t>(VT_HOST_ENDPOINT, _host_endpoint, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint16_t>(verifier, VT_HOST_ENDPOINT) &&
+           verifier.EndTable();
+  }
+  HostEndpointConnectedT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(HostEndpointConnectedT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<HostEndpointConnected> Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointConnectedT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct HostEndpointConnectedBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_host_endpoint(uint16_t host_endpoint) {
+    fbb_.AddElement<uint16_t>(HostEndpointConnected::VT_HOST_ENDPOINT, host_endpoint, 0);
+  }
+  explicit HostEndpointConnectedBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  HostEndpointConnectedBuilder &operator=(const HostEndpointConnectedBuilder &);
+  flatbuffers::Offset<HostEndpointConnected> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<HostEndpointConnected>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint16_t host_endpoint = 0) {
+  HostEndpointConnectedBuilder builder_(_fbb);
+  builder_.add_host_endpoint(host_endpoint);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointConnectedT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct HostEndpointDisconnectedT : public flatbuffers::NativeTable {
+  typedef HostEndpointDisconnected TableType;
+  uint16_t host_endpoint;
+  HostEndpointDisconnectedT()
+      : host_endpoint(0) {
+  }
+};
+
+struct HostEndpointDisconnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HostEndpointDisconnectedT NativeTableType;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_HOST_ENDPOINT = 4
+  };
+  /// The host-side endpoint that has disconnected from the framework.
+  uint16_t host_endpoint() const {
+    return GetField<uint16_t>(VT_HOST_ENDPOINT, 0);
+  }
+  bool mutate_host_endpoint(uint16_t _host_endpoint) {
+    return SetField<uint16_t>(VT_HOST_ENDPOINT, _host_endpoint, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint16_t>(verifier, VT_HOST_ENDPOINT) &&
+           verifier.EndTable();
+  }
+  HostEndpointDisconnectedT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(HostEndpointDisconnectedT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<HostEndpointDisconnected> Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointDisconnectedT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct HostEndpointDisconnectedBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_host_endpoint(uint16_t host_endpoint) {
+    fbb_.AddElement<uint16_t>(HostEndpointDisconnected::VT_HOST_ENDPOINT, host_endpoint, 0);
+  }
+  explicit HostEndpointDisconnectedBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  HostEndpointDisconnectedBuilder &operator=(const HostEndpointDisconnectedBuilder &);
+  flatbuffers::Offset<HostEndpointDisconnected> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<HostEndpointDisconnected>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<HostEndpointDisconnected> CreateHostEndpointDisconnected(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint16_t host_endpoint = 0) {
+  HostEndpointDisconnectedBuilder builder_(_fbb);
+  builder_.add_host_endpoint(host_endpoint);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<HostEndpointDisconnected> CreateHostEndpointDisconnected(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointDisconnectedT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct MessageContainerT : public flatbuffers::NativeTable {
   typedef MessageContainer TableType;
   ChreMessageUnion message;
@@ -2624,6 +2776,12 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const SelfTestResponse *message_as_SelfTestResponse() const {
     return message_type() == ChreMessage::SelfTestResponse ? static_cast<const SelfTestResponse *>(message()) : nullptr;
+  }
+  const HostEndpointConnected *message_as_HostEndpointConnected() const {
+    return message_type() == ChreMessage::HostEndpointConnected ? static_cast<const HostEndpointConnected *>(message()) : nullptr;
+  }
+  const HostEndpointDisconnected *message_as_HostEndpointDisconnected() const {
+    return message_type() == ChreMessage::HostEndpointDisconnected ? static_cast<const HostEndpointDisconnected *>(message()) : nullptr;
   }
   void *mutable_message() {
     return GetPointer<void *>(VT_MESSAGE);
@@ -2735,6 +2893,14 @@ template<> inline const SelfTestRequest *MessageContainer::message_as<SelfTestRe
 
 template<> inline const SelfTestResponse *MessageContainer::message_as<SelfTestResponse>() const {
   return message_as_SelfTestResponse();
+}
+
+template<> inline const HostEndpointConnected *MessageContainer::message_as<HostEndpointConnected>() const {
+  return message_as_HostEndpointConnected();
+}
+
+template<> inline const HostEndpointDisconnected *MessageContainer::message_as<HostEndpointDisconnected>() const {
+  return message_as_HostEndpointDisconnected();
 }
 
 struct MessageContainerBuilder {
@@ -3442,6 +3608,58 @@ inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(flatbuffers:
       _success);
 }
 
+inline HostEndpointConnectedT *HostEndpointConnected::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new HostEndpointConnectedT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void HostEndpointConnected::UnPackTo(HostEndpointConnectedT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = host_endpoint(); _o->host_endpoint = _e; };
+}
+
+inline flatbuffers::Offset<HostEndpointConnected> HostEndpointConnected::Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointConnectedT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateHostEndpointConnected(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointConnectedT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const HostEndpointConnectedT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _host_endpoint = _o->host_endpoint;
+  return chre::fbs::CreateHostEndpointConnected(
+      _fbb,
+      _host_endpoint);
+}
+
+inline HostEndpointDisconnectedT *HostEndpointDisconnected::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new HostEndpointDisconnectedT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void HostEndpointDisconnected::UnPackTo(HostEndpointDisconnectedT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = host_endpoint(); _o->host_endpoint = _e; };
+}
+
+inline flatbuffers::Offset<HostEndpointDisconnected> HostEndpointDisconnected::Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointDisconnectedT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateHostEndpointDisconnected(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<HostEndpointDisconnected> CreateHostEndpointDisconnected(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointDisconnectedT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const HostEndpointDisconnectedT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _host_endpoint = _o->host_endpoint;
+  return chre::fbs::CreateHostEndpointDisconnected(
+      _fbb,
+      _host_endpoint);
+}
+
 inline MessageContainerT *MessageContainer::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new MessageContainerT();
   UnPackTo(_o, _resolver);
@@ -3563,6 +3781,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       auto ptr = reinterpret_cast<const SelfTestResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ChreMessage::HostEndpointConnected: {
+      auto ptr = reinterpret_cast<const HostEndpointConnected *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::HostEndpointDisconnected: {
+      auto ptr = reinterpret_cast<const HostEndpointDisconnected *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -3665,6 +3891,14 @@ inline void *ChreMessageUnion::UnPack(const void *obj, ChreMessage type, const f
       auto ptr = reinterpret_cast<const SelfTestResponse *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ChreMessage::HostEndpointConnected: {
+      auto ptr = reinterpret_cast<const HostEndpointConnected *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case ChreMessage::HostEndpointDisconnected: {
+      auto ptr = reinterpret_cast<const HostEndpointDisconnected *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -3755,6 +3989,14 @@ inline flatbuffers::Offset<void> ChreMessageUnion::Pack(flatbuffers::FlatBufferB
       auto ptr = reinterpret_cast<const SelfTestResponseT *>(value);
       return CreateSelfTestResponse(_fbb, ptr, _rehasher).Union();
     }
+    case ChreMessage::HostEndpointConnected: {
+      auto ptr = reinterpret_cast<const HostEndpointConnectedT *>(value);
+      return CreateHostEndpointConnected(_fbb, ptr, _rehasher).Union();
+    }
+    case ChreMessage::HostEndpointDisconnected: {
+      auto ptr = reinterpret_cast<const HostEndpointDisconnectedT *>(value);
+      return CreateHostEndpointDisconnected(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -3843,6 +4085,14 @@ inline ChreMessageUnion::ChreMessageUnion(const ChreMessageUnion &u) FLATBUFFERS
     }
     case ChreMessage::SelfTestResponse: {
       value = new SelfTestResponseT(*reinterpret_cast<SelfTestResponseT *>(u.value));
+      break;
+    }
+    case ChreMessage::HostEndpointConnected: {
+      value = new HostEndpointConnectedT(*reinterpret_cast<HostEndpointConnectedT *>(u.value));
+      break;
+    }
+    case ChreMessage::HostEndpointDisconnected: {
+      value = new HostEndpointDisconnectedT(*reinterpret_cast<HostEndpointDisconnectedT *>(u.value));
       break;
     }
     default:
@@ -3954,6 +4204,16 @@ inline void ChreMessageUnion::Reset() {
     }
     case ChreMessage::SelfTestResponse: {
       auto ptr = reinterpret_cast<SelfTestResponseT *>(value);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::HostEndpointConnected: {
+      auto ptr = reinterpret_cast<HostEndpointConnectedT *>(value);
+      delete ptr;
+      break;
+    }
+    case ChreMessage::HostEndpointDisconnected: {
+      auto ptr = reinterpret_cast<HostEndpointDisconnectedT *>(value);
       delete ptr;
       break;
     }

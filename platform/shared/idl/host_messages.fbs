@@ -329,6 +329,19 @@ table SelfTestResponse {
   success:bool;
 }
 
+// Message sent whenever a host endpoint has connected with the Context Hub.
+// CHRE may receive messages from this host afterwards.
+table HostEndpointConnected {
+  /// The host-side endpoint that has connected to the framework.
+  host_endpoint:ushort;
+}
+
+// Message sent whenever a host endpoint has disconnected from the Context Hub.
+table HostEndpointDisconnected {
+  /// The host-side endpoint that has disconnected from the framework.
+  host_endpoint:ushort;
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -365,6 +378,9 @@ union ChreMessage {
 
   SelfTestRequest,
   SelfTestResponse,
+
+  HostEndpointConnected,
+  HostEndpointDisconnected,
 }
 
 struct HostAddress {
