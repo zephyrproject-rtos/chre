@@ -122,6 +122,16 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         break;
       }
 
+      case fbs::ChreMessage::HostEndpointConnected: {
+        // TODO(b/194287786): Implement this
+        break;
+      }
+
+      case fbs::ChreMessage::HostEndpointDisconnected: {
+        // TODO(b/194287786): Implement this
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));

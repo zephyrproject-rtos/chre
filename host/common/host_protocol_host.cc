@@ -213,5 +213,18 @@ void HostProtocolHost::encodeSelfTestRequest(
   finalize(builder, fbs::ChreMessage::SelfTestRequest, request.Union());
 }
 
+void HostProtocolHost::encodeHostEndpointConnected(
+    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId) {
+  auto message = fbs::CreateHostEndpointConnected(builder, hostEndpointId);
+  finalize(builder, fbs::ChreMessage::HostEndpointConnected, message.Union());
+}
+
+void HostProtocolHost::encodeHostEndpointDisconnected(
+    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId) {
+  auto message = fbs::CreateHostEndpointDisconnected(builder, hostEndpointId);
+  finalize(builder, fbs::ChreMessage::HostEndpointDisconnected,
+           message.Union());
+}
+
 }  // namespace chre
 }  // namespace android

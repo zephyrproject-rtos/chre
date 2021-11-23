@@ -261,6 +261,8 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
   std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
   mConnectedHostEndpoints.insert(in_info.hostEndpointId);
 
+  mConnection.onHostEndpointConnected(in_info.hostEndpointId);
+
   return ndk::ScopedAStatus::ok();
 }
 
@@ -269,6 +271,9 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
   std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
   if (mConnectedHostEndpoints.count(in_hostEndpointId) > 0) {
     mConnectedHostEndpoints.erase(in_hostEndpointId);
+
+    mConnection.onHostEndpointDisconnected(in_hostEndpointId);
+
     return ndk::ScopedAStatus::ok();
   } else {
     return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_ARGUMENT));

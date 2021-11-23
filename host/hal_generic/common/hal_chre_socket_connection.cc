@@ -139,6 +139,19 @@ bool HalChreSocketConnection::sendSettingChangedNotification(
   return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
 }
 
+bool HalChreSocketConnection::onHostEndpointConnected(uint16_t hostEndpointId) {
+  FlatBufferBuilder builder(64);
+  HostProtocolHost::encodeHostEndpointConnected(builder, hostEndpointId);
+  return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
+}
+
+bool HalChreSocketConnection::onHostEndpointDisconnected(
+    uint16_t hostEndpointId) {
+  FlatBufferBuilder builder(64);
+  HostProtocolHost::encodeHostEndpointDisconnected(builder, hostEndpointId);
+  return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
+}
+
 void HalChreSocketConnection::onMessageReceived(const void *data,
                                                 size_t length) {
   if (!chre::HostProtocolHost::decodeMessageFromChre(data, length, *this)) {

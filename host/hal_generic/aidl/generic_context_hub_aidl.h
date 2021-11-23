@@ -103,7 +103,6 @@ class ContextHub : public BnContextHub,
   std::map<Setting, bool> mSettingEnabled;
   std::optional<bool> mIsWifiAvailable;
 
-  // TODO(b/194287786): Store more metadata
   std::mutex mConnectedHostEndpointsMutex;
   std::unordered_set<char16_t> mConnectedHostEndpoints;
 

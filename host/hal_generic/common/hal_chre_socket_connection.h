@@ -111,6 +111,10 @@ class HalChreSocketConnection
   bool sendSettingChangedNotification(::chre::fbs::Setting fbsSetting,
                                       ::chre::fbs::SettingState fbsState);
 
+  bool onHostEndpointConnected(uint16_t hostEndpointId);
+
+  bool onHostEndpointDisconnected(uint16_t hostEndpointId);
+
   void onMessageReceived(const void *data, size_t length) override;
   void onConnected() override;
   void onDisconnected() override;

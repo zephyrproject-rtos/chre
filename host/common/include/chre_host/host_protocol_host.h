@@ -233,6 +233,28 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    * Encodes a message to request CHRE to perform a self test.
    */
   static void encodeSelfTestRequest(flatbuffers::FlatBufferBuilder &builder);
+
+  /**
+   * Encodes a message notifying CHRE of a user setting change.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param setting The setting value that the user changed
+   * @param newState The state that the user change the setting to.
+   */
+  static void encodeHostEndpointConnected(
+      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);
+
+  /**
+   * Encodes a message notifying CHRE of a user setting change.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param setting The setting value that the user changed
+   * @param newState The state that the user change the setting to.
+   */
+  static void encodeHostEndpointDisconnected(
+      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);
 };
 
 }  // namespace chre
