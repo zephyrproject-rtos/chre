@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include "chre/core/host_notifications.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/generated/host_messages_generated.h"
 
@@ -123,12 +124,18 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
       }
 
       case fbs::ChreMessage::HostEndpointConnected: {
-        // TODO(b/194287786): Implement this
+        const auto *connectedMessage =
+            static_cast<const fbs::HostEndpointConnected *>(
+                container->message());
+        postHostEndpointConnected(connectedMessage->host_endpoint());
         break;
       }
 
       case fbs::ChreMessage::HostEndpointDisconnected: {
-        // TODO(b/194287786): Implement this
+        const auto *disconnectedMessage =
+            static_cast<const fbs::HostEndpointDisconnected *>(
+                container->message());
+        postHostEndpointDisconnected(disconnectedMessage->host_endpoint());
         break;
       }
 

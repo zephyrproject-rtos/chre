@@ -57,6 +57,8 @@ enum class SystemCallbackType : uint16_t {
   DelayedFatalError,
   GnssRequestResyncEvent,
   SendBufferedLogMessage,
+  HostEndpointConnected,
+  HostEndpointDisconnected,
 };
 
 //! Deferred/delayed callbacks use the event subsystem but are invariably sent
