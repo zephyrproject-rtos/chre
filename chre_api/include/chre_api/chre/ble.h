@@ -18,7 +18,8 @@
 
 /**
  * @file
- * Bluetooth Low Energy (BLE) API, currently covering scanning features.
+ * CHRE BLE (Bluetooth Low Energy, Bluetooth LE) API.
+ * The CHRE BLE API currently supports BLE scanning features.
  *
  * The features in the CHRE BLE API are a subset and adaptation of Android
  * capabilities as described in the Android BLE API and HCI requirements.
@@ -309,8 +310,9 @@ struct chreBleGenericFilter {
  * is expected to initially support only a limited set of AD Types.
  */
 struct chreBleScanFilter {
-  //! RSSI threshold filter (Corresponding HCI OCF: 0x0157, Sub: 0x01). An
-  //! rssiThreshold value of CHRE_BLE_RSSI_THRESHOLD_NONE indicates no RSSI
+  //! RSSI threshold filter (Corresponding HCI OCF: 0x0157, Sub: 0x01), where
+  //! advertisements with RSSI values below this threshold may be disregarded.
+  //! An rssiThreshold value of CHRE_BLE_RSSI_THRESHOLD_NONE indicates no RSSI
   //! filtering.
   int8_t rssiThreshold;
 
@@ -321,7 +323,9 @@ struct chreBleScanFilter {
   //! provide, and CHRE may provide unfiltered results.
   uint8_t scanFilterCount;
 
-  //! Pointer to an array of scan filters.
+  //! Pointer to an array of scan filters. If the array contains more than one
+  //! entry, advertisements matching any of the entries will be returned
+  //! (functional OR).
   const struct chreBleGenericFilter *scanFilters;
 };
 
@@ -478,7 +482,7 @@ uint32_t chreBleGetCapabilities(void);
  * than the client was compiled against.
  *
  * @return A bitmask with zero or more CHRE_BLE_FILTER_CAPABILITIES_* flags set.
- *         @see CHRE_BLE_CAPABILITIES
+ *         @see CHRE_BLE_FILTER_CAPABILITIES
  *
  * @since v1.6
  */
@@ -544,7 +548,6 @@ static inline uint8_t chreBleGetEventTypeAndDataStatus(uint8_t eventType,
 
 /**
  * Start Bluetooth LE (BLE) scanning on CHRE.
- *
  *
  * The result of the operation will be delivered asynchronously via the CHRE
  * event CHRE_EVENT_BLE_ASYNC_RESULT.
