@@ -30,6 +30,10 @@ const chrePalWifiCallbacks PlatformWifiBase::sWifiCallbacks = {
     PlatformWifiBase::scanResponseCallback,
     PlatformWifiBase::scanEventCallback,
     PlatformWifiBase::rangingEventCallback,
+    PlatformWifiBase::nanServiceIdentifierCallback,
+    PlatformWifiBase::nanServiceDiscoveryCallback,
+    PlatformWifiBase::nanServiceLostCallback,
+    PlatformWifiBase::nanServiceTerminatedCallback,
 };
 
 PlatformWifi::~PlatformWifi() {
@@ -132,6 +136,25 @@ void PlatformWifiBase::scanResponseCallback(bool pending, uint8_t errorCode) {
 void PlatformWifiBase::scanEventCallback(struct chreWifiScanEvent *event) {
   EventLoopManagerSingleton::get()->getWifiRequestManager().handleScanEvent(
       event);
+}
+
+void PlatformWifiBase::nanServiceIdentifierCallback(
+    uint8_t /* errorCode */, uint32_t /* subscriptionId */) {
+  // TODO(b/204226580): Implement me.
+}
+
+void PlatformWifiBase::nanServiceDiscoveryCallback(
+    struct chreWifiNanDiscoveryEvent * /* event */) {
+  // TODO(b/204226580): Implement me.
+}
+
+void PlatformWifiBase::nanServiceLostCallback(uint32_t /* subscriptionId */) {
+  // TODO(b/204226580): Implement me.
+}
+
+void PlatformWifiBase::nanServiceTerminatedCallback(
+    uint32_t /* errorCode */, uint32_t /* subscriptionId */) {
+  // TODO(b/204226580): Implement me.
 }
 
 }  // namespace chre
