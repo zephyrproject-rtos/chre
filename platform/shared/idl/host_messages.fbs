@@ -342,6 +342,22 @@ table HostEndpointDisconnected {
   host_endpoint:ushort;
 }
 
+// Represents metric messages from CHRE
+table MetricLog {
+  // A unique identifier for the encoded metric message.
+  id:uint;
+
+  // The metric data, which is encoded using a custom-defined protocol. This
+  // same protocol must be used to decode the data at the host side for consumption.
+  encoded_metric:[byte];
+}
+
+// A container to store batched metrics messages
+table BatchedMetricLog {
+  // The batched metrics
+  metrics: [MetricLog];
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -381,6 +397,9 @@ union ChreMessage {
 
   HostEndpointConnected,
   HostEndpointDisconnected,
+
+  MetricLog,
+  BatchedMetricLog,
 }
 
 struct HostAddress {

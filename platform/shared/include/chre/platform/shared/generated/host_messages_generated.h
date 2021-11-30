@@ -57,6 +57,10 @@ struct HostEndpointConnected;
 
 struct HostEndpointDisconnected;
 
+struct MetricLog;
+
+struct BatchedMetricLog;
+
 struct HostAddress;
 
 struct MessageContainer;
@@ -156,11 +160,13 @@ enum class ChreMessage : uint8_t {
   SelfTestResponse = 21,
   HostEndpointConnected = 22,
   HostEndpointDisconnected = 23,
+  MetricLog = 24,
+  BatchedMetricLog = 25,
   MIN = NONE,
-  MAX = HostEndpointDisconnected
+  MAX = BatchedMetricLog
 };
 
-inline const ChreMessage (&EnumValuesChreMessage())[24] {
+inline const ChreMessage (&EnumValuesChreMessage())[26] {
   static const ChreMessage values[] = {
     ChreMessage::NONE,
     ChreMessage::NanoappMessage,
@@ -185,7 +191,9 @@ inline const ChreMessage (&EnumValuesChreMessage())[24] {
     ChreMessage::SelfTestRequest,
     ChreMessage::SelfTestResponse,
     ChreMessage::HostEndpointConnected,
-    ChreMessage::HostEndpointDisconnected
+    ChreMessage::HostEndpointDisconnected,
+    ChreMessage::MetricLog,
+    ChreMessage::BatchedMetricLog
   };
   return values;
 }
@@ -216,13 +224,15 @@ inline const char * const *EnumNamesChreMessage() {
     "SelfTestResponse",
     "HostEndpointConnected",
     "HostEndpointDisconnected",
+    "MetricLog",
+    "BatchedMetricLog",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameChreMessage(ChreMessage e) {
-  if (e < ChreMessage::NONE || e > ChreMessage::HostEndpointDisconnected) return "";
+  if (e < ChreMessage::NONE || e > ChreMessage::BatchedMetricLog) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesChreMessage()[index];
 }
@@ -321,6 +331,14 @@ template<> struct ChreMessageTraits<HostEndpointConnected> {
 
 template<> struct ChreMessageTraits<HostEndpointDisconnected> {
   static const ChreMessage enum_value = ChreMessage::HostEndpointDisconnected;
+};
+
+template<> struct ChreMessageTraits<MetricLog> {
+  static const ChreMessage enum_value = ChreMessage::MetricLog;
+};
+
+template<> struct ChreMessageTraits<BatchedMetricLog> {
+  static const ChreMessage enum_value = ChreMessage::BatchedMetricLog;
 };
 
 bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, ChreMessage type);
@@ -1887,6 +1905,119 @@ inline flatbuffers::Offset<HostEndpointDisconnected> CreateHostEndpointDisconnec
   return builder_.Finish();
 }
 
+struct MetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ID = 4,
+    VT_ENCODED_METRIC = 6
+  };
+  uint32_t id() const {
+    return GetField<uint32_t>(VT_ID, 0);
+  }
+  const flatbuffers::Vector<int8_t> *encoded_metric() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_ENCODED_METRIC);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_ID) &&
+           VerifyOffset(verifier, VT_ENCODED_METRIC) &&
+           verifier.VerifyVector(encoded_metric()) &&
+           verifier.EndTable();
+  }
+};
+
+struct MetricLogBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_id(uint32_t id) {
+    fbb_.AddElement<uint32_t>(MetricLog::VT_ID, id, 0);
+  }
+  void add_encoded_metric(flatbuffers::Offset<flatbuffers::Vector<int8_t>> encoded_metric) {
+    fbb_.AddOffset(MetricLog::VT_ENCODED_METRIC, encoded_metric);
+  }
+  explicit MetricLogBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  MetricLogBuilder &operator=(const MetricLogBuilder &);
+  flatbuffers::Offset<MetricLog> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<MetricLog>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<MetricLog> CreateMetricLog(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t id = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> encoded_metric = 0) {
+  MetricLogBuilder builder_(_fbb);
+  builder_.add_encoded_metric(encoded_metric);
+  builder_.add_id(id);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<MetricLog> CreateMetricLogDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t id = 0,
+    const std::vector<int8_t> *encoded_metric = nullptr) {
+  auto encoded_metric__ = encoded_metric ? _fbb.CreateVector<int8_t>(*encoded_metric) : 0;
+  return chre::fbs::CreateMetricLog(
+      _fbb,
+      id,
+      encoded_metric__);
+}
+
+struct BatchedMetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_METRICS = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<MetricLog>> *metrics() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<MetricLog>> *>(VT_METRICS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_METRICS) &&
+           verifier.VerifyVector(metrics()) &&
+           verifier.VerifyVectorOfTables(metrics()) &&
+           verifier.EndTable();
+  }
+};
+
+struct BatchedMetricLogBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_metrics(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<MetricLog>>> metrics) {
+    fbb_.AddOffset(BatchedMetricLog::VT_METRICS, metrics);
+  }
+  explicit BatchedMetricLogBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  BatchedMetricLogBuilder &operator=(const BatchedMetricLogBuilder &);
+  flatbuffers::Offset<BatchedMetricLog> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<BatchedMetricLog>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<BatchedMetricLog> CreateBatchedMetricLog(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<MetricLog>>> metrics = 0) {
+  BatchedMetricLogBuilder builder_(_fbb);
+  builder_.add_metrics(metrics);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<BatchedMetricLog> CreateBatchedMetricLogDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<MetricLog>> *metrics = nullptr) {
+  auto metrics__ = metrics ? _fbb.CreateVector<flatbuffers::Offset<MetricLog>>(*metrics) : 0;
+  return chre::fbs::CreateBatchedMetricLog(
+      _fbb,
+      metrics__);
+}
+
 /// The top-level container that encapsulates all possible messages. Note that
 /// per FlatBuffers requirements, we can't use a union as the top-level
 /// structure (root type), so we must wrap it in a table.
@@ -1971,6 +2102,12 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const HostEndpointDisconnected *message_as_HostEndpointDisconnected() const {
     return message_type() == ChreMessage::HostEndpointDisconnected ? static_cast<const HostEndpointDisconnected *>(message()) : nullptr;
+  }
+  const MetricLog *message_as_MetricLog() const {
+    return message_type() == ChreMessage::MetricLog ? static_cast<const MetricLog *>(message()) : nullptr;
+  }
+  const BatchedMetricLog *message_as_BatchedMetricLog() const {
+    return message_type() == ChreMessage::BatchedMetricLog ? static_cast<const BatchedMetricLog *>(message()) : nullptr;
   }
   /// The originating or destination client ID on the host side, used to direct
   /// responses only to the client that sent the request. Although initially
@@ -2081,6 +2218,14 @@ template<> inline const HostEndpointConnected *MessageContainer::message_as<Host
 
 template<> inline const HostEndpointDisconnected *MessageContainer::message_as<HostEndpointDisconnected>() const {
   return message_as_HostEndpointDisconnected();
+}
+
+template<> inline const MetricLog *MessageContainer::message_as<MetricLog>() const {
+  return message_as_MetricLog();
+}
+
+template<> inline const BatchedMetricLog *MessageContainer::message_as<BatchedMetricLog>() const {
+  return message_as_BatchedMetricLog();
 }
 
 struct MessageContainerBuilder {
@@ -2216,6 +2361,14 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
     }
     case ChreMessage::HostEndpointDisconnected: {
       auto ptr = reinterpret_cast<const HostEndpointDisconnected *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::MetricLog: {
+      auto ptr = reinterpret_cast<const MetricLog *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ChreMessage::BatchedMetricLog: {
+      auto ptr = reinterpret_cast<const BatchedMetricLog *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
