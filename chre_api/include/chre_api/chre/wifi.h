@@ -144,6 +144,16 @@ extern "C" {
  */
 #define CHRE_EVENT_WIFI_NAN_SESSION_LOST  CHRE_WIFI_EVENT_ID(5)
 
+/**
+ * nanoappHandleEvent argument: struct chreWifiNanSessionTerminatedEvent
+ *
+ * Signals the end of a NAN subscription session. The termination can be due to
+ * the user turning the WiFi off, or other platform reasons like not being able
+ * to support NAN concurrency with the host. The terminated event will have a
+ * reason code appropriately populated to denote why the event was sent.
+ */
+#define CHRE_EVENT_WIFI_NAN_SESSION_TERMINATED  CHRE_WIFI_EVENT_ID(6)
+
 // NOTE: Do not add new events with ID > 15; only values 0-15 are reserved
 // (see chre/event.h)
 
@@ -959,12 +969,30 @@ struct chreWifiNanDiscoveryEvent {
  * Data structure sent with events of type CHRE_EVENT_WIFI_NAN_SESSION_LOST.
  */
 struct chreWifiNanSessionLostEvent {
-    //! The original ID (returned by the NAN discovery engine) of the publisher
-    //! or subscriber instance that was interrupted and/or went out of range.
+    //! The original ID (returned by the NAN discovery engine) of the subscriber
+    //! instance.
     uint32_t id;
 
-    //! The ID of the previously discovered service on a peer NAN device.
+    //! The ID of the previously discovered publisher on a peer NAN device that
+    //! is no longer connected.
     uint32_t peerId;
+};
+
+/**
+ * Data structure sent with events of type
+ * CHRE_EVENT_WIFI_NAN_SESSION_TERMINATED.
+ */
+struct chreWifiNanSessionTerminatedEvent {
+    //! The original ID (returned by the NAN discovery engine) of the subscriber
+    //! instance that was terminated.
+    uint32_t id;
+
+    //! A value that maps to one of the termination reasons in @ref enum
+    //! chreWifiNanTerminatedReason.
+    uint8_t reason;
+
+    //! Reserved for future use.
+    uint8_t reserved[3];
 };
 
 /**
