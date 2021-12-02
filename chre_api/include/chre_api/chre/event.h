@@ -161,7 +161,7 @@ extern "C" {
  * @see chreConfigureHostEndpointNotifications
  * @since v1.6
  */
-#define CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION uint16_c(0x0008)
+#define CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION UINT16_C(0x0008)
 
 /**
  * First possible value for CHRE_EVENT_SENSOR events.
