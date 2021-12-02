@@ -53,11 +53,20 @@ bool Nanoapp::isRegisteredForBroadcastEvent(const Event *event) const {
   bool registered = false;
   uint16_t eventType = event->eventType;
   uint16_t targetGroupIdMask = event->targetAppGroupMask;
-  size_t foundIndex = registrationIndex(eventType);
-  if (foundIndex < mRegisteredEvents.size()) {
-    const EventRegistration &reg = mRegisteredEvents[foundIndex];
-    if (targetGroupIdMask & reg.groupIdMask) {
-      registered = true;
+
+  // The host endpoint notification is a special case, because it requires
+  // explicit registration using host endpoint IDs rather than masks.
+  if (eventType == CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION) {
+    const auto *data =
+        static_cast<const chreHostEndpointNotification *>(event->eventData);
+    registered = isRegisteredForHostEndpointNotifications(data->hostEndpointId);
+  } else {
+    size_t foundIndex = registrationIndex(eventType);
+    if (foundIndex < mRegisteredEvents.size()) {
+      const EventRegistration &reg = mRegisteredEvents[foundIndex];
+      if (targetGroupIdMask & reg.groupIdMask) {
+        registered = true;
+      }
     }
   }
   return registered;
@@ -199,10 +208,21 @@ void Nanoapp::handleGnssMeasurementDataEvent(const Event *event) {
   }
 }
 
-bool Nanoapp::configureHostEndpointNotifications(uint16_t /* hostEndpointId */,
-                                                 bool /* enable */) {
-  // TODO(b/194287786): Implement this
-  return false;
+bool Nanoapp::configureHostEndpointNotifications(uint16_t hostEndpointId,
+                                                 bool enable) {
+  bool success = true;
+  bool registered = isRegisteredForHostEndpointNotifications(hostEndpointId);
+  if (enable && !registered) {
+    success = mRegisteredHostEndpoints.push_back(hostEndpointId);
+    if (!success) {
+      LOG_OOM();
+    }
+  } else if (!enable && registered) {
+    size_t index = mRegisteredHostEndpoints.find(hostEndpointId);
+    mRegisteredHostEndpoints.erase(index);
+  }
+
+  return success;
 }
 
 }  // namespace chre

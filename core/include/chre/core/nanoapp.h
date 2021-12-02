@@ -230,6 +230,9 @@ class Nanoapp : public PlatformNanoapp {
   // who care about them).
   DynamicVector<EventRegistration> mRegisteredEvents;
 
+  //! The registered host endpoints to receive notifications for.
+  DynamicVector<uint16_t> mRegisteredHostEndpoints;
+
   //! @return index of event registration if found. mRegisteredEvents.size() if
   //!     not.
   size_t registrationIndex(uint16_t eventType) const;
@@ -241,6 +244,11 @@ class Nanoapp : public PlatformNanoapp {
    * @param event The pointer to the event
    */
   void handleGnssMeasurementDataEvent(const Event *event);
+
+  bool isRegisteredForHostEndpointNotifications(uint16_t hostEndpointId) const {
+    return mRegisteredHostEndpoints.find(hostEndpointId) !=
+           mRegisteredHostEndpoints.size();
+  }
 };
 
 }  // namespace chre
