@@ -391,8 +391,7 @@ void EventLoop::distributeEvent(Event *event) {
   bool eventDelivered = false;
   for (const UniquePtr<Nanoapp> &app : mNanoapps) {
     if ((event->targetInstanceId == chre::kBroadcastInstanceId &&
-         app->isRegisteredForBroadcastEvent(event->eventType,
-                                            event->targetAppGroupMask)) ||
+         app->isRegisteredForBroadcastEvent(event)) ||
         event->targetInstanceId == app->getInstanceId()) {
       eventDelivered = true;
       deliverNextEvent(app, event);

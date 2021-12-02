@@ -88,11 +88,9 @@ class Nanoapp : public PlatformNanoapp {
   }
 
   /**
-   * @return true if the nanoapp should receive broadcast events with the given
-   *         type
+   * @return true if the nanoapp should receive broadcast event
    */
-  bool isRegisteredForBroadcastEvent(uint16_t eventType,
-                                     uint16_t targetGroupIdMask) const;
+  bool isRegisteredForBroadcastEvent(const Event *event) const;
 
   /**
    * Updates the Nanoapp's registration so that it will receive broadcast events

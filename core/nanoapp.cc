@@ -49,9 +49,10 @@ Nanoapp::~Nanoapp() {
   }
 }
 
-bool Nanoapp::isRegisteredForBroadcastEvent(uint16_t eventType,
-                                            uint16_t targetGroupIdMask) const {
+bool Nanoapp::isRegisteredForBroadcastEvent(const Event *event) const {
   bool registered = false;
+  uint16_t eventType = event->eventType;
+  uint16_t targetGroupIdMask = event->targetAppGroupMask;
   size_t foundIndex = registrationIndex(eventType);
   if (foundIndex < mRegisteredEvents.size()) {
     const EventRegistration &reg = mRegisteredEvents[foundIndex];
