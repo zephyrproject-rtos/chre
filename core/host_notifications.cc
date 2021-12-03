@@ -33,13 +33,14 @@ void hostNotificationCallback(uint16_t type, void *data,
   if (callbackType == SystemCallbackType::HostEndpointDisconnected) {
     uint16_t eventType = CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION;
     auto *eventData = memoryAlloc<struct chreHostEndpointNotification>();
-    eventData->hostEndpointId = hostEndpointId;
-    eventData->notificationType = HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT;
-    eventData->reserved = 0;
 
     if (eventData == nullptr) {
       LOG_OOM();
     } else {
+      eventData->hostEndpointId = hostEndpointId;
+      eventData->notificationType = HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT;
+      eventData->reserved = 0;
+
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           eventType, eventData, freeEventDataCallback, kBroadcastInstanceId);
     }
