@@ -358,4 +358,11 @@ bool chrePublishRpcServices(struct chreNanoappRpcService *services,
   return (fptr != nullptr) ? fptr(services, numServices) : false;
 }
 
+WEAK_SYMBOL
+bool chreGetHostEndpointInfo(uint16_t hostEndpointId,
+                             struct chreHostEndpointInfo *info) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreGetHostEndpointInfo);
+  return (fptr != nullptr) ? fptr(hostEndpointId, info) : false;
+}
+
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT

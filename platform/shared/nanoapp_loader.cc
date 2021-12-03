@@ -250,6 +250,7 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_C_SYMBOL(platform_chreDebugDumpVaLog),
     ADD_EXPORTED_C_SYMBOL(chreConfigureHostEndpointNotifications),
     ADD_EXPORTED_C_SYMBOL(chrePublishRpcServices),
+    ADD_EXPORTED_C_SYMBOL(chreGetHostEndpointInfo),
 };
 CHRE_DEPRECATED_EPILOGUE
 // clang-format on

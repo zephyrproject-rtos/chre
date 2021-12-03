@@ -156,3 +156,9 @@ DLL_EXPORT bool chrePublishRpcServices(struct chreNanoappRpcService *services,
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return nanoapp->publishRpcServices(services, numServices);
 }
+
+DLL_EXPORT bool chreGetHostEndpointInfo(
+    uint16_t /* hostEndpointId */, struct chreHostEndpointInfo * /* info */) {
+  // TODO(b/194287786): Implement this
+  return false;
+}
