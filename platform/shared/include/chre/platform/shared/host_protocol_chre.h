@@ -236,6 +236,12 @@ class HostProtocolChre : public HostProtocolCommon {
    */
   static void encodeSelfTestResponse(ChreFlatBufferBuilder &builder,
                                      uint16_t hostClientId, bool success);
+
+  /**
+   * Encodes a metric message using custon-defined protocol
+   */
+  static void encodeMetricLog(ChreFlatBufferBuilder &builder, uint32_t metricId,
+                              const uint8_t *encodedMsg, size_t metricSize);
 };
 
 }  // namespace chre

@@ -200,6 +200,11 @@ void ChreDaemonBase::onMessageReceived(const unsigned char *messageBuffer,
     configureLpma(true /* enabled */);
   } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
     configureLpma(false /* enabled */);
+  } else if (messageType == fbs::ChreMessage::MetricLog) {
+    std::unique_ptr<fbs::MessageContainerT> container =
+        fbs::UnPackMessageContainer(messageBuffer);
+    const auto *metricMsg = container->message.AsMetricLog();
+    handleMetricLog(metricMsg);
   } else if (hostClientId == kHostClientIdDaemon) {
     handleDaemonMessage(messageBuffer);
   } else if (hostClientId == ::chre::kHostClientIdUnspecified) {
@@ -255,6 +260,14 @@ void ChreDaemonBase::handleDaemonMessage(const uint8_t *message) {
       mPreloadedNanoappPendingTransactionIds.pop();
     }
   }
+}
+
+void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
+  // TODO(b/207156504): Implement this
+
+  // This line is for passing BUILD to avoid unused variable, delete after
+  // implementation
+  (void)metricMsg;
 }
 
 }  // namespace chre

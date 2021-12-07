@@ -195,6 +195,11 @@ class ChreDaemonBase {
   virtual void configureLpma(bool enabled) = 0;
 
   /**
+   * Handles a metric log message sent from CHRE
+   */
+  virtual void handleMetricLog(const ::chre::fbs::MetricLogT *metric_msg);
+
+  /**
    * Returns the CHRE log message parser instance.
    * @return log message parser instance.
    */

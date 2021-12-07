@@ -277,6 +277,16 @@ void HostProtocolChre::encodeSelfTestResponse(ChreFlatBufferBuilder &builder,
            hostClientId);
 }
 
+void HostProtocolChre::encodeMetricLog(ChreFlatBufferBuilder &builder,
+                                       uint32_t metricId,
+                                       const uint8_t *encodedMsg,
+                                       size_t metricSize) {
+  auto encodedMessage = builder.CreateVector(
+      reinterpret_cast<const int8_t *>(encodedMsg), metricSize);
+  auto message = fbs::CreateMetricLog(builder, metricId, encodedMessage);
+  finalize(builder, fbs::ChreMessage::MetricLog, message.Union());
+}
+
 bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
                                          Setting *chreSetting) {
   bool success = true;
