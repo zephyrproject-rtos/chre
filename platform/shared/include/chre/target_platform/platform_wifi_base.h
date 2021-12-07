@@ -52,7 +52,8 @@ class PlatformWifiBase : public PlatformPal {
   static void nanServiceDiscoveryCallback(
       struct chreWifiNanDiscoveryEvent *event);
 
-  static void nanServiceLostCallback(uint32_t subscriptionId);
+  static void nanServiceLostCallback(uint32_t subscriptionId,
+                                     uint32_t publisherId);
 
   static void nanServiceTerminatedCallback(uint32_t errorCode,
                                            uint32_t subscriptionId);

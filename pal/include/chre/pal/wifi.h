@@ -63,7 +63,7 @@ extern "C" {
 /**
  * The version of the WiFi PAL defined in this header file.
  */
-#define CHRE_PAL_WIFI_API_CURRENT_VERSION CHRE_PAL_WIFI_API_V1_5
+#define CHRE_PAL_WIFI_API_CURRENT_VERSION CHRE_PAL_WIFI_API_V1_6
 
 struct chrePalWifiCallbacks {
   /**
@@ -183,10 +183,15 @@ struct chrePalWifiCallbacks {
    * to the client before an invocation of this function to enable the client
    * to match an identifier to a subscription request.
    *
+   * This function call passes ownership of the event memory to CHRE, and the
+   * PAL module must not modify the referenced data until the associated memory
+   * release API function (@ref releaseNanDiscoveryEvent) is called.
+   *
    * Only valid if requestedApiVersion given to chrePalWifiGetApi() is greater
    * than or equal to CHRE_PAL_WIFI_API_V1_6.
    *
-   * @param event Event data containing NAN service discovery information.
+   * @param event Event data containing NAN service discovery information. Must
+   *        not be NULL.
    *
    * @since v1.6
    */
@@ -196,11 +201,13 @@ struct chrePalWifiCallbacks {
    * Callback used to inform a subscriber that the publisher connection has
    * been lost due to the peer NAN device going out of range.
    *
+   * @param subscriptionId ID of the subscriber who should be notified of the
+   *        connection loss.
    * @param publisherId ID of the publisher which disappeared.
    *
    * @since v1.6
    */
-  void (*nanServiceLostCallback)(uint32_t publisherId);
+  void (*nanServiceLostCallback)(uint32_t subscriptionId, uint32_t publisherId);
 
   /**
    * Callback used to inform a subscriber that the subscription session has
@@ -419,7 +426,7 @@ struct chrePalWifiApi {
    *
    * @since v1.6
    */
-  bool (*nanSubscribe)(struct chreWifiNanSubscribeConfig *config);
+  bool (*nanSubscribe)(const struct chreWifiNanSubscribeConfig *config);
 
   /**
    * Cancel a NAN service subscription.
@@ -428,8 +435,20 @@ struct chrePalWifiApi {
    *        service subscription session.
    * @return true if the service subscription indicated by the ID exists, and
    *         was successfully canceled.
+   *
+   * @since v1.6
    */
   bool (*nanSubscribeCancel)(const uint32_t subscriptionId);
+
+  /**
+   * Invoked when the core CHRE system no longer needs a NAN service discovery
+   * event structure that was provided to it via nanServiceDiscoveryCallback().
+   *
+   * @param event Event data to release
+   *
+   * @since v1.6
+   */
+  void (*releaseNanDiscoveryEvent)(struct chreWifiNanDiscoveryEvent *event);
 
   /**
    * Request that the WiFi chipset perform RTT ranging against a peer NAN

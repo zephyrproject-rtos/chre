@@ -40,6 +40,18 @@ namespace chre {
 class WifiRequestManager : public NonCopyable {
  public:
   /**
+   * Specifies what type of ranging request is being issued.
+   *
+   * WIFI_AP denotes a ranging request to a (list of) device(s) via an access
+   * point. WIFI_AWARE denotes  a NAN ranging request to a single peer NAN
+   * device. Even though the abbreviation 'NAN' is used throughout the CHRE
+   * WiFi code and documentation, the simplified enumerator NAN is avoided here
+   * to prevent possible symbol/identifier clashes to a NAN (not-a-number)
+   * defines in clang and GCC's math header.
+   */
+  enum class RangingType { WIFI_AP, WIFI_AWARE };
+
+  /**
    * Initializes the WifiRequestManager with a default state and memory for any
    * requests.
    */
@@ -76,36 +88,64 @@ class WifiRequestManager : public NonCopyable {
   /**
    * Handles a nanoapp's request for RTT ranging against a set of devices.
    *
+   * @param rangingType Specifies if ranging is desired for a single NAN device
+   *        or an AP (access point) ranging request for a list of devices.
    * @param nanoapp Nanoapp issuing the request.
    * @param params Non-null pointer to parameters, supplied by the nanoapp via
-   *        chreWifiRequestRangingAsync()
+   *        chreWifiRequestRangingAsync() or chreWifiNanRequestRangingAsync().
    * @param cookie Opaque pointer supplied by the nanoapp and passed back in the
    *        async result.
    *
    * @return true if the request was accepted. The result is delivered
    *         asynchronously through a CHRE event.
    */
-  bool requestRanging(Nanoapp *nanoapp, const chreWifiRangingParams *params,
-                      const void *cookie);
+  bool requestRanging(RangingType rangingType, Nanoapp *nanoapp,
+                      const void *params, const void *cookie);
 
   /**
    * Performs an active wifi scan.
    *
    * This is currently a 1:1 mapping into the PAL. If more than one nanoapp
-   * requests an active wifi scan, this will be an assertion failure for debug
-   * builds and a no-op in production (ie: subsequent requests are ignored).
+   * requests an active wifi scan, this will be an assertion failure for
+   * debug builds and a no-op in production (ie: subsequent requests are
+   * ignored).
    *
    * @param nanoapp The nanoapp that has requested an active wifi scan.
-   * @param params Non-null pointer to the scan parameters structure supplied by
-   *        the nanoapp.
-   * @param cookie A cookie that is round-tripped back to the nanoapp to provide
-   *        a context when making the request.
-   *
+   * @param params Non-null pointer to the scan parameters structure
+   *        supplied by the nanoapp.
+   * @param cookie A cookie that is round-tripped back to the nanoapp to
+   *        provide a context when making the request.
    * @return true if the request was accepted. The result is delivered
    *         asynchronously through a CHRE event.
    */
   bool requestScan(Nanoapp *nanoapp, const chreWifiScanParams *params,
                    const void *cookie);
+
+  /**
+   * Subscribe to a NAN service.
+   *
+   * @param nanoapp The nanoapp that has requested a service subscription.
+   * @param config Service-specific nanoapp subscription configuration
+   *        parameters.
+   * @param cookie A cookie that is round-tripped back to the nanoapp to provide
+   *        a context when making the request.
+   * @return true if a subscription request was successful. The result is
+   *         provided asynchronously through a CHRE event.
+   */
+  bool nanSubscribe(Nanoapp *nanoapp,
+                    const struct chreWifiNanSubscribeConfig *config,
+                    const void *cookie);
+
+  /**
+   * Cancel a NAN subscription.
+   *
+   * @param nanoapp The nanoapp that has requested a subscription cancelation.
+   * @param subscriptionId The subscription ID assigned by the NAN engine for
+   *        the original subscription request.
+   *        cancelation request was successful.
+   * @return true if the cancelation was successful, false otherwise.
+   */
+  bool nanSubscribeCancel(Nanoapp *nanoapp, uint32_t subscriptionId);
 
   /**
    * Passes the result of an RTT ranging request on to the requesting nanoapp.
@@ -151,6 +191,51 @@ class WifiRequestManager : public NonCopyable {
   void handleScanEvent(struct chreWifiScanEvent *event);
 
   /**
+   * Handles a NAN service identifier event. This event is the asynchronous
+   * result of a NAN subscription request by a nanoapp.
+   *
+   * @param errorCode CHRE_ERROR_NONE if the NAN engine was able to successfully
+   *        assign an ID to the subscription request, an appropriate error code
+   *        from @ref enum chreError otherwise.
+   * @param subscriptionId The ID assigned by the NAN engine to the subscription
+   *        request. Note that this argument is invalid if the errorCode is not
+   *        CHRE_ERROR_NONE.
+   */
+  void handleNanServiceIdentifierEvent(uint8_t errorCode,
+                                       uint32_t subscriptionId);
+
+  /**
+   * Handles a NAN service discovery event. This event is invoked when a NAN
+   * publisher was found that conforms to the configuration parameters in the
+   * service subscription request.
+   *
+   * @param event Structure that contains information specific to the publisher
+   *        that was discovered.
+   */
+  void handleNanServiceDiscoveryEvent(struct chreWifiNanDiscoveryEvent *event);
+
+  /**
+   * Handles a NAN service lost event that is initiated when a publisher has
+   * disappeared.
+   *
+   * @param subscriptionId The subscriber to notify of the publisher's
+   *        disappearance.
+   * @param publisherId The publisher who has gone away.
+   */
+  void handleNanServiceLostEvent(uint32_t subscriptionId, uint32_t publisherId);
+
+  /**
+   * Handles a NAN service terminated event.
+   *
+   * @param errorCode A value in @ref enum chreError that indicates the reason
+   *        for the termination.
+   * @param subscriptionId The ID of the subscriber who should be notified of
+   *        the service termination.
+   */
+  void handleNanServiceTerminatedEvent(uint8_t errorCode,
+                                       uint32_t subscriptionId);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
@@ -165,10 +250,32 @@ class WifiRequestManager : public NonCopyable {
     const void *cookie;          //!< User data supplied by the nanoapp
   };
 
-  struct PendingRangingRequest : public PendingRequestBase {
+  struct PendingRangingRequestBase : public PendingRequestBase {
+    RangingType type;
+  };
+
+  struct PendingNanSubscribeRequest : public PendingRequestBase {
+    uint8_t type;
+    Buffer<char> service;
+    Buffer<uint8_t> serviceSpecificInfo;
+    Buffer<uint8_t> matchFilter;
+  };
+
+  /**
+   * Structure used to store ranging target information in the ranging
+   * requests pending queue. Since NAN and AP ranging target params are
+   * heterogeneous structures (NAN ranging params is a small subset of an AP
+   * ranging target), both structures are included in the pending request
+   * with the appropriate structure populated based on the ranging type.
+   */
+  struct PendingRangingRequest : public PendingRangingRequestBase {
     //! If the request was queued, a variable-length list of devices to
-    //! perform ranging against (used to reconstruct chreWifiRangingParams)
+    //! perform ranging against (used to reconstruct chreWifiRangingParams).
     Buffer<struct chreWifiRangingTarget> targetList;
+
+    //! Structure which contains the MAC address of a peer NAN device with
+    //! which ranging is desired.
+    struct chreWifiNanRangingParams nanRangingParams;
   };
 
   struct PendingScanMonitorRequest : public PendingRequestBase {
@@ -190,8 +297,17 @@ class WifiRequestManager : public NonCopyable {
     Milliseconds maxScanAgeMs;
   };
 
+  struct NanoappNanSubscriptions {
+    uint32_t nanoappInstanceId;
+    uint32_t subscriptionId;
+
+    NanoappNanSubscriptions(uint32_t nappId, uint32_t subId)
+        : nanoappInstanceId(nappId), subscriptionId(subId) {}
+  };
+
   static constexpr size_t kMaxScanMonitorStateTransitions = 8;
   static constexpr size_t kMaxPendingRangingRequests = 4;
+  static constexpr size_t kMaxPendingNanSubscriptionRequests = 4;
 
   PlatformWifi mPlatformWifi;
 
@@ -209,6 +325,10 @@ class WifiRequestManager : public NonCopyable {
   //! made and the scan monitor must remain enabled when an active request has
   //! completed.
   DynamicVector<uint32_t> mScanMonitorNanoapps;
+
+  //! The list of nanoapps that have an active NAN subscription. The pair
+  //! format that is used is <subscriptionId, nanoappInstanceId>.
+  DynamicVector<NanoappNanSubscriptions> mNanoappSubscriptions;
 
   // TODO: Support multiple requests for active wifi scans.
   //! The instance ID of the nanoapp that has a pending active scan request. At
@@ -234,6 +354,10 @@ class WifiRequestManager : public NonCopyable {
   //! Tracks the in-flight ranging request and any others queued up behind it
   ArrayQueue<PendingRangingRequest, kMaxPendingRangingRequests>
       mPendingRangingRequests;
+
+  //! Tracks pending NAN subscribe requests.
+  ArrayQueue<PendingNanSubscribeRequest, kMaxPendingNanSubscriptionRequests>
+      mPendingNanSubscribeRequests;
 
   //! List of most recent wifi scan request logs
   static constexpr size_t kNumWifiRequestLogs = 10;
@@ -374,6 +498,22 @@ class WifiRequestManager : public NonCopyable {
   void postScanEventFatal(chreWifiScanEvent *event);
 
   /**
+   * Posts an event to a nanoapp indicating the async result of a NAN operation.
+   *
+   * @param nanoappInstanceId Instance ID of the nanoapp to post the event to.
+   * @param requestType A value in @ref enum chreWifiRequestType that indicates
+   *        the type of the NAN request this event is a response to.
+   * @param success true if the request was successful, false otherwise.
+   * @param errorCode A value in @ref enum chreError that indicates a failure
+   *        reason (if any, CHRE_ERROR_NONE indicates success) for the request.
+   * @param cookie A cookie that is round-tripped back to the nanoapp to
+   *        provide a context when making the request.
+   */
+  void postNanAsyncResultEvent(uint32_t nanoappInstanceId, uint8_t requestType,
+                               bool success, uint8_t errorCode,
+                               const void *cookie);
+
+  /**
    * Handles the result of a request to PlatformWifi to change the state of the
    * scan monitor. See the handleScanMonitorStateChange method which may be
    * called from any thread. This method is intended to be invoked on the CHRE
@@ -402,8 +542,52 @@ class WifiRequestManager : public NonCopyable {
   void handleScanResponseSync(bool pending, uint8_t errorCode);
 
   /**
-   * Sends CHRE_EVENT_WIFI_ASYNC_RESULT for the ranging request at the head of
-   * the pending queue.
+   * Handles the result of a NAN subscription request.
+   *
+   * @param errorCode A value in @ref enum chrError that indicates the status
+   *        of the operation, with CHRE_ERROR_NONE indicating success.
+   * @param subscriptionId An identifier that is assigned to the subscribing
+   *        NAN service after a subscription request. This ID is only valid
+   *        if the errorCode is CHRE_ERROR_NONE.
+   */
+  void handleNanServiceIdentifierEventSync(uint8_t errorCode,
+                                           uint32_t subscriptionId);
+
+  /**
+   * Handles the result of the successful discovery of a publishing service
+   * that matches the configuration specified by the subscription request.
+   *
+   * @param event Structure containing information specific to the publishing
+   *        service. CHRE retains ownership of the memory associated with this
+   *        structure until it releases it via a call to the function
+   *        freeNanDiscoveryEventCallback().
+   */
+  void handleNanServiceDiscoveryEventSync(
+      struct chreWifiNanDiscoveryEvent *event);
+
+  /**
+   * Handles the event informing CHRE that a publishing service has gone away.
+   *
+   * @param subscriptionId The ID of the subscribing service which will be
+   *        informed of the publisher's disappearance.
+   * @param publisherId The ID of the publishing service that has gone away.
+   */
+  void handleNanServiceLostEventSync(uint32_t subscriptionId,
+                                     uint32_t publisherId);
+
+  /**
+   * Handles the event informing CHRE that a subscription has been terminated.
+   *
+   * @param errorCode A value in @ref enum chreError that indicates the reason
+   *        for the service's subscription termination.
+   * @param subscriptionId The ID of the service whose subscription has ended.
+   */
+  void handleNanServiceTerminatedEventSync(uint8_t errorCode,
+                                           uint32_t subscriptionId);
+
+  /**
+   * Sends CHRE_EVENT_WIFI_ASYNC_RESULT for the ranging request at the head
+   * of the pending queue.
    *
    * @param errorCode Indicates the overall result of the ranging operation
    *
@@ -417,6 +601,11 @@ class WifiRequestManager : public NonCopyable {
    * @return Result of PlatformWifi::requestRanging()
    */
   bool dispatchQueuedRangingRequest();
+
+  /**
+   * Issues the next pending NAN ranging request to the platform.
+   */
+  bool dispatchQueuedNanSubscribeRequest();
 
   /**
    * Processes the result of a ranging request within the context of the CHRE
@@ -448,13 +637,16 @@ class WifiRequestManager : public NonCopyable {
                              const chreWifiScanParams *params);
 
   /**
-   * Releases a wifi scan event after nanoapps have consumed it.
+   * Releases a wifi event (scan, ranging, NAN discovery) after nanoapps have
+   * consumed it.
    *
    * @param eventType the type of event being freed.
    * @param eventData a pointer to the scan event to release.
    */
   static void freeWifiScanEventCallback(uint16_t eventType, void *eventData);
   static void freeWifiRangingEventCallback(uint16_t eventType, void *eventData);
+  static void freeNanDiscoveryEventCallback(uint16_t eventType,
+                                            void *eventData);
 
   /**
    * Print API error distribution histogram to debug_dump
@@ -465,6 +657,79 @@ class WifiRequestManager : public NonCopyable {
    */
   void logErrorHistogram(DebugDumpWrapper &debugDump, const uint32_t *histogram,
                          uint8_t histogramLength) const;
+
+  /**
+   * Copy a NAN subscription configuration to a pending NAN subscription
+   * request before dispatch.
+   *
+   * @param request The pending subscribe request being queued up for dispatch.
+   * @param config NAN service subscription configuration parameters.
+   * @return true if the copy was successful, false otherwise.
+   */
+  bool copyNanSubscribeConfigToRequest(
+      PendingNanSubscribeRequest &request,
+      const struct chreWifiNanSubscribeConfig *config);
+
+  /**
+   * Rebuild a NAN subscription configuration from a dequed subscription
+   * request.
+   *
+   * @param request The pending NAN subscription request that was dequeued.
+   * @param config The subscription configuration that is to be built from
+   *        the pending request.
+   */
+  void buildNanSubscribeConfigFromRequest(
+      const PendingNanSubscribeRequest &request,
+      struct chreWifiNanSubscribeConfig *config);
+
+  /**
+   * Scan through the nanoapp-subscription ID pair list to find the nanoapp
+   * that holds a subscription ID.
+   *
+   * @param subscriptionId The subscription ID that the nanoapp being searched
+   *        for owns.
+   * @return The instance ID of the nanoapp which owns the subscription ID if
+   *         it was found in the list, an invalid value otherwise.
+   */
+  bool getNappIdFromSubscriptionId(uint32_t subscriptionId,
+                                   uint32_t *nanoappInstanceId);
+
+  /**
+   * Sends an AP (access point) or NAN ranging request to the platform.
+   *
+   * @param rangingType A value in WifiRequestManager::RangingType that denotes
+   *        the type of the ranging request.
+   * @param rangingParams The parameters of the ranging request.
+   */
+  bool requestRangingByType(RangingType rangingType, const void *rangingParams);
+
+  /**
+   * Update a ranging request with the provided ranging parameters.
+   *
+   * @param rangingType A value in WifiRequestManager::RangingType that denotes
+   *        the type of the ranging request.
+   * @param request A pending ranging request which needs to be updated with the
+   *        provided ranging parameters.
+   * @param rangingParams The parameters of the ranging request.
+   */
+  bool updateRangingRequest(RangingType rangingType,
+                            PendingRangingRequest &request,
+                            const void *rangingParams);
+  /**
+   * Send a pending AP or NAN ranging request to the platform.
+   *
+   * @param request A pending ranging request which needs to be updated with the
+   *        provided ranging parameters.
+   * @return true if the request was successfully sent, false otherwise.
+   */
+  bool sendRangingRequest(PendingRangingRequest &request);
+  /**
+   * Helper function to determine if all the settings required for a ranging
+   * request (viz. Location, WiFi-available) are enabled.
+   *
+   * @return true if the necessary settings are enabled, false otherwise.
+   */
+  bool areRequiredSettingsEnabled();
 };
 
 }  // namespace chre

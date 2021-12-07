@@ -59,6 +59,10 @@ enum class SystemCallbackType : uint16_t {
   SendBufferedLogMessage,
   HostEndpointConnected,
   HostEndpointDisconnected,
+  WifiNanServiceIdEvent,
+  WifiNanServiceDiscoveryEvent,
+  WifiNanServiceSessionLostEvent,
+  WifiNanServiceTerminatedEvent,
 };
 
 //! Deferred/delayed callbacks use the event subsystem but are invariably sent
