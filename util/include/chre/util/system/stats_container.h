@@ -46,7 +46,7 @@ class StatsContainer {
    * return the average value
    */
   T getMean() const {
-    return mTotal / mCount;
+    return (mCount == 0) ? 0 : (mTotal / mCount);
   };
 
   /**
