@@ -153,7 +153,13 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
 
   bool success = false;
   if (mScanRequestingNanoappInstanceId.has_value()) {
-    LOGE("Active wifi scan request made while a request is in flight");
+    LOGE("Active wifi scan request made by 0x%" PRIx64
+         " while a request by 0x%" PRIx64 " is in flight",
+         nanoapp->getAppId(),
+         EventLoopManagerSingleton::get()
+             ->getEventLoop()
+             .findNanoappByInstanceId(mScanRequestingNanoappInstanceId.value())
+             ->getAppId());
   } else if (getSettingState(Setting::WIFI_AVAILABLE) ==
              SettingState::DISABLED) {
     // Treat as success, but send an async failure per API contract.
