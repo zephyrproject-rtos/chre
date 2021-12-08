@@ -395,34 +395,6 @@ struct chrePalWifiApi {
   bool (*requestRanging)(const struct chreWifiRangingParams *params);
 
   /**
-   * Request that the WiFi chipset perform RTT ranging against a peer NAN
-   * device, whose MAC address is specified by the NAN ranging params. If this
-   * function returns true, then the rangingEventCallback must be invoked once
-   * to deliver the result, with the accompanying result structure (@see
-   * rangingEventCallback).
-   *
-   * Like {@link requestRanging}, this API must follow CHRE API-defined
-   * behavior regarding timeouts and failure indication, via
-   * rangingEventCallback if the lower layers do not produce a result within
-   * CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS.
-   *
-   * Only a single  NAN ranging request can be in progress at any given time.
-   * Also, only one of a NAN ranging request or an AP (access point) ranging
-   * request can be in progress at any given time.
-   *
-   * @param params WiFi NAN ranging parameters for this request.
-   * @return true if the request was accepted for further processing, in
-   *         which case a subsequent call to rangingEventCallback will be used
-   *         to communicate the result of the operation.
-   *
-   * @see #chreWifiNanRangingParams
-   * @see chreWifiNanRequestRangingAsync()
-   *
-   * @since v1.6
-   */
-  bool (*requestNanRanging)(const struct chreWifiNanRangingParams *params);
-
-  /**
    * Invoked when the core CHRE system no longer needs a WiFi ranging result
    * event structure that was provided to it via rangingEventCallback()
    *
@@ -458,6 +430,34 @@ struct chrePalWifiApi {
    *         was successfully canceled.
    */
   bool (*nanSubscribeCancel)(const uint32_t subscriptionId);
+
+  /**
+   * Request that the WiFi chipset perform RTT ranging against a peer NAN
+   * device, whose MAC address is specified by the NAN ranging params. If this
+   * function returns true, then the rangingEventCallback must be invoked once
+   * to deliver the result, with the accompanying result structure (@see
+   * rangingEventCallback).
+   *
+   * Like {@link requestRanging}, this API must follow CHRE API-defined
+   * behavior regarding timeouts and failure indication, via
+   * rangingEventCallback if the lower layers do not produce a result within
+   * CHRE_WIFI_RANGING_RESULT_TIMEOUT_NS.
+   *
+   * Only a single  NAN ranging request can be in progress at any given time.
+   * Also, only one of a NAN ranging request or an AP (access point) ranging
+   * request can be in progress at any given time.
+   *
+   * @param params WiFi NAN ranging parameters for this request.
+   * @return true if the request was accepted for further processing, in
+   *         which case a subsequent call to rangingEventCallback will be used
+   *         to communicate the result of the operation.
+   *
+   * @see #chreWifiNanRangingParams
+   * @see chreWifiNanRequestRangingAsync()
+   *
+   * @since v1.6
+   */
+  bool (*requestNanRanging)(const struct chreWifiNanRangingParams *params);
 };
 
 /**
