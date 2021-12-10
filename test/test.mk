@@ -13,7 +13,7 @@
 #   e.g. core/tests/*, util/tests/*)
 
 ifeq ($(CHRE_ON_DEVICE_TESTS_ENABLED),true)
-include $(CHRE_PREFIX)/build/pw_unit_test.mk
+include $(CHRE_PREFIX)/external/pigweed/pw_unit_test.mk
 COMMON_CFLAGS += $(PW_UT_CFLAGS)
 COMMON_CFLAGS += -I$(CHRE_PREFIX)/test/common/include
 COMMON_SRCS += $(CHRE_PREFIX)/test/common/run_tests.cc
