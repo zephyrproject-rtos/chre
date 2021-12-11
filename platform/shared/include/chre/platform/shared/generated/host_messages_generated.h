@@ -17,6 +17,8 @@ struct HubInfoResponse;
 
 struct NanoappListRequest;
 
+struct NanoappRpcService;
+
 struct NanoappListEntry;
 
 struct NanoappListResponse;
@@ -748,13 +750,67 @@ inline flatbuffers::Offset<NanoappListRequest> CreateNanoappListRequest(
   return builder_.Finish();
 }
 
+/// Metadata regarding a Nanoapp RPC service. See the Android API
+/// core/java/android/hardware/location/NanoAppRpcService.java for more details
+/// on how this value is used by the Android application.
+struct NanoappRpcService FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ID = 4,
+    VT_VERSION = 6
+  };
+  uint64_t id() const {
+    return GetField<uint64_t>(VT_ID, 0);
+  }
+  uint32_t version() const {
+    return GetField<uint32_t>(VT_VERSION, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_ID) &&
+           VerifyField<uint32_t>(verifier, VT_VERSION) &&
+           verifier.EndTable();
+  }
+};
+
+struct NanoappRpcServiceBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_id(uint64_t id) {
+    fbb_.AddElement<uint64_t>(NanoappRpcService::VT_ID, id, 0);
+  }
+  void add_version(uint32_t version) {
+    fbb_.AddElement<uint32_t>(NanoappRpcService::VT_VERSION, version, 0);
+  }
+  explicit NanoappRpcServiceBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  NanoappRpcServiceBuilder &operator=(const NanoappRpcServiceBuilder &);
+  flatbuffers::Offset<NanoappRpcService> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<NanoappRpcService>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<NanoappRpcService> CreateNanoappRpcService(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t id = 0,
+    uint32_t version = 0) {
+  NanoappRpcServiceBuilder builder_(_fbb);
+  builder_.add_id(id);
+  builder_.add_version(version);
+  return builder_.Finish();
+}
+
 struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_APP_ID = 4,
     VT_VERSION = 6,
     VT_ENABLED = 8,
     VT_IS_SYSTEM = 10,
-    VT_PERMISSIONS = 12
+    VT_PERMISSIONS = 12,
+    VT_RPC_SERVICES = 14
   };
   uint64_t app_id() const {
     return GetField<uint64_t>(VT_APP_ID, 0);
@@ -777,6 +833,10 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint32_t permissions() const {
     return GetField<uint32_t>(VT_PERMISSIONS, 0);
   }
+  /// The list of RPC services supported by this nanoapp.
+  const flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>> *rpc_services() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>> *>(VT_RPC_SERVICES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_APP_ID) &&
@@ -784,6 +844,9 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_ENABLED) &&
            VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
            VerifyField<uint32_t>(verifier, VT_PERMISSIONS) &&
+           VerifyOffset(verifier, VT_RPC_SERVICES) &&
+           verifier.VerifyVector(rpc_services()) &&
+           verifier.VerifyVectorOfTables(rpc_services()) &&
            verifier.EndTable();
   }
 };
@@ -806,6 +869,9 @@ struct NanoappListEntryBuilder {
   void add_permissions(uint32_t permissions) {
     fbb_.AddElement<uint32_t>(NanoappListEntry::VT_PERMISSIONS, permissions, 0);
   }
+  void add_rpc_services(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>>> rpc_services) {
+    fbb_.AddOffset(NanoappListEntry::VT_RPC_SERVICES, rpc_services);
+  }
   explicit NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -824,14 +890,35 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(
     uint32_t version = 0,
     bool enabled = true,
     bool is_system = false,
-    uint32_t permissions = 0) {
+    uint32_t permissions = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>>> rpc_services = 0) {
   NanoappListEntryBuilder builder_(_fbb);
   builder_.add_app_id(app_id);
+  builder_.add_rpc_services(rpc_services);
   builder_.add_permissions(permissions);
   builder_.add_version(version);
   builder_.add_is_system(is_system);
   builder_.add_enabled(enabled);
   return builder_.Finish();
+}
+
+inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntryDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t app_id = 0,
+    uint32_t version = 0,
+    bool enabled = true,
+    bool is_system = false,
+    uint32_t permissions = 0,
+    const std::vector<flatbuffers::Offset<NanoappRpcService>> *rpc_services = nullptr) {
+  auto rpc_services__ = rpc_services ? _fbb.CreateVector<flatbuffers::Offset<NanoappRpcService>>(*rpc_services) : 0;
+  return chre::fbs::CreateNanoappListEntry(
+      _fbb,
+      app_id,
+      version,
+      enabled,
+      is_system,
+      permissions,
+      rpc_services__);
 }
 
 struct NanoappListResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
