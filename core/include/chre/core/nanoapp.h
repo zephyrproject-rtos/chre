@@ -26,6 +26,7 @@
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre/util/system/napp_permissions.h"
+#include "chre_api/chre/event.h"
 
 namespace chre {
 
@@ -197,6 +198,26 @@ class Nanoapp : public PlatformNanoapp {
    */
   bool configureHostEndpointNotifications(uint16_t hostEndpointId, bool enable);
 
+  /**
+   * Publishes RPC services for this nanoapp.
+   *
+   * @param services A pointer to the list of RPC services to publish.
+   *   Can be null if numServices is 0.
+   * @param numServices The number of services to publish, i.e. the length of
+   * the services array.
+   *
+   * @return true if the publishing is successful.
+   */
+  bool publishRpcServices(struct chreNanoappRpcService *services,
+                          size_t numServices);
+
+  /**
+   * @return The list of RPC services pushblished by this nanoapp.
+   */
+  const DynamicVector<struct chreNanoappRpcService> &getRpcServices() const {
+    return mRpcServices;
+  }
+
  private:
   uint32_t mInstanceId = kInvalidInstanceId;
 
@@ -232,6 +253,9 @@ class Nanoapp : public PlatformNanoapp {
 
   //! The registered host endpoints to receive notifications for.
   DynamicVector<uint16_t> mRegisteredHostEndpoints;
+
+  //! The list of RPC services for this nanoapp.
+  DynamicVector<struct chreNanoappRpcService> mRpcServices;
 
   //! @return index of event registration if found. mRegisteredEvents.size() if
   //!     not.

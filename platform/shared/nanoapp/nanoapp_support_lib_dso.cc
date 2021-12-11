@@ -351,4 +351,11 @@ bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId,
   return (fptr != nullptr) ? fptr(hostEndpointId, enable) : false;
 }
 
+WEAK_SYMBOL
+bool chrePublishRpcServices(struct chreNanoappRpcService *services,
+                            size_t numServices) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chrePublishRpcServices);
+  return (fptr != nullptr) ? fptr(services, numServices) : false;
+}
+
 #endif  // CHRE_NANOAPP_DISABLE_BACKCOMPAT

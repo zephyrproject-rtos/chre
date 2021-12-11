@@ -150,3 +150,9 @@ DLL_EXPORT bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId,
   chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
   return nanoapp->configureHostEndpointNotifications(hostEndpointId, enable);
 }
+
+DLL_EXPORT bool chrePublishRpcServices(struct chreNanoappRpcService *services,
+                                       size_t numServices) {
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->publishRpcServices(services, numServices);
+}

@@ -225,4 +225,18 @@ bool Nanoapp::configureHostEndpointNotifications(uint16_t hostEndpointId,
   return success;
 }
 
+bool Nanoapp::publishRpcServices(struct chreNanoappRpcService *services,
+                                 size_t numServices) {
+  // TODO(b/204426460): Validate this code is only called from nanoappStart().
+  bool success = true;
+  for (size_t i = 0; i < numServices; i++) {
+    if (!mRpcServices.push_back(services[i])) {
+      LOG_OOM();
+      success = false;
+    }
+  }
+
+  return success;
+}
+
 }  // namespace chre

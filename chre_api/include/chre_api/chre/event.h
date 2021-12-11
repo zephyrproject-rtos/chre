@@ -429,6 +429,30 @@ struct chreHostEndpointNotification {
 };
 
 /**
+ * An RPC service exposed by a nanoapp.
+ *
+ * The implementation of the RPC interface is not defined by the HAL, and is written
+ * at the messaging endpoint layers (Android app and/or CHRE nanoapp). NanoappRpcService
+ * contains the informational metadata to be consumed by the RPC interface layer.
+ */
+struct chreNanoappRpcService {
+    /**
+     * The unique 64-bit ID of an RPC service exposed by a nanoapp. Note that
+     * the uniqueness is only required within the nanoapp's domain (i.e. the
+     * combination of the nanoapp ID and service id must be unique).
+     */
+    uint64_t id;
+
+    /**
+     * The software version of this service, which follows the sematic
+     * versioning scheme (see semver.org). It follows the format
+     * major.minor.patch, where major and minor versions take up one byte
+     * each, and the patch version takes up the final 2 bytes.
+     */
+    uint32_t version;
+};
+
+/**
  * Callback which frees data associated with an event.
  *
  * This callback is (optionally) provided to the chreSendEvent() method as
@@ -742,6 +766,26 @@ void chreConfigureDebugDumpEvent(bool enable);
  * @since v1.6
  */
 bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId, bool enable);
+
+/**
+ * Publishes an RPC service from this nanoapp.
+ *
+ * When this API is invoked, the list of RPC services will be provided to
+ * host applications interacting with the nanoapp.
+ *
+ * This function must be invoked from nanoappStart(), to guarantee stable output
+ * of the list of RPC services supported by the nanoapp.
+ *
+ * @param services A non-null pointer to the list of RPC services to publish.
+ * @param numServices The number of services to publish, i.e. the length of the
+ *   services array.
+ *
+ * @return true if the publishing is successful.
+ *
+ * @since v1.6
+ */
+bool chrePublishRpcServices(struct chreNanoappRpcService *services,
+                            size_t numServices);
 
 #ifdef __cplusplus
 }
