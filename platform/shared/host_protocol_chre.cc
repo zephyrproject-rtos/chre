@@ -171,9 +171,23 @@ void HostProtocolChre::addNanoappListEntry(
     ChreFlatBufferBuilder &builder,
     DynamicVector<Offset<fbs::NanoappListEntry>> &offsetVector, uint64_t appId,
     uint32_t appVersion, bool enabled, bool isSystemNanoapp,
-    uint32_t appPermissions) {
+    uint32_t appPermissions,
+    const DynamicVector<struct chreNanoappRpcService> &rpcServices) {
+  DynamicVector<Offset<fbs::NanoappRpcService>> rpcServiceList;
+  for (const auto &service : rpcServices) {
+    Offset<fbs::NanoappRpcService> offsetService =
+        fbs::CreateNanoappRpcService(builder, service.id, service.version);
+    if (!rpcServiceList.push_back(offsetService)) {
+      LOGE("Couldn't push RPC service to list");
+    }
+  }
+
+  auto vectorOffset =
+      builder.CreateVector<Offset<fbs::NanoappRpcService>>(rpcServiceList);
   auto offset = fbs::CreateNanoappListEntry(builder, appId, appVersion, enabled,
-                                            isSystemNanoapp, appPermissions);
+                                            isSystemNanoapp, appPermissions,
+                                            vectorOffset);
+
   if (!offsetVector.push_back(offset)) {
     LOGE("Couldn't push nanoapp list entry offset!");
   }

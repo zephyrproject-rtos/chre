@@ -217,7 +217,7 @@ void buildNanoappListResponse(ChreFlatBufferBuilder &builder, void *cookie) {
     HostProtocolChre::addNanoappListEntry(
         *(cbData->builder), cbData->nanoappEntries, nanoapp->getAppId(),
         nanoapp->getAppVersion(), true /*enabled*/, nanoapp->isSystemNanoapp(),
-        nanoapp->getAppPermissions());
+        nanoapp->getAppPermissions(), nanoapp->getRpcServices());
   };
 
   // Add a NanoappListEntry to the FlatBuffer for each nanoapp

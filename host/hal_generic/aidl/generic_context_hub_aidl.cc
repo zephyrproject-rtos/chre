@@ -322,6 +322,15 @@ void ContextHub::onNanoappListResponse(
         appInfo.enabled = nanoapp->enabled;
         appInfo.permissions = chreToAndroidPermissions(nanoapp->permissions);
 
+        std::vector<NanoappRpcService> rpcServices;
+        for (const auto &service : nanoapp->rpc_services) {
+          NanoappRpcService aidlService;
+          aidlService.id = service->id;
+          aidlService.version = service->version;
+          rpcServices.emplace_back(aidlService);
+        }
+        appInfo.rpcServices = rpcServices;
+
         appInfoList.push_back(appInfo);
       }
     }
