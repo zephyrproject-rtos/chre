@@ -532,8 +532,8 @@ static inline uint8_t chreBleGetDataStatus(uint8_t eventTypeAndDataStatus) {
  */
 static inline uint8_t chreBleGetEventTypeAndDataStatus(uint8_t eventType,
                                                        uint8_t dataStatus) {
-  return (eventType & CHRE_BLE_EVENT_MASK_TYPE |
-          dataStatus & CHRE_BLE_EVENT_MASK_DATA_STATUS);
+  return ((eventType & CHRE_BLE_EVENT_MASK_TYPE) |
+          (dataStatus & CHRE_BLE_EVENT_MASK_DATA_STATUS));
 }
 
 /**
