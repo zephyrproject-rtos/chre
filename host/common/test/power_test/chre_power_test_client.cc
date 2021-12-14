@@ -37,6 +37,7 @@
 #include "chre/version.h"
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/log.h"
+#include "chre_host/napp_header.h"
 #include "chre_host/socket_client.h"
 #include "generated/chre_power_test_generated.h"
 
@@ -122,6 +123,7 @@ using android::chre::FragmentedLoadTransaction;
 using android::chre::getStringFromByteVector;
 using android::chre::HostProtocolHost;
 using android::chre::IChreMessageHandlers;
+using android::chre::NanoAppBinaryHeader;
 using android::chre::SocketClient;
 using chre::power_test::MessageType;
 using chre::power_test::SensorType;
@@ -140,8 +142,6 @@ namespace {
 
 constexpr uint16_t kHostEndpoint = 0xfffd;
 
-constexpr uint32_t kAppVersion = 0x00020000;
-constexpr uint32_t kApiVersion = CHRE_API_VERSION;
 constexpr uint64_t kPowerTestAppId = 0x012345678900000f;
 constexpr uint64_t kPowerTestTcmAppId = 0x0123456789000010;
 constexpr uint64_t kUint64Max = std::numeric_limits<uint64_t>::max();
@@ -343,62 +343,80 @@ bool requestNanoappList(SocketClient &client) {
   return true;
 }
 
-bool sendLoadNanoappRequest(SocketClient &client, const char *filename,
-                            uint64_t appId, uint32_t appVersion,
-                            uint32_t apiVersion, bool tcmApp) {
-  std::ifstream file(filename, std::ios::binary | std::ios::ate);
+bool readFileContents(const std::string filename,
+                      std::vector<uint8_t> *buffer) {
+  bool success = false;
+  std::ifstream file(filename.c_str(), std::ios::binary | std::ios::ate);
   if (!file) {
-    LOGE("Couldn't open file '%s': %s", filename, strerror(errno));
-    return false;
-  }
-  ssize_t size = file.tellg();
-  file.seekg(0, std::ios::beg);
+    LOGE("Couldn't open file '%s': %d (%s)", filename.c_str(), errno,
+         strerror(errno));
+  } else {
+    ssize_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-  std::vector<uint8_t> buffer(size);
-  if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
-    LOGE("Couldn't read from file: %s", strerror(errno));
-    file.close();
-    return false;
-  }
-
-  // All loaded nanoapps must be signed currently.
-  uint32_t appFlags = CHRE_NAPP_HEADER_SIGNED;
-  if (tcmApp) {
-    appFlags |= CHRE_NAPP_HEADER_TCM_CAPABLE;
+    buffer->resize(size);
+    if (!file.read(reinterpret_cast<char *>(buffer->data()), size)) {
+      LOGE("Couldn't read from file '%s': %d (%s)", filename.c_str(), errno,
+           strerror(errno));
+    } else {
+      success = true;
+    }
   }
 
+  return success;
+}
+
+bool sendNanoappLoad(SocketClient &client, uint64_t appId, uint32_t appVersion,
+                     uint32_t apiVersion, uint32_t appFlags,
+                     const std::vector<uint8_t> &binary) {
   // Perform loading with 1 fragment for simplicity
-  FlatBufferBuilder builder(size + 128);
+  FlatBufferBuilder builder(binary.size() + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, buffer,
-      buffer.size() /* fragmentSize */);
+      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, binary,
+      binary.size() /* fragmentSize */);
   HostProtocolHost::encodeFragmentedLoadNanoappRequest(
       builder, transaction.getNextRequest());
+
   LOGI("Sending load nanoapp request (%" PRIu32
-       " bytes total w/ %zu bytes of payload)",
-       builder.GetSize(), buffer.size());
-  bool success =
-      client.sendMessage(builder.GetBufferPointer(), builder.GetSize());
-  if (!success) {
-    LOGE("Failed to send message");
+       " bytes total w/%zu bytes of "
+       "payload)",
+       builder.GetSize(), binary.size());
+  return client.sendMessage(builder.GetBufferPointer(), builder.GetSize());
+}
+
+bool sendLoadNanoappRequest(SocketClient &client,
+                            const std::string filenameNoExtension) {
+  bool success = false;
+  std::vector<uint8_t> headerBuffer;
+  std::vector<uint8_t> binaryBuffer;
+  if (readFileContents(filenameNoExtension + ".napp_header", &headerBuffer) &&
+      readFileContents(filenameNoExtension + ".so", &binaryBuffer)) {
+    if (headerBuffer.size() != sizeof(NanoAppBinaryHeader)) {
+      LOGE("Header size mismatch");
+    } else {
+      // The header blob contains the struct above.
+      const auto *appHeader =
+          reinterpret_cast<const NanoAppBinaryHeader *>(headerBuffer.data());
+
+      // Build the target API version from major and minor.
+      uint32_t targetApiVersion = (appHeader->targetChreApiMajorVersion << 24) |
+                                  (appHeader->targetChreApiMinorVersion << 16);
+
+      success =
+          sendNanoappLoad(client, appHeader->appId, appHeader->appVersion,
+                          targetApiVersion, appHeader->flags, binaryBuffer);
+    }
   }
-  file.close();
   return success;
 }
 
 bool loadNanoapp(SocketClient &client, sp<SocketCallbacks> callbacks,
-                 const char *filename, uint64_t appId, uint32_t appVersion,
-                 uint32_t apiVersion, bool tcmApp) {
-  if (!sendLoadNanoappRequest(client, filename, appId, appVersion, apiVersion,
-                              tcmApp)) {
+                 const std::string filenameNoExt) {
+  if (!sendLoadNanoappRequest(client, filenameNoExt)) {
     return false;
   }
   auto status = kReadyCond.wait_for(kReadyCondLock, kTimeout);
-  bool success =
-      (status == std::cv_status::no_timeout && callbacks->actionSucceeded());
-  LOGI("Loaded the nanoapp with appId: %" PRIx64 " success: %d", appId,
-       success);
-  return success;
+  return (status == std::cv_status::no_timeout && callbacks->actionSucceeded());
 }
 
 bool sendUnloadNanoappRequest(SocketClient &client, uint64_t appId) {
@@ -917,9 +935,14 @@ int main(int argc, char *argv[]) {
     }
     case Command::kLoad: {
       LOGI("Loading nanoapp from %s", getPath(args).c_str());
-      success =
-          loadNanoapp(client, callbacks, getPath(args).c_str(), getId(args),
-                      kAppVersion, kApiVersion, isTcmArgSpecified(args));
+      std::string filepath = getPath(args);
+      // Strip extension if present so the path can be used for both the
+      // nanoapp header and .so
+      size_t index = filepath.find_last_of(".");
+      if (index != std::string::npos) {
+        filepath = filepath.substr(0, index);
+      }
+      success = loadNanoapp(client, callbacks, filepath);
       break;
     }
     default: {
