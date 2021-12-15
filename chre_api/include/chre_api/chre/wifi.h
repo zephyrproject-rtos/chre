@@ -911,7 +911,7 @@ struct chreWifiNanSubscribeConfig {
     //! maxServiceSpecificInfoLength parameter obtained from the NAN
     //! capabilities (@see struct chreWifiNanCapabilities).
     const uint8_t *serviceSpecificInfo;
-    const uint32_t serviceSpecificInfoSize;
+    uint32_t serviceSpecificInfoSize;
 
     //! Ordered sequence of {length | value} pairs that specify match criteria
     //! beyond the service name. 'length' uses 1 byte, and its value indicates
@@ -934,7 +934,7 @@ struct chreWifiNanSubscribeConfig {
     //! The match filter length should not exceed the maxMatchFilterLength
     //! obtained from @ref chreWifiNanCapabilities.
     const uint8_t *matchFilter;
-    const uint32_t matchFilterLength;
+    uint32_t matchFilterLength;
 };
 
 /**
@@ -951,11 +951,6 @@ struct chreWifiNanDiscoveryEvent {
 
     //! NAN interface address of the publisher
     uint8_t publisherAddress[CHRE_WIFI_BSSID_LEN];
-
-    //! A non-zero value that indicates the distance in millimeters between the
-    //! current and remote NAN device. This is only valid (non-zero) if both
-    //! end points support ranging capabilities.
-    uint32_t rangeMeasurementMm;
 
     //! An array of bytes (and the associated array length) of service-specific
     //! information. Note that the array length must be less than the
