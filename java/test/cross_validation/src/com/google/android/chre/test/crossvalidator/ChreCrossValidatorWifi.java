@@ -85,7 +85,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
         Assert.assertTrue("Nanoapp given to cross validator is not the designated chre cross"
                 + " validation nanoapp.",
                 nanoAppBinary.getNanoAppId() == NANO_APP_ID);
-        Context context = InstrumentationRegistry.getInstrumentation().getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         mWifiScanReceiver = new BroadcastReceiver() {
             @Override
