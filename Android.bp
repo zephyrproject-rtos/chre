@@ -396,13 +396,8 @@ cc_test_host {
     static_libs: [
         "chre_linux",
     ],
-    cflags: [
-        "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4096",
-        "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
-        "-DCHRE_ASSERTIONS_ENABLED=true",
-        "-DCHRE_FILENAME=__FILE__",
-        "-DCHRE_FIRST_SUPPORTED_API_VERSION=CHRE_API_VERSION_1_1",
-        "-DGTEST",
+    defaults: [
+        "chre_linux_cflags",
     ],
     sanitize: {
         address: true,
@@ -463,7 +458,19 @@ cc_library_static {
     header_libs: [
         "chre_api",
     ],
-    cflags: [
+    defaults: [
+        "chre_linux_cflags",
+    ],
+    static_libs: [
+        "libgtest",
+        "libgmock",
+    ],
+    host_supported: true,
+}
+
+cc_defaults {
+   name: "chre_linux_cflags",
+   cflags: [
         "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4096",
         "-DCHRE_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_DEBUG",
         "-DCHRE_ASSERTIONS_ENABLED=true",
@@ -472,11 +479,6 @@ cc_library_static {
         "-DCHRE_FIRST_SUPPORTED_API_VERSION=CHRE_API_VERSION_1_1",
         "-DCHRE_GNSS_SUPPORT_ENABLED",
     ],
-    static_libs: [
-        "libgtest",
-        "libgmock",
-    ],
-    host_supported: true,
 }
 
 subdirs = [
