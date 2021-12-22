@@ -69,6 +69,10 @@ void EventLoopManager::lateInit() {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   mAudioRequestManager.init();
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  mBleRequestManager.init();
+#endif  // CHRE_BLE_SUPPORT_ENABLED
 }
 
 // Explicitly instantiate the EventLoopManagerSingleton to reduce codesize.

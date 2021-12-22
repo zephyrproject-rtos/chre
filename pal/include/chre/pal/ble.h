@@ -40,6 +40,11 @@ extern "C" {
  */
 #define CHRE_PAL_BLE_API_V1_6 CHRE_PAL_CREATE_API_VERSION(1, 6)
 
+/**
+ * The version of the CHRE BLE PAL defined in this header file.
+ */
+#define CHRE_PAL_BLE_API_CURRENT_VERSION CHRE_PAL_BLE_API_V1_6
+
 struct chrePalBleCallbacks {
   /**
    * This function can be used by the BLE PAL subsystem to request that CHRE

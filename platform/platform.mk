@@ -208,6 +208,7 @@ SIM_SRCS += platform/linux/system_timer.cc
 SIM_SRCS += platform/linux/platform_nanoapp.cc
 SIM_SRCS += platform/linux/platform_sensor.cc
 SIM_SRCS += platform/shared/chre_api_audio.cc
+SIM_SRCS += platform/shared/chre_api_ble.cc
 SIM_SRCS += platform/shared/chre_api_core.cc
 SIM_SRCS += platform/shared/chre_api_gnss.cc
 SIM_SRCS += platform/shared/chre_api_re.cc
@@ -223,6 +224,12 @@ SIM_SRCS += platform/shared/pal_system_api.cc
 SIM_SRCS += platform/shared/platform_sensor_manager.cc
 SIM_SRCS += platform/shared/system_time.cc
 SIM_SRCS += platform/shared/version.cc
+
+# Optional BLE support.
+ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/linux/pal_ble.cc
+SIM_SRCS += platform/shared/platform_ble.cc
+endif
 
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)

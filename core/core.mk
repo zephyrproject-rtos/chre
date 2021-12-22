@@ -28,6 +28,11 @@ ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/audio_request_manager.cc
 endif
 
+# Optional BLE support.
+ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
+COMMON_SRCS += core/ble_request_manager.cc
+endif
+
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/gnss_manager.cc
