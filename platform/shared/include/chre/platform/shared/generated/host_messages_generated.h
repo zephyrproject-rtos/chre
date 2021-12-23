@@ -1912,15 +1912,36 @@ inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(
 
 struct HostEndpointConnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_HOST_ENDPOINT = 4
+    VT_HOST_ENDPOINT = 4,
+    VT_TYPE = 6,
+    VT_PACKAGE_NAME = 8,
+    VT_ATTRIBUTION_TAG = 10
   };
   /// The host-side endpoint that has connected to the framework.
   uint16_t host_endpoint() const {
     return GetField<uint16_t>(VT_HOST_ENDPOINT, 0);
   }
+  /// The type of host endpoint, which should be any of the CHRE_HOST_ENDPOINT_TYPE_*
+  /// values defined in the chre_api/chre/event.h.
+  uint8_t type() const {
+    return GetField<uint8_t>(VT_TYPE, 0);
+  }
+  /// The (optional) package name associated with the host endpoint.
+  const flatbuffers::String *package_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_PACKAGE_NAME);
+  }
+  /// The (optional) attribution tag associated with this host.
+  const flatbuffers::String *attribution_tag() const {
+    return GetPointer<const flatbuffers::String *>(VT_ATTRIBUTION_TAG);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint16_t>(verifier, VT_HOST_ENDPOINT) &&
+           VerifyField<uint8_t>(verifier, VT_TYPE) &&
+           VerifyOffset(verifier, VT_PACKAGE_NAME) &&
+           verifier.VerifyString(package_name()) &&
+           VerifyOffset(verifier, VT_ATTRIBUTION_TAG) &&
+           verifier.VerifyString(attribution_tag()) &&
            verifier.EndTable();
   }
 };
@@ -1930,6 +1951,15 @@ struct HostEndpointConnectedBuilder {
   flatbuffers::uoffset_t start_;
   void add_host_endpoint(uint16_t host_endpoint) {
     fbb_.AddElement<uint16_t>(HostEndpointConnected::VT_HOST_ENDPOINT, host_endpoint, 0);
+  }
+  void add_type(uint8_t type) {
+    fbb_.AddElement<uint8_t>(HostEndpointConnected::VT_TYPE, type, 0);
+  }
+  void add_package_name(flatbuffers::Offset<flatbuffers::String> package_name) {
+    fbb_.AddOffset(HostEndpointConnected::VT_PACKAGE_NAME, package_name);
+  }
+  void add_attribution_tag(flatbuffers::Offset<flatbuffers::String> attribution_tag) {
+    fbb_.AddOffset(HostEndpointConnected::VT_ATTRIBUTION_TAG, attribution_tag);
   }
   explicit HostEndpointConnectedBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1945,10 +1975,32 @@ struct HostEndpointConnectedBuilder {
 
 inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint16_t host_endpoint = 0) {
+    uint16_t host_endpoint = 0,
+    uint8_t type = 0,
+    flatbuffers::Offset<flatbuffers::String> package_name = 0,
+    flatbuffers::Offset<flatbuffers::String> attribution_tag = 0) {
   HostEndpointConnectedBuilder builder_(_fbb);
+  builder_.add_attribution_tag(attribution_tag);
+  builder_.add_package_name(package_name);
   builder_.add_host_endpoint(host_endpoint);
+  builder_.add_type(type);
   return builder_.Finish();
+}
+
+inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnectedDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint16_t host_endpoint = 0,
+    uint8_t type = 0,
+    const char *package_name = nullptr,
+    const char *attribution_tag = nullptr) {
+  auto package_name__ = package_name ? _fbb.CreateString(package_name) : 0;
+  auto attribution_tag__ = attribution_tag ? _fbb.CreateString(attribution_tag) : 0;
+  return chre::fbs::CreateHostEndpointConnected(
+      _fbb,
+      host_endpoint,
+      type,
+      package_name__,
+      attribution_tag__);
 }
 
 struct HostEndpointDisconnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

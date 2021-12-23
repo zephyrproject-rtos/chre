@@ -345,6 +345,16 @@ table SelfTestResponse {
 table HostEndpointConnected {
   /// The host-side endpoint that has connected to the framework.
   host_endpoint:ushort;
+
+  /// The type of host endpoint, which should be any of the CHRE_HOST_ENDPOINT_TYPE_*
+  /// values defined in the chre_api/chre/event.h.
+  type:ubyte;
+
+  /// The (optional) package name associated with the host endpoint.
+  package_name:string;
+
+  /// The (optional) attribution tag associated with this host.
+  attribution_tag:string;
 }
 
 // Message sent whenever a host endpoint has disconnected from the Context Hub.
