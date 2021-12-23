@@ -20,16 +20,26 @@
 #include <cinttypes>
 
 #include "chre/util/system/debug_dump.h"
+#include "chre_api/chre/event.h"
 
 namespace chre {
 
 /**
- * Updates host endpoint [dis]connection to CHRE.
+ * Updates host endpoint connection to CHRE.
+ *
+ * @param info Metadata about the host endpoint that connected.
+ */
+void postHostEndpointConnected(const struct chreHostEndpointInfo &info);
+
+/**
+ * Updates host endpoint disconnection to CHRE.
  *
  * @param hostEndpointId The host endpoint ID.
  */
-void postHostEndpointConnected(uint16_t hostEndpointId);
 void postHostEndpointDisconnected(uint16_t hostEndpointId);
+
+bool getHostEndpointInfo(uint16_t hostEndpointId,
+                         struct chreHostEndpointInfo *info);
 
 }  // namespace chre
 

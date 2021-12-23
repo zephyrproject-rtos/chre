@@ -214,8 +214,12 @@ void HostProtocolHost::encodeSelfTestRequest(
 }
 
 void HostProtocolHost::encodeHostEndpointConnected(
-    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId) {
-  auto message = fbs::CreateHostEndpointConnected(builder, hostEndpointId);
+    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId,
+    uint8_t type, const std::string &packageName,
+    const std::string &attributionTag) {
+  auto message = fbs::CreateHostEndpointConnectedDirect(
+      builder, hostEndpointId, type, packageName.c_str(),
+      attributionTag.c_str());
   finalize(builder, fbs::ChreMessage::HostEndpointConnected, message.Union());
 }
 

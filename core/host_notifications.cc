@@ -24,36 +24,90 @@ namespace chre {
 
 namespace {
 
-void hostNotificationCallback(uint16_t type, void *data,
-                              void * /* extraData */) {
-  // TODO(b/194287786): Store host metadata using HostEndpointConnected event.
+//! Connected host endpoint metadata, which should only be accessed by the main
+//! CHRE event loop.
+// TODO(b/194287786): Re-organize this code into a class for better
+// organization.
+chre::DynamicVector<struct chreHostEndpointInfo> gHostEndpoints;
+
+bool isHostEndpointConnected(uint16_t hostEndpointId, size_t *index) {
+  for (size_t i = 0; i < gHostEndpoints.size(); i++) {
+    if (gHostEndpoints[i].hostEndpointId == hostEndpointId) {
+      *index = i;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void hostNotificationCallback(uint16_t type, void *data, void *extraData) {
   uint16_t hostEndpointId = NestedDataPtr<uint16_t>(data);
 
   SystemCallbackType callbackType = static_cast<SystemCallbackType>(type);
   if (callbackType == SystemCallbackType::HostEndpointDisconnected) {
-    uint16_t eventType = CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION;
-    auto *eventData = memoryAlloc<struct chreHostEndpointNotification>();
+    size_t index;
+    if (isHostEndpointConnected(hostEndpointId, &index)) {
+      gHostEndpoints.erase(index);
 
-    if (eventData == nullptr) {
-      LOG_OOM();
+      uint16_t eventType = CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION;
+      auto *eventData = memoryAlloc<struct chreHostEndpointNotification>();
+
+      if (eventData == nullptr) {
+        LOG_OOM();
+      } else {
+        eventData->hostEndpointId = hostEndpointId;
+        eventData->notificationType =
+            HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT;
+        eventData->reserved = 0;
+
+        EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+            eventType, eventData, freeEventDataCallback, kBroadcastInstanceId);
+      }
     } else {
-      eventData->hostEndpointId = hostEndpointId;
-      eventData->notificationType = HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT;
-      eventData->reserved = 0;
+      LOGW("Got disconnected event for nonexistent host endpoint ID %" PRIu16,
+           hostEndpointId);
+    }
+  } else {
+    auto *info = static_cast<struct chreHostEndpointInfo *>(extraData);
 
-      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-          eventType, eventData, freeEventDataCallback, kBroadcastInstanceId);
+    size_t index;
+    if (!isHostEndpointConnected(hostEndpointId, &index)) {
+      gHostEndpoints.push_back(*info);
+    } else {
+      LOGW("Got connected event for already existing host endpoint ID %" PRIu16,
+           hostEndpointId);
     }
   }
+
+  memoryFree(extraData);
 }
 
 }  // anonymous namespace
 
-void postHostEndpointConnected(uint16_t hostEndpointId) {
-  EventLoopManagerSingleton::get()->deferCallback(
-      SystemCallbackType::HostEndpointConnected,
-      NestedDataPtr<uint16_t>(hostEndpointId), hostNotificationCallback,
-      nullptr);
+bool getHostEndpointInfo(uint16_t hostEndpointId,
+                         struct chreHostEndpointInfo *info) {
+  size_t index;
+  if (isHostEndpointConnected(hostEndpointId, &index)) {
+    *info = gHostEndpoints[index];
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void postHostEndpointConnected(const struct chreHostEndpointInfo &info) {
+  auto *infoData = memoryAlloc<struct chreHostEndpointInfo>();
+  if (infoData == nullptr) {
+    LOG_OOM();
+  } else {
+    memcpy(infoData, &info, sizeof(struct chreHostEndpointInfo));
+
+    EventLoopManagerSingleton::get()->deferCallback(
+        SystemCallbackType::HostEndpointConnected,
+        NestedDataPtr<uint16_t>(info.hostEndpointId), hostNotificationCallback,
+        infoData /* extraData */);
+  }
 }
 
 void postHostEndpointDisconnected(uint16_t hostEndpointId) {

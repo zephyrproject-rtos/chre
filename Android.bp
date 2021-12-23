@@ -243,7 +243,11 @@ cc_binary {
     ],
     local_include_dirs: ["host/hal_generic/common/"],
     init_rc: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.rc"],
-    cflags: ["-Wall", "-Werror"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4000", // Needed to import CHRE APIs.
+    ],
     shared_libs: [
         "libcutils",
         "liblog",
@@ -251,6 +255,9 @@ cc_binary {
         "libbase",
         "libbinder_ndk",
         "android.hardware.contexthub-V1-ndk",
+    ],
+    header_libs: [
+        "chre_api",
     ],
     static_libs: ["chre_client"],
     vintf_fragments: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.xml"],

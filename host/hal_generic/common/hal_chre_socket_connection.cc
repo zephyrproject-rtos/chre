@@ -139,9 +139,12 @@ bool HalChreSocketConnection::sendSettingChangedNotification(
   return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
 }
 
-bool HalChreSocketConnection::onHostEndpointConnected(uint16_t hostEndpointId) {
+bool HalChreSocketConnection::onHostEndpointConnected(
+    uint16_t hostEndpointId, uint8_t type, const std::string &package_name,
+    const std::string &attribution_tag) {
   FlatBufferBuilder builder(64);
-  HostProtocolHost::encodeHostEndpointConnected(builder, hostEndpointId);
+  HostProtocolHost::encodeHostEndpointConnected(builder, hostEndpointId, type,
+                                                package_name, attribution_tag);
   return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
 }
 

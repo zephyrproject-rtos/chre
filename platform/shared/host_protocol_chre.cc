@@ -127,7 +127,29 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         const auto *connectedMessage =
             static_cast<const fbs::HostEndpointConnected *>(
                 container->message());
-        postHostEndpointConnected(connectedMessage->host_endpoint());
+        struct chreHostEndpointInfo info;
+        info.hostEndpointId = connectedMessage->host_endpoint();
+        info.hostEndpointType = connectedMessage->type();
+        if (connectedMessage->package_name()->size() > 0) {
+          info.isNameValid = true;
+          strncpy(&info.packageName[0],
+                  connectedMessage->package_name()->data(),
+                  CHRE_MAX_ENDPOINT_NAME_LEN);
+          info.packageName[CHRE_MAX_ENDPOINT_NAME_LEN - 1] = '\0';
+        } else {
+          info.isNameValid = false;
+        }
+        if (connectedMessage->attribution_tag()->size() > 0) {
+          info.isTagValid = true;
+          strncpy(&info.attributionTag[0],
+                  connectedMessage->attribution_tag()->data(),
+                  CHRE_MAX_ENDPOINT_TAG_LEN);
+          info.attributionTag[CHRE_MAX_ENDPOINT_NAME_LEN - 1] = '\0';
+        } else {
+          info.isTagValid = false;
+        }
+
+        postHostEndpointConnected(info);
         break;
       }
 

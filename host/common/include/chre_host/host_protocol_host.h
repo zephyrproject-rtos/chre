@@ -235,23 +235,27 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
   static void encodeSelfTestRequest(flatbuffers::FlatBufferBuilder &builder);
 
   /**
-   * Encodes a message notifying CHRE of a user setting change.
+   * Encodes a message notifying CHRE of a host endpoint that connected.
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
    *        construct the message
-   * @param setting The setting value that the user changed
-   * @param newState The state that the user change the setting to.
+   * @param hostEndpointId The ID of the host endpoint that connected.
+   * @param type The CHRE_HOST_ENDPOINT_TYPE_* value that describes the
+   * endpoint.
+   * @param packageName The (optional) package name of the endpoint.
+   * @param attributionTag The (optional) attribution tag of the endpoint.
    */
   static void encodeHostEndpointConnected(
-      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);
+      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId,
+      uint8_t type, const std::string &packageName,
+      const std::string &attributionTag);
 
   /**
-   * Encodes a message notifying CHRE of a user setting change.
+   * Encodes a message notifying CHRE of a host endpoint that disconnected.
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
    *        construct the message
-   * @param setting The setting value that the user changed
-   * @param newState The state that the user change the setting to.
+   * @param hostEndpointId The ID of the host endpoint that disconnected.
    */
   static void encodeHostEndpointDisconnected(
       flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);

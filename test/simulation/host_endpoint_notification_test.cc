@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <thread>
 
 #include "chre/core/event_loop_manager.h"
@@ -34,6 +35,8 @@ namespace {
 //! The host endpoint ID to use for this test.
 constexpr uint16_t kHostEndpointId = 123;
 
+std::optional<struct chreHostEndpointNotification> gNotification;
+
 bool start() {
   chreConfigureHostEndpointNotifications(kHostEndpointId, true /* enable */);
   TestEventQueueSingleton::get()->pushEvent(
@@ -42,7 +45,10 @@ bool start() {
 }
 
 void handleEvent(uint32_t /* senderInstanceId */, uint16_t eventType,
-                 const void * /* eventData */) {
+                 const void *eventData) {
+  if (eventType == CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION) {
+    gNotification = *(struct chreHostEndpointNotification *)eventData;
+  }
   TestEventQueueSingleton::get()->pushEvent(eventType);
 }
 
@@ -63,7 +69,16 @@ TEST_F(TestBase, HostEndpointDisconnectedTest) {
   constexpr uint32_t kAppVersion = 0;
   constexpr uint32_t kAppPerms = 0;
 
-  postHostEndpointConnected(kHostEndpointId);
+  gNotification.reset();
+
+  struct chreHostEndpointInfo info;
+  info.hostEndpointId = kHostEndpointId;
+  info.hostEndpointType = CHRE_HOST_ENDPOINT_TYPE_FRAMEWORK;
+  info.isNameValid = true;
+  strcpy(&info.endpointName[0], "Test endpoint name");
+  info.isTagValid = true;
+  strcpy(&info.endpointTag[0], "Test tag");
+  postHostEndpointConnected(info);
 
   UniquePtr<Nanoapp> nanoapp = createStaticNanoapp(
       "Test nanoapp", kAppId, kAppVersion, kAppPerms, start, handleEvent, end);
@@ -72,10 +87,25 @@ TEST_F(TestBase, HostEndpointDisconnectedTest) {
       testFinishLoadingNanoappCallback);
   waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
 
+  struct chreHostEndpointInfo retrievedInfo;
+  ASSERT_TRUE(getHostEndpointInfo(kHostEndpointId, &retrievedInfo));
+  ASSERT_EQ(retrievedInfo.hostEndpointId, info.hostEndpointId);
+  ASSERT_EQ(retrievedInfo.hostEndpointType, info.hostEndpointType);
+  ASSERT_EQ(retrievedInfo.isNameValid, info.isNameValid);
+  ASSERT_EQ(strcmp(&retrievedInfo.endpointName[0], &info.endpointName[0]), 0);
+  ASSERT_EQ(retrievedInfo.isTagValid, info.isTagValid);
+  ASSERT_EQ(strcmp(&retrievedInfo.endpointTag[0], &info.endpointTag[0]), 0);
+
   postHostEndpointDisconnected(kHostEndpointId);
   waitForEvent(CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION);
 
-  // TODO(b/194287786): Check contents of host endpoint notification event.
+  ASSERT_TRUE(gNotification.has_value());
+  ASSERT_EQ(gNotification->hostEndpointId, kHostEndpointId);
+  ASSERT_EQ(gNotification->notificationType,
+            HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT);
+  ASSERT_EQ(gNotification->reserved, 0);
+
+  ASSERT_FALSE(getHostEndpointInfo(kHostEndpointId, &retrievedInfo));
 }
 
 }  // namespace chre
