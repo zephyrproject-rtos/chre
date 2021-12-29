@@ -356,6 +356,10 @@ void ContextHub::onTransactionResult(uint32_t transactionId, bool success) {
 void ContextHub::onContextHubRestarted() {
   std::lock_guard<std::mutex> lock(mCallbackMutex);
   mIsWifiAvailable.reset();
+  {
+    std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
+    mConnectedHostEndpoints.clear();
+  }
   if (mCallback != nullptr) {
     mCallback->handleContextHubAsyncEvent(AsyncEventType::RESTARTED);
   }
