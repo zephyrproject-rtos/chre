@@ -61,9 +61,6 @@ void end() {
 /**
  * Verifies basic functionality of chreConfigureHostEndpointNotifications.
  */
-// TODO(b/194287786): Add more test cases:
-// 1) Host endpoint isn't registered.
-// 2) Host endpoint is unregistered twice.
 TEST_F(TestBase, HostEndpointDisconnectedTest) {
   constexpr uint64_t kAppId = 0x0123456789abcdef;
   constexpr uint32_t kAppVersion = 0;
@@ -106,6 +103,24 @@ TEST_F(TestBase, HostEndpointDisconnectedTest) {
   ASSERT_EQ(gNotification->reserved, 0);
 
   ASSERT_FALSE(getHostEndpointInfo(kHostEndpointId, &retrievedInfo));
+}
+
+TEST_F(TestBase, HostEndpointNotRegisteredTest) {
+  struct chreHostEndpointInfo retrievedInfo;
+  ASSERT_FALSE(getHostEndpointInfo(kHostEndpointId, &retrievedInfo));
+}
+
+TEST_F(TestBase, HostEndpointDisconnectedTwiceTest) {
+  struct chreHostEndpointInfo info;
+  info.hostEndpointId = kHostEndpointId;
+  info.hostEndpointType = CHRE_HOST_ENDPOINT_TYPE_FRAMEWORK;
+  info.isNameValid = false;
+  info.isTagValid = false;
+  postHostEndpointConnected(info);
+
+  postHostEndpointDisconnected(kHostEndpointId);
+  // The second invocation should be a silent no-op.
+  postHostEndpointDisconnected(kHostEndpointId);
 }
 
 }  // namespace chre
