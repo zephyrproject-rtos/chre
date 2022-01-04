@@ -166,13 +166,13 @@ void Manager::compareAndSendResultToHost() {
   // TODO(b/209673792): kMaxChreResultSize should be provided by the host
   // because it can be different depending on the platform
   uint16_t kMaxChreResultSize = 100;
-  bool check1 = (mApScanResultsSize <= kMaxChreResultSize) &&
-                (mApScanResultsSize != mChreScanResultsSize);
-  bool check2 = (mApScanResultsSize > kMaxChreResultSize) &&
-                (mApScanResultsSize < mChreScanResultsSize);
+  bool belowMaxSizeCheck = (mApScanResultsSize <= kMaxChreResultSize) &&
+                           (mApScanResultsSize != mChreScanResultsSize);
+  bool aboveMaxSizeCheck = (mApScanResultsSize > kMaxChreResultSize) &&
+                           (mApScanResultsSize < mChreScanResultsSize);
   // TODO(b/185188753): Log info about all scan results so that it is easier
   // to figure out which AP or CHRE scan results are missing or corrupted.
-  if (!check1 || !check2) {
+  if (belowMaxSizeCheck || aboveMaxSizeCheck) {
     testResult = makeTestResultProtoMessage(
         false, "There is a different number of AP and CHRE scan results.");
     LOGE("AP and CHRE wifi scan result counts differ, AP = %" PRIu8
