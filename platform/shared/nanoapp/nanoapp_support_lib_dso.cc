@@ -270,6 +270,26 @@ bool chreWifiRequestRangingAsync(const struct chreWifiRangingParams *params,
   return (fptr != nullptr) ? fptr(params, cookie) : false;
 }
 
+WEAK_SYMBOL
+bool chreWifiNanRequestRangingAsync(
+    const struct chreWifiNanRangingParams *params, const void *cookie) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreWifiNanRequestRangingAsync);
+  return (fptr != nullptr) ? fptr(params, cookie) : false;
+}
+
+WEAK_SYMBOL
+bool chreWifiNanSubscribe(struct chreWifiNanSubscribeConfig *config,
+                          const void *cookie) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreWifiNanSubscribe);
+  return (fptr != nullptr) ? fptr(config, cookie) : false;
+}
+
+WEAK_SYMBOL
+bool chreWifiNanSubscribeCancel(uint32_t subscriptionID) {
+  auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreWifiNanSubscribeCancel);
+  return (fptr != nullptr) ? fptr(subscriptionID) : false;
+}
+
 #endif /* CHRE_NANOAPP_USES_WIFI */
 
 WEAK_SYMBOL
