@@ -262,7 +262,7 @@ bool getFbsSetting(const Setting &setting, fbs::Setting *fbsSetting) {
   std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
   mConnectedHostEndpoints.insert(in_info.hostEndpointId);
 
-  uint8_t type = (in_info.type == HostEndpointInfo::Type::TYPE_FRAMEWORK)
+  uint8_t type = (in_info.type == HostEndpointInfo::Type::FRAMEWORK)
                      ? CHRE_HOST_ENDPOINT_TYPE_FRAMEWORK
                      : CHRE_HOST_ENDPOINT_TYPE_APP;
 
