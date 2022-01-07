@@ -51,6 +51,12 @@ void PlatformWifi::init() {
   if (mWifiApi != nullptr) {
     if (!mWifiApi->open(&gChrePalSystemApi, &sWifiCallbacks)) {
       LOGE("WiFi PAL open returned false");
+
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+      EventLoopManagerSingleton::get()->getTelemetryManager().onPalOpenFailure(
+          TelemetryManager::PalType::WIFI);
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
       mWifiApi = nullptr;
     } else {
       LOGD("Opened WiFi PAL version 0x%08" PRIx32, mWifiApi->moduleVersion);

@@ -54,6 +54,10 @@
 #include "chre/core/wwan_request_manager.h"
 #endif  // CHRE_WWAN_SUPPORT_ENABLED
 
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+#include "chre/core/telemetry_manager.h"
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
 #include <cstddef>
 
 namespace chre {
@@ -304,6 +308,15 @@ class EventLoopManager : public NonCopyable {
     return mDebugDumpManager;
   }
 
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+  /**
+   * @return A reference to the telemetry manager.
+   */
+  TelemetryManager &getTelemetryManager() {
+    return mTelemetryManager;
+  }
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
   /**
    * Performs second-stage initialization of things that are not necessarily
    * required at construction time but need to be completed prior to executing
@@ -363,6 +376,11 @@ class EventLoopManager : public NonCopyable {
 
   //! The DebugDumpManager that handles the debug dump process.
   DebugDumpManager mDebugDumpManager;
+
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+  //! The TelemetryManager that handles metric collection/reporting.
+  TelemetryManager mTelemetryManager;
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
 };
 
 //! Provide an alias to the EventLoopManager singleton.

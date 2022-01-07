@@ -59,6 +59,23 @@ ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/wwan_request_manager.cc
 endif
 
+# Optional Telemetry support.
+ifeq ($(CHRE_TELEMETRY_SUPPORT_ENABLED), true)
+COMMON_SRCS += core/telemetry_manager.cc
+
+COMMON_CFLAGS += -DPB_FIELD_32BIT
+COMMON_CFLAGS += -DCHRE_TELEMETRY_SUPPORT_ENABLED
+
+NANOPB_EXTENSION = nanopb
+
+NANOPB_SRCS += $(CHRE_PREFIX)/../../hardware/google/pixel/pixelstats/pixelatoms.proto
+NANOPB_PROTO_PATH = $(CHRE_PREFIX)/../../hardware/google/pixel/pixelstats/
+NANOPB_INCLUDES = $(NANOPB_PROTO_PATH)
+NANOPB_FLAGS += --proto_path=$(NANOPB_PROTO_PATH)
+
+include $(CHRE_PREFIX)/build/nanopb.mk
+endif
+
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += core/tests/audio_util_test.cc

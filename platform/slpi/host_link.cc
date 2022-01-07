@@ -84,6 +84,7 @@ enum class PendingMessageType {
   LowPowerMicAccessRelease,
   EncodedLogMessage,
   SelfTestResponse,
+  MetricLog,
 };
 
 struct PendingMessage {
@@ -622,6 +623,7 @@ extern "C" int chre_slpi_get_message_to_host(unsigned char *buffer,
       case PendingMessageType::LowPowerMicAccessRelease:
       case PendingMessageType::EncodedLogMessage:
       case PendingMessageType::SelfTestResponse:
+      case PendingMessageType::MetricLog:
         result = generateMessageFromBuilder(
             pendingMsg.data.builder, buffer, bufferSize, messageLen,
             pendingMsg.type == PendingMessageType::EncodedLogMessage);
@@ -703,6 +705,31 @@ void HostLink::flushMessagesSentByNanoapp(uint64_t /*appId*/) {
 bool HostLink::sendMessage(const MessageToHost *message) {
   return enqueueMessage(
       PendingMessage(PendingMessageType::NanoappMessageToHost, message));
+}
+
+bool HostLink::sendMetricLog(uint32_t metricId, const uint8_t *encodedMetric,
+                             size_t encodedMetricLen) {
+  struct MetricLogData {
+    uint32_t metricId;
+    const uint8_t *encodedMetric;
+    size_t encodedMetricLen;
+  };
+
+  MetricLogData data;
+  data.metricId = metricId;
+  data.encodedMetric = encodedMetric;
+  data.encodedMetricLen = encodedMetricLen;
+
+  auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
+    const auto *data = static_cast<const MetricLogData *>(cookie);
+    HostProtocolChre::encodeMetricLog(
+        builder, data->metricId, data->encodedMetric, data->encodedMetricLen);
+  };
+
+  constexpr size_t kInitialSize = 52;
+  buildAndEnqueueMessage(PendingMessageType::MetricLog, kInitialSize,
+                         msgBuilder, &data);
+  return true;
 }
 
 bool HostLinkBase::flushOutboundQueue() {
