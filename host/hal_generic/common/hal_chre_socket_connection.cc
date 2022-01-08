@@ -21,6 +21,13 @@
 
 #include <log/log.h>
 
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+#include <aidl/android/frameworks/stats/IStats.h>
+#include <android/binder_manager.h>
+#include <hardware/google/pixel/pixelstats/pixelatoms.pb.h>
+#include <utils/SystemClock.h>
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+
 namespace android {
 namespace hardware {
 namespace contexthub {
@@ -32,6 +39,13 @@ using chre::FragmentedLoadTransaction;
 using chre::HostProtocolHost;
 using flatbuffers::FlatBufferBuilder;
 
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+using ::aidl::android::frameworks::stats::IStats;
+using ::aidl::android::frameworks::stats::VendorAtom;
+using ::aidl::android::frameworks::stats::VendorAtomValue;
+namespace PixelAtoms = ::android::hardware::google::pixel::PixelAtoms;
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+
 HalChreSocketConnection::HalChreSocketConnection(
     IChreSocketCallback *callback) {
   constexpr char kChreSocketName[] = "chre";
@@ -39,7 +53,9 @@ HalChreSocketConnection::HalChreSocketConnection(
   if (!mClient.connectInBackground(kChreSocketName, this)) {
     ALOGE("Couldn't start socket client");
   }
-
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+  mLastClearedTimestamp = elapsedRealtime();
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
   mCallback = callback;
 }
 
@@ -179,6 +195,35 @@ void HalChreSocketConnection::handleNanoappMessage(
     const ::chre::fbs::NanoappMessageT &message) {
   ALOGD("Got message from nanoapp: ID 0x%" PRIx64, message.app_id);
   mCallback->onNanoappMessage(message);
+
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+  if (message.woke_host) {
+    // check and update the 24hour timer
+    std::lock_guard<std::mutex> lock(mNanoappWokeApCountMutex);
+    long nanoappId = message.app_id;
+    long timeElapsed = elapsedRealtime() - mLastClearedTimestamp;
+    if (timeElapsed > kOneDayinMillis) {
+      mNanoappWokeUpCount = 0;
+      mLastClearedTimestamp = elapsedRealtime();
+    }
+
+    // update and report the AP woke up metric
+    mNanoappWokeUpCount++;
+    if (mNanoappWokeUpCount < kMaxDailyReportedApWakeUp) {
+      // create and report the vendor atom
+      std::vector<VendorAtomValue> values(1);
+      values[0].set<VendorAtomValue::longValue>(nanoappId);
+
+      const VendorAtom atom{
+          .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+          .atomId = PixelAtoms::Atom::kChreApWakeUpOccurred,
+          .values{std::move(values)},
+      };
+
+      reportMetric(atom);
+    }
+  }
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
 }
 
 void HalChreSocketConnection::handleHubInfoResponse(
@@ -284,6 +329,24 @@ bool HalChreSocketConnection::sendFragmentedLoadNanoAppRequest(
   if (!mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
     ALOGE("Failed to send load request message (fragment ID = %zu)",
           request.fragmentId);
+
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+    // create and report the vendor atom
+    std::vector<VendorAtomValue> values(3);
+    values[0].set<VendorAtomValue::longValue>(request.appId);
+    values[1].set<VendorAtomValue::intValue>(
+        PixelAtoms::ChreHalNanoappLoadFailed::TYPE_DYNAMIC);
+    values[2].set<VendorAtomValue::intValue>(
+        PixelAtoms::ChreHalNanoappLoadFailed::REASON_ERROR_GENERIC);
+
+    const VendorAtom atom{
+        .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+        .atomId = PixelAtoms::Atom::kChreHalNanoappLoadFailed,
+        .values{std::move(values)},
+    };
+    reportMetric(atom);
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+
   } else {
     mCurrentFragmentId = request.fragmentId;
     success = true;
@@ -291,6 +354,27 @@ bool HalChreSocketConnection::sendFragmentedLoadNanoAppRequest(
 
   return success;
 }
+
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+void HalChreSocketConnection::reportMetric(const VendorAtom atom) {
+  // check service availability
+  const std::string statsServiceName =
+      std::string(IStats::descriptor).append("/default");
+  if (!AServiceManager_isDeclared(statsServiceName.c_str())) {
+    ALOGE("Stats service is not declared.");
+    return;
+  }
+
+  // obtain the service
+  std::shared_ptr<IStats> stats_client = IStats::fromBinder(ndk::SpAIBinder(
+      AServiceManager_waitForService(statsServiceName.c_str())));
+
+  const ndk::ScopedAStatus ret = stats_client->reportVendorAtom(atom);
+  if (!ret.isOk()) {
+    ALOGE("Failed to report vendor atom");
+  }
+}
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
 
 }  // namespace implementation
 }  // namespace common

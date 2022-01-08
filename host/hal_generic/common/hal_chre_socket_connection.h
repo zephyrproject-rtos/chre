@@ -24,6 +24,11 @@
 #include "chre_host/host_protocol_host.h"
 #include "chre_host/socket_client.h"
 
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+#include <aidl/android/frameworks/stats/IStats.h>
+#include <hardware/google/pixel/pixelstats/pixelatoms.pb.h>
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+
 namespace android {
 namespace hardware {
 namespace contexthub {
@@ -151,6 +156,14 @@ class HalChreSocketConnection
 
   bool mHaveConnected = false;
 
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+  long mLastClearedTimestamp = 0;
+  static constexpr uint32_t kOneDayinMillis = 24 * 60 * 60 * 1000;
+  static constexpr uint16_t kMaxDailyReportedApWakeUp = 200;
+  uint16_t mNanoappWokeUpCount = 0;
+  std::mutex mNanoappWokeApCountMutex;
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+
   /**
    * Checks to see if a load response matches the currently pending
    * fragmented load transaction. mPendingLoadTransactionMutex must
@@ -174,6 +187,15 @@ class HalChreSocketConnection
    */
   bool sendFragmentedLoadNanoAppRequest(
       chre::FragmentedLoadTransaction &transaction);
+
+  /**
+   * Create and report CHRE vendor atom and send it to stats_client
+   *
+   * @param atom the vendor atom to be reported
+   */
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+  void reportMetric(const aidl::android::frameworks::stats::VendorAtom atom);
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
 };
 
 }  // namespace implementation
