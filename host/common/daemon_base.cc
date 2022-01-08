@@ -21,6 +21,7 @@
 #include "chre_host/log.h"
 #include "chre_host/napp_header.h"
 
+#include <hardware/google/pixel/pixelstats/pixelatoms.pb.h>
 #include <json/json.h>
 
 // Aliased for consistency with the way these symbols are referenced in
@@ -263,11 +264,23 @@ void ChreDaemonBase::handleDaemonMessage(const uint8_t *message) {
 }
 
 void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
-  // TODO(b/207156504): Implement this
+  const std::vector<int8_t> &encodedMetric = metricMsg->encoded_metric;
+  namespace PixelAtoms = ::android::hardware::google::pixel::PixelAtoms;
 
-  // This line is for passing BUILD to avoid unused variable, delete after
-  // implementation
-  (void)metricMsg;
+  switch (metricMsg->id) {
+    case PixelAtoms::Atom::kChrePalOpenFailed: {
+      PixelAtoms::ChrePalOpenFailed metric;
+      if (!metric.ParseFromArray(encodedMetric.data(), encodedMetric.size())) {
+        LOGE("Failed to parse metric data");
+      } else {
+        // TODO(b/207156504): Log the metric
+      }
+      break;
+    }
+    default: {
+      LOGW("Unknown metric ID %" PRIu32, metricMsg->id);
+    }
+  }
 }
 
 }  // namespace chre

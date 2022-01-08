@@ -85,7 +85,9 @@ LOCAL_SHARED_LIBRARIES := \
     libhidlbase \
     libbase \
     android.hardware.soundtrigger@2.0 \
-    libpower
+    libpower \
+    libprotobuf-cpp-lite \
+    pixelatoms-cpp
 
 LOCAL_CPPFLAGS += -std=c++20
 LOCAL_CFLAGS += -Wno-sign-compare
