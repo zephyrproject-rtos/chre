@@ -2724,8 +2724,8 @@ struct HostEndpointConnectedT : public flatbuffers::NativeTable {
   typedef HostEndpointConnected TableType;
   uint16_t host_endpoint;
   uint8_t type;
-  std::string package_name;
-  std::string attribution_tag;
+  std::vector<int8_t> package_name;
+  std::vector<int8_t> attribution_tag;
   HostEndpointConnectedT()
       : host_endpoint(0),
         type(0) {
@@ -2756,27 +2756,27 @@ struct HostEndpointConnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tabl
     return SetField<uint8_t>(VT_TYPE, _type, 0);
   }
   /// The (optional) package name associated with the host endpoint.
-  const flatbuffers::String *package_name() const {
-    return GetPointer<const flatbuffers::String *>(VT_PACKAGE_NAME);
+  const flatbuffers::Vector<int8_t> *package_name() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_PACKAGE_NAME);
   }
-  flatbuffers::String *mutable_package_name() {
-    return GetPointer<flatbuffers::String *>(VT_PACKAGE_NAME);
+  flatbuffers::Vector<int8_t> *mutable_package_name() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_PACKAGE_NAME);
   }
   /// The (optional) attribution tag associated with this host.
-  const flatbuffers::String *attribution_tag() const {
-    return GetPointer<const flatbuffers::String *>(VT_ATTRIBUTION_TAG);
+  const flatbuffers::Vector<int8_t> *attribution_tag() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_ATTRIBUTION_TAG);
   }
-  flatbuffers::String *mutable_attribution_tag() {
-    return GetPointer<flatbuffers::String *>(VT_ATTRIBUTION_TAG);
+  flatbuffers::Vector<int8_t> *mutable_attribution_tag() {
+    return GetPointer<flatbuffers::Vector<int8_t> *>(VT_ATTRIBUTION_TAG);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint16_t>(verifier, VT_HOST_ENDPOINT) &&
            VerifyField<uint8_t>(verifier, VT_TYPE) &&
            VerifyOffset(verifier, VT_PACKAGE_NAME) &&
-           verifier.VerifyString(package_name()) &&
+           verifier.VerifyVector(package_name()) &&
            VerifyOffset(verifier, VT_ATTRIBUTION_TAG) &&
-           verifier.VerifyString(attribution_tag()) &&
+           verifier.VerifyVector(attribution_tag()) &&
            verifier.EndTable();
   }
   HostEndpointConnectedT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2793,10 +2793,10 @@ struct HostEndpointConnectedBuilder {
   void add_type(uint8_t type) {
     fbb_.AddElement<uint8_t>(HostEndpointConnected::VT_TYPE, type, 0);
   }
-  void add_package_name(flatbuffers::Offset<flatbuffers::String> package_name) {
+  void add_package_name(flatbuffers::Offset<flatbuffers::Vector<int8_t>> package_name) {
     fbb_.AddOffset(HostEndpointConnected::VT_PACKAGE_NAME, package_name);
   }
-  void add_attribution_tag(flatbuffers::Offset<flatbuffers::String> attribution_tag) {
+  void add_attribution_tag(flatbuffers::Offset<flatbuffers::Vector<int8_t>> attribution_tag) {
     fbb_.AddOffset(HostEndpointConnected::VT_ATTRIBUTION_TAG, attribution_tag);
   }
   explicit HostEndpointConnectedBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -2815,8 +2815,8 @@ inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t host_endpoint = 0,
     uint8_t type = 0,
-    flatbuffers::Offset<flatbuffers::String> package_name = 0,
-    flatbuffers::Offset<flatbuffers::String> attribution_tag = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> package_name = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> attribution_tag = 0) {
   HostEndpointConnectedBuilder builder_(_fbb);
   builder_.add_attribution_tag(attribution_tag);
   builder_.add_package_name(package_name);
@@ -2829,10 +2829,10 @@ inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnectedDir
     flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t host_endpoint = 0,
     uint8_t type = 0,
-    const char *package_name = nullptr,
-    const char *attribution_tag = nullptr) {
-  auto package_name__ = package_name ? _fbb.CreateString(package_name) : 0;
-  auto attribution_tag__ = attribution_tag ? _fbb.CreateString(attribution_tag) : 0;
+    const std::vector<int8_t> *package_name = nullptr,
+    const std::vector<int8_t> *attribution_tag = nullptr) {
+  auto package_name__ = package_name ? _fbb.CreateVector<int8_t>(*package_name) : 0;
+  auto attribution_tag__ = attribution_tag ? _fbb.CreateVector<int8_t>(*attribution_tag) : 0;
   return chre::fbs::CreateHostEndpointConnected(
       _fbb,
       host_endpoint,
@@ -4030,8 +4030,8 @@ inline void HostEndpointConnected::UnPackTo(HostEndpointConnectedT *_o, const fl
   (void)_resolver;
   { auto _e = host_endpoint(); _o->host_endpoint = _e; };
   { auto _e = type(); _o->type = _e; };
-  { auto _e = package_name(); if (_e) _o->package_name = _e->str(); };
-  { auto _e = attribution_tag(); if (_e) _o->attribution_tag = _e->str(); };
+  { auto _e = package_name(); if (_e) { _o->package_name.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->package_name[_i] = _e->Get(_i); } } };
+  { auto _e = attribution_tag(); if (_e) { _o->attribution_tag.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->attribution_tag[_i] = _e->Get(_i); } } };
 }
 
 inline flatbuffers::Offset<HostEndpointConnected> HostEndpointConnected::Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostEndpointConnectedT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -4044,8 +4044,8 @@ inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnected(fl
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const HostEndpointConnectedT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _host_endpoint = _o->host_endpoint;
   auto _type = _o->type;
-  auto _package_name = _o->package_name.empty() ? 0 : _fbb.CreateString(_o->package_name);
-  auto _attribution_tag = _o->attribution_tag.empty() ? 0 : _fbb.CreateString(_o->attribution_tag);
+  auto _package_name = _o->package_name.size() ? _fbb.CreateVector(_o->package_name) : 0;
+  auto _attribution_tag = _o->attribution_tag.size() ? _fbb.CreateVector(_o->attribution_tag) : 0;
   return chre::fbs::CreateHostEndpointConnected(
       _fbb,
       _host_endpoint,

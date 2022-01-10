@@ -22,6 +22,7 @@
 #include "chre/core/host_notifications.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/generated/host_messages_generated.h"
+#include "chre/util/macros.h"
 
 using flatbuffers::Offset;
 using flatbuffers::Vector;
@@ -132,18 +133,19 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         info.hostEndpointType = connectedMessage->type();
         if (connectedMessage->package_name()->size() > 0) {
           info.isNameValid = true;
-          strncpy(&info.packageName[0],
-                  connectedMessage->package_name()->data(),
-                  CHRE_MAX_ENDPOINT_NAME_LEN);
+          memcpy(&info.packageName[0], connectedMessage->package_name()->data(),
+                 MIN(connectedMessage->package_name()->size(),
+                     CHRE_MAX_ENDPOINT_NAME_LEN));
           info.packageName[CHRE_MAX_ENDPOINT_NAME_LEN - 1] = '\0';
         } else {
           info.isNameValid = false;
         }
         if (connectedMessage->attribution_tag()->size() > 0) {
           info.isTagValid = true;
-          strncpy(&info.attributionTag[0],
-                  connectedMessage->attribution_tag()->data(),
-                  CHRE_MAX_ENDPOINT_TAG_LEN);
+          memcpy(&info.attributionTag[0],
+                 connectedMessage->attribution_tag()->data(),
+                 MIN(connectedMessage->attribution_tag()->size(),
+                     CHRE_MAX_ENDPOINT_TAG_LEN));
           info.attributionTag[CHRE_MAX_ENDPOINT_NAME_LEN - 1] = '\0';
         } else {
           info.isTagValid = false;

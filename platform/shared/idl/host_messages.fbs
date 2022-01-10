@@ -351,10 +351,10 @@ table HostEndpointConnected {
   type:ubyte;
 
   /// The (optional) package name associated with the host endpoint.
-  package_name:string;
+  package_name:[byte];
 
   /// The (optional) attribution tag associated with this host.
-  attribution_tag:string;
+  attribution_tag:[byte];
 }
 
 // Message sent whenever a host endpoint has disconnected from the Context Hub.

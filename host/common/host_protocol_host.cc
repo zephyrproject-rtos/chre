@@ -217,9 +217,14 @@ void HostProtocolHost::encodeHostEndpointConnected(
     flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId,
     uint8_t type, const std::string &packageName,
     const std::string &attributionTag) {
+  std::vector<int8_t> packageNameVec(packageName.begin(), packageName.end());
+  packageNameVec.push_back('\0');
+  std::vector<int8_t> attributionTagVec(attributionTag.begin(),
+                                        attributionTag.end());
+  attributionTagVec.push_back('\0');
+
   auto message = fbs::CreateHostEndpointConnectedDirect(
-      builder, hostEndpointId, type, packageName.c_str(),
-      attributionTag.c_str());
+      builder, hostEndpointId, type, &packageNameVec, &attributionTagVec);
   finalize(builder, fbs::ChreMessage::HostEndpointConnected, message.Union());
 }
 
