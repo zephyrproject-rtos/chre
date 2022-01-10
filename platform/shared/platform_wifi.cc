@@ -91,13 +91,15 @@ bool PlatformWifi::requestRanging(const struct chreWifiRangingParams *params) {
 
 bool PlatformWifi::requestNanRanging(
     const struct chreWifiNanRangingParams *params) {
+  bool success = false;
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   if (mWifiApi != nullptr &&
       mWifiApi->moduleVersion >= CHRE_PAL_WIFI_API_V1_6) {
     prePalApiCall();
-    return mWifiApi->requestNanRanging(params);
-  } else {
-    return false;
+    success = mWifiApi->requestNanRanging(params);
   }
+#endif
+  return success;
 }
 
 bool PlatformWifi::requestScan(const struct chreWifiScanParams *params) {
@@ -128,29 +130,41 @@ void PlatformWifi::releaseScanEvent(struct chreWifiScanEvent *event) {
 
 void PlatformWifi::releaseNanDiscoveryEvent(
     struct chreWifiNanDiscoveryEvent *event) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   prePalApiCall();
   mWifiApi->releaseNanDiscoveryEvent(event);
+#else
+  UNUSED_VAR(event);
+#endif
 }
 
 bool PlatformWifi::nanSubscribe(
     const struct chreWifiNanSubscribeConfig *config) {
+  bool success = false;
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   if (mWifiApi != nullptr &&
       mWifiApi->moduleVersion >= CHRE_PAL_WIFI_API_V1_6) {
     prePalApiCall();
-    return mWifiApi->nanSubscribe(config);
-  } else {
-    return false;
+    success = mWifiApi->nanSubscribe(config);
   }
+#else
+  UNUSED_VAR(config);
+#endif
+  return success;
 }
 
 bool PlatformWifi::nanSubscribeCancel(uint32_t subscriptionId) {
+  bool success = false;
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   if (mWifiApi != nullptr &&
       mWifiApi->moduleVersion >= CHRE_PAL_WIFI_API_V1_6) {
     prePalApiCall();
-    return mWifiApi->nanSubscribeCancel(subscriptionId);
-  } else {
-    return false;
+    success = mWifiApi->nanSubscribeCancel(subscriptionId);
   }
+#else
+  UNUSED_VAR(subscriptionId);
+#endif
+  return success;
 }
 
 void PlatformWifiBase::rangingEventCallback(
@@ -178,30 +192,49 @@ void PlatformWifiBase::scanEventCallback(struct chreWifiScanEvent *event) {
 
 void PlatformWifiBase::nanServiceIdentifierCallback(uint8_t errorCode,
                                                     uint32_t subscriptionId) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   EventLoopManagerSingleton::get()
       ->getWifiRequestManager()
       .handleNanServiceIdentifierEvent(errorCode, subscriptionId);
+#else
+  UNUSED_VAR(errorCode);
+  UNUSED_VAR(subscriptionId);
+#endif
 }
 
 void PlatformWifiBase::nanServiceDiscoveryCallback(
     struct chreWifiNanDiscoveryEvent *event) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   EventLoopManagerSingleton::get()
       ->getWifiRequestManager()
       .handleNanServiceDiscoveryEvent(event);
+#else
+  UNUSED_VAR(event);
+#endif
 }
 
 void PlatformWifiBase::nanServiceLostCallback(uint32_t subscriptionId,
                                               uint32_t publisherId) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   EventLoopManagerSingleton::get()
       ->getWifiRequestManager()
       .handleNanServiceLostEvent(subscriptionId, publisherId);
+#else
+  UNUSED_VAR(subscriptionId);
+  UNUSED_VAR(publisherId);
+#endif
 }
 
 void PlatformWifiBase::nanServiceTerminatedCallback(uint32_t errorCode,
                                                     uint32_t subscriptionId) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
   EventLoopManagerSingleton::get()
       ->getWifiRequestManager()
       .handleNanServiceTerminatedEvent(errorCode, subscriptionId);
+#else
+  UNUSED_VAR(errorCode);
+  UNUSED_VAR(subscriptionId);
+#endif
 }
 
 }  // namespace chre
