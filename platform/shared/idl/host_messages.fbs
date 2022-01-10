@@ -379,6 +379,19 @@ table BatchedMetricLog {
   metrics: [MetricLog];
 }
 
+// NAN enable request sent from CHRE to the host.
+table NanConfigurationRequest {
+  enable:bool;
+}
+
+// NAN status message sent from the host to CHRE whenever a change in the NAN
+// enabled state is detected. Note that this update can be sent to CHRE either
+// as a response to a configuration request, or from out of band if NAN was
+// disabled by an external agent.
+table NanConfigurationUpdate {
+  enabled:bool;
+}
+
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
 union ChreMessage {
@@ -421,6 +434,9 @@ union ChreMessage {
 
   MetricLog,
   BatchedMetricLog,
+
+  NanConfigurationRequest,
+  NanConfigurationUpdate,
 }
 
 struct HostAddress {
