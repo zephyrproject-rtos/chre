@@ -41,12 +41,25 @@ class TelemetryManager : public NonCopyable {
     BLE,
   };
 
+  TelemetryManager();
+
   /**
    * Sends telemetry data related to a PAL open failure.
    *
    * @param type The type of PAL that failed to open.
    */
   void onPalOpenFailure(PalType type);
+
+  /**
+   * Collects system-level metrics to send to the host for logging.
+   */
+  void collectSystemMetrics();
+
+ private:
+  /**
+   * Schedules a periodic timer to collect system metrics.
+   */
+  void scheduleMetricTimer();
 };
 
 }  // namespace chre

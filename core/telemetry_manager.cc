@@ -19,9 +19,11 @@
 #include <pb_encode.h>
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/fatal_error.h"
 #include "chre/platform/shared/host_protocol_chre.h"
 #include "chre/util/macros.h"
 #include "chre/util/nested_data_ptr.h"
+#include "chre/util/time.h"
 #include "pixelatoms.nanopb.h"
 
 namespace chre {
@@ -101,6 +103,10 @@ _android_hardware_google_pixel_PixelAtoms_ChrePalType toAtomPalType(
 
 }  // anonymous namespace
 
+TelemetryManager::TelemetryManager() {
+  scheduleMetricTimer();
+}
+
 void TelemetryManager::onPalOpenFailure(PalType type) {
   auto callback = [](uint16_t /*type*/, void *data, void * /*extraData*/) {
     _android_hardware_google_pixel_PixelAtoms_ChrePalType palType =
@@ -117,6 +123,28 @@ void TelemetryManager::onPalOpenFailure(PalType type) {
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::DeferredMetricPostEvent, NestedDataPtr<PalType>(type),
       callback);
+}
+
+void TelemetryManager::collectSystemMetrics() {
+  // TODO(b/207156504): Implement this
+
+  scheduleMetricTimer();
+}
+
+void TelemetryManager::scheduleMetricTimer() {
+  constexpr Seconds kDelay = Seconds(60 * 60 * 24);  // 24 hours
+  auto callback = [](uint16_t /* eventType */, void * /* data */,
+                     void * /* extraData */) {
+    EventLoopManagerSingleton::get()
+        ->getTelemetryManager()
+        .collectSystemMetrics();
+  };
+  TimerHandle handle = EventLoopManagerSingleton::get()->setDelayedCallback(
+      SystemCallbackType::DeferredMetricPostEvent, nullptr /* data */, callback,
+      kDelay);
+  if (handle == CHRE_TIMER_INVALID) {
+    LOGE("Failed to set daily metric timer");
+  }
 }
 
 }  // namespace chre
