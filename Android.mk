@@ -39,6 +39,7 @@ LOCAL_INIT_RC := chre_daemon.rc
 
 LOCAL_CPP_EXTENSION := .cc
 LOCAL_CFLAGS += -Wall -Werror -Wextra
+LOCAL_CFLAGS += -DCHRE_DAEMON_METRIC_ENABLED
 
 LOCAL_TIDY_CHECKS := -google-runtime-int
 # bug:205155753, external/pigweed/pw_tokenizer/decode.cc:161 has this warning as error
@@ -87,7 +88,9 @@ LOCAL_SHARED_LIBRARIES := \
     android.hardware.soundtrigger@2.0 \
     libpower \
     libprotobuf-cpp-lite \
-    pixelatoms-cpp
+    pixelatoms-cpp \
+    android.frameworks.stats-V1-ndk \
+    libbinder_ndk
 
 LOCAL_CPPFLAGS += -std=c++20
 LOCAL_CFLAGS += -Wno-sign-compare

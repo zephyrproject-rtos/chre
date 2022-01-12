@@ -21,8 +21,18 @@
 #include "chre_host/log.h"
 #include "chre_host/napp_header.h"
 
-#include <hardware/google/pixel/pixelstats/pixelatoms.pb.h>
 #include <json/json.h>
+
+#ifdef CHRE_DAEMON_METRIC_ENABLED
+#include <aidl/android/frameworks/stats/IStats.h>
+#include <android/binder_manager.h>
+#include <hardware/google/pixel/pixelstats/pixelatoms.pb.h>
+
+using ::aidl::android::frameworks::stats::IStats;
+using ::aidl::android::frameworks::stats::VendorAtom;
+using ::aidl::android::frameworks::stats::VendorAtomValue;
+namespace PixelAtoms = ::android::hardware::google::pixel::PixelAtoms;
+#endif  // CHRE_DAEMON_METRIC_ENABLED
 
 // Aliased for consistency with the way these symbols are referenced in
 // CHRE-side code
@@ -114,7 +124,11 @@ bool ChreDaemonBase::sendNanoappLoad(uint64_t appId, uint32_t appVersion,
   if (!success) {
     LOGE("Failed to send nanoapp filename.");
   } else {
-    mPreloadedNanoappPendingTransactionIds.push(transactionId);
+    Transaction transaction = {
+        .transactionId = transactionId,
+        .nanoappId = appId,
+    };
+    mPreloadedNanoappPendingTransactions.push(transaction);
   }
 
   return success;
@@ -202,10 +216,12 @@ void ChreDaemonBase::onMessageReceived(const unsigned char *messageBuffer,
   } else if (messageType == fbs::ChreMessage::LowPowerMicAccessRelease) {
     configureLpma(false /* enabled */);
   } else if (messageType == fbs::ChreMessage::MetricLog) {
+#ifdef CHRE_DAEMON_METRIC_ENABLED
     std::unique_ptr<fbs::MessageContainerT> container =
         fbs::UnPackMessageContainer(messageBuffer);
     const auto *metricMsg = container->message.AsMetricLog();
     handleMetricLog(metricMsg);
+#endif  // CHRE_DAEMON_METRIC_ENABLED
   } else if (hostClientId == kHostClientIdDaemon) {
     handleDaemonMessage(messageBuffer);
   } else if (hostClientId == ::chre::kHostClientIdUnspecified) {
@@ -245,27 +261,43 @@ void ChreDaemonBase::handleDaemonMessage(const uint8_t *message) {
     LOGE("Invalid message from CHRE directed to daemon");
   } else {
     const auto *response = container->message.AsLoadNanoappResponse();
-    if (mPreloadedNanoappPendingTransactionIds.empty()) {
+    if (mPreloadedNanoappPendingTransactions.empty()) {
       LOGE("Received nanoapp load response with no pending load");
-    } else if (mPreloadedNanoappPendingTransactionIds.front() !=
+    } else if (mPreloadedNanoappPendingTransactions.front().transactionId !=
                response->transaction_id) {
       LOGE("Received nanoapp load response with ID %" PRIu32
            " expected transaction id %" PRIu32,
            response->transaction_id,
-           mPreloadedNanoappPendingTransactionIds.front());
+           mPreloadedNanoappPendingTransactions.front().transactionId);
     } else {
       if (!response->success) {
         LOGE("Received unsuccessful nanoapp load response with ID %" PRIu32,
-             mPreloadedNanoappPendingTransactionIds.front());
+             mPreloadedNanoappPendingTransactions.front().transactionId);
+
+#ifdef CHRE_DAEMON_METRIC_ENABLED
+        std::vector<VendorAtomValue> values(3);
+        values[0].set<VendorAtomValue::longValue>(
+            mPreloadedNanoappPendingTransactions.front().nanoappId);
+        values[1].set<VendorAtomValue::intValue>(
+            PixelAtoms::ChreHalNanoappLoadFailed::TYPE_PRELOADED);
+        values[2].set<VendorAtomValue::intValue>(
+            PixelAtoms::ChreHalNanoappLoadFailed::REASON_ERROR_GENERIC);
+        const VendorAtom atom{
+            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .atomId = PixelAtoms::Atom::kChreHalNanoappLoadFailed,
+            .values{std::move(values)},
+        };
+        reportMetric(atom);
+#endif  // CHRE_DAEMON_METRIC_ENABLED
       }
-      mPreloadedNanoappPendingTransactionIds.pop();
+      mPreloadedNanoappPendingTransactions.pop();
     }
   }
 }
 
+#ifdef CHRE_DAEMON_METRIC_ENABLED
 void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
   const std::vector<int8_t> &encodedMetric = metricMsg->encoded_metric;
-  namespace PixelAtoms = ::android::hardware::google::pixel::PixelAtoms;
 
   switch (metricMsg->id) {
     case PixelAtoms::Atom::kChrePalOpenFailed: {
@@ -273,7 +305,15 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
       if (!metric.ParseFromArray(encodedMetric.data(), encodedMetric.size())) {
         LOGE("Failed to parse metric data");
       } else {
-        // TODO(b/207156504): Log the metric
+        std::vector<VendorAtomValue> values(2);
+        values[0].set<VendorAtomValue::intValue>(metric.pal());
+        values[1].set<VendorAtomValue::intValue>(metric.type());
+        const VendorAtom atom{
+            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .atomId = PixelAtoms::Atom::kChrePalOpenFailed,
+            .values{std::move(values)},
+        };
+        reportMetric(atom);
       }
       break;
     }
@@ -282,6 +322,26 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
     }
   }
 }
+#endif  // CHRE_DAEMON_METRIC_ENABLED
+
+#ifdef CHRE_DAEMON_METRIC_ENABLED
+void ChreDaemonBase::reportMetric(const VendorAtom &atom) {
+  const std::string statsServiceName =
+      std::string(IStats::descriptor).append("/default");
+  if (!AServiceManager_isDeclared(statsServiceName.c_str())) {
+    LOGE("Stats service is not declared.");
+    return;
+  }
+
+  std::shared_ptr<IStats> stats_client = IStats::fromBinder(ndk::SpAIBinder(
+      AServiceManager_waitForService(statsServiceName.c_str())));
+
+  const ndk::ScopedAStatus ret = stats_client->reportVendorAtom(atom);
+  if (!ret.isOk()) {
+    LOGE("Failed to report vendor atom");
+  }
+}
+#endif  // CHRE_DAEMON_METRIC_ENABLED
 
 }  // namespace chre
 }  // namespace android
