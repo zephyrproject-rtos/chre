@@ -128,7 +128,6 @@ DSO_SUPPORT_LIB_SRCS = $(DSO_SUPPORT_LIB_PATH)/nanoapp_support_lib_dso.cc
 # directory and symlinks to effectively hide them from nanoapps
 DSO_SUPPORT_LIB_CFLAGS = -I$(CHRE_PREFIX)/platform/shared/nanoapp/include
 
-GOOGLE_HEXAGONV60_SLPI_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV62_SLPI_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV62_SLPI-UIMG_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_HEXAGONV65_ADSP-SEE_SRCS += $(DSO_SUPPORT_LIB_SRCS)
@@ -143,7 +142,6 @@ GOOGLE_HEXAGONV66_SLPI-QSH_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_ARM64_ANDROID_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 GOOGLE_X86_LINUX_SRCS += $(DSO_SUPPORT_LIB_SRCS)
 
-GOOGLE_HEXAGONV60_SLPI_CFLAGS += $(DSO_SUPPORT_LIB_CFLAGS)
 GOOGLE_HEXAGONV62_SLPI_CFLAGS += $(DSO_SUPPORT_LIB_CFLAGS)
 GOOGLE_HEXAGONV62_SLPI-UIMG_CFLAGS += $(DSO_SUPPORT_LIB_CFLAGS)
 GOOGLE_HEXAGONV65_ADSP-SEE_CFLAGS += $(DSO_SUPPORT_LIB_CFLAGS)
@@ -178,8 +176,6 @@ ifneq ($(CHRE_TARGET_EXTENSION),)
 include $(CHRE_TARGET_EXTENSION)
 endif
 include $(CHRE_PREFIX)/build/variant/google_arm64_android.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagonv55_slpi-see.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv65_adsp-see.mk
