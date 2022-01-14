@@ -311,6 +311,18 @@ class EventLoop : public NonCopyable {
     return mPowerControlManager;
   }
 
+  inline uint32_t getMaxEventQueueSize() const {
+    return mEventPoolUsage.getMax();
+  }
+
+  inline uint32_t getMeanEventQueueSize() const {
+    return mEventPoolUsage.getMean();
+  }
+
+  inline uint32_t getNumEventsDropped() const {
+    return mNumDroppedLowPriEvents;
+  }
+
  private:
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = CHRE_MAX_EVENT_COUNT;

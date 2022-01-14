@@ -317,6 +317,34 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
       }
       break;
     }
+    case PixelAtoms::Atom::kChreEventQueueSnapshotReported: {
+      PixelAtoms::ChreEventQueueSnapshotReported metric;
+      if (!metric.ParseFromArray(encodedMetric.data(), encodedMetric.size())) {
+        LOGE("Failed to parse metric data");
+      } else {
+        std::vector<VendorAtomValue> values(6);
+        values[0].set<VendorAtomValue::intValue>(
+            metric.snapshot_chre_get_time_ms());
+        values[1].set<VendorAtomValue::intValue>(metric.max_event_queue_size());
+        values[2].set<VendorAtomValue::intValue>(
+            metric.mean_event_queue_size());
+        values[3].set<VendorAtomValue::intValue>(metric.num_dropped_events());
+        // Last two values are not currently populated and will be implemented
+        // later. To avoid confusion of the interpretation, we use UINT32_MAX
+        // as a placeholder value.
+        values[4].set<VendorAtomValue::intValue>(
+            UINT32_MAX);  // max_queue_delay_us
+        values[5].set<VendorAtomValue::intValue>(
+            UINT32_MAX);  // mean_queue_delay_us
+        const VendorAtom atom{
+            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .atomId = PixelAtoms::Atom::kChreEventQueueSnapshotReported,
+            .values{std::move(values)},
+        };
+        reportMetric(atom);
+      }
+      break;
+    }
     default: {
       LOGW("Unknown metric ID %" PRIu32, metricMsg->id);
     }

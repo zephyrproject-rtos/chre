@@ -42,6 +42,33 @@ namespace {
   _android_hardware_google_pixel_PixelAtoms_ChrePalType:: \
       android_hardware_google_pixel_PixelAtoms_ChrePalType_CHRE_PAL_TYPE_##x
 
+void sendMetricToHost(uint32_t atomId, const pb_field_t fields[],
+                      const void *data) {
+  size_t size;
+  if (!pb_get_encoded_size(&size, PIXELATOMS_GET(ChrePalOpenFailed_fields),
+                           data)) {
+    LOGE("Failed to get message size");
+  } else {
+    pb_byte_t *bytes = static_cast<pb_byte_t *>(memoryAlloc(size));
+    if (bytes == nullptr) {
+      LOG_OOM();
+    } else {
+      pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
+      if (!pb_encode(&stream, PIXELATOMS_GET(ChrePalOpenFailed_fields), data)) {
+        LOGE("Failed to metric error %s", PB_GET_ERROR(&stream));
+      } else {
+        HostCommsManager &manager =
+            EventLoopManagerSingleton::get()->getHostCommsManager();
+        if (!manager.sendMetricLog(
+                PIXELATOMS_GET(Atom_chre_pal_open_failed_tag), bytes, size)) {
+          LOGE("Failed to send metric message");
+        }
+      }
+      memoryFree(bytes);
+    }
+  }
+}
+
 void sendPalOpenFailedMetric(
     _android_hardware_google_pixel_PixelAtoms_ChrePalType pal) {
   _android_hardware_google_pixel_PixelAtoms_ChrePalOpenFailed result =
@@ -53,30 +80,28 @@ void sendPalOpenFailedMetric(
       .type = _android_hardware_google_pixel_PixelAtoms_ChrePalOpenFailed_Type::
       android_hardware_google_pixel_PixelAtoms_ChrePalOpenFailed_Type_INITIAL_OPEN;
 
-  size_t size;
-  if (!pb_get_encoded_size(&size, PIXELATOMS_GET(ChrePalOpenFailed_fields),
-                           &result)) {
-    LOGE("Failed to get message size");
-  } else {
-    pb_byte_t *bytes = static_cast<pb_byte_t *>(memoryAlloc(size));
-    if (bytes == nullptr) {
-      LOG_OOM();
-    } else {
-      pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
-      if (!pb_encode(&stream, PIXELATOMS_GET(ChrePalOpenFailed_fields),
-                     &result)) {
-        LOGE("Failed to metric error %s", PB_GET_ERROR(&stream));
-      } else {
-        HostCommsManager &manager =
-            EventLoopManagerSingleton::get()->getHostCommsManager();
-        if (!manager.sendMetricLog(
-                PIXELATOMS_GET(Atom_chre_pal_open_failed_tag), bytes, size)) {
-          LOGE("Failed to send PAL open failed metric message");
-        }
-      }
-      memoryFree(bytes);
-    }
-  }
+  sendMetricToHost(PIXELATOMS_GET(Atom_chre_pal_open_failed_tag),
+                   PIXELATOMS_GET(ChrePalOpenFailed_fields), &result);
+}
+
+void sendEventLoopStats(uint32_t maxQueueSize, uint32_t meanQueueSize,
+                        uint32_t numDroppedEvents) {
+  _android_hardware_google_pixel_PixelAtoms_ChreEventQueueSnapshotReported
+      result = PIXELATOMS_GET(ChreEventQueueSnapshotReported_init_default);
+  result.has_snapshot_chre_get_time_ms = true;
+  result.snapshot_chre_get_time_ms =
+      SystemTime::getMonotonicTime().toRawNanoseconds() /
+      kOneMillisecondInNanoseconds;
+  result.has_max_event_queue_size = true;
+  result.max_event_queue_size = maxQueueSize;
+  result.has_mean_event_queue_size = true;
+  result.mean_event_queue_size = meanQueueSize;
+  result.has_num_dropped_events = true;
+  result.num_dropped_events = numDroppedEvents;
+
+  sendMetricToHost(PIXELATOMS_GET(Atom_chre_event_queue_snapshot_reported_tag),
+                   PIXELATOMS_GET(ChreEventQueueSnapshotReported_fields),
+                   &result);
 }
 
 _android_hardware_google_pixel_PixelAtoms_ChrePalType toAtomPalType(
@@ -126,7 +151,10 @@ void TelemetryManager::onPalOpenFailure(PalType type) {
 }
 
 void TelemetryManager::collectSystemMetrics() {
-  // TODO(b/207156504): Implement this
+  EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  sendEventLoopStats(eventLoop.getMaxEventQueueSize(),
+                     eventLoop.getMeanEventQueueSize(),
+                     eventLoop.getNumEventsDropped());
 
   scheduleMetricTimer();
 }
