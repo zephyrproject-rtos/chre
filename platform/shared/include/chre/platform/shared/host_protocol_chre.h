@@ -77,6 +77,8 @@ class HostMessageHandlers {
                                          fbs::SettingState state);
 
   static void handleSelfTestRequest(uint16_t hostClientId);
+
+  static void handleNanConfigurationUpdate(bool enabled);
 };
 
 /**
@@ -244,6 +246,16 @@ class HostProtocolChre : public HostProtocolCommon {
    */
   static void encodeMetricLog(ChreFlatBufferBuilder &builder, uint32_t metricId,
                               const uint8_t *encodedMsg, size_t metricSize);
+
+  /**
+   * Encodes a NAN configuration request.
+   *
+   * @param builder An instance of the CHRE Flatbuffer builder.
+   * @param enable Boolean to indicate the enable/disable operation being
+   *        requested.
+   */
+  static void encodeNanConfigurationRequest(ChreFlatBufferBuilder &builder,
+                                            bool enable);
 };
 
 }  // namespace chre

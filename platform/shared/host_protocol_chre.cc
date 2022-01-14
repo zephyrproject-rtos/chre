@@ -163,6 +163,15 @@ bool HostProtocolChre::decodeMessageFromHost(const void *message,
         break;
       }
 
+      case fbs::ChreMessage::NanConfigurationUpdate: {
+        const auto *nanConfigUpdateMessage =
+            static_cast<const fbs::NanConfigurationUpdate *>(
+                container->message());
+        HostMessageHandlers::handleNanConfigurationUpdate(
+            nanConfigUpdateMessage->enabled());
+        break;
+      }
+
       default:
         LOGW("Got invalid/unexpected message type %" PRIu8,
              static_cast<uint8_t>(container->message_type()));
@@ -323,6 +332,12 @@ void HostProtocolChre::encodeMetricLog(ChreFlatBufferBuilder &builder,
       reinterpret_cast<const int8_t *>(encodedMsg), metricSize);
   auto message = fbs::CreateMetricLog(builder, metricId, encodedMessage);
   finalize(builder, fbs::ChreMessage::MetricLog, message.Union());
+}
+
+void HostProtocolChre::encodeNanConfigurationRequest(
+    ChreFlatBufferBuilder &builder, bool enable) {
+  auto request = fbs::CreateNanConfigurationRequest(builder, enable);
+  finalize(builder, fbs::ChreMessage::NanConfigurationRequest, request.Union());
 }
 
 bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,

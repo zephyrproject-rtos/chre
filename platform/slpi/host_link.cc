@@ -85,6 +85,7 @@ enum class PendingMessageType {
   EncodedLogMessage,
   SelfTestResponse,
   MetricLog,
+  NanConfigurationRequest,
 };
 
 struct PendingMessage {
@@ -624,6 +625,7 @@ extern "C" int chre_slpi_get_message_to_host(unsigned char *buffer,
       case PendingMessageType::EncodedLogMessage:
       case PendingMessageType::SelfTestResponse:
       case PendingMessageType::MetricLog:
+      case PendingMessageType::NanConfigurationRequest:
         result = generateMessageFromBuilder(
             pendingMsg.data.builder, buffer, bufferSize, messageLen,
             pendingMsg.type == PendingMessageType::EncodedLogMessage);
@@ -786,6 +788,17 @@ void HostLinkBase::sendLogMessageV2(const uint8_t *logMessage,
   constexpr size_t kInitialSize = 128;
   buildAndEnqueueMessage(PendingMessageType::EncodedLogMessage, kInitialSize,
                          msgBuilder, &logMessageData);
+}
+
+void HostLinkBase::sendNanConfiguration(bool enable) {
+  auto msgBuilder = [](ChreFlatBufferBuilder &builder, void *cookie) {
+    const auto *data = static_cast<const bool *>(cookie);
+    HostProtocolChre::encodeNanConfigurationRequest(builder, *data);
+  };
+
+  constexpr size_t kInitialSize = 48;
+  buildAndEnqueueMessage(PendingMessageType::NanConfigurationRequest,
+                         kInitialSize, msgBuilder, &enable);
 }
 
 void HostLinkBase::shutdown() {
@@ -978,6 +991,16 @@ void HostMessageHandlers::handleSelfTestRequest(uint16_t hostClientId) {
   // TODO(b/182201569): Run test
   bool success = true;
   sendSelfTestResponse(hostClientId, success);
+}
+
+void HostMessageHandlers::handleNanConfigurationUpdate(bool enabled) {
+#ifdef CHRE_WIFI_NAN_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()
+      ->getWifiRequestManager()
+      .updateNanAvailability(enabled);
+#else
+  UNUSED_VAR(enabled);
+#endif  // CHRE_WIFI_NAN_SUPPORT_ENABLED
 }
 
 }  // namespace chre
