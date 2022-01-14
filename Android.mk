@@ -42,7 +42,6 @@ LOCAL_CFLAGS += -Wall -Werror -Wextra
 LOCAL_CFLAGS += -DCHRE_DAEMON_METRIC_ENABLED
 
 LOCAL_TIDY_CHECKS := -google-runtime-int
-# bug:205155753, external/pigweed/pw_tokenizer/decode.cc:161 has this warning as error
 
 # Enable the LPMA feature for devices that support audio
 ifeq ($(CHRE_DAEMON_LPMA_ENABLED),true)
@@ -60,6 +59,7 @@ LOCAL_SRC_FILES := \
     host/common/log_message_parser.cc \
     host/common/socket_server.cc \
     host/common/st_hal_lpma_handler.cc \
+    host/common/wifi_ext_hal_handler.cc \
     host/msm/daemon/fastrpc_daemon.cc \
     host/msm/daemon/main.cc \
     host/msm/daemon/generated/chre_slpi_stub.c \
