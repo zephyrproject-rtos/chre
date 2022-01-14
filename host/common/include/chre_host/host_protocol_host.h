@@ -259,6 +259,9 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    */
   static void encodeHostEndpointDisconnected(
       flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);
+
+  static void encodeNanconfigurationUpdate(
+      flatbuffers::FlatBufferBuilder &builder, bool nanEnabled);
 };
 
 }  // namespace chre

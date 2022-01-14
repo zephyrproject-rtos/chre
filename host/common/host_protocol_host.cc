@@ -235,5 +235,11 @@ void HostProtocolHost::encodeHostEndpointDisconnected(
            message.Union());
 }
 
+void HostProtocolHost::encodeNanconfigurationUpdate(
+    flatbuffers::FlatBufferBuilder &builder, bool nanEnabled) {
+  auto message = fbs::CreateNanConfigurationUpdate(builder, nanEnabled);
+  finalize(builder, fbs::ChreMessage::NanConfigurationUpdate, message.Union());
+}
+
 }  // namespace chre
 }  // namespace android
