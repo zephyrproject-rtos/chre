@@ -190,6 +190,8 @@ class WifiRequestManager : public NonCopyable {
    */
   void handleScanEvent(struct chreWifiScanEvent *event);
 
+  void updateNanAvailability(bool available);
+
   /**
    * Handles a NAN service identifier event. This event is the asynchronous
    * result of a NAN subscription request by a nanoapp.
@@ -305,6 +307,8 @@ class WifiRequestManager : public NonCopyable {
         : nanoappInstanceId(nappId), subscriptionId(subId) {}
   };
 
+  enum class PendingNanConfigType { UNKNOWN, ENABLE, DISABLE };
+
   static constexpr size_t kMaxScanMonitorStateTransitions = 8;
   static constexpr size_t kMaxPendingRangingRequests = 4;
   static constexpr size_t kMaxPendingNanSubscriptionRequests = 4;
@@ -347,6 +351,11 @@ class WifiRequestManager : public NonCopyable {
   //! Accumulates the number of scan event results to determine when the last
   //! in a scan event stream has been received.
   uint8_t mScanEventResultCountAccumulator = 0;
+
+  bool mNanIsAvailable = false;
+  bool mNanConfigRequestToHostPending = false;
+  PendingNanConfigType mNanConfigRequestToHostPendingType =
+      PendingNanConfigType::UNKNOWN;
 
   //! System time when last scan request was made.
   Nanoseconds mLastScanRequestTime;
@@ -608,6 +617,12 @@ class WifiRequestManager : public NonCopyable {
   bool dispatchQueuedNanSubscribeRequest();
 
   /**
+   * If a failure while dispatching the NAN subscribe requests, tries to
+   * dispatch it again until the first one succeeds.
+   */
+  void dispatchQueuedNanSubscribeRequestWithRetry();
+
+  /**
    * Processes the result of a ranging request within the context of the CHRE
    * thread.
    *
@@ -715,6 +730,7 @@ class WifiRequestManager : public NonCopyable {
   bool updateRangingRequest(RangingType rangingType,
                             PendingRangingRequest &request,
                             const void *rangingParams);
+
   /**
    * Send a pending AP or NAN ranging request to the platform.
    *
@@ -723,6 +739,7 @@ class WifiRequestManager : public NonCopyable {
    * @return true if the request was successfully sent, false otherwise.
    */
   bool sendRangingRequest(PendingRangingRequest &request);
+
   /**
    * Helper function to determine if all the settings required for a ranging
    * request (viz. Location, WiFi-available) are enabled.
@@ -730,6 +747,30 @@ class WifiRequestManager : public NonCopyable {
    * @return true if the necessary settings are enabled, false otherwise.
    */
   bool areRequiredSettingsEnabled();
+
+  /**
+   * Helper function to cancel all existing nanoapp NAN subscriptions and
+   * inform the nanoapps owning the subscriptions of the cancelation with
+   * a NAN session terminated event.
+   */
+  void cancelNanSubscriptionsAndInformNanoapps();
+
+  /**
+   * Helper function to cancel all pending NAN subscription requests and
+   * inform the nanoapps making the request of the cancelation with a WiFi
+   * async result event.
+   */
+  void cancelNanPendingRequestsAndInformNanoapps();
+
+  /**
+   * Sends a config request to the host to enable or disable NAN functionality.
+   * The function checks if a request is already pending or if the pending
+   * request type opposes the current request and only then sends the request
+   * across to avoid duplicate requests.
+   *
+   * @param enable Indicates if a NAN enable or disable is being requested.
+   */
+  void sendNanConfiguration(bool enable);
 };
 
 }  // namespace chre

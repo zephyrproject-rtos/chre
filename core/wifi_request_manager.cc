@@ -344,13 +344,7 @@ void WifiRequestManager::handleNanServiceIdentifierEventSync(
     }
 
     mPendingNanSubscribeRequests.pop();
-
-    // If we have any pending subscription requests, try issuing them to the
-    // platform until the first one succeeds.
-    while (!mPendingNanSubscribeRequests.empty() &&
-           !dispatchQueuedNanSubscribeRequest())
-      ;
-
+    dispatchQueuedNanSubscribeRequestWithRetry();
   } else {
     LOGE("Received a NAN identifier event with no pending request!");
   }
@@ -896,6 +890,12 @@ bool WifiRequestManager::dispatchQueuedNanSubscribeRequest() {
   return success;
 }
 
+void WifiRequestManager::dispatchQueuedNanSubscribeRequestWithRetry() {
+  while (!mPendingNanSubscribeRequests.empty() &&
+         !dispatchQueuedNanSubscribeRequest())
+    ;
+}
+
 void WifiRequestManager::handleRangingEventSync(
     uint8_t errorCode, struct chreWifiRangingEvent *event) {
   if (!areRequiredSettingsEnabled()) {
@@ -1017,14 +1017,18 @@ bool WifiRequestManager::nanSubscribe(
       req.nanoappInstanceId = nanoapp->getInstanceId();
       req.cookie = cookie;
 
-      if (mPendingNanSubscribeRequests.size() == 1) {
-        // First in line; dispatch request immediately.
-        success = mPlatformWifi.nanSubscribe(config);
-      } else if (!(success = copyNanSubscribeConfigToRequest(req, config))) {
-        LOG_OOM();
-      }
-      if (!success) {
-        mPendingNanSubscribeRequests.pop_back();
+      if (mNanIsAvailable) {
+        if (mPendingNanSubscribeRequests.size() == 1) {
+          // First in line; dispatch request immediately.
+          success = mPlatformWifi.nanSubscribe(config);
+        } else if (!(success = copyNanSubscribeConfigToRequest(req, config))) {
+          LOG_OOM();
+        }
+        if (!success) {
+          mPendingNanSubscribeRequests.pop_back();
+        }
+      } else {
+        sendNanConfiguration(true /*enable*/);
       }
     }
   }
@@ -1044,6 +1048,10 @@ bool WifiRequestManager::nanSubscribeCancel(Nanoapp *nanoapp,
       }
       break;
     }
+  }
+
+  if (mNanoappSubscriptions.empty()) {
+    sendNanConfiguration(false /*enable*/);
   }
 
   return success;
@@ -1084,6 +1092,72 @@ void WifiRequestManager::buildNanSubscribeConfigFromRequest(
 inline bool WifiRequestManager::areRequiredSettingsEnabled() {
   return (getSettingState(Setting::LOCATION) == SettingState::ENABLED) &&
          (getSettingState(Setting::WIFI_AVAILABLE) == SettingState::ENABLED);
+}
+
+void WifiRequestManager::cancelNanSubscriptionsAndInformNanoapps() {
+  for (size_t i = 0; i < mNanoappSubscriptions.size(); ++i) {
+    chreWifiNanSessionTerminatedEvent *event =
+        memoryAlloc<chreWifiNanSessionTerminatedEvent>();
+    if (event == nullptr) {
+      LOG_OOM();
+    } else {
+      event->id = mNanoappSubscriptions[i].subscriptionId;
+      event->reason = CHRE_ERROR_FUNCTION_DISABLED;
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_WIFI_NAN_SESSION_TERMINATED, event, freeEventDataCallback,
+          mNanoappSubscriptions[i].nanoappInstanceId);
+    }
+  }
+  mNanoappSubscriptions.clear();
+}
+
+void WifiRequestManager::cancelNanPendingRequestsAndInformNanoapps() {
+  for (size_t i = 0; i < mPendingNanSubscribeRequests.size(); ++i) {
+    chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
+    if (event == nullptr) {
+      LOG_OOM();
+    } else {
+      event->requestType = CHRE_WIFI_REQUEST_TYPE_NAN_SUBSCRIBE;
+      event->success = false;
+      event->errorCode = CHRE_ERROR_FUNCTION_DISABLED;
+      event->cookie = mPendingNanSubscribeRequests[i].cookie;
+      EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+          CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
+          mPendingNanSubscribeRequests[i].nanoappInstanceId);
+    }
+  }
+  mPendingNanSubscribeRequests.clear();
+}
+
+void WifiRequestManager::updateNanAvailability(bool available) {
+  PendingNanConfigType nanState =
+      available ? PendingNanConfigType::ENABLE : PendingNanConfigType::DISABLE;
+  mNanIsAvailable = available;
+
+  if (nanState == mNanConfigRequestToHostPendingType) {
+    mNanConfigRequestToHostPending = false;
+    mNanConfigRequestToHostPendingType = PendingNanConfigType::UNKNOWN;
+  }
+
+  if (available) {
+    dispatchQueuedNanSubscribeRequestWithRetry();
+  } else {
+    cancelNanPendingRequestsAndInformNanoapps();
+    cancelNanSubscriptionsAndInformNanoapps();
+  }
+}
+
+void WifiRequestManager::sendNanConfiguration(bool enable) {
+  PendingNanConfigType requiredState =
+      enable ? PendingNanConfigType::ENABLE : PendingNanConfigType::DISABLE;
+  if (!mNanConfigRequestToHostPending ||
+      (mNanConfigRequestToHostPendingType != requiredState)) {
+    mNanConfigRequestToHostPending = true;
+    mNanConfigRequestToHostPendingType = requiredState;
+    EventLoopManagerSingleton::get()
+        ->getHostCommsManager()
+        .sendNanConfiguration(enable);
+  }
 }
 
 }  // namespace chre
