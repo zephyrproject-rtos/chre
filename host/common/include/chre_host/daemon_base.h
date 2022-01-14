@@ -27,6 +27,10 @@
 #include "chre_host/log_message_parser.h"
 #include "chre_host/socket_server.h"
 
+#ifdef WIFI_EXT_V_1_3_HAS_MERGED
+#include "chre_host/wifi_ext_hal_handler.h"
+#endif  // WIFI_EXT_V_1_3_HAS_MERGED
+
 #ifdef CHRE_DAEMON_METRIC_ENABLED
 #include <aidl/android/frameworks/stats/IStats.h>
 #include <android/binder_manager.h>
@@ -179,6 +183,8 @@ class ChreDaemonBase {
   bool sendTimeSyncWithRetry(size_t numRetries, useconds_t retryDelayUs,
                              bool logOnError);
 
+  bool sendNanConfigurationUpdate(bool nanEnabled);
+
   /**
    * Interface to a callback that is called when the Daemon receives a message.
    *
@@ -223,6 +229,14 @@ class ChreDaemonBase {
 #endif  // CHRE_DAEMON_METRIC_ENABLED
 
   /**
+   * Handles a NAN configuration request sent from CHRE.
+   *
+   * @param request NAN configuration request.
+   */
+  virtual void handleNanConfigurationRequest(
+      const ::chre::fbs::NanConfigurationRequestT *request);
+
+  /**
    * Returns the CHRE log message parser instance.
    * @return log message parser instance.
    */
@@ -250,6 +264,10 @@ class ChreDaemonBase {
    * @return offset in nanoseconds
    */
   virtual int64_t getTimeOffset(bool *success) = 0;
+
+#ifdef WIFI_EXT_V_1_3_HAS_MERGED
+  WifiExtHalHandler mWifiExtHalHandler;
+#endif  // WIFI_EXT_V_1_3_HAS_MERGED
 };
 
 }  // namespace chre

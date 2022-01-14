@@ -43,6 +43,13 @@ namespace chre {
 
 ChreDaemonBase::ChreDaemonBase() : mChreShutdownRequested(false) {
   mLogger.init();
+
+#ifdef WIFI_EXT_V_1_3_HAS_MERGED
+  auto handleNanStatusChangeCb = [this](bool nanEnabled) {
+    sendNanConfigurationUpdate(nanEnabled);
+  };
+  mWifiExtHalHandler.init(handleNanStatusChangeCb);
+#endif  // WIFI_EXT_V_1_3_HAS_MERGED
 }
 
 void ChreDaemonBase::loadPreloadedNanoapps() {
@@ -165,6 +172,13 @@ bool ChreDaemonBase::sendTimeSyncWithRetry(size_t numRetries,
   return success;
 }
 
+bool ChreDaemonBase::sendNanConfigurationUpdate(bool nanEnabled) {
+  flatbuffers::FlatBufferBuilder builder(32);
+  HostProtocolHost::encodeNanconfigurationUpdate(builder, nanEnabled);
+  return sendMessageToChre(kHostClientIdDaemon, builder.GetBufferPointer(),
+                           builder.GetSize());
+}
+
 bool ChreDaemonBase::sendMessageToChre(uint16_t clientId, void *data,
                                        size_t length) {
   bool success = false;
@@ -222,6 +236,11 @@ void ChreDaemonBase::onMessageReceived(const unsigned char *messageBuffer,
     const auto *metricMsg = container->message.AsMetricLog();
     handleMetricLog(metricMsg);
 #endif  // CHRE_DAEMON_METRIC_ENABLED
+  } else if (messageType == fbs::ChreMessage::NanConfigurationRequest) {
+    std::unique_ptr<fbs::MessageContainerT> container =
+        fbs::UnPackMessageContainer(messageBuffer);
+    handleNanConfigurationRequest(
+        container->message.AsNanConfigurationRequest());
   } else if (hostClientId == kHostClientIdDaemon) {
     handleDaemonMessage(messageBuffer);
   } else if (hostClientId == ::chre::kHostClientIdUnspecified) {
@@ -370,6 +389,15 @@ void ChreDaemonBase::reportMetric(const VendorAtom &atom) {
   }
 }
 #endif  // CHRE_DAEMON_METRIC_ENABLED
+
+void ChreDaemonBase::handleNanConfigurationRequest(
+    const ::chre::fbs::NanConfigurationRequestT *request) {
+#ifdef WIFI_EXT_V_1_3_HAS_MERGED
+  mWifiExtHalHandler.handleConfigurationRequest(request->enable);
+#else
+  (void)request;
+#endif  // WIFI_EXT_V_1_3_HAS_MERGED
+}
 
 }  // namespace chre
 }  // namespace android
