@@ -23,6 +23,18 @@
 
 namespace chre {
 
+// Indicates what the current status of this request is w.r.t. its usage by
+// the PAL.
+enum class RequestStatus : uint8_t {
+  // Indicates the request is waiting to be sent to the PAL
+  PENDING_REQ,
+  // Indicates the request has been issued to the PAL, but hasn't received
+  // a response yet
+  PENDING_RESP,
+  // Indicates this request has been successfully applied by the PAL.
+  APPLIED,
+};
+
 class BleRequest : public NonCopyable {
  public:
   BleRequest();
@@ -31,9 +43,6 @@ class BleRequest : public NonCopyable {
 
   BleRequest(uint32_t instanceId, bool enable, chreBleScanMode mode,
              uint32_t reportDelayMs, const chreBleScanFilter *filter);
-
-  BleRequest(uint32_t instanceId, bool enable, chreBleScanMode mode,
-             uint32_t reportDelayMs, int8_t rssiThreshold);
 
   BleRequest(BleRequest &&other);
 
@@ -78,6 +87,16 @@ class BleRequest : public NonCopyable {
   int8_t getRssiThreshold() const;
 
   /**
+   * @return The current status of this request.
+   */
+  RequestStatus getRequestStatus() const;
+
+  /**
+   * @param status The status this request should be set to.
+   */
+  void setRequestStatus(RequestStatus status);
+
+  /**
    * @return Generic filters of this request.
    */
   const DynamicVector<chreBleGenericFilter> &getGenericFilters() const;
@@ -97,18 +116,23 @@ class BleRequest : public NonCopyable {
   // Instance id of nanoapp that sent the request.
   uint32_t mInstanceId;
 
-  // Whether a nanoapp intends to enable this request. If set to false, the
-  // following members are invalid: mMode, mReportDelayMs, mFilter.
-  bool mEnabled;
-
   // Scanning mode selected among enum chreBleScanMode.
   chreBleScanMode mMode;
 
   // Maximum requested batching delay in ms.
   uint32_t mReportDelayMs;
 
+  // Whether a nanoapp intends to enable this request. If set to false, the
+  // following members are invalid: mMode, mReportDelayMs, mFilter.
+  bool mEnabled;
+
   // RSSI threshold filter.
   int8_t mRssiThreshold;
+
+  // The current status of this request. Note that this value is not considered
+  // when determining equivalence or whe merging to prevent extra churn by the
+  // request multiplexer.
+  RequestStatus mStatus;
 
   // Generic scan filters.
   DynamicVector<chreBleGenericFilter> mFilters;

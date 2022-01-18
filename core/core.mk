@@ -32,6 +32,7 @@ endif
 ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
 COMMON_SRCS += core/ble_request.cc
 COMMON_SRCS += core/ble_request_manager.cc
+COMMON_SRCS += core/ble_request_multiplexer.cc
 endif
 
 # Optional GNSS support.

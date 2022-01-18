@@ -17,8 +17,11 @@
 #include "chre_api/chre/ble.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/util/system/napp_permissions.h"
 
+using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
+using chre::NanoappPermissions;
 
 DLL_EXPORT uint32_t chreBleGetCapabilities() {
 #ifdef CHRE_BLE_SUPPORT_ENABLED
@@ -37,5 +40,30 @@ DLL_EXPORT uint32_t chreBleGetFilterCapabilities() {
       .getFilterCapabilities();
 #else
   return CHRE_BLE_FILTER_CAPABILITIES_NONE;
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+}
+
+DLL_EXPORT bool chreBleStartScanAsync(chreBleScanMode mode,
+                                      uint32_t reportDelayMs,
+                                      const struct chreBleScanFilter *filter) {
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_BLE) &&
+         EventLoopManagerSingleton::get()
+             ->getBleRequestManager()
+             .startScanAsync(nanoapp, mode, reportDelayMs, filter);
+#else
+  return false;
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+}
+
+DLL_EXPORT bool chreBleStopScanAsync() {
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  chre::Nanoapp *nanoapp = EventLoopManager::validateChreApiCall(__func__);
+  return nanoapp->permitPermissionUse(NanoappPermissions::CHRE_PERMS_BLE) &&
+         EventLoopManagerSingleton::get()->getBleRequestManager().stopScanAsync(
+             nanoapp);
+#else
+  return false;
 #endif  // CHRE_BLE_SUPPORT_ENABLED
 }

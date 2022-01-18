@@ -18,6 +18,7 @@
 
 #include <cinttypes>
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/platform/log.h"
 #include "chre/platform/shared/pal_system_api.h"
 #include "chre_api/chre/ble.h"
@@ -102,14 +103,17 @@ void PlatformBleBase::requestStateResync() {
   // TODO(b/213583212): Implement method.
 }
 
-void PlatformBleBase::scanStatusChangeCallback(bool /* enabled */,
-                                               uint8_t /* errorCode */) {
-  // TODO(b/211899620): Implement method.
+void PlatformBleBase::scanStatusChangeCallback(bool enabled,
+                                               uint8_t errorCode) {
+  EventLoopManagerSingleton::get()->getBleRequestManager().handlePlatformChange(
+      enabled, errorCode);
 }
 
 void PlatformBleBase::advertisingEventCallback(
-    struct chreBleAdvertisementEvent * /* event */) {
-  // TODO(b/211899620): Implement method.
+    struct chreBleAdvertisementEvent *event) {
+  EventLoopManagerSingleton::get()
+      ->getBleRequestManager()
+      .handleAdvertisementEvent(event);
 }
 
 }  // namespace chre
