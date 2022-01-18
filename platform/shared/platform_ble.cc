@@ -73,8 +73,33 @@ uint32_t PlatformBle::getFilterCapabilities() {
   }
 }
 
+bool PlatformBle::startScanAsync(chreBleScanMode mode, uint32_t reportDelayMs,
+                                 const struct chreBleScanFilter *filter) {
+  if (mBleApi != nullptr) {
+    prePalApiCall();
+    return mBleApi->startScan(mode, reportDelayMs, filter);
+  } else {
+    return false;
+  }
+}
+
+bool PlatformBle::stopScanAsync() {
+  if (mBleApi != nullptr) {
+    prePalApiCall();
+    return mBleApi->stopScan();
+  } else {
+    return false;
+  }
+}
+
+void PlatformBle::releaseAdvertisingEvent(
+    struct chreBleAdvertisementEvent *event) {
+  prePalApiCall();
+  mBleApi->releaseAdvertisingEvent(event);
+}
+
 void PlatformBleBase::requestStateResync() {
-  // TODO(b/211899620): Implement method.
+  // TODO(b/213583212): Implement method.
 }
 
 void PlatformBleBase::scanStatusChangeCallback(bool /* enabled */,

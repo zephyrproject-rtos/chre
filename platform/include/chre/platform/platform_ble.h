@@ -52,6 +52,40 @@ class PlatformBle : public PlatformBleBase {
    * @return the BLE filter capabilities exposed by this platform.
    */
   uint32_t getFilterCapabilities();
+
+  /**
+   * Begins a BLE scan asynchronously. The result is delivered through a
+   * CHRE_EVENT_BLE_ASYNC_RESULT event.
+   *
+   * @param mode Scanning mode selected among enum chreBleScanMode
+   * @param reportDelayMs Maximum requested batching delay in ms. 0 indicates no
+   *                      batching. Note that the system may deliver results
+   *                      before the maximum specified delay is reached.
+   * @param filter Pointer to the requested best-effort filter configuration as
+   *               defined by struct chreBleScanFilter. The ownership of filter
+   *               and its nested elements remains with the caller, and the
+   *               caller may release it as soon as chreBleStartScanAsync()
+   *               returns.
+   * @return true if scan was successfully enabled.
+   */
+  bool startScanAsync(chreBleScanMode mode, uint32_t reportDelayMs,
+                      const struct chreBleScanFilter *filter);
+
+  /**
+   * End a BLE scan asynchronously. The result is delivered through a
+   * CHRE_EVENT_BLE_ASYNC_RESULT event.
+   *
+   * @return true if scan was successfully ended.
+   */
+  bool stopScanAsync();
+
+  /**
+   * Releases an advertising event that was previously provided to the BLE
+   * manager.
+   *
+   * @param event the event to release.
+   */
+  void releaseAdvertisingEvent(struct chreBleAdvertisementEvent *event);
 };
 
 }  // namespace chre
