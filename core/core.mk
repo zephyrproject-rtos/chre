@@ -30,6 +30,7 @@ endif
 
 # Optional BLE support.
 ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
+COMMON_SRCS += core/ble_request.cc
 COMMON_SRCS += core/ble_request_manager.cc
 endif
 
@@ -79,6 +80,7 @@ endif
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += core/tests/audio_util_test.cc
+GOOGLETEST_SRCS += core/tests/ble_request_test.cc
 GOOGLETEST_SRCS += core/tests/memory_manager_test.cc
 GOOGLETEST_SRCS += core/tests/request_multiplexer_test.cc
 GOOGLETEST_SRCS += core/tests/sensor_request_test.cc

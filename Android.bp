@@ -347,6 +347,7 @@ cc_test_host {
     srcs: [
         "core/event_ref_queue.cc",
         "core/nanoapp.cc",
+        "core/ble_request.cc",
         "core/sensor_request.cc",
         "core/tests/**/*.cc",
         "core/wifi_scan_request.cc",
@@ -421,6 +422,7 @@ cc_library_static {
     name: "chre_linux",
     vendor: true,
     srcs: [
+        "core/ble_request.cc",
         "core/ble_request_manager.cc",
         "core/init.cc",
         "core/event.cc",
