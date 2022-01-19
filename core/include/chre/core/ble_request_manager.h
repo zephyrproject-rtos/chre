@@ -111,12 +111,24 @@ class BleRequestManager : public NonCopyable {
    */
   void handlePlatformChange(bool enable, uint8_t errorCode);
 
+  /**
+   * Invoked as a result of a requestStateResync() callback from the BLE PAL.
+   * Runs asynchronously in the context of the callback immediately.
+   */
+  void handleRequestStateResyncCallback();
+
  private:
   //! Multiplexer used to keep track of BLE requests from nanoapps.
   BleRequestMultiplexer mRequests;
 
   // The platform BLE interface.
   PlatformBle mPlatformBle;
+
+  // True if a request from the PAL is currently pending.
+  bool mInternalRequestPending;
+
+  // True if a state resync callback is pending to be processed.
+  bool mResyncPending;
 
   /**
    * Configures BLE platform based on the current maximal BleRequest.
@@ -176,6 +188,23 @@ class BleRequestManager : public NonCopyable {
    */
   void handleAsyncResult(const BleRequest &req, bool success, uint8_t errorCode,
                          bool forceUnregister = false);
+
+  /**
+   * Invoked as a result of a requestStateResync() callback from the BLE PAL.
+   * Runs in the context of the CHRE thread.
+   */
+  void handleRequestStateResyncCallbackSync();
+
+  /**
+   * Sends request to resync BLE platform based on current maximal request.
+   */
+  void resyncPlatform();
+
+  /**
+   * @return true if an async response is pending from BLE. This method should
+   * be used to check if a BLE platform request is in progress.
+   */
+  bool asyncResponsePending();
 
   /**
    * Validates the parameters given to ensure that they can be issued to the

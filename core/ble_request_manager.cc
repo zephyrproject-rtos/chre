@@ -82,7 +82,7 @@ bool BleRequestManager::configure(BleRequest &&request) {
     success =
         updateRequests(std::move(request), &requestChanged, &requestIndex);
     if (success) {
-      if (!mRequests.hasRequests(RequestStatus::PENDING_RESP)) {
+      if (!asyncResponsePending()) {
         Nanoapp *nanoapp = EventLoopManagerSingleton::get()
                                ->getEventLoop()
                                .findNanoappByInstanceId(instanceId);
@@ -160,31 +160,52 @@ void BleRequestManager::handlePlatformChange(bool enable, uint8_t errorCode) {
 void BleRequestManager::handlePlatformChangeSync(bool enable,
                                                  uint8_t errorCode) {
   bool success = (errorCode == CHRE_ERROR_NONE);
-  bool expectedEnable = false;
-  for (BleRequest &req : mRequests.getMutableRequests()) {
-    if (req.getRequestStatus() == RequestStatus::PENDING_RESP) {
-      if (req.isEnabled()) {
-        expectedEnable = true;
-      }
+  if (mInternalRequestPending) {
+    mInternalRequestPending = false;
+    if (!success) {
+      FATAL_ERROR("Failed to resync BLE platform");
+    }
+  } else {
+    bool expectedEnable = false;
+    for (BleRequest &req : mRequests.getMutableRequests()) {
+      if (req.getRequestStatus() == RequestStatus::PENDING_RESP) {
+        if (req.isEnabled()) {
+          expectedEnable = true;
+        }
 
-      handleAsyncResult(req, success, errorCode);
-      if (success) {
-        req.setRequestStatus(RequestStatus::APPLIED);
+        handleAsyncResult(req, success, errorCode);
+        if (success) {
+          req.setRequestStatus(RequestStatus::APPLIED);
+        }
       }
     }
-  }
 
-  if (!success) {
-    mRequests.removeRequests(RequestStatus::PENDING_RESP);
-  } else {
-    CHRE_ASSERT_LOG(expectedEnable == enable,
-                    "BLE PAL didn't transition to correct state");
+    if (!success) {
+      mRequests.removeRequests(RequestStatus::PENDING_RESP);
+    } else {
+      CHRE_ASSERT_LOG(expectedEnable == enable,
+                      "BLE PAL didn't transition to correct state");
+    }
+  }
+  if (success) {
     // No need to waste memory for requests that have no effect on the overall
     // maximal request.
     mRequests.removeDisabledRequests();
   }
 
   dispatchQueuedStateTransitions();
+
+  // Only clear mResyncPending if the request succeeded or after all pending
+  // requests are dispatched and a resync request can be issued with only the
+  // requests that were previously applied.
+  if (mResyncPending) {
+    if (success) {
+      mResyncPending = false;
+    } else if (!success && !asyncResponsePending()) {
+      mResyncPending = false;
+      resyncPlatform();
+    }
+  }
 }
 
 void BleRequestManager::dispatchQueuedStateTransitions() {
@@ -216,6 +237,38 @@ void BleRequestManager::handleAsyncResult(const BleRequest &req, bool success,
       nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
     }
   }
+}
+
+void BleRequestManager::handleRequestStateResyncCallback() {
+  auto callback = [](uint16_t /* eventType */, void * /* eventData */,
+                     void * /* extraData */) {
+    EventLoopManagerSingleton::get()
+        ->getBleRequestManager()
+        .handleRequestStateResyncCallbackSync();
+  };
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::BleRequestResyncEvent, nullptr /* data */, callback);
+}
+
+void BleRequestManager::handleRequestStateResyncCallbackSync() {
+  if (asyncResponsePending()) {
+    mResyncPending = true;
+  } else {
+    resyncPlatform();
+  }
+}
+
+void BleRequestManager::resyncPlatform() {
+  if (controlPlatform()) {
+    mInternalRequestPending = true;
+  } else {
+    FATAL_ERROR("Failed to send resync request to BLE platform");
+  }
+}
+
+bool BleRequestManager::asyncResponsePending() {
+  return (mInternalRequestPending ||
+          mRequests.hasRequests(RequestStatus::PENDING_RESP));
 }
 
 bool BleRequestManager::validateParams(const BleRequest &request) {

@@ -100,7 +100,9 @@ void PlatformBle::releaseAdvertisingEvent(
 }
 
 void PlatformBleBase::requestStateResync() {
-  // TODO(b/213583212): Implement method.
+  EventLoopManagerSingleton::get()
+      ->getBleRequestManager()
+      .handleRequestStateResyncCallback();
 }
 
 void PlatformBleBase::scanStatusChangeCallback(bool enabled,
