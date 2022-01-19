@@ -15,6 +15,7 @@
 
 #include "chre_cross_validator_wifi_manager.h"
 
+#include <chre.h>
 #include <stdio.h>
 #include <algorithm>
 #include <cinttypes>
@@ -23,10 +24,9 @@
 #include "chre/util/nanoapp/assert.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nanoapp/log.h"
+#include "chre/util/nanoapp/wifi.h"
 #include "chre_cross_validation_wifi.nanopb.h"
 #include "chre_test_common.nanopb.h"
-
-#define LOG_TAG "ChreCrossValidatorWifi"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -194,15 +194,22 @@ void Manager::verifyScanResults(chre_test_common_TestResult *testResultOut) {
     uint8_t apScanResultIndex;
     bool didFind = getMatchingScanResult(mApScanResults, mApScanResultsSize,
                                          chreScanResult, &apScanResultIndex);
-    // TODO(b/185188753): Log info about each result iterated through here and
-    // do not just break at the first error.
+
+    const char *bssidStr = "<non-printable>";
+    char bssidBuffer[CHRE_WIFI_BSSID_LEN];
+    if (chre::parseBssidToStr(chreScanResult.getBssid(), bssidBuffer,
+                              sizeof(bssidBuffer))) {
+      bssidStr = bssidBuffer;
+    }
+
     if (didFind) {
       WifiScanResult &apScanResult = mApScanResults[apScanResultIndex];
       if (apScanResult.getSeen()) {
         *testResultOut = makeTestResultProtoMessage(
             false, "Saw a CHRE scan result with a duplicate BSSID.");
         allResultsValid = false;
-        break;
+        LOGE("Chre Scan Result with bssid: %s has a dupplicate BSSID",
+             bssidStr);
       }
       if (!WifiScanResult::areEqual(chreScanResult, apScanResult)) {
         *testResultOut =
@@ -210,7 +217,10 @@ void Manager::verifyScanResults(chre_test_common_TestResult *testResultOut) {
                                        "Fields differ between an AP and "
                                        "CHRE scan result with same Bssid.");
         allResultsValid = false;
-        break;
+        LOGE(
+            "Chre Scan Result with bssid: %s found fields differ with "
+            "an AP scan result with same Bssid",
+            bssidStr);
       }
       apScanResult.didSee();
     } else {
@@ -220,7 +230,10 @@ void Manager::verifyScanResults(chre_test_common_TestResult *testResultOut) {
           "Could not find an AP scan result with the same Bssid as a CHRE "
           "result");
       allResultsValid = false;
-      break;
+      LOGE(
+          "Chre Scan Result with bssid: %s fail to find an AP scan "
+          "with same Bssid",
+          bssidStr);
     }
   }
   if (allResultsValid) {
