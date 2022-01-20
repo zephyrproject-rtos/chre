@@ -110,7 +110,7 @@ void EventLoop::run() {
     // queue mEvents (potentially posted from another thread), then within
     // this context these events are distributed to all interested Nanoapps,
     // with their free callback invoked after distribution.
-    mEventPoolUsage.addValue(mEvents.size());
+    mEventPoolUsage.addValue(static_cast<uint32_t>(mEvents.size()));
 
     // mEvents.pop() will be a blocking call if mEvents.empty()
     Event *event = mEvents.pop();

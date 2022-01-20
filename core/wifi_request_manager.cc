@@ -430,7 +430,7 @@ void WifiRequestManager::handleNanServiceLostEventSync(uint32_t subscriptionId,
 void WifiRequestManager::handleNanServiceLostEvent(uint32_t subscriptionId,
                                                    uint32_t publisherId) {
   auto callback = [](uint16_t /*type*/, void *data, void *extraData) {
-    auto subscriptionId = NestedDataPtr<uint8_t>(data);
+    auto subscriptionId = NestedDataPtr<uint32_t>(data);
     auto publisherId = NestedDataPtr<uint32_t>(extraData);
     EventLoopManagerSingleton::get()
         ->getWifiRequestManager()
@@ -439,7 +439,7 @@ void WifiRequestManager::handleNanServiceLostEvent(uint32_t subscriptionId,
 
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::WifiNanServiceSessionLostEvent,
-      NestedDataPtr<uint8_t>(subscriptionId), callback,
+      NestedDataPtr<uint32_t>(subscriptionId), callback,
       NestedDataPtr<uint32_t>(publisherId));
 }
 
