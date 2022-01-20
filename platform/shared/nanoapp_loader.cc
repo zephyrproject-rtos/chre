@@ -66,6 +66,8 @@ void deleteOverride(void *ptr) {
 // signal a fatal error if the nanoapp tries to use this version of the delete
 // operator.
 void deleteAlignedOverride(void *ptr, std::align_val_t alignment) {
+  UNUSED_VAR(alignment);
+
   FATAL_ERROR("Nanoapp tried to free aligned %p via the delte operator", ptr);
 }
 

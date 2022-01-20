@@ -592,7 +592,7 @@ bool chreBleStartScanAsync(enum chreBleScanMode mode, uint32_t reportDelayMs,
  *
  * @since v1.6
  */
-bool chreBleStopScanAsync();
+bool chreBleStopScanAsync(void);
 
 /**
  * Definitions for handling unsupported CHRE BLE scenarios.

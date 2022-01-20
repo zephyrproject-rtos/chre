@@ -450,6 +450,8 @@ void SensorRequestManager::releaseSensorDataEvent(uint16_t eventType,
 void SensorRequestManager::handleFlushCompleteEvent(uint32_t sensorHandle,
                                                     uint32_t flushRequestId,
                                                     uint8_t errorCode) {
+  UNUSED_VAR(flushRequestId);
+
   if (sensorHandle < mSensors.size() &&
       mSensors[sensorHandle].isFlushRequestPending()) {
     // Cancel flush request timer before posting to the event queue to ensure

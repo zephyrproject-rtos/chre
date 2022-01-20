@@ -18,6 +18,7 @@
 
 #include <chre.h>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
 
@@ -66,6 +67,8 @@ void handleDebugDumpEvent() {
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  UNUSED_VAR(eventData);
+
   uint64_t tic = chreGetTime();
   switch (eventType) {
     case CHRE_EVENT_DEBUG_DUMP:
