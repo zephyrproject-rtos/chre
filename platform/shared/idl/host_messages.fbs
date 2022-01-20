@@ -275,6 +275,7 @@ enum Setting : byte {
   WIFI_AVAILABLE,
   AIRPLANE_MODE,
   MICROPHONE,
+  BLE_AVAILABLE,
 }
 
 /// An enum describing the state of a setting.

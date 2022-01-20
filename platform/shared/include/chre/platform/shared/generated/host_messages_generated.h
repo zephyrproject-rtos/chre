@@ -10,66 +10,96 @@ namespace chre {
 namespace fbs {
 
 struct NanoappMessage;
+struct NanoappMessageBuilder;
 
 struct HubInfoRequest;
+struct HubInfoRequestBuilder;
 
 struct HubInfoResponse;
+struct HubInfoResponseBuilder;
 
 struct NanoappListRequest;
+struct NanoappListRequestBuilder;
 
 struct NanoappRpcService;
+struct NanoappRpcServiceBuilder;
 
 struct NanoappListEntry;
+struct NanoappListEntryBuilder;
 
 struct NanoappListResponse;
+struct NanoappListResponseBuilder;
 
 struct LoadNanoappRequest;
+struct LoadNanoappRequestBuilder;
 
 struct LoadNanoappResponse;
+struct LoadNanoappResponseBuilder;
 
 struct UnloadNanoappRequest;
+struct UnloadNanoappRequestBuilder;
 
 struct UnloadNanoappResponse;
+struct UnloadNanoappResponseBuilder;
 
 struct LogMessage;
+struct LogMessageBuilder;
 
 struct TimeSyncMessage;
+struct TimeSyncMessageBuilder;
 
 struct DebugDumpRequest;
+struct DebugDumpRequestBuilder;
 
 struct DebugDumpData;
+struct DebugDumpDataBuilder;
 
 struct DebugDumpResponse;
+struct DebugDumpResponseBuilder;
 
 struct TimeSyncRequest;
+struct TimeSyncRequestBuilder;
 
 struct LowPowerMicAccessRequest;
+struct LowPowerMicAccessRequestBuilder;
 
 struct LowPowerMicAccessRelease;
+struct LowPowerMicAccessReleaseBuilder;
 
 struct SettingChangeMessage;
+struct SettingChangeMessageBuilder;
 
 struct LogMessageV2;
+struct LogMessageV2Builder;
 
 struct SelfTestRequest;
+struct SelfTestRequestBuilder;
 
 struct SelfTestResponse;
+struct SelfTestResponseBuilder;
 
 struct HostEndpointConnected;
+struct HostEndpointConnectedBuilder;
 
 struct HostEndpointDisconnected;
+struct HostEndpointDisconnectedBuilder;
 
 struct MetricLog;
+struct MetricLogBuilder;
 
 struct BatchedMetricLog;
+struct BatchedMetricLogBuilder;
 
 struct NanConfigurationRequest;
+struct NanConfigurationRequestBuilder;
 
 struct NanConfigurationUpdate;
+struct NanConfigurationUpdateBuilder;
 
 struct HostAddress;
 
 struct MessageContainer;
+struct MessageContainerBuilder;
 
 /// An enum describing the setting type.
 enum class Setting : int8_t {
@@ -77,33 +107,36 @@ enum class Setting : int8_t {
   WIFI_AVAILABLE = 1,
   AIRPLANE_MODE = 2,
   MICROPHONE = 3,
+  BLE_AVAILABLE = 4,
   MIN = LOCATION,
-  MAX = MICROPHONE
+  MAX = BLE_AVAILABLE
 };
 
-inline const Setting (&EnumValuesSetting())[4] {
+inline const Setting (&EnumValuesSetting())[5] {
   static const Setting values[] = {
     Setting::LOCATION,
     Setting::WIFI_AVAILABLE,
     Setting::AIRPLANE_MODE,
-    Setting::MICROPHONE
+    Setting::MICROPHONE,
+    Setting::BLE_AVAILABLE
   };
   return values;
 }
 
 inline const char * const *EnumNamesSetting() {
-  static const char * const names[] = {
+  static const char * const names[6] = {
     "LOCATION",
     "WIFI_AVAILABLE",
     "AIRPLANE_MODE",
     "MICROPHONE",
+    "BLE_AVAILABLE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameSetting(Setting e) {
-  if (e < Setting::LOCATION || e > Setting::MICROPHONE) return "";
+  if (flatbuffers::IsOutRange(e, Setting::LOCATION, Setting::BLE_AVAILABLE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesSetting()[index];
 }
@@ -125,7 +158,7 @@ inline const SettingState (&EnumValuesSettingState())[2] {
 }
 
 inline const char * const *EnumNamesSettingState() {
-  static const char * const names[] = {
+  static const char * const names[3] = {
     "DISABLED",
     "ENABLED",
     nullptr
@@ -134,7 +167,7 @@ inline const char * const *EnumNamesSettingState() {
 }
 
 inline const char *EnumNameSettingState(SettingState e) {
-  if (e < SettingState::DISABLED || e > SettingState::ENABLED) return "";
+  if (flatbuffers::IsOutRange(e, SettingState::DISABLED, SettingState::ENABLED)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesSettingState()[index];
 }
@@ -209,7 +242,7 @@ inline const ChreMessage (&EnumValuesChreMessage())[28] {
 }
 
 inline const char * const *EnumNamesChreMessage() {
-  static const char * const names[] = {
+  static const char * const names[29] = {
     "NONE",
     "NanoappMessage",
     "HubInfoRequest",
@@ -244,7 +277,7 @@ inline const char * const *EnumNamesChreMessage() {
 }
 
 inline const char *EnumNameChreMessage(ChreMessage e) {
-  if (e < ChreMessage::NONE || e > ChreMessage::NanConfigurationUpdate) return "";
+  if (flatbuffers::IsOutRange(e, ChreMessage::NONE, ChreMessage::NanConfigurationUpdate)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesChreMessage()[index];
 }
@@ -253,111 +286,111 @@ template<typename T> struct ChreMessageTraits {
   static const ChreMessage enum_value = ChreMessage::NONE;
 };
 
-template<> struct ChreMessageTraits<NanoappMessage> {
+template<> struct ChreMessageTraits<chre::fbs::NanoappMessage> {
   static const ChreMessage enum_value = ChreMessage::NanoappMessage;
 };
 
-template<> struct ChreMessageTraits<HubInfoRequest> {
+template<> struct ChreMessageTraits<chre::fbs::HubInfoRequest> {
   static const ChreMessage enum_value = ChreMessage::HubInfoRequest;
 };
 
-template<> struct ChreMessageTraits<HubInfoResponse> {
+template<> struct ChreMessageTraits<chre::fbs::HubInfoResponse> {
   static const ChreMessage enum_value = ChreMessage::HubInfoResponse;
 };
 
-template<> struct ChreMessageTraits<NanoappListRequest> {
+template<> struct ChreMessageTraits<chre::fbs::NanoappListRequest> {
   static const ChreMessage enum_value = ChreMessage::NanoappListRequest;
 };
 
-template<> struct ChreMessageTraits<NanoappListResponse> {
+template<> struct ChreMessageTraits<chre::fbs::NanoappListResponse> {
   static const ChreMessage enum_value = ChreMessage::NanoappListResponse;
 };
 
-template<> struct ChreMessageTraits<LoadNanoappRequest> {
+template<> struct ChreMessageTraits<chre::fbs::LoadNanoappRequest> {
   static const ChreMessage enum_value = ChreMessage::LoadNanoappRequest;
 };
 
-template<> struct ChreMessageTraits<LoadNanoappResponse> {
+template<> struct ChreMessageTraits<chre::fbs::LoadNanoappResponse> {
   static const ChreMessage enum_value = ChreMessage::LoadNanoappResponse;
 };
 
-template<> struct ChreMessageTraits<UnloadNanoappRequest> {
+template<> struct ChreMessageTraits<chre::fbs::UnloadNanoappRequest> {
   static const ChreMessage enum_value = ChreMessage::UnloadNanoappRequest;
 };
 
-template<> struct ChreMessageTraits<UnloadNanoappResponse> {
+template<> struct ChreMessageTraits<chre::fbs::UnloadNanoappResponse> {
   static const ChreMessage enum_value = ChreMessage::UnloadNanoappResponse;
 };
 
-template<> struct ChreMessageTraits<LogMessage> {
+template<> struct ChreMessageTraits<chre::fbs::LogMessage> {
   static const ChreMessage enum_value = ChreMessage::LogMessage;
 };
 
-template<> struct ChreMessageTraits<TimeSyncMessage> {
+template<> struct ChreMessageTraits<chre::fbs::TimeSyncMessage> {
   static const ChreMessage enum_value = ChreMessage::TimeSyncMessage;
 };
 
-template<> struct ChreMessageTraits<DebugDumpRequest> {
+template<> struct ChreMessageTraits<chre::fbs::DebugDumpRequest> {
   static const ChreMessage enum_value = ChreMessage::DebugDumpRequest;
 };
 
-template<> struct ChreMessageTraits<DebugDumpData> {
+template<> struct ChreMessageTraits<chre::fbs::DebugDumpData> {
   static const ChreMessage enum_value = ChreMessage::DebugDumpData;
 };
 
-template<> struct ChreMessageTraits<DebugDumpResponse> {
+template<> struct ChreMessageTraits<chre::fbs::DebugDumpResponse> {
   static const ChreMessage enum_value = ChreMessage::DebugDumpResponse;
 };
 
-template<> struct ChreMessageTraits<TimeSyncRequest> {
+template<> struct ChreMessageTraits<chre::fbs::TimeSyncRequest> {
   static const ChreMessage enum_value = ChreMessage::TimeSyncRequest;
 };
 
-template<> struct ChreMessageTraits<LowPowerMicAccessRequest> {
+template<> struct ChreMessageTraits<chre::fbs::LowPowerMicAccessRequest> {
   static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRequest;
 };
 
-template<> struct ChreMessageTraits<LowPowerMicAccessRelease> {
+template<> struct ChreMessageTraits<chre::fbs::LowPowerMicAccessRelease> {
   static const ChreMessage enum_value = ChreMessage::LowPowerMicAccessRelease;
 };
 
-template<> struct ChreMessageTraits<SettingChangeMessage> {
+template<> struct ChreMessageTraits<chre::fbs::SettingChangeMessage> {
   static const ChreMessage enum_value = ChreMessage::SettingChangeMessage;
 };
 
-template<> struct ChreMessageTraits<LogMessageV2> {
+template<> struct ChreMessageTraits<chre::fbs::LogMessageV2> {
   static const ChreMessage enum_value = ChreMessage::LogMessageV2;
 };
 
-template<> struct ChreMessageTraits<SelfTestRequest> {
+template<> struct ChreMessageTraits<chre::fbs::SelfTestRequest> {
   static const ChreMessage enum_value = ChreMessage::SelfTestRequest;
 };
 
-template<> struct ChreMessageTraits<SelfTestResponse> {
+template<> struct ChreMessageTraits<chre::fbs::SelfTestResponse> {
   static const ChreMessage enum_value = ChreMessage::SelfTestResponse;
 };
 
-template<> struct ChreMessageTraits<HostEndpointConnected> {
+template<> struct ChreMessageTraits<chre::fbs::HostEndpointConnected> {
   static const ChreMessage enum_value = ChreMessage::HostEndpointConnected;
 };
 
-template<> struct ChreMessageTraits<HostEndpointDisconnected> {
+template<> struct ChreMessageTraits<chre::fbs::HostEndpointDisconnected> {
   static const ChreMessage enum_value = ChreMessage::HostEndpointDisconnected;
 };
 
-template<> struct ChreMessageTraits<MetricLog> {
+template<> struct ChreMessageTraits<chre::fbs::MetricLog> {
   static const ChreMessage enum_value = ChreMessage::MetricLog;
 };
 
-template<> struct ChreMessageTraits<BatchedMetricLog> {
+template<> struct ChreMessageTraits<chre::fbs::BatchedMetricLog> {
   static const ChreMessage enum_value = ChreMessage::BatchedMetricLog;
 };
 
-template<> struct ChreMessageTraits<NanConfigurationRequest> {
+template<> struct ChreMessageTraits<chre::fbs::NanConfigurationRequest> {
   static const ChreMessage enum_value = ChreMessage::NanConfigurationRequest;
 };
 
-template<> struct ChreMessageTraits<NanConfigurationUpdate> {
+template<> struct ChreMessageTraits<chre::fbs::NanConfigurationUpdate> {
   static const ChreMessage enum_value = ChreMessage::NanConfigurationUpdate;
 };
 
@@ -383,6 +416,7 @@ FLATBUFFERS_STRUCT_END(HostAddress, 2);
 
 /// Represents a message sent to/from a nanoapp from/to a client on the host
 struct NanoappMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanoappMessageBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_APP_ID = 4,
     VT_MESSAGE_TYPE = 6,
@@ -439,6 +473,7 @@ struct NanoappMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct NanoappMessageBuilder {
+  typedef NanoappMessage Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_app_id(uint64_t app_id) {
@@ -517,6 +552,7 @@ inline flatbuffers::Offset<NanoappMessage> CreateNanoappMessageDirect(
 }
 
 struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HubInfoRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -524,6 +560,7 @@ struct HubInfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct HubInfoRequestBuilder {
+  typedef HubInfoRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit HubInfoRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -545,6 +582,7 @@ inline flatbuffers::Offset<HubInfoRequest> CreateHubInfoRequest(
 }
 
 struct HubInfoResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HubInfoResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_VENDOR = 6,
@@ -627,6 +665,7 @@ struct HubInfoResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct HubInfoResponseBuilder {
+  typedef HubInfoResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::Vector<int8_t>> name) {
@@ -741,6 +780,7 @@ inline flatbuffers::Offset<HubInfoResponse> CreateHubInfoResponseDirect(
 }
 
 struct NanoappListRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanoappListRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -748,6 +788,7 @@ struct NanoappListRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct NanoappListRequestBuilder {
+  typedef NanoappListRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit NanoappListRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -772,6 +813,7 @@ inline flatbuffers::Offset<NanoappListRequest> CreateNanoappListRequest(
 /// core/java/android/hardware/location/NanoAppRpcService.java for more details
 /// on how this value is used by the Android application.
 struct NanoappRpcService FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanoappRpcServiceBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_VERSION = 6
@@ -791,6 +833,7 @@ struct NanoappRpcService FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct NanoappRpcServiceBuilder {
+  typedef NanoappRpcService Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_id(uint64_t id) {
@@ -822,6 +865,7 @@ inline flatbuffers::Offset<NanoappRpcService> CreateNanoappRpcService(
 }
 
 struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanoappListEntryBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_APP_ID = 4,
     VT_VERSION = 6,
@@ -852,8 +896,8 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return GetField<uint32_t>(VT_PERMISSIONS, 0);
   }
   /// The list of RPC services supported by this nanoapp.
-  const flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>> *rpc_services() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>> *>(VT_RPC_SERVICES);
+  const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappRpcService>> *rpc_services() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappRpcService>> *>(VT_RPC_SERVICES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -870,6 +914,7 @@ struct NanoappListEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct NanoappListEntryBuilder {
+  typedef NanoappListEntry Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_app_id(uint64_t app_id) {
@@ -887,7 +932,7 @@ struct NanoappListEntryBuilder {
   void add_permissions(uint32_t permissions) {
     fbb_.AddElement<uint32_t>(NanoappListEntry::VT_PERMISSIONS, permissions, 0);
   }
-  void add_rpc_services(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>>> rpc_services) {
+  void add_rpc_services(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappRpcService>>> rpc_services) {
     fbb_.AddOffset(NanoappListEntry::VT_RPC_SERVICES, rpc_services);
   }
   explicit NanoappListEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -909,7 +954,7 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntry(
     bool enabled = true,
     bool is_system = false,
     uint32_t permissions = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappRpcService>>> rpc_services = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappRpcService>>> rpc_services = 0) {
   NanoappListEntryBuilder builder_(_fbb);
   builder_.add_app_id(app_id);
   builder_.add_rpc_services(rpc_services);
@@ -927,8 +972,8 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntryDirect(
     bool enabled = true,
     bool is_system = false,
     uint32_t permissions = 0,
-    const std::vector<flatbuffers::Offset<NanoappRpcService>> *rpc_services = nullptr) {
-  auto rpc_services__ = rpc_services ? _fbb.CreateVector<flatbuffers::Offset<NanoappRpcService>>(*rpc_services) : 0;
+    const std::vector<flatbuffers::Offset<chre::fbs::NanoappRpcService>> *rpc_services = nullptr) {
+  auto rpc_services__ = rpc_services ? _fbb.CreateVector<flatbuffers::Offset<chre::fbs::NanoappRpcService>>(*rpc_services) : 0;
   return chre::fbs::CreateNanoappListEntry(
       _fbb,
       app_id,
@@ -940,11 +985,12 @@ inline flatbuffers::Offset<NanoappListEntry> CreateNanoappListEntryDirect(
 }
 
 struct NanoappListResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanoappListResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NANOAPPS = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>> *nanoapps() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>> *>(VT_NANOAPPS);
+  const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappListEntry>> *nanoapps() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappListEntry>> *>(VT_NANOAPPS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -956,9 +1002,10 @@ struct NanoappListResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
 };
 
 struct NanoappListResponseBuilder {
+  typedef NanoappListResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_nanoapps(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>>> nanoapps) {
+  void add_nanoapps(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappListEntry>>> nanoapps) {
     fbb_.AddOffset(NanoappListResponse::VT_NANOAPPS, nanoapps);
   }
   explicit NanoappListResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -976,7 +1023,7 @@ struct NanoappListResponseBuilder {
 
 inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<NanoappListEntry>>> nanoapps = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::NanoappListEntry>>> nanoapps = 0) {
   NanoappListResponseBuilder builder_(_fbb);
   builder_.add_nanoapps(nanoapps);
   return builder_.Finish();
@@ -984,8 +1031,8 @@ inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponse(
 
 inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponseDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<NanoappListEntry>> *nanoapps = nullptr) {
-  auto nanoapps__ = nanoapps ? _fbb.CreateVector<flatbuffers::Offset<NanoappListEntry>>(*nanoapps) : 0;
+    const std::vector<flatbuffers::Offset<chre::fbs::NanoappListEntry>> *nanoapps = nullptr) {
+  auto nanoapps__ = nanoapps ? _fbb.CreateVector<flatbuffers::Offset<chre::fbs::NanoappListEntry>>(*nanoapps) : 0;
   return chre::fbs::CreateNanoappListResponse(
       _fbb,
       nanoapps__);
@@ -1030,6 +1077,7 @@ inline flatbuffers::Offset<NanoappListResponse> CreateNanoappListResponseDirect(
 /// considered to have failed. If the request times out (e.g. the requestor
 /// process crashes), then the load request will be cancelled at CHRE and fail.
 struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LoadNanoappRequestBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TRANSACTION_ID = 4,
     VT_APP_ID = 6,
@@ -1103,6 +1151,7 @@ struct LoadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct LoadNanoappRequestBuilder {
+  typedef LoadNanoappRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_transaction_id(uint32_t transaction_id) {
@@ -1203,6 +1252,7 @@ inline flatbuffers::Offset<LoadNanoappRequest> CreateLoadNanoappRequestDirect(
 }
 
 struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LoadNanoappResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TRANSACTION_ID = 4,
     VT_SUCCESS = 6,
@@ -1231,6 +1281,7 @@ struct LoadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
 };
 
 struct LoadNanoappResponseBuilder {
+  typedef LoadNanoappResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_transaction_id(uint32_t transaction_id) {
@@ -1267,6 +1318,7 @@ inline flatbuffers::Offset<LoadNanoappResponse> CreateLoadNanoappResponse(
 }
 
 struct UnloadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef UnloadNanoappRequestBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TRANSACTION_ID = 4,
     VT_APP_ID = 6,
@@ -1293,6 +1345,7 @@ struct UnloadNanoappRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table
 };
 
 struct UnloadNanoappRequestBuilder {
+  typedef UnloadNanoappRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_transaction_id(uint32_t transaction_id) {
@@ -1329,6 +1382,7 @@ inline flatbuffers::Offset<UnloadNanoappRequest> CreateUnloadNanoappRequest(
 }
 
 struct UnloadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef UnloadNanoappResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TRANSACTION_ID = 4,
     VT_SUCCESS = 6
@@ -1348,6 +1402,7 @@ struct UnloadNanoappResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tabl
 };
 
 struct UnloadNanoappResponseBuilder {
+  typedef UnloadNanoappResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_transaction_id(uint32_t transaction_id) {
@@ -1380,6 +1435,7 @@ inline flatbuffers::Offset<UnloadNanoappResponse> CreateUnloadNanoappResponse(
 
 /// Represents log messages from CHRE.
 struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LogMessageBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BUFFER = 4
   };
@@ -1408,6 +1464,7 @@ struct LogMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct LogMessageBuilder {
+  typedef LogMessage Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
@@ -1444,6 +1501,7 @@ inline flatbuffers::Offset<LogMessage> CreateLogMessageDirect(
 
 /// Represents a message sent to CHRE to indicate AP timestamp for time sync
 struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TimeSyncMessageBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_OFFSET = 4
   };
@@ -1459,6 +1517,7 @@ struct TimeSyncMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct TimeSyncMessageBuilder {
+  typedef TimeSyncMessage Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_offset(int64_t offset) {
@@ -1489,6 +1548,7 @@ inline flatbuffers::Offset<TimeSyncMessage> CreateTimeSyncMessage(
 /// DebugDumpData messages are generated, followed by a DebugDumpResponse
 /// indicating the completion of the operation.
 struct DebugDumpRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1496,6 +1556,7 @@ struct DebugDumpRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct DebugDumpRequestBuilder {
+  typedef DebugDumpRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit DebugDumpRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1517,6 +1578,7 @@ inline flatbuffers::Offset<DebugDumpRequest> CreateDebugDumpRequest(
 }
 
 struct DebugDumpData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DEBUG_STR = 4
   };
@@ -1533,6 +1595,7 @@ struct DebugDumpData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct DebugDumpDataBuilder {
+  typedef DebugDumpData Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_debug_str(flatbuffers::Offset<flatbuffers::Vector<int8_t>> debug_str) {
@@ -1568,6 +1631,7 @@ inline flatbuffers::Offset<DebugDumpData> CreateDebugDumpDataDirect(
 }
 
 struct DebugDumpResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DebugDumpResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SUCCESS = 4,
     VT_DATA_COUNT = 6
@@ -1590,6 +1654,7 @@ struct DebugDumpResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct DebugDumpResponseBuilder {
+  typedef DebugDumpResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_success(bool success) {
@@ -1623,6 +1688,7 @@ inline flatbuffers::Offset<DebugDumpResponse> CreateDebugDumpResponse(
 /// A request from CHRE for host to initiate a time sync message
 /// (system feature, platform-specific - not all platforms necessarily use this)
 struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TimeSyncRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1630,6 +1696,7 @@ struct TimeSyncRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct TimeSyncRequestBuilder {
+  typedef TimeSyncRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit TimeSyncRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1655,6 +1722,7 @@ inline flatbuffers::Offset<TimeSyncRequest> CreateTimeSyncRequest(
 /// SoundTrigger HAL) is needed to ensure this capability is powered up when
 /// CHRE needs it. The host does not send a response.
 struct LowPowerMicAccessRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LowPowerMicAccessRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1662,6 +1730,7 @@ struct LowPowerMicAccessRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::T
 };
 
 struct LowPowerMicAccessRequestBuilder {
+  typedef LowPowerMicAccessRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit LowPowerMicAccessRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1685,6 +1754,7 @@ inline flatbuffers::Offset<LowPowerMicAccessRequest> CreateLowPowerMicAccessRequ
 /// Notification from CHRE that it no longer needs direct access to low-power
 /// microphone data.
 struct LowPowerMicAccessRelease FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LowPowerMicAccessReleaseBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1692,6 +1762,7 @@ struct LowPowerMicAccessRelease FLATBUFFERS_FINAL_CLASS : private flatbuffers::T
 };
 
 struct LowPowerMicAccessReleaseBuilder {
+  typedef LowPowerMicAccessRelease Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit LowPowerMicAccessReleaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1714,17 +1785,18 @@ inline flatbuffers::Offset<LowPowerMicAccessRelease> CreateLowPowerMicAccessRele
 
 /// Notification from the host that a system setting has changed
 struct SettingChangeMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SettingChangeMessageBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SETTING = 4,
     VT_STATE = 6
   };
   /// The setting that has changed
-  Setting setting() const {
-    return static_cast<Setting>(GetField<int8_t>(VT_SETTING, 0));
+  chre::fbs::Setting setting() const {
+    return static_cast<chre::fbs::Setting>(GetField<int8_t>(VT_SETTING, 0));
   }
   /// The new setting value
-  SettingState state() const {
-    return static_cast<SettingState>(GetField<int8_t>(VT_STATE, 0));
+  chre::fbs::SettingState state() const {
+    return static_cast<chre::fbs::SettingState>(GetField<int8_t>(VT_STATE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1735,12 +1807,13 @@ struct SettingChangeMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table
 };
 
 struct SettingChangeMessageBuilder {
+  typedef SettingChangeMessage Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_setting(Setting setting) {
+  void add_setting(chre::fbs::Setting setting) {
     fbb_.AddElement<int8_t>(SettingChangeMessage::VT_SETTING, static_cast<int8_t>(setting), 0);
   }
-  void add_state(SettingState state) {
+  void add_state(chre::fbs::SettingState state) {
     fbb_.AddElement<int8_t>(SettingChangeMessage::VT_STATE, static_cast<int8_t>(state), 0);
   }
   explicit SettingChangeMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1757,8 +1830,8 @@ struct SettingChangeMessageBuilder {
 
 inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
-    Setting setting = Setting::LOCATION,
-    SettingState state = SettingState::DISABLED) {
+    chre::fbs::Setting setting = chre::fbs::Setting::LOCATION,
+    chre::fbs::SettingState state = chre::fbs::SettingState::DISABLED) {
   SettingChangeMessageBuilder builder_(_fbb);
   builder_.add_state(state);
   builder_.add_setting(setting);
@@ -1767,6 +1840,7 @@ inline flatbuffers::Offset<SettingChangeMessage> CreateSettingChangeMessage(
 
 /// Represents V2 log messages from CHRE.
 struct LogMessageV2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LogMessageV2Builder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BUFFER = 4,
     VT_NUM_LOGS_DROPPED = 6
@@ -1819,6 +1893,7 @@ struct LogMessageV2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct LogMessageV2Builder {
+  typedef LogMessageV2 Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_buffer(flatbuffers::Offset<flatbuffers::Vector<int8_t>> buffer) {
@@ -1861,6 +1936,7 @@ inline flatbuffers::Offset<LogMessageV2> CreateLogMessageV2Direct(
 }
 
 struct SelfTestRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SelfTestRequestBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1868,6 +1944,7 @@ struct SelfTestRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct SelfTestRequestBuilder {
+  typedef SelfTestRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   explicit SelfTestRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1889,6 +1966,7 @@ inline flatbuffers::Offset<SelfTestRequest> CreateSelfTestRequest(
 }
 
 struct SelfTestResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SelfTestResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SUCCESS = 4
   };
@@ -1903,6 +1981,7 @@ struct SelfTestResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct SelfTestResponseBuilder {
+  typedef SelfTestResponse Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_success(bool success) {
@@ -1929,6 +2008,7 @@ inline flatbuffers::Offset<SelfTestResponse> CreateSelfTestResponse(
 }
 
 struct HostEndpointConnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HostEndpointConnectedBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_HOST_ENDPOINT = 4,
     VT_TYPE = 6,
@@ -1965,6 +2045,7 @@ struct HostEndpointConnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tabl
 };
 
 struct HostEndpointConnectedBuilder {
+  typedef HostEndpointConnected Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_host_endpoint(uint16_t host_endpoint) {
@@ -2022,6 +2103,7 @@ inline flatbuffers::Offset<HostEndpointConnected> CreateHostEndpointConnectedDir
 }
 
 struct HostEndpointDisconnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HostEndpointDisconnectedBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_HOST_ENDPOINT = 4
   };
@@ -2037,6 +2119,7 @@ struct HostEndpointDisconnected FLATBUFFERS_FINAL_CLASS : private flatbuffers::T
 };
 
 struct HostEndpointDisconnectedBuilder {
+  typedef HostEndpointDisconnected Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_host_endpoint(uint16_t host_endpoint) {
@@ -2063,6 +2146,7 @@ inline flatbuffers::Offset<HostEndpointDisconnected> CreateHostEndpointDisconnec
 }
 
 struct MetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MetricLogBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_ENCODED_METRIC = 6
@@ -2083,6 +2167,7 @@ struct MetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct MetricLogBuilder {
+  typedef MetricLog Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_id(uint32_t id) {
@@ -2125,11 +2210,12 @@ inline flatbuffers::Offset<MetricLog> CreateMetricLogDirect(
 }
 
 struct BatchedMetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef BatchedMetricLogBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_METRICS = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<MetricLog>> *metrics() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<MetricLog>> *>(VT_METRICS);
+  const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::MetricLog>> *metrics() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<chre::fbs::MetricLog>> *>(VT_METRICS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -2141,9 +2227,10 @@ struct BatchedMetricLog FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 };
 
 struct BatchedMetricLogBuilder {
+  typedef BatchedMetricLog Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_metrics(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<MetricLog>>> metrics) {
+  void add_metrics(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::MetricLog>>> metrics) {
     fbb_.AddOffset(BatchedMetricLog::VT_METRICS, metrics);
   }
   explicit BatchedMetricLogBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -2160,7 +2247,7 @@ struct BatchedMetricLogBuilder {
 
 inline flatbuffers::Offset<BatchedMetricLog> CreateBatchedMetricLog(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<MetricLog>>> metrics = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<chre::fbs::MetricLog>>> metrics = 0) {
   BatchedMetricLogBuilder builder_(_fbb);
   builder_.add_metrics(metrics);
   return builder_.Finish();
@@ -2168,14 +2255,15 @@ inline flatbuffers::Offset<BatchedMetricLog> CreateBatchedMetricLog(
 
 inline flatbuffers::Offset<BatchedMetricLog> CreateBatchedMetricLogDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<MetricLog>> *metrics = nullptr) {
-  auto metrics__ = metrics ? _fbb.CreateVector<flatbuffers::Offset<MetricLog>>(*metrics) : 0;
+    const std::vector<flatbuffers::Offset<chre::fbs::MetricLog>> *metrics = nullptr) {
+  auto metrics__ = metrics ? _fbb.CreateVector<flatbuffers::Offset<chre::fbs::MetricLog>>(*metrics) : 0;
   return chre::fbs::CreateBatchedMetricLog(
       _fbb,
       metrics__);
 }
 
 struct NanConfigurationRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanConfigurationRequestBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ENABLE = 4
   };
@@ -2190,6 +2278,7 @@ struct NanConfigurationRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
 };
 
 struct NanConfigurationRequestBuilder {
+  typedef NanConfigurationRequest Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_enable(bool enable) {
@@ -2216,6 +2305,7 @@ inline flatbuffers::Offset<NanConfigurationRequest> CreateNanConfigurationReques
 }
 
 struct NanConfigurationUpdate FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NanConfigurationUpdateBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ENABLED = 4
   };
@@ -2230,6 +2320,7 @@ struct NanConfigurationUpdate FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
 };
 
 struct NanConfigurationUpdateBuilder {
+  typedef NanConfigurationUpdate Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_enabled(bool enabled) {
@@ -2259,98 +2350,99 @@ inline flatbuffers::Offset<NanConfigurationUpdate> CreateNanConfigurationUpdate(
 /// per FlatBuffers requirements, we can't use a union as the top-level
 /// structure (root type), so we must wrap it in a table.
 struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MessageContainerBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MESSAGE_TYPE = 4,
     VT_MESSAGE = 6,
     VT_HOST_ADDR = 8
   };
-  ChreMessage message_type() const {
-    return static_cast<ChreMessage>(GetField<uint8_t>(VT_MESSAGE_TYPE, 0));
+  chre::fbs::ChreMessage message_type() const {
+    return static_cast<chre::fbs::ChreMessage>(GetField<uint8_t>(VT_MESSAGE_TYPE, 0));
   }
   const void *message() const {
     return GetPointer<const void *>(VT_MESSAGE);
   }
   template<typename T> const T *message_as() const;
-  const NanoappMessage *message_as_NanoappMessage() const {
-    return message_type() == ChreMessage::NanoappMessage ? static_cast<const NanoappMessage *>(message()) : nullptr;
+  const chre::fbs::NanoappMessage *message_as_NanoappMessage() const {
+    return message_type() == chre::fbs::ChreMessage::NanoappMessage ? static_cast<const chre::fbs::NanoappMessage *>(message()) : nullptr;
   }
-  const HubInfoRequest *message_as_HubInfoRequest() const {
-    return message_type() == ChreMessage::HubInfoRequest ? static_cast<const HubInfoRequest *>(message()) : nullptr;
+  const chre::fbs::HubInfoRequest *message_as_HubInfoRequest() const {
+    return message_type() == chre::fbs::ChreMessage::HubInfoRequest ? static_cast<const chre::fbs::HubInfoRequest *>(message()) : nullptr;
   }
-  const HubInfoResponse *message_as_HubInfoResponse() const {
-    return message_type() == ChreMessage::HubInfoResponse ? static_cast<const HubInfoResponse *>(message()) : nullptr;
+  const chre::fbs::HubInfoResponse *message_as_HubInfoResponse() const {
+    return message_type() == chre::fbs::ChreMessage::HubInfoResponse ? static_cast<const chre::fbs::HubInfoResponse *>(message()) : nullptr;
   }
-  const NanoappListRequest *message_as_NanoappListRequest() const {
-    return message_type() == ChreMessage::NanoappListRequest ? static_cast<const NanoappListRequest *>(message()) : nullptr;
+  const chre::fbs::NanoappListRequest *message_as_NanoappListRequest() const {
+    return message_type() == chre::fbs::ChreMessage::NanoappListRequest ? static_cast<const chre::fbs::NanoappListRequest *>(message()) : nullptr;
   }
-  const NanoappListResponse *message_as_NanoappListResponse() const {
-    return message_type() == ChreMessage::NanoappListResponse ? static_cast<const NanoappListResponse *>(message()) : nullptr;
+  const chre::fbs::NanoappListResponse *message_as_NanoappListResponse() const {
+    return message_type() == chre::fbs::ChreMessage::NanoappListResponse ? static_cast<const chre::fbs::NanoappListResponse *>(message()) : nullptr;
   }
-  const LoadNanoappRequest *message_as_LoadNanoappRequest() const {
-    return message_type() == ChreMessage::LoadNanoappRequest ? static_cast<const LoadNanoappRequest *>(message()) : nullptr;
+  const chre::fbs::LoadNanoappRequest *message_as_LoadNanoappRequest() const {
+    return message_type() == chre::fbs::ChreMessage::LoadNanoappRequest ? static_cast<const chre::fbs::LoadNanoappRequest *>(message()) : nullptr;
   }
-  const LoadNanoappResponse *message_as_LoadNanoappResponse() const {
-    return message_type() == ChreMessage::LoadNanoappResponse ? static_cast<const LoadNanoappResponse *>(message()) : nullptr;
+  const chre::fbs::LoadNanoappResponse *message_as_LoadNanoappResponse() const {
+    return message_type() == chre::fbs::ChreMessage::LoadNanoappResponse ? static_cast<const chre::fbs::LoadNanoappResponse *>(message()) : nullptr;
   }
-  const UnloadNanoappRequest *message_as_UnloadNanoappRequest() const {
-    return message_type() == ChreMessage::UnloadNanoappRequest ? static_cast<const UnloadNanoappRequest *>(message()) : nullptr;
+  const chre::fbs::UnloadNanoappRequest *message_as_UnloadNanoappRequest() const {
+    return message_type() == chre::fbs::ChreMessage::UnloadNanoappRequest ? static_cast<const chre::fbs::UnloadNanoappRequest *>(message()) : nullptr;
   }
-  const UnloadNanoappResponse *message_as_UnloadNanoappResponse() const {
-    return message_type() == ChreMessage::UnloadNanoappResponse ? static_cast<const UnloadNanoappResponse *>(message()) : nullptr;
+  const chre::fbs::UnloadNanoappResponse *message_as_UnloadNanoappResponse() const {
+    return message_type() == chre::fbs::ChreMessage::UnloadNanoappResponse ? static_cast<const chre::fbs::UnloadNanoappResponse *>(message()) : nullptr;
   }
-  const LogMessage *message_as_LogMessage() const {
-    return message_type() == ChreMessage::LogMessage ? static_cast<const LogMessage *>(message()) : nullptr;
+  const chre::fbs::LogMessage *message_as_LogMessage() const {
+    return message_type() == chre::fbs::ChreMessage::LogMessage ? static_cast<const chre::fbs::LogMessage *>(message()) : nullptr;
   }
-  const TimeSyncMessage *message_as_TimeSyncMessage() const {
-    return message_type() == ChreMessage::TimeSyncMessage ? static_cast<const TimeSyncMessage *>(message()) : nullptr;
+  const chre::fbs::TimeSyncMessage *message_as_TimeSyncMessage() const {
+    return message_type() == chre::fbs::ChreMessage::TimeSyncMessage ? static_cast<const chre::fbs::TimeSyncMessage *>(message()) : nullptr;
   }
-  const DebugDumpRequest *message_as_DebugDumpRequest() const {
-    return message_type() == ChreMessage::DebugDumpRequest ? static_cast<const DebugDumpRequest *>(message()) : nullptr;
+  const chre::fbs::DebugDumpRequest *message_as_DebugDumpRequest() const {
+    return message_type() == chre::fbs::ChreMessage::DebugDumpRequest ? static_cast<const chre::fbs::DebugDumpRequest *>(message()) : nullptr;
   }
-  const DebugDumpData *message_as_DebugDumpData() const {
-    return message_type() == ChreMessage::DebugDumpData ? static_cast<const DebugDumpData *>(message()) : nullptr;
+  const chre::fbs::DebugDumpData *message_as_DebugDumpData() const {
+    return message_type() == chre::fbs::ChreMessage::DebugDumpData ? static_cast<const chre::fbs::DebugDumpData *>(message()) : nullptr;
   }
-  const DebugDumpResponse *message_as_DebugDumpResponse() const {
-    return message_type() == ChreMessage::DebugDumpResponse ? static_cast<const DebugDumpResponse *>(message()) : nullptr;
+  const chre::fbs::DebugDumpResponse *message_as_DebugDumpResponse() const {
+    return message_type() == chre::fbs::ChreMessage::DebugDumpResponse ? static_cast<const chre::fbs::DebugDumpResponse *>(message()) : nullptr;
   }
-  const TimeSyncRequest *message_as_TimeSyncRequest() const {
-    return message_type() == ChreMessage::TimeSyncRequest ? static_cast<const TimeSyncRequest *>(message()) : nullptr;
+  const chre::fbs::TimeSyncRequest *message_as_TimeSyncRequest() const {
+    return message_type() == chre::fbs::ChreMessage::TimeSyncRequest ? static_cast<const chre::fbs::TimeSyncRequest *>(message()) : nullptr;
   }
-  const LowPowerMicAccessRequest *message_as_LowPowerMicAccessRequest() const {
-    return message_type() == ChreMessage::LowPowerMicAccessRequest ? static_cast<const LowPowerMicAccessRequest *>(message()) : nullptr;
+  const chre::fbs::LowPowerMicAccessRequest *message_as_LowPowerMicAccessRequest() const {
+    return message_type() == chre::fbs::ChreMessage::LowPowerMicAccessRequest ? static_cast<const chre::fbs::LowPowerMicAccessRequest *>(message()) : nullptr;
   }
-  const LowPowerMicAccessRelease *message_as_LowPowerMicAccessRelease() const {
-    return message_type() == ChreMessage::LowPowerMicAccessRelease ? static_cast<const LowPowerMicAccessRelease *>(message()) : nullptr;
+  const chre::fbs::LowPowerMicAccessRelease *message_as_LowPowerMicAccessRelease() const {
+    return message_type() == chre::fbs::ChreMessage::LowPowerMicAccessRelease ? static_cast<const chre::fbs::LowPowerMicAccessRelease *>(message()) : nullptr;
   }
-  const SettingChangeMessage *message_as_SettingChangeMessage() const {
-    return message_type() == ChreMessage::SettingChangeMessage ? static_cast<const SettingChangeMessage *>(message()) : nullptr;
+  const chre::fbs::SettingChangeMessage *message_as_SettingChangeMessage() const {
+    return message_type() == chre::fbs::ChreMessage::SettingChangeMessage ? static_cast<const chre::fbs::SettingChangeMessage *>(message()) : nullptr;
   }
-  const LogMessageV2 *message_as_LogMessageV2() const {
-    return message_type() == ChreMessage::LogMessageV2 ? static_cast<const LogMessageV2 *>(message()) : nullptr;
+  const chre::fbs::LogMessageV2 *message_as_LogMessageV2() const {
+    return message_type() == chre::fbs::ChreMessage::LogMessageV2 ? static_cast<const chre::fbs::LogMessageV2 *>(message()) : nullptr;
   }
-  const SelfTestRequest *message_as_SelfTestRequest() const {
-    return message_type() == ChreMessage::SelfTestRequest ? static_cast<const SelfTestRequest *>(message()) : nullptr;
+  const chre::fbs::SelfTestRequest *message_as_SelfTestRequest() const {
+    return message_type() == chre::fbs::ChreMessage::SelfTestRequest ? static_cast<const chre::fbs::SelfTestRequest *>(message()) : nullptr;
   }
-  const SelfTestResponse *message_as_SelfTestResponse() const {
-    return message_type() == ChreMessage::SelfTestResponse ? static_cast<const SelfTestResponse *>(message()) : nullptr;
+  const chre::fbs::SelfTestResponse *message_as_SelfTestResponse() const {
+    return message_type() == chre::fbs::ChreMessage::SelfTestResponse ? static_cast<const chre::fbs::SelfTestResponse *>(message()) : nullptr;
   }
-  const HostEndpointConnected *message_as_HostEndpointConnected() const {
-    return message_type() == ChreMessage::HostEndpointConnected ? static_cast<const HostEndpointConnected *>(message()) : nullptr;
+  const chre::fbs::HostEndpointConnected *message_as_HostEndpointConnected() const {
+    return message_type() == chre::fbs::ChreMessage::HostEndpointConnected ? static_cast<const chre::fbs::HostEndpointConnected *>(message()) : nullptr;
   }
-  const HostEndpointDisconnected *message_as_HostEndpointDisconnected() const {
-    return message_type() == ChreMessage::HostEndpointDisconnected ? static_cast<const HostEndpointDisconnected *>(message()) : nullptr;
+  const chre::fbs::HostEndpointDisconnected *message_as_HostEndpointDisconnected() const {
+    return message_type() == chre::fbs::ChreMessage::HostEndpointDisconnected ? static_cast<const chre::fbs::HostEndpointDisconnected *>(message()) : nullptr;
   }
-  const MetricLog *message_as_MetricLog() const {
-    return message_type() == ChreMessage::MetricLog ? static_cast<const MetricLog *>(message()) : nullptr;
+  const chre::fbs::MetricLog *message_as_MetricLog() const {
+    return message_type() == chre::fbs::ChreMessage::MetricLog ? static_cast<const chre::fbs::MetricLog *>(message()) : nullptr;
   }
-  const BatchedMetricLog *message_as_BatchedMetricLog() const {
-    return message_type() == ChreMessage::BatchedMetricLog ? static_cast<const BatchedMetricLog *>(message()) : nullptr;
+  const chre::fbs::BatchedMetricLog *message_as_BatchedMetricLog() const {
+    return message_type() == chre::fbs::ChreMessage::BatchedMetricLog ? static_cast<const chre::fbs::BatchedMetricLog *>(message()) : nullptr;
   }
-  const NanConfigurationRequest *message_as_NanConfigurationRequest() const {
-    return message_type() == ChreMessage::NanConfigurationRequest ? static_cast<const NanConfigurationRequest *>(message()) : nullptr;
+  const chre::fbs::NanConfigurationRequest *message_as_NanConfigurationRequest() const {
+    return message_type() == chre::fbs::ChreMessage::NanConfigurationRequest ? static_cast<const chre::fbs::NanConfigurationRequest *>(message()) : nullptr;
   }
-  const NanConfigurationUpdate *message_as_NanConfigurationUpdate() const {
-    return message_type() == ChreMessage::NanConfigurationUpdate ? static_cast<const NanConfigurationUpdate *>(message()) : nullptr;
+  const chre::fbs::NanConfigurationUpdate *message_as_NanConfigurationUpdate() const {
+    return message_type() == chre::fbs::ChreMessage::NanConfigurationUpdate ? static_cast<const chre::fbs::NanConfigurationUpdate *>(message()) : nullptr;
   }
   /// The originating or destination client ID on the host side, used to direct
   /// responses only to the client that sent the request. Although initially
@@ -2358,137 +2450,138 @@ struct MessageContainer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   /// value by the entity guarding access to CHRE.
   /// This is wrapped in a struct to ensure that it is always included when
   /// encoding the message, so it can be mutated by the host daemon.
-  const HostAddress *host_addr() const {
-    return GetStruct<const HostAddress *>(VT_HOST_ADDR);
+  const chre::fbs::HostAddress *host_addr() const {
+    return GetStruct<const chre::fbs::HostAddress *>(VT_HOST_ADDR);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MESSAGE_TYPE) &&
            VerifyOffsetRequired(verifier, VT_MESSAGE) &&
            VerifyChreMessage(verifier, message(), message_type()) &&
-           VerifyFieldRequired<HostAddress>(verifier, VT_HOST_ADDR) &&
+           VerifyFieldRequired<chre::fbs::HostAddress>(verifier, VT_HOST_ADDR) &&
            verifier.EndTable();
   }
 };
 
-template<> inline const NanoappMessage *MessageContainer::message_as<NanoappMessage>() const {
+template<> inline const chre::fbs::NanoappMessage *MessageContainer::message_as<chre::fbs::NanoappMessage>() const {
   return message_as_NanoappMessage();
 }
 
-template<> inline const HubInfoRequest *MessageContainer::message_as<HubInfoRequest>() const {
+template<> inline const chre::fbs::HubInfoRequest *MessageContainer::message_as<chre::fbs::HubInfoRequest>() const {
   return message_as_HubInfoRequest();
 }
 
-template<> inline const HubInfoResponse *MessageContainer::message_as<HubInfoResponse>() const {
+template<> inline const chre::fbs::HubInfoResponse *MessageContainer::message_as<chre::fbs::HubInfoResponse>() const {
   return message_as_HubInfoResponse();
 }
 
-template<> inline const NanoappListRequest *MessageContainer::message_as<NanoappListRequest>() const {
+template<> inline const chre::fbs::NanoappListRequest *MessageContainer::message_as<chre::fbs::NanoappListRequest>() const {
   return message_as_NanoappListRequest();
 }
 
-template<> inline const NanoappListResponse *MessageContainer::message_as<NanoappListResponse>() const {
+template<> inline const chre::fbs::NanoappListResponse *MessageContainer::message_as<chre::fbs::NanoappListResponse>() const {
   return message_as_NanoappListResponse();
 }
 
-template<> inline const LoadNanoappRequest *MessageContainer::message_as<LoadNanoappRequest>() const {
+template<> inline const chre::fbs::LoadNanoappRequest *MessageContainer::message_as<chre::fbs::LoadNanoappRequest>() const {
   return message_as_LoadNanoappRequest();
 }
 
-template<> inline const LoadNanoappResponse *MessageContainer::message_as<LoadNanoappResponse>() const {
+template<> inline const chre::fbs::LoadNanoappResponse *MessageContainer::message_as<chre::fbs::LoadNanoappResponse>() const {
   return message_as_LoadNanoappResponse();
 }
 
-template<> inline const UnloadNanoappRequest *MessageContainer::message_as<UnloadNanoappRequest>() const {
+template<> inline const chre::fbs::UnloadNanoappRequest *MessageContainer::message_as<chre::fbs::UnloadNanoappRequest>() const {
   return message_as_UnloadNanoappRequest();
 }
 
-template<> inline const UnloadNanoappResponse *MessageContainer::message_as<UnloadNanoappResponse>() const {
+template<> inline const chre::fbs::UnloadNanoappResponse *MessageContainer::message_as<chre::fbs::UnloadNanoappResponse>() const {
   return message_as_UnloadNanoappResponse();
 }
 
-template<> inline const LogMessage *MessageContainer::message_as<LogMessage>() const {
+template<> inline const chre::fbs::LogMessage *MessageContainer::message_as<chre::fbs::LogMessage>() const {
   return message_as_LogMessage();
 }
 
-template<> inline const TimeSyncMessage *MessageContainer::message_as<TimeSyncMessage>() const {
+template<> inline const chre::fbs::TimeSyncMessage *MessageContainer::message_as<chre::fbs::TimeSyncMessage>() const {
   return message_as_TimeSyncMessage();
 }
 
-template<> inline const DebugDumpRequest *MessageContainer::message_as<DebugDumpRequest>() const {
+template<> inline const chre::fbs::DebugDumpRequest *MessageContainer::message_as<chre::fbs::DebugDumpRequest>() const {
   return message_as_DebugDumpRequest();
 }
 
-template<> inline const DebugDumpData *MessageContainer::message_as<DebugDumpData>() const {
+template<> inline const chre::fbs::DebugDumpData *MessageContainer::message_as<chre::fbs::DebugDumpData>() const {
   return message_as_DebugDumpData();
 }
 
-template<> inline const DebugDumpResponse *MessageContainer::message_as<DebugDumpResponse>() const {
+template<> inline const chre::fbs::DebugDumpResponse *MessageContainer::message_as<chre::fbs::DebugDumpResponse>() const {
   return message_as_DebugDumpResponse();
 }
 
-template<> inline const TimeSyncRequest *MessageContainer::message_as<TimeSyncRequest>() const {
+template<> inline const chre::fbs::TimeSyncRequest *MessageContainer::message_as<chre::fbs::TimeSyncRequest>() const {
   return message_as_TimeSyncRequest();
 }
 
-template<> inline const LowPowerMicAccessRequest *MessageContainer::message_as<LowPowerMicAccessRequest>() const {
+template<> inline const chre::fbs::LowPowerMicAccessRequest *MessageContainer::message_as<chre::fbs::LowPowerMicAccessRequest>() const {
   return message_as_LowPowerMicAccessRequest();
 }
 
-template<> inline const LowPowerMicAccessRelease *MessageContainer::message_as<LowPowerMicAccessRelease>() const {
+template<> inline const chre::fbs::LowPowerMicAccessRelease *MessageContainer::message_as<chre::fbs::LowPowerMicAccessRelease>() const {
   return message_as_LowPowerMicAccessRelease();
 }
 
-template<> inline const SettingChangeMessage *MessageContainer::message_as<SettingChangeMessage>() const {
+template<> inline const chre::fbs::SettingChangeMessage *MessageContainer::message_as<chre::fbs::SettingChangeMessage>() const {
   return message_as_SettingChangeMessage();
 }
 
-template<> inline const LogMessageV2 *MessageContainer::message_as<LogMessageV2>() const {
+template<> inline const chre::fbs::LogMessageV2 *MessageContainer::message_as<chre::fbs::LogMessageV2>() const {
   return message_as_LogMessageV2();
 }
 
-template<> inline const SelfTestRequest *MessageContainer::message_as<SelfTestRequest>() const {
+template<> inline const chre::fbs::SelfTestRequest *MessageContainer::message_as<chre::fbs::SelfTestRequest>() const {
   return message_as_SelfTestRequest();
 }
 
-template<> inline const SelfTestResponse *MessageContainer::message_as<SelfTestResponse>() const {
+template<> inline const chre::fbs::SelfTestResponse *MessageContainer::message_as<chre::fbs::SelfTestResponse>() const {
   return message_as_SelfTestResponse();
 }
 
-template<> inline const HostEndpointConnected *MessageContainer::message_as<HostEndpointConnected>() const {
+template<> inline const chre::fbs::HostEndpointConnected *MessageContainer::message_as<chre::fbs::HostEndpointConnected>() const {
   return message_as_HostEndpointConnected();
 }
 
-template<> inline const HostEndpointDisconnected *MessageContainer::message_as<HostEndpointDisconnected>() const {
+template<> inline const chre::fbs::HostEndpointDisconnected *MessageContainer::message_as<chre::fbs::HostEndpointDisconnected>() const {
   return message_as_HostEndpointDisconnected();
 }
 
-template<> inline const MetricLog *MessageContainer::message_as<MetricLog>() const {
+template<> inline const chre::fbs::MetricLog *MessageContainer::message_as<chre::fbs::MetricLog>() const {
   return message_as_MetricLog();
 }
 
-template<> inline const BatchedMetricLog *MessageContainer::message_as<BatchedMetricLog>() const {
+template<> inline const chre::fbs::BatchedMetricLog *MessageContainer::message_as<chre::fbs::BatchedMetricLog>() const {
   return message_as_BatchedMetricLog();
 }
 
-template<> inline const NanConfigurationRequest *MessageContainer::message_as<NanConfigurationRequest>() const {
+template<> inline const chre::fbs::NanConfigurationRequest *MessageContainer::message_as<chre::fbs::NanConfigurationRequest>() const {
   return message_as_NanConfigurationRequest();
 }
 
-template<> inline const NanConfigurationUpdate *MessageContainer::message_as<NanConfigurationUpdate>() const {
+template<> inline const chre::fbs::NanConfigurationUpdate *MessageContainer::message_as<chre::fbs::NanConfigurationUpdate>() const {
   return message_as_NanConfigurationUpdate();
 }
 
 struct MessageContainerBuilder {
+  typedef MessageContainer Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_message_type(ChreMessage message_type) {
+  void add_message_type(chre::fbs::ChreMessage message_type) {
     fbb_.AddElement<uint8_t>(MessageContainer::VT_MESSAGE_TYPE, static_cast<uint8_t>(message_type), 0);
   }
   void add_message(flatbuffers::Offset<void> message) {
     fbb_.AddOffset(MessageContainer::VT_MESSAGE, message);
   }
-  void add_host_addr(const HostAddress *host_addr) {
+  void add_host_addr(const chre::fbs::HostAddress *host_addr) {
     fbb_.AddStruct(MessageContainer::VT_HOST_ADDR, host_addr);
   }
   explicit MessageContainerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -2507,9 +2600,9 @@ struct MessageContainerBuilder {
 
 inline flatbuffers::Offset<MessageContainer> CreateMessageContainer(
     flatbuffers::FlatBufferBuilder &_fbb,
-    ChreMessage message_type = ChreMessage::NONE,
+    chre::fbs::ChreMessage message_type = chre::fbs::ChreMessage::NONE,
     flatbuffers::Offset<void> message = 0,
-    const HostAddress *host_addr = 0) {
+    const chre::fbs::HostAddress *host_addr = 0) {
   MessageContainerBuilder builder_(_fbb);
   builder_.add_host_addr(host_addr);
   builder_.add_message(message);
@@ -2523,114 +2616,114 @@ inline bool VerifyChreMessage(flatbuffers::Verifier &verifier, const void *obj, 
       return true;
     }
     case ChreMessage::NanoappMessage: {
-      auto ptr = reinterpret_cast<const NanoappMessage *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::NanoappMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::HubInfoRequest: {
-      auto ptr = reinterpret_cast<const HubInfoRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::HubInfoRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::HubInfoResponse: {
-      auto ptr = reinterpret_cast<const HubInfoResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::HubInfoResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::NanoappListRequest: {
-      auto ptr = reinterpret_cast<const NanoappListRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::NanoappListRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::NanoappListResponse: {
-      auto ptr = reinterpret_cast<const NanoappListResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::NanoappListResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LoadNanoappRequest: {
-      auto ptr = reinterpret_cast<const LoadNanoappRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LoadNanoappRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LoadNanoappResponse: {
-      auto ptr = reinterpret_cast<const LoadNanoappResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LoadNanoappResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::UnloadNanoappRequest: {
-      auto ptr = reinterpret_cast<const UnloadNanoappRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::UnloadNanoappRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::UnloadNanoappResponse: {
-      auto ptr = reinterpret_cast<const UnloadNanoappResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::UnloadNanoappResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LogMessage: {
-      auto ptr = reinterpret_cast<const LogMessage *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LogMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::TimeSyncMessage: {
-      auto ptr = reinterpret_cast<const TimeSyncMessage *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::TimeSyncMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::DebugDumpRequest: {
-      auto ptr = reinterpret_cast<const DebugDumpRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::DebugDumpRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::DebugDumpData: {
-      auto ptr = reinterpret_cast<const DebugDumpData *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::DebugDumpData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::DebugDumpResponse: {
-      auto ptr = reinterpret_cast<const DebugDumpResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::DebugDumpResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::TimeSyncRequest: {
-      auto ptr = reinterpret_cast<const TimeSyncRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::TimeSyncRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LowPowerMicAccessRequest: {
-      auto ptr = reinterpret_cast<const LowPowerMicAccessRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LowPowerMicAccessRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LowPowerMicAccessRelease: {
-      auto ptr = reinterpret_cast<const LowPowerMicAccessRelease *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LowPowerMicAccessRelease *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::SettingChangeMessage: {
-      auto ptr = reinterpret_cast<const SettingChangeMessage *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::SettingChangeMessage *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::LogMessageV2: {
-      auto ptr = reinterpret_cast<const LogMessageV2 *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::LogMessageV2 *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::SelfTestRequest: {
-      auto ptr = reinterpret_cast<const SelfTestRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::SelfTestRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::SelfTestResponse: {
-      auto ptr = reinterpret_cast<const SelfTestResponse *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::SelfTestResponse *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::HostEndpointConnected: {
-      auto ptr = reinterpret_cast<const HostEndpointConnected *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::HostEndpointConnected *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::HostEndpointDisconnected: {
-      auto ptr = reinterpret_cast<const HostEndpointDisconnected *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::HostEndpointDisconnected *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::MetricLog: {
-      auto ptr = reinterpret_cast<const MetricLog *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::MetricLog *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::BatchedMetricLog: {
-      auto ptr = reinterpret_cast<const BatchedMetricLog *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::BatchedMetricLog *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::NanConfigurationRequest: {
-      auto ptr = reinterpret_cast<const NanConfigurationRequest *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::NanConfigurationRequest *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ChreMessage::NanConfigurationUpdate: {
-      auto ptr = reinterpret_cast<const NanConfigurationUpdate *>(obj);
+      auto ptr = reinterpret_cast<const chre::fbs::NanConfigurationUpdate *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    default: return false;
+    default: return true;
   }
 }
 
