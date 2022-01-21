@@ -113,6 +113,10 @@ enum chreError {
     CHRE_ERROR_FUNCTION_RESTRICTED_TO_OTHER_MASTER = 9,
     CHRE_ERROR_FUNCTION_RESTRICTED_TO_OTHER_CLIENT = 9,
 
+    //! This request is no longer valid. It may have been replaced by a newer
+    //! request before taking effect.
+    CHRE_ERROR_OBSOLETE_REQUEST = 10,
+
     //!< Do not exceed this value when adding new error codes
     CHRE_ERROR_LAST = UINT8_MAX,
 };

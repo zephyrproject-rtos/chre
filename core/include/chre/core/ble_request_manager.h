@@ -118,11 +118,14 @@ class BleRequestManager : public NonCopyable {
   void handleRequestStateResyncCallback();
 
  private:
-  //! Multiplexer used to keep track of BLE requests from nanoapps.
+  // Multiplexer used to keep track of BLE requests from nanoapps.
   BleRequestMultiplexer mRequests;
 
   // The platform BLE interface.
   PlatformBle mPlatformBle;
+
+  // Expected platform state after completion of async platform request.
+  bool mExpectedPlatformState;
 
   // True if a request from the PAL is currently pending.
   bool mInternalRequestPending;
@@ -171,23 +174,36 @@ class BleRequestManager : public NonCopyable {
   void handlePlatformChangeSync(bool enable, uint8_t errorCode);
 
   /**
-   * Dispatches pending state transitions on the queue until the first one
-   * succeeds.
+   * Dispatches pending BLE requests from nanoapps.
    */
-  void dispatchQueuedStateTransitions();
+  void dispatchPendingRequests();
+
+  /**
+   * Handles registering/unregistering a nanoapp to the appropriate broadcast
+   * event.
+   *
+   * @param instanceId Nanoapp instance to send result to.
+   * @param enabled Whether nanoapp was enabled or disabled for BLE events.
+   * @param success Whether the request was processed by the PAL successfully.
+   * @param forceUnregister Whether the nanoapp should be force unregistered
+   *                        from BLE broadcast events.
+   */
+  void handleNanoappEventRegistration(uint32_t instanceId, bool enabled,
+                                      bool success, bool forceUnregister);
 
   /**
    * Handles an async result, sending the result to the requesting nanoapp and
    * registering/unregistering it from the appropriate broadcast
    *
-   * @param req The original request that resulted in the async result
+   * @param instanceId Nanoapp instance to send result to.
+   * @param enabled Whether nanoapp was enabled or disabled for BLE events.
    * @param success Whether the request was processed by the PAL successfully
    * @param errorCode Error code resulting from the request
    * @param forceUnregister Whether the nanoapp should be force unregistered
    *                        from BLE broadcast events.
    */
-  void handleAsyncResult(const BleRequest &req, bool success, uint8_t errorCode,
-                         bool forceUnregister = false);
+  void handleAsyncResult(uint32_t instanceId, bool enabled, bool success,
+                         uint8_t errorCode, bool forceUnregister = false);
 
   /**
    * Invoked as a result of a requestStateResync() callback from the BLE PAL.
@@ -225,11 +241,6 @@ class BleRequestManager : public NonCopyable {
   static void postAsyncResultEventFatal(uint32_t instanceId,
                                         uint8_t requestType, bool success,
                                         uint8_t errorCode);
-
-  /**
-   * @return Returns CHRE request type for a given request
-   */
-  static uint8_t getRequestTypeForRequest(const BleRequest &request);
 
   /**
    * @return True if the given advertisement type is valid

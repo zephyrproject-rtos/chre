@@ -42,6 +42,11 @@ bool BleRequestManager::updateRequests(BleRequest &&request,
   BleRequest *foundRequest =
       mRequests.findRequest(request.getInstanceId(), requestIndex);
   if (foundRequest != nullptr) {
+    if (foundRequest->getRequestStatus() != RequestStatus::APPLIED) {
+      handleAsyncResult(request.getInstanceId(), request.isEnabled(),
+                        false /* success */, CHRE_ERROR_OBSOLETE_REQUEST,
+                        true /* forceUnregister */);
+    }
     mRequests.updateRequest(*requestIndex, std::move(request), requestChanged);
   } else if (request.isEnabled()) {
     success =
@@ -70,30 +75,25 @@ bool BleRequestManager::stopScanAsync(Nanoapp *nanoapp) {
 }
 
 bool BleRequestManager::configure(BleRequest &&request) {
-  // TODO(b/215417133): A nanoapp issuing multiple requests before each one
-  // has received an async result breaks the current logic. Fix this.
-
   bool success = validateParams(request);
   if (success) {
     bool requestChanged = false;
     size_t requestIndex = 0;
     uint32_t instanceId = request.getInstanceId();
-    uint8_t requestType = getRequestTypeForRequest(request);
+    uint8_t enabled = request.isEnabled();
     success =
         updateRequests(std::move(request), &requestChanged, &requestIndex);
     if (success) {
       if (!asyncResponsePending()) {
-        Nanoapp *nanoapp = EventLoopManagerSingleton::get()
-                               ->getEventLoop()
-                               .findNanoappByInstanceId(instanceId);
         if (!requestChanged) {
-          postAsyncResultEventFatal(instanceId, requestType, true /* success */,
-                                    CHRE_ERROR_NONE);
-          nanoapp->registerForBroadcastEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
+          handleAsyncResult(instanceId, enabled, true /* success */,
+                            CHRE_ERROR_NONE);
         } else {
           success = controlPlatform();
           if (!success) {
-            nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
+            handleNanoappEventRegistration(instanceId, enabled,
+                                           false /* success */,
+                                           true /* forceUnregister */);
             mRequests.removeRequest(requestIndex, &requestChanged);
           }
         }
@@ -114,6 +114,7 @@ bool BleRequestManager::controlPlatform() {
     success = mPlatformBle.stopScanAsync();
   }
   if (success) {
+    mExpectedPlatformState = maxRequest.isEnabled();
     for (BleRequest &req : mRequests.getMutableRequests()) {
       if (req.getRequestStatus() == RequestStatus::PENDING_REQ) {
         req.setRequestStatus(RequestStatus::PENDING_RESP);
@@ -160,20 +161,21 @@ void BleRequestManager::handlePlatformChange(bool enable, uint8_t errorCode) {
 void BleRequestManager::handlePlatformChangeSync(bool enable,
                                                  uint8_t errorCode) {
   bool success = (errorCode == CHRE_ERROR_NONE);
+  if (mExpectedPlatformState != enable) {
+    errorCode = CHRE_ERROR;
+    success = false;
+    CHRE_ASSERT_LOG(false, "BLE PAL did not transition to expected state");
+  }
   if (mInternalRequestPending) {
     mInternalRequestPending = false;
     if (!success) {
       FATAL_ERROR("Failed to resync BLE platform");
     }
   } else {
-    bool expectedEnable = false;
     for (BleRequest &req : mRequests.getMutableRequests()) {
       if (req.getRequestStatus() == RequestStatus::PENDING_RESP) {
-        if (req.isEnabled()) {
-          expectedEnable = true;
-        }
-
-        handleAsyncResult(req, success, errorCode);
+        handleAsyncResult(req.getInstanceId(), req.isEnabled(), success,
+                          errorCode);
         if (success) {
           req.setRequestStatus(RequestStatus::APPLIED);
         }
@@ -182,9 +184,6 @@ void BleRequestManager::handlePlatformChangeSync(bool enable,
 
     if (!success) {
       mRequests.removeRequests(RequestStatus::PENDING_RESP);
-    } else {
-      CHRE_ASSERT_LOG(expectedEnable == enable,
-                      "BLE PAL didn't transition to correct state");
     }
   }
   if (success) {
@@ -193,7 +192,7 @@ void BleRequestManager::handlePlatformChangeSync(bool enable,
     mRequests.removeDisabledRequests();
   }
 
-  dispatchQueuedStateTransitions();
+  dispatchPendingRequests();
 
   // Only clear mResyncPending if the request succeeded or after all pending
   // requests are dispatched and a resync request can be issued with only the
@@ -208,12 +207,13 @@ void BleRequestManager::handlePlatformChangeSync(bool enable,
   }
 }
 
-void BleRequestManager::dispatchQueuedStateTransitions() {
+void BleRequestManager::dispatchPendingRequests() {
   if (mRequests.hasRequests(RequestStatus::PENDING_REQ)) {
     if (!controlPlatform()) {
       for (const BleRequest &req : mRequests.getRequests()) {
         if (req.getRequestStatus() == RequestStatus::PENDING_REQ) {
-          handleAsyncResult(req, false /* success */, CHRE_ERROR,
+          handleAsyncResult(req.getInstanceId(), req.isEnabled(),
+                            false /* success */, CHRE_ERROR,
                             true /* forceUnregister */);
         }
       }
@@ -222,18 +222,26 @@ void BleRequestManager::dispatchQueuedStateTransitions() {
   }
 }
 
-void BleRequestManager::handleAsyncResult(const BleRequest &req, bool success,
-                                          uint8_t errorCode,
+void BleRequestManager::handleAsyncResult(uint32_t instanceId, bool enabled,
+                                          bool success, uint8_t errorCode,
                                           bool forceUnregister) {
-  postAsyncResultEventFatal(req.getInstanceId(), getRequestTypeForRequest(req),
-                            success, errorCode);
+  uint8_t requestType = enabled ? CHRE_BLE_REQUEST_TYPE_START_SCAN
+                                : CHRE_BLE_REQUEST_TYPE_STOP_SCAN;
+  postAsyncResultEventFatal(instanceId, requestType, success, errorCode);
+  handleNanoappEventRegistration(instanceId, enabled, success, forceUnregister);
+}
+
+void BleRequestManager::handleNanoappEventRegistration(uint32_t instanceId,
+                                                       bool enabled,
+                                                       bool success,
+                                                       bool forceUnregister) {
   Nanoapp *nanoapp =
       EventLoopManagerSingleton::get()->getEventLoop().findNanoappByInstanceId(
-          req.getInstanceId());
+          instanceId);
   if (nanoapp != nullptr) {
-    if (success && req.isEnabled()) {
+    if (success && enabled) {
       nanoapp->registerForBroadcastEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
-    } else if (!req.isEnabled() || forceUnregister) {
+    } else if (!enabled || forceUnregister) {
       nanoapp->unregisterForBroadcastEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
     }
   }
@@ -306,11 +314,6 @@ void BleRequestManager::postAsyncResultEventFatal(uint32_t instanceId,
     EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_BLE_ASYNC_RESULT, event, freeEventDataCallback, instanceId);
   }
-}
-
-uint8_t BleRequestManager::getRequestTypeForRequest(const BleRequest &request) {
-  return request.isEnabled() ? CHRE_BLE_REQUEST_TYPE_START_SCAN
-                             : CHRE_BLE_REQUEST_TYPE_STOP_SCAN;
 }
 
 bool BleRequestManager::isValidAdType(uint8_t adType) {
