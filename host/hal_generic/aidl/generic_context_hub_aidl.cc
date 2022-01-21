@@ -156,8 +156,11 @@ ScopedAStatus ContextHub::enableNanoapp(int32_t /* contextHubId */,
 ScopedAStatus ContextHub::onSettingChanged(Setting setting, bool enabled) {
   mSettingEnabled[setting] = enabled;
   fbs::Setting fbsSetting;
-  if ((setting != Setting::WIFI_MAIN) && (setting != Setting::WIFI_SCANNING) &&
-      getFbsSetting(setting, &fbsSetting)) {
+  bool isWifiOrBtSetting =
+      (setting == Setting::WIFI_MAIN || setting == Setting::WIFI_SCANNING ||
+       setting == Setting::BT_MAIN || setting == Setting::BT_SCANNING);
+
+  if (!isWifiOrBtSetting && getFbsSetting(setting, &fbsSetting)) {
     mConnection.sendSettingChangedNotification(fbsSetting,
                                                toFbsSettingState(enabled));
   }
@@ -177,6 +180,17 @@ ScopedAStatus ContextHub::onSettingChanged(Setting setting, bool enabled) {
     mConnection.sendSettingChangedNotification(
         fbs::Setting::WIFI_AVAILABLE, toFbsSettingState(isWifiAvailable));
     mIsWifiAvailable = isWifiAvailable;
+  }
+
+  // The BT switches determine whether we can BLE scan which is why things are
+  // mapped like this into CHRE.
+  bool isBtMainEnabled = isSettingEnabled(Setting::BT_MAIN);
+  bool isBtScanEnabled = isSettingEnabled(Setting::BT_SCANNING);
+  bool isBleAvailable = isBtMainEnabled || isBtScanEnabled;
+  if (!mIsBleAvailable.has_value() || (isBleAvailable != mIsBleAvailable)) {
+    mConnection.sendSettingChangedNotification(
+        fbs::Setting::BLE_AVAILABLE, toFbsSettingState(isBleAvailable));
+    mIsBleAvailable = isBleAvailable;
   }
 
   return ndk::ScopedAStatus::ok();

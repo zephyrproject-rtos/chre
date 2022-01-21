@@ -96,6 +96,7 @@ class ContextHub : public BnContextHub,
 
   std::map<Setting, bool> mSettingEnabled;
   std::optional<bool> mIsWifiAvailable;
+  std::optional<bool> mIsBleAvailable;
 
   std::mutex mConnectedHostEndpointsMutex;
   std::unordered_set<char16_t> mConnectedHostEndpoints;
