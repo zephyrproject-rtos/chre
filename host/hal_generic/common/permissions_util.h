@@ -31,8 +31,10 @@ const std::string kBackgroundLocationPerm =
     "android.permission.ACCESS_BACKGROUND_LOCATION";
 const std::string kFineLocationPerm = "android.permission.ACCESS_FINE_LOCATION";
 const std::string kRecordAudioPerm = "android.permission.RECORD_AUDIO";
+const std::string kBluetoothScanPerm = "android.permission.BLUETOOTH_SCAN";
 const std::vector<std::string> kSupportedPermissions = {
-    kBackgroundLocationPerm, kFineLocationPerm, kRecordAudioPerm};
+    kBackgroundLocationPerm, kFineLocationPerm, kRecordAudioPerm,
+    kBluetoothScanPerm};
 
 //! Converts the CHRE permissions bitmask to a list of CHRE permissions.
 std::vector<std::string> chreToAndroidPermissions(uint32_t chrePermissions);

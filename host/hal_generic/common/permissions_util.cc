@@ -42,6 +42,11 @@ std::vector<std::string> chreToAndroidPermissions(uint32_t chrePermissions) {
     androidPermissions.push_back(kBackgroundLocationPerm);
   }
 
+  if (BITMASK_HAS_VALUE(chrePermissions,
+                        ::chre::NanoappPermissions::CHRE_PERMS_BLE)) {
+    androidPermissions.push_back(kBluetoothScanPerm);
+  }
+
   return androidPermissions;
 }
 
