@@ -28,6 +28,7 @@ enum class Setting : uint8_t {
   WIFI_AVAILABLE,
   AIRPLANE_MODE,
   MICROPHONE,
+  BLE_AVAILABLE,
   SETTING_MAX,
 };
 

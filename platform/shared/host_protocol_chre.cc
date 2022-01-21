@@ -356,6 +356,9 @@ bool HostProtocolChre::getSettingFromFbs(fbs::Setting setting,
     case fbs::Setting::MICROPHONE:
       *chreSetting = Setting::MICROPHONE;
       break;
+    case fbs::Setting::BLE_AVAILABLE:
+      *chreSetting = Setting::BLE_AVAILABLE;
+      break;
     default:
       LOGE("Unknown setting %" PRIu8, static_cast<uint8_t>(setting));
       success = false;
