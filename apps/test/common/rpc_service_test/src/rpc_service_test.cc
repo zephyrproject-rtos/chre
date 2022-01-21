@@ -17,6 +17,7 @@
 #include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 
 #define LOG_TAG "[RpcServiceTest]"
@@ -25,6 +26,8 @@ namespace chre {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
                                    uint16_t eventType, const void *eventData) {
+  UNUSED_VAR(eventData);
+
   LOGW("Got unknown event type from senderInstanceId %" PRIu32
        " and with eventType %" PRIu16,
        senderInstanceId, eventType);

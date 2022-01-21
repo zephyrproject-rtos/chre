@@ -15,6 +15,7 @@
  */
 #include <cinttypes>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 
 #include <general_test/basic_audio_test.h>
@@ -317,6 +318,8 @@ void BasicAudioTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                                  const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   if (mInMethod) {
     sendFatalFailureToHost("handleEvent() invoked while already in method.");
   }
