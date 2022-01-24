@@ -17,6 +17,7 @@
 #include "chre_api/chre/ble.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/util/macros.h"
 #include "chre/util/system/napp_permissions.h"
 
 using chre::EventLoopManager;
@@ -53,6 +54,9 @@ DLL_EXPORT bool chreBleStartScanAsync(chreBleScanMode mode,
              ->getBleRequestManager()
              .startScanAsync(nanoapp, mode, reportDelayMs, filter);
 #else
+  UNUSED_VAR(mode);
+  UNUSED_VAR(reportDelayMs);
+  UNUSED_VAR(filter);
   return false;
 #endif  // CHRE_BLE_SUPPORT_ENABLED
 }
