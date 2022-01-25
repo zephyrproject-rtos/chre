@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "chre/util/flatbuffers/helpers.h"
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/unique_ptr.h"
 #include "common.h"
@@ -75,6 +76,8 @@ bool nanoappStart() {
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   switch (eventType) {
     case CHRE_EVENT_MESSAGE_FROM_HOST: {
       auto *msg = static_cast<const chreMessageFromHostData *>(eventData);
