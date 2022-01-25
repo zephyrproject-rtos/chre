@@ -196,7 +196,7 @@ void Manager::verifyScanResults(chre_test_common_TestResult *testResultOut) {
                                          chreScanResult, &apScanResultIndex);
 
     const char *bssidStr = "<non-printable>";
-    char bssidBuffer[CHRE_WIFI_BSSID_LEN];
+    char bssidBuffer[chre::kBssidStrLen];
     if (chre::parseBssidToStr(chreScanResult.getBssid(), bssidBuffer,
                               sizeof(bssidBuffer))) {
       bssidStr = bssidBuffer;
