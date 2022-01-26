@@ -206,6 +206,8 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_C_SYMBOL(chreAudioGetSource),
     ADD_EXPORTED_C_SYMBOL(chreBleGetCapabilities),
     ADD_EXPORTED_C_SYMBOL(chreBleGetFilterCapabilities),
+    ADD_EXPORTED_C_SYMBOL(chreBleStartScanAsync),
+    ADD_EXPORTED_C_SYMBOL(chreBleStopScanAsync),
     ADD_EXPORTED_C_SYMBOL(chreConfigureDebugDumpEvent),
     ADD_EXPORTED_C_SYMBOL(chreConfigureHostSleepStateEvents),
     ADD_EXPORTED_C_SYMBOL(chreConfigureNanoappInfoEvents),
