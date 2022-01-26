@@ -957,7 +957,7 @@ struct chreWifiNanDiscoveryEvent {
     //! maxServiceSpecificInfoLength parameter obtained from the NAN
     //! capabilities (@see struct chreWifiNanCapabilities).
     const uint8_t *serviceSpecificInfo;
-    const uint32_t serviceSpecificInfoSize;
+    uint32_t serviceSpecificInfoSize;
 };
 
 /**
