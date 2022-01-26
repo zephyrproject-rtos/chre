@@ -1016,18 +1016,22 @@ bool WifiRequestManager::nanSubscribe(
       auto &req = mPendingNanSubscribeRequests.back();
       req.nanoappInstanceId = nanoapp->getInstanceId();
       req.cookie = cookie;
+      if (!copyNanSubscribeConfigToRequest(req, config)) {
+        LOG_OOM();
+      }
 
       if (mNanIsAvailable) {
         if (mPendingNanSubscribeRequests.size() == 1) {
           // First in line; dispatch request immediately.
           success = mPlatformWifi.nanSubscribe(config);
-        } else if (!(success = copyNanSubscribeConfigToRequest(req, config))) {
-          LOG_OOM();
-        }
-        if (!success) {
-          mPendingNanSubscribeRequests.pop_back();
+          if (!success) {
+            mPendingNanSubscribeRequests.pop_back();
+          }
+        } else {
+          success = true;
         }
       } else {
+        success = true;
         sendNanConfiguration(true /*enable*/);
       }
     }
