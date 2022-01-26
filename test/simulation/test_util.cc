@@ -20,6 +20,7 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/util/macros.h"
+#include "chre/util/memory.h"
 #include "chre_api/chre/version.h"
 
 namespace chre {
@@ -64,9 +65,39 @@ void defaultNanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
 
 void defaultNanoappEnd(){};
 
+void loadNanoapp(const char *name, uint64_t appId, uint32_t appVersion,
+                 uint32_t appPerms, decltype(nanoappStart) *startFunc,
+                 decltype(nanoappHandleEvent) *handleEventFunc,
+                 decltype(nanoappEnd) *endFunc) {
+  UniquePtr<Nanoapp> nanoapp = createStaticNanoapp(
+      name, appId, appVersion, appPerms, startFunc, handleEventFunc, endFunc);
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::FinishLoadingNanoapp, std::move(nanoapp),
+      testFinishLoadingNanoappCallback);
+}
+
+void unloadNanoapp(uint64_t appId) {
+  uint64_t *ptr = memoryAlloc<uint64_t>();
+  ASSERT_NE(ptr, nullptr);
+  *ptr = appId;
+  EventLoopManagerSingleton::get()->deferCallback(
+      SystemCallbackType::HandleUnloadNanoapp, ptr,
+      testFinishUnloadingNanoappCallback);
+}
+
 void testFinishLoadingNanoappCallback(SystemCallbackType /* type */,
                                       UniquePtr<Nanoapp> &&nanoapp) {
   EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
+}
+
+void testFinishUnloadingNanoappCallback(uint16_t /* type */, void *data,
+                                        void * /* extraData */) {
+  EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  uint32_t instanceId = 0;
+  uint64_t *appId = static_cast<uint64_t *>(data);
+  eventLoop.findNanoappInstanceIdByAppId(*appId, &instanceId);
+  eventLoop.unloadNanoapp(instanceId, true);
+  memoryFree(data);
 }
 
 }  // namespace chre

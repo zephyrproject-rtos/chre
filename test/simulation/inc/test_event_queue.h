@@ -25,14 +25,20 @@
 #include "chre/util/non_copyable.h"
 #include "chre/util/singleton.h"
 #include "chre_api/chre/event.h"
+#include "test_util.h"
 
 namespace chre {
 
 //! A test event type to indicate the test nanoapp has loaded.
-#define CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED (CHRE_EVENT_FIRST_USER_VALUE)
+#define CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED \
+  CHRE_SIMULATION_TEST_EVENT_ID(0)
 
 //! A test event type to indicate the test has timed out, and should abort.
-#define CHRE_EVENT_SIMULATION_TEST_TIMEOUT (CHRE_EVENT_FIRST_USER_VALUE + 1)
+#define CHRE_EVENT_SIMULATION_TEST_TIMEOUT CHRE_SIMULATION_TEST_EVENT_ID(1)
+
+//! A test event type to indicate the test nanoapp has unloaded.
+#define CHRE_EVENT_SIMULATION_TEST_NANOAPP_UNLOADED \
+  CHRE_SIMULATION_TEST_EVENT_ID(2)
 
 /**
  * A class that monitors events for the test to consume.

@@ -16,12 +16,48 @@
 
 #include "chre/pal/ble.h"
 
+#include "chre/util/unique_ptr.h"
+
+#include <future>
+#include <thread>
+
 /**
  * A simulated implementation of the BLE PAL for the linux platform.
  */
 namespace {
 const struct chrePalSystemApi *gSystemApi = nullptr;
 const struct chrePalBleCallbacks *gCallbacks = nullptr;
+
+std::thread gBleStartScanThread;
+std::thread gBleStopScanThread;
+std::promise<void> gStopAdvertisingEvents;
+std::chrono::milliseconds gMinIntervalMs(50);
+
+void startScan() {
+  gCallbacks->scanStatusChangeCallback(true, CHRE_ERROR_NONE);
+  std::future<void> signal = gStopAdvertisingEvents.get_future();
+  while (signal.wait_for(gMinIntervalMs) == std::future_status::timeout) {
+    auto event = chre::MakeUniqueZeroFill<struct chreBleAdvertisementEvent>();
+    auto report = chre::MakeUniqueZeroFill<struct chreBleAdvertisingReport>();
+    event->reports = report.release();
+    event->numReports = 1;
+    gCallbacks->advertisingEventCallback(event.release());
+  }
+}
+
+void stopScan() {
+  gCallbacks->scanStatusChangeCallback(false, CHRE_ERROR_NONE);
+}
+
+void stopThreads() {
+  if (gBleStartScanThread.joinable()) {
+    gStopAdvertisingEvents.set_value();
+    gBleStartScanThread.join();
+  }
+  if (gBleStopScanThread.joinable()) {
+    gBleStopScanThread.join();
+  }
+}
 
 uint32_t chrePalBleGetCapabilities() {
   return CHRE_BLE_CAPABILITIES_SCAN |
@@ -37,21 +73,30 @@ uint32_t chrePalBleGetFilterCapabilities() {
 bool chrePalBleStartScan(chreBleScanMode /* mode */,
                          uint32_t /* reportDelayMs */,
                          const struct chreBleScanFilter * /* filter */) {
-  // TODO(b/211899620): Implement method.
-  return false;
+  stopThreads();
+  gStopAdvertisingEvents = std::promise<void>();
+  gBleStartScanThread = std::thread(startScan);
+  return true;
 }
 
 bool chrePalBleStopScan() {
-  // TODO(b/211899620): Implement method.
-  return false;
+  stopThreads();
+  gBleStopScanThread = std::thread(stopScan);
+  return true;
 }
 
 void chrePalBleReleaseAdvertisingEvent(
-    struct chreBleAdvertisementEvent * /* event */) {
-  // TODO(b/211899620): Implement method.
+    struct chreBleAdvertisementEvent *event) {
+  for (size_t i = 0; i < event->numReports; i++) {
+    chre::memoryFree(
+        const_cast<chreBleAdvertisingReport *>(&(event->reports[i])));
+  }
+  chre::memoryFree(event);
 }
 
-void chrePalBleApiClose() {}
+void chrePalBleApiClose() {
+  stopThreads();
+}
 
 bool chrePalBleApiOpen(const struct chrePalSystemApi *systemApi,
                        const struct chrePalBleCallbacks *callbacks) {
