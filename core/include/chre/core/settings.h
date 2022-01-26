@@ -31,7 +31,7 @@ enum class Setting : uint8_t {
   SETTING_MAX,
 };
 
-enum class SettingState : int8_t { UNKNOWN = -1, ENABLED = 0, DISABLED };
+enum class SettingState : int8_t { UNKNOWN = -1, DISABLED = 0, ENABLED };
 
 /**
  * Updates the state of a given setting.
