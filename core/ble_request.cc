@@ -58,6 +58,7 @@ BleRequest &BleRequest::operator=(BleRequest &&other) {
   mRssiThreshold = other.mRssiThreshold;
   mFilters = std::move(other.mFilters);
   mEnabled = other.mEnabled;
+  mStatus = other.mStatus;
   return *this;
 }
 
