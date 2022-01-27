@@ -31,7 +31,7 @@ namespace {
 constexpr size_t kNumSettings = static_cast<size_t>(Setting::SETTING_MAX);
 
 //! The current state for each setting.
-SettingState gSettingStateList[kNumSettings];
+SettingState gSettingStateList[kNumSettings] = {SettingState::ENABLED};
 
 /**
  * @param setting The setting to get the index for.
