@@ -241,13 +241,17 @@ cc_binary {
         "host/hal_generic/common/hal_chre_socket_connection.cc",
         "host/hal_generic/common/permissions_util.cc",
     ],
-    local_include_dirs: ["host/hal_generic/common/"],
+    local_include_dirs: [
+        "host/hal_generic/common/",
+        "util/include",
+    ],
     init_rc: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.rc"],
     cflags: [
         "-Wall",
         "-Werror",
         "-DCHRE_MESSAGE_TO_HOST_MAX_SIZE=4000", // Needed to import CHRE APIs.
         "-DCHRE_HAL_SOCKET_METRICS_ENABLED",
+        "-DCHRE_IS_HOST_BUILD",
     ],
     shared_libs: [
         "android.frameworks.stats-V1-ndk",
