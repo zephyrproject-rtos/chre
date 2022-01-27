@@ -53,6 +53,8 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
 
     private static final long NANO_APP_ID = 0x476f6f6754000005L;
 
+    private static final int CHRE_SCAN_SIZE_DEFAULT = 100;
+
     /**
      * Wifi capabilities flags listed in
      * //system/chre/chre_api/include/chre_api/chre/wifi.h
@@ -111,7 +113,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
                           chreWifiHasCapabilities(mWifiCapabilities.get()));
 
         mCollectingData.set(true);
-        sendStepStartMessage(Step.SETUP);
+        sendSetupMessage(CHRE_SCAN_SIZE_DEFAULT);
 
         waitForMessageFromNanoapp();
         mCollectingData.set(false);
@@ -132,8 +134,12 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
      * Send step start message to nanoapp.
      */
     private void sendStepStartMessage(Step step) {
+        sendStepStartMessage(step, makeStepStartMessage(step));
+    }
+
+    private void sendStepStartMessage(Step step, NanoAppMessage message) {
         mStep.set(step);
-        sendMessageToNanoApp(makeStepStartMessage(step));
+        sendMessageToNanoApp(message);
     }
 
     /**
@@ -159,6 +165,19 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
                 .setStep(step).build();
         return NanoAppMessage.createMessageToNanoApp(
                 mNappBinary.getNanoAppId(), messageType, stepStartCommand.toByteArray());
+    }
+
+    /**
+    * Send SETUP message to the nanoapp with the chre scan size
+    */
+    private void sendSetupMessage(int chreScanSize) {
+        int messageType = ChreCrossValidationWifi.MessageType.STEP_START_VALUE;
+        ChreCrossValidationWifi.StepStartCommand stepStartCommand =
+                ChreCrossValidationWifi.StepStartCommand.newBuilder()
+                .setStep(Step.SETUP).setChreScanCapacity(chreScanSize).build();
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNappBinary.getNanoAppId(), messageType, stepStartCommand.toByteArray());
+        sendStepStartMessage(Step.SETUP, message);
     }
 
     /**

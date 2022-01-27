@@ -94,7 +94,6 @@ void Manager::handleStepStartMessage(
   switch (stepStartCommand.step) {
     case chre_cross_validation_wifi_Step_INIT:
       LOGE("Received StepStartCommand for INIT step");
-      CHRE_ASSERT(false);
       break;
     case chre_cross_validation_wifi_Step_CAPABILITIES: {
       chre_cross_validation_wifi_WifiCapabilities wifiCapabilities =
@@ -117,6 +116,9 @@ void Manager::handleStepStartMessage(
             chre_cross_validation_wifi_MessageType_STEP_RESULT);
       } else {
         LOGD("chreWifiConfigureScanMonitorAsync() succeeded");
+        if (stepStartCommand.has_chreScanCapacity) {
+          mMaxChreResultSize = stepStartCommand.chreScanCapacity;
+        }
       }
       break;
     }
@@ -163,12 +165,9 @@ void Manager::handleWifiScanResult(const chreWifiScanEvent *event) {
 
 void Manager::compareAndSendResultToHost() {
   chre_test_common_TestResult testResult;
-  // TODO(b/209673792): kMaxChreResultSize should be provided by the host
-  // because it can be different depending on the platform
-  uint16_t kMaxChreResultSize = 100;
-  bool belowMaxSizeCheck = (mApScanResultsSize <= kMaxChreResultSize) &&
+  bool belowMaxSizeCheck = (mApScanResultsSize <= mMaxChreResultSize) &&
                            (mApScanResultsSize != mChreScanResultsSize);
-  bool aboveMaxSizeCheck = (mApScanResultsSize > kMaxChreResultSize) &&
+  bool aboveMaxSizeCheck = (mApScanResultsSize > mMaxChreResultSize) &&
                            (mApScanResultsSize < mChreScanResultsSize);
   // TODO(b/185188753): Log info about all scan results so that it is easier
   // to figure out which AP or CHRE scan results are missing or corrupted.
