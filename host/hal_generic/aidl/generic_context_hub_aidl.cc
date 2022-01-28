@@ -122,7 +122,9 @@ ScopedAStatus ContextHub::loadNanoapp(int32_t contextHubId,
     FragmentedLoadTransaction transaction(
         transactionId, appBinary.nanoappId, appBinary.nanoappVersion,
         appBinary.flags, targetApiVersion, appBinary.customBinary);
-    return toServiceSpecificError(mConnection.loadNanoapp(transaction));
+    const bool success = mConnection.loadNanoapp(transaction);
+    mEventLogger.logNanoappLoad(appBinary, success);
+    return toServiceSpecificError(success);
   }
 }
 
@@ -132,8 +134,9 @@ ScopedAStatus ContextHub::unloadNanoapp(int32_t contextHubId, int64_t appId,
     ALOGE("Invalid ID %" PRId32, contextHubId);
     return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
   } else {
-    return toServiceSpecificError(
-        mConnection.unloadNanoapp(appId, transactionId));
+    const bool success = mConnection.unloadNanoapp(appId, transactionId);
+    mEventLogger.logNanoappUnload(appId, success);
+    return toServiceSpecificError(success);
   }
 }
 
@@ -240,11 +243,14 @@ ScopedAStatus ContextHub::sendMessageToHub(int32_t contextHubId,
   if (contextHubId != kDefaultHubId) {
     ALOGE("Invalid ID %" PRId32, contextHubId);
     return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-  } else {
-    return toServiceSpecificError(mConnection.sendMessageToHub(
-        message.nanoappId, message.messageType, message.hostEndPoint,
-        message.messageBody.data(), message.messageBody.size()));
   }
+
+  const bool success = mConnection.sendMessageToHub(
+      message.nanoappId, message.messageType, message.hostEndPoint,
+      message.messageBody.data(), message.messageBody.size());
+  mEventLogger.logMessageToNanoapp(message, success);
+
+  return toServiceSpecificError(success);
 }
 
 ScopedAStatus ContextHub::onHostEndpointConnected(
@@ -281,6 +287,7 @@ ScopedAStatus ContextHub::onHostEndpointDisconnected(
 void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
   std::lock_guard<std::mutex> lock(mCallbackMutex);
   if (mCallback != nullptr) {
+    mEventLogger.logMessageFromNanoapp(message);
     ContextHubMessage outMessage;
     outMessage.nanoappId = message.app_id;
     outMessage.hostEndPoint = message.host_endpoint;
@@ -350,6 +357,7 @@ void ContextHub::onContextHubRestarted() {
   {
     std::lock_guard<std::mutex> lock(mConnectedHostEndpointsMutex);
     mConnectedHostEndpoints.clear();
+    mEventLogger.logContextHubRestart();
   }
   if (mCallback != nullptr) {
     mCallback->handleContextHubAsyncEvent(AsyncEventType::RESTARTED);
@@ -418,6 +426,8 @@ binder_status_t ContextHub::dump(int fd, const char ** /* args */,
         mDebugDumpPending = false;
       }
     }
+
+    writeToDebugFile(mEventLogger.dump());
     writeToDebugFile("\n-- End of CHRE/ASH debug info --\n");
 
     mDebugFd = kInvalidFd;

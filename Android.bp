@@ -230,6 +230,64 @@ cc_binary {
     vintf_fragments: ["host/hal_generic/V1_2/android.hardware.contexthub@1.2-generic.xml"],
 }
 
+cc_library_static {
+    name: "event_logger",
+    vendor: true,
+    host_supported: true,
+    srcs: [
+        "host/hal_generic/aidl/event_logger.cc",
+    ],
+    local_include_dirs: [
+        "util/include",
+        "host/common/include",
+    ],
+    shared_libs: [
+        "android.hardware.contexthub-V1-ndk",
+        "libcutils",
+        "libutils",
+    ],
+    header_libs: [
+        "chre_flatbuffers",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-DCHRE_IS_HOST_BUILD",
+    ],
+}
+
+cc_test_host {
+    name: "hal_unit_tests",
+    vendor: true,
+    srcs: [
+        "host/test/**/*_test.cc",
+    ],
+    local_include_dirs: [
+        "util/include",
+        "host/common/include",
+    ],
+    static_libs: [
+        "android.hardware.contexthub-V1-ndk",
+        "event_logger",
+        "libgmock",
+    ],
+    shared_libs: [
+        "libcutils",
+        "libutils",
+    ],
+    header_libs: [
+        "chre_flatbuffers",
+    ],
+    defaults: [
+        "chre_linux_cflags",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-DCHRE_IS_HOST_BUILD",
+    ],
+}
+
 cc_binary {
     name: "android.hardware.contexthub-service.generic",
     defaults: ["hidl_defaults"],
@@ -268,7 +326,8 @@ cc_binary {
         "chre_api",
     ],
     static_libs: [
-        "chre_client"
+        "chre_client",
+        "event_logger",
     ],
     vintf_fragments: ["host/hal_generic/aidl/android.hardware.contexthub-service.generic.xml"],
 }
@@ -286,6 +345,7 @@ cc_library_headers {
 cc_library_headers {
     name: "chre_flatbuffers",
     vendor: true,
+    host_supported: true,
     export_include_dirs: [
         "external/flatbuffers/include",
     ],
