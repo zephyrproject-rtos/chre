@@ -159,6 +159,7 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_C_SYMBOL(fmodf),
     ADD_EXPORTED_C_SYMBOL(log10f),
     ADD_EXPORTED_C_SYMBOL(log1pf),
+    ADD_EXPORTED_C_SYMBOL(logf),
     ADD_EXPORTED_C_SYMBOL(lroundf),
     ADD_EXPORTED_C_SYMBOL(roundf),
     ADD_EXPORTED_C_SYMBOL(sinf),
