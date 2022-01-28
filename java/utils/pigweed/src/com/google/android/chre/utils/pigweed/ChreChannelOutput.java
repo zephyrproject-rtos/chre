@@ -19,6 +19,8 @@ import android.hardware.location.ContextHubClient;
 import android.hardware.location.ContextHubTransaction;
 import android.hardware.location.NanoAppMessage;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import dev.pigweed.pw_rpc.Channel;
 import dev.pigweed.pw_rpc.ChannelOutputException;
 
@@ -28,25 +30,51 @@ import dev.pigweed.pw_rpc.ChannelOutputException;
  */
 public class ChreChannelOutput implements Channel.Output {
     /**
-    * Random value chosen not too close to max value to try to avoid conflicts with other messages
-    * in case pw rpc isn't the only way the client chooses to communicate.
-    */
+     * Random value chosen not too close to max value to try to avoid conflicts with other messages
+     * in case pw rpc isn't the only way the client chooses to communicate.
+     */
     public static final int PW_RPC_CHRE_MESSAGE_TYPE = Integer.MAX_VALUE - 10;
+
+    // 1 denotes that a host endpoint is the client that created the channel.
+    private static final int CHANNEL_ID_HOST_CLIENT = (1 << 16);
 
     private final ContextHubClient mClient;
     private final long mNanoappId;
 
-    ChreChannelOutput(ContextHubClient client, long nanoappId) {
+    // Whether this output channel is no longer able to communicate with the nanoapp.
+    private AtomicBoolean mAuthDenied = new AtomicBoolean(false);
+
+    public ChreChannelOutput(ContextHubClient client, long nanoappId) {
         mClient = client;
         mNanoappId = nanoappId;
     }
 
+    /**
+     * This method MUST NOT be called directly from users of this class.
+     */
     @Override
     public void send(byte[] packet) throws ChannelOutputException {
         NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
                 mNanoappId, PW_RPC_CHRE_MESSAGE_TYPE, packet);
-        if (ContextHubTransaction.RESULT_SUCCESS != mClient.sendMessageToNanoApp(message)) {
+        if (mAuthDenied.get()
+                || ContextHubTransaction.RESULT_SUCCESS != mClient.sendMessageToNanoApp(message)) {
             throw new ChannelOutputException();
         }
+    }
+
+    /**
+     * @return Channel ID to use for all Channels that use this output to send
+     *     messages to a nanoapp.
+     */
+    public int getChannelId() {
+        return (CHANNEL_ID_HOST_CLIENT | mClient.getId());
+    }
+
+    /**
+     * Used to indicate whether the particular nanoapp cannot be communicated
+     * with any more (e.g. due to permissions loss).
+     */
+    void setAuthDenied(boolean denied) {
+        mAuthDenied.set(denied);
     }
 }
