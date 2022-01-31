@@ -911,7 +911,8 @@ TEST_F(TransportTests, WifiOpen) {
   uint32_t capabilitySet = CHRE_WIFI_CAPABILITIES_SCAN_MONITORING |
                            CHRE_WIFI_CAPABILITIES_ON_DEMAND_SCAN |
                            CHRE_WIFI_CAPABILITIES_RADIO_CHAIN_PREF |
-                           CHRE_WIFI_CAPABILITIES_RTT_RANGING;
+                           CHRE_WIFI_CAPABILITIES_RTT_RANGING |
+                           CHRE_WIFI_CAPABILITIES_NAN_SUB;
   EXPECT_EQ((*capabilities) & ~(capabilitySet), 0);
 
   // Check total length
