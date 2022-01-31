@@ -94,6 +94,7 @@ COMMON_CFLAGS += -I$(PIGWEED_DIR)/pw_varint/public
 # Pigweed RPC sources
 COMMON_SRCS += $(PIGWEED_DIR)/pw_assert_log/assert_log.cc
 COMMON_SRCS += $(PIGWEED_DIR)/pw_containers/intrusive_list.cc
+COMMON_SRCS += $(PIGWEED_DIR)/pw_protobuf/decoder.cc
 COMMON_SRCS += $(PIGWEED_DIR)/pw_protobuf/encoder.cc
 COMMON_SRCS += $(PIGWEED_DIR)/pw_rpc/call.cc
 COMMON_SRCS += $(PIGWEED_DIR)/pw_rpc/channel.cc
