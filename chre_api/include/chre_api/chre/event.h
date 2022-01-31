@@ -393,6 +393,11 @@ struct chreNanoappInfo {
      * The instance ID of this nanoapp, which can be used in chreSendEvent() to
      * address an event specifically to this nanoapp.  This identifier is
      * guaranteed to be unique among all nanoapps in the system.
+     *
+     * @since v1.6
+     * Instance ID is guaranteed to never go beyond INT16_MAX. This helps the
+     * instance ID be packed into other information inside an int (useful for
+     * RPC routing).
      */
     uint32_t instanceId;
 };
