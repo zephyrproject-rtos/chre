@@ -239,6 +239,9 @@ endif
 
 # Optional Wi-Fi support.
 ifeq ($(CHRE_WIFI_SUPPORT_ENABLED), true)
+ifeq ($(CHRE_WIFI_NAN_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/linux/pal_nan.cc
+endif
 SIM_SRCS += platform/linux/pal_wifi.cc
 SIM_SRCS += platform/shared/platform_wifi.cc
 endif
