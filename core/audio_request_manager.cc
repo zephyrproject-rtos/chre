@@ -206,7 +206,8 @@ bool AudioRequestManager::doConfigureSource(uint32_t instanceId,
   }
 
   if (success &&
-      (getSettingState(Setting::MICROPHONE) != SettingState::DISABLED)) {
+      (EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+           Setting::MICROPHONE) != SettingState::DISABLED)) {
     scheduleNextAudioDataEvent(handle);
     updatePlatformHandleEnabled(handle, lastNumRequests);
   }
@@ -257,7 +258,8 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
 
   if (success) {
     bool suspended =
-        (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED);
+        (EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+             Setting::MICROPHONE) == SettingState::DISABLED);
     postAudioSamplingChangeEvent(instanceId, handle, requestList.available,
                                  suspended);
   }
@@ -347,7 +349,9 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
   if (handle < mAudioRequestLists.size()) {
     if (mAudioRequestLists[handle].available != available) {
       bool suspended =
-          (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED);
+          (EventLoopManagerSingleton::get()
+               ->getSettingManager()
+               .getSettingState(Setting::MICROPHONE) == SettingState::DISABLED);
       mAudioRequestLists[handle].available = available;
       postAudioSamplingChangeEvents(handle, suspended);
     }
@@ -359,7 +363,8 @@ void AudioRequestManager::handleAudioAvailabilitySync(uint32_t handle,
 }
 
 void AudioRequestManager::scheduleNextAudioDataEvent(uint32_t handle) {
-  if (getSettingState(Setting::MICROPHONE) == SettingState::DISABLED) {
+  if (EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+          Setting::MICROPHONE) == SettingState::DISABLED) {
     LOGD("Mic access disabled, doing nothing");
     return;
   }

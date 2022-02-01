@@ -21,6 +21,7 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_common.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/core/settings.h"
 #include "chre/platform/memory_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/always_false.h"
@@ -318,6 +319,13 @@ class EventLoopManager : public NonCopyable {
 #endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
 
   /**
+   * @return A reference to the setting manager.
+   */
+  SettingManager &getSettingManager() {
+    return mSettingManager;
+  }
+
+  /**
    * Performs second-stage initialization of things that are not necessarily
    * required at construction time but need to be completed prior to executing
    * any nanoapps.
@@ -381,6 +389,9 @@ class EventLoopManager : public NonCopyable {
   //! The TelemetryManager that handles metric collection/reporting.
   TelemetryManager mTelemetryManager;
 #endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
+  //! The SettingManager that manages setting states.
+  SettingManager mSettingManager;
 };
 
 //! Provide an alias to the EventLoopManager singleton.

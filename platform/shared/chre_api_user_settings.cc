@@ -26,7 +26,9 @@ using chre::Setting;
 using chre::SettingState;
 
 DLL_EXPORT int8_t chreUserSettingGetState(uint8_t setting) {
-  return chre::getSettingStateAsInt8(setting);
+  return chre::EventLoopManagerSingleton::get()
+      ->getSettingManager()
+      .getSettingStateAsInt8(setting);
 }
 
 DLL_EXPORT void chreUserSettingConfigureEvents(uint8_t setting, bool enable) {

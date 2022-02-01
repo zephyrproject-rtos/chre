@@ -34,6 +34,8 @@ namespace chre {
 
 namespace {
 
+int8_t gExpectedSettingState = CHRE_USER_SETTING_STATE_DISABLED;
+
 bool start() {
   chreGnssLocationSessionStartAsync(50, 50, nullptr);
   chreUserSettingConfigureEvents(CHRE_USER_SETTING_LOCATION, true /* enable */);
@@ -43,7 +45,12 @@ bool start() {
 }
 
 void handleEvent(uint32_t /* senderInstanceId */, uint16_t eventType,
-                 const void * /* eventData */) {
+                 const void *eventData) {
+  if (eventType == CHRE_EVENT_SETTING_CHANGED_LOCATION) {
+    auto *event = static_cast<const chreUserSettingChangedEvent *>(eventData);
+    EXPECT_EQ(gExpectedSettingState, event->settingState);
+  }
+
   TestEventQueueSingleton::get()->pushEvent(eventType);
 }
 
@@ -77,18 +84,38 @@ TEST_F(TestBase, LocationSettingsTest) {
   ASSERT_TRUE(chrePalGnssIsLocationEnabled());
   waitForEvent(CHRE_EVENT_GNSS_LOCATION);
 
-  postSettingChange(Setting::LOCATION, SettingState::DISABLED);
+  gExpectedSettingState = CHRE_USER_SETTING_STATE_DISABLED;
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::LOCATION, SettingState::DISABLED);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
-  ASSERT_EQ(getSettingState(Setting::LOCATION), SettingState::DISABLED);
+  ASSERT_EQ(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+          Setting::LOCATION),
+      SettingState::DISABLED);
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(chrePalGnssIsLocationEnabled());
 
-  postSettingChange(Setting::LOCATION, SettingState::ENABLED);
+  gExpectedSettingState = CHRE_USER_SETTING_STATE_ENABLED;
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::LOCATION, SettingState::ENABLED);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
-  ASSERT_EQ(getSettingState(Setting::LOCATION), SettingState::ENABLED);
+  ASSERT_EQ(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+          Setting::LOCATION),
+      SettingState::ENABLED);
 
   waitForEvent(CHRE_EVENT_GNSS_LOCATION);
   ASSERT_TRUE(chrePalGnssIsLocationEnabled());
+}
+
+TEST_F(TestBase, DefaultSettingsAreSet) {
+  for (uint8_t setting = CHRE_USER_SETTING_LOCATION;
+       setting <= CHRE_USER_SETTING_BLE_AVAILABLE; ++setting) {
+    int8_t expectedSettingState = (setting == CHRE_USER_SETTING_AIRPLANE_MODE)
+                                      ? CHRE_USER_SETTING_STATE_DISABLED
+                                      : CHRE_USER_SETTING_STATE_ENABLED;
+    EXPECT_EQ(expectedSettingState, chreUserSettingGetState(setting));
+  }
 }
 
 }  // namespace chre
