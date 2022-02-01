@@ -19,19 +19,29 @@
 #include <gtest/gtest.h>
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/core/settings.h"
 #include "chre/platform/fatal_error.h"
+#include "chre/platform/linux/pal_ble.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre_api/chre/ble.h"
+#include "chre_api/chre/user_settings.h"
 #include "test_util.h"
 
 namespace chre {
 
 #define CHRE_EVENT_BLE_START_SCAN CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(0)
 #define CHRE_EVENT_BLE_STOP_SCAN CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(1)
+#define CHRE_EVENT_BLE_FUNCTION_DISABLED_ERROR \
+  CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(2)
+#define CHRE_EVENT_BLE_UNKNOWN_ERROR_CODE \
+  CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(3)
+#define CHRE_EVENT_BLE_SETTING_ENABLED CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(4)
+#define CHRE_EVENT_BLE_SETTING_DISABLED \
+  CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(5)
 
 namespace {
 
-uint64_t gAppId = 0x0123456789abcdef;
+constexpr uint64_t gAppId = 0x0123456789abcdef;
 constexpr uint32_t gAppVersion = 0;
 constexpr uint32_t gAppPerms = NanoappPermissions::CHRE_PERMS_BLE;
 
@@ -47,15 +57,24 @@ bool capabilitiesStart() {
 }
 
 uint16_t getTestEventType(uint16_t eventType, const void *eventData) {
-  uint16_t testType = eventType;
+  uint16_t type = eventType;
   if (eventType == CHRE_EVENT_BLE_ASYNC_RESULT) {
-    const struct chreAsyncResult *data =
-        static_cast<const struct chreAsyncResult *>(eventData);
-    testType = (data->requestType == CHRE_BLE_REQUEST_TYPE_START_SCAN)
-                   ? CHRE_EVENT_BLE_START_SCAN
-                   : CHRE_EVENT_BLE_STOP_SCAN;
+    auto *event = static_cast<const struct chreAsyncResult *>(eventData);
+    type = (event->requestType == CHRE_BLE_REQUEST_TYPE_START_SCAN)
+               ? CHRE_EVENT_BLE_START_SCAN
+               : CHRE_EVENT_BLE_STOP_SCAN;
+    if (event->errorCode == CHRE_ERROR_FUNCTION_DISABLED) {
+      type = CHRE_EVENT_BLE_FUNCTION_DISABLED_ERROR;
+    } else if (event->errorCode != CHRE_ERROR_NONE) {
+      type = CHRE_EVENT_BLE_UNKNOWN_ERROR_CODE;
+    }
+  } else if (eventType == CHRE_EVENT_SETTING_CHANGED_BLE_AVAILABLE) {
+    auto *event = static_cast<const chreUserSettingChangedEvent *>(eventData);
+    type = (event->settingState == CHRE_USER_SETTING_STATE_ENABLED)
+               ? CHRE_EVENT_BLE_SETTING_ENABLED
+               : CHRE_EVENT_BLE_SETTING_DISABLED;
   }
-  return testType;
+  return type;
 }
 
 struct EventCounts {
@@ -67,7 +86,9 @@ struct EventCounts {
 EventCounts gExpectedCounts{0, 0, 0};
 EventCounts gCounts{0, 0, 0};
 
-void setCountsForTest(uint8_t start, uint8_t advertisement, uint8_t stop) {
+// Populate the minimum expected BLE scan events for a test.
+void setExpectedEventCounts(uint8_t start = 1, uint8_t advertisement = 0,
+                            uint8_t stop = 0) {
   gCounts = {0, 0, 0};
   gExpectedCounts.start = start;
   gExpectedCounts.advertisment = advertisement;
@@ -89,7 +110,7 @@ void populateExpectedEvents(DynamicVector<uint16_t> &expectedEvents) {
 
 void setupScanTest(uint8_t start, uint8_t advertisement, uint8_t stop,
                    DynamicVector<uint16_t> &expectedEvents) {
-  setCountsForTest(start, advertisement, stop);
+  setExpectedEventCounts(start, advertisement, stop);
   populateExpectedEvents(expectedEvents);
 }
 
@@ -106,10 +127,10 @@ void handleEvent(uint32_t /* senderInstanceId */, uint16_t eventType,
     gCounts.advertisment++;
   } else if (testEvent == CHRE_EVENT_BLE_STOP_SCAN) {
     gCounts.stop++;
-  } else {
-    FATAL_ERROR("Nanoapp should not receive a non BLE event: 0x%" PRIx16,
-                testEvent);
+  } else if (testEvent == CHRE_EVENT_BLE_UNKNOWN_ERROR_CODE) {
+    FATAL_ERROR("Unexpected ble error");
   }
+
   // Determine next API call based on event counts.
   if (gCounts.start < gExpectedCounts.start) {
     chreBleStartScanAsync(CHRE_BLE_SCAN_MODE_BACKGROUND, 0, nullptr);
@@ -127,10 +148,14 @@ bool startBleNanoapp() {
   } else if (gExpectedCounts.stop > 0) {
     chreBleStopScanAsync();
   }
+  chreUserSettingConfigureEvents(CHRE_USER_SETTING_BLE_AVAILABLE,
+                                 true /* enable */);
   return true;
 }
 
 void endBleNanoapp() {
+  chreUserSettingConfigureEvents(CHRE_USER_SETTING_BLE_AVAILABLE,
+                                 false /* enable */);
   TestEventQueueSingleton::get()->pushEvent(
       CHRE_EVENT_SIMULATION_TEST_NANOAPP_UNLOADED);
 }
@@ -203,6 +228,68 @@ TEST_F(TestBase, BleStopTwiceScanTest) {
   unloadNanoapp(gAppId);
   waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_UNLOADED);
   ASSERT_EQ(gCounts.advertisment, 0);
+}
+
+/**
+ * This test verifies the following BLE settings behavior:
+ * 1) Nanoapp makes BLE scan request
+ * 2) Toggle BLE setting -> disabled
+ * 3) Toggle BLE setting -> enabled.
+ * 4) Verify things resume.
+ */
+TEST_F(TestBase, BleSettingChangeTest) {
+  setExpectedEventCounts();
+  loadNanoapp("Test nanoapp", gAppId, gAppVersion, gAppPerms, startBleNanoapp,
+              handleEvent, endBleNanoapp);
+  waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
+  waitForEvent(CHRE_EVENT_BLE_START_SCAN);
+  waitForEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
+
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::BLE_AVAILABLE, false /* enabled */);
+  waitForEvent(CHRE_EVENT_BLE_SETTING_DISABLED);
+  ASSERT_FALSE(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingEnabled(
+          Setting::BLE_AVAILABLE));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  ASSERT_FALSE(chrePalIsBleEnabled());
+
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::BLE_AVAILABLE, true /* enabled */);
+  waitForEvent(CHRE_EVENT_BLE_SETTING_ENABLED);
+  ASSERT_TRUE(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingEnabled(
+          Setting::BLE_AVAILABLE));
+  waitForEvent(CHRE_EVENT_BLE_ADVERTISEMENT);
+  ASSERT_TRUE(chrePalIsBleEnabled());
+}
+
+/**
+ * Test that a nanoapp receives a function disabled error if it attempts to
+ * start a scan when the BLE setting is disabled.
+ */
+TEST_F(TestBase, BleSettingDisabledStartScanTest) {
+  setExpectedEventCounts();
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::BLE_AVAILABLE, false /* enable */);
+  loadNanoapp("Test nanoapp", gAppId, gAppVersion, gAppPerms, startBleNanoapp,
+              handleEvent, endBleNanoapp);
+  waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
+  waitForEvent(CHRE_EVENT_BLE_FUNCTION_DISABLED_ERROR);
+}
+
+/**
+ * Test that a nanoapp receives a success response when it attempts to stop a
+ * BLE scan while the BLE setting is disabled.
+ */
+TEST_F(TestBase, BleSettingDisabledStopScanTest) {
+  setExpectedEventCounts(0 /* start */, 0 /* advertisement */, 1 /* stop */);
+  EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+      Setting::BLE_AVAILABLE, false /* enable */);
+  loadNanoapp("Test nanoapp", gAppId, gAppVersion, gAppPerms, startBleNanoapp,
+              handleEvent, endBleNanoapp);
+  waitForEvent(CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
+  waitForEvent(CHRE_EVENT_BLE_STOP_SCAN);
 }
 
 }  // namespace chre

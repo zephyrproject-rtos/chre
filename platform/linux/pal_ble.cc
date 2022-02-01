@@ -33,6 +33,8 @@ std::thread gBleStopScanThread;
 std::promise<void> gStopAdvertisingEvents;
 std::chrono::milliseconds gMinIntervalMs(50);
 
+bool gBleEnabled = false;
+
 void startScan() {
   gCallbacks->scanStatusChangeCallback(true, CHRE_ERROR_NONE);
   std::future<void> signal = gStopAdvertisingEvents.get_future();
@@ -76,12 +78,14 @@ bool chrePalBleStartScan(chreBleScanMode /* mode */,
   stopThreads();
   gStopAdvertisingEvents = std::promise<void>();
   gBleStartScanThread = std::thread(startScan);
+  gBleEnabled = true;
   return true;
 }
 
 bool chrePalBleStopScan() {
   stopThreads();
   gBleStopScanThread = std::thread(stopScan);
+  gBleEnabled = false;
   return true;
 }
 
@@ -113,6 +117,10 @@ bool chrePalBleApiOpen(const struct chrePalSystemApi *systemApi,
 }
 
 }  // anonymous namespace
+
+bool chrePalIsBleEnabled() {
+  return gBleEnabled;
+}
 
 const struct chrePalBleApi *chrePalBleGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalBleApi kApi = {

@@ -139,6 +139,11 @@ void SettingManager::settingChangedCallback(uint16_t /* type */, void *data,
       setting, settingEnabled);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()->getBleRequestManager().onSettingChanged(
+      setting, settingEnabled);
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+
   sendSettingChangedNotification(setting, settingEnabled);
 }
 

@@ -84,4 +84,8 @@ void BleRequestMultiplexer::removeDisabledRequests() {
   // requests don't affect the maximal request.
 }
 
+bool BleRequestMultiplexer::isMaximalRequestEnabled() {
+  return getCurrentMaximalRequest().isEnabled();
+}
+
 }  // namespace chre

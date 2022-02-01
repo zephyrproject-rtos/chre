@@ -73,6 +73,11 @@ class BleRequestMultiplexer : public RequestMultiplexer<BleRequest> {
    * Removes all disabled requests from the multiplexer.
    */
   void removeDisabledRequests();
+
+  /**
+   * @return true if current maximal request is enabled.
+   */
+  bool isMaximalRequestEnabled();
 };
 
 }  // namespace chre

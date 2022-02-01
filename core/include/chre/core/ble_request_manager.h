@@ -20,6 +20,7 @@
 #include "chre/core/ble_request.h"
 #include "chre/core/ble_request_multiplexer.h"
 #include "chre/core/nanoapp.h"
+#include "chre/core/settings.h"
 #include "chre/platform/platform_ble.h"
 #include "chre/util/non_copyable.h"
 
@@ -117,6 +118,15 @@ class BleRequestManager : public NonCopyable {
    */
   void handleRequestStateResyncCallback();
 
+  /**
+   * Invoked when the host notifies CHRE that ble access has been
+   * disabled via the user settings.
+   *
+   * @param setting The setting that changed.
+   * @param enabled Whether setting is enabled or not.
+   */
+  void onSettingChanged(Setting setting, bool enabled);
+
  private:
   // Multiplexer used to keep track of BLE requests from nanoapps.
   BleRequestMultiplexer mRequests;
@@ -127,11 +137,17 @@ class BleRequestManager : public NonCopyable {
   // Expected platform state after completion of async platform request.
   bool mExpectedPlatformState;
 
+  // Current state of the platform.
+  bool mPlatformEnabled;
+
   // True if a request from the PAL is currently pending.
   bool mInternalRequestPending;
 
-  // True if a state resync callback is pending to be processed.
+  // True if a state resync request is pending to be processed.
   bool mResyncPending;
+
+  // True if a setting change request is pending to be processed.
+  bool mSettingChangePending;
 
   /**
    * Configures BLE platform based on the current maximal BleRequest.
@@ -148,6 +164,35 @@ class BleRequestManager : public NonCopyable {
   bool configure(BleRequest &&request);
 
   /**
+   * Handle sending an async response if a nanoapp attempts to override an
+   * existing request.
+   *
+   * @param instanceId Instance id of nanoapp that made the request.
+   * @param hasExistingRequest Indicates whether a request exists corresponding
+   * to the nanoapp instance id of the new request.
+   * @param requestIndex If hasExistingRequest is true, requestIndex
+   * corresponds to the index of that request.
+   */
+  void handleExistingRequest(uint32_t instanceId, bool *hasExistingRequest,
+                             size_t *requestIndex);
+
+  /**
+   * Check whether a request is attempting to enable the BLE platform while the
+   * BLE setting is disabled.
+   *
+   * @param instanceId Instance id of nanoapp that made the request.
+   * @param enabled Whether the request should start or stop a scan.
+   * @param hasExistingRequest Indicates whether a request exists corresponding
+   * to the nanoapp instance id of the new request.
+   * @param requestIndex If hasExistingRequest is true, requestIndex
+   * corresponds to the index of that request.
+   * @return true if the request does not attempt to enable the platform while
+   * the BLE setting is disabled.
+   */
+  bool compliesWithBleSetting(uint32_t instanceId, bool enabled,
+                              bool hasExistingRequest, size_t requestIndex);
+
+  /**
    * Update active BLE scan requests upon successful starting or ending a scan
    * and register or unregister nanoapp for BLE broadcast events.
    *
@@ -155,14 +200,16 @@ class BleRequestManager : public NonCopyable {
    *                true.
    * @param requestChanged Indicates when the new request resulted in a change
    *                       to the underlying maximal request
+   * @param hasExistingRequest Indicates whether a request exists for the
+   * corresponding nanoapp instance Id of the new request.
    * @param requestIndex If equal to mRequests.size(), indicates the request
    *                     wasn't added (perhaps due to removing a non-existent
    *                     request). Otherwise, indicates the correct index for
    *                     the request.
    * @return true if requests were successfully updated.
    */
-  bool updateRequests(BleRequest &&request, bool *requestChanged,
-                      size_t *requestIndex);
+  bool updateRequests(BleRequest &&request, bool hasExistingRequest,
+                      bool *requestChanged, size_t *requestIndex);
 
   /**
    * Handles the result of a request to the PlatformBle to enable or end a scan.
@@ -212,9 +259,13 @@ class BleRequestManager : public NonCopyable {
   void handleRequestStateResyncCallbackSync();
 
   /**
-   * Sends request to resync BLE platform based on current maximal request.
+   * Updates the platform BLE request according to the current state. It should
+   * be used to synchronize the BLE to the desired state, e.g. for setting
+   * changes or handling a state resync request.
+   *
+   * @param forceUpdate if true force the platform BLE request to be made.
    */
-  void resyncPlatform();
+  void updatePlatformRequest(bool forceUpdate = false);
 
   /**
    * @return true if an async response is pending from BLE. This method should
@@ -252,6 +303,11 @@ class BleRequestManager : public NonCopyable {
    *         if ad type is invalid.
    */
   static uint8_t getFilterLenByAdType(uint8_t adType);
+
+  /**
+   * @return true if BLE setting is enabled.
+   */
+  bool bleSettingEnabled();
 };
 
 }  // namespace chre
