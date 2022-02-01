@@ -86,23 +86,23 @@ TEST_F(TestBase, LocationSettingsTest) {
 
   gExpectedSettingState = CHRE_USER_SETTING_STATE_DISABLED;
   EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
-      Setting::LOCATION, SettingState::DISABLED);
+      Setting::LOCATION, false /* enabled */);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
   ASSERT_EQ(
-      EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingEnabled(
           Setting::LOCATION),
-      SettingState::DISABLED);
+      false);
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(chrePalGnssIsLocationEnabled());
 
   gExpectedSettingState = CHRE_USER_SETTING_STATE_ENABLED;
   EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
-      Setting::LOCATION, SettingState::ENABLED);
+      Setting::LOCATION, true /* enabled */);
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
   ASSERT_EQ(
-      EventLoopManagerSingleton::get()->getSettingManager().getSettingState(
+      EventLoopManagerSingleton::get()->getSettingManager().getSettingEnabled(
           Setting::LOCATION),
-      SettingState::ENABLED);
+      true);
 
   waitForEvent(CHRE_EVENT_GNSS_LOCATION);
   ASSERT_TRUE(chrePalGnssIsLocationEnabled());

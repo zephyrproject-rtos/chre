@@ -227,13 +227,13 @@ class HostProtocolChre : public HostProtocolCommon {
 
   /**
    * @param state The fbs::SettingState value.
-   * @param chreSettingState If success, stores the corresponding
-   * chre::SettingState value.
+   * @param chreSettingEnabled If success, stores the value indicating whether
+   *     the setting is enabled or not.
    *
    * @return true if state was a valid fbs::SettingState value.
    */
-  static bool getSettingStateFromFbs(fbs::SettingState state,
-                                     SettingState *chreSettingState);
+  static bool getSettingEnabledFromFbs(fbs::SettingState state,
+                                       bool *chreSettingEnabled);
 
   /**
    * Encodes a message notifying the result of a self test.

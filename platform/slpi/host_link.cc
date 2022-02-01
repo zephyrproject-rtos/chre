@@ -980,11 +980,11 @@ void HostMessageHandlers::handleDebugDumpRequest(uint16_t hostClientId) {
 void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
                                                      fbs::SettingState state) {
   Setting chreSetting;
-  SettingState chreSettingState;
+  bool chreSettingEnabled;
   if (HostProtocolChre::getSettingFromFbs(setting, &chreSetting) &&
-      HostProtocolChre::getSettingStateFromFbs(state, &chreSettingState)) {
+      HostProtocolChre::getSettingEnabledFromFbs(state, &chreSettingEnabled)) {
     EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
-        chreSetting, chreSettingState);
+        chreSetting, chreSettingEnabled);
   }
 }
 

@@ -214,10 +214,9 @@ bool WifiRequestManager::requestScan(Nanoapp *nanoapp,
              ->getEventLoop()
              .findNanoappByInstanceId(mScanRequestingNanoappInstanceId.value())
              ->getAppId());
-  } else if (EventLoopManagerSingleton::get()
-                 ->getSettingManager()
-                 .getSettingState(Setting::WIFI_AVAILABLE) ==
-             SettingState::DISABLED) {
+  } else if (!EventLoopManagerSingleton::get()
+                  ->getSettingManager()
+                  .getSettingEnabled(Setting::WIFI_AVAILABLE)) {
     // Treat as success, but send an async failure per API contract.
     success = true;
     handleScanResponse(false /* pending */, CHRE_ERROR_FUNCTION_DISABLED);
@@ -1098,10 +1097,8 @@ void WifiRequestManager::buildNanSubscribeConfigFromRequest(
 inline bool WifiRequestManager::areRequiredSettingsEnabled() {
   SettingManager &settingManager =
       EventLoopManagerSingleton::get()->getSettingManager();
-  return (settingManager.getSettingState(Setting::LOCATION) ==
-          SettingState::ENABLED) &&
-         (settingManager.getSettingState(Setting::WIFI_AVAILABLE) ==
-          SettingState::ENABLED);
+  return settingManager.getSettingEnabled(Setting::LOCATION) &&
+         settingManager.getSettingEnabled(Setting::WIFI_AVAILABLE);
 }
 
 void WifiRequestManager::cancelNanSubscriptionsAndInformNanoapps() {

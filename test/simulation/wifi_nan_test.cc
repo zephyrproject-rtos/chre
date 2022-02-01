@@ -211,7 +211,7 @@ void reset() {
   gPublishId = 0;
   gExpectedErrorCode = CHRE_ERROR_NONE;
   EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
-      Setting::WIFI_AVAILABLE, SettingState::ENABLED);
+      Setting::WIFI_AVAILABLE, true /* enabled */);
   PalNanEngineSingleton::get()->setFlags(PalNanEngine::Flags::NONE);
 }
 
@@ -223,7 +223,7 @@ void reset() {
  */
 TEST_F(TestBase, WifiNanDisabledViaSettings) {
   EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
-      Setting::WIFI_AVAILABLE, SettingState::DISABLED);
+      Setting::WIFI_AVAILABLE, false /* enabled */);
   gExpectedErrorCode = CHRE_ERROR_FUNCTION_DISABLED;
   startTestNanoapp();
   waitForEvent(CHRE_NAN_TEST_EVENT_ASYNC_ERROR);
