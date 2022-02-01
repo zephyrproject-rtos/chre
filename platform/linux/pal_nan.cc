@@ -33,8 +33,6 @@ uint8_t PalNanEngine::subscribe(
 
 void PalNanEngine::sendDiscoveryEvent(uint32_t subscriptionId) {
   constexpr size_t kSomeArraySize = 11;
-  constexpr uint8_t kSomePublishMac[CHRE_WIFI_BSSID_LEN] = {0x1, 0x2, 0x3,
-                                                            0x4, 0x5, 0x6};
   auto *event = memoryAlloc<struct chreWifiNanDiscoveryEvent>();
   CHRE_ASSERT_NOT_NULL(event);
 
