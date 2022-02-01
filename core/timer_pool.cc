@@ -45,7 +45,7 @@ TimerHandle TimerPool::setSystemTimer(Nanoseconds duration,
   return timerHandle;
 }
 
-TimerHandle TimerPool::setTimer(uint32_t instanceId, Nanoseconds duration,
+TimerHandle TimerPool::setTimer(uint16_t instanceId, Nanoseconds duration,
                                 const void *cookie,
                                 SystemEventCallbackFunction *systemCallback,
                                 SystemCallbackType callbackType,
@@ -78,7 +78,7 @@ TimerHandle TimerPool::setTimer(uint32_t instanceId, Nanoseconds duration,
   return success ? timerRequest.timerHandle : CHRE_TIMER_INVALID;
 }
 
-bool TimerPool::cancelTimer(uint32_t instanceId, TimerHandle timerHandle) {
+bool TimerPool::cancelTimer(uint16_t instanceId, TimerHandle timerHandle) {
   LockGuard<Mutex> lock(mMutex);
   size_t index;
   bool success = false;

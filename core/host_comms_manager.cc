@@ -109,7 +109,7 @@ MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
 bool HostCommsManager::deliverNanoappMessageFromHost(
     MessageFromHost *craftedMessage) {
   const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  uint32_t targetInstanceId;
+  uint16_t targetInstanceId;
   bool nanoappFound = false;
 
   CHRE_ASSERT_LOG(craftedMessage != nullptr,

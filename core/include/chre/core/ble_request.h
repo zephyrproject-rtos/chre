@@ -39,9 +39,9 @@ class BleRequest : public NonCopyable {
  public:
   BleRequest();
 
-  BleRequest(uint32_t instanceId, bool enable);
+  BleRequest(uint16_t instanceId, bool enable);
 
-  BleRequest(uint32_t instanceId, bool enable, chreBleScanMode mode,
+  BleRequest(uint16_t instanceId, bool enable, chreBleScanMode mode,
              uint32_t reportDelayMs, const chreBleScanFilter *filter);
 
   BleRequest(BleRequest &&other);
@@ -69,7 +69,7 @@ class BleRequest : public NonCopyable {
   /**
    * @return The instance id of the nanoapp that owns this request
    */
-  uint32_t getInstanceId() const;
+  uint16_t getInstanceId() const;
 
   /**
    * @return The scan mode of this request.
@@ -113,14 +113,14 @@ class BleRequest : public NonCopyable {
   bool isEnabled() const;
 
  private:
+  // Maximum requested batching delay in ms.
+  uint32_t mReportDelayMs;
+
   // Instance id of nanoapp that sent the request.
-  uint32_t mInstanceId;
+  uint16_t mInstanceId;
 
   // Scanning mode selected among enum chreBleScanMode.
   chreBleScanMode mMode;
-
-  // Maximum requested batching delay in ms.
-  uint32_t mReportDelayMs;
 
   // Whether a nanoapp intends to enable this request. If set to false, the
   // following members are invalid: mMode, mReportDelayMs, mFilter.

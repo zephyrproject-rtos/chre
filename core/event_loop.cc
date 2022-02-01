@@ -64,7 +64,7 @@ bool populateNanoappInfo(const Nanoapp *app, struct chreNanoappInfo *info) {
 }  // anonymous namespace
 
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
-                                             uint32_t *instanceId) const {
+                                             uint16_t *instanceId) const {
   CHRE_ASSERT(instanceId != nullptr);
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
 
@@ -141,7 +141,7 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
   bool success = false;
   auto *eventLoopManager = EventLoopManagerSingleton::get();
   EventLoop &eventLoop = eventLoopManager->getEventLoop();
-  uint32_t existingInstanceId;
+  uint16_t existingInstanceId;
 
   if (nanoapp.isNull()) {
     // no-op, invalid argument
@@ -153,14 +153,13 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
          static_cast<uint32_t>(CHRE_FIRST_SUPPORTED_API_VERSION));
   } else if (eventLoop.findNanoappInstanceIdByAppId(nanoapp->getAppId(),
                                                     &existingInstanceId)) {
-    LOGE("App with ID 0x%016" PRIx64
-         " already exists as instance ID 0x%" PRIx32,
+    LOGE("App with ID 0x%016" PRIx64 " already exists as instance ID %" PRIu16,
          nanoapp->getAppId(), existingInstanceId);
   } else if (!mNanoapps.prepareForPush()) {
     LOG_OOM();
   } else {
     nanoapp->setInstanceId(eventLoopManager->getNextInstanceId());
-    LOGD("Instance ID %" PRIu32 " assigned to app ID 0x%016" PRIx64,
+    LOGD("Instance ID %" PRIu16 " assigned to app ID 0x%016" PRIx64,
          nanoapp->getInstanceId(), nanoapp->getAppId());
 
     Nanoapp *newNanoapp = nanoapp.get();
@@ -178,7 +177,7 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
       // TODO: to be fully safe, need to purge/flush any events and messages
       // sent by the nanoapp here (but don't call nanoappEnd). For now, we just
       // destroy the Nanoapp instance.
-      LOGE("Nanoapp %" PRIu32 " failed to start", newNanoapp->getInstanceId());
+      LOGE("Nanoapp %" PRIu16 " failed to start", newNanoapp->getInstanceId());
 
       // Note that this lock protects against concurrent read and modification
       // of mNanoapps, but we are assured that no new nanoapps were added since
@@ -193,7 +192,7 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
   return success;
 }
 
-bool EventLoop::unloadNanoapp(uint32_t instanceId,
+bool EventLoop::unloadNanoapp(uint16_t instanceId,
                               bool allowSystemNanoappUnload) {
   bool unloaded = false;
 
@@ -234,7 +233,7 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
         // perform resource cleanup automatically here to avoid these types of
         // potential leaks.
 
-        LOGD("Unloaded nanoapp with instanceId %" PRIu32, instanceId);
+        LOGD("Unloaded nanoapp with instanceId %" PRIu16, instanceId);
         unloaded = true;
       }
       break;
@@ -246,7 +245,7 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
 
 void EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
                                chreEventCompleteFunction *freeCallback,
-                               uint32_t targetInstanceId,
+                               uint16_t targetInstanceId,
                                uint16_t targetGroupMask) {
   if (mRunning) {
     if (!allocateAndPostEvent(eventType, eventData, freeCallback,
@@ -276,8 +275,8 @@ bool EventLoop::postSystemEvent(uint16_t eventType, void *eventData,
 
 bool EventLoop::postLowPriorityEventOrFree(
     uint16_t eventType, void *eventData,
-    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
-    uint32_t targetInstanceId, uint16_t targetGroupMask) {
+    chreEventCompleteFunction *freeCallback, uint16_t senderInstanceId,
+    uint16_t targetInstanceId, uint16_t targetGroupMask) {
   bool eventPosted = false;
 
   if (mRunning) {
@@ -286,7 +285,7 @@ bool EventLoop::postLowPriorityEventOrFree(
                                          senderInstanceId, targetInstanceId,
                                          targetGroupMask);
       if (!eventPosted) {
-        LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
+        LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu16,
              eventType, targetInstanceId);
         ++mNumDroppedLowPriEvents;
       }
@@ -315,7 +314,7 @@ void EventLoop::onStopComplete() {
   mRunning = false;
 }
 
-Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
+Nanoapp *EventLoop::findNanoappByInstanceId(uint16_t instanceId) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   return lookupAppByInstanceId(instanceId);
 }
@@ -328,7 +327,7 @@ bool EventLoop::populateNanoappInfoForAppId(
 }
 
 bool EventLoop::populateNanoappInfoForInstanceId(
-    uint32_t instanceId, struct chreNanoappInfo *info) const {
+    uint16_t instanceId, struct chreNanoappInfo *info) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   Nanoapp *app = lookupAppByInstanceId(instanceId);
   return populateNanoappInfo(app, info);
@@ -365,8 +364,8 @@ void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 
 bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
                                      chreEventCompleteFunction *freeCallback,
-                                     uint32_t senderInstanceId,
-                                     uint32_t targetInstanceId,
+                                     uint16_t senderInstanceId,
+                                     uint16_t targetInstanceId,
                                      uint16_t targetGroupMask) {
   bool success = false;
 
@@ -404,7 +403,7 @@ void EventLoop::distributeEvent(Event *event) {
   // after queues are flushed while it's unloading)
   if (!eventDelivered && event->targetInstanceId != kBroadcastInstanceId &&
       event->targetInstanceId != kSystemInstanceId) {
-    LOGW("Dropping event 0x%" PRIx16 " from instanceId %" PRIu32 "->%" PRIu32,
+    LOGW("Dropping event 0x%" PRIx16 " from instanceId %" PRIu16 "->%" PRIu16,
          event->eventType, event->senderInstanceId, event->targetInstanceId);
   }
   CHRE_ASSERT(event->isUnreferenced());
@@ -438,7 +437,7 @@ Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) const {
   return nullptr;
 }
 
-Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) const {
+Nanoapp *EventLoop::lookupAppByInstanceId(uint16_t instanceId) const {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case
   if (instanceId != kSystemInstanceId) {

@@ -155,7 +155,7 @@ void Nanoapp::cycleWakeupBuckets(size_t numBuckets) {
 }
 
 void Nanoapp::logStateToBuffer(DebugDumpWrapper &debugDump) const {
-  debugDump.print(" Id=%" PRIu32 " 0x%016" PRIx64 " ", getInstanceId(),
+  debugDump.print(" Id=%" PRIu16 " 0x%016" PRIx64 " ", getInstanceId(),
                   getAppId());
   PlatformNanoapp::logStateToBuffer(debugDump);
   debugDump.print(" v%" PRIu32 ".%" PRIu32 ".%" PRIu32 " tgtAPI=%" PRIu32

@@ -35,7 +35,7 @@ uint32_t BleRequestManager::getFilterCapabilities() {
   return mPlatformBle.getFilterCapabilities();
 }
 
-void BleRequestManager::handleExistingRequest(uint32_t instanceId,
+void BleRequestManager::handleExistingRequest(uint16_t instanceId,
                                               bool *hasExistingRequest,
                                               size_t *requestIndex) {
   BleRequest *foundRequest = mRequests.findRequest(instanceId, requestIndex);
@@ -48,7 +48,7 @@ void BleRequestManager::handleExistingRequest(uint32_t instanceId,
   }
 }
 
-bool BleRequestManager::compliesWithBleSetting(uint32_t instanceId,
+bool BleRequestManager::compliesWithBleSetting(uint16_t instanceId,
                                                bool enabled,
                                                bool hasExistingRequest,
                                                size_t requestIndex) {
@@ -104,7 +104,7 @@ bool BleRequestManager::configure(BleRequest &&request) {
     bool requestChanged = false;
     size_t requestIndex = 0;
     bool hasExistingRequest = false;
-    uint32_t instanceId = request.getInstanceId();
+    uint16_t instanceId = request.getInstanceId();
     uint8_t enabled = request.isEnabled();
     handleExistingRequest(instanceId, &hasExistingRequest, &requestIndex);
     if (compliesWithBleSetting(instanceId, enabled, hasExistingRequest,
@@ -271,7 +271,7 @@ void BleRequestManager::dispatchPendingRequests() {
   }
 }
 
-void BleRequestManager::handleAsyncResult(uint32_t instanceId, bool enabled,
+void BleRequestManager::handleAsyncResult(uint16_t instanceId, bool enabled,
                                           bool success, uint8_t errorCode,
                                           bool forceUnregister) {
   uint8_t requestType = enabled ? CHRE_BLE_REQUEST_TYPE_START_SCAN
@@ -280,7 +280,7 @@ void BleRequestManager::handleAsyncResult(uint32_t instanceId, bool enabled,
   handleNanoappEventRegistration(instanceId, enabled, success, forceUnregister);
 }
 
-void BleRequestManager::handleNanoappEventRegistration(uint32_t instanceId,
+void BleRequestManager::handleNanoappEventRegistration(uint16_t instanceId,
                                                        bool enabled,
                                                        bool success,
                                                        bool forceUnregister) {
@@ -364,7 +364,7 @@ bool BleRequestManager::validateParams(const BleRequest &request) {
   return valid;
 }
 
-void BleRequestManager::postAsyncResultEventFatal(uint32_t instanceId,
+void BleRequestManager::postAsyncResultEventFatal(uint16_t instanceId,
                                                   uint8_t requestType,
                                                   bool success,
                                                   uint8_t errorCode) {

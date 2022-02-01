@@ -101,7 +101,7 @@ void GnssManager::handleRequestStateResyncCallback() {
 bool GnssManager::configurePassiveLocationListener(Nanoapp *nanoapp,
                                                    bool enable) {
   bool success = false;
-  uint32_t instanceId = nanoapp->getInstanceId();
+  uint16_t instanceId = nanoapp->getInstanceId();
 
   size_t index;
   if (nanoappHasPassiveLocationListener(instanceId, &index) != enable) {
@@ -151,7 +151,7 @@ bool GnssManager::configurePassiveLocationListener(Nanoapp *nanoapp,
   return success;
 }
 
-bool GnssManager::nanoappHasPassiveLocationListener(uint32_t nanoappInstanceId,
+bool GnssManager::nanoappHasPassiveLocationListener(uint16_t nanoappInstanceId,
                                                     size_t *index) {
   size_t foundIndex = mPassiveLocationListenerNanoapps.find(nanoappInstanceId);
   bool found = (foundIndex != mPassiveLocationListenerNanoapps.size());
@@ -194,8 +194,8 @@ void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print(
       "\n Passive location listener %s\n",
       mPlatformPassiveLocationListenerEnabled ? "enabled" : "disabled");
-  for (uint32_t instanceId : mPassiveLocationListenerNanoapps) {
-    debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
+  for (uint16_t instanceId : mPassiveLocationListenerNanoapps) {
+    debugDump.print("  nappId=%" PRIu16 "\n", instanceId);
   }
 }
 
@@ -348,7 +348,7 @@ void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   if (!mStateTransitions.empty()) {
     debugDump.print("  Transition queue:\n");
     for (const auto &transition : mStateTransitions) {
-      debugDump.print("   minInt(ms)=%" PRIu64 " enable=%d nappId=%" PRIu32
+      debugDump.print("   minInt(ms)=%" PRIu64 " enable=%d nappId=%" PRIu16
                       "\n",
                       transition.minInterval.getMilliseconds(),
                       transition.enable, transition.nanoappInstanceId);
@@ -361,7 +361,7 @@ void GnssSession::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   for (int8_t i = static_cast<int8_t>(mSessionRequestLogs.size()) - 1; i >= 0;
        i--) {
     const auto &log = mSessionRequestLogs[static_cast<size_t>(i)];
-    debugDump.print("   ts=%" PRIu64 " nappId=%" PRIu32 " %s",
+    debugDump.print("   ts=%" PRIu64 " nappId=%" PRIu16 " %s",
                     log.timestamp.toRawNanoseconds(), log.instanceId,
                     log.start ? "start" : "stop\n");
     if (log.start) {
@@ -374,7 +374,7 @@ bool GnssSession::configure(Nanoapp *nanoapp, bool enable,
                             Milliseconds minInterval,
                             Milliseconds minTimeToNext, const void *cookie) {
   bool success = false;
-  uint32_t instanceId = nanoapp->getInstanceId();
+  uint16_t instanceId = nanoapp->getInstanceId();
   size_t requestIndex = 0;
   bool hasRequest = nanoappHasRequest(instanceId, &requestIndex);
   if (!mStateTransitions.empty()) {
@@ -392,7 +392,7 @@ bool GnssSession::configure(Nanoapp *nanoapp, bool enable,
       success = controlPlatform(enable, minInterval, minTimeToNext);
       if (!success) {
         mStateTransitions.pop_back();
-        LOGE("Failed to request a GNSS session for nanoapp instance %" PRIu32
+        LOGE("Failed to request a GNSS session for nanoapp instance %" PRIu16
              " enable %d",
              instanceId, enable);
       }
@@ -409,7 +409,7 @@ bool GnssSession::configure(Nanoapp *nanoapp, bool enable,
   return success;
 }
 
-bool GnssSession::nanoappHasRequest(uint32_t instanceId,
+bool GnssSession::nanoappHasRequest(uint16_t instanceId,
                                     size_t *requestIndex) const {
   bool hasRequest = false;
   for (size_t i = 0; i < mRequests.size(); i++) {
@@ -426,7 +426,7 @@ bool GnssSession::nanoappHasRequest(uint32_t instanceId,
   return hasRequest;
 }
 
-bool GnssSession::addRequestToQueue(uint32_t instanceId, bool enable,
+bool GnssSession::addRequestToQueue(uint16_t instanceId, bool enable,
                                     Milliseconds minInterval,
                                     const void *cookie) {
   StateTransition stateTransition;
@@ -486,7 +486,7 @@ bool GnssSession::stateTransitionIsRequired(bool requestedState,
 }
 
 bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
-                                 uint32_t instanceId) {
+                                 uint16_t instanceId) {
   bool success = true;
   Nanoapp *nanoapp =
       EventLoopManagerSingleton::get()->getEventLoop().findNanoappByInstanceId(
@@ -534,7 +534,7 @@ bool GnssSession::updateRequests(bool enable, Milliseconds minInterval,
   return success;
 }
 
-bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
+bool GnssSession::postAsyncResultEvent(uint16_t instanceId, bool success,
                                        bool enable, Milliseconds minInterval,
                                        uint8_t errorCode, const void *cookie) {
   bool eventPosted = false;
@@ -559,7 +559,7 @@ bool GnssSession::postAsyncResultEvent(uint32_t instanceId, bool success,
   return eventPosted;
 }
 
-void GnssSession::postAsyncResultEventFatal(uint32_t instanceId, bool success,
+void GnssSession::postAsyncResultEventFatal(uint16_t instanceId, bool success,
                                             bool enable,
                                             Milliseconds minInterval,
                                             uint8_t errorCode,
@@ -671,7 +671,7 @@ bool GnssSession::controlPlatform(bool enable, Milliseconds minInterval,
   return success;
 }
 
-void GnssSession::addSessionRequestLog(uint32_t nanoappInstanceId,
+void GnssSession::addSessionRequestLog(uint16_t nanoappInstanceId,
                                        Milliseconds interval, bool start) {
   mSessionRequestLogs.kick_push(SessionRequestLog(
       SystemTime::getMonotonicTime(), nanoappInstanceId, interval, start));
@@ -701,7 +701,7 @@ void GnssSession::dispatchQueuedStateTransitions() {
                                  Milliseconds(0))) {
         break;
       } else {
-        LOGE("Failed to enable a GNSS session for nanoapp instance %" PRIu32,
+        LOGE("Failed to enable a GNSS session for nanoapp instance %" PRIu16,
              stateTransition.nanoappInstanceId);
         postAsyncResultEventFatal(stateTransition.nanoappInstanceId,
                                   false /* success */, stateTransition.enable,

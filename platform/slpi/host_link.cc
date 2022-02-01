@@ -256,7 +256,7 @@ void handleUnloadNanoappCallback(SystemCallbackType /*type*/,
     auto *cbData = static_cast<UnloadNanoappCallbackData *>(cookie);
 
     bool success = false;
-    uint32_t instanceId;
+    uint16_t instanceId;
     EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
     if (!eventLoop.findNanoappInstanceIdByAppId(cbData->appId, &instanceId)) {
       LOGE("Couldn't unload app ID 0x%016" PRIx64 ": not found", cbData->appId);

@@ -49,7 +49,7 @@ class Nanoapp : public PlatformNanoapp {
   /**
    * @return The unique identifier for this Nanoapp instance
    */
-  uint32_t getInstanceId() const {
+  uint16_t getInstanceId() const {
     return mInstanceId;
   }
 
@@ -57,7 +57,7 @@ class Nanoapp : public PlatformNanoapp {
    * Assigns an instance ID to this Nanoapp. This must be called prior to
    * starting this Nanoapp.
    */
-  void setInstanceId(uint32_t instanceId) {
+  void setInstanceId(uint16_t instanceId) {
     mInstanceId = instanceId;
   }
 
@@ -219,7 +219,7 @@ class Nanoapp : public PlatformNanoapp {
   }
 
  private:
-  uint32_t mInstanceId = kInvalidInstanceId;
+  uint16_t mInstanceId = kInvalidInstanceId;
 
   //! The total memory allocated by the nanoapp in bytes.
   size_t mTotalAllocatedBytes = 0;

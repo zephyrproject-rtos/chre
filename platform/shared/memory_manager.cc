@@ -24,12 +24,12 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
   AllocHeader *header = nullptr;
   if (bytes > 0) {
     if (mAllocationCount >= kMaxAllocationCount) {
-      LOGE("Failed to allocate memory from Nanoapp ID %" PRIu32
+      LOGE("Failed to allocate memory from Nanoapp ID %" PRIu16
            ": allocation count exceeded limit.",
            app->getInstanceId());
     } else if ((bytes > kMaxAllocationBytes) ||
                ((mTotalAllocatedBytes + bytes) > kMaxAllocationBytes)) {
-      LOGE("Failed to allocate memory from Nanoapp ID %" PRIu32
+      LOGE("Failed to allocate memory from Nanoapp ID %" PRIu16
            ": not enough space.",
            app->getInstanceId());
     } else {
@@ -61,7 +61,7 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
     // release ownership of data to other nanoapps so a CHRE_ASSERT_LOG can be
     // used below and the code can return.
     if (app->getInstanceId() != header->data.instanceId) {
-      LOGW("Nanoapp ID=%" PRIu32 " tried to free data from nanoapp ID=%" PRIu32,
+      LOGW("Nanoapp ID=%" PRIu16 " tried to free data from nanoapp ID=%" PRIu16,
            app->getInstanceId(), header->data.instanceId);
     }
 

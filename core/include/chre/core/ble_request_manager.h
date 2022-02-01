@@ -173,7 +173,7 @@ class BleRequestManager : public NonCopyable {
    * @param requestIndex If hasExistingRequest is true, requestIndex
    * corresponds to the index of that request.
    */
-  void handleExistingRequest(uint32_t instanceId, bool *hasExistingRequest,
+  void handleExistingRequest(uint16_t instanceId, bool *hasExistingRequest,
                              size_t *requestIndex);
 
   /**
@@ -189,7 +189,7 @@ class BleRequestManager : public NonCopyable {
    * @return true if the request does not attempt to enable the platform while
    * the BLE setting is disabled.
    */
-  bool compliesWithBleSetting(uint32_t instanceId, bool enabled,
+  bool compliesWithBleSetting(uint16_t instanceId, bool enabled,
                               bool hasExistingRequest, size_t requestIndex);
 
   /**
@@ -235,7 +235,7 @@ class BleRequestManager : public NonCopyable {
    * @param forceUnregister Whether the nanoapp should be force unregistered
    *                        from BLE broadcast events.
    */
-  void handleNanoappEventRegistration(uint32_t instanceId, bool enabled,
+  void handleNanoappEventRegistration(uint16_t instanceId, bool enabled,
                                       bool success, bool forceUnregister);
 
   /**
@@ -249,7 +249,7 @@ class BleRequestManager : public NonCopyable {
    * @param forceUnregister Whether the nanoapp should be force unregistered
    *                        from BLE broadcast events.
    */
-  void handleAsyncResult(uint32_t instanceId, bool enabled, bool success,
+  void handleAsyncResult(uint16_t instanceId, bool enabled, bool success,
                          uint8_t errorCode, bool forceUnregister = false);
 
   /**
@@ -289,7 +289,7 @@ class BleRequestManager : public NonCopyable {
    * @param success true if the operation was successful.
    * @param errorCode the error code as a result of this operation.
    */
-  static void postAsyncResultEventFatal(uint32_t instanceId,
+  static void postAsyncResultEventFatal(uint16_t instanceId,
                                         uint8_t requestType, bool success,
                                         uint8_t errorCode);
 

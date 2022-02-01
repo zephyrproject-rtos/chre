@@ -77,7 +77,7 @@ void WwanRequestManager::handleCellInfoResultSync(
 void WwanRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nWWAN:\n");
   if (mCellInfoRequestingNanoappInstanceId.has_value()) {
-    debugDump.print(" WWAN request pending nanoappId=%" PRIu32 "\n",
+    debugDump.print(" WWAN request pending nanoappId=%" PRIu16 "\n",
                     mCellInfoRequestingNanoappInstanceId.value());
   }
 }

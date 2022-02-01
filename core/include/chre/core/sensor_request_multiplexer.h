@@ -40,7 +40,7 @@ class SensorRequestMultiplexer : public RequestMultiplexer<SensorRequest> {
    * @return A pointer to a SensorRequest that is owned by the provided
    *         nanoapp if one is found otherwise nullptr.
    */
-  const SensorRequest *findRequest(uint32_t instanceId, size_t *index) const;
+  const SensorRequest *findRequest(uint16_t instanceId, size_t *index) const;
 };
 
 }  // namespace chre

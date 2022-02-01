@@ -93,7 +93,7 @@ void testFinishLoadingNanoappCallback(SystemCallbackType /* type */,
 void testFinishUnloadingNanoappCallback(uint16_t /* type */, void *data,
                                         void * /* extraData */) {
   EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  uint32_t instanceId = 0;
+  uint16_t instanceId = 0;
   uint64_t *appId = static_cast<uint64_t *>(data);
   eventLoop.findNanoappInstanceIdByAppId(*appId, &instanceId);
   eventLoop.unloadNanoapp(instanceId, true);

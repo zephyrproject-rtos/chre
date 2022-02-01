@@ -111,7 +111,7 @@ class MemoryManager : public NonCopyable {
       uint32_t bytes;
 
       //! The ID of nanoapp requesting memory allocation.
-      uint32_t instanceId;
+      uint16_t instanceId;
     } data;
 
     //! Makes sure header is a multiple of the size of max_align_t

@@ -248,7 +248,7 @@ class WifiRequestManager : public NonCopyable {
 
  private:
   struct PendingRequestBase {
-    uint32_t nanoappInstanceId;  //!< ID of the Nanoapp issuing this request
+    uint16_t nanoappInstanceId;  //!< ID of the Nanoapp issuing this request
     const void *cookie;          //!< User data supplied by the nanoapp
   };
 
@@ -286,7 +286,7 @@ class WifiRequestManager : public NonCopyable {
 
   //! An internal struct to hold scan request data for logging
   struct WifiScanRequestLog {
-    WifiScanRequestLog(Nanoseconds timestampIn, uint32_t instanceIdIn,
+    WifiScanRequestLog(Nanoseconds timestampIn, uint16_t instanceIdIn,
                        chreWifiScanType scanTypeIn, Milliseconds maxScanAgeMsIn)
         : timestamp(timestampIn),
           instanceId(instanceIdIn),
@@ -294,16 +294,16 @@ class WifiRequestManager : public NonCopyable {
           maxScanAgeMs(maxScanAgeMsIn) {}
 
     Nanoseconds timestamp;
-    uint32_t instanceId;
+    uint16_t instanceId;
     enum chreWifiScanType scanType;
     Milliseconds maxScanAgeMs;
   };
 
   struct NanoappNanSubscriptions {
-    uint32_t nanoappInstanceId;
+    uint16_t nanoappInstanceId;
     uint32_t subscriptionId;
 
-    NanoappNanSubscriptions(uint32_t nappId, uint32_t subId)
+    NanoappNanSubscriptions(uint16_t nappId, uint32_t subId)
         : nanoappInstanceId(nappId), subscriptionId(subId) {}
   };
 
@@ -328,7 +328,7 @@ class WifiRequestManager : public NonCopyable {
   //! insuitable only subscribe to wifi scan events when an active request is
   //! made and the scan monitor must remain enabled when an active request has
   //! completed.
-  DynamicVector<uint32_t> mScanMonitorNanoapps;
+  DynamicVector<uint16_t> mScanMonitorNanoapps;
 
   //! The list of nanoapps that have an active NAN subscription. The pair
   //! format that is used is <subscriptionId, nanoappInstanceId>.
@@ -338,7 +338,7 @@ class WifiRequestManager : public NonCopyable {
   //! The instance ID of the nanoapp that has a pending active scan request. At
   //! this time, only one nanoapp can have a pending request for an active WiFi
   //! scan.
-  Optional<uint32_t> mScanRequestingNanoappInstanceId;
+  Optional<uint16_t> mScanRequestingNanoappInstanceId;
 
   //! The cookie passed in by a nanoapp making an active request for wifi scans.
   //! Note that this will only be valid if the mScanRequestingNanoappInstanceId
@@ -395,7 +395,7 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the nanoapp has an active request for scan monitoring.
    */
-  bool nanoappHasScanMonitorRequest(uint32_t instanceId,
+  bool nanoappHasScanMonitorRequest(uint16_t instanceId,
                                     size_t *index = nullptr) const;
 
   /**
@@ -438,7 +438,7 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the nanoapp was added to the list.
    */
-  bool updateNanoappScanMonitoringList(bool enable, uint32_t instanceId);
+  bool updateNanoappScanMonitoringList(bool enable, uint16_t instanceId);
 
   /**
    * Posts an event to a nanoapp indicating the result of a wifi scan monitoring
@@ -455,7 +455,7 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the event was successfully posted to the event loop.
    */
-  bool postScanMonitorAsyncResultEvent(uint32_t nanoappInstanceId, bool success,
+  bool postScanMonitorAsyncResultEvent(uint16_t nanoappInstanceId, bool success,
                                        bool enable, uint8_t errorCode,
                                        const void *cookie);
 
@@ -466,7 +466,7 @@ class WifiRequestManager : public NonCopyable {
    * but CHRE failed to enqueue one. For parameter details,
    * @see postScanMonitorAsyncResultEvent
    */
-  void postScanMonitorAsyncResultEventFatal(uint32_t nanoappInstanceId,
+  void postScanMonitorAsyncResultEventFatal(uint16_t nanoappInstanceId,
                                             bool success, bool enable,
                                             uint8_t errorCode,
                                             const void *cookie);
@@ -483,7 +483,7 @@ class WifiRequestManager : public NonCopyable {
    *
    * @return true if the event was successfully posted to the event loop.
    */
-  bool postScanRequestAsyncResultEvent(uint32_t nanoappInstanceId, bool success,
+  bool postScanRequestAsyncResultEvent(uint16_t nanoappInstanceId, bool success,
                                        uint8_t errorCode, const void *cookie);
 
   /**
@@ -493,7 +493,7 @@ class WifiRequestManager : public NonCopyable {
    * but CHRE failed to enqueue one. For parameter details,
    * @see postScanRequestAsyncResultEvent
    */
-  void postScanRequestAsyncResultEventFatal(uint32_t nanoappInstanceId,
+  void postScanRequestAsyncResultEventFatal(uint16_t nanoappInstanceId,
                                             bool success, uint8_t errorCode,
                                             const void *cookie);
 
@@ -518,7 +518,7 @@ class WifiRequestManager : public NonCopyable {
    * @param cookie A cookie that is round-tripped back to the nanoapp to
    *        provide a context when making the request.
    */
-  void postNanAsyncResultEvent(uint32_t nanoappInstanceId, uint8_t requestType,
+  void postNanAsyncResultEvent(uint16_t nanoappInstanceId, uint8_t requestType,
                                bool success, uint8_t errorCode,
                                const void *cookie);
 
@@ -648,7 +648,7 @@ class WifiRequestManager : public NonCopyable {
    * @param nanoappInstanceId The instance Id of the requesting nanoapp
    * @param params The chre wifi scan params
    */
-  void addWifiScanRequestLog(uint32_t nanoappInstanceId,
+  void addWifiScanRequestLog(uint16_t nanoappInstanceId,
                              const chreWifiScanParams *params);
 
   /**
@@ -707,7 +707,7 @@ class WifiRequestManager : public NonCopyable {
    *         it was found in the list, an invalid value otherwise.
    */
   bool getNappIdFromSubscriptionId(uint32_t subscriptionId,
-                                   uint32_t *nanoappInstanceId);
+                                   uint16_t *nanoappInstanceId);
 
   /**
    * Sends an AP (access point) or NAN ranging request to the platform.

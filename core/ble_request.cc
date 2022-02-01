@@ -22,15 +22,15 @@ namespace chre {
 
 BleRequest::BleRequest() : BleRequest(0, false) {}
 
-BleRequest::BleRequest(uint32_t instanceId, bool enable)
+BleRequest::BleRequest(uint16_t instanceId, bool enable)
     : BleRequest(instanceId, enable, CHRE_BLE_SCAN_MODE_BACKGROUND,
                  0 /* reportDelayMs */, nullptr /* filter */) {}
 
-BleRequest::BleRequest(uint32_t instanceId, bool enable, chreBleScanMode mode,
+BleRequest::BleRequest(uint16_t instanceId, bool enable, chreBleScanMode mode,
                        uint32_t reportDelayMs, const chreBleScanFilter *filter)
-    : mInstanceId(instanceId),
+    : mReportDelayMs(reportDelayMs),
+      mInstanceId(instanceId),
       mMode(mode),
-      mReportDelayMs(reportDelayMs),
       mEnabled(enable),
       mRssiThreshold(CHRE_BLE_RSSI_THRESHOLD_NONE),
       mStatus(RequestStatus::PENDING_REQ) {
@@ -118,7 +118,7 @@ bool BleRequest::isEquivalentTo(const BleRequest &request) {
   return isEquivalent;
 }
 
-uint32_t BleRequest::getInstanceId() const {
+uint16_t BleRequest::getInstanceId() const {
   return mInstanceId;
 }
 

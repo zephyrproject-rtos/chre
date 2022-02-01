@@ -24,7 +24,7 @@ DynamicVector<BleRequest> &BleRequestMultiplexer::getMutableRequests() {
   return mRequests;
 }
 
-BleRequest *BleRequestMultiplexer::findRequest(uint32_t instanceId,
+BleRequest *BleRequestMultiplexer::findRequest(uint16_t instanceId,
                                                size_t *index) {
   for (size_t i = 0; i < mRequests.size(); i++) {
     if (mRequests[i].getInstanceId() == instanceId) {

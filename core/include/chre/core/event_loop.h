@@ -74,7 +74,7 @@ class EventLoop : public NonCopyable {
    *        Must not be null.
    * @return true if the given app ID was found and instanceId was populated
    */
-  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId) const;
+  bool findNanoappInstanceIdByAppId(uint64_t appId, uint16_t *instanceId) const;
 
   /*
    * Checks if the new wakeup buckets need to be pushed to nanoapps because the
@@ -134,7 +134,7 @@ class EventLoop : public NonCopyable {
    *
    * @return true if the nanoapp with the given instance ID was found & unloaded
    */
-  bool unloadNanoapp(uint32_t instanceId, bool allowSystemNanoappUnload);
+  bool unloadNanoapp(uint16_t instanceId, bool allowSystemNanoappUnload);
 
   /**
    * Executes the loop that blocks on the event queue and delivers received
@@ -173,7 +173,7 @@ class EventLoop : public NonCopyable {
    */
   void postEventOrDie(uint16_t eventType, void *eventData,
                       chreEventCompleteFunction *freeCallback,
-                      uint32_t targetInstanceId = kBroadcastInstanceId,
+                      uint16_t targetInstanceId = kBroadcastInstanceId,
                       uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
@@ -200,8 +200,8 @@ class EventLoop : public NonCopyable {
   bool postLowPriorityEventOrFree(
       uint16_t eventType, void *eventData,
       chreEventCompleteFunction *freeCallback,
-      uint32_t senderInstanceId = kSystemInstanceId,
-      uint32_t targetInstanceId = kBroadcastInstanceId,
+      uint16_t senderInstanceId = kSystemInstanceId,
+      uint16_t targetInstanceId = kBroadcastInstanceId,
       uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
@@ -268,7 +268,7 @@ class EventLoop : public NonCopyable {
    * @param instanceId The nanoapp instance ID to search for.
    * @return a pointer to the found nanoapp or nullptr if no match was found.
    */
-  Nanoapp *findNanoappByInstanceId(uint32_t instanceId) const;
+  Nanoapp *findNanoappByInstanceId(uint16_t instanceId) const;
 
   /**
    * Looks for an app with the given ID and if found, populates info with its
@@ -285,7 +285,7 @@ class EventLoop : public NonCopyable {
    *
    * @see chreGetNanoappInfoByInstanceId
    */
-  bool populateNanoappInfoForInstanceId(uint32_t instanceId,
+  bool populateNanoappInfoForInstanceId(uint16_t instanceId,
                                         struct chreNanoappInfo *info) const;
 
   /**
@@ -400,8 +400,8 @@ class EventLoop : public NonCopyable {
    */
   bool allocateAndPostEvent(uint16_t eventType, void *eventData,
                             chreEventCompleteFunction *freeCallback,
-                            uint32_t senderInstanceId,
-                            uint32_t targetInstanceId,
+                            uint16_t senderInstanceId,
+                            uint16_t targetInstanceId,
                             uint16_t targetGroupMask);
 
   /**
@@ -456,7 +456,7 @@ class EventLoop : public NonCopyable {
    * @param instanceId Nanoapp instance identifier
    * @return Nanoapp with the given instanceId, or nullptr if not found
    */
-  Nanoapp *lookupAppByInstanceId(uint32_t instanceId) const;
+  Nanoapp *lookupAppByInstanceId(uint16_t instanceId) const;
 
   /**
    * Sends an event with payload struct chreNanoappInfo populated from the given

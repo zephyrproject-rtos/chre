@@ -55,13 +55,15 @@ DLL_EXPORT bool chreSendEvent(uint16_t eventType, void *eventData,
   // events
   bool success = false;
   EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
+  CHRE_ASSERT_LOG(targetInstanceId <= UINT16_MAX,
+                  "Invalid instance ID %" PRIu32 " provided", targetInstanceId);
   if (eventLoop.currentNanoappIsStopping()) {
-    LOGW("Rejecting event from app instance %" PRIu32 " because it's stopping",
+    LOGW("Rejecting event from app instance %" PRIu16 " because it's stopping",
          nanoapp->getInstanceId());
-  } else {
+  } else if (targetInstanceId <= UINT16_MAX) {
     success = eventLoop.postLowPriorityEventOrFree(
         eventType, eventData, freeCallback, nanoapp->getInstanceId(),
-        targetInstanceId);
+        static_cast<uint16_t>(targetInstanceId));
   }
   return success;
 }
@@ -83,7 +85,7 @@ DLL_EXPORT bool chreSendMessageWithPermissions(
   bool success = false;
   const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
   if (eventLoop.currentNanoappIsStopping()) {
-    LOGW("Rejecting message to host from app instance %" PRIu32
+    LOGW("Rejecting message to host from app instance %" PRIu16
          " because it's stopping",
          nanoapp->getInstanceId());
   } else {
@@ -119,9 +121,14 @@ DLL_EXPORT bool chreGetNanoappInfoByAppId(uint64_t appId,
 
 DLL_EXPORT bool chreGetNanoappInfoByInstanceId(uint32_t instanceId,
                                                struct chreNanoappInfo *info) {
-  return EventLoopManagerSingleton::get()
-      ->getEventLoop()
-      .populateNanoappInfoForInstanceId(instanceId, info);
+  CHRE_ASSERT(instanceId <= UINT16_MAX);
+  if (instanceId <= UINT16_MAX) {
+    return EventLoopManagerSingleton::get()
+        ->getEventLoop()
+        .populateNanoappInfoForInstanceId(static_cast<uint16_t>(instanceId),
+                                          info);
+  }
+  return false;
 }
 
 DLL_EXPORT void chreConfigureNanoappInfoEvents(bool enable) {

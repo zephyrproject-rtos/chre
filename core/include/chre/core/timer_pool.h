@@ -112,8 +112,6 @@ class TimerPool : public NonCopyable {
    * Tracks metadata associated with a request for a timed event.
    */
   struct TimerRequest {
-    //! The instance ID from which this request was made
-    uint32_t instanceId;
     TimerHandle timerHandle;
     Nanoseconds expirationTime;
     Nanoseconds duration;
@@ -131,6 +129,9 @@ class TimerPool : public NonCopyable {
 
     //! Whether or not the request is a one shot or should be rescheduled.
     bool isOneShot;
+
+    //! The instance ID from which this request was made
+    uint16_t instanceId;
 
     /**
      * Provides a greater than comparison of TimerRequests.
@@ -188,7 +189,7 @@ class TimerPool : public NonCopyable {
    * @return TimerHandle of the requested timer. Returns CHRE_TIMER_INVALID if
    *         not successful.
    */
-  TimerHandle setTimer(uint32_t instanceId, Nanoseconds duration,
+  TimerHandle setTimer(uint16_t instanceId, Nanoseconds duration,
                        const void *cookie,
                        SystemEventCallbackFunction *systemCallback,
                        SystemCallbackType callbackType, bool isOneShot);
@@ -200,7 +201,7 @@ class TimerPool : public NonCopyable {
    * @param timerHandle The handle for a timer to be cancelled.
    * @return false if the timer handle is invalid or is not owned by the caller
    */
-  bool cancelTimer(uint32_t instanceId, TimerHandle timerHandle);
+  bool cancelTimer(uint16_t instanceId, TimerHandle timerHandle);
 
   /**
    * Looks up a timer request given a timer handle. mMutex must be acquired

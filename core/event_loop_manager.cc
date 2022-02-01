@@ -34,7 +34,7 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
   return currentNanoapp;
 }
 
-uint32_t EventLoopManager::getNextInstanceId() {
+uint16_t EventLoopManager::getNextInstanceId() {
   ++mLastInstanceId;
 
   // ~4 billion instance IDs should be enough for anyone... if we need to

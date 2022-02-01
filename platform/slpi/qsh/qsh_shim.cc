@@ -92,7 +92,8 @@ bool postEventFromQsh(uint16_t eventType, void *event, uint32_t eventLen,
 
   if (success) {
     EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
-        eventType, eventCopy, freeEventDataCallback, nanoappInstId);
+        eventType, eventCopy, freeEventDataCallback,
+        static_cast<uint16_t>(nanoappInstId));
   }
   return success;
 }

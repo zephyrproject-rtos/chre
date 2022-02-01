@@ -56,7 +56,7 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
   CHRE_ASSERT(nanoapp);
 
   bool success = false;
-  uint32_t instanceId = nanoapp->getInstanceId();
+  uint16_t instanceId = nanoapp->getInstanceId();
   bool hasScanMonitorRequest = nanoappHasScanMonitorRequest(instanceId);
   if (!mPendingScanMonitorRequests.empty()) {
     success = addScanMonitorRequestToQueue(nanoapp, enable, cookie);
@@ -72,7 +72,7 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
       success = mPlatformWifi.configureScanMonitor(enable);
       if (!success) {
         mPendingScanMonitorRequests.pop_back();
-        LOGE("Failed to enable the scan monitor for nanoapp instance %" PRIu32,
+        LOGE("Failed to enable the scan monitor for nanoapp instance %" PRIu16,
              instanceId);
       }
     }
@@ -368,7 +368,7 @@ void WifiRequestManager::handleNanServiceIdentifierEvent(
 }
 
 bool WifiRequestManager::getNappIdFromSubscriptionId(
-    uint32_t subscriptionId, uint32_t *nanoappInstanceId) {
+    uint32_t subscriptionId, uint16_t *nanoappInstanceId) {
   bool success = false;
   for (auto &sub : mNanoappSubscriptions) {
     if (sub.subscriptionId == subscriptionId) {
@@ -383,7 +383,7 @@ bool WifiRequestManager::getNappIdFromSubscriptionId(
 void WifiRequestManager::handleNanServiceDiscoveryEventSync(
     struct chreWifiNanDiscoveryEvent *event) {
   CHRE_ASSERT(event != nullptr);
-  uint32_t nanoappInstanceId;
+  uint16_t nanoappInstanceId;
   if (getNappIdFromSubscriptionId(event->subscribeId, &nanoappInstanceId)) {
     EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
         CHRE_EVENT_WIFI_NAN_DISCOVERY_RESULT, event,
@@ -409,7 +409,7 @@ void WifiRequestManager::handleNanServiceDiscoveryEvent(
 
 void WifiRequestManager::handleNanServiceLostEventSync(uint32_t subscriptionId,
                                                        uint32_t publisherId) {
-  uint32_t nanoappInstanceId;
+  uint16_t nanoappInstanceId;
   if (getNappIdFromSubscriptionId(subscriptionId, &nanoappInstanceId)) {
     chreWifiNanSessionLostEvent *event =
         memoryAlloc<chreWifiNanSessionLostEvent>();
@@ -446,7 +446,7 @@ void WifiRequestManager::handleNanServiceLostEvent(uint32_t subscriptionId,
 
 void WifiRequestManager::handleNanServiceTerminatedEventSync(
     uint8_t errorCode, uint32_t subscriptionId) {
-  uint32_t nanoappInstanceId;
+  uint16_t nanoappInstanceId;
   if (getNappIdFromSubscriptionId(subscriptionId, &nanoappInstanceId)) {
     chreWifiNanSessionTerminatedEvent *event =
         memoryAlloc<chreWifiNanSessionTerminatedEvent>();
@@ -487,20 +487,20 @@ void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 
   if (scanMonitorIsEnabled()) {
     debugDump.print(" Wifi scan monitor enabled nanoapps:\n");
-    for (uint32_t instanceId : mScanMonitorNanoapps) {
-      debugDump.print("  nappId=%" PRIu32 "\n", instanceId);
+    for (uint16_t instanceId : mScanMonitorNanoapps) {
+      debugDump.print("  nappId=%" PRIu16 "\n", instanceId);
     }
   }
 
   if (mScanRequestingNanoappInstanceId.has_value()) {
-    debugDump.print(" Wifi request pending nanoappId=%" PRIu32 "\n",
+    debugDump.print(" Wifi request pending nanoappId=%" PRIu16 "\n",
                     mScanRequestingNanoappInstanceId.value());
   }
 
   if (!mPendingScanMonitorRequests.empty()) {
     debugDump.print(" Wifi transition queue:\n");
     for (const auto &transition : mPendingScanMonitorRequests) {
-      debugDump.print("  enable=%s nappId=%" PRIu32 "\n",
+      debugDump.print("  enable=%s nappId=%" PRIu16 "\n",
                       transition.enable ? "true" : "false",
                       transition.nanoappInstanceId);
     }
@@ -513,7 +513,7 @@ void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   for (int8_t i = static_cast<int8_t>(mWifiScanRequestLogs.size()) - 1; i >= 0;
        i--) {
     const auto &log = mWifiScanRequestLogs[static_cast<size_t>(i)];
-    debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu32 " scanType=%" PRIu8
+    debugDump.print("  ts=%" PRIu64 " nappId=%" PRIu16 " scanType=%" PRIu8
                     " maxScanAge(ms)=%" PRIu64 "\n",
                     log.timestamp.toRawNanoseconds(), log.instanceId,
                     log.scanType, log.maxScanAgeMs.getMilliseconds());
@@ -536,7 +536,7 @@ bool WifiRequestManager::scanMonitorIsEnabled() const {
 }
 
 bool WifiRequestManager::nanoappHasScanMonitorRequest(
-    uint32_t instanceId, size_t *nanoappIndex) const {
+    uint16_t instanceId, size_t *nanoappIndex) const {
   size_t index = mScanMonitorNanoapps.find(instanceId);
   bool hasScanMonitorRequest = (index != mScanMonitorNanoapps.size());
   if (hasScanMonitorRequest && nanoappIndex != nullptr) {
@@ -577,7 +577,7 @@ bool WifiRequestManager::addScanMonitorRequestToQueue(Nanoapp *nanoapp,
 }
 
 bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
-                                                         uint32_t instanceId) {
+                                                         uint16_t instanceId) {
   bool success = true;
   Nanoapp *nanoapp =
       EventLoopManagerSingleton::get()->getEventLoop().findNanoappByInstanceId(
@@ -612,7 +612,7 @@ bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
 }
 
 bool WifiRequestManager::postScanMonitorAsyncResultEvent(
-    uint32_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
+    uint16_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
     const void *cookie) {
   // Allocate and post an event to the nanoapp requesting wifi.
   bool eventPosted = false;
@@ -640,7 +640,7 @@ bool WifiRequestManager::postScanMonitorAsyncResultEvent(
 }
 
 void WifiRequestManager::postScanMonitorAsyncResultEventFatal(
-    uint32_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
+    uint16_t nanoappInstanceId, bool success, bool enable, uint8_t errorCode,
     const void *cookie) {
   if (!postScanMonitorAsyncResultEvent(nanoappInstanceId, success, enable,
                                        errorCode, cookie)) {
@@ -649,7 +649,7 @@ void WifiRequestManager::postScanMonitorAsyncResultEventFatal(
 }
 
 bool WifiRequestManager::postScanRequestAsyncResultEvent(
-    uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+    uint16_t nanoappInstanceId, bool success, uint8_t errorCode,
     const void *cookie) {
   // TODO: the body of this function can be extracted to a common helper for use
   // across this function, postScanMonitorAsyncResultEvent,
@@ -677,7 +677,7 @@ bool WifiRequestManager::postScanRequestAsyncResultEvent(
 }
 
 void WifiRequestManager::postScanRequestAsyncResultEventFatal(
-    uint32_t nanoappInstanceId, bool success, uint8_t errorCode,
+    uint16_t nanoappInstanceId, bool success, uint8_t errorCode,
     const void *cookie) {
   if (!postScanRequestAsyncResultEvent(nanoappInstanceId, success, errorCode,
                                        cookie)) {
@@ -746,7 +746,7 @@ void WifiRequestManager::handleScanMonitorStateChangeSync(bool enabled,
   }
 }
 
-void WifiRequestManager::postNanAsyncResultEvent(uint32_t nanoappInstanceId,
+void WifiRequestManager::postNanAsyncResultEvent(uint16_t nanoappInstanceId,
                                                  uint8_t requestType,
                                                  bool success,
                                                  uint8_t errorCode,
@@ -954,7 +954,7 @@ void WifiRequestManager::handleFreeWifiScanEvent(chreWifiScanEvent *scanEvent) {
 }
 
 void WifiRequestManager::addWifiScanRequestLog(
-    uint32_t nanoappInstanceId, const chreWifiScanParams *params) {
+    uint16_t nanoappInstanceId, const chreWifiScanParams *params) {
   mWifiScanRequestLogs.kick_push(
       WifiScanRequestLog(SystemTime::getMonotonicTime(), nanoappInstanceId,
                          static_cast<chreWifiScanType>(params->scanType),
