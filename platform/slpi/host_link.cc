@@ -944,7 +944,8 @@ void HostMessageHandlers::handleSettingChangeMessage(fbs::Setting setting,
   SettingState chreSettingState;
   if (HostProtocolChre::getSettingFromFbs(setting, &chreSetting) &&
       HostProtocolChre::getSettingStateFromFbs(state, &chreSettingState)) {
-    postSettingChange(chreSetting, chreSettingState);
+    EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
+        chreSetting, chreSettingState);
   }
 }
 
