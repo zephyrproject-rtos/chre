@@ -270,11 +270,12 @@ ScopedAStatus ContextHub::onHostEndpointDisconnected(
     mConnectedHostEndpoints.erase(in_hostEndpointId);
 
     mConnection.onHostEndpointDisconnected(in_hostEndpointId);
-
-    return ndk::ScopedAStatus::ok();
   } else {
-    return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_ARGUMENT));
+    ALOGE("Unknown host endpoint disconnected (ID: %" PRIu16 ")",
+          in_hostEndpointId);
   }
+
+  return ndk::ScopedAStatus::ok();
 }
 
 void ContextHub::onNanoappMessage(const ::chre::fbs::NanoappMessageT &message) {
