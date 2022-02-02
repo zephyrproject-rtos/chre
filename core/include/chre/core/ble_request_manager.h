@@ -23,6 +23,8 @@
 #include "chre/core/settings.h"
 #include "chre/platform/platform_ble.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/system/debug_dump.h"
+#include "chre/util/time.h"
 
 namespace chre {
 
@@ -127,6 +129,15 @@ class BleRequestManager : public NonCopyable {
    */
   void onSettingChanged(Setting setting, bool enabled);
 
+  /**
+   * Prints state in a string buffer. Must only be called from the context of
+   * the main CHRE thread.
+   *
+   * @param debugDump The debug dump wrapper where a string can be printed
+   *     into one of the buffers.
+   */
+  void logStateToBuffer(DebugDumpWrapper &debugDump) const;
+
  private:
   // Multiplexer used to keep track of BLE requests from nanoapps.
   BleRequestMultiplexer mRequests;
@@ -135,10 +146,10 @@ class BleRequestManager : public NonCopyable {
   PlatformBle mPlatformBle;
 
   // Expected platform state after completion of async platform request.
-  bool mExpectedPlatformState;
+  BleRequest mPendingPlatformRequest;
 
   // Current state of the platform.
-  bool mPlatformEnabled;
+  BleRequest mActivePlatformRequest;
 
   // True if a request from the PAL is currently pending.
   bool mInternalRequestPending;
@@ -148,6 +159,34 @@ class BleRequestManager : public NonCopyable {
 
   // True if a setting change request is pending to be processed.
   bool mSettingChangePending;
+
+  // Struct to hold ble request data for logging
+  struct BleRequestLog {
+    BleRequestLog(Nanoseconds timestamp, uint32_t instanceId, bool enable,
+                  bool compliesWithBleSetting)
+        : timestamp(timestamp),
+          instanceId(instanceId),
+          enable(enable),
+          compliesWithBleSetting(compliesWithBleSetting) {}
+    void populateRequestData(const BleRequest &req) {
+      mode = req.getMode();
+      reportDelayMs = req.getReportDelayMs();
+      rssiThreshold = req.getRssiThreshold();
+      scanFilterCount = req.getGenericFilters().size();
+    }
+    Nanoseconds timestamp;
+    uint32_t instanceId;
+    bool enable;
+    bool compliesWithBleSetting;
+    chreBleScanMode mode;
+    uint32_t reportDelayMs;
+    int8_t rssiThreshold;
+    uint8_t scanFilterCount;
+  };
+
+  // List of most recent ble request logs
+  static constexpr size_t kNumBleRequestLogs = 10;
+  ArrayQueue<BleRequestLog, kNumBleRequestLogs> mBleRequestLogs;
 
   /**
    * Configures BLE platform based on the current maximal BleRequest.
@@ -191,6 +230,19 @@ class BleRequestManager : public NonCopyable {
    */
   bool compliesWithBleSetting(uint16_t instanceId, bool enabled,
                               bool hasExistingRequest, size_t requestIndex);
+
+  /**
+   * Add a log to list of BLE request logs possibly pushing out the oldest log.
+   *
+   * @param instanceId Instance id of nanoapp that made the request.
+   * @param enabled Whether the request should start or stop a scan.
+   * @param requestIndex Index of request in multiplexer. Must check whether it
+   * is valid range before using.
+   * @param compliesWithBleSetting true if the request does not attempt to
+   * enable the platform while the BLE setting is disabled.
+   */
+  void addBleRequestLog(uint32_t instanceId, bool enabled, size_t requestIndex,
+                        bool compliesWithBleSetting);
 
   /**
    * Update active BLE scan requests upon successful starting or ending a scan
@@ -271,7 +323,7 @@ class BleRequestManager : public NonCopyable {
    * @return true if an async response is pending from BLE. This method should
    * be used to check if a BLE platform request is in progress.
    */
-  bool asyncResponsePending();
+  bool asyncResponsePending() const;
 
   /**
    * Validates the parameters given to ensure that they can be issued to the

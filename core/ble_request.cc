@@ -15,6 +15,9 @@
  */
 
 #include "chre/core/ble_request.h"
+
+#include <inttypes.h>
+
 #include "chre/platform/fatal_error.h"
 #include "chre/util/memory.h"
 
@@ -154,6 +157,36 @@ chreBleScanFilter BleRequest::getScanFilter() const {
 
 bool BleRequest::isEnabled() const {
   return mEnabled;
+}
+
+void BleRequest::logStateToBuffer(DebugDumpWrapper &debugDump,
+                                  bool isPlatformRequest) const {
+  if (!isPlatformRequest) {
+    debugDump.print("  instanceId=%" PRIu32 " status=%" PRIu8, mInstanceId,
+                    static_cast<uint8_t>(mStatus));
+  }
+  debugDump.print(" %s", mEnabled ? " enable" : " disable\n");
+  if (mEnabled) {
+    debugDump.print(" mode=%" PRIu8 " reportDelayMs=%" PRIu32
+                    " rssiThreshold=%" PRId8,
+                    mMode, mReportDelayMs, mRssiThreshold);
+    if (isPlatformRequest) {
+      debugDump.print(" filters=[");
+      for (const chreBleGenericFilter &filter : mFilters) {
+        debugDump.print("(type=%" PRIx8, filter.type);
+        if (filter.len > 0) {
+          debugDump.print(" data=%s dataMask=%s len=%" PRIu8 "), ",
+                          &filter.data[0], &filter.dataMask[0], filter.len);
+        } else {
+          debugDump.print("), ");
+        }
+      }
+      debugDump.print("]\n");
+    } else {
+      debugDump.print(" filterCount=%" PRIu8 "\n",
+                      static_cast<uint8_t>(mFilters.size()));
+    }
+  }
 }
 
 }  // namespace chre

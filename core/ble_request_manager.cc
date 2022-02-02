@@ -38,7 +38,8 @@ uint32_t BleRequestManager::getFilterCapabilities() {
 void BleRequestManager::handleExistingRequest(uint16_t instanceId,
                                               bool *hasExistingRequest,
                                               size_t *requestIndex) {
-  BleRequest *foundRequest = mRequests.findRequest(instanceId, requestIndex);
+  const BleRequest *foundRequest =
+      mRequests.findRequest(instanceId, requestIndex);
   *hasExistingRequest = (foundRequest != nullptr);
   if (foundRequest != nullptr &&
       foundRequest->getRequestStatus() != RequestStatus::APPLIED) {
@@ -98,6 +99,21 @@ bool BleRequestManager::stopScanAsync(Nanoapp *nanoapp) {
   return configure(std::move(request));
 }
 
+void BleRequestManager::addBleRequestLog(uint32_t instanceId, bool enabled,
+                                         size_t requestIndex,
+                                         bool compliesWithBleSetting) {
+  BleRequestLog log(SystemTime::getMonotonicTime(), instanceId, enabled,
+                    compliesWithBleSetting);
+  if (enabled) {
+    if (instanceId == CHRE_INSTANCE_ID) {
+      log.populateRequestData(mRequests.getCurrentMaximalRequest());
+    } else if (compliesWithBleSetting) {
+      log.populateRequestData(mRequests.getRequests()[requestIndex]);
+    }
+  }
+  mBleRequestLogs.kick_push(log);
+}
+
 bool BleRequestManager::configure(BleRequest &&request) {
   bool success = validateParams(request);
   if (success) {
@@ -107,8 +123,9 @@ bool BleRequestManager::configure(BleRequest &&request) {
     uint16_t instanceId = request.getInstanceId();
     uint8_t enabled = request.isEnabled();
     handleExistingRequest(instanceId, &hasExistingRequest, &requestIndex);
-    if (compliesWithBleSetting(instanceId, enabled, hasExistingRequest,
-                               requestIndex)) {
+    bool compliant = compliesWithBleSetting(instanceId, enabled,
+                                            hasExistingRequest, requestIndex);
+    if (compliant) {
       success = updateRequests(std::move(request), hasExistingRequest,
                                &requestChanged, &requestIndex);
       if (success) {
@@ -132,6 +149,9 @@ bool BleRequestManager::configure(BleRequest &&request) {
         }
       }
     }
+    if (success) {
+      addBleRequestLog(instanceId, enabled, requestIndex, compliant);
+    }
   }
   return success;
 }
@@ -144,11 +164,14 @@ bool BleRequestManager::controlPlatform() {
     chreBleScanFilter filter = maxRequest.getScanFilter();
     success = mPlatformBle.startScanAsync(
         maxRequest.getMode(), maxRequest.getReportDelayMs(), &filter);
+    mPendingPlatformRequest =
+        BleRequest(0, enable, maxRequest.getMode(),
+                   maxRequest.getReportDelayMs(), &filter);
   } else {
     success = mPlatformBle.stopScanAsync();
+    mPendingPlatformRequest = BleRequest(0, enable);
   }
   if (success) {
-    mExpectedPlatformState = enable;
     for (BleRequest &req : mRequests.getMutableRequests()) {
       if (req.getRequestStatus() == RequestStatus::PENDING_REQ) {
         req.setRequestStatus(RequestStatus::PENDING_RESP);
@@ -195,7 +218,7 @@ void BleRequestManager::handlePlatformChange(bool enable, uint8_t errorCode) {
 void BleRequestManager::handlePlatformChangeSync(bool enable,
                                                  uint8_t errorCode) {
   bool success = (errorCode == CHRE_ERROR_NONE);
-  if (mExpectedPlatformState != enable) {
+  if (mPendingPlatformRequest.isEnabled() != enable) {
     errorCode = CHRE_ERROR;
     success = false;
     CHRE_ASSERT_LOG(false, "BLE PAL did not transition to expected state");
@@ -224,7 +247,7 @@ void BleRequestManager::handlePlatformChangeSync(bool enable,
     // No need to waste memory for requests that have no effect on the overall
     // maximal request.
     mRequests.removeDisabledRequests();
-    mPlatformEnabled = enable;
+    mActivePlatformRequest = std::move(mPendingPlatformRequest);
   }
 
   dispatchPendingRequests();
@@ -328,19 +351,22 @@ void BleRequestManager::onSettingChanged(Setting setting, bool /* state */) {
 void BleRequestManager::updatePlatformRequest(bool forceUpdate) {
   bool desiredPlatformState =
       bleSettingEnabled() && mRequests.isMaximalRequestEnabled();
-  bool updatePlatform =
-      (forceUpdate || (desiredPlatformState != mPlatformEnabled));
+  bool updatePlatform = (forceUpdate || (desiredPlatformState !=
+                                         mActivePlatformRequest.isEnabled()));
 
   if (updatePlatform) {
     if (controlPlatform()) {
       mInternalRequestPending = true;
+      addBleRequestLog(CHRE_INSTANCE_ID, desiredPlatformState,
+                       mRequests.getRequests().size(),
+                       true /* compliesWithBleSetting */);
     } else {
       FATAL_ERROR("Failed to send update BLE platform request");
     }
   }
 }
 
-bool BleRequestManager::asyncResponsePending() {
+bool BleRequestManager::asyncResponsePending() const {
   return (mInternalRequestPending ||
           mRequests.hasRequests(RequestStatus::PENDING_RESP));
 }
@@ -406,6 +432,40 @@ bool BleRequestManager::bleSettingEnabled() {
   return EventLoopManagerSingleton::get()
       ->getSettingManager()
       .getSettingEnabled(Setting::BLE_AVAILABLE);
+}
+
+void BleRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
+  debugDump.print("\nBLE:\n");
+  debugDump.print(" Active Platform Request:\n");
+  mActivePlatformRequest.logStateToBuffer(debugDump,
+                                          true /* isPlatformRequest */);
+  if (asyncResponsePending()) {
+    debugDump.print(" Pending Platform Request:\n");
+    mPendingPlatformRequest.logStateToBuffer(debugDump,
+                                             true /* isPlatformRequest */);
+  }
+  debugDump.print(" Request Multiplexer:\n");
+  for (const BleRequest &req : mRequests.getRequests()) {
+    req.logStateToBuffer(debugDump);
+  }
+  debugDump.print(" Last %zu valid BLE requests:\n", mBleRequestLogs.size());
+  static_assert(kNumBleRequestLogs <= INT8_MAX,
+                "kNumBleRequestLogs must be less than INT8_MAX.");
+  for (int8_t i = static_cast<int8_t>(mBleRequestLogs.size()) - 1; i >= 0;
+       i--) {
+    const auto &log = mBleRequestLogs[static_cast<size_t>(i)];
+    debugDump.print("  ts=%" PRIu64 " instanceId=%" PRIu32 " %s",
+                    log.timestamp.toRawNanoseconds(), log.instanceId,
+                    log.enable ? "enable" : "disable\n");
+    if (log.enable && log.compliesWithBleSetting) {
+      debugDump.print(" mode=%" PRIu8 " reportDelayMs=%" PRIu32
+                      " rssiThreshold=%" PRId8 " scanCount=%" PRIu8 "\n",
+                      log.mode, log.reportDelayMs, log.rssiThreshold,
+                      log.scanFilterCount);
+    } else if (log.enable) {
+      debugDump.print(" request did not comply with BLE setting\n");
+    }
+  }
 }
 
 }  // namespace chre

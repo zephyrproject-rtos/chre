@@ -19,6 +19,7 @@
 
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/non_copyable.h"
+#include "chre/util/system/debug_dump.h"
 #include "chre_api/chre/ble.h"
 
 namespace chre {
@@ -111,6 +112,18 @@ class BleRequest : public NonCopyable {
    * @return true if nanoapp intends to enable a request.
    */
   bool isEnabled() const;
+
+  /**
+   * Prints state in a string buffer. Must only be called from the context of
+   * the main CHRE thread.
+   *
+   * @param debugDump The debug dump wrapper where a string can be printed
+   * into one of the buffers.
+   * @param isPlatformRequest true if the request to be logged was sent to the
+   * platform.
+   */
+  void logStateToBuffer(DebugDumpWrapper &debugDump,
+                        bool isPlatformRequest = false) const;
 
  private:
   // Maximum requested batching delay in ms.
