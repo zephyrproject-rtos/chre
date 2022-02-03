@@ -37,6 +37,10 @@ class PalWifiTest : public ::testing::Test {
   void scanEventCallback(struct chreWifiScanEvent *event);
   void rangingEventCallback(uint8_t errorCode,
                             struct chreWifiRangingEvent *event);
+  void nanServiceIdentifierCallback(uint8_t errorCode, uint32_t subscriptionId);
+  void nanServiceDiscoveryCallback(struct chreWifiNanDiscoveryEvent *event);
+  void nanServiceLostCallback(uint32_t subscriptionId, uint32_t publisherId);
+  void nanServiceTerminatedCallback(uint32_t reason, uint32_t subscriptionId);
 
  protected:
   void SetUp() override;

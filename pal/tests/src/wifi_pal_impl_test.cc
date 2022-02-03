@@ -77,6 +77,34 @@ void chrePalRangingEventCallback(uint8_t errorCode,
   }
 }
 
+void chrePalNanServiceIdentifierCallback(uint8_t errorCode,
+                                         uint32_t subscriptionId) {
+  if (gTest != nullptr) {
+    gTest->nanServiceIdentifierCallback(errorCode, subscriptionId);
+  }
+}
+
+void chrePalNanServiceDiscoveryCallback(
+    struct chreWifiNanDiscoveryEvent *event) {
+  if (gTest != nullptr) {
+    gTest->nanServiceDiscoveryCallback(event);
+  }
+}
+
+void chrePalNanServiceLostCallback(uint32_t subscriptionId,
+                                   uint32_t publisherId) {
+  if (gTest != nullptr) {
+    gTest->nanServiceLostCallback(subscriptionId, publisherId);
+  }
+}
+
+void chrePalNanServiceTerminatedCallback(uint32_t reason,
+                                         uint32_t subscriptionId) {
+  if (gTest != nullptr) {
+    gTest->nanServiceTerminatedCallback(reason, subscriptionId);
+  }
+}
+
 }  // anonymous namespace
 
 void PalWifiTest::SetUp() {
@@ -90,6 +118,10 @@ void PalWifiTest::SetUp() {
       .scanResponseCallback = chrePalScanResponseCallback,
       .scanEventCallback = chrePalScanEventCallback,
       .rangingEventCallback = chrePalRangingEventCallback,
+      .nanServiceIdentifierCallback = chrePalNanServiceIdentifierCallback,
+      .nanServiceDiscoveryCallback = chrePalNanServiceDiscoveryCallback,
+      .nanServiceLostCallback = chrePalNanServiceLostCallback,
+      .nanServiceTerminatedCallback = chrePalNanServiceTerminatedCallback,
   };
   ASSERT_TRUE(api_->open(&chre::gChrePalSystemApi, &kCallbacks));
   gTest = this;
@@ -154,6 +186,26 @@ void PalWifiTest::scanEventCallback(struct chreWifiScanEvent *event) {
 void PalWifiTest::rangingEventCallback(uint8_t errorCode,
                                        struct chreWifiRangingEvent *event) {
   // TODO:
+}
+
+void PalWifiTest::nanServiceIdentifierCallback(uint8_t errorCode,
+                                               uint32_t subscriptionId) {
+  // TODO(b/214386002): Implement me.
+}
+
+void PalWifiTest::nanServiceDiscoveryCallback(
+    struct chreWifiNanDiscoveryEvent *event) {
+  // TODO(b/214386002): Implement me.
+}
+
+void PalWifiTest::nanServiceLostCallback(uint32_t subscriptionId,
+                                         uint32_t publisherId) {
+  // TODO(b/214386002): Implement me.
+}
+
+void PalWifiTest::nanServiceTerminatedCallback(uint32_t reason,
+                                               uint32_t subscriptionId) {
+  // TODO(b/214386002): Implement me.
 }
 
 void PalWifiTest::validateWifiScanEvent(const chreWifiScanEvent &event) {
