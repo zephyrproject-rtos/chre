@@ -823,6 +823,115 @@ static void chppWifiClientReleaseRangingEvent(
   CHPP_FREE_AND_NULLIFY(event);
 }
 
+/**
+ * Request that the WiFi chipset perform a NAN subscription.
+ * @see chreWifiNanSubscribe for more information.
+ *
+ * @param config NAN service subscription configuration.
+ * @return true if subscribe request was successful, false otherwise.
+ */
+static bool chppWifiClientNanSubscribe(
+    const struct chreWifiNanSubscribeConfig *config) {
+  struct ChppWifiNanSubscribeConfigWithHeader *request;
+  size_t requestLen;
+
+  bool result =
+      chppWifiNanSubscribeConfigFromChre(config, &request, &requestLen);
+
+  if (!result) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.handle = gWifiClientContext.client.handle;
+    request->header.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    request->header.transaction = gWifiClientContext.client.transaction++;
+    request->header.error = CHPP_APP_ERROR_NONE;
+    request->header.command = CHPP_WIFI_REQUEST_NAN_SUB;
+
+    result = chppSendTimestampedRequestOrFail(
+        &gWifiClientContext.client,
+        &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_NAN_SUB], request,
+        requestLen, CHRE_ASYNC_RESULT_TIMEOUT_NS);
+  }
+  return result;
+}
+
+/**
+ * Request the WiFi chipset to cancel a NAN subscription.
+ * @param subscriptionId Identifier assigned by the NAN engine for a service
+ *        subscription.
+ * @return true if cancelation request was successfully dispatched, false
+ *         otherwise.
+ */
+static bool chppWifiClientNanSubscribeCancel(uint32_t subscriptionId) {
+  bool result = false;
+  struct ChppWifiNanSubscribeCancelRequest *request =
+      chppAllocClientRequestFixed(&gWifiClientContext.client,
+                                  struct ChppWifiNanSubscribeCancelRequest);
+
+  if (request == NULL) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.handle = gWifiClientContext.client.handle;
+    request->header.command = CHPP_WIFI_REQUEST_NAN_SUB_CANCEL;
+    request->header.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    request->header.transaction = gWifiClientContext.client.transaction++;
+    request->header.error = CHPP_APP_ERROR_NONE;
+    request->subscriptionId = subscriptionId;
+
+    result = chppSendTimestampedRequestOrFail(
+        &gWifiClientContext.client,
+        &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_NAN_SUB_CANCEL], request,
+        sizeof(*request), CHRE_ASYNC_RESULT_TIMEOUT_NS);
+  }
+  return result;
+}
+
+/**
+ * Release the memory held for the NAN service discovery callback.
+ *
+ * @param event Discovery event to be freed.
+ */
+static void chppWifiClientNanReleaseDiscoveryEvent(
+    struct chreWifiNanDiscoveryEvent *event) {
+  if (event != NULL) {
+    if (event->serviceSpecificInfo != NULL) {
+      void *info = CHPP_CONST_CAST_POINTER(event->serviceSpecificInfo);
+      CHPP_FREE_AND_NULLIFY(info);
+    }
+    CHPP_FREE_AND_NULLIFY(event);
+  }
+}
+
+/**
+ * Request that the WiFi chipset perform NAN ranging.
+ *
+ * @param params WiFi NAN ranging parameters.
+ * @return true if the ranging request was successfully dispatched, false
+ *         otherwise.
+ */
+static bool chppWifiClientNanRequestNanRanging(
+    const struct chreWifiNanRangingParams *params) {
+  struct ChppWifiNanRangingParamsWithHeader *request;
+  size_t requestLen;
+  bool result = chppWifiNanRangingParamsFromChre(params, &request, &requestLen);
+
+  if (!result) {
+    CHPP_LOG_OOM();
+  } else {
+    request->header.handle = gWifiClientContext.client.handle;
+    request->header.command = CHPP_WIFI_REQUEST_NAN_RANGING_ASYNC;
+    request->header.type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
+    request->header.transaction = gWifiClientContext.client.transaction++;
+    request->header.error = CHPP_APP_ERROR_NONE;
+
+    result = chppSendTimestampedRequestOrFail(
+        &gWifiClientContext.client,
+        &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_NAN_RANGING_ASYNC],
+        request, requestLen, CHRE_ASYNC_RESULT_TIMEOUT_NS);
+  }
+  return result;
+}
+
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -861,6 +970,10 @@ const struct chrePalWifiApi *chppPalWifiGetApi(uint32_t requestedApiVersion) {
       .releaseScanEvent = chppWifiClientReleaseScanEvent,
       .requestRanging = chppWifiClientRequestRanging,
       .releaseRangingEvent = chppWifiClientReleaseRangingEvent,
+      .nanSubscribe = chppWifiClientNanSubscribe,
+      .nanSubscribeCancel = chppWifiClientNanSubscribeCancel,
+      .releaseNanDiscoveryEvent = chppWifiClientNanReleaseDiscoveryEvent,
+      .requestNanRanging = chppWifiClientNanRequestNanRanging,
   };
 
   CHPP_STATIC_ASSERT(
