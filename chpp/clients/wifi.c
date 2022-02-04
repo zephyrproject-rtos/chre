@@ -151,11 +151,16 @@ static void chppWifiRequestScanResult(struct ChppWifiClientState *clientContext,
                                       uint8_t *buf, size_t len);
 static void chppWifiRequestRangingResult(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
+static void chppWifiRequestNanSubscribeResult(uint8_t *buf, size_t len);
 
 static void chppWifiScanEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
 static void chppWifiRangingEventNotification(
     struct ChppWifiClientState *clientContext, uint8_t *buf, size_t len);
+static void chppWifiDiscoveryEventNotification(uint8_t *buf, size_t len);
+static void chppWifiNanServiceLostEventNotification(uint8_t *buf, size_t len);
+static void chppWifiNanServiceTerminatedEventNotification(uint8_t *buf,
+                                                          size_t len);
 
 /************************************************
  *  Private Functions
@@ -223,6 +228,11 @@ static enum ChppAppErrorCode chppDispatchWifiResponse(void *clientContext,
         break;
       }
 
+      case CHPP_WIFI_REQUEST_NAN_SUB: {
+        chppWifiRequestNanSubscribeResult(buf, len);
+        break;
+      }
+
       default: {
         error = CHPP_APP_ERROR_INVALID_COMMAND;
         break;
@@ -262,6 +272,21 @@ static enum ChppAppErrorCode chppDispatchWifiNotification(void *clientContext,
 
     case CHPP_WIFI_REQUEST_RANGING_ASYNC: {
       chppWifiRangingEventNotification(wifiClientContext, buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_NOTIFICATION_NAN_SERVICE_DISCOVERY: {
+      chppWifiDiscoveryEventNotification(buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_NOTIFICATION_NAN_SERVICE_LOST: {
+      chppWifiNanServiceLostEventNotification(buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_NOTIFICATION_NAN_SERVICE_TERMINATED: {
+      chppWifiNanServiceTerminatedEventNotification(buf, len);
       break;
     }
 
@@ -511,6 +536,26 @@ static void chppWifiRequestRangingResult(
 }
 
 /**
+ * Handles the service response for the NAN subscribe client request.
+ *
+ * @param buf Input data. Cannot be null.
+ */
+static void chppWifiRequestNanSubscribeResult(uint8_t *buf, size_t len) {
+  uint8_t errorCode = CHRE_ERROR_NONE;
+  uint32_t subscriptionId = 0;
+
+  if (len < sizeof(struct ChppWifiNanServiceIdentifier)) {
+    errorCode = CHRE_ERROR;
+  } else {
+    struct ChppWifiNanServiceIdentifier *id =
+        (struct ChppWifiNanServiceIdentifier *)buf;
+    errorCode = id->errorCode;
+    subscriptionId = id->subscriptionId;
+  }
+  gCallbacks->nanServiceIdentifierCallback(errorCode, subscriptionId);
+}
+
+/**
  * Handles the WiFi scan event service notification.
  *
  * This function is called from chppDispatchWifiNotification().
@@ -598,6 +643,75 @@ static void chppWifiRangingEventNotification(
   }
 
   gCallbacks->rangingEventCallback(error, chre);
+}
+
+/**
+ * Handles the NAN discovery event service notification.
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiDiscoveryEventNotification(uint8_t *buf, size_t len) {
+  CHPP_LOGD("chppWifiDiscoveryEventNotification data len=%" PRIuSIZE, len);
+
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct ChppWifiNanDiscoveryEvent *chppEvent =
+      (struct ChppWifiNanDiscoveryEvent *)buf;
+  struct chreWifiNanDiscoveryEvent *event =
+      chppWifiNanDiscoveryEventToChre(chppEvent, len);
+
+  if (event == NULL) {
+    CHPP_LOGE("Discovery event CHPP -> CHRE conversion failed");
+  } else {
+    gCallbacks->nanServiceDiscoveryCallback(event);
+  }
+}
+
+/**
+ * Handles the NAN connection lost event service notification.
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiNanServiceLostEventNotification(uint8_t *buf, size_t len) {
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct ChppWifiNanSessionLostEvent *chppEvent =
+      (struct ChppWifiNanSessionLostEvent *)buf;
+  struct chreWifiNanSessionLostEvent *event =
+      chppWifiNanSessionLostEventToChre(chppEvent, len);
+
+  if (event == NULL) {
+    CHPP_LOGE("Session lost event CHPP -> CHRE conversion failed");
+  } else {
+    gCallbacks->nanServiceLostCallback(event->id, event->peerId);
+  }
+}
+
+/**
+ * Handles the NAN subscription termination event service notification.
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiNanServiceTerminatedEventNotification(uint8_t *buf,
+                                                          size_t len) {
+  buf += sizeof(struct ChppAppHeader);
+  len -= sizeof(struct ChppAppHeader);
+
+  struct ChppWifiNanSessionTerminatedEvent *chppEvent =
+      (struct ChppWifiNanSessionTerminatedEvent *)buf;
+  struct chreWifiNanSessionTerminatedEvent *event =
+      chppWifiNanSessionTerminatedEventToChre(chppEvent, len);
+
+  if (event == NULL) {
+    CHPP_LOGE("Session terminated event CHPP -> CHRE conversion failed");
+  } else {
+    gCallbacks->nanServiceTerminatedCallback(event->reason, event->id);
+  }
 }
 
 /**
@@ -878,10 +992,10 @@ static bool chppWifiClientNanSubscribeCancel(uint32_t subscriptionId) {
     request->header.error = CHPP_APP_ERROR_NONE;
     request->subscriptionId = subscriptionId;
 
-    result = chppSendTimestampedRequestOrFail(
+    result = chppSendTimestampedRequestAndWait(
         &gWifiClientContext.client,
         &gWifiClientContext.rRState[CHPP_WIFI_REQUEST_NAN_SUB_CANCEL], request,
-        sizeof(*request), CHRE_ASYNC_RESULT_TIMEOUT_NS);
+        sizeof(*request));
   }
   return result;
 }
