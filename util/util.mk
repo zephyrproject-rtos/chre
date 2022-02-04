@@ -35,3 +35,7 @@ GOOGLETEST_SRCS += util/tests/shared_ptr_test.cc
 GOOGLETEST_SRCS += util/tests/singleton_test.cc
 GOOGLETEST_SRCS += util/tests/time_test.cc
 GOOGLETEST_SRCS += util/tests/unique_ptr_test.cc
+
+# Pigweed Source Files #########################################################
+
+PIGWEED_UTIL_SRCS += util/pigweed/chre_channel_output.cc

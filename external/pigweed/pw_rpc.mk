@@ -12,6 +12,8 @@ ifneq ($(PW_RPC_SRCS),)
 
 # Location of various Pigweed modules
 PIGWEED_DIR = $(ANDROID_BUILD_TOP)/external/pigweed
+CHRE_UTIL_DIR = $(ANDROID_BUILD_TOP)/system/chre/util
+PIGWEED_CHRE_UTIL_DIR = $(CHRE_UTIL_DIR)/pigweed
 
 ifeq ($(NANOPB_PREFIX),)
 $(error "PW_RPC_SRCS is non-empty. You must supply a NANOPB_PREFIX environment \
@@ -120,6 +122,10 @@ COMMON_CFLAGS += -I$(NANOPB_PREFIX)
 COMMON_SRCS += $(NANOPB_PREFIX)/pb_common.c
 COMMON_SRCS += $(NANOPB_PREFIX)/pb_decode.c
 COMMON_SRCS += $(NANOPB_PREFIX)/pb_encode.c
+
+# Add CHRE Pigweed util sources since nanoapps should always use these
+COMMON_SRCS += $(PIGWEED_CHRE_UTIL_DIR)/chre_channel_output.cc
+COMMON_SRCS += $(CHRE_UTIL_DIR)/nanoapp/callbacks.cc
 
 # Generate PW RPC headers ######################################################
 

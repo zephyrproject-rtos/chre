@@ -533,6 +533,11 @@ cc_library_static {
         "platform/shared/chre_api_wifi.cc",
         "util/**/*.cc",
     ],
+    // TODO(b/217952682) Exclude pigweed because it can't be built via
+    // Android.bp
+    exclude_srcs: [
+        "util/pigweed/*.cc",
+    ],
     export_include_dirs: [
         "chre_api/include",
         "chre_api/include/chre_api",
