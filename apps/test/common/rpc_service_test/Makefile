@@ -36,6 +36,10 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 COMMON_CFLAGS += -I$(TEST_SHARED_PATH)/inc
 COMMON_CFLAGS += -I$(NANOAPP_PATH)/inc
 
+# PW RPC protos ################################################################
+
+PW_RPC_SRCS = $(ANDROID_BUILD_TOP)/external/pigweed/pw_rpc/echo.proto
+
 # Makefile Includes ############################################################
 
 include $(CHRE_PREFIX)/build/nanoapp/app.mk

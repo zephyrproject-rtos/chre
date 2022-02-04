@@ -24,22 +24,39 @@
 namespace chre {
 namespace rpc_service_test {
 
+pw::Status EchoService::Echo(const pw_rpc_EchoMessage &request,
+                             pw_rpc_EchoMessage &response) {
+  memcpy(response.msg, request.msg,
+         MIN(ARRAY_SIZE(response.msg), ARRAY_SIZE(request.msg)));
+  return pw::OkStatus();
+}
+
 bool RpcServiceManager::start() {
   static chreNanoappRpcService sRpcService = {
       .id = 0xca8f7150a3f05847,
       .version = 0x01020034,
   };
 
+  mServer.RegisterService(mEchoService);
   return chrePublishRpcServices(&sRpcService, 1 /* numServices */);
 }
 
 void RpcServiceManager::handleEvent(uint32_t senderInstanceId,
                                     uint16_t eventType, const void *eventData) {
-  UNUSED_VAR(eventData);
+  if (eventType == CHRE_EVENT_MESSAGE_FROM_HOST) {
+    auto *hostMessage = static_cast<const chreMessageFromHostData *>(eventData);
+    mOutput.setHostEndpoint(hostMessage->hostEndpoint);
 
-  LOGW("Got unknown event type from senderInstanceId %" PRIu32
-       " and with eventType %" PRIu16,
-       senderInstanceId, eventType);
+    pw::Status success = mServer.ProcessPacket(
+        std::span(static_cast<const std::byte *>(hostMessage->message),
+                  hostMessage->messageSize),
+        mOutput);
+    LOGI("Parsing packet %d", success == pw::OkStatus());
+  } else {
+    LOGW("Got unknown event type from senderInstanceId %" PRIu32
+         " and with eventType %" PRIu16,
+         senderInstanceId, eventType);
+  }
 }
 
 }  // namespace rpc_service_test
