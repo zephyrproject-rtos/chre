@@ -24,6 +24,7 @@ TEST(BleRequest, DefaultMinimalRequest) {
   BleRequest request;
   EXPECT_FALSE(request.isEnabled());
   EXPECT_EQ(CHRE_BLE_SCAN_MODE_BACKGROUND, request.getMode());
+  EXPECT_EQ(0, request.getReportDelayMs());
   EXPECT_TRUE(request.getGenericFilters().empty());
   EXPECT_EQ(CHRE_BLE_RSSI_THRESHOLD_NONE, request.getRssiThreshold());
 }
@@ -44,6 +45,29 @@ TEST(BleRequest, AggressiveModeIsHigherThanBackground) {
   EXPECT_EQ(CHRE_BLE_SCAN_MODE_AGGRESSIVE, mergedRequest.getMode());
   EXPECT_TRUE(mergedRequest.getGenericFilters().empty());
   EXPECT_EQ(CHRE_BLE_RSSI_THRESHOLD_NONE, mergedRequest.getRssiThreshold());
+}
+
+TEST(BleRequest, MergeWithReplacesParametersOfDisabledRequest) {
+  chreBleScanFilter filter;
+  filter.rssiThreshold = -5;
+  filter.scanFilterCount = 1;
+  auto scanFilters = std::make_unique<chreBleGenericFilter>();
+  scanFilters->type = CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_16;
+  scanFilters->len = 2;
+  filter.scanFilters = scanFilters.get();
+  BleRequest enabled(0, true, CHRE_BLE_SCAN_MODE_AGGRESSIVE, 20, &filter);
+
+  BleRequest mergedRequest;
+  EXPECT_FALSE(mergedRequest.isEnabled());
+  EXPECT_TRUE(mergedRequest.mergeWith(enabled));
+  EXPECT_TRUE(mergedRequest.isEnabled());
+  EXPECT_EQ(CHRE_BLE_SCAN_MODE_AGGRESSIVE, mergedRequest.getMode());
+  EXPECT_EQ(20, mergedRequest.getReportDelayMs());
+  EXPECT_EQ(-5, mergedRequest.getRssiThreshold());
+  EXPECT_EQ(1, mergedRequest.getGenericFilters().size());
+  EXPECT_EQ(CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_16,
+            mergedRequest.getGenericFilters()[0].type);
+  EXPECT_EQ(2, mergedRequest.getGenericFilters()[0].len);
 }
 
 TEST(BleRequest, IsEquivalentToBasic) {

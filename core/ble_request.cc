@@ -67,34 +67,46 @@ BleRequest &BleRequest::operator=(BleRequest &&other) {
 
 bool BleRequest::mergeWith(const BleRequest &request) {
   bool attributesChanged = false;
-  if (!mEnabled && request.mEnabled) {
-    mEnabled = true;
-    attributesChanged = true;
-  }
-
-  // Only merge an enabled request to prevent disabled requests polluting things
+  // Only merge parameters of enabled requests.
   if (request.mEnabled) {
-    if (mMode < request.mMode) {
+    // Replace disabled request parameters.
+    if (!mEnabled) {
+      mEnabled = true;
       mMode = request.mMode;
-      attributesChanged = true;
-    }
-    if (mReportDelayMs > request.mReportDelayMs) {
       mReportDelayMs = request.mReportDelayMs;
-      attributesChanged = true;
-    }
-    if (mRssiThreshold > request.mRssiThreshold) {
       mRssiThreshold = request.mRssiThreshold;
-      attributesChanged = true;
-    }
-    const DynamicVector<chreBleGenericFilter> &otherFilters = request.mFilters;
-    if (!otherFilters.empty()) {
-      attributesChanged = true;
-      size_t originalFilterSize = mFilters.size();
-      if (!mFilters.resize(originalFilterSize + otherFilters.size())) {
+      mFilters.clear();
+      if (!mFilters.resize(request.mFilters.size())) {
         FATAL_ERROR("Unable to reserve filter count");
       }
-      for (size_t i = 0; i < otherFilters.size(); i++) {
-        mFilters[originalFilterSize + i] = otherFilters[i];
+      for (size_t i = 0; i < request.mFilters.size(); i++) {
+        mFilters[i] = request.mFilters[i];
+      }
+      attributesChanged = true;
+    } else {
+      if (mMode < request.mMode) {
+        mMode = request.mMode;
+        attributesChanged = true;
+      }
+      if (mReportDelayMs > request.mReportDelayMs) {
+        mReportDelayMs = request.mReportDelayMs;
+        attributesChanged = true;
+      }
+      if (mRssiThreshold > request.mRssiThreshold) {
+        mRssiThreshold = request.mRssiThreshold;
+        attributesChanged = true;
+      }
+      const DynamicVector<chreBleGenericFilter> &otherFilters =
+          request.mFilters;
+      if (!otherFilters.empty()) {
+        attributesChanged = true;
+        size_t originalFilterSize = mFilters.size();
+        if (!mFilters.resize(originalFilterSize + otherFilters.size())) {
+          FATAL_ERROR("Unable to reserve filter count");
+        }
+        for (size_t i = 0; i < otherFilters.size(); i++) {
+          mFilters[originalFilterSize + i] = otherFilters[i];
+        }
       }
     }
   }
