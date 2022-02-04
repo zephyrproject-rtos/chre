@@ -65,6 +65,7 @@ COMMON_SRCS += $(PW_RPC_GEN_SRCS)
 # PW RPC library ###############################################################
 
 # Pigweed RPC include paths
+COMMON_CFLAGS += -I$(PIGWEED_DIR)/pw_assert/assert_lite_public_overrides
 COMMON_CFLAGS += -I$(PIGWEED_DIR)/pw_assert/public
 COMMON_CFLAGS += -I$(PIGWEED_DIR)/pw_assert_log/public
 COMMON_CFLAGS += -I$(PIGWEED_DIR)/pw_assert_log/public_overrides
