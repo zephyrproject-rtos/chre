@@ -22,6 +22,7 @@
 #include "chre/platform/system_time.h"
 #include "chre/util/nested_data_ptr.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/time.h"
 
 /*
  * TODO(P1-62e045): Evict pending audio events from the event queue as needed.
@@ -199,10 +200,14 @@ bool AudioRequestManager::doConfigureSource(uint16_t instanceId,
       requestList.requests.erase(requestIndex);
     }
 
-    // If the client is disabling, there is nothing to do, otherwise a request
-    // must be created successfully.
-    success = (!enable || createAudioRequest(handle, instanceId, numSamples,
-                                             deliveryInterval));
+    // If the client is disabling, there is nothing to do, otherwise a
+    // request must be created successfully.
+    if (!enable) {
+      success = true;
+    } else {
+      success =
+          createAudioRequest(handle, instanceId, numSamples, deliveryInterval);
+    }
   }
 
   if (success &&
@@ -267,6 +272,24 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
   return success;
 }
 
+uint32_t AudioRequestManager::disableAllAudioRequests(const Nanoapp *nanoapp) {
+  uint32_t numRequestDisabled = 0;
+
+  for (size_t handle = 0; handle < mAudioRequestLists.size(); ++handle) {
+    AudioRequest *audioRequest = findAudioRequestByInstanceId(
+        handle, nanoapp->getInstanceId(), nullptr /*index*/, nullptr
+        /*instanceIdIndex*/);
+
+    if (audioRequest != nullptr) {
+      numRequestDisabled++;
+      doConfigureSource(nanoapp->getInstanceId(), handle, false /*enable*/,
+                        0 /*numSamples*/, Nanoseconds() /*deliveryInterval*/);
+    }
+  }
+
+  return numRequestDisabled;
+}
+
 AudioRequestManager::AudioRequest *
 AudioRequestManager::findAudioRequestByInstanceId(uint32_t handle,
                                                   uint16_t instanceId,
@@ -279,8 +302,12 @@ AudioRequestManager::findAudioRequestByInstanceId(uint32_t handle,
     size_t foundInstanceIdIndex = audioRequest.instanceIds.find(instanceId);
     if (foundInstanceIdIndex != audioRequest.instanceIds.size()) {
       foundAudioRequest = &audioRequest;
-      *index = i;
-      *instanceIdIndex = foundInstanceIdIndex;
+      if (index != nullptr) {
+        *index = i;
+      }
+      if (instanceIdIndex != nullptr) {
+        *instanceIdIndex = foundInstanceIdIndex;
+      }
       break;
     }
   }

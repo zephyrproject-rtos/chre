@@ -74,6 +74,14 @@ class AudioRequestManager : public NonCopyable {
                        uint64_t bufferDuration, uint64_t deliveryInterval);
 
   /**
+   * Disables all the active requests for a nanoapp.
+   *
+   * @param nanoapp A non-null pointer to the nanoapp.
+   * @return the number of requests cancelled.
+   */
+  uint32_t disableAllAudioRequests(const Nanoapp *nanoapp);
+
+  /**
    * Handles a new batch of audio from the PlatformAudio interface.
    *
    * @param event The audio data event provided to the audio request manager.

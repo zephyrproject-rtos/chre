@@ -502,6 +502,14 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
        numDisabledSensorSubscriptions);
 #endif  // CHRE_SENSORS_SUPPORT_ENABLED
 
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+  const uint32_t numDisabledAudioRequests =
+      EventLoopManagerSingleton::get()
+          ->getAudioRequestManager()
+          .disableAllAudioRequests(nanoapp.get());
+  LOGV("Disabled %" PRId32 " audio requests", numDisabledAudioRequests);
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
   mCurrentApp = nullptr;
 
   // Destroy the Nanoapp instance
