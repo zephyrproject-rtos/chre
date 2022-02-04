@@ -24,6 +24,7 @@ TEST_SHARED_PATH = $(CHRE_PREFIX)/apps/test/common/shared
 
 # Source Code ##################################################################
 
+COMMON_SRCS += $(NANOAPP_PATH)/src/rpc_service_manager.cc
 COMMON_SRCS += $(NANOAPP_PATH)/src/rpc_service_test.cc
 
 # Compiler Flags ###############################################################
@@ -33,6 +34,7 @@ COMMON_CFLAGS += -DNANOAPP_MINIMUM_LOG_LEVEL=CHRE_LOG_LEVEL_INFO
 
 # Includes
 COMMON_CFLAGS += -I$(TEST_SHARED_PATH)/inc
+COMMON_CFLAGS += -I$(NANOAPP_PATH)/inc
 
 # Makefile Includes ############################################################
 
