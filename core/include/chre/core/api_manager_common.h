@@ -17,6 +17,8 @@
 #ifndef CHRE_CORE_API_MANAGER_COMMON_H_
 #define CHRE_CORE_API_MANAGER_COMMON_H_
 
+#include <cstddef>
+
 #include "chre_api/chre/common.h"
 
 namespace chre {

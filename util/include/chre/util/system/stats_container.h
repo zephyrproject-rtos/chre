@@ -17,6 +17,9 @@
 #ifndef CHRE_UTIL_SYSTEM_STATS_CONTAINER_H_
 #define CHRE_UTIL_SYSTEM_STATS_CONTAINER_H_
 
+#include <cinttypes>
+#include <type_traits>
+
 #include "chre/util/macros.h"
 
 namespace chre {

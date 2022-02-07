@@ -219,9 +219,10 @@ uint32_t chreBleGetFilterCapabilities() {
 }
 
 WEAK_SYMBOL
-bool chreBleStartScanAsync() {
+bool chreBleStartScanAsync(chreBleScanMode mode, uint32_t reportDelayMs,
+                           const struct chreBleScanFilter *filter) {
   auto *fptr = CHRE_NSL_LAZY_LOOKUP(chreBleStartScanAsync);
-  return (fptr != nullptr) ? fptr() : false;
+  return (fptr != nullptr) ? fptr(mode, reportDelayMs, filter) : false;
 }
 
 WEAK_SYMBOL
