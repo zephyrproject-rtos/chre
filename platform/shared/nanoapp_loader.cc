@@ -147,7 +147,7 @@ void __cxa_pure_virtual(void) {
 // can be exported for older nanoapps and tests.
 CHRE_DEPRECATED_PREAMBLE
 const ExportedData gExportedData[] = {
-    /* libmath overrrides and symbols */
+    /* libmath overrides and symbols */
     ADD_EXPORTED_SYMBOL(asinOverride, "asin"),
     ADD_EXPORTED_SYMBOL(atan2Override, "atan2"),
     ADD_EXPORTED_SYMBOL(cosOverride, "cos"),
@@ -183,6 +183,7 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_SYMBOL(deleteOverride, "_ZdlPv"),
     ADD_EXPORTED_SYMBOL(deleteAlignedOverride, "_ZdlPvSt11align_val_t"),
     ADD_EXPORTED_C_SYMBOL(dlsym),
+    ADD_EXPORTED_C_SYMBOL(isgraph),
     ADD_EXPORTED_C_SYMBOL(memcmp),
     ADD_EXPORTED_C_SYMBOL(memcpy),
     ADD_EXPORTED_C_SYMBOL(memmove),
