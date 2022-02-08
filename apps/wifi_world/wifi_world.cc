@@ -27,8 +27,6 @@ using chre::kOneMillisecondInNanoseconds;
 using chre::Nanoseconds;
 using chre::Seconds;
 
-#define LOG_TAG "[WifiWorld]"
-
 //#define WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
 
 #ifdef CHRE_NANOAPP_INTERNAL
