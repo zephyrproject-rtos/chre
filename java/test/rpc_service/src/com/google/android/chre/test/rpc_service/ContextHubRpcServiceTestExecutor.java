@@ -63,6 +63,9 @@ public class ContextHubRpcServiceTestExecutor extends ContextHubClientCallback {
     private final Channel mChannel;
     private final ChreCallbackHandler mCallbackHandler;
 
+    // TODO(b/218677634): Remove flag once pigweed RPC can be used in nanoapps.
+    private final boolean mPwRpcEnabled = false;
+
     // The ID and version of the "rpc_service_test" nanoapp. Must be synchronized with the
     // value defined in the nanoapp code.
     private static final int NUM_RPC_SERVICES = 1;
@@ -128,19 +131,22 @@ public class ContextHubRpcServiceTestExecutor extends ContextHubClientCallback {
         }
         Assert.assertTrue(serviceFound);
 
-        MethodClient methodClient = mRpcClient.method(mChannel.id(), "pw.rpc.EchoService.Echo");
-        Assert.assertNotNull(methodClient);
+        if (mPwRpcEnabled) {
+            MethodClient methodClient = mRpcClient.method(mChannel.id(), "pw.rpc.EchoService.Echo");
+            Assert.assertNotNull(methodClient);
 
-        Echo.EchoMessage message = Echo.EchoMessage.newBuilder().setMsg(RPC_ECHO_STRING).build();
-        UnaryFuture<Echo.EchoMessage> responseFuture = methodClient.invokeUnaryFuture(message);
+            Echo.EchoMessage message =
+                    Echo.EchoMessage.newBuilder().setMsg(RPC_ECHO_STRING).build();
+            UnaryFuture<Echo.EchoMessage> responseFuture = methodClient.invokeUnaryFuture(message);
 
-        UnaryResult<Echo.EchoMessage> responseResult = responseFuture.get(2, TimeUnit.SECONDS);
-        Assert.assertNotNull(responseResult);
-        Assert.assertTrue(responseResult.status().ok());
+            UnaryResult<Echo.EchoMessage> responseResult = responseFuture.get(2, TimeUnit.SECONDS);
+            Assert.assertNotNull(responseResult);
+            Assert.assertTrue(responseResult.status().ok());
 
-        Echo.EchoMessage response = responseResult.response();
-        Assert.assertNotNull(response);
-        Assert.assertEquals(RPC_ECHO_STRING, response.getMsg());
+            Echo.EchoMessage response = responseResult.response();
+            Assert.assertNotNull(response);
+            Assert.assertEquals(RPC_ECHO_STRING, response.getMsg());
+        }
     }
 
     /**
