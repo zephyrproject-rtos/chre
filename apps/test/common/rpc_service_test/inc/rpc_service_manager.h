@@ -19,7 +19,6 @@
 
 #include <cinttypes>
 #include <cstdint>
-#include <span>
 
 #include <chre.h>
 
@@ -27,6 +26,8 @@
 #include "chre/util/singleton.h"
 
 #ifdef PW_RPC_SERVICE_ENABLED
+#include <span>
+
 #include "chre/util/pigweed/chre_channel_output.h"
 
 #include "pw_rpc/echo.rpc.pb.h"

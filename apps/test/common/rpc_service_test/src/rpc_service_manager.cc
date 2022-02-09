@@ -58,6 +58,8 @@ void RpcServiceManager::handleEvent(uint32_t senderInstanceId,
         mOutput);
     LOGI("Parsing packet %d", success == pw::OkStatus());
   } else
+#else
+  UNUSED_VAR(eventData);
 #endif  // PW_RPC_SERVICE_ENABLED
   {
     LOGW("Got unknown event type from senderInstanceId %" PRIu32
