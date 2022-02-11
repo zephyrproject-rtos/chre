@@ -77,5 +77,30 @@ TEST_F(AppTestBase, SimpleGnss) {
   gApi->close();
 }
 
+TEST_F(AppTestBase, GnssCapabilitiesTest) {
+  gApi = chppPalGnssGetApi(CHRE_PAL_GNSS_API_CURRENT_VERSION);
+  ASSERT_NE(gApi, nullptr);
+
+  static const struct chrePalGnssCallbacks kCallbacks = {
+      .requestStateResync = chrePalRequestStateResync,
+      .locationStatusChangeCallback = chrePalLocationStatusChangeCallback,
+      .locationEventCallback = chrePalLocationEventCallback,
+      .measurementStatusChangeCallback = chrePalMeasurementStatusChangeCallback,
+      .measurementEventCallback = chrePalMeasurementEventCallback,
+  };
+  bool success = gApi->open(&chre::gChrePalSystemApi, &kCallbacks);
+  ASSERT_TRUE(success);
+
+  // Set the linkActive flag to false so that CHPP link layer does not
+  // receive/send message, which causes the capabilities to be set to the
+  // default CHPP_GNSS_DEFAULT_CAPABILITIES
+  mClientTransportContext.linkParams.isLinkActive = false;
+  uint32_t capabilities = gApi->getCapabilities();
+  ASSERT_EQ(capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
+  mClientTransportContext.linkParams.isLinkActive = true;
+
+  gApi->close();
+}
+
 }  //  anonymous namespace
 }  //  namespace chpp

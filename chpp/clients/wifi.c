@@ -79,6 +79,8 @@ struct ChppWifiClientState {
   bool scanMonitorEnabled;          // Scan monitoring is enabled
   bool scanMonitorSilenceCallback;  // Silence callback during recovery from a
                                     // service reset
+  bool capabilitiesValid;  // Flag to indicate if the capabilities result
+                           // is valid
 };
 
 // Note: This global definition of gWifiClientContext supports only one
@@ -437,6 +439,7 @@ static void chppWifiGetCapabilitiesResult(
                     "WiFi capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                     result->capabilities, CHPP_WIFI_DEFAULT_CAPABILITIES);
 
+    clientContext->capabilitiesValid = true;
     clientContext->capabilities = result->capabilities;
   }
 }
@@ -769,6 +772,7 @@ static void chppWifiClientClose(void) {
                  sizeof(*request))) {
     gWifiClientContext.client.openState = CHPP_OPEN_STATE_CLOSED;
     gWifiClientContext.capabilities = CHRE_WIFI_CAPABILITIES_NONE;
+    gWifiClientContext.capabilitiesValid = false;
     chppClientCloseOpenRequests(&gWifiClientContext.client, &kWifiClientConfig,
                                 true /* clearOnly */);
   }
@@ -783,7 +787,7 @@ static void chppWifiClientClose(void) {
 static uint32_t chppWifiClientGetCapabilities(void) {
   uint32_t capabilities = CHPP_WIFI_DEFAULT_CAPABILITIES;
 
-  if (gWifiClientContext.capabilities != CHRE_WIFI_CAPABILITIES_NONE) {
+  if (gWifiClientContext.capabilitiesValid) {
     // Result already cached
     capabilities = gWifiClientContext.capabilities;
 
@@ -799,7 +803,9 @@ static uint32_t chppWifiClientGetCapabilities(void) {
               &gWifiClientContext.rRState[CHPP_WIFI_GET_CAPABILITIES], request,
               sizeof(*request))) {
         // Success. gWifiClientContext.capabilities is now populated
-        capabilities = gWifiClientContext.capabilities;
+        if (gWifiClientContext.capabilitiesValid) {
+          capabilities = gWifiClientContext.capabilities;
+        }
       }
     }
   }

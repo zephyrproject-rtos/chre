@@ -70,6 +70,7 @@ class TransportTests : public testing::TestWithParam<int> {
     memset(&mTransportContext.linkParams, 0,
            sizeof(mTransportContext.linkParams));
     mTransportContext.linkParams.linkEstablished = true;
+    mTransportContext.linkParams.isLinkActive = true;
     chppTransportInit(&mTransportContext, &mAppContext);
     chppAppInit(&mAppContext, &mTransportContext);
 
