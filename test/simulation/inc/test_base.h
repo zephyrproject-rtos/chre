@@ -18,7 +18,7 @@
 #define CHRE_SIMULATION_TEST_BASE_H_
 
 #include <gtest/gtest.h>
-
+#include <cstdint>
 #include <thread>
 
 #include "chre/util/time.h"
@@ -51,6 +51,18 @@ class TestBase : public testing::Test {
    */
   void waitForEvent(uint16_t eventType) {
     TestEventQueueSingleton::get()->waitForEvent(eventType);
+  }
+
+  /**
+   * A convenience method to invoke waitForEvent() for the TestEventQueue
+   * singleton.
+   *
+   * @param eventType The event type to wait for.
+   * @param eventData Populated with the data attached to the event.
+   */
+  template <class T>
+  void waitForEvent(uint16_t eventType, T *eventData) {
+    TestEventQueueSingleton::get()->waitForEvent(eventType, eventData);
   }
 
   std::thread mChreThread;

@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/core/nanoapp.h"
 #include "chre/util/macros.h"
 #include "chre/util/memory.h"
 #include "chre_api/chre/version.h"
@@ -71,23 +72,33 @@ void loadNanoapp(const char *name, uint64_t appId, uint32_t appVersion,
                  decltype(nanoappEnd) *endFunc) {
   UniquePtr<Nanoapp> nanoapp = createStaticNanoapp(
       name, appId, appVersion, appPerms, startFunc, handleEventFunc, endFunc);
+
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::FinishLoadingNanoapp, std::move(nanoapp),
       testFinishLoadingNanoappCallback);
+
+  TestEventQueueSingleton::get()->waitForEvent(
+      CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
 }
 
-void unloadNanoapp(uint64_t appId) {
+template <>
+void unloadNanoapp<uint64_t>(uint64_t appId) {
   uint64_t *ptr = memoryAlloc<uint64_t>();
   ASSERT_NE(ptr, nullptr);
   *ptr = appId;
   EventLoopManagerSingleton::get()->deferCallback(
       SystemCallbackType::HandleUnloadNanoapp, ptr,
       testFinishUnloadingNanoappCallback);
+
+  TestEventQueueSingleton::get()->waitForEvent(
+      CHRE_EVENT_SIMULATION_TEST_NANOAPP_UNLOADED);
 }
 
 void testFinishLoadingNanoappCallback(SystemCallbackType /* type */,
                                       UniquePtr<Nanoapp> &&nanoapp) {
   EventLoopManagerSingleton::get()->getEventLoop().startNanoapp(nanoapp);
+  TestEventQueueSingleton::get()->pushEvent(
+      CHRE_EVENT_SIMULATION_TEST_NANOAPP_LOADED);
 }
 
 void testFinishUnloadingNanoappCallback(uint16_t /* type */, void *data,
@@ -98,6 +109,14 @@ void testFinishUnloadingNanoappCallback(uint16_t /* type */, void *data,
   eventLoop.findNanoappInstanceIdByAppId(*appId, &instanceId);
   eventLoop.unloadNanoapp(instanceId, true);
   memoryFree(data);
+  TestEventQueueSingleton::get()->pushEvent(
+      CHRE_EVENT_SIMULATION_TEST_NANOAPP_UNLOADED);
+}
+
+void freeTestEventDataCallback(uint16_t /*eventType*/, void *eventData) {
+  auto testEvent = static_cast<TestEvent *>(eventData);
+  memoryFree(testEvent->data);
+  memoryFree(testEvent);
 }
 
 }  // namespace chre

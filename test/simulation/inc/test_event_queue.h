@@ -21,11 +21,12 @@
 
 #include <cinttypes>
 
+#include "chre/platform/memory.h"
 #include "chre/util/fixed_size_blocking_queue.h"
+#include "chre/util/memory.h"
 #include "chre/util/non_copyable.h"
 #include "chre/util/singleton.h"
-#include "chre_api/chre/event.h"
-#include "test_util.h"
+#include "test_event.h"
 
 namespace chre {
 
@@ -58,24 +59,76 @@ namespace chre {
  */
 class TestEventQueue : public NonCopyable {
  public:
+  //! Push an event to the queue.
   void pushEvent(uint16_t eventType) {
-    mQueue.push(eventType);
+    mQueue.push({eventType});
   }
 
+  /**
+   * Push an event with data to the queue.
+   *
+   * Note: The data passed to this method must be trivially copyable. It is
+   * recommended to pass a scalar or a struct composed of scalars only. If this
+   * method is used in the test nanoapp handleEvent be careful not to forward
+   * pointers to memory that could be freed by the CHRE framework before the
+   * data is received using @ref waitForEvent.
+   *
+   * @param eventType The type of event.
+   * @param eventData The data to send together with the event, which must not
+   *        contain references to dynamically allocated memory.
+   */
+  template <class T>
+  void pushEvent(uint16_t eventType, T eventData) {
+    static_assert(std::is_trivial<T>::value);
+    auto ptr = memoryAlloc<T>();
+    ASSERT_NE(ptr, nullptr);
+    *ptr = eventData;
+    mQueue.push({eventType, static_cast<void *>(ptr)});
+  }
+
+  //! Block until the event happens.
   void waitForEvent(uint16_t eventType) {
     while (true) {
-      uint16_t type = mQueue.pop();
+      auto event = mQueue.pop();
       LOGD("Got event type 0x%" PRIx16, eventType);
-      ASSERT_NE(type, CHRE_EVENT_SIMULATION_TEST_TIMEOUT);
-      if (type == eventType) {
+      ASSERT_NE(event.type, CHRE_EVENT_SIMULATION_TEST_TIMEOUT)
+          << "Timeout waiting for event " << eventType;
+      memoryFree(event.data);
+      if (event.type == eventType) {
         break;
       }
     }
   }
 
+  //! Block until the event happens and populate the event data.
+  template <class T>
+  void waitForEvent(uint16_t eventType, T *data) {
+    static_assert(std::is_trivial<T>::value);
+    while (true) {
+      auto event = mQueue.pop();
+      LOGD("Got event type 0x%" PRIx16, eventType);
+      ASSERT_NE(event.type, CHRE_EVENT_SIMULATION_TEST_TIMEOUT)
+          << "Timeout waiting for event " << eventType;
+      if (event.type == eventType) {
+        *data = *(static_cast<T *>(event.data));
+        memoryFree(event.data);
+        break;
+      }
+      memoryFree(event.data);
+    }
+  }
+
+  //! Flush the queue.
+  void flush() {
+    while (!mQueue.empty()) {
+      auto event = mQueue.pop();
+      memoryFree(event.data);
+    }
+  }
+
  private:
   static const size_t kQueueCapacity = 64;
-  FixedSizeBlockingQueue<uint16_t, kQueueCapacity> mQueue;
+  FixedSizeBlockingQueue<TestEvent, kQueueCapacity> mQueue;
 };
 
 //! Provide an alias to the TestEventQueue singleton.

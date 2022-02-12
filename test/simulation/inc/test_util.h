@@ -18,50 +18,17 @@
 #define CHRE_SIMULATION_TEST_UTIL_H_
 
 #include <chre/nanoapp.h>
+#include <cstdint>
 
+#include "chre/core/event_loop_manager.h"
 #include "chre/core/nanoapp.h"
 #include "chre/util/unique_ptr.h"
+#include "test_event.h"
+#include "test_event_queue.h"
 
 namespace chre {
 
-/**
- * First possible value for CHRE_EVENT_SIMULATION_TEST events. These events are
- * reserved for utility events that can be used by any simulation test.
- */
-#define CHRE_EVENT_SIMULATION_TEST_FIRST_EVENT CHRE_EVENT_FIRST_USER_VALUE
-
-/**
- * Produce an event ID in the block of IDs reserved for CHRE simulation test
- * events.
- *
- * @param offset Index into simulation test event ID block; valid range is [0,
- * 0xFFF].
- *
- * @defgroup CHRE_SIMULATION_TEST_EVENT_ID
- * @{
- */
-#define CHRE_SIMULATION_TEST_EVENT_ID(offset) \
-  (CHRE_EVENT_SIMULATION_TEST_FIRST_EVENT + (offset))
-
-/**
- * First possible value for CHRE_EVENT_SPECIFIC_SIMULATION_TEST events. Each
- * simulation test can define specific events for its use case.
- */
-#define CHRE_EVENT_SPECIFIC_SIMULATION_TEST_FIRST_EVENT \
-  CHRE_EVENT_FIRST_USER_VALUE + 0x1000
-
-/**
- * Produce an event ID in the block of IDs reserved for events belonging to a
- * specific CHRE simulation test.
- *
- * @param offset Index into the event ID block of a specific simulation test;
- * valid range is [0, 0xFFF].
- *
- * @defgroup CHRE_SIMULATION_TEST_EVENT_ID
- * @{
- */
-#define CHRE_SPECIFIC_SIMULATION_TEST_EVENT_ID(offset) \
-  (CHRE_EVENT_SPECIFIC_SIMULATION_TEST_FIRST_EVENT + (offset))
+struct TestNanoapp;
 
 /**
  * @return the statically loaded nanoapp based on the arguments.
@@ -85,6 +52,8 @@ void defaultNanoappEnd();
 /**
  * Create static nanoapp and load it in CHRE.
  *
+ * This function returns after the nanoapp start has been executed.
+ *
  * @see createStatic Nanoapp.
  */
 void loadNanoapp(const char *name, uint64_t appId, uint32_t appVersion,
@@ -93,11 +62,44 @@ void loadNanoapp(const char *name, uint64_t appId, uint32_t appVersion,
                  decltype(nanoappEnd) *endFunc);
 
 /**
+ * Create a static nanoapp and load it in CHRE.
+ *
+ * This function returns after the nanoapp start has been executed.
+ *
+ * @return An instance of the TestNanoapp.
+ */
+template <class Nanoapp>
+Nanoapp loadNanoapp() {
+  static_assert(std::is_base_of<TestNanoapp, Nanoapp>::value);
+  Nanoapp app;
+  loadNanoapp(app.name, app.id, app.version, app.perms, app.start,
+              app.handleEvent, app.end);
+
+  return app;
+}
+
+/**
+ * Unload a test nanoapp.
+ *
+ * This function returns after the nanoapp end has been executed.
+ *
+ * @param app An instance of TestNanoapp.
+ */
+template <class Nanoapp>
+void unloadNanoapp(Nanoapp app) {
+  static_assert(std::is_base_of<TestNanoapp, Nanoapp>::value);
+  unloadNanoapp(app.id);
+}
+
+/**
  * Unload nanoapp corresponding to appId.
+ *
+ * This function returns after the nanoapp end has been executed.
  *
  * @param appId App Id of nanoapp to be unloaded.
  */
-void unloadNanoapp(uint64_t appId);
+template <>
+void unloadNanoapp<uint64_t>(uint64_t appId);
 
 /**
  * A convenience deferred callback function that can be used to start an already
@@ -118,6 +120,103 @@ void testFinishLoadingNanoappCallback(SystemCallbackType type,
  */
 void testFinishUnloadingNanoappCallback(uint16_t type, void *data,
                                         void *extraData);
+
+/**
+ * Test nanoapp.
+ *
+ * Tests typically inherit this struct to test the nanoapp behavior.
+ * The bulk of the code should be in the handleEvent closure to respond to
+ * events sent to the nanoapp by the platform and by the sendEventToNanoapp
+ * function. start and end can be use to setup and cleanup the test environment
+ * around each test.
+ *
+ * Note: end is only executed when the nanoapp is explicitly unloaded.
+ */
+struct TestNanoapp {
+  const char *name = "Test";
+  uint64_t id = 0x0123456789abcdef;
+  uint32_t version = 0;
+  uint32_t perms = NanoappPermissions::CHRE_PERMS_NONE;
+
+  bool (*start)() = []() { return true; };
+
+  void (*handleEvent)(uint32_t senderInstanceId, uint16_t eventType,
+                      const void *eventData) = [](uint32_t, uint16_t,
+                                                  const void *) {};
+
+  void (*end)() = []() {};
+};
+
+/**
+ * Deallocate the memory allocated for a TestEvent.
+ */
+void freeTestEventDataCallback(uint16_t /*eventType*/, void *eventData);
+
+/**
+ * Sends a message to a nanoapp.
+ *
+ * This function is typically used to execute code in the context of the
+ * nanoapp in its handleEvent method.
+ *
+ * @param app An instance of TestNanoapp.
+ * @param eventType The event to send.
+ */
+template <class Nanoapp>
+void sendEventToNanoapp(const Nanoapp &app, uint16_t eventType) {
+  static_assert(std::is_base_of<TestNanoapp, Nanoapp>::value);
+  uint16_t instanceId;
+  if (EventLoopManagerSingleton::get()
+          ->getEventLoop()
+          .findNanoappInstanceIdByAppId(app.id, &instanceId)) {
+    auto event = memoryAlloc<TestEvent>();
+    ASSERT_NE(event, nullptr);
+    event->type = eventType;
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_TEST_EVENT, static_cast<void *>(event),
+        freeTestEventDataCallback, instanceId);
+
+  } else {
+    LOGE("No instance found for nanoapp id = 0x%016" PRIx64, app.id);
+  }
+}
+
+/**
+ * Sends a message to a nanoapp with data.
+ *
+ * This function is typically used to execute code in the context of the
+ * nanoapp in its handleEvent method.
+ *
+ * The nanoapp handleEvent function will receive a a TestEvent instance
+ * populated with the eventType and a pointer to as copy of the evenData as
+ * a CHRE_EVENT_TEST_EVENT event.
+ *
+ * @param app An instance of TestNanoapp.
+ * @param eventType The event to send.
+ * @param eventData The data to send.
+ */
+template <class Nanoapp, class T>
+void sendEventToNanoapp(const Nanoapp &app, uint16_t eventType,
+                        const T &eventData) {
+  static_assert(std::is_base_of<TestNanoapp, Nanoapp>::value);
+  static_assert(std::is_trivial<T>::value);
+  uint16_t instanceId;
+  if (EventLoopManagerSingleton::get()
+          ->getEventLoop()
+          .findNanoappInstanceIdByAppId(app.id, &instanceId)) {
+    auto event = memoryAlloc<TestEvent>();
+    ASSERT_NE(event, nullptr);
+    event->type = eventType;
+    auto ptr = memoryAlloc<T>();
+    ASSERT_NE(ptr, nullptr);
+    *ptr = eventData;
+    event->data = ptr;
+    EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
+        CHRE_EVENT_TEST_EVENT, static_cast<void *>(event),
+        freeTestEventDataCallback, instanceId);
+  } else {
+    LOGE("No instance found for nanoapp id = 0x%016" PRIx64, app.id);
+  }
+}
 
 }  // namespace chre
 

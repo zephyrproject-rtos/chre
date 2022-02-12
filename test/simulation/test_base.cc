@@ -62,6 +62,8 @@ void TestBase::SetUp() {
 }
 
 void TestBase::TearDown() {
+  // Free memory allocated for event on the test queue.
+  TestEventQueueSingleton::get()->flush();
   EventLoopManagerSingleton::get()->getEventLoop().stop();
   mChreThread.join();
 
