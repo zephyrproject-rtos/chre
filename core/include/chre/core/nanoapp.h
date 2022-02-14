@@ -221,6 +221,9 @@ class Nanoapp : public PlatformNanoapp {
  private:
   uint16_t mInstanceId = kInvalidInstanceId;
 
+  //! The total number of wakeup counts for a nanoapp.
+  uint32_t mNumWakeupsSinceBoot = 0;
+
   //! The total memory allocated by the nanoapp in bytes.
   size_t mTotalAllocatedBytes = 0;
 
