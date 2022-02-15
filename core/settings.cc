@@ -144,6 +144,11 @@ void SettingManager::settingChangedCallback(uint16_t /* type */, void *data,
       setting, settingEnabled);
 #endif  // CHRE_BLE_SUPPORT_ENABLED
 
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()->getWifiRequestManager().onSettingChanged(
+      setting, settingEnabled);
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
+
   sendSettingChangedNotification(setting, settingEnabled);
 }
 

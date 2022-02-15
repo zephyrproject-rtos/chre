@@ -1120,17 +1120,19 @@ void WifiRequestManager::cancelNanSubscriptionsAndInformNanoapps() {
 
 void WifiRequestManager::cancelNanPendingRequestsAndInformNanoapps() {
   for (size_t i = 0; i < mPendingNanSubscribeRequests.size(); ++i) {
+    auto &req = mPendingNanSubscribeRequests[i];
     chreAsyncResult *event = memoryAlloc<chreAsyncResult>();
     if (event == nullptr) {
       LOG_OOM();
+      break;
     } else {
       event->requestType = CHRE_WIFI_REQUEST_TYPE_NAN_SUBSCRIBE;
       event->success = false;
       event->errorCode = CHRE_ERROR_FUNCTION_DISABLED;
-      event->cookie = mPendingNanSubscribeRequests[i].cookie;
+      event->cookie = req.cookie;
       EventLoopManagerSingleton::get()->getEventLoop().postEventOrDie(
           CHRE_EVENT_WIFI_ASYNC_RESULT, event, freeEventDataCallback,
-          mPendingNanSubscribeRequests[i].nanoappInstanceId);
+          req.nanoappInstanceId);
     }
   }
   mPendingNanSubscribeRequests.clear();
@@ -1164,6 +1166,13 @@ void WifiRequestManager::sendNanConfiguration(bool enable) {
     EventLoopManagerSingleton::get()
         ->getHostCommsManager()
         .sendNanConfiguration(enable);
+  }
+}
+
+void WifiRequestManager::onSettingChanged(Setting setting, bool enabled) {
+  if ((setting == Setting::WIFI_AVAILABLE) && !enabled) {
+    cancelNanPendingRequestsAndInformNanoapps();
+    cancelNanSubscriptionsAndInformNanoapps();
   }
 }
 

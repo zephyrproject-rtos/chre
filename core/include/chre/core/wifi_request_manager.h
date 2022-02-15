@@ -246,6 +246,15 @@ class WifiRequestManager : public NonCopyable {
    */
   void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
+  /**
+   * Invoked when the host notifies CHRE that there has been a change in the
+   * WiFi access via the user settings.
+   *
+   * @param setting The setting that changed.
+   * @param enabled Whether setting is enabled or not.
+   */
+  void onSettingChanged(Setting setting, bool enabled);
+
  private:
   struct PendingRequestBase {
     uint16_t nanoappInstanceId;  //!< ID of the Nanoapp issuing this request
