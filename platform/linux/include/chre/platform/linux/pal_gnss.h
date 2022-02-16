@@ -18,13 +18,18 @@
 #define CHRE_PLATFORM_LINUX_PAL_GNSS_H_
 
 /**
- * @return true if the GNSS location session is enabled in the GNSS PAL.
+ * @return whether the GNSS location session is enabled in the GNSS PAL.
  */
 bool chrePalGnssIsLocationEnabled();
 
 /**
- * @return true if the GNSS measurement session is enabled in the GNSS PAL.
+ * @return whether the GNSS measurement session is enabled in the GNSS PAL.
  */
 bool chrePalGnssIsMeasurementEnabled();
+
+/**
+ * @return whether the GNSS passive listener is enabled in the GNSS PAL.
+ */
+bool chrePalGnssIsPassiveLocationListenerEnabled();
 
 #endif  // CHRE_PLATFORM_LINUX_PAL_GNSS_H_

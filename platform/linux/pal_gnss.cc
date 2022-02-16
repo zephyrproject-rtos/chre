@@ -106,7 +106,8 @@ void stopMeasurementThreads() {
 }
 
 uint32_t chrePalGnssGetCapabilities() {
-  return CHRE_GNSS_CAPABILITIES_LOCATION | CHRE_GNSS_CAPABILITIES_MEASUREMENTS;
+  return CHRE_GNSS_CAPABILITIES_LOCATION | CHRE_GNSS_CAPABILITIES_MEASUREMENTS |
+         CHRE_GNSS_CAPABILITIES_GNSS_ENGINE_BASED_PASSIVE_LISTENER;
 }
 
 bool chrePalControlLocationSession(bool enable, uint32_t minIntervalMs,
@@ -170,6 +171,13 @@ bool chrePalGnssApiOpen(const struct chrePalSystemApi *systemApi,
   return success;
 }
 
+bool gIsPassiveListenerEnabled = false;
+
+bool chrePalGnssconfigurePassiveLocationListener(bool enable) {
+  gIsPassiveListenerEnabled = enable;
+  return true;
+}
+
 }  // anonymous namespace
 
 bool chrePalGnssIsLocationEnabled() {
@@ -178,6 +186,10 @@ bool chrePalGnssIsLocationEnabled() {
 
 bool chrePalGnssIsMeasurementEnabled() {
   return gIsMeasurementEnabled;
+}
+
+bool chrePalGnssIsPassiveLocationListenerEnabled() {
+  return gIsPassiveListenerEnabled;
 }
 
 const struct chrePalGnssApi *chrePalGnssGetApi(uint32_t requestedApiVersion) {
@@ -190,6 +202,8 @@ const struct chrePalGnssApi *chrePalGnssGetApi(uint32_t requestedApiVersion) {
       .releaseLocationEvent = chrePalGnssReleaseLocationEvent,
       .controlMeasurementSession = chrePalControlMeasurementSession,
       .releaseMeasurementDataEvent = chrePalGnssReleaseMeasurementDataEvent,
+      .configurePassiveLocationListener =
+          chrePalGnssconfigurePassiveLocationListener,
   };
 
   if (!CHRE_PAL_VERSIONS_ARE_COMPATIBLE(kApi.moduleVersion,

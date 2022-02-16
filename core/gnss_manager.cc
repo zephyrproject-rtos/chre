@@ -15,6 +15,7 @@
  */
 
 #include "chre/core/gnss_manager.h"
+#include <cstddef>
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/settings.h"
@@ -197,6 +198,28 @@ void GnssManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   for (uint16_t instanceId : mPassiveLocationListenerNanoapps) {
     debugDump.print("  nappId=%" PRIu16 "\n", instanceId);
   }
+}
+
+uint32_t GnssManager::disableAllSubscriptions(Nanoapp *nanoapp) {
+  uint32_t numDisabledSubscriptions = 0;
+  size_t index;
+
+  if (mLocationSession.nanoappHasRequest(nanoapp)) {
+    numDisabledSubscriptions++;
+    mLocationSession.removeRequest(nanoapp, nullptr /*cookie*/);
+  }
+
+  if (mMeasurementSession.nanoappHasRequest(nanoapp)) {
+    numDisabledSubscriptions++;
+    mMeasurementSession.removeRequest(nanoapp, nullptr /*cookie*/);
+  }
+
+  if (nanoappHasPassiveLocationListener(nanoapp->getInstanceId(), &index)) {
+    numDisabledSubscriptions++;
+    configurePassiveLocationListener(nanoapp, false /*enable*/);
+  }
+
+  return numDisabledSubscriptions;
 }
 
 GnssSession::GnssSession(uint16_t reportEventType)
@@ -424,6 +447,10 @@ bool GnssSession::nanoappHasRequest(uint16_t instanceId,
   }
 
   return hasRequest;
+}
+
+bool GnssSession::nanoappHasRequest(Nanoapp *nanoapp) const {
+  return nanoappHasRequest(nanoapp->getInstanceId(), nullptr /*requestIndex*/);
 }
 
 bool GnssSession::addRequestToQueue(uint16_t instanceId, bool enable,
