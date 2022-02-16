@@ -277,6 +277,18 @@ class SensorRequestManager : public NonCopyable {
     mPlatformSensorManager.releaseSamplingStatusUpdate(status);
   }
 
+  /**
+   * Disables all active sensor requests for the given nanoapp.
+   *
+   * The bias requests are automatically disabled together with the main
+   * request.
+   *
+   * @param nanoapp A non-null pointer to the nanoapp.
+   *
+   * @return The number of disabled subscriptions.
+   */
+  uint32_t disableAllSubscriptions(Nanoapp *nanoapp);
+
  private:
   //! An internal structure to store incoming sensor flush requests
   struct FlushRequest {

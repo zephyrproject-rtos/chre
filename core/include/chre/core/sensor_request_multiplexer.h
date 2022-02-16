@@ -35,8 +35,8 @@ class SensorRequestMultiplexer : public RequestMultiplexer<SensorRequest> {
    *
    * @param instanceId The instance ID of the nanoapp whose request is being
    *        searched for.
-   * @param index A non-null pointer to an index that is populated if a
-   *        request for this nanoapp is found.
+   * @param index A pointer to an index that is populated if a request for this
+   *        nanoapp is found and the pointer is not null.
    * @return A pointer to a SensorRequest that is owned by the provided
    *         nanoapp if one is found otherwise nullptr.
    */
