@@ -33,7 +33,7 @@ GOOGLE_X86_GOOGLETEST_SRCS += $(GOOGLEMOCK_PATH)/src/gmock-all.cc
 # Common Compiler Flags ########################################################
 
 # Include paths.
-COMMON_CFLAGS += -Iexternal/kiss_fft
+COMMON_CFLAGS += -I$(CHRE_PREFIX)/external/kiss_fft
 
 # Macros.
 COMMON_CFLAGS += -DFIXED_POINT
