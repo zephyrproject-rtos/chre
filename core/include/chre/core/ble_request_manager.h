@@ -172,7 +172,7 @@ class BleRequestManager : public NonCopyable {
       mode = req.getMode();
       reportDelayMs = req.getReportDelayMs();
       rssiThreshold = req.getRssiThreshold();
-      scanFilterCount = req.getGenericFilters().size();
+      scanFilterCount = static_cast<uint8_t>(req.getGenericFilters().size());
     }
     Nanoseconds timestamp;
     uint32_t instanceId;
