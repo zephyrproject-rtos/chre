@@ -25,10 +25,22 @@ uint8_t PalNanEngine::subscribe(
     uint32_t *subscriptionId) {
   uint8_t errorCode = CHRE_ERROR;
   if ((mFlags & FAIL_SUBSCRIBE) == 0) {
-    *subscriptionId = ++mSubscriptionIdCounter;
+    uint32_t id = ++mSubscriptionIdCounter;
+    mActiveSubscriptions.insert(id);
+    *subscriptionId = id;
     errorCode = CHRE_ERROR_NONE;
   }
   return errorCode;
+}
+
+bool PalNanEngine::subscribeCancel(uint32_t subscriptionId) {
+  const bool isActive = isSubscriptionActive(subscriptionId);
+  mActiveSubscriptions.erase(subscriptionId);
+  return isActive;
+}
+
+bool PalNanEngine::isSubscriptionActive(uint32_t subscriptionId) {
+  return mActiveSubscriptions.count(subscriptionId) == 1;
 }
 
 void PalNanEngine::sendDiscoveryEvent(uint32_t subscriptionId) {

@@ -170,12 +170,62 @@ TEST_F(TestBase, WifiNanSuccessfulSubscribe) {
 
   uint32_t id;
   waitForEvent(CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT, &id);
+  EXPECT_TRUE(PalNanEngineSingleton::get()->isSubscriptionActive(id));
 
   PalNanEngineSingleton::get()->sendDiscoveryEvent(id);
   uint32_t subscribeId;
   waitForEvent(CHRE_EVENT_WIFI_NAN_DISCOVERY_RESULT, &subscribeId);
 
   EXPECT_EQ(id, subscribeId);
+}
+
+TEST_F(TestBase, WifiNanUnsSubscribeOnNanoappUnload) {
+  CREATE_CHRE_TEST_EVENT(NAN_SUBSCRIBE, 0);
+
+  struct App : public NanTestNanoapp {
+    void (*handleEvent)(uint32_t, uint16_t, const void *) =
+        [](uint32_t, uint16_t eventType, const void *eventData) {
+          const uint32_t kSubscribeCookie = 0x10aded;
+
+          switch (eventType) {
+            case CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT: {
+              auto event =
+                  static_cast<const chreWifiNanIdentifierEvent *>(eventData);
+              if (event->result.errorCode == CHRE_ERROR_NONE) {
+                TestEventQueueSingleton::get()->pushEvent(
+                    CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT, event->id);
+              }
+              break;
+            }
+
+            case CHRE_EVENT_TEST_EVENT: {
+              auto event = static_cast<const TestEvent *>(eventData);
+              switch (event->type) {
+                case NAN_SUBSCRIBE: {
+                  auto config = (chreWifiNanSubscribeConfig *)(event->data);
+                  chreWifiNanSubscribe(config, &kSubscribeCookie);
+                  break;
+                }
+              }
+            }
+          }
+        };
+  };
+
+  auto app = loadNanoapp<App>();
+
+  chreWifiNanSubscribeConfig config = {
+      .subscribeType = CHRE_WIFI_NAN_SUBSCRIBE_TYPE_PASSIVE,
+      .service = "SomeServiceName",
+  };
+  sendEventToNanoapp(app, NAN_SUBSCRIBE, config);
+
+  uint32_t id;
+  waitForEvent(CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT, &id);
+  EXPECT_TRUE(PalNanEngineSingleton::get()->isSubscriptionActive(id));
+
+  unloadNanoapp(app);
+  EXPECT_FALSE(PalNanEngineSingleton::get()->isSubscriptionActive(id));
 }
 
 /**

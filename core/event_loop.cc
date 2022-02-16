@@ -227,12 +227,6 @@ bool EventLoop::unloadNanoapp(uint16_t instanceId,
         unloadNanoappAtIndex(i);
         mStoppingNanoapp = nullptr;
 
-        // TODO: right now we assume that the nanoapp will clean up all of its
-        // resource allocations in its nanoappEnd callback (memory, sensor
-        // subscriptions, etc.), otherwise we're leaking resources. We should
-        // perform resource cleanup automatically here to avoid these types of
-        // potential leaks.
-
         LOGD("Unloaded nanoapp with instanceId %" PRIu16, instanceId);
         unloaded = true;
       }
@@ -475,6 +469,22 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
   // Let the app know it's going away
   mCurrentApp = nanoapp.get();
   nanoapp->end();
+
+  // TODO: right now we assume that the nanoapp will clean up all of its
+  // resource allocations in its nanoappEnd callback (memory, sensor
+  // subscriptions, etc.), otherwise we're leaking resources. We should
+  // perform resource cleanup automatically here to avoid these types of
+  // potential leaks.
+
+  // Cleanup resources.
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
+  const uint32_t numDisabledWifiSubscriptions =
+      EventLoopManagerSingleton::get()
+          ->getWifiRequestManager()
+          .disableAllSubscriptions(nanoapp.get());
+  LOGV("Disabled %" PRId32 " wifi subscriptions", numDisabledWifiSubscriptions);
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
+
   mCurrentApp = nullptr;
 
   // Destroy the Nanoapp instance

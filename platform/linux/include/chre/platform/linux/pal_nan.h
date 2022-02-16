@@ -17,6 +17,7 @@
 #ifndef CHRE_PLATFORM_LINUX_PAL_NAN_H_
 #define CHRE_PLATFORM_LINUX_PAL_NAN_H_
 
+#include <unordered_set>
 #include "chre/pal/wifi.h"
 #include "chre/platform/assert.h"
 #include "chre/util/memory.h"
@@ -52,10 +53,11 @@ class PalNanEngine : public NonCopyable {
   /**
    * Obtain a subscription ID.
    *
-   * This function returns a subscription ID to the caller by reference,
-   * implemented by a simple up-counter. Note that the function returns
-   * an error on every other call to it to simulate a frequently failing
-   * system.
+   * This method returns a subscription ID to the caller by reference,
+   * implemented by a simple up-counter.
+   *
+   * The method will succeed unless @ref SetFlags as been called aith the value
+   * FAIL_SUBSCRIBE to simulater a failure.
    *
    * @param config The Nan service subscription config, currently unused.
    * @param subscriptionId populated with the next value of a running counter.
@@ -63,6 +65,21 @@ class PalNanEngine : public NonCopyable {
    */
   uint8_t subscribe(const struct chreWifiNanSubscribeConfig *config,
                     uint32_t *subscriptionId);
+
+  /**
+   * Cancels an active subscription.
+   *
+   * @return whether the subscription is successfully cancelled - that is if
+   *          a subscription with the passed id is currently active.
+   */
+  bool subscribeCancel(uint32_t subscriptionId);
+
+  /**
+   * Returns whether a subscription is active.
+   *
+   * @return whether the subscription is active.
+   */
+  bool isSubscriptionActive(uint32_t subscriptionId);
 
   /**
    * Send a service discovery event.
@@ -132,6 +149,7 @@ class PalNanEngine : public NonCopyable {
   uint32_t mSubscriptionIdCounter = 1;
   uint32_t mPublisherIdCounter = 0xcafe;
   uint32_t mFlags;
+  std::unordered_set<uint32_t> mActiveSubscriptions;
 
   const struct chrePalWifiCallbacks *mWifiCallbacks = nullptr;
 };

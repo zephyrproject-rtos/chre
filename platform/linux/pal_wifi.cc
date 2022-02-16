@@ -38,6 +38,9 @@ std::thread gScanEventsThread;
 //! Thread to use when delivering a scan monitor status update.
 std::thread gScanMonitorStatusThread;
 
+//! Whether scan monitoring is active.
+bool gScanMonitoringActive = false;
+
 void sendScanResponse() {
   gCallbacks->scanResponseCallback(true, CHRE_ERROR_NONE);
 
@@ -76,6 +79,7 @@ bool chrePalWifiConfigureScanMonitor(bool enable) {
   stopScanMonitorThreads();
 
   gScanMonitorStatusThread = std::thread(sendScanMonitorResponse, enable);
+  gScanMonitoringActive = enable;
 
   return true;
 }
@@ -116,8 +120,8 @@ bool chrePalWifiApiNanSubscribe(
   return true;
 }
 
-bool chrePalWifiApiNanSubscribeCancel(const uint32_t /*subscriptionId*/) {
-  return true;
+bool chrePalWifiApiNanSubscribeCancel(const uint32_t subscriptionId) {
+  return chre::PalNanEngineSingleton::get()->subscribeCancel(subscriptionId);
 }
 
 void chrePalWifiApiNanReleaseDiscoveryEvent(
@@ -169,6 +173,10 @@ bool chrePalWifiApiOpen(const struct chrePalSystemApi *systemApi,
 }
 
 }  // anonymous namespace
+
+bool chrePalWifiIsScanMonitoringActive() {
+  return gScanMonitoringActive;
+}
 
 const struct chrePalWifiApi *chrePalWifiGetApi(uint32_t requestedApiVersion) {
   static const struct chrePalWifiApi kApi = {

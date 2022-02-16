@@ -255,6 +255,15 @@ class WifiRequestManager : public NonCopyable {
    */
   void onSettingChanged(Setting setting, bool enabled);
 
+  /**
+   * Disables pending scan monitoring and NAN subscription for a nanoapp
+   *
+   * @param nanoapp A non-null pointer to the nanoapp.
+   *
+   * @return The number of disabled subscriptions.
+   */
+  uint32_t disableAllSubscriptions(Nanoapp *nanoapp);
+
  private:
   struct PendingRequestBase {
     uint16_t nanoappInstanceId;  //!< ID of the Nanoapp issuing this request
@@ -406,6 +415,15 @@ class WifiRequestManager : public NonCopyable {
    */
   bool nanoappHasScanMonitorRequest(uint16_t instanceId,
                                     size_t *index = nullptr) const;
+
+  /**
+   * Returns whether the nanoapp has a pending activation for scan monitoring.
+   *
+   * @param instanceId the instance ID of the nanoapp.
+   *
+   * @return whether the nanoapp has a pending request for scan monitoring.
+   */
+  bool nanoappHasPendingScanMonitorRequest(uint16_t instanceId) const;
 
   /**
    * @param requestedState The requested state to compare against.

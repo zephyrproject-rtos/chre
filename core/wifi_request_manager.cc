@@ -83,6 +83,28 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
   return success;
 }
 
+uint32_t WifiRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
+  uint32_t numSubscriptionsDisabled = 0;
+
+  // Disable active scan monitoring.
+  if (nanoappHasScanMonitorRequest(nanoapp->getInstanceId()) ||
+      nanoappHasPendingScanMonitorRequest(nanoapp->getInstanceId())) {
+    numSubscriptionsDisabled++;
+    configureScanMonitor(nanoapp, false /*enabled*/, nullptr /*cookie*/);
+  }
+
+  // Disable active NAN subscriptions.
+  for (size_t i = 0; i < mNanoappSubscriptions.size(); ++i) {
+    if (mNanoappSubscriptions[i].nanoappInstanceId ==
+        nanoapp->getInstanceId()) {
+      numSubscriptionsDisabled++;
+      nanSubscribeCancel(nanoapp, mNanoappSubscriptions[i].subscriptionId);
+    }
+  }
+
+  return numSubscriptionsDisabled;
+}
+
 bool WifiRequestManager::requestRangingByType(RangingType type,
                                               const void *rangingParams) {
   bool success = false;
@@ -590,6 +612,21 @@ bool WifiRequestManager::addScanMonitorRequestToQueue(Nanoapp *nanoapp,
   }
 
   return success;
+}
+
+bool WifiRequestManager::nanoappHasPendingScanMonitorRequest(
+    uint16_t instanceId) const {
+  if (!mPendingScanMonitorRequests.empty()) {
+    for (size_t i = mPendingScanMonitorRequests.size() - 1; i >= 0; i--) {
+      const PendingScanMonitorRequest &request = mPendingScanMonitorRequests[i];
+      // The last pending request determines the state of the scan monitoring.
+      if (request.nanoappInstanceId == instanceId) {
+        return request.enable;
+      }
+    }
+  }
+
+  return false;
 }
 
 bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
