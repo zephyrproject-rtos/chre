@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <cstdint>
 #include <dlfcn.h>
+#include <cstdint>
 
 extern "C" {
 
@@ -28,7 +28,7 @@ extern "C" {
 #include "chre/platform/assert.h"
 #include "chre/platform/log.h"
 #include "chre/platform/memory.h"
-#include "chre/platform/slpi/qsh/qsh_shim.h"
+#include "chre/platform/slpi/qsh/qsh_proto_shim.h"
 #include "chre/sensor.h"
 #include "chre/util/macros.h"
 
@@ -126,7 +126,7 @@ void closeQsh() {
 
 // Define the delete operator so that SLPI doesn't have to expose this symbol
 // since CHRE will never call it directly
-void operator delete (void* ptr) noexcept {
+void operator delete(void *ptr) noexcept {
   free(ptr);
 }
 
@@ -135,6 +135,6 @@ void operator delete (void* ptr) noexcept {
 DLL_EXPORT extern "C" bool chreSensorFlushAsync(uint32_t sensorHandle,
                                                 const void *cookie) {
   return (chre::gFlushFuncPtr != nullptr)
-      ? chre::gFlushFuncPtr(sensorHandle, cookie)
-      : false;
+             ? chre::gFlushFuncPtr(sensorHandle, cookie)
+             : false;
 }

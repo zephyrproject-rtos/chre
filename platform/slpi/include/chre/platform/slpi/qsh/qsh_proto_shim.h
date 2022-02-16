@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef CHRE_PLATFORM_SLPI_QSH_QSH_SHIM_H_
-#define CHRE_PLATFORM_SLPI_QSH_QSH_SHIM_H_
+#ifndef CHRE_PLATFORM_SLPI_QSH_QSH_PROTO_SHIM_H_
+#define CHRE_PLATFORM_SLPI_QSH_QSH_PROTO_SHIM_H_
 
 namespace chre {
 
 /**
- * Opens the QSH shim. This must be invoked prior to the CHRE event loop being
- * started to ensure QSH is initialized.
+ * Opens the QSH proto-shim. This must be invoked prior to the CHRE event loop
+ * being started to ensure QSH is initialized.
  */
 void openQsh();
 
 /**
- * Closes the QSH shim and allows it to clean up any resources it has allocated.
- * This must be invoked directly after chre::deinit to ensure resources are
- * torn down only after nanoapps have been unloaded.
+ * Closes the QSH proto-shim and allows it to clean up any resources it has
+ * allocated. This must be invoked directly after chre::deinit to ensure
+ * resources are torn down only after nanoapps have been unloaded.
  */
 void closeQsh();
 
 }  // namespace chre
 
-#endif  // CHRE_PLATFORM_SLPI_QSH_QSH_SHIM_H_
+#endif  // CHRE_PLATFORM_SLPI_QSH_QSH_PROTO_SHIM_H_
