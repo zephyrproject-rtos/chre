@@ -16,6 +16,7 @@
 
 #include "chre/pal/ble.h"
 
+#include "chre/util/memory.h"
 #include "chre/util/unique_ptr.h"
 
 #include <future>
@@ -31,16 +32,38 @@ const struct chrePalBleCallbacks *gCallbacks = nullptr;
 std::thread gBleStartScanThread;
 std::thread gBleStopScanThread;
 std::promise<void> gStopAdvertisingEvents;
-std::chrono::milliseconds gMinIntervalMs(50);
 
 bool gBleEnabled = false;
 
-void startScan() {
+std::chrono::milliseconds scanModeToInterval(chreBleScanMode mode) {
+  std::chrono::milliseconds interval(1000);
+  switch (mode) {
+    case CHRE_BLE_SCAN_MODE_BACKGROUND:
+      interval = std::chrono::milliseconds(2000);
+      break;
+    case CHRE_BLE_SCAN_MODE_FOREGROUND:
+      interval = std::chrono::milliseconds(1000);
+      break;
+    case CHRE_BLE_SCAN_MODE_AGGRESSIVE:
+      interval = std::chrono::milliseconds(500);
+      break;
+  }
+  return interval;
+}
+
+void startScan(chreBleScanMode mode) {
   gCallbacks->scanStatusChangeCallback(true, CHRE_ERROR_NONE);
   std::future<void> signal = gStopAdvertisingEvents.get_future();
-  while (signal.wait_for(gMinIntervalMs) == std::future_status::timeout) {
+  while (signal.wait_for(scanModeToInterval(mode)) ==
+         std::future_status::timeout) {
     auto event = chre::MakeUniqueZeroFill<struct chreBleAdvertisementEvent>();
     auto report = chre::MakeUniqueZeroFill<struct chreBleAdvertisingReport>();
+    uint8_t *data =
+        static_cast<uint8_t *>(chre::memoryAlloc(sizeof(uint8_t) * 2));
+    data[0] = 0x01;
+    data[1] = 0x16;
+    report->data = data;
+    report->dataLength = 2;
     event->reports = report.release();
     event->numReports = 1;
     gCallbacks->advertisingEventCallback(event.release());
@@ -72,12 +95,11 @@ uint32_t chrePalBleGetFilterCapabilities() {
          CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA_UUID;
 }
 
-bool chrePalBleStartScan(chreBleScanMode /* mode */,
-                         uint32_t /* reportDelayMs */,
+bool chrePalBleStartScan(chreBleScanMode mode, uint32_t /* reportDelayMs */,
                          const struct chreBleScanFilter * /* filter */) {
   stopThreads();
   gStopAdvertisingEvents = std::promise<void>();
-  gBleStartScanThread = std::thread(startScan);
+  gBleStartScanThread = std::thread(startScan, mode);
   gBleEnabled = true;
   return true;
 }
