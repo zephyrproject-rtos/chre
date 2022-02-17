@@ -17,7 +17,7 @@ endif
 # Nanoapp Configuration ########################################################
 
 NANOAPP_NAME = ble_world
-NANOAPP_ID = 0x0123456789000005
+NANOAPP_ID = 0x0123456789000012
 NANOAPP_VERSION = 0x00000001
 
 NANOAPP_NAME_STRING = \"BLE\ World\"
