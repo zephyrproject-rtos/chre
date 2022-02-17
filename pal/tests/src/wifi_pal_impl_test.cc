@@ -190,22 +190,32 @@ void PalWifiTest::rangingEventCallback(uint8_t errorCode,
 
 void PalWifiTest::nanServiceIdentifierCallback(uint8_t errorCode,
                                                uint32_t subscriptionId) {
-  // TODO(b/214386002): Implement me.
+  chre::LockGuard<chre::Mutex> lock(mutex_);
+  subscriptionId_ = subscriptionId;
+  errorCode_ = errorCode;
+  condVar_.notify_one();
 }
 
 void PalWifiTest::nanServiceDiscoveryCallback(
     struct chreWifiNanDiscoveryEvent *event) {
-  // TODO(b/214386002): Implement me.
+  if (event == nullptr) {
+    LOGE("Got null discovery event");
+  } else {
+    errorCode_ = CHRE_ERROR_LAST;
+    publishId_ = event->publishId;
+  }
 }
 
 void PalWifiTest::nanServiceLostCallback(uint32_t subscriptionId,
                                          uint32_t publisherId) {
-  // TODO(b/214386002): Implement me.
+  subscriptionId_ = subscriptionId;
+  publishId_ = publisherId;
 }
 
 void PalWifiTest::nanServiceTerminatedCallback(uint32_t reason,
                                                uint32_t subscriptionId) {
-  // TODO(b/214386002): Implement me.
+  subscriptionId_ = subscriptionId;
+  errorCode_ = reason;
 }
 
 void PalWifiTest::validateWifiScanEvent(const chreWifiScanEvent &event) {
@@ -303,6 +313,61 @@ TEST_F(PalWifiTest, ScanMonitorTest) {
   ASSERT_TRUE(api_->configureScanMonitor(false /* enable */));
   waitForAsyncResponseAssertSuccess(kAsyncResultTimeoutNs);
   ASSERT_FALSE(scanMonitorEnabled_);
+}
+
+/*
+ * Tests if NAN capabilities are available and requests a service
+ * subscription. The test is terminated if NAN capabilities are not
+ * available.
+ *
+ * NOTE: The subscription config currently is mostly a placeholder -
+ * please modify it appropriately when testing and/or validating service
+ * discovery.
+ */
+TEST_F(PalWifiTest, NanSubscribeTest) {
+  bool hasNanCapabilities =
+      (api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_NAN_SUB);
+  if (!hasNanCapabilities) {
+    GTEST_SKIP();
+  }
+
+  prepareForAsyncResponse();
+  struct chreWifiNanSubscribeConfig config = {
+      .subscribeType = CHRE_WIFI_NAN_SUBSCRIBE_TYPE_PASSIVE,
+      .service = "SomeService",
+  };
+  ASSERT_TRUE(api_->nanSubscribe(&config));
+  waitForAsyncResponseAssertSuccess(kAsyncResultTimeoutNs);
+  ASSERT_TRUE(subscriptionId_.has_value());
+}
+
+/*
+ * Tests if NAN capabilities are available and requests a service
+ * subscription, then requests a cancelation of the subscription.
+ * The test is terminated if NAN capabilities are not
+ * available.
+ *
+ * NOTE: The subscription config currently is mostly a placeholder -
+ * please modify it appropriately when testing and/or validating service
+ * discovery.
+ */
+TEST_F(PalWifiTest, NanSubscribeCancelTest) {
+  bool hasNanCapabilities =
+      (api_->getCapabilities() & CHRE_WIFI_CAPABILITIES_NAN_SUB);
+  if (!hasNanCapabilities) {
+    GTEST_SKIP();
+  }
+
+  prepareForAsyncResponse();
+  struct chreWifiNanSubscribeConfig config = {
+      .subscribeType = CHRE_WIFI_NAN_SUBSCRIBE_TYPE_PASSIVE,
+      .service = "SomeService",
+  };
+  ASSERT_TRUE(api_->nanSubscribe(&config));
+  waitForAsyncResponseAssertSuccess(kAsyncResultTimeoutNs);
+  ASSERT_TRUE(subscriptionId_.has_value());
+
+  ASSERT_TRUE(api_->nanSubscribeCancel(subscriptionId_.value()));
 }
 
 }  // namespace wifi_pal_impl_test

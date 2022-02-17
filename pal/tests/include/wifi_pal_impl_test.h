@@ -92,6 +92,11 @@ class PalWifiTest : public ::testing::Test {
   //! True if scan monitoring is currently enabled
   bool scanMonitorEnabled_ = false;
 
+  //! The last received service subscription and publisher IDs from the NAN
+  //! engine.
+  chre::Optional<uint32_t> subscriptionId_;
+  chre::Optional<uint32_t> publishId_;
+
   //! Mutex to protect class variables
   chre::Mutex mutex_;
   chre::ConditionVariable condVar_;
