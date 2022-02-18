@@ -27,9 +27,8 @@
 #include <mutex>
 #include <thread>
 
-#ifdef WIFI_EXT_V_1_3_HAS_MERGED
 #include <vendor/google/wifi_ext/1.3/IWifiExt.h>
-#include <vendor/google/wifi_ext/1.3/IWifiExtChreNanCallback.h>
+#include <vendor/google/wifi_ext/1.3/IWifiExtChreCallback.h>
 
 #include "chre_host/log.h"
 
@@ -48,8 +47,9 @@ class WifiExtHalHandler {
   using IBase = hidl::base::V1_0::IBase;
   using IWifiExt = ::vendor::google::wifi_ext::V1_3::IWifiExt;
   using IWifiExtChreNanCallback =
-      ::vendor::google::wifi_ext::V1_3::IWifiExtChreNanCallback;
-  using WifiChreNanState = ::vendor::google::wifi_ext::V1_3::WifiChreNanState;
+      ::vendor::google::wifi_ext::V1_3::IWifiExtChreCallback;
+  using WifiChreNanRttState =
+      ::vendor::google::wifi_ext::V1_3::WifiChreNanRttState;
 
   /**
    * Construct a new Wifi Ext Hal Handler object, initiate a connection to
@@ -77,6 +77,21 @@ class WifiExtHalHandler {
   void handleConfigurationRequest(bool enable);
 
  private:
+  //! CHRE NAN availability status change handler.
+  class WifiExtCallback : public IWifiExtChreNanCallback {
+   public:
+    WifiExtCallback(std::function<void(bool)> cb) : mCallback(cb) {}
+
+    hardware::Return<void> onChreNanRttStateChanged(WifiChreNanRttState state) {
+      bool enabled = (state == WifiChreNanRttState::CHRE_AVAILABLE);
+      mCallback(enabled);
+      return hardware::Void();
+    }
+
+   private:
+    std::function<void(bool)> mCallback;
+  };
+
   //! Handler for when a connected Wifi ext HAL service dies.
   class WifiExtHalDeathRecipient : public hidl_death_recipient {
    public:
@@ -104,6 +119,7 @@ class WifiExtHalHandler {
 
   sp<WifiExtHalDeathRecipient> mDeathRecipient;
   sp<IWifiExt> mService;
+  sp<WifiExtCallback> mWifiExtCallback;
 
   /**
    * Entry point for the thread that handles all interactions with the WiFi ext
@@ -149,5 +165,3 @@ class WifiExtHalHandler {
 
 }  // namespace chre
 }  // namespace android
-
-#endif  // WIFI_EXT_V_1_3_HAS_MERGED

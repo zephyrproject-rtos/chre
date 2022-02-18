@@ -64,6 +64,10 @@ class FastRpcChreDaemon : public ChreDaemonBase {
     mLpmaHandler.enable(enabled);
   }
 
+  void configureNan(bool /* enabled */) override {
+    LOGE("NAN not supported");
+  }
+
  private:
   std::optional<std::thread> mMonitorThread;
   std::optional<std::thread> mMsgToHostThread;
