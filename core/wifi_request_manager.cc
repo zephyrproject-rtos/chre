@@ -529,6 +529,22 @@ void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("   Active Scan:\n");
   WifiRequestManager::logErrorHistogram(debugDump, mActiveScanErrorHistogram,
                                         CHRE_ERROR_SIZE);
+
+  if (!mNanoappSubscriptions.empty()) {
+    debugDump.print(" Active NAN service subscriptions:\n");
+    for (const auto &sub : mNanoappSubscriptions) {
+      debugDump.print("  nappID=%" PRIu16 " sub ID=%" PRIu32 "\n",
+                      sub.nanoappInstanceId, sub.subscriptionId);
+    }
+  }
+
+  if (!mPendingNanSubscribeRequests.empty()) {
+    debugDump.print(" Pending NAN service subscriptions:\n");
+    for (const auto &req : mPendingNanSubscribeRequests) {
+      debugDump.print("  nappID=%" PRIu16 " (type %" PRIu8 ") to svc: %s\n",
+                      req.nanoappInstanceId, req.type, req.service.data());
+    }
+  }
 }
 
 bool WifiRequestManager::scanMonitorIsEnabled() const {
