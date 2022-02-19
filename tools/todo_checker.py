@@ -135,8 +135,13 @@ def get_bug_id_for_current_commit() -> str:
                                                   shell=True,
                                                   encoding='UTF-8') \
                                                   .split('\n')
-  bug_id_line = \
-    [line for line in commit_msg_lines_list if 'bug:' in line.lower()][0]
+  try:
+    bug_id_line = \
+      [line for line in commit_msg_lines_list if \
+        any(word in line.lower() for word in ['bug:', 'fixes:'])][0]
+  except IndexError:
+    print('Please include a Bug or Fixes field in the commit message')
+    sys.exit(-1);
   return bug_id_line.split(':')[1].strip()
 
 def is_file_in_diff(filename : str) -> bool:
