@@ -90,8 +90,7 @@ LOCAL_SHARED_LIBRARIES := \
     libprotobuf-cpp-lite \
     pixelatoms-cpp \
     android.frameworks.stats-V1-ndk \
-    libbinder_ndk \
-    vendor.google.wifi_ext@1.3
+    libbinder_ndk
 
 LOCAL_CPPFLAGS += -std=c++20
 LOCAL_CFLAGS += -Wno-sign-compare
