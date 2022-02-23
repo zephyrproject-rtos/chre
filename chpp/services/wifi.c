@@ -145,6 +145,8 @@ static void chppWifiServiceNanLostCallback(uint32_t subscriptionId,
                                            uint32_t publisherId);
 static void chppWifiServiceNanTerminatedCallback(uint32_t reason,
                                                  uint32_t subscriptionId);
+static void chppWifiServiceNanSubscriptionCanceledCallback(
+    uint8_t errorCode, uint32_t subscriptionId);
 
 /************************************************
  *  Private Functions
@@ -284,6 +286,8 @@ static enum ChppAppErrorCode chppWifiServiceOpen(
       .nanServiceDiscoveryCallback = chppWifiServiceNanDiscoveryCallback,
       .nanServiceLostCallback = chppWifiServiceNanLostCallback,
       .nanServiceTerminatedCallback = chppWifiServiceNanTerminatedCallback,
+      .nanSubscriptionCanceledCallback =
+          chppWifiServiceNanSubscriptionCanceledCallback,
   };
 
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
@@ -972,6 +976,36 @@ static void chppWifiServiceNanTerminatedCallback(uint32_t reason,
     chppEnqueueTxDatagramOrFail(
         gWifiServiceContext.service.appContext->transportContext, notif,
         notifLen);
+  }
+}
+
+/**
+ * PAL callback invoked when a NAN service subscription is canceled.
+ *
+ * @param errorCode A value in @ref chreError indicating the result of the
+ *        cancelation, with CHRE_ERROR_NONE indicating success.
+ * @param subscriptionId The subscription ID of the canceled NAN service.
+ */
+static void chppWifiServiceNanSubscriptionCanceledCallback(
+    uint8_t errorCode, uint32_t subscriptionId) {
+  size_t responseLen = sizeof(struct ChppWifiNanSubscriptionCanceledResponse);
+  struct ChppWifiNanSubscriptionCanceledResponse *response =
+      chppMalloc(responseLen);
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+  } else {
+    response->header.command = CHPP_WIFI_REQUEST_NAN_SUB_CANCEL;
+    response->header.handle = gWifiServiceContext.service.handle;
+    response->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+    response->header.error = CHPP_APP_ERROR_NONE;
+    response->header.transaction =
+        gWifiServiceContext.requestNanSubscribeCancel.transaction;
+    response->errorCode = errorCode;
+    response->subscriptionId = subscriptionId;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, response,
+        responseLen);
   }
 }
 

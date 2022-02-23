@@ -122,6 +122,17 @@ struct ChppWifiNanServiceIdentifier {
 CHPP_PACKED_END
 
 /**
+ * Data structure used by the NAN service canceled callback.
+ */
+CHPP_PACKED_START
+struct ChppWifiNanSubscriptionCanceledResponse {
+  struct ChppAppHeader header;
+  uint8_t errorCode;
+  uint32_t subscriptionId;
+} CHPP_PACKED_ATTR;
+CHPP_PACKED_END
+
+/**
  * Data structure used by the NAN identifier event
  */
 
