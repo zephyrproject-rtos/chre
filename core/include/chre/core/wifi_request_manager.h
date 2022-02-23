@@ -238,6 +238,17 @@ class WifiRequestManager : public NonCopyable {
                                        uint32_t subscriptionId);
 
   /**
+   * Handles a NAN service subscription cancelation event.
+   *
+   * @param errorCode An error code from enum chreError, with CHRE_ERROR_NONE
+   *        indicating successfully canceling a subscription.
+   * @param subscriptionId The ID of the subscribe session which has now been
+   *        canceled.
+   */
+  void handleNanServiceSubscriptionCanceledEvent(uint8_t errorCode,
+                                                 uint32_t subscriptionId);
+
+  /**
    * Prints state in a string buffer. Must only be called from the context of
    * the main CHRE thread.
    *
@@ -263,6 +274,15 @@ class WifiRequestManager : public NonCopyable {
    * @return The number of disabled subscriptions.
    */
   uint32_t disableAllSubscriptions(Nanoapp *nanoapp);
+
+  /**
+   * Get the number of current active NAN subscriptions.
+   *
+   * @return Number of active NAN subscriptions.
+   */
+  size_t getNumNanSubscriptions() const {
+    return mNanoappSubscriptions.size();
+  }
 
  private:
   struct PendingRequestBase {
@@ -620,6 +640,17 @@ class WifiRequestManager : public NonCopyable {
    */
   void handleNanServiceTerminatedEventSync(uint8_t errorCode,
                                            uint32_t subscriptionId);
+
+  /**
+   * Handles the event informing CHRE the result of a subscription cancelation.
+   *
+   * @param errorCode A value in @ref enum chreError with CHRE_ERROR_NONE
+   *        indicating successful cancelation, an error code otherwise.
+   * @param subscriptionId The ID of the service whose subscription has been
+   *        canceled.
+   */
+  void handleNanServiceSubscriptionCanceledEventSync(uint8_t errorCode,
+                                                     uint32_t subscriptionId);
 
   /**
    * Sends CHRE_EVENT_WIFI_ASYNC_RESULT for the ranging request at the head
