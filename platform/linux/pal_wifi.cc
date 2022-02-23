@@ -121,6 +121,7 @@ bool chrePalWifiApiNanSubscribe(
 }
 
 bool chrePalWifiApiNanSubscribeCancel(const uint32_t subscriptionId) {
+  gCallbacks->nanSubscriptionCanceledCallback(CHRE_ERROR_NONE, subscriptionId);
   return chre::PalNanEngineSingleton::get()->subscribeCancel(subscriptionId);
 }
 
