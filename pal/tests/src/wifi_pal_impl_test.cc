@@ -105,6 +105,13 @@ void chrePalNanServiceTerminatedCallback(uint32_t reason,
   }
 }
 
+void chrePalNanSubscriptionCanceledCallback(uint8_t reason,
+                                            uint32_t subscriptionId) {
+  if (gTest != nullptr) {
+    gTest->nanSubscriptionCanceledCallback(reason, subscriptionId);
+  }
+}
+
 }  // anonymous namespace
 
 void PalWifiTest::SetUp() {
@@ -122,6 +129,7 @@ void PalWifiTest::SetUp() {
       .nanServiceDiscoveryCallback = chrePalNanServiceDiscoveryCallback,
       .nanServiceLostCallback = chrePalNanServiceLostCallback,
       .nanServiceTerminatedCallback = chrePalNanServiceTerminatedCallback,
+      .nanSubscriptionCanceledCallback = chrePalNanSubscriptionCanceledCallback,
   };
   ASSERT_TRUE(api_->open(&chre::gChrePalSystemApi, &kCallbacks));
   gTest = this;
@@ -216,6 +224,12 @@ void PalWifiTest::nanServiceTerminatedCallback(uint32_t reason,
                                                uint32_t subscriptionId) {
   subscriptionId_ = subscriptionId;
   errorCode_ = reason;
+}
+
+void PalWifiTest::nanSubscriptionCanceledCallback(uint8_t errorCode,
+                                                  uint32_t subscriptionId) {
+  errorCode_ = errorCode;
+  subscriptionId_ = subscriptionId;
 }
 
 void PalWifiTest::validateWifiScanEvent(const chreWifiScanEvent &event) {
@@ -367,7 +381,14 @@ TEST_F(PalWifiTest, NanSubscribeCancelTest) {
   waitForAsyncResponseAssertSuccess(kAsyncResultTimeoutNs);
   ASSERT_TRUE(subscriptionId_.has_value());
 
-  ASSERT_TRUE(api_->nanSubscribeCancel(subscriptionId_.value()));
+  prepareForAsyncResponse();
+  uint32_t cachedSubscriptionId = subscriptionId_.value();
+  subscriptionId_.reset();
+
+  ASSERT_TRUE(api_->nanSubscribeCancel(cachedSubscriptionId));
+  waitForAsyncResponseAssertSuccess(kAsyncResultTimeoutNs);
+  ASSERT_TRUE(subscriptionId_.has_value());
+  ASSERT_EQ(subscriptionId_.value(), cachedSubscriptionId);
 }
 
 }  // namespace wifi_pal_impl_test

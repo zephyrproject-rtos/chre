@@ -506,5 +506,82 @@ TEST_F(TestBase, WifiNanRangingTest) {
   waitForEvent(CHRE_EVENT_WIFI_RANGING_RESULT);
 }
 
+TEST_F(TestBase, WifiNanSubscribeCancelTest) {
+  CREATE_CHRE_TEST_EVENT(NAN_SUBSCRIBE, 0);
+  CREATE_CHRE_TEST_EVENT(NAN_SUBSCRIBE_DONE, 1);
+  CREATE_CHRE_TEST_EVENT(NAN_UNSUBSCRIBE, 2);
+  CREATE_CHRE_TEST_EVENT(NAN_UNSUBSCRIBE_DONE, 3);
+
+  struct App : public NanTestNanoapp {
+    void (*handleEvent)(uint32_t, uint16_t, const void *) =
+        [](uint32_t, uint16_t eventType, const void *eventData) {
+          const uint32_t kSubscribeCookie = 0x10aded;
+
+          switch (eventType) {
+            case CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT: {
+              auto event =
+                  static_cast<const chreWifiNanIdentifierEvent *>(eventData);
+              if (event->result.errorCode == CHRE_ERROR_NONE) {
+                TestEventQueueSingleton::get()->pushEvent(
+                    CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT, event->id);
+              }
+              break;
+            }
+
+            case CHRE_EVENT_TEST_EVENT: {
+              auto event = static_cast<const TestEvent *>(eventData);
+              switch (event->type) {
+                case NAN_SUBSCRIBE: {
+                  auto config = (chreWifiNanSubscribeConfig *)(event->data);
+                  bool success =
+                      chreWifiNanSubscribe(config, &kSubscribeCookie);
+                  TestEventQueueSingleton::get()->pushEvent(NAN_SUBSCRIBE_DONE,
+                                                            success);
+                  break;
+                }
+                case NAN_UNSUBSCRIBE: {
+                  auto *id = static_cast<uint32_t *>(event->data);
+                  bool success = chreWifiNanSubscribeCancel(*id);
+                  // Note that since we're 'simulating' NAN functionality here,
+                  // the async subscribe cancel event will be handled before
+                  // the return event below is posted. For a real on-device (or
+                  // non-simulated) test, this won't be the case, and care must
+                  // be taken to handle the asynchronicity appropriately.
+                  TestEventQueueSingleton::get()->pushEvent(
+                      NAN_UNSUBSCRIBE_DONE, success);
+                  break;
+                }
+              }
+            }
+          }
+        };
+  };
+
+  auto app = loadNanoapp<App>();
+
+  chreWifiNanSubscribeConfig config = {
+      .subscribeType = CHRE_WIFI_NAN_SUBSCRIBE_TYPE_PASSIVE,
+      .service = "SomeServiceName",
+  };
+
+  bool success = false;
+  sendEventToNanoapp(app, NAN_SUBSCRIBE, config);
+  waitForEvent(NAN_SUBSCRIBE_DONE, &success);
+  ASSERT_TRUE(success);
+
+  uint32_t id;
+  waitForEvent(CHRE_EVENT_WIFI_NAN_IDENTIFIER_RESULT, &id);
+
+  auto &wifiRequestManager =
+      EventLoopManagerSingleton::get()->getWifiRequestManager();
+  EXPECT_EQ(wifiRequestManager.getNumNanSubscriptions(), 1);
+
+  success = false;
+  sendEventToNanoapp(app, NAN_UNSUBSCRIBE, id);
+  waitForEvent(NAN_UNSUBSCRIBE_DONE, &success);
+  ASSERT_TRUE(success);
+  EXPECT_EQ(wifiRequestManager.getNumNanSubscriptions(), 0);
+}
+
 }  // anonymous namespace
 }  // namespace chre
