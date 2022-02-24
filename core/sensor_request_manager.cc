@@ -599,7 +599,8 @@ void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 uint32_t SensorRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
   uint32_t numDisabledSubscriptions = 0;
 
-  for (size_t handle = 0; handle < mSensors.size(); handle++) {
+  const uint32_t numSensors = static_cast<uint32_t>(mSensors.size());
+  for (uint32_t handle = 0; handle < numSensors; handle++) {
     Sensor &sensor = mSensors[handle];
     bool nanoappHasRequest =
         sensor.getRequestMultiplexer().findRequest(

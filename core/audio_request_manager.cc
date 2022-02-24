@@ -275,7 +275,8 @@ bool AudioRequestManager::createAudioRequest(uint32_t handle,
 uint32_t AudioRequestManager::disableAllAudioRequests(const Nanoapp *nanoapp) {
   uint32_t numRequestDisabled = 0;
 
-  for (size_t handle = 0; handle < mAudioRequestLists.size(); ++handle) {
+  const uint32_t numRequests = static_cast<uint32_t>(mAudioRequestLists.size());
+  for (uint32_t handle = 0; handle < numRequests; ++handle) {
     AudioRequest *audioRequest = findAudioRequestByInstanceId(
         handle, nanoapp->getInstanceId(), nullptr /*index*/, nullptr
         /*instanceIdIndex*/);
