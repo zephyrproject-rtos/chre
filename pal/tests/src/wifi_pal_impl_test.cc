@@ -16,13 +16,14 @@
 
 #include "wifi_pal_impl_test.h"
 
+#include <cinttypes>
+
 #include "chre/platform/log.h"
 #include "chre/platform/shared/pal_system_api.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/lock_guard.h"
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/wifi.h"
-
-#include <cinttypes>
 
 // Flag to require on-demand WiFi scanning capability to be enabled for the test
 // to pass. Set to false to allow tests to pass on disabled platforms.
@@ -194,6 +195,8 @@ void PalWifiTest::scanEventCallback(struct chreWifiScanEvent *event) {
 void PalWifiTest::rangingEventCallback(uint8_t errorCode,
                                        struct chreWifiRangingEvent *event) {
   // TODO:
+  UNUSED_VAR(errorCode);
+  UNUSED_VAR(event);
 }
 
 void PalWifiTest::nanServiceIdentifierCallback(uint8_t errorCode,
