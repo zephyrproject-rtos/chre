@@ -691,16 +691,6 @@ class WifiRequestManager : public NonCopyable {
                                             void *eventData);
 
   /**
-   * Print API error distribution histogram to debug_dump
-   *
-   * @param eventType the type of event being freed.
-   * @param histogram pointer the error distribution histogram.
-   * @param histogramLength The number of chre error types
-   */
-  void logErrorHistogram(DebugDumpWrapper &debugDump, const uint32_t *histogram,
-                         uint8_t histogramLength) const;
-
-  /**
    * Copy a NAN subscription configuration to a pending NAN subscription
    * request before dispatch.
    *

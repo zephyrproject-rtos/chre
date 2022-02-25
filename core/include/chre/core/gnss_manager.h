@@ -19,6 +19,7 @@
 
 #include <cstdint>
 
+#include "chre/core/api_manager_common.h"
 #include "chre/core/nanoapp.h"
 #include "chre/core/settings.h"
 #include "chre/platform/platform_gnss.h"
@@ -225,6 +226,10 @@ class GnssSession {
 
   // Allows GnssManager to access constructor.
   friend class GnssManager;
+
+  //! The histogram of error codes for collected errors, the index of this array
+  //! corresponds to the type of the errorcode
+  uint32_t mGnssErrorHistogram[CHRE_ERROR_SIZE] = {0};
 
   /**
    * Constructs a GnssSesson.

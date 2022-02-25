@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include "chre/core/api_manager_common.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/settings.h"
 #include "chre/core/wifi_request_manager.h"
@@ -546,11 +545,11 @@ void WifiRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
 
   debugDump.print(" API error distribution (error-code indexed):\n");
   debugDump.print("   Scan monitor:\n");
-  WifiRequestManager::logErrorHistogram(debugDump, mScanMonitorErrorHistogram,
-                                        CHRE_ERROR_SIZE);
+  debugDump.logErrorHistogram(mScanMonitorErrorHistogram,
+                              ARRAY_SIZE(mScanMonitorErrorHistogram));
   debugDump.print("   Active Scan:\n");
-  WifiRequestManager::logErrorHistogram(debugDump, mActiveScanErrorHistogram,
-                                        CHRE_ERROR_SIZE);
+  debugDump.logErrorHistogram(mActiveScanErrorHistogram,
+                              ARRAY_SIZE(mActiveScanErrorHistogram));
 
   if (!mNanoappSubscriptions.empty()) {
     debugDump.print(" Active NAN service subscriptions:\n");
@@ -1036,19 +1035,6 @@ void WifiRequestManager::freeNanDiscoveryEventCallback(uint16_t /* eventType */,
   EventLoopManagerSingleton::get()
       ->getWifiRequestManager()
       .mPlatformWifi.releaseNanDiscoveryEvent(event);
-}
-
-void WifiRequestManager::logErrorHistogram(DebugDumpWrapper &debugDump,
-                                           const uint32_t *histogram,
-                                           uint8_t histogramLength) const {
-  debugDump.print("     [");
-  for (int i = 0; i < histogramLength; i++) {
-    debugDump.print("%" PRIu32, histogram[i]);
-    if (i < histogramLength - 1) {
-      debugDump.print(",");
-    }
-  }
-  debugDump.print("]\n");
 }
 
 bool WifiRequestManager::nanSubscribe(
