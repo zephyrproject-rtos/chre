@@ -321,7 +321,10 @@ template <typename ElementType, size_t kCapacity>
 class ArrayQueue
     : public internal::ArrayQueueCore<
           ElementType,
-          internal::ArrayQueueInternalStorage<ElementType, kCapacity>> {};
+          internal::ArrayQueueInternalStorage<ElementType, kCapacity>> {
+ public:
+  typedef ElementType value_type;
+};
 
 /**
  * Wrapper for the array queue implementation with storage allocated elsewhere.
