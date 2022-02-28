@@ -646,8 +646,10 @@ bool WifiRequestManager::addScanMonitorRequestToQueue(Nanoapp *nanoapp,
 
 bool WifiRequestManager::nanoappHasPendingScanMonitorRequest(
     uint16_t instanceId) const {
-  for (ssize_t i = mPendingScanMonitorRequests.size() - 1; i >= 0; i--) {
-    const PendingScanMonitorRequest &request = mPendingScanMonitorRequests[i];
+  const int numRequests = static_cast<int>(mPendingScanMonitorRequests.size());
+  for (int i = numRequests - 1; i >= 0; i--) {
+    const PendingScanMonitorRequest &request =
+        mPendingScanMonitorRequests[static_cast<size_t>(i)];
     // The last pending request determines the state of the scan monitoring.
     if (request.nanoappInstanceId == instanceId) {
       return request.enable;
