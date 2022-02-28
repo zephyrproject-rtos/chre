@@ -510,6 +510,11 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
   LOGV("Disabled %" PRId32 " audio requests", numDisabledAudioRequests);
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
 
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  EventLoopManagerSingleton::get()->getBleRequestManager().disableActiveScan(
+      nanoapp.get());
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+
   mCurrentApp = nullptr;
 
   // Destroy the Nanoapp instance
