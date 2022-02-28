@@ -284,10 +284,8 @@ class SensorRequestManager : public NonCopyable {
    * request.
    *
    * @param nanoapp A non-null pointer to the nanoapp.
-   *
-   * @return The number of disabled subscriptions.
    */
-  uint32_t disableAllSubscriptions(Nanoapp *nanoapp);
+  void disableAllSubscriptions(Nanoapp *nanoapp);
 
  private:
   //! An internal structure to store incoming sensor flush requests

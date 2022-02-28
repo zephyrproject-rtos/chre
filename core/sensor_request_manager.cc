@@ -596,9 +596,7 @@ void SensorRequestManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   }
 }
 
-uint32_t SensorRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
-  uint32_t numDisabledSubscriptions = 0;
-
+void SensorRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
   const uint32_t numSensors = static_cast<uint32_t>(mSensors.size());
   for (uint32_t handle = 0; handle < numSensors; handle++) {
     Sensor &sensor = mSensors[handle];
@@ -606,14 +604,11 @@ uint32_t SensorRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
         sensor.getRequestMultiplexer().findRequest(
             nanoapp->getInstanceId(), nullptr /*index*/) != nullptr;
     if (nanoappHasRequest) {
-      numDisabledSubscriptions++;
       SensorRequest request(SensorMode::Off, Nanoseconds() /*interval*/,
                             Nanoseconds() /*latency*/);
       setSensorRequest(nanoapp, handle, request);
     }
   }
-
-  return numDisabledSubscriptions;
 }
 
 void SensorRequestManager::postFlushCompleteEvent(uint32_t sensorHandle,

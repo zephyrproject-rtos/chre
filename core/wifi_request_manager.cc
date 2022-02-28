@@ -82,13 +82,10 @@ bool WifiRequestManager::configureScanMonitor(Nanoapp *nanoapp, bool enable,
   return success;
 }
 
-uint32_t WifiRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
-  uint32_t numSubscriptionsDisabled = 0;
-
+void WifiRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
   // Disable active scan monitoring.
   if (nanoappHasScanMonitorRequest(nanoapp->getInstanceId()) ||
       nanoappHasPendingScanMonitorRequest(nanoapp->getInstanceId())) {
-    numSubscriptionsDisabled++;
     configureScanMonitor(nanoapp, false /*enabled*/, nullptr /*cookie*/);
   }
 
@@ -96,12 +93,9 @@ uint32_t WifiRequestManager::disableAllSubscriptions(Nanoapp *nanoapp) {
   for (size_t i = 0; i < mNanoappSubscriptions.size(); ++i) {
     if (mNanoappSubscriptions[i].nanoappInstanceId ==
         nanoapp->getInstanceId()) {
-      numSubscriptionsDisabled++;
       nanSubscribeCancel(nanoapp, mNanoappSubscriptions[i].subscriptionId);
     }
   }
-
-  return numSubscriptionsDisabled;
 }
 
 bool WifiRequestManager::requestRangingByType(RangingType type,
