@@ -47,6 +47,12 @@ class TestBase : public testing::Test {
    * A convenience method to invoke waitForEvent() for the TestEventQueue
    * singleton.
    *
+   * Note: Events that are intended to be delivered to a nanoapp as a result of
+   * asynchronous APIs invoked in a nanoappEnd() functions may not be delivered
+   * to the nanoapp through nanoappHandleEvent() (since they are already
+   * unloaded by the time it receives the event), so users of the TestEventQueue
+   * should not wait for such events in their test flow.
+   *
    * @param eventType The event type to wait for.
    */
   void waitForEvent(uint16_t eventType) {
@@ -56,6 +62,8 @@ class TestBase : public testing::Test {
   /**
    * A convenience method to invoke waitForEvent() for the TestEventQueue
    * singleton.
+   *
+   * @see waitForEvent(eventType)
    *
    * @param eventType The event type to wait for.
    * @param eventData Populated with the data attached to the event.
