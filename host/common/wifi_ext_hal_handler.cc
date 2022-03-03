@@ -19,6 +19,11 @@
 namespace android {
 namespace chre {
 
+WifiExtHalHandler::~WifiExtHalHandler() {
+  wifiExtHandlerThreadNotifyToExit();
+  mThread.join();
+}
+
 WifiExtHalHandler::WifiExtHalHandler() {
   mEnableConfig.reset();
   mThread = std::thread(&WifiExtHalHandler::wifiExtHandlerThreadEntry, this);
@@ -98,13 +103,22 @@ void WifiExtHalHandler::onWifiExtHalServiceDeath() {
 }
 
 void WifiExtHalHandler::wifiExtHandlerThreadEntry() {
-  while (true) {
+  while (mThreadRunning) {
     std::unique_lock<std::mutex> lock(mMutex);
-    mCondVar.wait(lock, [this] { return mEnableConfig.has_value(); });
+    mCondVar.wait(
+        lock, [this] { return mEnableConfig.has_value() || !mThreadRunning; });
 
-    dispatchConfigurationRequest(mEnableConfig.value());
-    mEnableConfig.reset();
+    if (mThreadRunning) {
+      dispatchConfigurationRequest(mEnableConfig.value());
+      mEnableConfig.reset();
+    }
   }
+}
+
+void WifiExtHalHandler::wifiExtHandlerThreadNotifyToExit() {
+  std::lock_guard<std::mutex> lock(mMutex);
+  mThreadRunning = false;
+  mCondVar.notify_one();
 }
 
 }  // namespace chre
