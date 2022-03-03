@@ -30,8 +30,7 @@ class SensorRequestMultiplexer : public RequestMultiplexer<SensorRequest> {
  public:
   /**
    * Searches through the list of sensor requests for a request owned by the
-   * given nanoapp. The provided non-null index pointer is populated with the
-   * index of the request if it is found.
+   * given nanoapp.
    *
    * @param instanceId The instance ID of the nanoapp whose request is being
    *        searched for.
