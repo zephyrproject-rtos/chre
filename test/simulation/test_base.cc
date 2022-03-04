@@ -21,6 +21,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/init.h"
 #include "chre/platform/linux/platform_log.h"
+#include "chre/util/time.h"
 #include "chre_api/chre/version.h"
 #include "test_util.h"
 
@@ -49,19 +50,19 @@ void TestBase::SetUp() {
   mChreThread = std::thread(
       []() { EventLoopManagerSingleton::get()->getEventLoop().run(); });
 
-  auto callback = [](uint16_t /*type*/, void * /* data */,
-                     void * /*extraData*/) {
+  auto callback = [](void *) {
     LOGE("Test timed out ...");
     TestEventQueueSingleton::get()->pushEvent(
         CHRE_EVENT_SIMULATION_TEST_TIMEOUT);
   };
-  TimerHandle handle = EventLoopManagerSingleton::get()->setDelayedCallback(
-      SystemCallbackType::DelayedFatalError, nullptr /* data */, callback,
-      Nanoseconds(getTimeoutNs()));
-  ASSERT_NE(handle, CHRE_TIMER_INVALID);
+
+  ASSERT_TRUE(mSystemTimer.init());
+  ASSERT_TRUE(mSystemTimer.set(callback, nullptr /*data*/,
+                               Nanoseconds(getTimeoutNs())));
 }
 
 void TestBase::TearDown() {
+  mSystemTimer.cancel();
   // Free memory allocated for event on the test queue.
   TestEventQueueSingleton::get()->flush();
   EventLoopManagerSingleton::get()->getEventLoop().stop();
