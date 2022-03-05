@@ -28,6 +28,9 @@
 
 namespace chre {
 
+// Forward declaration needed to friend TimerPool.
+class TestTimer;
+
 /**
  * The type to use when referring to a timer instance.
  *
@@ -98,6 +101,13 @@ class TimerPool : public NonCopyable {
   }
 
   /**
+   * Cancels all timers held by a nanoapp.
+   *
+   * @param nanoapp The nanoapp requesting timers to be cancelled.
+   */
+  void cancelAllNanoappTimers(const Nanoapp *nanoapp);
+
+  /**
    * Cancels a timer created by setSystemTimer() given a handle.
    *
    * @param timerHandle The handle for a timer to be cancelled.
@@ -108,6 +118,9 @@ class TimerPool : public NonCopyable {
   }
 
  private:
+  // Allows TestTimer to access hasNanoappTimers.
+  friend class TestTimer;
+
   /**
    * Tracks metadata associated with a request for a timed event.
    */
@@ -283,6 +296,14 @@ class TimerPool : public NonCopyable {
    * @return true if at least one timer had expired
    */
   bool handleExpiredTimersAndScheduleNextLocked();
+
+  /**
+   * Returns whether the nanoapp holds timers.
+   *
+   * @param instanceId The instance id of the nanoapp.
+   * @return whether the nanoapp hold timers.
+   */
+  bool hasNanoappTimers(uint16_t instanceId);
 
   /**
    * This static method handles the callback from the system timer. The data

@@ -505,6 +505,8 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
       nanoapp.get());
 #endif  // CHRE_BLE_SUPPORT_ENABLED
 
+  getTimerPool().cancelAllNanoappTimers(nanoapp.get());
+
   mCurrentApp = nullptr;
 
   // Destroy the Nanoapp instance
