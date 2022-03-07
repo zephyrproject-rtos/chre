@@ -16,6 +16,8 @@
 
 #include "chre_host/wifi_ext_hal_handler.h"
 
+#ifdef WIFI_EXT_V_1_3_HAS_MERGED
+
 namespace android {
 namespace chre {
 
@@ -34,7 +36,6 @@ WifiExtHalHandler::WifiExtHalHandler() {
 void WifiExtHalHandler::init(
     const std::function<void(bool)> &statusChangeCallback) {
   mStatusChangeCallback = std::move(statusChangeCallback);
-  mWifiExtCallback = new WifiExtCallback(mStatusChangeCallback);
 }
 
 void WifiExtHalHandler::handleConfigurationRequest(bool enable) {
@@ -55,7 +56,14 @@ void WifiExtHalHandler::dispatchConfigurationRequest(bool enable) {
   };
 
   if (checkWifiExtHalConnected()) {
-    auto result = mService->requestWifiChreNanRtt(enable, hidlCb);
+    hardware::Return<void> result;
+    if (enable) {
+      // The transaction ID is inconsequential from CHRE's perspective, and is
+      // an unimplemented artifact in the WiFi ext HAL.
+      result = mService->enableWifiChreNan(0 /*transaction_id*/, hidlCb);
+    } else {
+      result = mService->disableWifiChreNan(0 /*transaction_id*/, hidlCb);
+    }
     if (!result.isOk()) {
       LOGE("Failed to %s NAN: %s", (enable == true) ? "Enable" : "Disable",
            result.description().c_str());
@@ -64,29 +72,15 @@ void WifiExtHalHandler::dispatchConfigurationRequest(bool enable) {
 }
 
 bool WifiExtHalHandler::checkWifiExtHalConnected() {
-  bool success = false;
+  bool success = true;
   if (mService == nullptr) {
     mService = IWifiExt::getService();
     if (mService != nullptr) {
       LOGD("Connected to Wifi Ext HAL service");
       mService->linkToDeath(mDeathRecipient, 0 /*cookie*/);
-
-      auto hidlCb = [&success](const WifiStatus &status) {
-        success = (status.code == WifiStatusCode::SUCCESS);
-        if (!success) {
-          LOGE("Failed to register CHRE callback with WifiExt: %s",
-               status.description.c_str());
-        }
-      };
-      auto result = mService->registerChreCallback(mWifiExtCallback, hidlCb);
-      if (!result.isOk()) {
-        LOGE("Failed to register CHRE callback with WifiExt: %s",
-             result.description().c_str());
-      } else {
-        success = true;
-      }
     } else {
       LOGE("Failed to connect to Wifi Ext HAL service");
+      success = false;
     }
   }
   return success;
@@ -123,3 +117,5 @@ void WifiExtHalHandler::wifiExtHandlerThreadNotifyToExit() {
 
 }  // namespace chre
 }  // namespace android
+
+#endif  // WIFI_EXT_V_1_3_HAS_MERGED
