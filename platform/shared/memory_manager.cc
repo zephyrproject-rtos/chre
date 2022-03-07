@@ -16,12 +16,13 @@
 
 #include "chre/platform/memory_manager.h"
 
+#include "chre/platform/assert.h"
 #include "chre/util/system/debug_dump.h"
 
 namespace chre {
 
 void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
-  AllocHeader *header = nullptr;
+  HeapBlockHeader *header = nullptr;
   if (bytes > 0) {
     if (mAllocationCount >= kMaxAllocationCount) {
       LOGE("Failed to allocate memory from Nanoapp ID %" PRIu16
@@ -33,8 +34,8 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
            ": not enough space.",
            app->getInstanceId());
     } else {
-      header =
-          static_cast<AllocHeader *>(doAlloc(app, sizeof(AllocHeader) + bytes));
+      header = static_cast<HeapBlockHeader *>(
+          doAlloc(app, sizeof(HeapBlockHeader) + bytes));
 
       if (header != nullptr) {
         app->setTotalAllocatedBytes(app->getTotalAllocatedBytes() + bytes);
@@ -43,6 +44,7 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
           mPeakAllocatedBytes = mTotalAllocatedBytes;
         }
         mAllocationCount++;
+        app->linkHeapBlock(header);
         header->data.bytes = bytes;
         header->data.instanceId = app->getInstanceId();
         header++;
@@ -54,7 +56,7 @@ void *MemoryManager::nanoappAlloc(Nanoapp *app, uint32_t bytes) {
 
 void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
   if (ptr != nullptr) {
-    AllocHeader *header = static_cast<AllocHeader *>(ptr);
+    HeapBlockHeader *header = static_cast<HeapBlockHeader *>(ptr);
     header--;
 
     // TODO: Clean up API contract of chreSendEvent to specify nanoapps can't
@@ -82,7 +84,27 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
       mAllocationCount--;
     }
 
+    app->unlinkHeapBlock(header);
     doFree(app, header);
+  }
+}
+
+void MemoryManager::nanoappFreeAll(Nanoapp *app) {
+  HeapBlockHeader *current = app->getFirstHeapBlock();
+
+  // totalNumBlocks is used a safeguard to avoid entering an infinite loop if
+  // some headers got corrupted. It represents the number of blocks currently
+  // allocated for all the nanoapps and is used as an upper bound for the number
+  // of blocks allocated by the current nanoapp.
+  size_t totalNumBlocks = mAllocationCount;
+
+  while (current != nullptr && totalNumBlocks > 0) {
+    HeapBlockHeader *next = current->data.next;
+    // nanoappFree expects a pointer past the header.
+    HeapBlockHeader *pointerAfterHeader = current + 1;
+    nanoappFree(app, pointerAfterHeader);
+    current = next;
+    totalNumBlocks--;
   }
 }
 

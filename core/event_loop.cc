@@ -470,12 +470,6 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
   mCurrentApp = nanoapp.get();
   nanoapp->end();
 
-  // TODO: right now we assume that the nanoapp will clean up all of its
-  // resource allocations in its nanoappEnd callback (memory, sensor
-  // subscriptions, etc.), otherwise we're leaking resources. We should
-  // perform resource cleanup automatically here to avoid these types of
-  // potential leaks.
-
   // Cleanup resources.
 #ifdef CHRE_WIFI_SUPPORT_ENABLED
   EventLoopManagerSingleton::get()
@@ -506,6 +500,9 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
 #endif  // CHRE_BLE_SUPPORT_ENABLED
 
   getTimerPool().cancelAllNanoappTimers(nanoapp.get());
+
+  EventLoopManagerSingleton::get()->getMemoryManager().nanoappFreeAll(
+      nanoapp.get());
 
   mCurrentApp = nullptr;
 

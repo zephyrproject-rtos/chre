@@ -21,6 +21,7 @@
 
 #include "chre/core/event.h"
 #include "chre/core/event_ref_queue.h"
+#include "chre/platform/heap_block_header.h"
 #include "chre/platform/platform_nanoapp.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_vector.h"
@@ -44,7 +45,6 @@ namespace chre {
 class Nanoapp : public PlatformNanoapp {
  public:
   Nanoapp();
-  ~Nanoapp();
 
   /**
    * @return The unique identifier for this Nanoapp instance
@@ -218,11 +218,43 @@ class Nanoapp : public PlatformNanoapp {
     return mRpcServices;
   }
 
+  /**
+   * Adds a block of memory to the linked list of headers.
+   *
+   * @see getFirstHeapBlock
+   * @see chreHeapAlloc
+   */
+  void linkHeapBlock(HeapBlockHeader *header);
+
+  /**
+   * Removes a block of memory from the linked list of headers.
+   *
+   * @see getFirstHeapBlock
+   * @see chreHeapFree
+   */
+  void unlinkHeapBlock(HeapBlockHeader *header);
+
+  /**
+   * @return A pointer to the first allocated heap block.
+   */
+  HeapBlockHeader *getFirstHeapBlock() {
+    return mFirstHeader;
+  }
+
  private:
   uint16_t mInstanceId = kInvalidInstanceId;
 
   //! The total number of wakeup counts for a nanoapp.
   uint32_t mNumWakeupsSinceBoot = 0;
+
+  /**
+   * Head of the singly linked list of heap block headers.
+   *
+   * The list is used to free all the memory allocated by the nanoapp.
+   *
+   * @see MemoryManager
+   */
+  HeapBlockHeader *mFirstHeader = nullptr;
 
   //! The total memory allocated by the nanoapp in bytes.
   size_t mTotalAllocatedBytes = 0;
