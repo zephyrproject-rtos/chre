@@ -459,6 +459,7 @@ cc_test_host {
     ],
     local_include_dirs: [
         "test/simulation/inc",
+        "platform/shared",
     ],
     static_libs: [
         "chre_linux",

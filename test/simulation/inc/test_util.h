@@ -42,6 +42,13 @@ UniquePtr<Nanoapp> createStaticNanoapp(
     decltype(nanoappEnd) *endFunc);
 
 /**
+ * Deletes memory allocated by createStaticNanoapp.
+ *
+ * This function must be called when the nanoapp is no more used.
+ */
+void deleteNanoappInfos();
+
+/**
  * Default CHRE nanoapp entry points that don't do anything.
  */
 bool defaultNanoappStart();

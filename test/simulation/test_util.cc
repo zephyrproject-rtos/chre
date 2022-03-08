@@ -20,37 +20,53 @@
 
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/nanoapp.h"
+#include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 #include "chre/util/memory.h"
 #include "chre_api/chre/version.h"
+#include "nanoapp/include/chre_nsl_internal/platform/shared/nanoapp_support_lib_dso.h"
 
 namespace chre {
+
+namespace {
+
+// Keep the chreNslNanoappInfo instances alive for the lifetime of the
+// test nanoapps.
+DynamicVector<UniquePtr<chreNslNanoappInfo>> gNanoappInfos;
+
+}  // namespace
 
 UniquePtr<Nanoapp> createStaticNanoapp(
     const char *name, uint64_t appId, uint32_t appVersion, uint32_t appPerms,
     decltype(nanoappStart) *startFunc,
     decltype(nanoappHandleEvent) *handleEventFunc,
     decltype(nanoappEnd) *endFunc) {
-  UniquePtr<Nanoapp> nanoapp = MakeUnique<Nanoapp>();
-  static struct chreNslNanoappInfo appInfo;
-  appInfo.magic = CHRE_NSL_NANOAPP_INFO_MAGIC;
-  appInfo.structMinorVersion = CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION;
-  appInfo.targetApiVersion = CHRE_API_VERSION;
-  appInfo.vendor = "Google";
-  appInfo.name = name;
-  appInfo.isSystemNanoapp = true;
-  appInfo.isTcmNanoapp = true;
-  appInfo.appId = appId;
-  appInfo.appVersion = appVersion;
-  appInfo.entryPoints.start = startFunc;
-  appInfo.entryPoints.handleEvent = handleEventFunc;
-  appInfo.entryPoints.end = endFunc;
-  appInfo.appVersionString = "<undefined>";
-  appInfo.appPermissions = appPerms;
+  auto nanoapp = MakeUnique<Nanoapp>();
+  auto nanoappInfo = MakeUnique<chreNslNanoappInfo>();
+  chreNslNanoappInfo *appInfo = nanoappInfo.get();
+  gNanoappInfos.push_back(std::move(nanoappInfo));
+  appInfo->magic = CHRE_NSL_NANOAPP_INFO_MAGIC;
+  appInfo->structMinorVersion = CHRE_NSL_NANOAPP_INFO_STRUCT_MINOR_VERSION;
+  appInfo->targetApiVersion = CHRE_API_VERSION;
+  appInfo->vendor = "Google";
+  appInfo->name = name;
+  appInfo->isSystemNanoapp = true;
+  appInfo->isTcmNanoapp = true;
+  appInfo->appId = appId;
+  appInfo->appVersion = appVersion;
+  appInfo->entryPoints.start = startFunc;
+  appInfo->entryPoints.handleEvent = handleEventFunc;
+  appInfo->entryPoints.end = endFunc;
+  appInfo->appVersionString = "<undefined>";
+  appInfo->appPermissions = appPerms;
   EXPECT_FALSE(nanoapp.isNull());
-  nanoapp->loadStatic(&appInfo);
+  nanoapp->loadStatic(appInfo);
 
   return nanoapp;
+}
+
+void deleteNanoappInfos() {
+  gNanoappInfos.clear();
 }
 
 bool defaultNanoappStart() {
