@@ -226,7 +226,7 @@ public class ContextHubStressTestExecutor extends ContextHubClientCallback {
 
         mWifiScanMonitorTriggered.set(false);
         mCountDownLatch = new CountDownLatch(1);
-        manager.startScan();
+        Assert.assertTrue(manager.startScan());
 
         try {
             mCountDownLatch.await(30, TimeUnit.SECONDS);
