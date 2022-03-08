@@ -16,9 +16,12 @@
 
 #include "request_manager.h"
 
+#include "chre/util/flatbuffers/helpers.h"
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/audio.h"
+#include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nested_data_ptr.h"
+#include "chre/util/unique_ptr.h"
 
 namespace chre {
 namespace {
@@ -120,6 +123,30 @@ using power_test::TimerMessage;
 using power_test::WifiNanSubCancelMessage;
 using power_test::WifiNanSubMessage;
 using power_test::WifiScanMessage;
+
+void RequestManager::sendResponseMessageToHost(bool success) {
+  auto builder = chre::MakeUnique<chre::ChreFlatBufferBuilder>();
+  if (builder.isNull()) {
+    LOG_OOM();
+  } else {
+    builder->Finish(
+        chre::power_test::CreateNanoappResponseMessage(*builder, success));
+
+    size_t bufferCopySize = builder->GetSize();
+    void *buffer = chreHeapAlloc(bufferCopySize);
+    if (buffer == nullptr) {
+      LOG_OOM();
+    } else {
+      memcpy(buffer, builder->GetBufferPointer(), bufferCopySize);
+      if (!chreSendMessageToHostEndpoint(
+              buffer, bufferCopySize,
+              static_cast<uint32_t>(MessageType::NANOAPP_RESPONSE),
+              mLastHostEndpointId, chre::heapFreeMessageCallback)) {
+        LOGE("Failed to send response message with success %d", success);
+      }
+    }
+  }
+}
 
 bool RequestManager::requestTimer(bool enable, TimerType type,
                                   Nanoseconds delay) {
@@ -296,6 +323,31 @@ void RequestManager::handleTimerEvent(const void *cookie) const {
   }
 }
 
+void RequestManager::handleNanIdResult(
+    const struct chreWifiNanIdentifierEvent *event) {
+  auto builder = chre::MakeUnique<chre::ChreFlatBufferBuilder>();
+  if (builder.isNull()) {
+    LOG_OOM();
+  } else {
+    builder->Finish(chre::power_test::CreateWifiNanSubResponseMessage(
+        *builder, event->result.success, event->id));
+
+    size_t bufferCopySize = builder->GetSize();
+    void *buffer = chreHeapAlloc(bufferCopySize);
+    if (buffer == nullptr) {
+      LOG_OOM();
+    } else {
+      memcpy(buffer, builder->GetBufferPointer(), bufferCopySize);
+      if (!chreSendMessageToHostEndpoint(
+              buffer, bufferCopySize,
+              static_cast<uint32_t>(MessageType::WIFI_NAN_SUB_RESP),
+              mLastHostEndpointId, chre::heapFreeMessageCallback)) {
+        LOGE("Failed to send message with success %d", event->result.success);
+      }
+    }
+  }
+}
+
 bool RequestManager::requestWifiNanSub(const WifiNanSubMessage *msg) {
   chreWifiNanSubscribeConfig config;
   config.subscribeType = msg->sub_type();
@@ -312,7 +364,7 @@ bool RequestManager::cancelWifiNanSub(uint32_t subscriptionId) {
   return chreWifiNanSubscribeCancel(subscriptionId);
 }
 
-bool RequestManager::handleMessageFromHost(
+void RequestManager::handleMessageFromHost(
     const chreMessageFromHostData &hostMessage) {
   bool success = false;
   if (hostMessage.message == nullptr) {
@@ -405,7 +457,7 @@ bool RequestManager::handleMessageFromHost(
         LOGE("Received unknown host message %" PRIu32, hostMessage.messageType);
     }
   }
-  return success;
+  sendResponseMessageToHost(success);
 }
 
 }  // namespace chre
