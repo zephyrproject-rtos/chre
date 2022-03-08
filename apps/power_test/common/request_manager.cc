@@ -19,7 +19,6 @@
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/audio.h"
 #include "chre/util/nested_data_ptr.h"
-#include "generated/chre_power_test_generated.h"
 
 namespace chre {
 namespace {
@@ -118,6 +117,8 @@ using power_test::MessageType;
 using power_test::NanoappResponseMessage;
 using power_test::SensorRequestMessage;
 using power_test::TimerMessage;
+using power_test::WifiNanSubCancelMessage;
+using power_test::WifiNanSubMessage;
 using power_test::WifiScanMessage;
 
 bool RequestManager::requestTimer(bool enable, TimerType type,
@@ -295,6 +296,22 @@ void RequestManager::handleTimerEvent(const void *cookie) const {
   }
 }
 
+bool RequestManager::requestWifiNanSub(const WifiNanSubMessage *msg) {
+  chreWifiNanSubscribeConfig config;
+  config.subscribeType = msg->sub_type();
+  config.service = reinterpret_cast<const char *>(msg->service_name()->data());
+  config.serviceSpecificInfo = msg->service_specific_info()->Data();
+  config.serviceSpecificInfoSize = msg->service_specific_info()->size();
+  config.matchFilter = msg->match_filter()->Data();
+  config.matchFilterLength = msg->match_filter()->size();
+
+  return chreWifiNanSubscribe(&config, nullptr /* cookie */);
+}
+
+bool RequestManager::cancelWifiNanSub(uint32_t subscriptionId) {
+  return chreWifiNanSubscribeCancel(subscriptionId);
+}
+
 bool RequestManager::handleMessageFromHost(
     const chreMessageFromHostData &hostMessage) {
   bool success = false;
@@ -367,6 +384,20 @@ bool RequestManager::handleMessageFromHost(
         if (verifyMessage<GnssMeasurementMessage>(hostMessage, &msg)) {
           success =
               requestGnssMeasurement(msg->enable(), msg->min_interval_millis());
+        }
+        break;
+      }
+      case MessageType::WIFI_NAN_SUB: {
+        const WifiNanSubMessage *msg;
+        if (verifyMessage<WifiNanSubMessage>(hostMessage, &msg)) {
+          success = requestWifiNanSub(msg);
+        }
+        break;
+      }
+      case MessageType::WIFI_NAN_SUB_CANCEL: {
+        const WifiNanSubCancelMessage *msg;
+        if (verifyMessage<WifiNanSubCancelMessage>(hostMessage, &msg)) {
+          success = cancelWifiNanSub(msg->subscription_id());
         }
         break;
       }

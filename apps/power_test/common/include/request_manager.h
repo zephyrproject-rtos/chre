@@ -23,6 +23,7 @@
 #include "chre/util/singleton.h"
 #include "chre/util/time.h"
 #include "common.h"
+#include "generated/chre_power_test_generated.h"
 
 namespace chre {
 
@@ -161,6 +162,22 @@ class RequestManager {
    * @return whether the request was successful
    */
   bool requestAllSensors(bool enable) const;
+
+  /**
+   * Requests a WiFi NAN subscription using the provided params.
+   *
+   * @param msg Message from the host containing the appropriate WiFi NAN params
+   * @return whether the request is successful.
+   */
+  bool requestWifiNanSub(const power_test::WifiNanSubMessage *msg);
+
+  /**
+   * Cancels an existing WiFi NAN subscription.
+   *
+   * @param subscriptionId Previous ID provided from a started subscription
+   * @return whether the request is successful.
+   */
+  bool cancelWifiNanSub(uint32_t subscriptionId);
 };
 
 }  // namespace chre
