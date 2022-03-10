@@ -325,6 +325,8 @@ void RequestManager::handleTimerEvent(const void *cookie) const {
 
 void RequestManager::handleNanIdResult(
     const struct chreWifiNanIdentifierEvent *event) {
+  LOGI("Received NAN ID result: ID %" PRIu32 " success %d", event->id,
+       event->result.success);
   auto builder = chre::MakeUnique<chre::ChreFlatBufferBuilder>();
   if (builder.isNull()) {
     LOG_OOM();
@@ -349,19 +351,27 @@ void RequestManager::handleNanIdResult(
 }
 
 bool RequestManager::requestWifiNanSub(const WifiNanSubMessage *msg) {
-  chreWifiNanSubscribeConfig config;
+  chreWifiNanSubscribeConfig config{};
   config.subscribeType = msg->sub_type();
   config.service = reinterpret_cast<const char *>(msg->service_name()->data());
-  config.serviceSpecificInfo = msg->service_specific_info()->Data();
-  config.serviceSpecificInfoSize = msg->service_specific_info()->size();
-  config.matchFilter = msg->match_filter()->Data();
-  config.matchFilterLength = msg->match_filter()->size();
+  if (msg->service_specific_info()) {
+    config.serviceSpecificInfo = msg->service_specific_info()->Data();
+    config.serviceSpecificInfoSize = msg->service_specific_info()->size();
+  }
+  if (msg->match_filter()) {
+    config.matchFilter = msg->match_filter()->Data();
+    config.matchFilterLength = msg->match_filter()->size();
+  }
 
-  return chreWifiNanSubscribe(&config, nullptr /* cookie */);
+  bool success = chreWifiNanSubscribe(&config, nullptr /* cookie */);
+  LOGI("requestWifiNanSub success %d", success);
+  return success;
 }
 
 bool RequestManager::cancelWifiNanSub(uint32_t subscriptionId) {
-  return chreWifiNanSubscribeCancel(subscriptionId);
+  bool success = chreWifiNanSubscribeCancel(subscriptionId);
+  LOGI("cancelWifiNanSub success %d", success);
+  return success;
 }
 
 void RequestManager::handleMessageFromHost(
@@ -371,6 +381,7 @@ void RequestManager::handleMessageFromHost(
     LOGE("Host message from %" PRIu16 " has empty message",
          hostMessage.hostEndpoint);
   } else {
+    mLastHostEndpointId = hostMessage.hostEndpoint;
     switch (static_cast<MessageType>(hostMessage.messageType)) {
       case MessageType::TIMER_TEST: {
         const TimerMessage *msg;
