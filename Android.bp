@@ -506,6 +506,7 @@ cc_library_static {
         "platform/linux/host_link.cc",
         "platform/linux/memory_manager.cc",
         "platform/linux/memory.cc",
+        "platform/linux/pal_audio.cc",
         "platform/linux/pal_ble.cc",
         "platform/linux/pal_gnss.cc",
         "platform/linux/pal_nan.cc",
