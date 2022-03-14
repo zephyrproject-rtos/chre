@@ -394,7 +394,7 @@ public class ChreCrossValidatorSensor
         map.put(Sensor.TYPE_ACCELEROMETER, new CrossValidatorSensorConfig(3, 0.01f));
         map.put(Sensor.TYPE_GYROSCOPE, new CrossValidatorSensorConfig(3, 0.01f));
         map.put(Sensor.TYPE_MAGNETIC_FIELD, new CrossValidatorSensorConfig(3, 0.05f));
-        map.put(Sensor.TYPE_PRESSURE, new CrossValidatorSensorConfig(1, 0.01f));
+        map.put(Sensor.TYPE_PRESSURE, new CrossValidatorSensorConfig(1, 0.05f));
         map.put(Sensor.TYPE_LIGHT, new CrossValidatorSensorConfig(1, 0.07f));
         map.put(Sensor.TYPE_PROXIMITY, new CrossValidatorSensorConfig(1, 0.01f));
         map.put(Sensor.TYPE_STEP_COUNTER, new CrossValidatorSensorConfig(1, 0f));
