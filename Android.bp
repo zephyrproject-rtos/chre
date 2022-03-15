@@ -523,6 +523,7 @@ cc_library_static {
         "platform/linux/system_time.cc",
         "platform/linux/system_timer.cc",
         "platform/linux/testing/platform_audio.cc",
+        "platform/shared/chre_api_audio.cc",
         "platform/shared/chre_api_ble.cc",
         "platform/shared/chre_api_core.cc",
         "platform/shared/chre_api_gnss.cc",
