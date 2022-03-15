@@ -51,9 +51,10 @@ void TimerPool::cancelAllNanoappTimers(const Nanoapp *nanoapp) {
 
   // Iterate backward as we remove requests from the list.
   for (int i = static_cast<int>(mTimerRequests.size()) - 1; i >= 0; i--) {
-    const TimerRequest &request = mTimerRequests[static_cast<size_t>(i)];
+    size_t iAsSize = static_cast<size_t>(i);
+    const TimerRequest &request = mTimerRequests[iAsSize];
     if (request.instanceId == nanoapp->getInstanceId()) {
-      removeTimerRequestLocked(i);
+      removeTimerRequestLocked(iAsSize);
     }
   }
 }
