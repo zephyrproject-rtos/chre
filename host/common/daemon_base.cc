@@ -302,7 +302,7 @@ void ChreDaemonBase::handleDaemonMessage(const uint8_t *message) {
         values[2].set<VendorAtomValue::intValue>(
             PixelAtoms::ChreHalNanoappLoadFailed::REASON_ERROR_GENERIC);
         const VendorAtom atom{
-            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .reverseDomainName = "",
             .atomId = PixelAtoms::Atom::kChreHalNanoappLoadFailed,
             .values{std::move(values)},
         };
@@ -328,7 +328,7 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
         values[0].set<VendorAtomValue::intValue>(metric.pal());
         values[1].set<VendorAtomValue::intValue>(metric.type());
         const VendorAtom atom{
-            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .reverseDomainName = "",
             .atomId = PixelAtoms::Atom::kChrePalOpenFailed,
             .values{std::move(values)},
         };
@@ -356,7 +356,7 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
         values[5].set<VendorAtomValue::intValue>(
             UINT32_MAX);  // mean_queue_delay_us
         const VendorAtom atom{
-            .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+            .reverseDomainName = "",
             .atomId = PixelAtoms::Atom::kChreEventQueueSnapshotReported,
             .values{std::move(values)},
         };

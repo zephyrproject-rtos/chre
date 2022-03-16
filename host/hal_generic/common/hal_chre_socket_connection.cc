@@ -215,7 +215,7 @@ void HalChreSocketConnection::handleNanoappMessage(
       values[0].set<VendorAtomValue::longValue>(nanoappId);
 
       const VendorAtom atom{
-          .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+          .reverseDomainName = "",
           .atomId = PixelAtoms::Atom::kChreApWakeUpOccurred,
           .values{std::move(values)},
       };
@@ -340,7 +340,7 @@ bool HalChreSocketConnection::sendFragmentedLoadNanoAppRequest(
         PixelAtoms::ChreHalNanoappLoadFailed::REASON_ERROR_GENERIC);
 
     const VendorAtom atom{
-        .reverseDomainName = PixelAtoms::ReverseDomainNames().pixel(),
+        .reverseDomainName = "",
         .atomId = PixelAtoms::Atom::kChreHalNanoappLoadFailed,
         .values{std::move(values)},
     };
