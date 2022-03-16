@@ -32,6 +32,10 @@
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 
+#ifdef CHRE_LOG_ATOM_EXTENSION_ENABLED
+#include "chrex_log_atom.h"
+#endif
+
 #ifndef CHRE_LOADER_ARCH
 #define CHRE_LOADER_ARCH EM_ARM
 #endif  // CHRE_LOADER_ARCH
@@ -142,6 +146,7 @@ void __cxa_pure_virtual(void) {
 // TODO(karthikmb/stange): While this array was hand-coded for simple
 // "hello-world" prototyping, the list of exported symbols must be
 // generated to minimize runtime errors and build breaks.
+// TODO(b/226455808): Allow extensions to this list via an external file
 // clang-format off
 // Disable deprecation warning so that deprecated symbols in the array
 // can be exported for older nanoapps and tests.
@@ -267,6 +272,9 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_C_SYMBOL(chreConfigureHostEndpointNotifications),
     ADD_EXPORTED_C_SYMBOL(chrePublishRpcServices),
     ADD_EXPORTED_C_SYMBOL(chreGetHostEndpointInfo),
+#ifdef CHRE_LOG_ATOM_EXTENSION_ENABLED
+    ADD_EXPORTED_C_SYMBOL(chrexLogAtom),
+#endif
 };
 CHRE_DEPRECATED_EPILOGUE
 // clang-format on
