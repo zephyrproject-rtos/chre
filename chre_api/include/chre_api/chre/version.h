@@ -138,7 +138,7 @@ extern "C" {
  * @return The API major version in the least significant byte, e.g. 0x01
  */
 #define CHRE_EXTRACT_MAJOR_VERSION(version) \
-  (((version)&UINT32_C(0xFF000000)) >> 24)
+  (uint32_t)(((version) & UINT32_C(0xFF000000)) >> 24)
 
 /**
  * Utility macro to extract only the API minor version of a composite CHRE
@@ -149,7 +149,7 @@ extern "C" {
  * @return The API minor version in the least significant byte, e.g. 0x01
  */
 #define CHRE_EXTRACT_MINOR_VERSION(version) \
-  (((version)&UINT32_C(0x00FF0000)) >> 16)
+  (uint32_t)(((version) & UINT32_C(0x00FF0000)) >> 16)
 
 /**
  * Utility macro to extract only the API minor version of a composite CHRE
@@ -161,7 +161,7 @@ extern "C" {
  * @return The implementation patch version in the least significant two bytes,
  *     e.g. 0x0123, with all other bytes set to 0
  */
-#define CHRE_EXTRACT_PATCH_VERSION(version) ((version)&UINT32_C(0xFFFF))
+#define CHRE_EXTRACT_PATCH_VERSION(version) (uint32_t)((version) & UINT32_C(0xFFFF))
 
 /**
  * Get the API version the CHRE implementation was compiled against.
