@@ -83,8 +83,9 @@ class BleRequestManager : public NonCopyable {
    * Disables active scan for a nanoapp (no-op if no active scan).
    *
    * @param nanoapp A non-null pointer to the nanoapp.
+   * @return the number of scans cancelled (1 or 0).
    */
-  void disableActiveScan(const Nanoapp *nanoapp);
+  uint32_t disableActiveScan(const Nanoapp *nanoapp);
 
   /**
    * Frees an advertising event that was previously provided to the BLE

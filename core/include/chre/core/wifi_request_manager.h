@@ -271,8 +271,10 @@ class WifiRequestManager : public NonCopyable {
    * Disables pending scan monitoring and NAN subscription for a nanoapp
    *
    * @param nanoapp A non-null pointer to the nanoapp.
+   *
+   * @return The number of subscriptions disabled.
    */
-  void disableAllSubscriptions(Nanoapp *nanoapp);
+  uint32_t disableAllSubscriptions(Nanoapp *nanoapp);
 
   /**
    * Get the number of current active NAN subscriptions.

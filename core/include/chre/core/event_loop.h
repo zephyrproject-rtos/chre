@@ -477,6 +477,14 @@ class EventLoop : public NonCopyable {
    * nanoapp's own memory (even if there is no free callback).
    */
   void unloadNanoappAtIndex(size_t index);
+
+  /**
+   * Logs dangling resources when a nanoapp is unloaded.
+   *
+   * @param name The name of the resource.
+   * @param count The number of dangling resources.
+   */
+  void logDanglingResources(const char *name, uint32_t count);
 };
 
 }  // namespace chre

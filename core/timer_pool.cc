@@ -45,18 +45,23 @@ TimerHandle TimerPool::setSystemTimer(Nanoseconds duration,
   return timerHandle;
 }
 
-void TimerPool::cancelAllNanoappTimers(const Nanoapp *nanoapp) {
+uint32_t TimerPool::cancelAllNanoappTimers(const Nanoapp *nanoapp) {
   CHRE_ASSERT(nanoapp != nullptr);
   LockGuard<Mutex> lock(mMutex);
+
+  uint32_t numTimersCancelled = 0;
 
   // Iterate backward as we remove requests from the list.
   for (int i = static_cast<int>(mTimerRequests.size()) - 1; i >= 0; i--) {
     size_t iAsSize = static_cast<size_t>(i);
     const TimerRequest &request = mTimerRequests[iAsSize];
     if (request.instanceId == nanoapp->getInstanceId()) {
+      numTimersCancelled++;
       removeTimerRequestLocked(iAsSize);
     }
   }
+
+  return numTimersCancelled;
 }
 
 TimerHandle TimerPool::setTimer(uint16_t instanceId, Nanoseconds duration,

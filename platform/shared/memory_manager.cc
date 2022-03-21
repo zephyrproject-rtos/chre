@@ -89,7 +89,7 @@ void MemoryManager::nanoappFree(Nanoapp *app, void *ptr) {
   }
 }
 
-void MemoryManager::nanoappFreeAll(Nanoapp *app) {
+uint32_t MemoryManager::nanoappFreeAll(Nanoapp *app) {
   HeapBlockHeader *current = app->getFirstHeapBlock();
 
   // totalNumBlocks is used a safeguard to avoid entering an infinite loop if
@@ -97,15 +97,19 @@ void MemoryManager::nanoappFreeAll(Nanoapp *app) {
   // allocated for all the nanoapps and is used as an upper bound for the number
   // of blocks allocated by the current nanoapp.
   size_t totalNumBlocks = mAllocationCount;
+  uint32_t numFreedBlocks = 0;
 
   while (current != nullptr && totalNumBlocks > 0) {
     HeapBlockHeader *next = current->data.next;
     // nanoappFree expects a pointer past the header.
     HeapBlockHeader *pointerAfterHeader = current + 1;
     nanoappFree(app, pointerAfterHeader);
+    numFreedBlocks++;
     current = next;
     totalNumBlocks--;
   }
+
+  return numFreedBlocks;
 }
 
 void MemoryManager::logStateToBuffer(DebugDumpWrapper &debugDump) const {

@@ -17,6 +17,7 @@
 #ifndef CHRE_CORE_TIMER_POOL_H_
 #define CHRE_CORE_TIMER_POOL_H_
 
+#include <cstdint>
 #include "chre_api/chre/re.h"
 
 #include "chre/core/event_loop_common.h"
@@ -104,8 +105,9 @@ class TimerPool : public NonCopyable {
    * Cancels all timers held by a nanoapp.
    *
    * @param nanoapp The nanoapp requesting timers to be cancelled.
+   * @return The number of timers cancelled.
    */
-  void cancelAllNanoappTimers(const Nanoapp *nanoapp);
+  uint32_t cancelAllNanoappTimers(const Nanoapp *nanoapp);
 
   /**
    * Cancels a timer created by setSystemTimer() given a handle.
