@@ -18,6 +18,10 @@
 # TARGET_NAME    - A convenience target that depends on the above archive and
 #                  shared object targets.
 #
+# Nanoapps can optionally use the NANOAPP_LATE_CFLAGS variable to provide
+# compile flags, which will be added at the end of the compile command
+# (for instance, it can be used to override common flags in COMMON_CFLAGS).
+#
 # Argument List:
 #     $1  - TARGET_NAME          - The name of the target being built.
 #     $2  - TARGET_CFLAGS        - The compiler flags to use for this target.
@@ -276,7 +280,8 @@ TARGET_CFLAGS_LOCAL += -DCHRE_PLATFORM_ID=$(TARGET_PLATFORM_ID)
 # Default the nanoapp header flag values to signed if not overidden.
 TARGET_NANOAPP_FLAGS ?= 0x00000001
 $(eval $(call BUILD_TEMPLATE,$(TARGET_NAME), \
-                             $(COMMON_CFLAGS) $(TARGET_CFLAGS_LOCAL), \
+                             $(COMMON_CFLAGS) $(TARGET_CFLAGS_LOCAL) \
+                                 $(NANOAPP_LATE_CFLAGS), \
                              $(TARGET_CC), \
                              $(TARGET_SO_LDFLAGS), \
                              $(TARGET_LD), \
@@ -293,7 +298,8 @@ $(eval $(call BUILD_TEMPLATE,$(TARGET_NAME), \
 
 $(eval $(call BUILD_TEMPLATE,$(TARGET_NAME)_debug, \
                              $(COMMON_CFLAGS) $(COMMON_DEBUG_CFLAGS) \
-                                 $(TARGET_CFLAGS_LOCAL) $(TARGET_DEBUG_CFLAGS), \
+                                 $(TARGET_CFLAGS_LOCAL) $(TARGET_DEBUG_CFLAGS) \
+                                 $(NANOAPP_LATE_CFLAGS), \
                              $(TARGET_CC), \
                              $(TARGET_SO_LDFLAGS), \
                              $(TARGET_LD), \
