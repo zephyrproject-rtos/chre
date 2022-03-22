@@ -63,8 +63,10 @@ TEST_F(TestBase, HostEndpointDisconnectedTest) {
               switch (event->type) {
                 case SETUP_NOTIFICATION: {
                   auto config = static_cast<const Config *>(event->data);
-                  chreConfigureHostEndpointNotifications(config->endpointId,
-                                                         config->enable);
+                  const bool success = chreConfigureHostEndpointNotifications(
+                      config->endpointId, config->enable);
+                  TestEventQueueSingleton::get()->pushEvent(SETUP_NOTIFICATION,
+                                                            success);
                 }
               }
             }
@@ -85,6 +87,10 @@ TEST_F(TestBase, HostEndpointDisconnectedTest) {
   Config config = {.enable = true, .endpointId = kHostEndpointId};
 
   sendEventToNanoapp(app, SETUP_NOTIFICATION, config);
+  bool success;
+  waitForEvent(SETUP_NOTIFICATION, &success);
+  EXPECT_TRUE(success);
+
   struct chreHostEndpointInfo retrievedInfo;
   ASSERT_TRUE(getHostEndpointInfo(kHostEndpointId, &retrievedInfo));
   ASSERT_EQ(retrievedInfo.hostEndpointId, info.hostEndpointId);

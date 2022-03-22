@@ -66,7 +66,10 @@ TEST_F(TestBase, WifiCanSubscribeAndUnsubscribeToScanMonitoring) {
                   auto request =
                       static_cast<const MonitoringRequest *>(event->data);
                   cookie = request->cookie;
-                  chreWifiConfigureScanMonitorAsync(request->enable, &cookie);
+                  bool success = chreWifiConfigureScanMonitorAsync(
+                      request->enable, &cookie);
+                  TestEventQueueSingleton::get()->pushEvent(MONITORING_REQUEST,
+                                                            success);
               }
             }
           }
@@ -85,6 +88,9 @@ TEST_F(TestBase, WifiCanSubscribeAndUnsubscribeToScanMonitoring) {
 
   request = {.enable = false, .cookie = 0x456};
   sendEventToNanoapp(app, MONITORING_REQUEST, request);
+  bool success;
+  waitForEvent(MONITORING_REQUEST, &success);
+  EXPECT_TRUE(success);
   waitForEvent(CHRE_EVENT_WIFI_ASYNC_RESULT, &cookie);
   EXPECT_EQ(cookie, request.cookie);
   EXPECT_FALSE(chrePalWifiIsScanMonitoringActive());
@@ -123,7 +129,10 @@ TEST_F(TestBase, WifiSubscribeAreDisabledOnUnload) {
                   auto request =
                       static_cast<const MonitoringRequest *>(event->data);
                   cookie = request->cookie;
-                  chreWifiConfigureScanMonitorAsync(request->enable, &cookie);
+                  bool success = chreWifiConfigureScanMonitorAsync(
+                      request->enable, &cookie);
+                  TestEventQueueSingleton::get()->pushEvent(MONITORING_REQUEST,
+                                                            success);
               }
             }
           }
@@ -135,6 +144,9 @@ TEST_F(TestBase, WifiSubscribeAreDisabledOnUnload) {
 
   MonitoringRequest request{.enable = true, .cookie = 0x123};
   sendEventToNanoapp(app, MONITORING_REQUEST, request);
+  bool success;
+  waitForEvent(MONITORING_REQUEST, &success);
+  EXPECT_TRUE(success);
   uint32_t cookie;
   waitForEvent(CHRE_EVENT_WIFI_ASYNC_RESULT, &cookie);
   EXPECT_EQ(cookie, request.cookie);

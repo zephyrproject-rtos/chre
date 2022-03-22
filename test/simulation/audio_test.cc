@@ -83,12 +83,10 @@ TEST_F(TestBase, AudioCanSubscribeAndUnsubscribeToDataEvents) {
           switch (event->type) {
             case CONFIGURE: {
               auto enable = static_cast<const bool *>(event->data);
-              LOGE("### audio Configure %s", *enable ? "true" : "false");
-
-              chreAudioConfigureSource(0 /*handle*/, *enable,
-                                       1000000 /*bufferDuration*/,
-                                       1000000 /*deliveryInterval*/);
-              TestEventQueueSingleton::get()->pushEvent(CONFIGURE);
+              const bool success = chreAudioConfigureSource(
+                  0 /*handle*/, *enable, 1000000 /*bufferDuration*/,
+                  1000000 /*deliveryInterval*/);
+              TestEventQueueSingleton::get()->pushEvent(CONFIGURE, success);
               break;
             }
           }
@@ -101,7 +99,10 @@ TEST_F(TestBase, AudioCanSubscribeAndUnsubscribeToDataEvents) {
   EXPECT_FALSE(chrePalAudioIsHandle0Enabled());
 
   bool enable = true;
+  bool success;
   sendEventToNanoapp(app, CONFIGURE, enable);
+  waitForEvent(CONFIGURE, &success);
+  EXPECT_TRUE(success);
   waitForEvent(CHRE_EVENT_AUDIO_SAMPLING_CHANGE);
   EXPECT_TRUE(chrePalAudioIsHandle0Enabled());
 
@@ -109,7 +110,8 @@ TEST_F(TestBase, AudioCanSubscribeAndUnsubscribeToDataEvents) {
 
   enable = false;
   sendEventToNanoapp(app, CONFIGURE, enable);
-  waitForEvent(CONFIGURE);
+  waitForEvent(CONFIGURE, &success);
+  EXPECT_TRUE(success);
   EXPECT_FALSE(chrePalAudioIsHandle0Enabled());
 }
 
@@ -136,10 +138,10 @@ TEST_F(TestBase, AudioUnsubscribeToDataEventsOnUnload) {
           switch (event->type) {
             case CONFIGURE: {
               auto enable = static_cast<const bool *>(event->data);
-              chreAudioConfigureSource(0 /*handle*/, *enable,
-                                       1000000 /*bufferDuration*/,
-                                       1000000 /*deliveryInterval*/);
-              TestEventQueueSingleton::get()->pushEvent(CONFIGURE);
+              const bool success = chreAudioConfigureSource(
+                  0 /*handle*/, *enable, 1000000 /*bufferDuration*/,
+                  1000000 /*deliveryInterval*/);
+              TestEventQueueSingleton::get()->pushEvent(CONFIGURE, success);
               break;
             }
           }
@@ -152,7 +154,10 @@ TEST_F(TestBase, AudioUnsubscribeToDataEventsOnUnload) {
   EXPECT_FALSE(chrePalAudioIsHandle0Enabled());
 
   bool enable = true;
+  bool success;
   sendEventToNanoapp(app, CONFIGURE, enable);
+  waitForEvent(CONFIGURE, &success);
+  EXPECT_TRUE(success);
   waitForEvent(CHRE_EVENT_AUDIO_SAMPLING_CHANGE);
   EXPECT_TRUE(chrePalAudioIsHandle0Enabled());
 
