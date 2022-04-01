@@ -269,8 +269,8 @@ GOOGLE_X86_LINUX_SRCS += platform/linux/assert.cc
 
 # Optional audio support.
 ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
-GOOGLE_X86_LINUX_SRCS += platform/linux/audio_source.cc
-GOOGLE_X86_LINUX_SRCS += platform/linux/platform_audio.cc
+GOOGLE_X86_LINUX_SRCS += platform/linux/sim/audio_source.cc
+GOOGLE_X86_LINUX_SRCS += platform/linux/sim/platform_audio.cc
 endif
 
 # Optional WiFi NAN support
@@ -330,8 +330,8 @@ GOOGLETEST_CFLAGS += -Iplatform/slpi/include
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_COMMON_SRCS += platform/linux/assert.cc
-GOOGLETEST_COMMON_SRCS += platform/linux/audio_source.cc
-GOOGLETEST_COMMON_SRCS += platform/linux/platform_audio.cc
+GOOGLETEST_COMMON_SRCS += platform/linux/sim/audio_source.cc
+GOOGLETEST_COMMON_SRCS += platform/linux/sim/platform_audio.cc
 GOOGLETEST_COMMON_SRCS += platform/tests/log_buffer_test.cc
 GOOGLETEST_COMMON_SRCS += platform/shared/log_buffer.cc
 ifeq ($(CHRE_WIFI_NAN_SUPPORT_ENABLED), true)
