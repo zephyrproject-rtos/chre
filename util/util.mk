@@ -20,6 +20,7 @@ COMMON_SRCS += $(CHRE_PREFIX)/util/system/debug_dump.cc
 # GoogleTest Source Files ######################################################
 
 GOOGLETEST_SRCS += $(CHRE_PREFIX)/util/tests/array_queue_test.cc
+GOOGLETEST_SRCS += $(CHRE_PREFIX)/util/tests/atomic_spsc_queue_test.cc
 GOOGLETEST_SRCS += $(CHRE_PREFIX)/util/tests/blocking_queue_test.cc
 GOOGLETEST_SRCS += $(CHRE_PREFIX)/util/tests/buffer_test.cc
 GOOGLETEST_SRCS += $(CHRE_PREFIX)/util/tests/debug_dump_test.cc
