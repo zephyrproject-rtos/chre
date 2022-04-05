@@ -357,13 +357,15 @@ void ChreDaemonBase::handleMetricLog(const ::chre::fbs::MetricLogT *metricMsg) {
       break;
     }
     default: {
+#ifdef CHRE_LOG_ATOM_EXTENSION_ENABLED
+      handleVendorMetricLog(metricMsg);
+#else
       LOGW("Unknown metric ID %" PRIu32, metricMsg->id);
+#endif  // CHRE_LOG_ATOM_EXTENSION_ENABLED
     }
   }
 }
-#endif  // CHRE_DAEMON_METRIC_ENABLED
 
-#ifdef CHRE_DAEMON_METRIC_ENABLED
 void ChreDaemonBase::reportMetric(const VendorAtom &atom) {
   const std::string statsServiceName =
       std::string(IStats::descriptor).append("/default");
