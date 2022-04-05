@@ -55,6 +55,7 @@ if(CONFIG_CHRE)
       "${CHRE_DIR}/platform/shared/system_time.cc"
       "${CHRE_DIR}/util/dynamic_vector_base.cc"
   )
+  zephyr_linker_sources(SECTIONS linker_chre.ld)
 
   # Optional audio support
   if(CONFIG_CHRE_AUDIO_SUPPORT_ENABLED)
