@@ -73,7 +73,7 @@ class AtomicSpscQueue : public NonCopyable {
   ~AtomicSpscQueue() {
     size_t sz = size();
     auto c = consumer();
-    for (int i = 0; i < sz; i++) {
+    for (size_t i = 0; i < sz; i++) {
       c.pop();
     }
   }
