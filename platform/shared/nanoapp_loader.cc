@@ -53,6 +53,24 @@ NanoappLoader *gCurrentlyLoadingNanoapp = nullptr;
 //! Indicates whether a failure occurred during static initialization.
 bool gStaticInitFailure = false;
 
+// The new operator is used by singleton.h which causes the delete operator to
+// be undefined in nanoapp binaries even though it's unused. Define this in case
+// a nanoapp actually tries to use the operator.
+void deleteOverride(void *ptr) {
+  FATAL_ERROR("Nanoapp tried to free %p through delete operator", ptr);
+}
+
+// From C++17, a call to the overloaded delete operator aimed at safely freeing
+// over-aligned allocations maybe present in the nanoapp binary even though it
+// is unused. Since all memory allocations/deallocations are managed by CHRE,
+// signal a fatal error if the nanoapp tries to use this version of the delete
+// operator.
+void deleteAlignedOverride(void *ptr, std::align_val_t alignment) {
+  UNUSED_VAR(alignment);
+
+  FATAL_ERROR("Nanoapp tried to free aligned %p via the delte operator", ptr);
+}
+
 // atexit is used to register functions that must be called when a binary is
 // removed from the system.
 int atexitOverride(void (*function)(void)) {
@@ -162,7 +180,8 @@ const ExportedData gExportedData[] = {
     /* libc overrides and symbols */
     ADD_EXPORTED_C_SYMBOL(__cxa_pure_virtual),
     ADD_EXPORTED_SYMBOL(atexitOverride, "atexit"),
-
+    ADD_EXPORTED_SYMBOL(deleteOverride, "_ZdlPv"),
+    ADD_EXPORTED_SYMBOL(deleteAlignedOverride, "_ZdlPvSt11align_val_t"),
     ADD_EXPORTED_C_SYMBOL(dlsym),
     ADD_EXPORTED_C_SYMBOL(isgraph),
     ADD_EXPORTED_C_SYMBOL(memcmp),
