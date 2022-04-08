@@ -394,9 +394,12 @@ static void chppGnssGetCapabilitiesResult(
     CHPP_LOGD("chppGnssGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
-    CHPP_ASSERT_LOG((result->capabilities == CHPP_GNSS_DEFAULT_CAPABILITIES),
-                    "GNSS capabilities 0x%" PRIx32 " != 0x%" PRIx32,
-                    result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
+    CHPP_ASSERT((result->capabilities & CHPP_GNSS_DEFAULT_CAPABILITIES) ==
+                CHPP_GNSS_DEFAULT_CAPABILITIES);
+    if (result->capabilities != CHPP_GNSS_DEFAULT_CAPABILITIES) {
+      CHPP_LOGE("GNSS capabilities 0x%" PRIx32 " != 0x%" PRIx32,
+                result->capabilities, CHPP_GNSS_DEFAULT_CAPABILITIES);
+    }
 
     clientContext->capabilitiesValid = true;
     clientContext->capabilities = result->capabilities;
