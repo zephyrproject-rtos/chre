@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-#include "chre/platform/power_control_manager.h"
+SECTION_DATA_PROLOGUE(_CHRE_SECTION,,)
+{
+	KEEP(*(".unstable_id"));
+} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 
-namespace chre {
-
-void PowerControlManager::preEventLoopProcess(size_t /* numPendingEvents */) {}
-
-void PowerControlManager::postEventLoopProcess(size_t /* numPendingEvents */) {}
-
-bool PowerControlManager::hostIsAwake() {
-  return true;
-}
-
-}  // namespace chre
