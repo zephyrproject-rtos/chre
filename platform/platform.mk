@@ -225,6 +225,11 @@ SIM_SRCS += platform/shared/pal_system_api.cc
 SIM_SRCS += platform/shared/system_time.cc
 SIM_SRCS += platform/shared/version.cc
 
+# Optional audio support.
+ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
+SIM_SRCS += platform/linux/pal_audio.cc
+endif
+
 # Optional BLE support.
 ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
 SIM_SRCS += platform/linux/pal_ble.cc
