@@ -59,7 +59,6 @@ LOCAL_SRC_FILES := \
     host/common/log_message_parser.cc \
     host/common/socket_server.cc \
     host/common/st_hal_lpma_handler.cc \
-    host/common/wifi_ext_hal_handler.cc \
     host/msm/daemon/fastrpc_daemon.cc \
     host/msm/daemon/main.cc \
     host/msm/daemon/generated/chre_slpi_stub.c \
