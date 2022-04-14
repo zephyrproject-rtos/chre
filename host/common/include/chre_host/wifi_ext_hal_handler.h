@@ -27,9 +27,8 @@
 #include <mutex>
 #include <thread>
 
-#ifdef WIFI_EXT_V_1_3_HAS_MERGED
 #include <vendor/google/wifi_ext/1.3/IWifiExt.h>
-#include <vendor/google/wifi_ext/1.3/IWifiExtChreNanCallback.h>
+#include <vendor/google/wifi_ext/1.3/IWifiExtChreCallback.h>
 
 #include "chre_host/log.h"
 
@@ -48,26 +47,20 @@ class WifiExtHalHandler {
   using IBase = hidl::base::V1_0::IBase;
   using IWifiExt = ::vendor::google::wifi_ext::V1_3::IWifiExt;
   using IWifiExtChreNanCallback =
-      ::vendor::google::wifi_ext::V1_3::IWifiExtChreNanCallback;
-  using WifiChreNanState = ::vendor::google::wifi_ext::V1_3::WifiChreNanState;
+      ::vendor::google::wifi_ext::V1_3::IWifiExtChreCallback;
+  using WifiChreNanRttState =
+      ::vendor::google::wifi_ext::V1_3::WifiChreNanRttState;
 
   ~WifiExtHalHandler();
 
   /**
    * Construct a new Wifi Ext Hal Handler object, initiate a connection to
    * the Wifi ext HAL service.
-   */
-  WifiExtHalHandler();
-
-  /**
-   * Initializes the handler with a status change callback from the daemon.
-   * The callback is invoked when the handler is notified of a change in NAN's
-   * enablement, which is propagated to CHRE by the daemon.
    *
    * @param statusChangeCallback Callback set by the daemon to be invoked on a
    *        status change to NAN's enablement.
    */
-  void init(const std::function<void(bool)> &statusChangeCallback);
+  WifiExtHalHandler(const std::function<void(bool)> &statusChangeCallback);
 
   /**
    * Invoked by the CHRE daemon when it receives a request to enable or disable
@@ -79,6 +72,25 @@ class WifiExtHalHandler {
   void handleConfigurationRequest(bool enable);
 
  private:
+  //! CHRE NAN availability status change handler.
+  class WifiExtCallback : public IWifiExtChreNanCallback {
+   public:
+    WifiExtCallback(std::function<void(bool)> cb) : mCallback(cb) {}
+
+    hardware::Return<void> onChreNanRttStateChanged(WifiChreNanRttState state) {
+      bool enabled = (state == WifiChreNanRttState::CHRE_AVAILABLE);
+      onStatusChanged(enabled);
+      return hardware::Void();
+    }
+
+    void onStatusChanged(bool enabled) {
+      mCallback(enabled);
+    }
+
+   private:
+    std::function<void(bool)> mCallback;
+  };
+
   //! Handler for when a connected Wifi ext HAL service dies.
   class WifiExtHalDeathRecipient : public hidl_death_recipient {
    public:
@@ -95,8 +107,6 @@ class WifiExtHalHandler {
     std::function<void()> mCallback;
   };
 
-  std::function<void(bool)> mStatusChangeCallback;
-
   bool mThreadRunning = true;
   std::thread mThread;
   std::mutex mMutex;
@@ -108,6 +118,7 @@ class WifiExtHalHandler {
 
   sp<WifiExtHalDeathRecipient> mDeathRecipient;
   sp<IWifiExt> mService;
+  sp<WifiExtCallback> mCallback;
 
   /**
    * Entry point for the thread that handles all interactions with the WiFi ext
@@ -119,7 +130,7 @@ class WifiExtHalHandler {
   /**
    * Notifies the WifiExtHalHandler processing thread of a daemon shutdown.
    */
-  void wifiExtHandlerThreadNotifyToExit();
+  void notifyThreadToExit();
 
   /**
    * Checks for a valid connection to the Wifi ext HAL service, reconnects if
@@ -142,21 +153,7 @@ class WifiExtHalHandler {
    *        to disable.
    */
   void dispatchConfigurationRequest(bool enable);
-
-  /**
-   * Passed to the Wifi ext HAL service calls as a hidl callback, this function
-   * invokes the CHRE daemon provided status change callback with the result of
-   * a NAN enable/disable request.
-   *
-   * @param status true if the requested operation was successful, false
-   *        otherwise.
-   */
-  void onStatusChanged(bool status) {
-    mStatusChangeCallback(status);
-  }
 };
 
 }  // namespace chre
 }  // namespace android
-
-#endif  // WIFI_EXT_V_1_3_HAS_MERGED
