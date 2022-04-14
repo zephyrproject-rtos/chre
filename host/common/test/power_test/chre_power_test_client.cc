@@ -63,6 +63,9 @@
  *                                <interval_ns> <optional: latency_ns>
  *  chre_power_test_client breakit <optional: tcm> <enable>
  *  chre_power_test_client gnss_meas <optional: tcm> <enable> <interval_ms>
+ *  chre_power_test_client wifi_nan_sub <optional: tcm> <sub_type>
+ *                                <service_name>
+ *  chre_power_test_client end_wifi_nan_sub <optional: tcm> <subscription_id>
  *
  * Command:
  *  load: load power test nanoapp to CHRE
@@ -165,16 +168,25 @@ enum class Command : uint32_t {
   kAudio,
   kSensor,
   kBreakIt,
-  kGnssMeas
+  kGnssMeas,
+  kNanSub,
+  kNanCancel,
 };
 
 std::unordered_map<string, Command> commandMap{
-    {"unloadall", Command::kUnloadAll}, {"load", Command::kLoad},
-    {"unload", Command::kUnload},       {"timer", Command::kTimer},
-    {"wifi", Command::kWifi},           {"gnss", Command::kGnss},
-    {"cell", Command::kCell},           {"audio", Command::kAudio},
-    {"sensor", Command::kSensor},       {"breakit", Command::kBreakIt},
-    {"gnss_meas", Command::kGnssMeas}};
+    {"unloadall", Command::kUnloadAll},
+    {"load", Command::kLoad},
+    {"unload", Command::kUnload},
+    {"timer", Command::kTimer},
+    {"wifi", Command::kWifi},
+    {"gnss", Command::kGnss},
+    {"cell", Command::kCell},
+    {"audio", Command::kAudio},
+    {"sensor", Command::kSensor},
+    {"breakit", Command::kBreakIt},
+    {"gnss_meas", Command::kGnssMeas},
+    {"wifi_nan_sub", Command::kNanSub},
+    {"end_wifi_nan_sub", Command::kNanCancel}};
 
 std::unordered_map<string, MessageType> messageTypeMap{
     {"timer", MessageType::TIMER_TEST},
@@ -184,7 +196,9 @@ std::unordered_map<string, MessageType> messageTypeMap{
     {"audio", MessageType::AUDIO_REQUEST_TEST},
     {"sensor", MessageType::SENSOR_REQUEST_TEST},
     {"breakit", MessageType::BREAK_IT_TEST},
-    {"gnss_meas", MessageType::GNSS_MEASUREMENT_TEST}};
+    {"gnss_meas", MessageType::GNSS_MEASUREMENT_TEST},
+    {"wifi_nan_sub", MessageType::WIFI_NAN_SUB},
+    {"end_wifi_nan_sub", MessageType::WIFI_NAN_SUB_CANCEL}};
 
 std::unordered_map<string, SensorType> sensorTypeMap{
     {"accelerometer", SensorType::ACCELEROMETER},
@@ -614,6 +628,22 @@ bool validateArguments(Command commandEnum, std::vector<string> &args) {
     return false;
   }
 
+  if (commandEnum == Command::kNanSub) {
+    if (args.size() != 3) {
+      LOGE("Incorrect number of parameters for NAN sub");
+      return false;
+    }
+    return true;
+  }
+
+  if (commandEnum == Command::kNanCancel) {
+    if (args.size() != 2) {
+      LOGE("Incorrect number of parameters for NAN cancel");
+      return false;
+    }
+    return true;
+  }
+
   if (args[1] != "enable" && args[1] != "disable") {
     LOGE("<enable> was neither enable nor disable");
     return false;
@@ -743,6 +773,22 @@ void createGnssMeasMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
        enable, intervalMilliseconds);
 }
 
+void createNanSubMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
+  uint8_t subType = atoi(args[1].c_str());
+  std::string &serviceName = args[2];
+  std::vector<uint8_t> serviceNameBytes(serviceName.begin(), serviceName.end());
+  fbb.Finish(
+      ptest::CreateWifiNanSubMessageDirect(fbb, subType, &serviceNameBytes));
+  LOGI("Created NAN subscription message, subType %d serviceName %s", subType,
+       serviceName.c_str());
+}
+
+void createNanCancelMessage(FlatBufferBuilder &fbb, std::vector<string> &args) {
+  uint32_t subId = strtoul(args[1].c_str(), nullptr /* endptr */, 0 /* base */);
+  fbb.Finish(ptest::CreateWifiNanSubCancelMessage(fbb, subId));
+  LOGI("Created NAN subscription cancel message, subId %" PRIu32, subId);
+}
+
 bool sendMessageToNanoapp(SocketClient &client, sp<SocketCallbacks> callbacks,
                           FlatBufferBuilder &fbb, uint64_t appId,
                           MessageType messageType) {
@@ -790,6 +836,10 @@ static void usage() {
       " chre_power_test_client breakit <optional: tcm> <enable>\n"
       " chre_power_test_client gnss_meas <optional: tcm> <enable> <interval_ms>"
       "\n"
+      " chre_power_test_client wifi_nan_sub <optional: tcm> <sub_type>"
+      " <service_name>\n"
+      " chre_power_test_client end_wifi_nan_sub <optional: tcm>"
+      " <subscription_id>\n"
       "Command:\n"
       "load: load power test nanoapp to CHRE\n"
       "unload: unload power test nanoapp from CHRE\n"
@@ -802,6 +852,8 @@ static void usage() {
       "sensor: start/stop periodic sensor sampling\n"
       "breakit: start/stop all action for stress tests\n"
       "gnss_meas: start/stop periodic GNSS measurement\n"
+      "wifi_nan_sub: start a WiFi NAN subscription\n"
+      "end_wifi_nan_sub: end a WiFi NAN subscription\n"
       "\n"
       "<optional: tcm>: tcm for micro image, default for big image\n"
       "<enable>: enable/disable\n"
@@ -846,38 +898,36 @@ static void usage() {
 void createRequestMessage(Command commandEnum, FlatBufferBuilder &fbb,
                           std::vector<string> &args) {
   switch (commandEnum) {
-    case Command::kTimer: {
+    case Command::kTimer:
       createTimerMessage(fbb, args);
       break;
-    }
-    case Command::kWifi: {
+    case Command::kWifi:
       createWifiMessage(fbb, args);
       break;
-    }
-    case Command::kGnss: {
+    case Command::kGnss:
       createGnssMessage(fbb, args);
       break;
-    }
-    case Command::kCell: {
+    case Command::kCell:
       createCellMessage(fbb, args);
       break;
-    }
-    case Command::kAudio: {
+    case Command::kAudio:
       createAudioMessage(fbb, args);
       break;
-    }
-    case Command::kSensor: {
+    case Command::kSensor:
       createSensorMessage(fbb, args);
       break;
-    }
-    case Command::kBreakIt: {
+    case Command::kBreakIt:
       createBreakItMessage(fbb, args);
       break;
-    }
-    case Command::kGnssMeas: {
+    case Command::kGnssMeas:
       createGnssMeasMessage(fbb, args);
       break;
-    }
+    case Command::kNanSub:
+      createNanSubMessage(fbb, args);
+      break;
+    case Command::kNanCancel:
+      createNanCancelMessage(fbb, args);
+      break;
     default: {
       usage();
     }
