@@ -278,7 +278,8 @@ static enum ChppAppErrorCode chppDispatchWifiNotification(void *clientContext,
       break;
     }
 
-    case CHPP_WIFI_REQUEST_RANGING_ASYNC: {
+    case CHPP_WIFI_REQUEST_RANGING_ASYNC:
+    case CHPP_WIFI_REQUEST_NAN_RANGING_ASYNC: {
       chppWifiRangingEventNotification(wifiClientContext, buf, len);
       break;
     }
