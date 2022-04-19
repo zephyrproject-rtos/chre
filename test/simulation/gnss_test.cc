@@ -15,14 +15,16 @@
  */
 
 #include "chre_api/chre/gnss.h"
+
 #include <cstdint>
+#include <functional>
+
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/settings.h"
 #include "chre/platform/linux/pal_gnss.h"
 #include "chre/platform/log.h"
 #include "chre/util/system/napp_permissions.h"
 #include "chre_api/chre/event.h"
-
 #include "gtest/gtest.h"
 #include "inc/test_util.h"
 #include "test_base.h"
@@ -32,6 +34,23 @@
 
 namespace chre {
 namespace {
+
+/**
+ * Wait for the predicate to become true with a timeout.
+ *
+ * @return the last value of the predicate.
+ */
+bool waitForCondition(const std::function<bool()> &predicate,
+                      std::chrono::milliseconds timeout) {
+  constexpr std::chrono::milliseconds kSleepDuration(100);
+  bool result;
+  std::chrono::milliseconds time;
+  while (!(result = predicate()) && time < timeout) {
+    std::this_thread::sleep_for(kSleepDuration);
+    time += kSleepDuration;
+  }
+  return result;
+}
 
 // ref b/228669574
 TEST_F(TestBase, GnssSubscriptionWithSettingChange) {
@@ -122,10 +141,18 @@ TEST_F(TestBase, GnssSubscriptionWithSettingChange) {
 
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
 
+  // Wait for the setting change to propagate to GNSS.
+  EXPECT_TRUE(waitForCondition([]() { return !chrePalGnssIsLocationEnabled(); },
+                               std::chrono::milliseconds(1000)));
+
   EventLoopManagerSingleton::get()->getSettingManager().postSettingChange(
       Setting::LOCATION, true /* enabled */);
 
   waitForEvent(CHRE_EVENT_SETTING_CHANGED_LOCATION);
+
+  // Wait for the setting change to propagate to GNSS.
+  EXPECT_TRUE(waitForCondition([]() { return chrePalGnssIsLocationEnabled(); },
+                               std::chrono::milliseconds(1000)));
 
   request.enable = false;
   sendEventToNanoapp(app, LOCATION_REQUEST, request);
