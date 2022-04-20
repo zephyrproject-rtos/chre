@@ -350,6 +350,14 @@ void RequestManager::handleNanIdResult(
   }
 }
 
+void RequestManager::requestNanRanging(
+    const struct chreWifiNanDiscoveryEvent *event) {
+  chreWifiNanRangingParams params = {};
+  memcpy(params.macAddress, event->publisherAddress, CHRE_WIFI_BSSID_LEN);
+  bool success = chreWifiNanRequestRangingAsync(&params, nullptr);
+  LOGI("Requested NAN ranging %d", success);
+}
+
 bool RequestManager::requestWifiNanSub(const WifiNanSubMessage *msg) {
   chreWifiNanSubscribeConfig config{};
   config.subscribeType = msg->sub_type();
