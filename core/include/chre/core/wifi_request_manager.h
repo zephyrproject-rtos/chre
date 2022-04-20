@@ -191,6 +191,11 @@ class WifiRequestManager : public NonCopyable {
    */
   void handleScanEvent(struct chreWifiScanEvent *event);
 
+  /**
+   * Updates the NAN availability state.
+   *
+   * @param available Whether NAN is available to use.
+   */
   void updateNanAvailability(bool available);
 
   /**
@@ -652,6 +657,13 @@ class WifiRequestManager : public NonCopyable {
    */
   void handleNanServiceSubscriptionCanceledEventSync(uint8_t errorCode,
                                                      uint32_t subscriptionId);
+
+  /**
+   * Handles event informing CHRE whether NAN is available.
+   *
+   * @param available Whether NAN is available to use.
+   */
+  void handleNanAvailabilitySync(bool available);
 
   /**
    * Sends CHRE_EVENT_WIFI_ASYNC_RESULT for the ranging request at the head
