@@ -62,6 +62,7 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
           static_cast<const struct chreWifiNanDiscoveryEvent *>(eventData);
       LOGD("NAN discovery subId %" PRIu32 " pubId %" PRIu32, event->subscribeId,
            event->publishId);
+      RequestManagerSingleton::get()->requestNanRanging(event);
       break;
     }
     case CHRE_EVENT_WIFI_NAN_SESSION_LOST: {
@@ -92,6 +93,18 @@ void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
       LOGD("Wifi scan received with %" PRIu8 " results, scanType %" PRIu8
            ", radioChainPref %" PRIu8,
            event->resultCount, event->scanType, event->radioChainPref);
+      break;
+    }
+    case CHRE_EVENT_WIFI_RANGING_RESULT: {
+      auto *event = static_cast<const struct chreWifiRangingEvent *>(eventData);
+      LOGD("Wifi ranging result received with %" PRIu8 " results",
+           event->resultCount);
+      for (uint8_t i = 0; i < event->resultCount; ++i) {
+        LOGD("Ranging result #%" PRIu8 " status %" PRIu8 " rssi %" PRId8
+             " distance (mm) %" PRIu32,
+             i, event->results[i].status, event->results[i].rssi,
+             event->results[i].distance);
+      }
       break;
     }
     case CHRE_EVENT_GNSS_ASYNC_RESULT: {

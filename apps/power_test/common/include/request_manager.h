@@ -53,6 +53,12 @@ class RequestManager {
   void handleNanIdResult(const struct chreWifiNanIdentifierEvent *event);
 
   /**
+   * Requests NAN ranging using the provided discovery event to populate a NAN
+   * RTT config.
+   */
+  void requestNanRanging(const struct chreWifiNanDiscoveryEvent *event);
+
+  /**
    * Responds to a host request indicating whether the request was successfully
    * executed.
    *
