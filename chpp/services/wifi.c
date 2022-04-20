@@ -845,7 +845,7 @@ static void chppWifiServiceNanIdentifierCallback(uint8_t errorCode,
   } else {
     id->header.command = CHPP_WIFI_REQUEST_NAN_SUB;
     id->header.handle = gWifiServiceContext.service.handle;
-    id->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+    id->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     id->header.error = CHPP_APP_ERROR_NONE;
     id->header.transaction =
         gWifiServiceContext.requestNanSubscribe.transaction;
@@ -992,7 +992,7 @@ static void chppWifiServiceNanSubscriptionCanceledCallback(
   } else {
     response->header.command = CHPP_WIFI_REQUEST_NAN_SUB_CANCEL;
     response->header.handle = gWifiServiceContext.service.handle;
-    response->header.type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
+    response->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
     response->header.error = CHPP_APP_ERROR_NONE;
     response->header.transaction =
         gWifiServiceContext.requestNanSubscribeCancel.transaction;
