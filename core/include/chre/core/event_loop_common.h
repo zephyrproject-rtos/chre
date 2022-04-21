@@ -63,6 +63,7 @@ enum class SystemCallbackType : uint16_t {
   WifiNanServiceDiscoveryEvent,
   WifiNanServiceSessionLostEvent,
   WifiNanServiceTerminatedEvent,
+  WifiNanAvailabilityEvent,
   DeferredMetricPostEvent,
   BleAdvertisementEvent,
   BleScanResponse,
