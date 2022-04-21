@@ -163,6 +163,9 @@ static void chppWifiDiscoveryEventNotification(uint8_t *buf, size_t len);
 static void chppWifiNanServiceLostEventNotification(uint8_t *buf, size_t len);
 static void chppWifiNanServiceTerminatedEventNotification(uint8_t *buf,
                                                           size_t len);
+static void chppWifiRequestNanSubscribeNotification(uint8_t *buf, size_t len);
+static void chppWifiNanSubscriptionCanceledNotification(uint8_t *buf,
+                                                        size_t len);
 static void chppWifiNanSubscriptionCanceledResult(uint8_t *buf, size_t len);
 
 /************************************************
@@ -297,6 +300,16 @@ static enum ChppAppErrorCode chppDispatchWifiNotification(void *clientContext,
 
     case CHPP_WIFI_NOTIFICATION_NAN_SERVICE_TERMINATED: {
       chppWifiNanServiceTerminatedEventNotification(buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_REQUEST_NAN_SUB: {
+      chppWifiRequestNanSubscribeNotification(buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_REQUEST_NAN_SUB_CANCEL: {
+      chppWifiNanSubscriptionCanceledNotification(buf, len);
       break;
     }
 
@@ -552,35 +565,45 @@ static void chppWifiRequestRangingResult(
 /**
  * Handles the service response for the NAN subscribe client request.
  *
+ * This function is called from chppDispatchWifiResponse().
+ *
  * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
  */
 static void chppWifiRequestNanSubscribeResult(uint8_t *buf, size_t len) {
-  uint8_t errorCode = CHRE_ERROR_NONE;
-  uint32_t subscriptionId = 0;
+  UNUSED_VAR(len);
 
-  if (len < sizeof(struct ChppWifiNanServiceIdentifier)) {
-    errorCode = CHRE_ERROR;
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+
+  if (rxHeader->error != CHPP_APP_ERROR_NONE) {
+    gCallbacks->nanServiceIdentifierCallback(
+        chppAppErrorToChreError(rxHeader->error), 0 /* subscriptionId */);
+
   } else {
-    struct ChppWifiNanServiceIdentifier *id =
-        (struct ChppWifiNanServiceIdentifier *)buf;
-    errorCode = id->errorCode;
-    subscriptionId = id->subscriptionId;
+    CHPP_LOGD("NAN sub accepted at service");
   }
-  gCallbacks->nanServiceIdentifierCallback(errorCode, subscriptionId);
 }
 
+/**
+ * Handles the service response for the NAN subscription cancel client request.
+ *
+ * This function is called from chppDispatchWifiResponse().
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
 static void chppWifiNanSubscriptionCanceledResult(uint8_t *buf, size_t len) {
-  uint8_t errorCode = CHRE_ERROR_NONE;
-  uint32_t subscriptionId = 0;
-  if (len < (sizeof(struct ChppWifiNanSubscriptionCanceledResponse))) {
-    errorCode = CHRE_ERROR;
+  UNUSED_VAR(len);
+
+  struct ChppAppHeader *rxHeader = (struct ChppAppHeader *)buf;
+
+  if (rxHeader->error != CHPP_APP_ERROR_NONE) {
+    gCallbacks->nanSubscriptionCanceledCallback(
+        chppAppErrorToChreError(rxHeader->error), 0 /* subscriptionId */);
+
   } else {
-    struct ChppWifiNanSubscriptionCanceledResponse *chppNotif =
-        (struct ChppWifiNanSubscriptionCanceledResponse *)buf;
-    errorCode = chppNotif->errorCode;
-    subscriptionId = chppNotif->subscriptionId;
+    CHPP_LOGD("NAN sub cancel accepted at service");
   }
-  gCallbacks->nanSubscriptionCanceledCallback(errorCode, subscriptionId);
 }
 
 /**
@@ -676,6 +699,8 @@ static void chppWifiRangingEventNotification(
 /**
  * Handles the NAN discovery event service notification.
  *
+ * This function is called from chppDispatchWifiNotification().
+ *
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
@@ -700,6 +725,8 @@ static void chppWifiDiscoveryEventNotification(uint8_t *buf, size_t len) {
 /**
  * Handles the NAN connection lost event service notification.
  *
+ * This function is called from chppDispatchWifiNotification().
+ *
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
@@ -722,6 +749,8 @@ static void chppWifiNanServiceLostEventNotification(uint8_t *buf, size_t len) {
 /**
  * Handles the NAN subscription termination event service notification.
  *
+ * This function is called from chppDispatchWifiNotification().
+ *
  * @param buf Input data. Cannot be null.
  * @param len Length of input data in bytes.
  */
@@ -740,6 +769,52 @@ static void chppWifiNanServiceTerminatedEventNotification(uint8_t *buf,
   } else {
     gCallbacks->nanServiceTerminatedCallback(event->reason, event->id);
   }
+}
+
+/**
+ * Handles the service response for the NAN subscribe client request.
+ *
+ * This function is called from chppDispatchWifiNotification().
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiRequestNanSubscribeNotification(uint8_t *buf, size_t len) {
+  uint8_t errorCode = CHRE_ERROR_NONE;
+  uint32_t subscriptionId = 0;
+
+  if (len < sizeof(struct ChppWifiNanServiceIdentifier)) {
+    errorCode = CHRE_ERROR;
+  } else {
+    struct ChppWifiNanServiceIdentifier *id =
+        (struct ChppWifiNanServiceIdentifier *)buf;
+    errorCode = id->errorCode;
+    subscriptionId = id->subscriptionId;
+  }
+  gCallbacks->nanServiceIdentifierCallback(errorCode, subscriptionId);
+}
+
+/**
+ * Handles the service response for the NAN subscription cancel client request.
+ *
+ * This function is called from chppDispatchWifiNotification().
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ */
+static void chppWifiNanSubscriptionCanceledNotification(uint8_t *buf,
+                                                        size_t len) {
+  uint8_t errorCode = CHRE_ERROR_NONE;
+  uint32_t subscriptionId = 0;
+  if (len < (sizeof(struct ChppWifiNanSubscriptionCanceledResponse))) {
+    errorCode = CHRE_ERROR;
+  } else {
+    struct ChppWifiNanSubscriptionCanceledResponse *chppNotif =
+        (struct ChppWifiNanSubscriptionCanceledResponse *)buf;
+    errorCode = chppNotif->errorCode;
+    subscriptionId = chppNotif->subscriptionId;
+  }
+  gCallbacks->nanSubscriptionCanceledCallback(errorCode, subscriptionId);
 }
 
 /**
