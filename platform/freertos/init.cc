@@ -60,8 +60,6 @@ uint8_t gPrimaryLogBufferData[CHRE_LOG_BUFFER_DATA_SIZE];
 void chreThreadEntry(void *context) {
   UNUSED_VAR(context);
 
-  DramVoteClientSingleton::init();
-
   chre::init();
   chre::EventLoopManagerSingleton::get()->lateInit();
   chre::loadStaticNanoapps();
@@ -94,6 +92,8 @@ const char *getChreFlushTaskName();
 
 BaseType_t init() {
   BaseType_t rc = pdPASS;
+
+  DramVoteClientSingleton::init();
 
 #ifdef CHRE_USE_BUFFERED_LOGGING
   chre::LogBufferManagerSingleton::init(gPrimaryLogBufferData,
