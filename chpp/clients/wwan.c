@@ -313,8 +313,9 @@ static void chppWwanGetCapabilitiesResult(
     CHPP_LOGD("chppWwanGetCapabilitiesResult received capabilities=0x%" PRIx32,
               result->capabilities);
 
-    CHPP_ASSERT((result->capabilities & CHPP_WWAN_DEFAULT_CAPABILITIES) ==
-                CHPP_WWAN_DEFAULT_CAPABILITIES);
+    // TODO(b/229758746): Disable assertion on WWAN side until it's fixed
+    // CHPP_ASSERT((result->capabilities & CHPP_WWAN_DEFAULT_CAPABILITIES) ==
+    //             CHPP_WWAN_DEFAULT_CAPABILITIES);
     if (result->capabilities != CHPP_WWAN_DEFAULT_CAPABILITIES) {
       CHPP_LOGE("WWAN capabilities 0x%" PRIx32 " != 0x%" PRIx32,
                 result->capabilities, CHPP_WWAN_DEFAULT_CAPABILITIES);
