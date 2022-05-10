@@ -81,7 +81,7 @@ TEST_F(TestBase, BleCapabilitiesTest) {
   sendEventToNanoapp(app, GET_FILTER_CAPABILITIES);
   waitForEvent(GET_FILTER_CAPABILITIES, &capabilities);
   ASSERT_EQ(capabilities, CHRE_BLE_FILTER_CAPABILITIES_RSSI |
-                              CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA_UUID);
+                              CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA);
 }
 
 struct BleTestNanoapp : public TestNanoapp {
