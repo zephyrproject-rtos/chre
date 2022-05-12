@@ -93,9 +93,7 @@ class IChreSocketCallback {
 /**
  * A helper class that can be used to connect to the CHRE socket.
  */
-class HalChreSocketConnection
-    : public ::android::chre::SocketClient::ICallbacks,
-      public ::android::chre::IChreMessageHandlers {
+class HalChreSocketConnection {
  public:
   HalChreSocketConnection(IChreSocketCallback *callback);
 
@@ -122,27 +120,47 @@ class HalChreSocketConnection
 
   bool onHostEndpointDisconnected(uint16_t hostEndpointId);
 
-  void onMessageReceived(const void *data, size_t length) override;
-  void onConnected() override;
-  void onDisconnected() override;
-  void handleNanoappMessage(
-      const ::chre::fbs::NanoappMessageT &message) override;
-  void handleHubInfoResponse(
-      const ::chre::fbs::HubInfoResponseT &response) override;
-  void handleNanoappListResponse(
-      const ::chre::fbs::NanoappListResponseT &response) override;
-  void handleLoadNanoappResponse(
-      const ::chre::fbs::LoadNanoappResponseT &response) override;
-  void handleUnloadNanoappResponse(
-      const ::chre::fbs::UnloadNanoappResponseT &response) override;
-  void handleDebugDumpData(const ::chre::fbs::DebugDumpDataT &data) override;
-  void handleDebugDumpResponse(
-      const ::chre::fbs::DebugDumpResponseT &response) override;
-
  private:
-  ::android::chre::SocketClient mClient;
+  class SocketCallbacks : public ::android::chre::SocketClient::ICallbacks,
+                          public ::android::chre::IChreMessageHandlers {
+   public:
+    explicit SocketCallbacks(HalChreSocketConnection &parent,
+                             IChreSocketCallback *callback);
 
-  IChreSocketCallback *mCallback = nullptr;
+    void onMessageReceived(const void *data, size_t length) override;
+    void onConnected() override;
+    void onDisconnected() override;
+    void handleNanoappMessage(
+        const ::chre::fbs::NanoappMessageT &message) override;
+    void handleHubInfoResponse(
+        const ::chre::fbs::HubInfoResponseT &response) override;
+    void handleNanoappListResponse(
+        const ::chre::fbs::NanoappListResponseT &response) override;
+    void handleLoadNanoappResponse(
+        const ::chre::fbs::LoadNanoappResponseT &response) override;
+    void handleUnloadNanoappResponse(
+        const ::chre::fbs::UnloadNanoappResponseT &response) override;
+    void handleDebugDumpData(const ::chre::fbs::DebugDumpDataT &data) override;
+    void handleDebugDumpResponse(
+        const ::chre::fbs::DebugDumpResponseT &response) override;
+
+   private:
+    HalChreSocketConnection &mParent;
+    IChreSocketCallback *mCallback = nullptr;
+    bool mHaveConnected = false;
+
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+    long mLastClearedTimestamp = 0;
+    static constexpr uint32_t kOneDayinMillis = 24 * 60 * 60 * 1000;
+    static constexpr uint16_t kMaxDailyReportedApWakeUp = 200;
+    uint16_t mNanoappWokeUpCount = 0;
+    std::mutex mNanoappWokeApCountMutex;
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+  };
+
+  sp<SocketCallbacks> mSocketCallbacks;
+
+  ::android::chre::SocketClient mClient;
 
   ::chre::fbs::HubInfoResponseT mHubInfoResponse;
   bool mHubInfoValid = false;
@@ -153,16 +171,6 @@ class HalChreSocketConnection
   uint32_t mCurrentFragmentId = 0;
   std::optional<chre::FragmentedLoadTransaction> mPendingLoadTransaction;
   std::mutex mPendingLoadTransactionMutex;
-
-  bool mHaveConnected = false;
-
-#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
-  long mLastClearedTimestamp = 0;
-  static constexpr uint32_t kOneDayinMillis = 24 * 60 * 60 * 1000;
-  static constexpr uint16_t kMaxDailyReportedApWakeUp = 200;
-  uint16_t mNanoappWokeUpCount = 0;
-  std::mutex mNanoappWokeApCountMutex;
-#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
 
   /**
    * Checks to see if a load response matches the currently pending
