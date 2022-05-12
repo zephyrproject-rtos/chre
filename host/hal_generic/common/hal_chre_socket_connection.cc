@@ -50,10 +50,13 @@ HalChreSocketConnection::HalChreSocketConnection(
     IChreSocketCallback *callback) {
   constexpr char kChreSocketName[] = "chre";
 
-  mSocketCallbacks = sp<SocketCallbacks>::make(*this, callback);
-  if (!mClient.connectInBackground(kChreSocketName, mSocketCallbacks)) {
+  if (!mClient.connectInBackground(kChreSocketName, this)) {
     ALOGE("Couldn't start socket client");
   }
+#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
+  mLastClearedTimestamp = elapsedRealtime();
+#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
+  mCallback = callback;
 }
 
 bool HalChreSocketConnection::getContextHubs(
@@ -168,22 +171,14 @@ bool HalChreSocketConnection::onHostEndpointDisconnected(
   return mClient.sendMessage(builder.GetBufferPointer(), builder.GetSize());
 }
 
-HalChreSocketConnection::SocketCallbacks::SocketCallbacks(
-    HalChreSocketConnection &parent, IChreSocketCallback *callback)
-    : mParent(parent), mCallback(callback) {
-#ifdef CHRE_HAL_SOCKET_METRICS_ENABLED
-  mLastClearedTimestamp = elapsedRealtime();
-#endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
-}
-
-void HalChreSocketConnection::SocketCallbacks::onMessageReceived(
-    const void *data, size_t length) {
-  if (!HostProtocolHost::decodeMessageFromChre(data, length, *this)) {
+void HalChreSocketConnection::onMessageReceived(const void *data,
+                                                size_t length) {
+  if (!chre::HostProtocolHost::decodeMessageFromChre(data, length, *this)) {
     ALOGE("Failed to decode message");
   }
 }
 
-void HalChreSocketConnection::SocketCallbacks::onConnected() {
+void HalChreSocketConnection::onConnected() {
   ALOGI("Reconnected to CHRE daemon");
   if (mHaveConnected) {
     ALOGI("Reconnected to CHRE daemon");
@@ -192,11 +187,11 @@ void HalChreSocketConnection::SocketCallbacks::onConnected() {
   mHaveConnected = true;
 }
 
-void HalChreSocketConnection::SocketCallbacks::onDisconnected() {
+void HalChreSocketConnection::onDisconnected() {
   ALOGW("Lost connection to CHRE daemon");
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleNanoappMessage(
+void HalChreSocketConnection::handleNanoappMessage(
     const ::chre::fbs::NanoappMessageT &message) {
   ALOGD("Got message from nanoapp: ID 0x%" PRIx64, message.app_id);
   mCallback->onNanoappMessage(message);
@@ -225,59 +220,58 @@ void HalChreSocketConnection::SocketCallbacks::handleNanoappMessage(
           .values{std::move(values)},
       };
 
-      mParent.reportMetric(atom);
+      reportMetric(atom);
     }
   }
 #endif  // CHRE_HAL_SOCKET_METRICS_ENABLED
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleHubInfoResponse(
+void HalChreSocketConnection::handleHubInfoResponse(
     const ::chre::fbs::HubInfoResponseT &response) {
   ALOGD("Got hub info response");
 
-  std::lock_guard<std::mutex> lock(mParent.mHubInfoMutex);
-  if (mParent.mHubInfoValid) {
+  std::lock_guard<std::mutex> lock(mHubInfoMutex);
+  if (mHubInfoValid) {
     ALOGI("Ignoring duplicate/unsolicited hub info response");
   } else {
-    mParent.mHubInfoResponse = response;
-    mParent.mHubInfoValid = true;
-    mParent.mHubInfoCond.notify_all();
+    mHubInfoResponse = response;
+    mHubInfoValid = true;
+    mHubInfoCond.notify_all();
   }
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleNanoappListResponse(
+void HalChreSocketConnection::handleNanoappListResponse(
     const ::chre::fbs::NanoappListResponseT &response) {
   ALOGD("Got nanoapp list response with %zu apps", response.nanoapps.size());
   mCallback->onNanoappListResponse(response);
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleLoadNanoappResponse(
+void HalChreSocketConnection::handleLoadNanoappResponse(
     const ::chre::fbs::LoadNanoappResponseT &response) {
   ALOGD("Got load nanoapp response for transaction %" PRIu32
         " fragment %" PRIu32 " with result %d",
         response.transaction_id, response.fragment_id, response.success);
-  std::unique_lock<std::mutex> lock(mParent.mPendingLoadTransactionMutex);
+  std::unique_lock<std::mutex> lock(mPendingLoadTransactionMutex);
 
   // TODO: Handle timeout in receiving load response
-  if (!mParent.mPendingLoadTransaction.has_value()) {
+  if (!mPendingLoadTransaction.has_value()) {
     ALOGE(
         "Dropping unexpected load response (no pending transaction "
         "exists)");
   } else {
-    FragmentedLoadTransaction &transaction =
-        mParent.mPendingLoadTransaction.value();
+    FragmentedLoadTransaction &transaction = mPendingLoadTransaction.value();
 
-    if (!mParent.isExpectedLoadResponseLocked(response)) {
+    if (!isExpectedLoadResponseLocked(response)) {
       ALOGE("Dropping unexpected load response, expected transaction %" PRIu32
             " fragment %" PRIu32 ", received transaction %" PRIu32
             " fragment %" PRIu32,
-            transaction.getTransactionId(), mParent.mCurrentFragmentId,
+            transaction.getTransactionId(), mCurrentFragmentId,
             response.transaction_id, response.fragment_id);
     } else {
       bool success = false;
       bool continueLoadRequest = false;
       if (response.success && !transaction.isComplete()) {
-        if (mParent.sendFragmentedLoadNanoAppRequest(transaction)) {
+        if (sendFragmentedLoadNanoAppRequest(transaction)) {
           continueLoadRequest = true;
           success = true;
         }
@@ -286,7 +280,7 @@ void HalChreSocketConnection::SocketCallbacks::handleLoadNanoappResponse(
       }
 
       if (!continueLoadRequest) {
-        mParent.mPendingLoadTransaction.reset();
+        mPendingLoadTransaction.reset();
         lock.unlock();
         mCallback->onTransactionResult(response.transaction_id, success);
       }
@@ -294,7 +288,7 @@ void HalChreSocketConnection::SocketCallbacks::handleLoadNanoappResponse(
   }
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleUnloadNanoappResponse(
+void HalChreSocketConnection::handleUnloadNanoappResponse(
     const ::chre::fbs::UnloadNanoappResponseT &response) {
   ALOGV("Got unload nanoapp response for transaction %" PRIu32
         " with result %d",
@@ -302,13 +296,13 @@ void HalChreSocketConnection::SocketCallbacks::handleUnloadNanoappResponse(
   mCallback->onTransactionResult(response.transaction_id, response.success);
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleDebugDumpData(
+void HalChreSocketConnection::handleDebugDumpData(
     const ::chre::fbs::DebugDumpDataT &data) {
   ALOGV("Got debug dump data, size %zu", data.debug_str.size());
   mCallback->onDebugDumpData(data);
 }
 
-void HalChreSocketConnection::SocketCallbacks::handleDebugDumpResponse(
+void HalChreSocketConnection::handleDebugDumpResponse(
     const ::chre::fbs::DebugDumpResponseT &response) {
   ALOGV("Got debug dump response, success %d, data count %" PRIu32,
         response.success, response.data_count);
