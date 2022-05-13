@@ -17,6 +17,7 @@
 #include "chre_stress_test_manager.h"
 
 #include <pb_decode.h>
+#include <pb_encode.h>
 
 #include "chre/util/macros.h"
 #include "chre/util/nanoapp/callbacks.h"
@@ -75,6 +76,8 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
     // Do nothing and only update the host endpoint
     mHostEndpoint = hostData->hostEndpoint;
     success = true;
+  } else if (messageType == chre_stress_test_MessageType_GET_CAPABILITIES) {
+    sendCapabilitiesMessage();
   } else if (messageType != chre_stress_test_MessageType_TEST_COMMAND) {
     LOGE("Invalid message type %" PRIu32, messageType);
   } else if (mHostEndpoint.has_value() &&
@@ -551,6 +554,40 @@ void Manager::sendFailure(const char *errorMessage) {
       mHostEndpoint.value(),
       chre_stress_test_MessageType_TEST_RESULT /* messageType */,
       false /* success */, errorMessage, false /* abortOnFailure */);
+}
+
+void Manager::sendCapabilitiesMessage() {
+  if (!mHostEndpoint.has_value()) {
+    LOGE("mHostEndpoint is not initialized");
+    return;
+  }
+
+  chre_stress_test_Capabilities capabilities =
+      chre_stress_test_Capabilities_init_default;
+  capabilities.wifi = chreWifiGetCapabilities();
+
+  size_t size;
+  if (!pb_get_encoded_size(&size, chre_stress_test_Capabilities_fields,
+                           &capabilities)) {
+    LOGE("Failed to get message size");
+    return;
+  }
+
+  pb_byte_t *bytes = static_cast<pb_byte_t *>(chreHeapAlloc(size));
+  if (size > 0 && bytes == nullptr) {
+    LOG_OOM();
+  } else {
+    pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
+    if (!pb_encode(&stream, chre_stress_test_Capabilities_fields,
+                   &capabilities)) {
+      LOGE("Failed to encode capabilities error %s", PB_GET_ERROR(&stream));
+      chreHeapFree(bytes);
+    } else {
+      chreSendMessageToHostEndpoint(
+          bytes, size, chre_stress_test_MessageType_CAPABILITIES,
+          mHostEndpoint.value(), heapFreeMessageCallback);
+    }
+  }
 }
 
 }  // namespace stress_test
