@@ -635,7 +635,7 @@ void Manager::sendMessageToHost(uint16_t hostEndpoint, uint16_t messageType,
     LOGE("Could not get encoded size of proto message");
   } else {
     pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-    if (buffer == nullptr) {
+    if (encodedSize > 0 && buffer == nullptr) {
       LOG_OOM();
     } else {
       pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
