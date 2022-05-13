@@ -299,7 +299,7 @@ void Manager::encodeAndSendMessageToHost(const void *message,
     LOGE("Could not get encoded size of test result message");
   } else {
     pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-    if (buffer == nullptr) {
+    if (encodedSize > 0 && buffer == nullptr) {
       LOG_OOM();
     } else {
       pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
