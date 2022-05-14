@@ -92,7 +92,7 @@ uint32_t chrePalBleGetCapabilities() {
 
 uint32_t chrePalBleGetFilterCapabilities() {
   return CHRE_BLE_FILTER_CAPABILITIES_RSSI |
-         CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA_UUID;
+         CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA;
 }
 
 bool chrePalBleStartScan(chreBleScanMode mode, uint32_t /* reportDelayMs */,
