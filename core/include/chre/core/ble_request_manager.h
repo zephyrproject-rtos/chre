@@ -359,12 +359,6 @@ class BleRequestManager : public NonCopyable {
   static bool isValidAdType(uint8_t adType);
 
   /**
-   * @return Valid length associated with a given advertisement type. UINT8_MAX
-   *         if ad type is invalid.
-   */
-  static uint8_t getFilterLenByAdType(uint8_t adType);
-
-  /**
    * @return true if BLE setting is enabled.
    */
   bool bleSettingEnabled();

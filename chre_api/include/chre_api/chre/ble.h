@@ -72,7 +72,7 @@ extern "C" {
  * 0x0157) for that particular filtering capability, as found in
  * https://source.android.com/devices/bluetooth/hci_requirements
  *
- * For example, the Service Data UUID filter has a sub-command of 0x7; hence
+ * For example, the Service Data filter has a sub-command of 0x7; hence
  * the filtering capability is indicated by (1 << 0x7).
  *
  * @defgroup CHRE_BLE_FILTER_CAPABILITIES
@@ -84,9 +84,9 @@ extern "C" {
 //! CHRE BLE supports RSSI filters
 #define CHRE_BLE_FILTER_CAPABILITIES_RSSI UINT32_C(1 << 1)
 
-//! CHRE BLE supports Service Data UUID filters (Corresponding HCI OCF: 0x0157,
-//! Sub: 0x07)
-#define CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA_UUID UINT32_C(1 << 7)
+//! CHRE BLE supports Service Data filters (Corresponding HCI OCF: 0x0157,
+//! Sub-command: 0x07)
+#define CHRE_BLE_FILTER_CAPABILITIES_SERVICE_DATA UINT32_C(1 << 7)
 /** @} */
 
 /**
@@ -126,11 +126,6 @@ extern "C" {
 /** @} */
 
 /**
- * Maximum length of a BLE UUID in bytes.
- */
-#define CHRE_BLE_UUID_LEN_MAX (16)
-
-/**
  * Maximum BLE (legacy) advertisement payload data length, in bytes
  * This is calculated by subtracting 2 (type + len) from 31 (max payload).
  */
@@ -155,6 +150,11 @@ extern "C" {
  * Tx power value (int8_t) indicating no Tx power value available.
  */
 #define CHRE_BLE_TX_POWER_NONE (127)
+
+/**
+ * Indicates ADI field was not provided in advertisement.
+ */
+#define CHRE_BLE_ADI_NONE (0xFF)
 
 /**
  * The CHRE BLE advertising event type is based on the BT Core Spec v5.2,
@@ -239,15 +239,9 @@ enum chreBleScanMode {
  * Assigned Numbers, Generic Access Profile.
  * ref: https://www.bluetooth.com/specifications/assigned-numbers/
  */
-enum chreBleScanFilterAdType {
-  //! Service Data - 16-bit UUID
-  CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_16 = 0x16,
-
-  //! Service Data - 32-bit UUID
-  CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_32 = 0x20,
-
-  //! Service Data - 128-bit UUID
-  CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_128 = 0x21,
+enum chreBleAdType {
+  //! Service Data with 16-bit UUID
+  CHRE_BLE_AD_TYPE_SERVICE_DATA_WITH_UUID_16 = 0x16,
 };
 
 /**
@@ -259,26 +253,32 @@ enum chreBleScanFilterAdType {
  *   data & dataMask == advData & dataMask
  * where advData is the advertisement packet data for the specified AD type.
  *
- * The syntax of CHRE scan filter definitions are based on the upcoming Android
- * Advertising Packet Content Filter (APCF) HCI requirement subtype 0x08
- * ref:
- * https://source.android.com/devices/bluetooth/hci_requirements#le_apcf_command-set_filtering_parameters_sub_cmd
- * and specific AD Types among those defined in the Bluetooth spec Assigned
- * Numbers, Generic Access Profile
- * ref: https://www.bluetooth.com/specifications/assigned-numbers/
+ * The CHRE generic filter structure represents a generic filter on an AD Type
+ * as defined in the Bluetooth spec Assigned Numbers, Generic Access Profile
+ * (ref: https://www.bluetooth.com/specifications/assigned-numbers/). This
+ * generic structure is used by the Advertising Packet Content Filter
+ * (APCF) HCI generic AD type sub-command 0x08 (ref:
+ * https://source.android.com/devices/bluetooth/hci_requirements#le_apcf_command).
  *
- * For example, to add a 32-bit service data UUID filter requiring the most
- * significant byte to be 0x42, the following settings would be used:
- *   type = CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_32
- *   len = 4
- *   data = {0x42, 0, 0, 0}
- *   dataMask = {0xff, 0, 0, 0}
+ * Note that the CHRE implementation may not support every kind of filter that
+ * can be represented by this structure. Use chreBleGetFilterCapabilities() to
+ * discover supported filtering capabilities at runtime.
+ *
+ * For example, to filter on a 16 bit service data UUID of 0xFE2C, the following
+ * settings would be used:
+ *   type = CHRE_BLE_AD_TYPE_SERVICE_DATA_WITH_UUID_16
+ *   len = 2
+ *   data = {0xFE, 0x2C}
+ *   dataMask = {0xFF, 0xFF}
  */
 struct chreBleGenericFilter {
-  //! Acceptable values among enum chreBleScanFilterAdType
+  //! Acceptable values among enum chreBleAdType
   uint8_t type;
 
-  //! Length of data and dataMask
+  /**
+   * Length of data and dataMask. AD payloads shorter than this length will not
+   * be matched by the filter. Length must be greater than 0.
+   */
   uint8_t len;
 
   //! Used in combination with dataMask to filter an advertisement
@@ -298,7 +298,7 @@ struct chreBleGenericFilter {
  * to take advantage of CHRE scan filters as much as possible, but must design
  * their logic as to not depend on CHRE filtering.
  *
- * The syntax of CHRE scan filter definitions are based on the upcoming Android
+ * The syntax of CHRE scan filter definitions are based on the Android
  * Advertising Packet Content Filter (APCF) HCI requirement subtype 0x08
  * ref:
  * https://source.android.com/devices/bluetooth/hci_requirements#le_apcf_command-set_filtering_parameters_sub_cmd
@@ -402,7 +402,7 @@ struct chreBleAdvertisingReport {
 
   //! Value of the Advertising SID subfield in the ADI field of the PDU among
   //! the range of [0, 0x0f].
-  //! A value of 0xff indicates no ADI field was provided.
+  //! CHRE_BLE_ADI_NONE indicates no ADI field was provided.
   //! Other values are reserved.
   uint8_t advertisingSid;
 
