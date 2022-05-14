@@ -396,9 +396,7 @@ bool BleRequestManager::validateParams(const BleRequest &request) {
         valid = false;
         break;
       }
-
-      uint8_t expectedLen = getFilterLenByAdType(filter.type);
-      if (expectedLen != filter.len) {
+      if (filter.len == 0 || filter.len > CHRE_BLE_DATA_LEN_MAX) {
         valid = false;
         break;
       }
@@ -426,23 +424,7 @@ void BleRequestManager::postAsyncResultEventFatal(uint16_t instanceId,
 }
 
 bool BleRequestManager::isValidAdType(uint8_t adType) {
-  return adType == CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_16 ||
-         adType == CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_32 ||
-         adType == CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_128;
-}
-
-uint8_t BleRequestManager::getFilterLenByAdType(uint8_t adType) {
-  switch (adType) {
-    case CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_16:
-      return 2;
-    case CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_32:
-      return 4;
-    case CHRE_BLE_FILTER_TYPE_SERVICE_DATA_UUID_128:
-      return 16;
-    default:
-      CHRE_ASSERT(false);
-      return UINT8_MAX;
-  }
+  return adType == CHRE_BLE_AD_TYPE_SERVICE_DATA_WITH_UUID_16;
 }
 
 bool BleRequestManager::bleSettingEnabled() {
