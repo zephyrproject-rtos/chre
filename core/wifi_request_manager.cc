@@ -665,12 +665,21 @@ bool WifiRequestManager::updateNanoappScanMonitoringList(bool enable,
   Nanoapp *nanoapp =
       EventLoopManagerSingleton::get()->getEventLoop().findNanoappByInstanceId(
           instanceId);
+  size_t nanoappIndex;
+  bool hasExistingRequest =
+      nanoappHasScanMonitorRequest(instanceId, &nanoappIndex);
+
   if (nanoapp == nullptr) {
-    LOGW("Failed to update scan monitoring list for non-existent nanoapp");
+    // When the scan monitoring is disabled from inside nanoappEnd() or when
+    // CHRE cleanup the subscription automatically it is possible that the
+    // current method is called after the nanoapp is unloaded. In such a case
+    // we still want to remove the nanoapp from mScanMonitorNanoapps.
+    if (!enable && hasExistingRequest) {
+      mScanMonitorNanoapps.erase(nanoappIndex);
+    } else {
+      LOGW("Failed to update scan monitoring list for non-existent nanoapp");
+    }
   } else {
-    size_t nanoappIndex;
-    bool hasExistingRequest =
-        nanoappHasScanMonitorRequest(instanceId, &nanoappIndex);
     if (enable) {
       if (!hasExistingRequest) {
         // The scan monitor was successfully enabled for this nanoapp and
