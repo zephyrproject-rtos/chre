@@ -32,6 +32,10 @@
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/macros.h"
 
+#ifdef CHREX_VOTE_ENABLED
+#include "chrex_vote.h"
+#endif
+
 #ifndef CHRE_LOADER_ARCH
 #define CHRE_LOADER_ARCH EM_ARM
 #endif  // CHRE_LOADER_ARCH
@@ -267,6 +271,9 @@ const ExportedData gExportedData[] = {
     ADD_EXPORTED_C_SYMBOL(chreConfigureHostEndpointNotifications),
     ADD_EXPORTED_C_SYMBOL(chrePublishRpcServices),
     ADD_EXPORTED_C_SYMBOL(chreGetHostEndpointInfo),
+#ifdef CHREX_VOTE_ENABLED
+    ADD_EXPORTED_C_SYMBOL(chrexClockRateChangeRequest),
+#endif
 };
 CHRE_DEPRECATED_EPILOGUE
 // clang-format on
