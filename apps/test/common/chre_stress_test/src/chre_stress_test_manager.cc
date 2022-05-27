@@ -78,6 +78,7 @@ void Manager::handleMessageFromHost(uint32_t senderInstanceId,
     success = true;
   } else if (messageType == chre_stress_test_MessageType_GET_CAPABILITIES) {
     sendCapabilitiesMessage();
+    success = true;
   } else if (messageType != chre_stress_test_MessageType_TEST_COMMAND) {
     LOGE("Invalid message type %" PRIu32, messageType);
   } else if (mHostEndpoint.has_value() &&
