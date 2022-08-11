@@ -38,8 +38,8 @@ COMMON_CFLAGS += -I$(TFLM_PATH)/third_party/flatbuffers/include
 COMMON_CFLAGS += -I$(TFLM_PATH)/third_party/gemmlowp
 
 # TFLM uses <complex> which requires including several SDK headers
-COMMON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/libs/common/qurt/latest/include/posix
-COMMON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/libs/common/qurt/latest/include/qurt
+HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/libs/common/qurt/latest/include/posix
+HEXAGON_CFLAGS += -I$(HEXAGON_SDK_PREFIX)/libs/common/qurt/latest/include/qurt
 
 COMMON_CFLAGS += -DTF_LITE_STATIC_MEMORY
 
