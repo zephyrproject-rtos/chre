@@ -22,19 +22,19 @@ Use the navigation bar at the top and/or the links below to move through the
 documentation. Raw files can also be found in the `/doc` folder.
 
 * Documentation related to the CHRE framework:
-  * [Framework Overview](/doc/framework_overview.md)
-  * [Porting Guide](/doc/porting_guide.md)
-  * [Build System](/doc/framework_build.md)
-  * [Debugging](/doc/framework_debugging.md)
-  * [Testing](/doc/framework_testing.md)
-  * [Vendor Extensions](/doc/vendor_extensions.md)
+  * [Framework Overview](/system/chre/doc/framework_overview.md)
+  * [Porting Guide](/system/chre/doc/porting_guide.md)
+  * [Build System](/system/chre/doc/framework_build.md)
+  * [Debugging](/system/chre/doc/framework_debugging.md)
+  * [Testing](/system/chre/doc/framework_testing.md)
+  * [Vendor Extensions](/system/chre/doc/vendor_extensions.md)
 * Documentation related to nanoapps:
-  * [Nanoapp Overview](/doc/nanoapp_overview.md)
-  * [Developer Guide](/doc/nanoapp_developer_guide.md)
+  * [Nanoapp Overview](/system/chre/doc/nanoapp_overview.md)
+  * [Developer Guide](/system/chre/doc/nanoapp_developer_guide.md)
   * [Interacting with Nanoapps](/doc/nanoapp_clients.md)
 * General documentation:
-  * [Compatibility Design](/doc/compatibility.md)
-  * [Contributing](/doc/contributing.md)
+  * [Compatibility Design](/system/chre/doc/compatibility.md)
+  * [Contributing](/system/chre/doc/contributing.md)
 
 The CHRE API and PAL API are also extensively documented using Doxygen syntax.
 Run `doxygen` in the same folder as `Doxyfile` to generate a browseable HTML
