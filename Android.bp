@@ -468,15 +468,6 @@ cc_test_host {
     defaults: [
         "chre_linux_cflags",
     ],
-    cflags: [
-        // b/246981782, stack-use-after-return is enabled by default
-        // in new clang-r468909 library.
-        // To reproduce with older clang libraries, use
-        // "-fsanitize-address-use-after-return=always"
-        // Disable this sanitizer test until the test files are fixed.
-        "-fsanitize-address-use-after-return=never",
-        "-Wno-unused-command-line-argument",
-    ],
     sanitize: {
         address: true,
     },
