@@ -376,6 +376,10 @@ void ChreDaemonBase::reportMetric(const VendorAtom &atom) {
 
   std::shared_ptr<IStats> stats_client = IStats::fromBinder(ndk::SpAIBinder(
       AServiceManager_waitForService(statsServiceName.c_str())));
+  if (stats_client == nullptr) {
+    LOGE("Failed to get IStats service");
+    return;
+  }
 
   const ndk::ScopedAStatus ret = stats_client->reportVendorAtom(atom);
   if (!ret.isOk()) {
