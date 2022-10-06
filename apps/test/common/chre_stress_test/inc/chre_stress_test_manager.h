@@ -157,6 +157,11 @@ class Manager {
   void makeWwanCellInfoRequest();
 
   /**
+   * Send the capabilities to the host.
+   */
+  void sendCapabilitiesMessage();
+
+  /**
    * @param event The cell info event from CHRE.
    */
   void handleCellInfoResult(const chreWwanCellInfoResult *event);

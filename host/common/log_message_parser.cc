@@ -39,6 +39,7 @@ LogMessageParser::LogMessageParser()
     : mVerboseLoggingEnabled(kVerboseLoggingEnabled) {}
 
 std::unique_ptr<Detokenizer> LogMessageParser::logDetokenizerInit() {
+#ifdef CHRE_TOKENIZED_LOGGING_ENABLED
   constexpr const char kLogDatabaseFilePath[] =
       "/vendor/etc/chre/libchre_log_database.bin";
   std::vector<uint8_t> tokenData;
@@ -54,6 +55,7 @@ std::unique_ptr<Detokenizer> LogMessageParser::logDetokenizerInit() {
   } else {
     LOGE("Failed to read CHRE Token database file");
   }
+#endif
   return std::unique_ptr<Detokenizer>(nullptr);
 }
 

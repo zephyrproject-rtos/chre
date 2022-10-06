@@ -217,9 +217,15 @@ class ChreDaemonBase {
    * Handles a metric log message sent from CHRE
    */
   virtual void handleMetricLog(const ::chre::fbs::MetricLogT *metric_msg);
-#endif  // CHRE_DAEMON_METRIC_ENABLED
 
-#ifdef CHRE_DAEMON_METRIC_ENABLED
+#ifdef CHRE_LOG_ATOM_EXTENSION_ENABLED
+  /**
+   * Handles additional metrics that aren't logged by the common CHRE code.
+   */
+  virtual void handleVendorMetricLog(
+      const ::chre::fbs::MetricLogT *metric_msg) = 0;
+#endif  // CHRE_LOG_ATOM_EXTENSION_ENABLED
+
   /**
    * Create and report CHRE vendor atom and send it to stats_client
    *
