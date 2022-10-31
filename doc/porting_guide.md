@@ -312,3 +312,52 @@ public release.
 [CHRE_PAL_DIR_URL]:  https://cs.android.com/android/platform/superproject/+/master:system/chre/pal/include/chre/pal/
 [CHRE_LINUX_DIR_URL]: https://cs.android.com/android/platform/superproject/+/master:system/chre/platform/linux/
 
+## Adding Context Hub support
+
+Once you have implemented the necessary pieces described previously, you are
+now ready to add the Context Hub support on the device! Here are the necessary
+steps to do this:
+
+1. Add the HAL implementation on the device
+
+Add the build target of the Context Hub HAL implementation to your device .mk
+file. For example, if the default generic Context Hub HAL is being used, you
+can add the following:
+
+```
+PRODUCT_PACKAGES += \
+    android.hardware.contexthub-service.generic
+```
+
+
+Currently, the generic Context Hub HAL relies on the CHRE daemon to communicate
+with CHRE. If you are using one of our existing platforms, you can add one of
+the following CHRE daemon build targets to your PRODUCT_PACKAGES as you did the
+generic HAL above.
+
+Qualcomm target: `chre`\
+Exynos target: `chre_daemon_exynos`\
+MediaTek target: `TBD`
+
+Otherwise, you can look at those target definitions to define a new one for
+your specific platform.
+
+2. Add the relevant SElinux policies for the device
+
+Resolve any missing SElinux violations by using the relevant tools such as
+audit2allow, and updating the SElinux policies for your device. You may follow
+the directions in [the official Android page](https://source.android.com/docs/security/features/selinux/validate)
+for additional guidance.
+
+3. Add the Context Hub feature flag for the device
+
+Add the following in your device.mk file:
+
+```
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.context_hub.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.context_hub.xml
+```
+
+The above change will enable the Context Hub Service on the device, and expects
+that the Context Hub HAL comes up. If (1) and (2) are not performed, the device
+may fail to boot to the Android home screen.
