@@ -30,6 +30,13 @@ enum MessageType {
   // unicast messages.
   // No payload.
   TEST_HOST_RESTARTED = 4;
+
+  // H2C: Request Capabilities.
+  // No payload.
+  GET_CAPABILITIES = 5;
+
+  // C2H: Capabilities (response to a GET_CAPABILITIES request).
+  CAPABILITIES = 6;
 }
 
 // A message to start the test.
@@ -50,4 +57,13 @@ message TestCommand {
 
   // True to start the test, false to stop.
   optional bool start = 2;
+}
+
+/*
+ * CHRE capabilities
+ */
+message Capabilities {
+  // Wifi capabilities
+  // see //system/chre/chre_api/include/chre_api/chre/wifi.h
+  optional uint32 wifi = 1;
 }
