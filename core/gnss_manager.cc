@@ -295,7 +295,7 @@ void GnssSession::handleReportEvent(void *event) {
   }
 
   auto callback = [](uint16_t type, void *data, void * /*extraData*/) {
-    uint16_t reportEventType;
+    uint16_t reportEventType = 0;
     if (!getReportEventType(static_cast<SystemCallbackType>(type),
                             &reportEventType) ||
         !EventLoopManagerSingleton::get()
@@ -721,7 +721,7 @@ void GnssSession::dispatchQueuedStateTransitions() {
   while (!mStateTransitions.empty()) {
     const auto &stateTransition = mStateTransitions.front();
 
-    size_t requestIndex;
+    size_t requestIndex = 0;
     bool hasRequest =
         nanoappHasRequest(stateTransition.nanoappInstanceId, &requestIndex);
 
