@@ -17,6 +17,7 @@
 #include <general_test/basic_wifi_test.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cmath>
 
 #include <chre.h>
@@ -564,6 +565,14 @@ void BasicWifiTest::validateRangingEvent(
 
   for (uint8_t i = 0; i < eventData->resultCount; i++) {
     auto &result = eventData->results[i];
+
+    if (result.timestamp < mStartTimestampNs ||
+        result.timestamp > chreGetTime()) {
+      LOGE("Invalid Ranging result timestamp = %" PRIu64 " (%" PRIu64
+           ", %" PRIu64 "). Status = %" PRIu8,
+           result.timestamp, mStartTimestampNs, chreGetTime(), result.status);
+    }
+
     ASSERT_IN_RANGE(result.timestamp, mStartTimestampNs, chreGetTime(),
                     "Ranging result timestamp isn't between the ranging "
                     "request start time and the current time");
