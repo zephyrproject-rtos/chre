@@ -47,7 +47,7 @@ void sendTestResultToHost(uint16_t hostEndpointId, bool success) {
     LOGE("Failed to get message size");
   } else {
     pb_byte_t *bytes = static_cast<pb_byte_t *>(chreHeapAlloc(size));
-    if (bytes == nullptr) {
+    if (size > 0 && bytes == nullptr) {
       LOG_OOM();
     } else {
       pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
