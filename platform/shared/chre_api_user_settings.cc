@@ -23,7 +23,6 @@
 using chre::EventLoopManager;
 using chre::Nanoapp;
 using chre::Setting;
-using chre::SettingState;
 
 DLL_EXPORT int8_t chreUserSettingGetState(uint8_t setting) {
   return chre::EventLoopManagerSingleton::get()

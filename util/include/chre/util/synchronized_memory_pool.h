@@ -38,7 +38,7 @@ class SynchronizedMemoryPool : public NonCopyable {
    *         fails.
    */
   template <typename... Args>
-  ElementType *allocate(Args &&... args);
+  ElementType *allocate(Args &&...args);
 
   /**
    * Releases the memory of a previously allocated element. The pointer provided
@@ -55,6 +55,13 @@ class SynchronizedMemoryPool : public NonCopyable {
    * @return the number of unused blocks in this memory pool.
    */
   size_t getFreeBlockCount();
+
+  /**
+   * @return true if this memory pool is full.
+   */
+  bool full() {
+    return getFreeBlockCount() == 0;
+  }
 
  private:
   //! The mutex used to guard access to this memory pool.

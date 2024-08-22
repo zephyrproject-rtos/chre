@@ -25,9 +25,11 @@
 #include <cstdint>
 #include <cstring>
 
-#include <chre.h>
 #include <shared/nano_string.h>
 #include <shared/send_message.h>
+
+#include "chre/util/macros.h"
+#include "chre_api/chre.h"
 
 namespace chre {
 namespace {
@@ -35,6 +37,8 @@ namespace {
 using nanoapp_testing::sendFatalFailureToHost;
 
 void messageFreeCallback(void *message, size_t size) {
+  UNUSED_VAR(size);
+
   chreHeapFree(message);
 }
 

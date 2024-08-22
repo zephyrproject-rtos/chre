@@ -15,6 +15,8 @@
  */
 #include <cinttypes>
 
+#include "audio_validation.h"
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 
 #include <general_test/basic_audio_test.h>
@@ -23,6 +25,9 @@
 #include <shared/time_util.h>
 
 #define LOG_TAG "[ChreBasicAudioTest]"
+
+using chre::test_shared::checkAudioSamplesAllSame;
+using chre::test_shared::checkAudioSamplesAllZeros;
 
 using nanoapp_testing::kOneSecondInNanoseconds;
 using nanoapp_testing::sendFatalFailureToHost;
@@ -195,37 +200,6 @@ void requestAudioData() {
   }
 }
 
-/**
- * Check if the audio samples are all zeros
- *
- * @return true on check passing
- */
-bool checkSamplesAllZeros(const int16_t *data, const size_t dataLen) {
-  for (size_t i = 0; i < dataLen; ++i) {
-    if (data[i] != 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Check if adjacent audio samples are unique
- *
- * @return true on check pass
- */
-bool checkSamplesAllSame(const int16_t *data, const size_t dataLen) {
-  if (dataLen > 0) {
-    const int16_t controlValue = data[0];
-    for (size_t i = 1; i < dataLen; ++i) {
-      if (data[i] != controlValue) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
   constexpr uint32_t kAudioHandle = 0;
 
@@ -262,23 +236,24 @@ void handleAudioDataEvent(const chreAudioDataEvent *dataEvent) {
     }
   }
 
+  if (!checkAudioSamplesAllZeros(dataEvent->samplesS16,
+                                 dataEvent->sampleCount)) {
+    sendFatalFailureToHost("All audio samples were zeros");
+  } else if (!checkAudioSamplesAllSame(dataEvent->samplesS16,
+                                       dataEvent->sampleCount)) {
+    sendFatalFailureToHost("All audio samples were identical");
+  }
+
   if (numDataEventsSoFar == 2) {
     if (!chreAudioConfigureSource(kAudioHandle, false /* enable */,
                                   0 /* bufferDuration */,
                                   0 /* deliveryInterval */)) {
       sendFatalFailureToHost("Failed to disable audio source for handle 0");
+    } else {
+      sendSuccessToHost();
     }
   } else {
     ++numDataEventsSoFar;
-  }
-
-  if (!checkSamplesAllZeros(dataEvent->samplesS16, dataEvent->sampleCount)) {
-    sendFatalFailureToHost("All audio samples were zeros");
-  } else if (!checkSamplesAllSame(dataEvent->samplesS16,
-                                  dataEvent->sampleCount)) {
-    sendFatalFailureToHost("All audio samples were identical");
-  } else {
-    sendSuccessToHost();
   }
 }
 
@@ -317,6 +292,8 @@ void BasicAudioTest::setUp(uint32_t messageSize, const void * /* message */) {
 
 void BasicAudioTest::handleEvent(uint32_t senderInstanceId, uint16_t eventType,
                                  const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   if (mInMethod) {
     sendFatalFailureToHost("handleEvent() invoked while already in method.");
   }

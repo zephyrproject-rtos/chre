@@ -25,11 +25,14 @@ import android.hardware.location.NanoAppMessage;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.util.Log;
 
 import com.google.android.chre.nanoapp.proto.ChreAudioConcurrencyTest;
 import com.google.android.chre.nanoapp.proto.ChreTestCommon;
 import com.google.android.utils.chre.ChreTestUtil;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.Assert;
@@ -64,9 +67,17 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
 
     private boolean mInitialized = false;
 
+    private boolean mVerifyAudioGaps = false;
+
     private final AtomicBoolean mChreAudioEnabled = new AtomicBoolean(false);
 
     private final AtomicReference<ChreTestCommon.TestResult> mTestResult = new AtomicReference<>();
+
+    // Options for updating test results
+    private enum UpdateOption {
+        ALWAYS,
+        SKIP_IF_EXISTS
+    }
 
     public ContextHubAudioConcurrencyTestExecutor(
             ContextHubManager manager, ContextHubInfo info, NanoAppBinary binary) {
@@ -76,20 +87,18 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
         mNanoAppId = mNanoAppBinary.getNanoAppId();
 
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
-        Assert.assertTrue(mContextHubClient != null);
     }
 
     @Override
     public void onMessageFromNanoApp(ContextHubClient client, NanoAppMessage message) {
         if (message.getNanoAppId() == mNanoAppId) {
             boolean valid = true;
+            ChreTestCommon.TestResult result = null;
             switch (message.getMessageType()) {
                 case ChreAudioConcurrencyTest.MessageType.TEST_RESULT_VALUE: {
                     try {
-                        mTestResult.set(
-                                ChreTestCommon.TestResult.parseFrom(message.getMessageBody()));
-                        Log.d(TAG, "Got test result message with code: "
-                                + mTestResult.get().getCode());
+                        result = ChreTestCommon.TestResult.parseFrom(message.getMessageBody());
+                        Log.d(TAG, "Got test result message with code: " + result.getCode());
                     } catch (InvalidProtocolBufferException e) {
                         Log.e(TAG, "Failed to parse message: " + e.getMessage());
                     }
@@ -106,15 +115,18 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
                 }
             }
 
-            if (valid && mCountDownLatch != null) {
-                mCountDownLatch.countDown();
+            if (valid) {
+                updateTestResult(result, UpdateOption.SKIP_IF_EXISTS);
             }
         }
     }
 
     @Override
     public void onHubReset(ContextHubClient client) {
-        // TODO: Handle Reset
+        updateTestResult(ChreTestCommon.TestResult.newBuilder()
+                .setCode(ChreTestCommon.TestResult.Code.FAILED)
+                .setErrorMessage(ByteString.copyFromUtf8("Hub Reset"))
+                .build(), UpdateOption.ALWAYS);
     }
 
     /**
@@ -124,21 +136,24 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
         Assert.assertFalse("init() must not be invoked when already initialized", mInitialized);
         ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNanoAppBinary);
 
+        mVerifyAudioGaps = shouldVerifyAudioGaps();
         mInitialized = true;
     }
 
     /**
      * Runs the test.
      */
-    public void run() {
+    public void run() throws InterruptedException {
         // Send a message to the nanoapp to enable CHRE audio
         mCountDownLatch = new CountDownLatch(1);
-        sendTestCommandMessage(ChreAudioConcurrencyTest.TestCommand.Step.ENABLE_AUDIO);
-        try {
-            mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+        if (mVerifyAudioGaps) {
+            sendTestCommandMessage(
+                    ChreAudioConcurrencyTest.TestCommand.Step.ENABLE_AUDIO_WITH_GAP_VERIFICATION);
+        } else {
+            sendTestCommandMessage(ChreAudioConcurrencyTest.TestCommand.Step.ENABLE_AUDIO);
         }
+        boolean success = mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: ENABLE_AUDIO", success);
         Assert.assertTrue("Failed to enable CHRE audio",
                 mChreAudioEnabled.get() || mTestResult.get() != null);
 
@@ -147,11 +162,8 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
         // Send a message to the nanoapp to verify that CHRE audio resumes
         mCountDownLatch = new CountDownLatch(1);
         sendTestCommandMessage(ChreAudioConcurrencyTest.TestCommand.Step.VERIFY_AUDIO_RESUME);
-        try {
-            mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
-        }
+        success = mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: VERIFY_AUDIO_RESUME", success);
 
         if (mTestResult.get() == null) {
             Assert.fail("No test result received");
@@ -209,5 +221,28 @@ public class ContextHubAudioConcurrencyTestExecutor extends ContextHubClientCall
         if (result != ContextHubTransaction.RESULT_SUCCESS) {
             Assert.fail("Failed to send message: result = " + result);
         }
+    }
+
+    /**
+     * Set test result and update count
+     */
+    private void updateTestResult(ChreTestCommon.TestResult result, UpdateOption option) {
+        if (result != null && (mTestResult.get() == null || option == UpdateOption.ALWAYS)) {
+            mTestResult.set(result);
+        }
+
+        if (mCountDownLatch != null) {
+            mCountDownLatch.countDown();
+        }
+    }
+
+    /**
+     * Returns whether we should verify audio gaps. This is only supported on devices
+     * that are currently running Android U or later and were shipped with Android U
+     * or later.
+     */
+    private boolean shouldVerifyAudioGaps() {
+        return VERSION.SDK_INT >= VERSION_CODES.UPSIDE_DOWN_CAKE &&
+               VERSION.DEVICE_INITIAL_SDK_INT >= VERSION_CODES.UPSIDE_DOWN_CAKE;
     }
 }

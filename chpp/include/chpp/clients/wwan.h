@@ -50,9 +50,9 @@ void chppRegisterWwanClient(struct ChppAppState *appContext);
 void chppDeregisterWwanClient(struct ChppAppState *appContext);
 
 /**
- * @return The ChppClientState pointer to the WWAN client.
+ * @return The ChppEndpointState pointer to the WWAN client.
  */
-struct ChppClientState *getChppWwanClientState(void);
+struct ChppEndpointState *getChppWwanClientState(void);
 
 #ifndef CHPP_CLIENT_ENABLED_CHRE_WWAN
 /**

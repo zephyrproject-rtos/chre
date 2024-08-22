@@ -24,8 +24,8 @@
 #include "chre/util/nanoapp/app_id.h"
 #include "chre/util/system/napp_permissions.h"
 #include "chre/util/time.h"
-#include "chre_api/chre.h"
 
+#include "chre_api/chre.h"
 /**
  * @file
  * A nanoapp exclusively for testing, which unloads the spammer nanoapp after a
@@ -41,7 +41,7 @@ constexpr uint32_t kAppVersion = 99;
 
 void handleUnload(uint16_t /*type*/, void * /*data*/, void * /*extraData*/) {
   EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  uint32_t instanceId;
+  uint16_t instanceId;
 
   LOGD("About to unload spammer nanoapp");
   if (!eventLoop.findNanoappInstanceIdByAppId(kSpammerAppId, &instanceId)) {

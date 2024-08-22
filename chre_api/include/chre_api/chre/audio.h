@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// IWYU pragma: private, include "chre_api/chre.h"
+// IWYU pragma: friend chre/.*\.h
+
 #ifndef _CHRE_AUDIO_H_
 #define _CHRE_AUDIO_H_
 
@@ -383,7 +386,7 @@ bool chreAudioGetSource(uint32_t handle, struct chreAudioSource *audioSource);
  *     derived from the sample rate of the source and the requested duration and
  *     rounded down to the nearest sample boundary.
  * @param deliveryInterval Desired time between each CHRE_EVENT_AUDIO_DATA
- *     event. This allows specifying the commplete duty cycle of a request
+ *     event. This allows specifying the complete duty cycle of a request
  *     for audio data, in nanoseconds. This value must be greater than or equal
  *     to bufferDuration or the request will fail due to an invalid
  *     configuration.

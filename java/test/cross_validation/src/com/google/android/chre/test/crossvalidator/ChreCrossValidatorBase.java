@@ -24,6 +24,8 @@ import android.hardware.location.ContextHubTransaction;
 import android.hardware.location.NanoAppBinary;
 import android.hardware.location.NanoAppMessage;
 import android.hardware.location.NanoAppState;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.util.Log;
 
 import com.google.android.utils.chre.ChreTestUtil;
@@ -90,7 +92,6 @@ abstract class ChreCrossValidatorBase {
      * needed. Should be called in @Before methods of tests.
      */
     public void init() throws AssertionError {
-        unloadAllNanoApps();
         // Load cross validator nanoapp
         ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNappBinary);
     }
@@ -102,7 +103,7 @@ abstract class ChreCrossValidatorBase {
      * @param samplingDurationInMs The amount of time in milliseconds to collect samples from AP and
      * CHRE.
      */
-    public abstract void validate() throws AssertionError;
+    public abstract void validate() throws AssertionError, InterruptedException;
 
     /**
     * Clean up resources allocated for cross validation. Subclasses should override this method and
@@ -123,6 +124,13 @@ abstract class ChreCrossValidatorBase {
     * with data received.
     */
     private void unloadAllNanoApps() {
+        // We only need to unload all nanoapps when the device has version < U, so the
+        // tests remain the same on those devices. On newer devices, test mode will
+        // handle this.
+        if (VERSION.SDK_INT >= VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return;
+        }
+
         List<NanoAppState> nanoAppStateList =
                 ChreTestUtil.queryNanoAppsAssertSuccess(mContextHubManager, mContextHubInfo);
 

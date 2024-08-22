@@ -120,7 +120,7 @@ class NanoappLoadManager : public NonCopyable {
    *             transaction exists
    */
   UniquePtr<Nanoapp> releaseNanoapp() {
-    return mNanoapp.release();
+    return std::move(mNanoapp);
   }
 
  private:

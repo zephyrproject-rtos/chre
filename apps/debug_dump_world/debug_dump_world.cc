@@ -16,10 +16,10 @@
 
 #include <cinttypes>
 
-#include <chre.h>
-
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
+#include "chre_api/chre.h"
 
 #define LOG_TAG "[DebugDumpWorld]"
 
@@ -57,10 +57,17 @@ void handleDebugDumpEvent() {
   chreDebugDumpLog("  Debug event count: %" PRIu32 "\n", ++gEventCount);
   chreDebugDumpLog("  Total dwell time: %" PRIu64 " us\n",
                    gDwellTimeNs / chre::kOneMicrosecondInNanoseconds);
+
+  // Prefer the utility macro if you'll log a float, to suppress double
+  // promotion warnings arising from varargs
+  float floatVal = 1.23f;
+  CHRE_DEBUG_DUMP_LOG("  This is a float: %f", floatVal);
 }
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  UNUSED_VAR(eventData);
+
   uint64_t tic = chreGetTime();
   switch (eventType) {
     case CHRE_EVENT_DEBUG_DUMP:

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// IWYU pragma: private, include "chre_api/chre.h"
+// IWYU pragma: friend chre/.*\.h
+
 #ifndef _CHRE_SENSOR_TYPES_H_
 #define _CHRE_SENSOR_TYPES_H_
 
@@ -52,7 +55,7 @@ extern "C" {
  *
  * @since v1.2
  */
-#define CHRE_SENSOR_TYPE_VENDOR_START  UINT8_C(192)
+#define CHRE_SENSOR_TYPE_VENDOR_START  UINT8_C(0xC0)
 
 /**
  * Accelerometer.
@@ -65,7 +68,7 @@ extern "C" {
  *
  * @see chreConfigureSensorBiasEvents
  */
-#define CHRE_SENSOR_TYPE_ACCELEROMETER  UINT8_C(1)
+#define CHRE_SENSOR_TYPE_ACCELEROMETER  UINT8_C(0x01)
 
 /**
  * Instantaneous motion detection.
@@ -78,7 +81,7 @@ extern "C" {
  * to SENSOR_TYPE_MOTION_DETECT, but this triggers instantly upon any
  * motion, instead of waiting for a period of continuous motion.
  */
-#define CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT  UINT8_C(2)
+#define CHRE_SENSOR_TYPE_INSTANT_MOTION_DETECT  UINT8_C(0x02)
 
 /**
  * Stationary detection.
@@ -87,7 +90,7 @@ extern "C" {
  *
  * This is a one-shot sensor.
  */
-#define CHRE_SENSOR_TYPE_STATIONARY_DETECT  UINT8_C(3)
+#define CHRE_SENSOR_TYPE_STATIONARY_DETECT  UINT8_C(0x03)
 
 /**
  * Gyroscope.
@@ -100,7 +103,7 @@ extern "C" {
  *
  * @see chreConfigureSensorBiasEvents
  */
-#define CHRE_SENSOR_TYPE_GYROSCOPE  UINT8_C(6)
+#define CHRE_SENSOR_TYPE_GYROSCOPE  UINT8_C(0x06)
 
 /**
  * Uncalibrated gyroscope.
@@ -110,7 +113,7 @@ extern "C" {
  * Note that the UNCALIBRATED_GYROSCOPE_DATA must be factory calibrated data,
  * but not runtime calibrated.
  */
-#define CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE  UINT8_C(7)
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_GYROSCOPE  UINT8_C(0x07)
 
 /**
  * Magnetometer.
@@ -123,7 +126,7 @@ extern "C" {
  *
  * @see chreConfigureSensorBiasEvents
  */
-#define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD  UINT8_C(8)
+#define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD  UINT8_C(0x08)
 
 /**
  * Uncalibrated magnetometer.
@@ -133,14 +136,14 @@ extern "C" {
  * Note that the UNCALIBRATED_GEOMAGNETIC_FIELD_DATA must be factory calibrated
  * data, but not runtime calibrated.
  */
-#define CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD  UINT8_C(9)
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_GEOMAGNETIC_FIELD  UINT8_C(0x09)
 
 /**
  * Barometric pressure sensor.
  *
  * Generates: CHRE_EVENT_SENSOR_PRESSURE_DATA
  */
-#define CHRE_SENSOR_TYPE_PRESSURE  UINT8_C(10)
+#define CHRE_SENSOR_TYPE_PRESSURE  UINT8_C(0x0A)
 
 /**
  * Ambient light sensor.
@@ -149,7 +152,7 @@ extern "C" {
  *
  * This is an on-change sensor.
  */
-#define CHRE_SENSOR_TYPE_LIGHT  UINT8_C(12)
+#define CHRE_SENSOR_TYPE_LIGHT  UINT8_C(0x0C)
 
 /**
  * Proximity detection.
@@ -158,7 +161,7 @@ extern "C" {
  *
  * This is an on-change sensor.
  */
-#define CHRE_SENSOR_TYPE_PROXIMITY  UINT8_C(13)
+#define CHRE_SENSOR_TYPE_PROXIMITY  UINT8_C(0x0D)
 
 /**
  * Step detection.
@@ -167,7 +170,7 @@ extern "C" {
  *
  * @since v1.3
  */
-#define CHRE_SENSOR_TYPE_STEP_DETECT  UINT8_C(23)
+#define CHRE_SENSOR_TYPE_STEP_DETECT  UINT8_C(0x17)
 
 /**
  * Step counter.
@@ -181,7 +184,7 @@ extern "C" {
  *
  * @since v1.5
  */
-#define CHRE_SENSOR_TYPE_STEP_COUNTER UINT8_C(24)
+#define CHRE_SENSOR_TYPE_STEP_COUNTER UINT8_C(0x18)
 
 /**
  * Hinge angle sensor.
@@ -197,7 +200,7 @@ extern "C" {
  *
  * @since v1.5
  */
-#define CHRE_SENSOR_TYPE_HINGE_ANGLE UINT8_C(36)
+#define CHRE_SENSOR_TYPE_HINGE_ANGLE UINT8_C(0x24)
 
 /**
  * Uncalibrated accelerometer.
@@ -207,28 +210,28 @@ extern "C" {
  * Note that the UNCALIBRATED_ACCELEROMETER_DATA must be factory calibrated
  * data, but not runtime calibrated.
  */
-#define CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER  UINT8_C(55)
+#define CHRE_SENSOR_TYPE_UNCALIBRATED_ACCELEROMETER  UINT8_C(0x37)
 
 /**
  * Accelerometer temperature.
  *
  * Generates: CHRE_EVENT_SENSOR_ACCELEROMETER_TEMPERATURE_DATA
  */
-#define CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE  UINT8_C(56)
+#define CHRE_SENSOR_TYPE_ACCELEROMETER_TEMPERATURE  UINT8_C(0x38)
 
 /**
  * Gyroscope temperature.
  *
  * Generates: CHRE_EVENT_SENSOR_GYROSCOPE_TEMPERATURE_DATA
  */
-#define CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE  UINT8_C(57)
+#define CHRE_SENSOR_TYPE_GYROSCOPE_TEMPERATURE  UINT8_C(0x39)
 
 /**
  * Magnetometer temperature.
  *
  * Generates: CHRE_EVENT_SENSOR_GEOMAGNETIC_FIELD_TEMPERATURE_DATA
  */
-#define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE  UINT8_C(58)
+#define CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE  UINT8_C(0x3A)
 
 #if CHRE_SENSOR_TYPE_GEOMAGNETIC_FIELD_TEMPERATURE >= CHRE_SENSOR_TYPE_VENDOR_START
 #error Too many sensor types
@@ -252,12 +255,12 @@ extern "C" {
  * @{
  */
 
-#define CHRE_SENSOR_ACCURACY_UNKNOWN       UINT8_C(0)
-#define CHRE_SENSOR_ACCURACY_UNRELIABLE    UINT8_C(1)
-#define CHRE_SENSOR_ACCURACY_LOW           UINT8_C(2)
-#define CHRE_SENSOR_ACCURACY_MEDIUM        UINT8_C(3)
-#define CHRE_SENSOR_ACCURACY_HIGH          UINT8_C(4)
-#define CHRE_SENSOR_ACCURACY_VENDOR_START  UINT8_C(192)
+#define CHRE_SENSOR_ACCURACY_UNKNOWN       UINT8_C(0x00)
+#define CHRE_SENSOR_ACCURACY_UNRELIABLE    UINT8_C(0x01)
+#define CHRE_SENSOR_ACCURACY_LOW           UINT8_C(0x02)
+#define CHRE_SENSOR_ACCURACY_MEDIUM        UINT8_C(0x03)
+#define CHRE_SENSOR_ACCURACY_HIGH          UINT8_C(0x04)
+#define CHRE_SENSOR_ACCURACY_VENDOR_START  UINT8_C(0xC0)
 #define CHRE_SENSOR_ACCURACY_VENDOR_END    UINT8_MAX
 
 /** @} */

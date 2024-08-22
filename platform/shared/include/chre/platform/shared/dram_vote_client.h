@@ -95,7 +95,7 @@ class DramVoteClient : public NonCopyable {
    * @return the duration in milliseconds since the system has been voted into
    *         big image due to incrementDramVoteCount.
    */
-  Milliseconds checkDramDuration() const;
+  Milliseconds checkDramDuration();
 };
 
 //! Provides an alias to the DramVoteClient singleton

@@ -15,16 +15,30 @@
  */
 
 #include "chre/platform/host_link.h"
+#include "chre/core/event_loop_manager.h"
 
 namespace chre {
 
 void HostLink::flushMessagesSentByNanoapp(uint64_t /* appId */) {
-  // TODO: implement
+  // (empty)
 }
 
-bool HostLink::sendMessage(const MessageToHost * /* message */) {
-  // TODO: implement
-  return false;
+bool HostLink::sendMessage(const MessageToHost *message) {
+  // Just drop the message since we don't have a real host to send to
+  EventLoopManagerSingleton::get()
+      ->getHostCommsManager()
+      .onMessageToHostComplete(message);
+  return true;
+}
+
+void HostLinkBase::sendNanConfiguration(bool enable) {
+#if defined(CHRE_WIFI_SUPPORT_ENABLED) && defined(CHRE_WIFI_NAN_SUPPORT_ENABLED)
+  EventLoopManagerSingleton::get()
+      ->getWifiRequestManager()
+      .updateNanAvailability(enable);
+#else
+  UNUSED_VAR(enable);
+#endif
 }
 
 }  // namespace chre

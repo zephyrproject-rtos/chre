@@ -15,6 +15,7 @@
  */
 
 #include <cinttypes>
+#include <cstdio>
 
 #include "chre/platform/log.h"
 #include "chre/util/macros.h"

@@ -14,24 +14,28 @@
  * limitations under the License.
  */
 
-#include "chre/util/nanoapp/app_id.h"
-#include "chre/util/system/napp_header_utils.h"
-#include "chre_host/host_protocol_host.h"
-#include "chre_host/log.h"
-#include "chre_host/napp_header.h"
-#include "chre_host/socket_client.h"
-
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <chrono>
+#include <condition_variable>
 #include <fstream>
 #include <future>
+#include <mutex>
 #include <sstream>
 #include <thread>
 
 #include <cutils/sockets.h>
 #include <utils/StrongPointer.h>
+
+#include "chre/util/nanoapp/app_id.h"
+#include "chre/util/system/napp_header_utils.h"
+#include "chre_host/file_stream.h"
+#include "chre_host/host_protocol_host.h"
+#include "chre_host/log.h"
+#include "chre_host/napp_header.h"
+#include "chre_host/socket_client.h"
 
 /**
  * @file
@@ -46,11 +50,13 @@
  */
 
 using android::sp;
+using android::chre::FragmentedLoadRequest;
 using android::chre::FragmentedLoadTransaction;
 using android::chre::getStringFromByteVector;
 using android::chre::HostProtocolHost;
 using android::chre::IChreMessageHandlers;
 using android::chre::NanoAppBinaryHeader;
+using android::chre::readFileContents;
 using android::chre::SocketClient;
 using flatbuffers::FlatBufferBuilder;
 
@@ -60,14 +66,33 @@ namespace fbs = ::chre::fbs;
 
 namespace {
 
-//! The host endpoint we use when sending; set to CHRE_HOST_ENDPOINT_UNSPECIFIED
-//! Other clients below the HAL may use a value above 0x8000 to enable unicast
-//! messaging (currently requires internal coordination to avoid conflict;
-//! in the future these should be assigned by the daemon).
-constexpr uint16_t kHostEndpoint = 0xfffe;
+//! The host endpoint we use when sending; Clients may use a value above
+//! 0x8000 to enable unicast messaging (currently requires internal coordination
+//! to avoid conflict).
+constexpr uint16_t kHostEndpoint = 0x8002;
 
 constexpr uint32_t kDefaultAppVersion = 1;
 constexpr uint32_t kDefaultApiVersion = 0x01000000;
+
+// Timeout for loading a nanoapp fragment.
+static constexpr auto kFragmentTimeout = std::chrono::milliseconds(2000);
+
+enum class LoadingStatus {
+  kLoading,
+  kSuccess,
+  kError,
+};
+
+// State of a nanoapp fragment.
+struct FragmentStatus {
+  size_t id;
+  LoadingStatus loadStatus;
+};
+
+// State of the current nanoapp fragment.
+std::mutex gFragmentMutex;
+std::condition_variable gFragmentCondVar;
+FragmentStatus gFragmentStatus;
 
 class SocketCallbacks : public SocketClient::ICallbacks,
                         public IChreMessageHandlers {
@@ -125,8 +150,21 @@ class SocketCallbacks : public SocketClient::ICallbacks,
 
   void handleLoadNanoappResponse(
       const fbs::LoadNanoappResponseT &response) override {
-    LOGI("Got load nanoapp response, transaction ID 0x%" PRIx32 " result %d",
-         response.transaction_id, response.success);
+    LOGI("Got load nanoapp response, transaction ID 0x%" PRIx32
+         " fragment %" PRIx32 " result %d",
+         response.transaction_id, response.fragment_id, response.success);
+
+    {
+      std::lock_guard lock(gFragmentMutex);
+      if (response.fragment_id != gFragmentStatus.id) {
+        gFragmentStatus.loadStatus = LoadingStatus::kError;
+      } else {
+        gFragmentStatus.loadStatus =
+            response.success ? LoadingStatus::kSuccess : LoadingStatus::kError;
+      }
+    }
+
+    gFragmentCondVar.notify_all();
   }
 
   void handleUnloadNanoappResponse(
@@ -182,44 +220,51 @@ void sendMessageToNanoapp(SocketClient &client) {
   }
 }
 
-bool readFileContents(const char *filename, std::vector<uint8_t> *buffer) {
-  bool success = false;
-  std::ifstream file(filename, std::ios::binary | std::ios::ate);
-  if (!file) {
-    LOGE("Couldn't open file '%s': %d (%s)", filename, errno, strerror(errno));
-  } else {
-    ssize_t size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    buffer->resize(size);
-    if (!file.read(reinterpret_cast<char *>(buffer->data()), size)) {
-      LOGE("Couldn't read from file '%s': %d (%s)", filename, errno,
-           strerror(errno));
-    } else {
-      success = true;
-    }
-  }
-
-  return success;
-}
-
 void sendNanoappLoad(SocketClient &client, uint64_t appId, uint32_t appVersion,
                      uint32_t apiVersion, uint32_t appFlags,
                      const std::vector<uint8_t> &binary) {
-  // Perform loading with 1 fragment for simplicity
-  FlatBufferBuilder builder(binary.size() + 128);
   FragmentedLoadTransaction transaction = FragmentedLoadTransaction(
-      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, binary,
-      binary.size() /* fragmentSize */);
-  HostProtocolHost::encodeFragmentedLoadNanoappRequest(
-      builder, transaction.getNextRequest());
+      1 /* transactionId */, appId, appVersion, appFlags, apiVersion, binary);
 
-  LOGI("Sending load nanoapp request (%" PRIu32
-       " bytes total w/%zu bytes of "
-       "payload)",
-       builder.GetSize(), binary.size());
-  if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
-    LOGE("Failed to send message");
+  bool success = true;
+  while (!transaction.isComplete()) {
+    const FragmentedLoadRequest &request = transaction.getNextRequest();
+    LOGI("Loading nanoapp fragment %zu", request.fragmentId);
+
+    FlatBufferBuilder builder(request.binary.size() + 128);
+    HostProtocolHost::encodeFragmentedLoadNanoappRequest(builder, request);
+
+    std::unique_lock lock(gFragmentMutex);
+    gFragmentStatus = {.id = request.fragmentId,
+                       .loadStatus = LoadingStatus::kLoading};
+    lock.unlock();
+
+    if (!client.sendMessage(builder.GetBufferPointer(), builder.GetSize())) {
+      LOGE("Failed to send fragment");
+      success = false;
+      break;
+    }
+
+    lock.lock();
+    std::cv_status status = gFragmentCondVar.wait_for(lock, kFragmentTimeout);
+
+    if (status == std::cv_status::timeout) {
+      success = false;
+      LOGE("Timeout loading the fragment");
+      break;
+    }
+
+    if (gFragmentStatus.loadStatus != LoadingStatus::kSuccess) {
+      LOGE("Error loading the fragment");
+      success = false;
+      break;
+    }
+  }
+
+  if (success) {
+    LOGI("Nanoapp loaded successfully");
+  } else {
+    LOGE("Error loading the nanoapp");
   }
 }
 
@@ -227,8 +272,8 @@ void sendLoadNanoappRequest(SocketClient &client, const char *headerPath,
                             const char *binaryPath) {
   std::vector<uint8_t> headerBuffer;
   std::vector<uint8_t> binaryBuffer;
-  if (readFileContents(headerPath, &headerBuffer) &&
-      readFileContents(binaryPath, &binaryBuffer)) {
+  if (readFileContents(headerPath, headerBuffer) &&
+      readFileContents(binaryPath, binaryBuffer)) {
     if (headerBuffer.size() != sizeof(NanoAppBinaryHeader)) {
       LOGE("Header size mismatch");
     } else {
@@ -250,7 +295,7 @@ void sendLoadNanoappRequest(SocketClient &client, const char *filename,
                             uint64_t appId, uint32_t appVersion,
                             uint32_t apiVersion, bool tcmApp) {
   std::vector<uint8_t> buffer;
-  if (readFileContents(filename, &buffer)) {
+  if (readFileContents(filename, buffer)) {
     // All loaded nanoapps must be signed currently.
     uint32_t appFlags = CHRE_NAPP_HEADER_SIGNED;
     if (tcmApp) {

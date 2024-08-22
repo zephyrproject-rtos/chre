@@ -21,7 +21,10 @@
 #include "chre/core/event_loop.h"
 #include "chre/core/event_loop_common.h"
 #include "chre/core/host_comms_manager.h"
+#include "chre/core/host_endpoint_manager.h"
 #include "chre/core/settings.h"
+#include "chre/core/system_health_monitor.h"
+#include "chre/platform/atomic.h"
 #include "chre/platform/memory_manager.h"
 #include "chre/platform/mutex.h"
 #include "chre/util/always_false.h"
@@ -34,6 +37,10 @@
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
 #include "chre/core/audio_request_manager.h"
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+#include "chre/core/ble_request_manager.h"
+#endif  // CHRE_BLE_SUPPORT_ENABLED
 
 #ifdef CHRE_GNSS_SUPPORT_ENABLED
 #include "chre/core/gnss_manager.h"
@@ -50,6 +57,10 @@
 #ifdef CHRE_WWAN_SUPPORT_ENABLED
 #include "chre/core/wwan_request_manager.h"
 #endif  // CHRE_WWAN_SUPPORT_ENABLED
+
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+#include "chre/core/telemetry_manager.h"
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
 
 #include <cstddef>
 
@@ -96,12 +107,13 @@ class EventLoopManager : public NonCopyable {
    * @param data Arbitrary data to provide to the callback
    * @param callback Function to invoke from within the main CHRE thread
    * @param extraData Additional arbitrary data to provide to the callback
+   * @return If true, the callback was deferred successfully; false otherwise.
    */
-  void deferCallback(SystemCallbackType type, void *data,
+  bool deferCallback(SystemCallbackType type, void *data,
                      SystemEventCallbackFunction *callback,
                      void *extraData = nullptr) {
-    mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data, callback,
-                               extraData);
+    return mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data,
+                                      callback, extraData);
   }
 
   /**
@@ -116,35 +128,40 @@ class EventLoopManager : public NonCopyable {
    *        uint16_t, and can also be useful for debugging
    * @param data Pointer to arbitrary data to provide to the callback
    * @param callback Function to invoke from within the main CHRE thread
+   * @return If true, the callback was deferred successfully; false otherwise.
    */
   template <typename T>
-  void deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
+  bool deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
                      TypedSystemEventCallbackFunction<T> *callback) {
-    auto outerCallback = [](uint16_t type, void *data, void *extraData) {
+    auto outerCallback = [](uint16_t callbackType, void *eventData,
+                            void *extraData) {
       // Re-wrap eventData in UniquePtr so its destructor will get called and
       // the memory will be freed once we leave this scope
-      UniquePtr<T> dataWrapped = UniquePtr<T>(static_cast<T *>(data));
+      UniquePtr<T> dataWrapped = UniquePtr<T>(static_cast<T *>(eventData));
       auto *innerCallback =
           reinterpret_cast<TypedSystemEventCallbackFunction<T> *>(extraData);
-      innerCallback(static_cast<SystemCallbackType>(type),
+      innerCallback(static_cast<SystemCallbackType>(callbackType),
                     std::move(dataWrapped));
     };
     // Pass the "inner" callback (the caller's callback) through to the "outer"
     // callback using the extraData parameter. Note that we're leveraging the
     // C++11 ability to cast a function pointer to void*
-    if (mEventLoop.postSystemEvent(static_cast<uint16_t>(type), data.get(),
-                                   outerCallback,
-                                   reinterpret_cast<void *>(callback))) {
+    bool status = mEventLoop.postSystemEvent(
+        static_cast<uint16_t>(type), data.get(), outerCallback,
+        reinterpret_cast<void *>(callback));
+    if (status) {
       data.release();
     }
+    return status;
   }
 
   //! Override that allows passing a lambda for the callback
   template <typename T, typename LambdaT>
-  void deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
+  bool deferCallback(SystemCallbackType type, UniquePtr<T> &&data,
                      LambdaT callback) {
-    deferCallback(type, std::move(data),
-                  static_cast<TypedSystemEventCallbackFunction<T> *>(callback));
+    return deferCallback(
+        type, std::move(data),
+        static_cast<TypedSystemEventCallbackFunction<T> *>(callback));
   }
 
   //! Disallows passing a null callback, as we don't include a null check in the
@@ -202,7 +219,7 @@ class EventLoopManager : public NonCopyable {
    *
    * @return a unique instance ID
    */
-  uint32_t getNextInstanceId();
+  uint16_t getNextInstanceId();
 
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   /**
@@ -214,6 +231,17 @@ class EventLoopManager : public NonCopyable {
     return mAudioRequestManager;
   }
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  /**
+   * @return A reference to the ble request manager. This allows interacting
+   *         with the ble subsystem and manages requests from various
+   *         nanoapps.
+   */
+  BleRequestManager &getBleRequestManager() {
+    return mBleRequestManager;
+  }
+#endif  // CHRE_BLE_SUPPORT_ENABLED
 
   /**
    * @return The event loop managed by this event loop manager.
@@ -239,6 +267,10 @@ class EventLoopManager : public NonCopyable {
    */
   HostCommsManager &getHostCommsManager() {
     return mHostCommsManager;
+  }
+
+  HostEndpointManager &getHostEndpointManager() {
+    return mHostEndpointManager;
   }
 
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
@@ -290,11 +322,24 @@ class EventLoopManager : public NonCopyable {
     return mDebugDumpManager;
   }
 
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+  /**
+   * @return A reference to the telemetry manager.
+   */
+  TelemetryManager &getTelemetryManager() {
+    return mTelemetryManager;
+  }
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
   /**
    * @return A reference to the setting manager.
    */
   SettingManager &getSettingManager() {
     return mSettingManager;
+  }
+
+  SystemHealthMonitor &getSystemHealthMonitor() {
+    return mSystemHealthMonitor;
   }
 
   /**
@@ -305,14 +350,20 @@ class EventLoopManager : public NonCopyable {
   void lateInit();
 
  private:
-  //! The instance ID that was previously generated by getNextInstanceId()
-  uint32_t mLastInstanceId = kSystemInstanceId;
+  //! The instance ID generated by getNextInstanceId().
+  AtomicUint32 mNextInstanceId{kSystemInstanceId + 1};
 
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   //! The audio request manager handles requests for all nanoapps and manages
   //! the state of the audio subsystem that the runtime subscribes to.
   AudioRequestManager mAudioRequestManager;
 #endif
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  //! The BLE request manager handles requests for all nanoapps and manages
+  //! the state of the BLE subsystem that the runtime subscribes to.
+  BleRequestManager mBleRequestManager;
+#endif  // CHRE_BLE_SUPPORT_ENABLED
 
   //! The event loop managed by this event loop manager.
   EventLoop mEventLoop;
@@ -325,6 +376,10 @@ class EventLoopManager : public NonCopyable {
 
   //! Handles communications with the host processor.
   HostCommsManager mHostCommsManager;
+
+  HostEndpointManager mHostEndpointManager;
+
+  SystemHealthMonitor mSystemHealthMonitor;
 
 #ifdef CHRE_SENSORS_SUPPORT_ENABLED
   //! The SensorRequestManager that handles requests for all nanoapps. This
@@ -350,6 +405,11 @@ class EventLoopManager : public NonCopyable {
 
   //! The DebugDumpManager that handles the debug dump process.
   DebugDumpManager mDebugDumpManager;
+
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+  //! The TelemetryManager that handles metric collection/reporting.
+  TelemetryManager mTelemetryManager;
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
 
   //! The SettingManager that manages setting states.
   SettingManager mSettingManager;

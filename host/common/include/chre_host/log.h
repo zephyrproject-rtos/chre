@@ -23,24 +23,35 @@
 
 #include <log/log.h>
 
-/**
- * Logs a message to both logcat and stdout. Don't use this directly; prefer one
- * of LOGE, LOGW, etc. to populate the level.
- *
- * @param level log level to pass to ALOG (LOG_ERROR, LOG_WARN, etc.)
- * @param stream output stream to print to (e.g. stdout)
- * @param format printf-style format string
- */
-#define CHRE_LOG(level, stream, format, ...)                                   \
-  do {                                                                         \
-    ALOG(level, LOG_TAG, format, ##__VA_ARGS__);                               \
-    fprintf(stream, "%s:%d: " format "\n", __func__, __LINE__, ##__VA_ARGS__); \
-  } while (0)
+namespace android::chre {
 
-#define LOGE(format, ...) CHRE_LOG(LOG_ERROR, stderr, format, ##__VA_ARGS__)
-#define LOGW(format, ...) CHRE_LOG(LOG_WARN, stdout, format, ##__VA_ARGS__)
-#define LOGI(format, ...) CHRE_LOG(LOG_INFO, stdout, format, ##__VA_ARGS__)
-#define LOGD(format, ...) CHRE_LOG(LOG_DEBUG, stdout, format, ##__VA_ARGS__)
+/**
+ * Logs a message to both logcat and stdout/stderr. Don't use this directly;
+ * prefer one of LOGE, LOGW, etc.
+ *
+ * @param level  android log level, e.g., ANDROID_LOG_ERROR
+ * @param stream output stream to print to, e.g., stdout
+ * @param format printf-style format string
+ * @param func   the function name included in the log, e.g., __func__
+ * @param line   line number included in the log
+ */
+void outputHostLog(int priority, FILE *stream, const char *format,
+                   const char *func, unsigned int line, ...);
+
+}  // namespace android::chre
+
+#define LOGE(format, ...)                                                     \
+  ::android::chre::outputHostLog(ANDROID_LOG_ERROR, stderr, format, __func__, \
+                                 __LINE__, ##__VA_ARGS__)
+#define LOGW(format, ...)                                                    \
+  ::android::chre::outputHostLog(ANDROID_LOG_WARN, stdout, format, __func__, \
+                                 __LINE__, ##__VA_ARGS__)
+#define LOGI(format, ...)                                                    \
+  ::android::chre::outputHostLog(ANDROID_LOG_INFO, stdout, format, __func__, \
+                                 __LINE__, ##__VA_ARGS__)
+#define LOGD(format, ...)                                                     \
+  ::android::chre::outputHostLog(ANDROID_LOG_DEBUG, stdout, format, __func__, \
+                                 __LINE__, ##__VA_ARGS__)
 
 #if LOG_NDEBUG
 __attribute__((format(printf, 1, 2))) inline void chreLogNull(
@@ -48,7 +59,9 @@ __attribute__((format(printf, 1, 2))) inline void chreLogNull(
 
 #define LOGV(format, ...) chreLogNull(format, ##__VA_ARGS__)
 #else
-#define LOGV(format, ...) CHRE_LOG(LOG_VERBOSE, stdout, format, ##__VA_ARGS__)
+#define LOGV(format, ...)                                             \
+  ::android::chre::outputHostLog(ANDROID_LOG_VERBOSE, stdout, format, \
+                                 __func__, __LINE__, ##__VA_ARGS__)
 #endif
 
 /**

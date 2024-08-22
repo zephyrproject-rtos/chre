@@ -50,7 +50,7 @@ constexpr uint64_t makeNanoappId(uint64_t vendor, uint32_t appNumber) {
 }
 
 /**
- * @return App ID combining the given 3-byte app number and Google's 5-byte
+ * @return App ID combining the given 3-byte app number and the example 5-byte
  *         vendor ID
  */
 constexpr uint64_t makeExampleNanoappId(uint32_t appNumber) {
@@ -67,8 +67,8 @@ constexpr uint64_t makeGoogleNanoappId(uint32_t appNumber) {
 
 // clang-format off
 constexpr uint64_t kHelloWorldAppId       = makeExampleNanoappId(1);
-constexpr uint64_t kMessageWorldAppId     = makeExampleNanoappId(2);
-constexpr uint64_t kTimerWorldAppId       = makeExampleNanoappId(3);
+constexpr uint64_t kTimerWorldAppId       = makeExampleNanoappId(2);
+constexpr uint64_t kMessageWorldAppId     = makeExampleNanoappId(3);
 constexpr uint64_t kSensorWorldAppId      = makeExampleNanoappId(4);
 constexpr uint64_t kGnssWorldAppId        = makeExampleNanoappId(5);
 constexpr uint64_t kWifiWorldAppId        = makeExampleNanoappId(6);
@@ -83,6 +83,8 @@ constexpr uint64_t kAudioStressTestAppId  = makeExampleNanoappId(14);
 constexpr uint64_t kPowerTestAppId        = makeExampleNanoappId(15);
 // 16 = Power Test TCM
 constexpr uint64_t kDebugDumpWorldAppId   = makeExampleNanoappId(17);
+constexpr uint64_t kBleWorldAppId         = makeExampleNanoappId(18);
+constexpr uint64_t kRpcWorldAppId         = makeExampleNanoappId(19);
 // clang-format on
 
 }  // namespace chre

@@ -99,12 +99,28 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
                                     IChreMessageHandlers &handlers);
 
   /**
+   * Encodes a message requesting pulse from CHRE
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodePulseRequest(flatbuffers::FlatBufferBuilder &builder);
+
+  /**
    * Encodes a message requesting hub information from CHRE
    *
    * @param builder A newly constructed FlatBufferBuilder that will be used to
    *        construct the message
    */
   static void encodeHubInfoRequest(flatbuffers::FlatBufferBuilder &builder);
+
+  /**
+   * Encodes a message sending boot debug configuration to CHRE
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   */
+  static void encodeDebugConfiguration(flatbuffers::FlatBufferBuilder &builder);
 
   /**
    * Encodes a message requesting to load a nanoapp specified by the included
@@ -233,6 +249,35 @@ class HostProtocolHost : public ::chre::HostProtocolCommon {
    * Encodes a message to request CHRE to perform a self test.
    */
   static void encodeSelfTestRequest(flatbuffers::FlatBufferBuilder &builder);
+
+  /**
+   * Encodes a message notifying CHRE of a host endpoint that connected.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param hostEndpointId The ID of the host endpoint that connected.
+   * @param type The CHRE_HOST_ENDPOINT_TYPE_* value that describes the
+   * endpoint.
+   * @param packageName The (optional) package name of the endpoint.
+   * @param attributionTag The (optional) attribution tag of the endpoint.
+   */
+  static void encodeHostEndpointConnected(
+      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId,
+      uint8_t type, const std::string &packageName,
+      const std::string &attributionTag);
+
+  /**
+   * Encodes a message notifying CHRE of a host endpoint that disconnected.
+   *
+   * @param builder A newly constructed FlatBufferBuilder that will be used to
+   *        construct the message
+   * @param hostEndpointId The ID of the host endpoint that disconnected.
+   */
+  static void encodeHostEndpointDisconnected(
+      flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId);
+
+  static void encodeNanconfigurationUpdate(
+      flatbuffers::FlatBufferBuilder &builder, bool nanEnabled);
 };
 
 }  // namespace chre

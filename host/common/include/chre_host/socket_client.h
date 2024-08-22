@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <cutils/sockets.h>
 #include <utils/RefBase.h>
@@ -122,7 +123,13 @@ class SocketClient {
   bool sendMessage(const void *data, size_t length);
 
  private:
+  //! The maximum length of a socket name.
   static constexpr size_t kMaxSocketNameLen = 64;
+
+  //! Receive buffer size.
+  //! The maximum message size is 32000 bytes plus some for encoding.
+  static constexpr size_t kMaxPacketSize = 32 * 1024;
+
   char mSocketName[kMaxSocketNameLen];
   sp<ICallbacks> mCallbacks;
 
@@ -137,6 +144,10 @@ class SocketClient {
   //! to disconnect, but it's trying to reconnect automatically
   std::condition_variable mShutdownCond;
   std::mutex mShutdownMutex;
+
+  // A buffer to read packets into. Allocated here to prevent a large object on
+  // the stack.
+  std::vector<uint8_t> mRecvBuffer = std::vector<uint8_t>(kMaxPacketSize);
 
   bool doConnect(const char *socketName,
                  const ::android::sp<ICallbacks> &callbacks,

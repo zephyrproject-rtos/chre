@@ -96,6 +96,8 @@ static uint32_t chppNotifierTimedWait(struct ChppNotifier *notifier,
  * multiple events to be handled simultaneously in chppNotifierTimedWait().
  *
  * @param notifier Points to the ChppNotifier being used.
+ * @param signal The value where each bit represents a different event.
+ *               As such the value 0 will not notify any event.
  */
 static void chppNotifierSignal(struct ChppNotifier *notifier, uint32_t signal);
 

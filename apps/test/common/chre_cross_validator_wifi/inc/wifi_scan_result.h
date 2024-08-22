@@ -19,9 +19,9 @@
 
 #include <cinttypes>
 
-#include <chre.h>
 #include <pb_decode.h>
 
+#include "chre_api/chre.h"
 #include "chre_cross_validation_wifi.nanopb.h"
 
 class WifiScanResult {
@@ -69,6 +69,14 @@ class WifiScanResult {
 
   void didSee() {
     mSeen = true;
+  }
+
+  const uint8_t *getBssid() const {
+    return mBssid;
+  }
+
+  const char *getSsid() const {
+    return mSsid;
   }
 
  private:

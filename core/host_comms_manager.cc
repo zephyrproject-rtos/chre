@@ -20,6 +20,7 @@
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/host_comms_manager.h"
 #include "chre/platform/assert.h"
+#include "chre/platform/context.h"
 #include "chre/platform/host_link.h"
 #include "chre/util/macros.h"
 
@@ -61,16 +62,23 @@ bool HostCommsManager::sendMessageToHostFromNanoapp(
                               .getPowerControlManager()
                               .hostIsAwake();
 
+      bool wokeHost = !hostWasAwake && !mIsNanoappBlamedForWakeup;
+      msgToHost->toHostData.wokeHost = wokeHost;
+
       success = HostLink::sendMessage(msgToHost);
       if (!success) {
         mMessagePool.deallocate(msgToHost);
-      } else if (!hostWasAwake && !mIsNanoappBlamedForWakeup) {
-        // If message successfully sent and host was suspended before sending
-        EventLoopManagerSingleton::get()
-            ->getEventLoop()
-            .handleNanoappWakeupBuckets();
-        mIsNanoappBlamedForWakeup = true;
-        nanoapp->blameHostWakeup();
+      } else {
+        if (wokeHost) {
+          // If message successfully sent and host was suspended before sending
+          EventLoopManagerSingleton::get()
+              ->getEventLoop()
+              .handleNanoappWakeupBuckets();
+          mIsNanoappBlamedForWakeup = true;
+          nanoapp->blameHostWakeup();
+        }
+        // Record the nanoapp having sent a message to the host
+        nanoapp->blameHostMessageSent();
       }
     }
   }
@@ -106,7 +114,7 @@ MessageFromHost *HostCommsManager::craftNanoappMessageFromHost(
 bool HostCommsManager::deliverNanoappMessageFromHost(
     MessageFromHost *craftedMessage) {
   const EventLoop &eventLoop = EventLoopManagerSingleton::get()->getEventLoop();
-  uint32_t targetInstanceId;
+  uint16_t targetInstanceId;
   bool nanoappFound = false;
 
   CHRE_ASSERT_LOG(craftedMessage != nullptr,
@@ -154,9 +162,11 @@ void HostCommsManager::sendMessageToNanoappFromHost(uint64_t appId,
             .sendDeferredMessageToNanoappFromHost(
                 static_cast<MessageFromHost *>(data));
       };
-      EventLoopManagerSingleton::get()->deferCallback(
-          SystemCallbackType::DeferredMessageToNanoappFromHost, craftedMessage,
-          callback);
+      if (!EventLoopManagerSingleton::get()->deferCallback(
+              SystemCallbackType::DeferredMessageToNanoappFromHost,
+              craftedMessage, callback)) {
+        mMessagePool.deallocate(craftedMessage);
+      }
     }
   }
 }
@@ -191,6 +201,11 @@ void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
   // EventLoop context.
   if (msgToHost->toHostData.nanoappFreeFunction == nullptr) {
     mMessagePool.deallocate(msgToHost);
+  } else if (inEventLoopThread()) {
+    // If we're already within the event pool context, it is safe to call the
+    // free callback synchronously.
+    EventLoopManagerSingleton::get()->getHostCommsManager().freeMessageToHost(
+        msgToHost);
   } else {
     auto freeMsgCallback = [](uint16_t /*type*/, void *data,
                               void * /*extraData*/) {
@@ -198,8 +213,12 @@ void HostCommsManager::onMessageToHostComplete(const MessageToHost *message) {
           static_cast<MessageToHost *>(data));
     };
 
-    EventLoopManagerSingleton::get()->deferCallback(
-        SystemCallbackType::MessageToHostComplete, msgToHost, freeMsgCallback);
+    if (!EventLoopManagerSingleton::get()->deferCallback(
+            SystemCallbackType::MessageToHostComplete, msgToHost,
+            freeMsgCallback)) {
+      EventLoopManagerSingleton::get()->getHostCommsManager().freeMessageToHost(
+          static_cast<MessageToHost *>(msgToHost));
+    }
   }
 }
 

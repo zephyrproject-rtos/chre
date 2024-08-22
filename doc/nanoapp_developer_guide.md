@@ -39,7 +39,7 @@ Be sure to pick a unique nanoapp ID when creating a new nanoapp.
 
 ### Picking a Language
 
-CHRE guarantees support for nanoapps written in C99 or C++11, though not all
+CHRE guarantees support for nanoapps written in C11 or C++17, though not all
 standard library functions are supported (see below for details). For a
 device-specific nanoapp, additional programming languages/versions *may* be
 supported, but this can impact portability.
@@ -99,8 +99,8 @@ byte for the minor version, and two bytes for the patch version.
 The CHRE API is the key interface between each nanoapp and the underlying
 system. Refer to the extensive API documentation in the header files at
 `chre_api/include`, as well as usage of the APIs by sample nanoapps. The CHRE
-API is normally included via `#include <chre.h>`.
-
+API is normally included via `
+#include "chre_api/chre.h"`.
 ## Utility Libraries
 
 Some source and header files under `util` are specifically designed to aid in
@@ -267,8 +267,8 @@ While not meant to be an exhaustive list and some platforms may differ, the
 following standard library features are not meant to be used by nanoapps:
 
 * C++ exceptions and run-time type information (RTTI)
-* Standard library multi-threading support, including C++11 headers `<thread>`,
-  `<mutex>`, `<atomic>`, `<future>`, etc.
+* Standard library multi-threading support, including C++ library headers
+` <thread>`, `<mutex>`, `<atomic>`, `<future>`, etc.
 * C and C++ Standard Input/Output libraries
 * C++ Standard Template Library (STL)
 * C++ Standard Regular Expressions library
@@ -279,7 +279,7 @@ following standard library features are not meant to be used by nanoapps:
 * Functions that modify normal program flow, including `<setjmp.h>`,
   `<signal.h>`, `abort`, `std::terminate`, etc.
 * Accessing the host environment, including `system`, `getenv`, etc.
-* POSIX or other libraries not included in the C99 or C++11 language standards
+* POSIX or other libraries not included in the C11 or C++17 language standards
 
 In many cases, equivalent functionality is available from CHRE API functions
 and/or utility libraries. For example, `chreLog` may be used for debug logging,

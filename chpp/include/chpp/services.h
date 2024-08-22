@@ -38,21 +38,47 @@ extern "C" {
 #endif
 
 /**
- * Uses chppAllocServiceNotification() to allocate a variable-length response
- * message of a specific type.
+ * Allocates a service request message of a specific type and its corresponding
+ * length.
+ *
+ * @param serviceState State of the service.
+ * @param type Type of response.
+ *
+ * @return Pointer to allocated memory.
+ */
+#define chppAllocServiceRequestFixed(serviceState, type) \
+  (type *)chppAllocServiceRequest(serviceState, sizeof(type))
+
+/**
+ * Allocate a variable-length service request message of a specific type.
+ *
+ * @param serviceState State of the service.
+ * @param type Type of response which includes an arrayed member.
+ * @param count number of items in the array of arrayField.
+ * @param arrayField The arrayed member field.
+ *
+ * @return Pointer to allocated memory.
+ */
+#define chppAllocServiceRequestTypedArray(serviceState, type, count, \
+                                          arrayField)                \
+  (type *)chppAllocServiceRequest(                                   \
+      serviceState, sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
+
+/**
+ * Allocates a variable-length notification of a specific type.
  *
  * @param type Type of notification which includes an arrayed member.
  * @param count number of items in the array of arrayField.
  * @param arrayField The arrayed member field.
  *
- * @return Pointer to allocated memory
+ * @return Pointer to allocated memory.
  */
 #define chppAllocServiceNotificationTypedArray(type, count, arrayField) \
   (type *)chppAllocServiceNotification(                                 \
       sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
 
 /**
- * Uses chppAllocServiceNotification() to allocate a response message of a
+ * Uses chppAllocServiceNotification() to allocate a response notification of a
  * specific type and its corresponding length.
  *
  * @param type Type of notification.
@@ -61,49 +87,6 @@ extern "C" {
  */
 #define chppAllocServiceNotificationFixed(type) \
   (type *)chppAllocServiceNotification(sizeof(type))
-
-/**
- * Uses chppAllocServiceResponse() to allocate a variable-length response
- * message of a specific type.
- *
- * @param requestHeader client request header, as per
- * chppAllocServiceResponse().
- * @param type Type of response which includes an arrayed member.
- * @param count number of items in the array of arrayField.
- * @param arrayField The arrayed member field.
- *
- * @return Pointer to allocated memory
- */
-#define chppAllocServiceResponseTypedArray(requestHeader, type, count, \
-                                           arrayField)                 \
-  (type *)chppAllocServiceResponse(                                    \
-      requestHeader,                                                   \
-      sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
-
-/**
- * Uses chppAllocServiceResponse() to allocate a response message of a specific
- * type and its corresponding length.
- *
- * @param requestHeader client request header, as per
- * chppAllocServiceResponse().
- * @param type Type of response.
- *
- * @return Pointer to allocated memory
- */
-#define chppAllocServiceResponseFixed(requestHeader, type) \
-  (type *)chppAllocServiceResponse(requestHeader, sizeof(type))
-
-/**
- * Maintains the basic state of a service.
- * This is expected to be included once in the (context) status variable of each
- * service.
- */
-struct ChppServiceState {
-  struct ChppAppState *appContext;  // Pointer to app layer context
-  uint8_t handle;                   // Handle number for this service
-
-  uint8_t openState;  // As defined in enum ChppOpenState
-};
 
 /************************************************
  *  Public functions
@@ -114,7 +97,7 @@ struct ChppServiceState {
  * by CHPP_SERVICE_ENABLED_xxxx definitions. This function is automatically
  * called by chppAppInit().
  *
- * @param context Maintains status for each app layer instance.
+ * @param context State of the app layer.
  */
 void chppRegisterCommonServices(struct ChppAppState *context);
 
@@ -123,7 +106,7 @@ void chppRegisterCommonServices(struct ChppAppState *context);
  * enabled by CHPP_SERVICE_ENABLED_xxxx definitions. This function is
  * automatically called by chppAppInit().
  *
- * @param context Maintains status for each app layer instance.
+ * @param context State of the app layer.
  */
 void chppDeregisterCommonServices(struct ChppAppState *context);
 
@@ -133,19 +116,28 @@ void chppDeregisterCommonServices(struct ChppAppState *context);
  * server (if any), i.e. except those that are registered through
  * chppRegisterCommonServices().
  *
+ * outReqStates must point to an array of ChppOutgoingRequestState with
+ * ChppEndpointState.outReqCount elements. It must be NULL when the service
+ * does not send requests (ChppEndpointState.outReqCount = 0).
+ *
+ * inReqStates must point to an array of ChppIncomingRequestState with
+ * as many elements as the corresponding client can send. It must be NULL when
+ * the client does not send requests (ChppEndpointState.outReqCount = 0).
+ *
  * Note that the maximum number of services that can be registered on a platform
  * can specified as CHPP_MAX_REGISTERED_SERVICES by the initialization code.
  * Otherwise, a default value will be used.
  *
- * @param appContext Maintains status for each app layer instance.
- * @param serviceContext Maintains status for each service instance.
+ * @param appContext State of the app layer.
+ * @param serviceContext State of the service instance.
+ * @param serviceState State of the client.
+ * @param outReqStates List of outgoing request states.
  * @param newService The service to be registered on this platform.
- *
- * @return Handle number of the registered service.
  */
-uint8_t chppRegisterService(struct ChppAppState *appContext,
-                            void *serviceContext,
-                            const struct ChppService *newService);
+void chppRegisterService(struct ChppAppState *appContext, void *serviceContext,
+                         struct ChppEndpointState *serviceState,
+                         struct ChppOutgoingRequestState *outReqStates,
+                         const struct ChppService *newService);
 
 /**
  * Allocates a service notification of a specified length.
@@ -155,85 +147,118 @@ uint8_t chppRegisterService(struct ChppAppState *appContext,
  * chppAllocServiceNotificationTypedArray() macros shall be used rather than
  * calling this function directly.
  *
+ * The caller must initialize at least the handle and command fields of the
+ * ChppAppHeader.
+ *
  * @param len Length of the notification (including header) in bytes. Note
- * that the specified length must be at least equal to the lendth of the app
- * layer header.
+ *        that the specified length must be at least equal to the length of the
+ *        app layer header.
  *
  * @return Pointer to allocated memory
  */
 struct ChppAppHeader *chppAllocServiceNotification(size_t len);
 
 /**
- * Allocates a service response message of a specified length, populating the
- * (app layer) service response header accorging to the provided client request
- * (app layer) header.
+ * Allocates a service request message of a specified length.
  *
- * It is expected that for most use cases, the chppAllocServiceResponseFixed()
- * or chppAllocServiceResponseTypedArray() macros shall be used rather than
- * calling this function directly.
+ * It populates the request header, including the transaction number which is
+ * then incremented.
  *
- * @param requestHeader Client request header.
+ * For most use cases, the chppAllocServiceRequestFixed() or
+ * chppAllocServiceRequestTypedArray() macros shall be preferred.
+ *
+ * @param serviceState State of the service.
  * @param len Length of the response message (including header) in bytes. Note
- * that the specified length must be at least equal to the lendth of the app
- * layer header.
+ *        that the specified length must be at least equal to the length of the
+ *        app layer header.
  *
  * @return Pointer to allocated memory
  */
-struct ChppAppHeader *chppAllocServiceResponse(
-    const struct ChppAppHeader *requestHeader, size_t len);
+struct ChppAppHeader *chppAllocServiceRequest(
+    struct ChppEndpointState *serviceState, size_t len);
 
 /**
- * This function shall be called for all incoming client requests in order to
- * A) Timestamp them, and
- * B) Save their Transaction ID
- * as part of the request/response's ChppRequestResponseState struct.
+ * Allocates a specific service request command without any additional payload.
  *
- * This function prints an error message if a duplicate request is received
- * while outstanding request is still pending without a response.
+ * @param serviceState State of the service.
+ * @param command Type of response.
  *
- * @param rRState Maintains the basic state for each request/response
- * functionality of a service.
- * @param requestHeader Client request header.
+ * @return Pointer to allocated memory
  */
-void chppServiceTimestampRequest(struct ChppRequestResponseState *rRState,
-                                 struct ChppAppHeader *requestHeader);
+struct ChppAppHeader *chppAllocServiceRequestCommand(
+    struct ChppEndpointState *serviceState, uint16_t command);
 
 /**
- * This function shall be called for the final service response to a client
- * request in order to
- * A) Timestamp them, and
- * B) Mark them as fulfilled
- * part of the request/response's ChppRequestResponseState struct.
+ * Timestamps and enqueues a request.
  *
- * This function prints an error message if a response is attempted without an
- * outstanding request.
+ * Note that the ownership of buf is taken from the caller when this method is
+ * invoked.
  *
- * For most responses, it is expected that chppSendTimestampedResponseOrFail()
- * shall be used to both timestamp and send the response in one shot.
+ * @param serviceState State of the service sending the request.
+ * @param outReqState State of the request/response.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ * @param timeoutNs Time in nanoseconds before a timeout response is generated.
+ *        Zero means no timeout response.
  *
- * @param rRState Maintains the basic state for each request/response
- * functionality of a service.
+ * @return True informs the sender that the datagram was successfully enqueued.
+ *         False informs the sender that the queue was full and the payload
+ *         discarded.
  */
-void chppServiceTimestampResponse(struct ChppRequestResponseState *rRState);
+bool chppServiceSendTimestampedRequestOrFail(
+    struct ChppEndpointState *serviceState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len,
+    uint64_t timeoutNs);
 
 /**
- * Timestamps a service response using chppServiceTimestampResponse() and
- * enqueues it using chppEnqueueTxDatagramOrFail().
+ * Similar to chppServiceSendTimestampedRequestOrFail() but blocks execution
+ * until a response is received. Used for synchronous requests.
  *
- * Refer to their respective documentation for details.
- *
- * @param serviceState State of the service sending the response service.
- * @param rRState Maintains the basic state for each request/response
- * functionality of a service.
+ * @param serviceState State of the service sending the request.
+ * @param outReqState State of the request/response.
  * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
  * @param len Datagram length in bytes.
  *
  * @return True informs the sender that the datagram was successfully enqueued.
- * False informs the sender that the queue was full and the payload discarded.
+ *         False informs the sender that the payload was discarded because
+ *         either the queue was full, or the request timed out.
  */
-bool chppSendTimestampedResponseOrFail(struct ChppServiceState *serviceState,
-                                       struct ChppRequestResponseState *rRState,
-                                       void *buf, size_t len);
+bool chppServiceSendTimestampedRequestAndWait(
+    struct ChppEndpointState *serviceState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len);
+
+/**
+ * Same as chppClientSendTimestampedRequestAndWait() but with a specified
+ * timeout.
+ *
+ * @param serviceState State of the service sending the request.
+ * @param outReqState State of the request/response.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ *         False informs the sender that the payload was discarded because
+ *         either the queue was full, or the request timed out.
+ */
+bool chppServiceSendTimestampedRequestAndWaitTimeout(
+    struct ChppEndpointState *serviceState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len,
+    uint64_t timeoutNs);
+
+/**
+ * Closes any remaining open requests by simulating a timeout.
+ *
+ * This function is used when a service is reset.
+ *
+ * @param serviceState State of the service.
+ * @param service The service for which to clear out open requests.
+ * @param clearOnly If true, indicates that a timeout response shouldn't be
+ *        sent. This must only be set if the requests are being cleared as
+ *        part of the closing.
+ */
+void chppServiceCloseOpenRequests(struct ChppEndpointState *serviceState,
+                                  const struct ChppService *service,
+                                  bool clearOnly);
 
 #ifdef __cplusplus
 }

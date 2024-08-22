@@ -26,4 +26,7 @@
 //! The constant pi in single-precision floating point format.
 #define CHRE_PI_F (3.14159265358979f)
 
+//! The constant pi in double-precision floating point format.
+#define CHRE_PI_D (3.1415926535897932)
+
 #endif  // CHRE_UTIL_NANOAPP_MATH_H_

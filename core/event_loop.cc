@@ -15,10 +15,13 @@
  */
 
 #include "chre/core/event_loop.h"
+#include <cinttypes>
+#include <cstdint>
 
 #include "chre/core/event.h"
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/nanoapp.h"
+#include "chre/platform/assert.h"
 #include "chre/platform/context.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/log.h"
@@ -26,6 +29,8 @@
 #include "chre/util/conditional_lock_guard.h"
 #include "chre/util/lock_guard.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/system/event_callbacks.h"
+#include "chre/util/system/stats_container.h"
 #include "chre/util/time.h"
 #include "chre_api/chre/version.h"
 
@@ -35,6 +40,16 @@ namespace chre {
 constexpr Nanoseconds EventLoop::kIntervalWakeupBucket;
 
 namespace {
+
+#ifndef CHRE_STATIC_EVENT_LOOP
+using DynamicMemoryPool =
+    SynchronizedExpandableMemoryPool<Event, CHRE_EVENT_PER_BLOCK,
+                                     CHRE_MAX_EVENT_BLOCKS>;
+#endif
+// TODO(b/264108686): Make this a compile time parameter.
+// How many low priority event to remove if the event queue is full
+// and a new event needs to be pushed.
+constexpr size_t targetLowPriorityEventRemove = 4;
 
 /**
  * Populates a chreNanoappInfo structure using info from the given Nanoapp
@@ -53,16 +68,37 @@ bool populateNanoappInfo(const Nanoapp *app, struct chreNanoappInfo *info) {
     info->appId = app->getAppId();
     info->version = app->getAppVersion();
     info->instanceId = app->getInstanceId();
+    if (app->getTargetApiVersion() >= CHRE_API_VERSION_1_8) {
+      CHRE_ASSERT(app->getRpcServices().size() <= Nanoapp::kMaxRpcServices);
+      info->rpcServiceCount =
+          static_cast<uint8_t>(app->getRpcServices().size());
+      info->rpcServices = app->getRpcServices().data();
+      memset(&info->reserved, 0, sizeof(info->reserved));
+    }
     success = true;
   }
 
   return success;
 }
 
+#ifndef CHRE_STATIC_EVENT_LOOP
+/**
+ * @return true if a event is a low priority event.
+ */
+bool isLowPriorityEvent(Event *event) {
+  CHRE_ASSERT_NOT_NULL(event);
+  return event->isLowPriority;
+}
+
+void deallocateFromMemoryPool(Event *event, void *memoryPool) {
+  static_cast<DynamicMemoryPool *>(memoryPool)->deallocate(event);
+}
+#endif
+
 }  // anonymous namespace
 
 bool EventLoop::findNanoappInstanceIdByAppId(uint64_t appId,
-                                             uint32_t *instanceId) const {
+                                             uint16_t *instanceId) const {
   CHRE_ASSERT(instanceId != nullptr);
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
 
@@ -103,38 +139,25 @@ void EventLoop::invokeMessageFreeFunction(uint64_t appId,
 void EventLoop::run() {
   LOGI("EventLoop start");
 
-  bool havePendingEvents = false;
   while (mRunning) {
-    // Events are delivered in two stages: first they arrive in the inbound
-    // event queue mEvents (potentially posted from another thread), then within
-    // this context these events are distributed to smaller event queues
-    // associated with each Nanoapp that should receive the event. Once the
-    // event is delivered to all interested Nanoapps, its free callback is
-    // invoked.
-    if (!havePendingEvents || !mEvents.empty()) {
-      if (mEvents.size() > mMaxEventPoolUsage) {
-        mMaxEventPoolUsage = mEvents.size();
-      }
+    // Events are delivered in a single stage: they arrive in the inbound event
+    // queue mEvents (potentially posted from another thread), then within
+    // this context these events are distributed to all interested Nanoapps,
+    // with their free callback invoked after distribution.
+    mEventPoolUsage.addValue(static_cast<uint32_t>(mEvents.size()));
 
-      // mEvents.pop() will be a blocking call if mEvents.empty()
-      Event *event = mEvents.pop();
-      // Need size() + 1 since the to-be-processed event has already been
-      // removed.
-      mPowerControlManager.preEventLoopProcess(mEvents.size() + 1);
-      distributeEvent(event);
-    }
-
-    havePendingEvents = deliverEvents();
+    // mEvents.pop() will be a blocking call if mEvents.empty()
+    Event *event = mEvents.pop();
+    // Need size() + 1 since the to-be-processed event has already been removed.
+    mPowerControlManager.preEventLoopProcess(mEvents.size() + 1);
+    distributeEvent(event);
 
     mPowerControlManager.postEventLoopProcess(mEvents.size());
   }
 
-  // Deliver any events sitting in Nanoapps' own queues (we could drop them to
-  // exit faster, but this is less code and should complete quickly under normal
-  // conditions), then purge the main queue of events pending distribution. All
-  // nanoapps should be prevented from sending events or messages at this point
-  // via currentNanoappIsStopping() returning true.
-  flushNanoappEventQueues();
+  // Purge the main queue of events pending distribution. All nanoapps should be
+  // prevented from sending events or messages at this point via
+  // currentNanoappIsStopping() returning true.
   while (!mEvents.empty()) {
     freeEvent(mEvents.pop());
   }
@@ -152,7 +175,7 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
   bool success = false;
   auto *eventLoopManager = EventLoopManagerSingleton::get();
   EventLoop &eventLoop = eventLoopManager->getEventLoop();
-  uint32_t existingInstanceId;
+  uint16_t existingInstanceId;
 
   if (nanoapp.isNull()) {
     // no-op, invalid argument
@@ -164,48 +187,40 @@ bool EventLoop::startNanoapp(UniquePtr<Nanoapp> &nanoapp) {
          static_cast<uint32_t>(CHRE_FIRST_SUPPORTED_API_VERSION));
   } else if (eventLoop.findNanoappInstanceIdByAppId(nanoapp->getAppId(),
                                                     &existingInstanceId)) {
-    LOGE("App with ID 0x%016" PRIx64
-         " already exists as instance ID 0x%" PRIx32,
+    LOGE("App with ID 0x%016" PRIx64 " already exists as instance ID %" PRIu16,
          nanoapp->getAppId(), existingInstanceId);
-  } else if (!mNanoapps.prepareForPush()) {
-    LOG_OOM();
   } else {
-    nanoapp->setInstanceId(eventLoopManager->getNextInstanceId());
-    LOGD("Instance ID %" PRIu32 " assigned to app ID 0x%016" PRIx64,
-         nanoapp->getInstanceId(), nanoapp->getAppId());
-
     Nanoapp *newNanoapp = nanoapp.get();
     {
       LockGuard<Mutex> lock(mNanoappsLock);
-      mNanoapps.push_back(std::move(nanoapp));
+      success = mNanoapps.push_back(std::move(nanoapp));
       // After this point, nanoapp is null as we've transferred ownership into
       // mNanoapps.back() - use newNanoapp to reference it
     }
-
-    mCurrentApp = newNanoapp;
-    success = newNanoapp->start();
-    mCurrentApp = nullptr;
     if (!success) {
-      // TODO: to be fully safe, need to purge/flush any events and messages
-      // sent by the nanoapp here (but don't call nanoappEnd). For now, we just
-      // destroy the Nanoapp instance.
-      LOGE("Nanoapp %" PRIu32 " failed to start", newNanoapp->getInstanceId());
-
-      // Note that this lock protects against concurrent read and modification
-      // of mNanoapps, but we are assured that no new nanoapps were added since
-      // we pushed the new nanoapp
-      LockGuard<Mutex> lock(mNanoappsLock);
-      mNanoapps.pop_back();
+      LOG_OOM();
     } else {
-      notifyAppStatusChange(CHRE_EVENT_NANOAPP_STARTED, *newNanoapp);
+      mCurrentApp = newNanoapp;
+      success = newNanoapp->start();
+      mCurrentApp = nullptr;
+      if (!success) {
+        LOGE("Nanoapp %" PRIu16 " failed to start",
+             newNanoapp->getInstanceId());
+        unloadNanoapp(newNanoapp->getInstanceId(),
+                      /*allowSystemNanoappUnload=*/true,
+                      /*nanoappStarted=*/false);
+      } else {
+        notifyAppStatusChange(CHRE_EVENT_NANOAPP_STARTED, *newNanoapp);
+      }
     }
   }
 
   return success;
 }
 
-bool EventLoop::unloadNanoapp(uint32_t instanceId,
-                              bool allowSystemNanoappUnload) {
+bool EventLoop::unloadNanoapp(uint16_t instanceId,
+                              bool allowSystemNanoappUnload,
+                              bool nanoappStarted) {
   bool unloaded = false;
 
   for (size_t i = 0; i < mNanoapps.size(); i++) {
@@ -220,36 +235,30 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
             ->getHostCommsManager()
             .flushMessagesSentByNanoapp(mNanoapps[i]->getAppId());
 
-        // Distribute all inbound events we have at this time - here we're
-        // interested in handling any message free callbacks generated by
-        // flushMessagesSentByNanoapp()
-        flushInboundEventQueue();
-
         // Mark that this nanoapp is stopping early, so it can't send events or
         // messages during the nanoapp event queue flush
         mStoppingNanoapp = mNanoapps[i].get();
 
-        // Process any pending events, with the intent of ensuring that we free
-        // all events generated by this nanoapp
-        flushNanoappEventQueues();
+        // Distribute all inbound events we have at this time - here we're
+        // interested in handling any message free callbacks generated by
+        // flushInboundEventQueue()
+        flushInboundEventQueue();
 
         // Post the unload event now (so we can reference the Nanoapp instance
-        // directly), but nanoapps won't get it until after the unload completes
-        notifyAppStatusChange(CHRE_EVENT_NANOAPP_STOPPED, *mStoppingNanoapp);
+        // directly), but nanoapps won't get it until after the unload
+        // completes. No need to notify status change if nanoapps failed to
+        // start.
+        if (nanoappStarted) {
+          notifyAppStatusChange(CHRE_EVENT_NANOAPP_STOPPED, *mStoppingNanoapp);
+        }
 
         // Finally, we are at a point where there should not be any pending
         // events or messages sent by the app that could potentially reference
         // the nanoapp's memory, so we are safe to unload it
-        unloadNanoappAtIndex(i);
+        unloadNanoappAtIndex(i, nanoappStarted);
         mStoppingNanoapp = nullptr;
 
-        // TODO: right now we assume that the nanoapp will clean up all of its
-        // resource allocations in its nanoappEnd callback (memory, sensor
-        // subscriptions, etc.), otherwise we're leaking resources. We should
-        // perform resource cleanup automatically here to avoid these types of
-        // potential leaks.
-
-        LOGD("Unloaded nanoapp with instanceId %" PRIu32, instanceId);
+        LOGD("Unloaded nanoapp with instanceId %" PRIu16, instanceId);
         unloaded = true;
       }
       break;
@@ -259,14 +268,40 @@ bool EventLoop::unloadNanoapp(uint32_t instanceId,
   return unloaded;
 }
 
+bool EventLoop::removeLowPriorityEventsFromBack(size_t removeNum) {
+#ifdef CHRE_STATIC_EVENT_LOOP
+  return false;
+#else
+  if (removeNum == 0) {
+    return true;
+  }
+
+  size_t numRemovedEvent = mEvents.removeMatchedFromBack(
+      isLowPriorityEvent, removeNum, deallocateFromMemoryPool, &mEventPool);
+  if (numRemovedEvent == 0 || numRemovedEvent == SIZE_MAX) {
+    LOGW("Cannot remove any low priority event");
+  } else {
+    mNumDroppedLowPriEvents += numRemovedEvent;
+  }
+  return numRemovedEvent > 0;
+#endif
+}
+
+bool EventLoop::hasNoSpaceForHighPriorityEvent() {
+  return mEventPool.full() &&
+         !removeLowPriorityEventsFromBack(targetLowPriorityEventRemove);
+}
+
+// TODO(b/264108686): Refactor this function and postSystemEvent
 void EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
                                chreEventCompleteFunction *freeCallback,
-                               uint32_t targetInstanceId,
+                               uint16_t targetInstanceId,
                                uint16_t targetGroupMask) {
   if (mRunning) {
-    if (!allocateAndPostEvent(eventType, eventData, freeCallback,
-                              kSystemInstanceId, targetInstanceId,
-                              targetGroupMask)) {
+    if (hasNoSpaceForHighPriorityEvent() ||
+        !allocateAndPostEvent(eventType, eventData, freeCallback,
+                              /* isLowPriority= */ false, kSystemInstanceId,
+                              targetInstanceId, targetGroupMask)) {
       FATAL_ERROR("Failed to post critical system event 0x%" PRIx16, eventType);
     }
   } else if (freeCallback != nullptr) {
@@ -277,33 +312,42 @@ void EventLoop::postEventOrDie(uint16_t eventType, void *eventData,
 bool EventLoop::postSystemEvent(uint16_t eventType, void *eventData,
                                 SystemEventCallbackFunction *callback,
                                 void *extraData) {
-  if (mRunning) {
-    Event *event =
-        mEventPool.allocate(eventType, eventData, callback, extraData);
-
-    if (event == nullptr || !mEvents.push(event)) {
-      FATAL_ERROR("Failed to post critical system event 0x%" PRIx16, eventType);
-    }
-    return true;
+  if (!mRunning) {
+    return false;
   }
-  return false;
+
+  if (hasNoSpaceForHighPriorityEvent()) {
+    FATAL_ERROR("Failed to post critical system event 0x%" PRIx16
+                ": Full of high priority "
+                "events",
+                eventType);
+  }
+
+  Event *event = mEventPool.allocate(eventType, eventData, callback, extraData);
+  if (event == nullptr || !mEvents.push(event)) {
+    FATAL_ERROR("Failed to post critical system event 0x%" PRIx16
+                ": out of memory",
+                eventType);
+  }
+
+  return true;
 }
 
 bool EventLoop::postLowPriorityEventOrFree(
     uint16_t eventType, void *eventData,
-    chreEventCompleteFunction *freeCallback, uint32_t senderInstanceId,
-    uint32_t targetInstanceId, uint16_t targetGroupMask) {
+    chreEventCompleteFunction *freeCallback, uint16_t senderInstanceId,
+    uint16_t targetInstanceId, uint16_t targetGroupMask) {
   bool eventPosted = false;
 
   if (mRunning) {
-    if (mEventPool.getFreeBlockCount() > kMinReservedHighPriorityEventCount) {
-      eventPosted = allocateAndPostEvent(eventType, eventData, freeCallback,
-                                         senderInstanceId, targetInstanceId,
-                                         targetGroupMask);
-      if (!eventPosted) {
-        LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu32,
-             eventType, targetInstanceId);
-      }
+    eventPosted =
+        allocateAndPostEvent(eventType, eventData, freeCallback,
+                             /* isLowPriority= */ true, senderInstanceId,
+                             targetInstanceId, targetGroupMask);
+    if (!eventPosted) {
+      LOGE("Failed to allocate event 0x%" PRIx16 " to instanceId %" PRIu16,
+           eventType, targetInstanceId);
+      ++mNumDroppedLowPriEvents;
     }
   }
 
@@ -329,7 +373,7 @@ void EventLoop::onStopComplete() {
   mRunning = false;
 }
 
-Nanoapp *EventLoop::findNanoappByInstanceId(uint32_t instanceId) const {
+Nanoapp *EventLoop::findNanoappByInstanceId(uint16_t instanceId) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   return lookupAppByInstanceId(instanceId);
 }
@@ -342,7 +386,7 @@ bool EventLoop::populateNanoappInfoForAppId(
 }
 
 bool EventLoop::populateNanoappInfoForInstanceId(
-    uint32_t instanceId, struct chreNanoappInfo *info) const {
+    uint16_t instanceId, struct chreNanoappInfo *info) const {
   ConditionalLockGuard<Mutex> lock(mNanoappsLock, !inEventLoopThread());
   Nanoapp *app = lookupAppByInstanceId(instanceId);
   return populateNanoappInfo(app, info);
@@ -354,8 +398,12 @@ bool EventLoop::currentNanoappIsStopping() const {
 
 void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   debugDump.print("\nEvent Loop:\n");
-  debugDump.print("  Max event pool usage: %zu/%zu\n", mMaxEventPoolUsage,
-                  kMaxEventCount);
+  debugDump.print("  Max event pool usage: %" PRIu32 "/%zu\n",
+                  mEventPoolUsage.getMax(), kMaxEventCount);
+  debugDump.print("  Number of low priority events dropped: %" PRIu32 "\n",
+                  mNumDroppedLowPriEvents);
+  debugDump.print("  Mean event pool usage: %" PRIu32 "/%zu\n",
+                  mEventPoolUsage.getMean(), kMaxEventCount);
 
   Nanoseconds timeSince =
       SystemTime::getMonotonicTime() - mTimeLastWakeupBucketCycled;
@@ -364,25 +412,39 @@ void EventLoop::logStateToBuffer(DebugDumpWrapper &debugDump) const {
   uint64_t durationMins =
       kIntervalWakeupBucket.toRawNanoseconds() / kOneMinuteInNanoseconds;
   debugDump.print("  Nanoapp host wakeup tracking: cycled %" PRIu64
-                  "mins ago, bucketDuration=%" PRIu64 "mins\n",
+                  " mins ago, bucketDuration=%" PRIu64 "mins\n",
                   timeSinceMins, durationMins);
 
   debugDump.print("\nNanoapps:\n");
-  for (const UniquePtr<Nanoapp> &app : mNanoapps) {
-    app->logStateToBuffer(debugDump);
+
+  if (mNanoapps.size()) {
+    for (const UniquePtr<Nanoapp> &app : mNanoapps) {
+      app->logStateToBuffer(debugDump);
+    }
+
+    mNanoapps[0]->logMemAndComputeHeader(debugDump);
+    for (const UniquePtr<Nanoapp> &app : mNanoapps) {
+      app->logMemAndComputeEntry(debugDump);
+    }
+
+    mNanoapps[0]->logMessageHistoryHeader(debugDump);
+    for (const UniquePtr<Nanoapp> &app : mNanoapps) {
+      app->logMessageHistoryEntry(debugDump);
+    }
   }
 }
 
 bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
                                      chreEventCompleteFunction *freeCallback,
-                                     uint32_t senderInstanceId,
-                                     uint32_t targetInstanceId,
+                                     bool isLowPriority,
+                                     uint16_t senderInstanceId,
+                                     uint16_t targetInstanceId,
                                      uint16_t targetGroupMask) {
   bool success = false;
 
   Event *event =
-      mEventPool.allocate(eventType, eventData, freeCallback, senderInstanceId,
-                          targetInstanceId, targetGroupMask);
+      mEventPool.allocate(eventType, eventData, freeCallback, isLowPriority,
+                          senderInstanceId, targetInstanceId, targetGroupMask);
   if (event != nullptr) {
     success = mEvents.push(event);
   }
@@ -390,67 +452,41 @@ bool EventLoop::allocateAndPostEvent(uint16_t eventType, void *eventData,
   return success;
 }
 
-bool EventLoop::deliverEvents() {
-  bool havePendingEvents = false;
-
-  // Do one loop of round-robin. We might want to have some kind of priority or
-  // time sharing in the future, but this should be good enough for now.
-  for (const UniquePtr<Nanoapp> &app : mNanoapps) {
-    if (app->hasPendingEvent()) {
-      havePendingEvents |= deliverNextEvent(app);
-    }
-  }
-
-  return havePendingEvents;
-}
-
-bool EventLoop::deliverNextEvent(const UniquePtr<Nanoapp> &app) {
+void EventLoop::deliverNextEvent(const UniquePtr<Nanoapp> &app, Event *event) {
   // TODO: cleaner way to set/clear this? RAII-style?
   mCurrentApp = app.get();
-  Event *event = app->processNextEvent();
+  app->processEvent(event);
   mCurrentApp = nullptr;
-
-  if (event->isUnreferenced()) {
-    freeEvent(event);
-  }
-
-  return app->hasPendingEvent();
 }
 
 void EventLoop::distributeEvent(Event *event) {
+  bool eventDelivered = false;
   for (const UniquePtr<Nanoapp> &app : mNanoapps) {
     if ((event->targetInstanceId == chre::kBroadcastInstanceId &&
-         app->isRegisteredForBroadcastEvent(event->eventType,
-                                            event->targetAppGroupMask)) ||
+         app->isRegisteredForBroadcastEvent(event)) ||
         event->targetInstanceId == app->getInstanceId()) {
-      app->postEvent(event);
+      eventDelivered = true;
+      deliverNextEvent(app, event);
     }
   }
-
-  if (event->isUnreferenced()) {
-    // Log if an event unicast to a nanoapp isn't delivered, as this is could be
-    // a bug (e.g. something isn't properly keeping track of when nanoapps are
-    // unloaded), though it could just be a harmless transient issue (e.g. race
-    // condition with nanoapp unload, where we post an event to a nanoapp just
-    // after queues are flushed while it's unloading)
-    if (event->targetInstanceId != kBroadcastInstanceId &&
-        event->targetInstanceId != kSystemInstanceId) {
-      LOGW("Dropping event 0x%" PRIx16 " from instanceId %" PRIu32 "->%" PRIu32,
-           event->eventType, event->senderInstanceId, event->targetInstanceId);
-    }
-    freeEvent(event);
+  // Log if an event unicast to a nanoapp isn't delivered, as this is could be
+  // a bug (e.g. something isn't properly keeping track of when nanoapps are
+  // unloaded), though it could just be a harmless transient issue (e.g. race
+  // condition with nanoapp unload, where we post an event to a nanoapp just
+  // after queues are flushed while it's unloading)
+  if (!eventDelivered && event->targetInstanceId != kBroadcastInstanceId &&
+      event->targetInstanceId != kSystemInstanceId) {
+    LOGW("Dropping event 0x%" PRIx16 " from instanceId %" PRIu16 "->%" PRIu16,
+         event->eventType, event->senderInstanceId, event->targetInstanceId);
   }
+  CHRE_ASSERT(event->isUnreferenced());
+  freeEvent(event);
 }
 
 void EventLoop::flushInboundEventQueue() {
   while (!mEvents.empty()) {
     distributeEvent(mEvents.pop());
   }
-}
-
-void EventLoop::flushNanoappEventQueues() {
-  while (deliverEvents())
-    ;
 }
 
 void EventLoop::freeEvent(Event *event) {
@@ -474,7 +510,7 @@ Nanoapp *EventLoop::lookupAppByAppId(uint64_t appId) const {
   return nullptr;
 }
 
-Nanoapp *EventLoop::lookupAppByInstanceId(uint32_t instanceId) const {
+Nanoapp *EventLoop::lookupAppByInstanceId(uint16_t instanceId) const {
   // The system instance ID always has nullptr as its Nanoapp pointer, so can
   // skip iterating through the nanoapp list for that case
   if (instanceId != kSystemInstanceId) {
@@ -502,7 +538,7 @@ void EventLoop::notifyAppStatusChange(uint16_t eventType,
   }
 }
 
-void EventLoop::unloadNanoappAtIndex(size_t index) {
+void EventLoop::unloadNanoappAtIndex(size_t index, bool nanoappStarted) {
   const UniquePtr<Nanoapp> &nanoapp = mNanoapps[index];
 
   // Lock here to prevent the nanoapp instance from being accessed between the
@@ -511,23 +547,83 @@ void EventLoop::unloadNanoappAtIndex(size_t index) {
 
   // Let the app know it's going away
   mCurrentApp = nanoapp.get();
-  nanoapp->end();
-  mCurrentApp = nullptr;
+
+  // nanoappEnd() is not invoked for nanoapps that return false in
+  // nanoappStart(), per CHRE API
+  if (nanoappStarted) {
+    nanoapp->end();
+  }
+
+  // Cleanup resources.
+#ifdef CHRE_WIFI_SUPPORT_ENABLED
+  const uint32_t numDisabledWifiSubscriptions =
+      EventLoopManagerSingleton::get()
+          ->getWifiRequestManager()
+          .disableAllSubscriptions(nanoapp.get());
+  logDanglingResources("WIFI subscriptions", numDisabledWifiSubscriptions);
+#endif  // CHRE_WIFI_SUPPORT_ENABLED
+
+#ifdef CHRE_GNSS_SUPPORT_ENABLED
+  const uint32_t numDisabledGnssSubscriptions =
+      EventLoopManagerSingleton::get()
+          ->getGnssManager()
+          .disableAllSubscriptions(nanoapp.get());
+  logDanglingResources("GNSS subscriptions", numDisabledGnssSubscriptions);
+#endif  // CHRE_GNSS_SUPPORT_ENABLED
+
+#ifdef CHRE_SENSORS_SUPPORT_ENABLED
+  const uint32_t numDisabledSensorSubscriptions =
+      EventLoopManagerSingleton::get()
+          ->getSensorRequestManager()
+          .disableAllSubscriptions(nanoapp.get());
+  logDanglingResources("Sensor subscriptions", numDisabledSensorSubscriptions);
+#endif  // CHRE_SENSORS_SUPPORT_ENABLED
+
+#ifdef CHRE_AUDIO_SUPPORT_ENABLED
+  const uint32_t numDisabledAudioRequests =
+      EventLoopManagerSingleton::get()
+          ->getAudioRequestManager()
+          .disableAllAudioRequests(nanoapp.get());
+  logDanglingResources("Audio requests", numDisabledAudioRequests);
+#endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  const uint32_t numDisabledBleScans = EventLoopManagerSingleton::get()
+                                           ->getBleRequestManager()
+                                           .disableActiveScan(nanoapp.get());
+  logDanglingResources("BLE scan", numDisabledBleScans);
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+
+  const uint32_t numCancelledTimers =
+      getTimerPool().cancelAllNanoappTimers(nanoapp.get());
+  logDanglingResources("timers", numCancelledTimers);
+
+  const uint32_t numFreedBlocks =
+      EventLoopManagerSingleton::get()->getMemoryManager().nanoappFreeAll(
+          nanoapp.get());
+  logDanglingResources("heap blocks", numFreedBlocks);
 
   // Destroy the Nanoapp instance
   mNanoapps.erase(index);
+
+  mCurrentApp = nullptr;
 }
 
 void EventLoop::handleNanoappWakeupBuckets() {
   Nanoseconds now = SystemTime::getMonotonicTime();
   Nanoseconds duration = now - mTimeLastWakeupBucketCycled;
   if (duration > kIntervalWakeupBucket) {
-    size_t numBuckets = static_cast<size_t>(
-        duration.toRawNanoseconds() / kIntervalWakeupBucket.toRawNanoseconds());
     mTimeLastWakeupBucketCycled = now;
     for (auto &nanoapp : mNanoapps) {
-      nanoapp->cycleWakeupBuckets(numBuckets);
+      nanoapp->cycleWakeupBuckets(now);
     }
+  }
+}
+
+void EventLoop::logDanglingResources(const char *name, uint32_t count) {
+  if (count > 0) {
+    LOGE("App 0x%016" PRIx64 " had %" PRIu32 " remaining %s at unload",
+         mCurrentApp->getAppId(), count, name);
   }
 }
 

@@ -1,11 +1,30 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "chre/util/array_queue.h"
 #include "gtest/gtest.h"
 
 #include <algorithm>
+#include <memory>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 using chre::ArrayQueue;
+using chre::ArrayQueueExt;
 
 namespace {
 constexpr int kMaxTestCapacity = 10;
@@ -86,6 +105,15 @@ TEST(ArrayQueueTest, SimplePushPopBackPush) {
   EXPECT_EQ(5, q[0]);
   EXPECT_EQ(6, q[1]);
   EXPECT_EQ(7, q[2]);
+
+  q.pop_back();
+
+  EXPECT_EQ(5, q[0]);
+  EXPECT_EQ(6, q[1]);
+
+  q.pop();
+
+  EXPECT_EQ(6, q[0]);
 }
 
 TEST(ArrayQueueTest, TestSize) {
@@ -175,12 +203,19 @@ TEST(ArrayQueueTest, TestFront) {
 TEST(ArrayQueueTest, TestBack) {
   ArrayQueue<int, 3> q;
   q.push(1);
-  EXPECT_EQ(1, q.back());
-  q.pop();
+  EXPECT_EQ(1, q.back());  // 1 x x
   q.push(2);
-  EXPECT_EQ(2, q.back());
+  EXPECT_EQ(2, q.back());  // 1 2 x
+  q.pop();
+  EXPECT_EQ(2, q.back());  // x 2 x
   q.push(3);
-  EXPECT_EQ(3, q.back());
+  EXPECT_EQ(3, q.back());  // x 2 3
+  q.push(4);
+  EXPECT_EQ(4, q.back());  // 4 2 3 (forward wrap-around)
+  q.pop_back();
+  EXPECT_EQ(3, q.back());  // x 2 3 (backwards wrap-around)
+  q.pop();
+  EXPECT_EQ(3, q.back());  // x x 3
 }
 
 TEST(ArrayQueueDeathTest, InvalidSubscript) {
@@ -204,16 +239,22 @@ TEST(ArrayQueueTest, RemoveWithInvalidIndex) {
 }
 
 TEST(ArrayQueueTest, RemoveWithIndex) {
-  ArrayQueue<int, 3> q;
+  ArrayQueue<int, 5> q;
   q.push(1);
   q.push(2);
   q.remove(0);
   EXPECT_EQ(2, q.front());
   EXPECT_EQ(1, q.size());
   q.push(3);
-  q.remove(1);
-  EXPECT_EQ(2, q.front());
-  EXPECT_EQ(1, q.size());
+  q.push(4);
+  q.push(5);
+  q.remove(3);
+  int sampleArray[] = {2, 3, 5};
+  EXPECT_EQ(3, q.size());
+  for (size_t i = 0; i < q.size(); ++i) {
+    EXPECT_EQ(sampleArray[i], q.front());
+    q.remove(0);
+  }
 }
 
 TEST(ArrayQueueTest, DestructorCalledOnPop) {
@@ -250,15 +291,9 @@ TEST(ArrayQueueTest, ElementsDestructedWhenQueueDestructed) {
       q.push(e);
       q[i].setValue(i);
     }
-
-    q.~ArrayQueue();
-
-    for (size_t i = 0; i < 3; ++i) {
-      EXPECT_EQ(1, destructor_count[i]);
-    }
   }
 
-  // Check destructor count.
+  // q should now be destroyed - check destructor count.
   for (size_t i = 0; i < 3; ++i) {
     EXPECT_EQ(1, destructor_count[i]);
   }
@@ -529,4 +564,43 @@ TEST(ArrayQueueTest, ElementsDestructedArrayClear) {
     EXPECT_EQ(1, destructor_count[i]);
   }
   EXPECT_EQ(3, total_destructor_count);
+}
+
+TEST(ArrayQueueExtTest, BasicTest) {
+  constexpr size_t kNumElements = 32;
+  int32_t array[kNumElements];
+  ArrayQueueExt<int32_t> q(array, kNumElements);
+
+  ASSERT_EQ(q.data(), array);
+  EXPECT_EQ(q.capacity(), kNumElements);
+
+  for (int i = 0; i < kNumElements; i++) {
+    q.push(i);
+  }
+
+  for (int i = 0; i < kNumElements; i++) {
+    EXPECT_EQ(array[i], q[i]);
+  }
+}
+
+TEST(ArrayQueueTest, KickPushNonCopyable) {
+  ArrayQueue<std::unique_ptr<int>, 2> q;
+  auto p1 = std::make_unique<int>(42);
+  auto p2 = std::make_unique<int>(43);
+  auto p3 = std::make_unique<int>(44);
+
+  q.kick_push(std::move(p1));
+  EXPECT_EQ(q.size(), 1);
+  EXPECT_EQ(*q.front(), 42);
+  EXPECT_EQ(*q.back(), 42);
+
+  q.kick_push(std::move(p2));
+  EXPECT_EQ(q.size(), 2);
+  EXPECT_EQ(*q.front(), 42);
+  EXPECT_EQ(*q.back(), 43);
+
+  q.kick_push(std::move(p3));
+  EXPECT_EQ(q.size(), 2);
+  EXPECT_EQ(*q.front(), 43);
+  EXPECT_EQ(*q.back(), 44);
 }

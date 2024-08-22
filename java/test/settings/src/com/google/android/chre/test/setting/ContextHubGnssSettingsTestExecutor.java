@@ -48,12 +48,12 @@ public class ContextHubGnssSettingsTestExecutor {
         mExecutor.init();
     }
 
-    public void runGnssLocationTest() {
+    public void runGnssLocationTest() throws InterruptedException {
         runTest(ChreSettingsTest.TestCommand.Feature.GNSS_LOCATION, false /* enableFeature */);
         runTest(ChreSettingsTest.TestCommand.Feature.GNSS_LOCATION, true /* enableFeature */);
     }
 
-    public void runGnssMeasurementTest() {
+    public void runGnssMeasurementTest() throws InterruptedException {
         runTest(ChreSettingsTest.TestCommand.Feature.GNSS_MEASUREMENT, false /* enableFeature */);
         runTest(ChreSettingsTest.TestCommand.Feature.GNSS_MEASUREMENT, true /* enableFeature */);
     }
@@ -61,7 +61,7 @@ public class ContextHubGnssSettingsTestExecutor {
     /**
      * Should be called in an @After method.
      */
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         mExecutor.deinit();
         mSettingsUtil.setLocationMode(mInitialLocationEnabled, 30 /* timeoutSeconds */);
     }
@@ -71,7 +71,8 @@ public class ContextHubGnssSettingsTestExecutor {
      * @param feature The GNSS feature to test.
      * @param enableFeature True for enable.
      */
-    private void runTest(ChreSettingsTest.TestCommand.Feature feature, boolean enableFeature) {
+    private void runTest(ChreSettingsTest.TestCommand.Feature feature, boolean enableFeature)
+            throws InterruptedException {
         mSettingsUtil.setLocationMode(enableFeature, 30 /* timeoutSeconds */);
 
         ChreSettingsTest.TestCommand.State state = enableFeature

@@ -14,6 +14,9 @@
 # limitations under the License.
 #
 
+on post-fs-data
+    mkdir /data/vendor/chre 0770 context_hub context_hub
+
 service vendor.chre /vendor/bin/chre
     class late_start
     user context_hub

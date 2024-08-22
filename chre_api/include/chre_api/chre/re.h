@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// IWYU pragma: private, include "chre_api/chre.h"
+// IWYU pragma: friend chre/.*\.h
+
 #ifndef _CHRE_RE_H_
 #define _CHRE_RE_H_
 
@@ -64,6 +67,21 @@ extern "C" {
 #define CHRE_DEBUG_DUMP_MINIMUM_MAX_SIZE 1000
 
 /**
+ * The set of flags that may be returned by chreGetCapabilities()
+ * @defgroup CHRE_CAPABILITIES
+ * @{
+ */
+
+//! None of the optional capabilities are supported
+#define CHRE_CAPABILITIES_NONE                 UINT32_C(0)
+
+//! Support for reliable messages.
+//! @see chreSendReliableMessageAsync()
+#define CHRE_CAPABILITIES_RELIABLE_MESSAGES    UINT32_C(1 << 0)
+
+/** @} */
+
+/**
  * Logging levels used to indicate severity level of logging messages.
  *
  * CHRE_LOG_ERROR: Something fatal has happened, i.e. something that will have
@@ -94,6 +112,35 @@ enum chreLogLevel {
     CHRE_LOG_DEBUG
 };
 
+/**
+ * Retrieves a set of flags indicating the CHRE optional features supported by
+ * the current implementation. The value returned by this function must be
+ * consistent for the entire duration of the nanoapp's execution.
+ *
+ * The client must allow for more flags to be set in this response than it knows
+ * about, for example if the implementation supports a newer version of the API
+ * than the client was compiled against.
+ *
+ * @return A bitmask with zero or more CHRE_CAPABILITIES_* flags set.
+ *
+ * @since v1.10
+ */
+uint32_t chreGetCapabilities(void);
+
+/**
+ * Returns the maximum size in bytes of a message sent to the host.
+ * This function will always return a value greater than or equal to
+ * CHRE_MESSAGE_TO_HOST_MAX_SIZE. If the capability
+ * CHRE_CAPABILITIES_RELIABLE_MESSAGES is enabled, this function will
+ * return a value greater than or equal to 32000.
+ *
+ * On v1.9 or earlier platforms, this will always return CHRE_MESSAGE_TO_HOST_MAX_SIZE.
+ *
+ * @return The maximum message size in bytes.
+ *
+ * @since v1.10
+ */
+uint32_t chreGetMessageToHostMaxSize(void);
 
 /**
  * Get the application ID.
@@ -171,6 +218,13 @@ uint32_t chreGetInstanceId(void);
  *
  * Unless specifically noted as OPTIONAL or NOT_SUPPORTED, format
  * (sub-)specifiers listed below are required.
+ *
+ * While all CHRE implementations must support chreLog(), some platform
+ * implementations may support enhanced logging functionality only possible
+ * through a macro. This improved functionality is supported through
+ * platform-specific customization of the log macros provided in
+ * chre/util/nanoapp/log.h. All nanoapps are recommended to use these log
+ * macros where possible, as they will fall back to chreLog() as needed.
  *
  * OPTIONAL format sub-specifiers:
  * - '-' (left-justify within the given field width)
@@ -363,7 +417,7 @@ bool chreTimerCancel(uint32_t timerId);
  * @return Never.  This method does not return, as the CHRE stops nanoapp
  *    execution immediately.
  */
-void chreAbort(uint32_t abortCode);
+void chreAbort(uint32_t abortCode) CHRE_NO_RETURN;
 
 /**
  * Allocate a given number of bytes from the system heap.
@@ -383,6 +437,7 @@ void chreAbort(uint32_t abortCode);
  *
  * @see chreHeapFree.
  */
+CHRE_MALLOC_ATTR
 void *chreHeapAlloc(uint32_t bytes);
 
 /**

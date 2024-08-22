@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// IWYU pragma: private, include "chre_api/chre.h"
+// IWYU pragma: friend chre/.*\.h
+
 #ifndef _CHRE_EVENT_H_
 #define _CHRE_EVENT_H_
 
@@ -38,9 +41,10 @@ extern "C" {
  *
  * CHRE_MESSAGE_TO_HOST_MAX_SIZE: The maximum size, in bytes, allowed for
  *     a message sent to chreSendMessageToHostEndpoint().  This must be at least
- *     CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE.
+ *     CHRE_MESSAGE_TO_HOST_MINIMUM_MAX_SIZE. If the system supports a larger
+ *     maximum size, it will be defined as the return value of
+ *     chreGetMessageToHostMaxSize().
  */
-
 #ifndef CHRE_MESSAGE_TO_HOST_MAX_SIZE
 #error CHRE_MESSAGE_TO_HOST_MAX_SIZE must be defined by the CHRE implementation
 #endif
@@ -64,6 +68,15 @@ extern "C" {
     (defined(CHRE_NANOAPP_SUPPORTS_PRE_V1_5) &&  \
      CHRE_MESSAGE_TO_HOST_MAX_SIZE < 128)
 #error CHRE_MESSAGE_TO_HOST_MAX_SIZE is too small.
+#endif
+
+/**
+ * CHRE_MESSAGE_TO_HOST_MAX_SIZE must be less than or equal to 4096. If the system
+ * supports a larger maximum size, it will be defined as the return value of
+ * chreGetMessageToHostMaxSize().
+ */
+#if CHRE_MESSAGE_TO_HOST_MAX_SIZE > 4096
+#error CHRE_MESSAGE_TO_HOST_MAX_SIZE must be <= 4096
 #endif
 
 /**
@@ -154,6 +167,41 @@ extern "C" {
 #define CHRE_EVENT_DEBUG_DUMP  UINT16_C(0x0007)
 
 /**
+ * nanoappHandleEvent argument: struct chreHostEndpointNotification
+ *
+ * Notifications event regarding a host endpoint.
+ *
+ * @see chreConfigureHostEndpointNotifications
+ * @since v1.6
+ */
+#define CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION UINT16_C(0x0008)
+
+/**
+ * Indicates a RPC request from a nanoapp.
+ *
+ * @since v1.9
+ */
+#define CHRE_EVENT_RPC_REQUEST UINT16_C(0x00009)
+
+/**
+ * Indicates a RPC response from a nanoapp.
+ *
+ * @since v1.9
+ */
+#define CHRE_EVENT_RPC_RESPONSE UINT16_C(0x0000A)
+
+/**
+ * nanoappHandleEvent argument: struct chreAsyncResult
+ *
+ * Async status for reliable messages. The resultType field
+ * will be populated with a value of 0.
+ *
+ * @see chreSendReliableMessageAsync
+ * @since v1.10
+ */
+#define CHRE_EVENT_RELIABLE_MSG_ASYNC_RESULT UINT16_C(0x000B)
+
+/**
  * First possible value for CHRE_EVENT_SENSOR events.
  *
  * This allows us to separately define our CHRE_EVENT_SENSOR_* events in
@@ -194,7 +242,6 @@ extern "C" {
  * First event in the block reserved for audio. These events are defined in
  * chre/audio.h.
  */
-
 #define CHRE_EVENT_AUDIO_FIRST_EVENT UINT16_C(0x0330)
 #define CHRE_EVENT_AUDIO_LAST_EVENT  UINT16_C(0x033F)
 
@@ -206,6 +253,13 @@ extern "C" {
  */
 #define CHRE_EVENT_SETTING_CHANGED_FIRST_EVENT UINT16_C(0x340)
 #define CHRE_EVENT_SETTING_CHANGED_LAST_EVENT  UINT16_C(0x34F)
+
+/**
+ * First event in the block reserved for Bluetooth LE. These events are defined
+ * in chre/ble.h.
+ */
+#define CHRE_EVENT_BLE_FIRST_EVENT UINT16_C(0x0350)
+#define CHRE_EVENT_BLE_LAST_EVENT  UINT16_C(0x035F)
 
 /**
  * First in the extended range of values dedicated for internal CHRE
@@ -286,10 +340,27 @@ extern "C" {
 #define CHRE_MESSAGE_PERMISSION_GNSS (UINT32_C(1) << 1)
 #define CHRE_MESSAGE_PERMISSION_WIFI (UINT32_C(1) << 2)
 #define CHRE_MESSAGE_PERMISSION_WWAN (UINT32_C(1) << 3)
+#define CHRE_MESSAGE_PERMISSION_BLE (UINT32_C(1) << 4)
 #define CHRE_MESSAGE_PERMISSION_VENDOR_START (UINT32_C(1) << 24)
 #define CHRE_MESSAGE_PERMISSION_VENDOR_END (UINT32_C(1) << 31)
 
 /** @} */
+
+/**
+ * Reserved message type for RPC messages.
+ *
+ * @see chreSendMessageWithPermissions
+ *
+ * @since v1.9
+ */
+#define CHRE_MESSAGE_TYPE_RPC UINT32_C(0x7FFFFFF5)
+
+/**
+ * @see chrePublishRpcServices
+ *
+ * @since v1.8
+ */
+#define CHRE_MINIMUM_RPC_SERVICE_LIMIT UINT8_C(4)
 
 /**
  * Data provided with CHRE_EVENT_MESSAGE_FROM_HOST.
@@ -377,8 +448,174 @@ struct chreNanoappInfo {
      * The instance ID of this nanoapp, which can be used in chreSendEvent() to
      * address an event specifically to this nanoapp.  This identifier is
      * guaranteed to be unique among all nanoapps in the system.
+     *
+     * As of CHRE API v1.6, instance ID is guaranteed to never be greater than
+     * UINT16_MAX. This allows for the instance ID be packed with other data
+     * inside a 32-bit integer (useful for RPC routing).
      */
     uint32_t instanceId;
+
+    /**
+     * Reserved for future use.
+     * Always set to 0.
+     */
+    uint8_t reserved[3];
+
+    /**
+     * The number of RPC services exposed by this nanoapp.
+     * The service details are available in the rpcServices array.
+     * Must always be set to 0 when running on a CHRE implementation prior to
+     * v1.8
+     *
+     * @since v1.8
+     */
+    uint8_t rpcServiceCount;
+
+    /*
+     * Array of RPC services published by this nanoapp.
+     * Services are published via chrePublishRpcServices.
+     * The array contains rpcServiceCount entries.
+     *
+     * The pointer is only valid when rpcServiceCount is greater than 0.
+     *
+     * @since v1.8
+     */
+    const struct chreNanoappRpcService *rpcServices;
+};
+
+/**
+ * The types of notification events that can be included in struct
+ * chreHostEndpointNotification.
+ *
+ * @defgroup HOST_ENDPOINT_NOTIFICATION_TYPE
+ * @{
+ */
+#define HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT UINT8_C(0)
+/** @} */
+
+/**
+ * Data provided in CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION.
+ */
+struct chreHostEndpointNotification {
+    /**
+     * The ID of the host endpoint that this notification is for.
+     */
+    uint16_t hostEndpointId;
+
+    /**
+     * The type of notification this event represents, which should be
+     * one of the HOST_ENDPOINT_NOTIFICATION_TYPE_* values.
+     */
+    uint8_t notificationType;
+
+    /**
+     * Reserved for future use, must be zero.
+     */
+    uint8_t reserved;
+};
+
+//! The maximum length of a host endpoint's name.
+#define CHRE_MAX_ENDPOINT_NAME_LEN (51)
+
+//! The maximum length of a host endpoint's tag.
+#define CHRE_MAX_ENDPOINT_TAG_LEN (51)
+
+/**
+ * The type of host endpoint that can be used in the hostEndpointType field
+ * of chreHostEndpointInfo.
+ *
+ * @since v1.6
+ *
+ * @defgroup CHRE_HOST_ENDPOINT_TYPE_
+ * @{
+ */
+
+//! The host endpoint is part of the Android system framework.
+#define CHRE_HOST_ENDPOINT_TYPE_FRAMEWORK UINT8_C(0x00)
+
+//! The host endpoint is an Android app.
+#define CHRE_HOST_ENDPOINT_TYPE_APP UINT8_C(0x01)
+
+//! The host endpoint is an Android native program.
+#define CHRE_HOST_ENDPOINT_TYPE_NATIVE UINT8_C(0x02)
+
+//! Values in the range [CHRE_HOST_ENDPOINT_TYPE_VENDOR_START,
+//! CHRE_HOST_ENDPOINT_TYPE_VENDOR_END] can be a custom defined host endpoint
+//! type for platform-specific vendor use.
+#define CHRE_HOST_ENDPOINT_TYPE_VENDOR_START UINT8_C(0x80)
+#define CHRE_HOST_ENDPOINT_TYPE_VENDOR_END UINT8_C(0xFF)
+
+/** @} */
+
+/**
+ * Provides metadata for a host endpoint.
+ *
+ * @since v1.6
+ */
+struct chreHostEndpointInfo {
+    //! The endpoint ID of this host.
+    uint16_t hostEndpointId;
+
+    //! The type of host endpoint, which must be set to one of the
+    //! CHRE_HOST_ENDPOINT_TYPE_* values or a value in the vendor-reserved
+    //! range.
+    uint8_t hostEndpointType;
+
+    //! Flag indicating if the packageName/endpointName field is valid.
+    uint8_t isNameValid : 1;
+
+    //! Flag indicating if the attributionTag/endpointTag field is valid.
+    uint8_t isTagValid : 1;
+
+    //! A union of null-terminated host name strings.
+    union {
+        //! The Android package name associated with this host, valid if the
+        //! hostEndpointType is CHRE_HOST_ENDPOINT_TYPE_APP or
+        //! CHRE_HOST_ENDPOINT_TYPE_FRAMEWORK. Refer to the Android documentation
+        //! for the package attribute in the app manifest.
+        char packageName[CHRE_MAX_ENDPOINT_NAME_LEN];
+
+        //! A generic endpoint name that can be used for endpoints that
+        //! may not have a package name.
+        char endpointName[CHRE_MAX_ENDPOINT_NAME_LEN];
+    };
+
+    //! A union of null-terminated host tag strings for further identification.
+    union {
+        //! The attribution tag associated with this host that is used to audit
+        //! access to data, which can be valid if the hostEndpointType is
+        //! CHRE_HOST_ENDPOINT_TYPE_APP. Refer to the Android documentation
+        //! regarding data audit using attribution tags.
+        char attributionTag[CHRE_MAX_ENDPOINT_TAG_LEN];
+
+        //! A generic endpoint tag that can be used for endpoints that
+        //! may not have an attribution tag.
+        char endpointTag[CHRE_MAX_ENDPOINT_TAG_LEN];
+    };
+};
+
+/**
+ * An RPC service exposed by a nanoapp.
+ *
+ * The implementation of the RPC interface is not defined by the HAL, and is written
+ * at the messaging endpoint layers (Android app and/or CHRE nanoapp). NanoappRpcService
+ * contains the informational metadata to be consumed by the RPC interface layer.
+ */
+struct chreNanoappRpcService {
+    /**
+     * The unique 64-bit ID of an RPC service exposed by a nanoapp. Note that
+     * the uniqueness is only required within the nanoapp's domain (i.e. the
+     * combination of the nanoapp ID and service id must be unique).
+     */
+    uint64_t id;
+
+    /**
+     * The software version of this service, which follows the sematic
+     * versioning scheme (see semver.org). It follows the format
+     * major.minor.patch, where major and minor versions take up one byte
+     * each, and the patch version takes up the final 2 bytes.
+     */
+    uint32_t version;
 };
 
 /**
@@ -527,6 +764,8 @@ bool chreSendMessageToHostEndpoint(void *message, size_t messageSize,
  *     NOTE: In CHRE API v1.0, support for forwarding this field to the host was
  *     not strictly required, and some implementations did not support it.
  *     However, its support is mandatory as of v1.1.
+ *     NOTE: The value CHRE_MESSAGE_TYPE_RPC is reserved for usage by RPC
+ *     libraries and normally should not be directly used by nanoapps.
  * @param hostEndpoint  An identifier for the intended recipient of the message,
  *     or CHRE_HOST_ENDPOINT_BROADCAST if all registered endpoints on the host
  *     should receive the message.  Endpoint identifiers are assigned on the
@@ -559,6 +798,51 @@ bool chreSendMessageWithPermissions(void *message, size_t messageSize,
                                     uint32_t messageType, uint16_t hostEndpoint,
                                     uint32_t messagePermissions,
                                     chreMessageFreeFunction *freeCallback);
+
+/**
+ * Send a reliable message to the host.
+ *
+ * A reliable message is similar to a message sent by
+ * chreSendMessageWithPermissions() with the difference that the host
+ * acknowledges the message by sending a status back to the nanoapp, and the
+ * CHRE implementation takes care of retries to help mitigate transient
+ * failures. The final result of attempting to deliver the message is given
+ * via a CHRE_EVENT_RELIABLE_MSG_ASYNC_RESULT event. The maximum time until the
+ * nanoapp will receive the result is CHRE_ASYNC_RESULT_TIMEOUT_NS.
+ *
+ * The free callback is invoked before the async status is delivered to the
+ * nanoapp via the CHRE_EVENT_RELIABLE_MSG_ASYNC_RESULT event and does not
+ * indicate successful delivery of the message.
+ *
+ * The API is similar to chreSendMessageWithPermissions() with a few
+ * differences:
+ * - chreSendReliableMessageAsync() takes an extra cookie that is part of the
+ *   async result
+ * - When the message is accepted for transmission (the function returns true)
+ *   then an async status is delivered to the nanoapp when the transmission
+ *   completes either successfully or in error via the
+ *   CHRE_EVENT_RELIABLE_MSG_ASYNC_RESULT event.
+ * - The error codes received are:
+ *   - CHRE_ERROR_NANOAPP_STOPPING if the nanoapp was stopping during the
+ *                                 request.
+ *   - CHRE_ERROR_DESTINATION_NOT_FOUND if the destination was not found.
+ *   - CHRE_ERROR if there was a permanent error.
+ *   - CHRE_ERROR_TIMEOUT if there was no response from the recipient
+ *                        (a timeout).
+ *
+ * This is an optional feature, and this function will always return
+ * false if CHRE_SUPPORTS_RELIABLE_MESSAGES is not indicated by
+ * chreGetCapabilities().
+ *
+ * @see chreSendMessageWithPermissions
+ *
+ * @since v1.10
+ */
+bool chreSendReliableMessageAsync(void *message, size_t messageSize,
+                                  uint32_t messageType, uint16_t hostEndpoint,
+                                  uint32_t messagePermissions,
+                                  chreMessageFreeFunction *freeCallback,
+                                  const void *cookie);
 
 /**
  * Queries for information about a nanoapp running in the system.
@@ -671,6 +955,84 @@ bool chreIsHostAwake(void);
  * @since v1.4
  */
 void chreConfigureDebugDumpEvent(bool enable);
+
+/**
+ * Configures whether this nanoapp will receive updates regarding a host
+ * endpoint that is connected with the Context Hub.
+ *
+ * If this API succeeds, the nanoapp will receive disconnection notifications,
+ * via the CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION event with an eventData of type
+ * chreHostEndpointNotification with its notificationType set to
+ * HOST_ENDPOINT_NOTIFICATION_TYPE_DISCONNECT, which can be invoked if the host
+ * has disconnected from the Context Hub either explicitly or implicitly (e.g.
+ * crashes). Nanoapps can use this notifications to clean up any resources
+ * associated with this host endpoint.
+ *
+ * @param hostEndpointId The host endpoint ID to configure notifications for.
+ * @param enable true to enable notifications.
+ *
+ * @return true on success
+ *
+ * @see chreMessageFromHostData
+ * @see chreHostEndpointNotification
+ * @see CHRE_EVENT_HOST_ENDPOINT_NOTIFICATION
+ *
+ * @since v1.6
+ */
+bool chreConfigureHostEndpointNotifications(uint16_t hostEndpointId,
+                                            bool enable);
+
+/**
+ * Publishes RPC services from this nanoapp.
+ *
+ * When this API is invoked, the list of RPC services will be provided to
+ * host applications interacting with the nanoapp.
+ *
+ * This function must be invoked from nanoappStart(), to guarantee stable output
+ * of the list of RPC services supported by the nanoapp.
+ *
+ * Although nanoapps are recommended to only call this API once with all
+ * services it intends to publish, if it is called multiple times, each
+ * call will append to the list of published services.
+ *
+ * Starting in CHRE API v1.8, the implementation must allow for a nanoapp to
+ * publish at least CHRE_MINIMUM_RPC_SERVICE_LIMIT services and at most
+ * UINT8_MAX services. If calling this function would result in exceeding
+ * the limit, the services must not be published and it must return false.
+ *
+ * @param services A non-null pointer to the list of RPC services to publish.
+ * @param numServices The number of services to publish, i.e. the length of the
+ *   services array.
+ *
+ * @return true if the publishing is successful.
+ *
+ * @since v1.6
+ */
+bool chrePublishRpcServices(struct chreNanoappRpcService *services,
+                            size_t numServices);
+
+/**
+ * Retrieves metadata for a given host endpoint ID.
+ *
+ * This API will provide metadata regarding an endpoint associated with a
+ * host endpoint ID. The nanoapp should use this API to determine more
+ * information about a host endpoint that has sent a message to the nanoapp,
+ * after receiving a chreMessageFromHostData (which includes the endpoint ID).
+ *
+ * If the given host endpoint ID is not associated with a valid host (or if the
+ * client has disconnected from the Android or CHRE framework, i.e. no longer
+ * able to send messages to CHRE), this method will return false and info will
+ * not be populated.
+ *
+ * @param hostEndpointId The endpoint ID of the host to get info for.
+ * @param info The non-null pointer to where the metadata will be stored.
+ *
+ * @return true if info has been successfully populated.
+ *
+ * @since v1.6
+ */
+bool chreGetHostEndpointInfo(uint16_t hostEndpointId,
+                             struct chreHostEndpointInfo *info);
 
 #ifdef __cplusplus
 }

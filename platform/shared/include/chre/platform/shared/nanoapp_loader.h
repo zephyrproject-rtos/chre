@@ -23,8 +23,43 @@
 #include "chre/platform/shared/loader_util.h"
 
 #include "chre/util/dynamic_vector.h"
+#include "chre/util/optional.h"
 
 namespace chre {
+
+/**
+ * @struct:
+ *   AtExitCallback
+ *
+ * @description:
+ *   Store callback information for both atexit and __cxa_atexit.
+ *
+ * @fields:
+ *   func0 ::
+ *     Callback function for atexit (no arg).
+ *
+ *   func1 ::
+ *     Callback function for __cxa_atexit (one arg).
+ *
+ *   arg ::
+ *     Optional arg for __cxa_atexit only.
+ */
+struct AtExitCallback {
+  union {
+    void (*func0)(void);
+    void (*func1)(void *);
+  };
+  Optional<void *> arg;
+
+  AtExitCallback(void (*func)(void)) {
+    func0 = func;
+  }
+
+  AtExitCallback(void (*func)(void *), void *a) {
+    func1 = func;
+    arg = a;
+  }
+};
 
 /**
  * Provides dynamic loading support for nanoapps on FreeRTOS-based platforms.
@@ -36,11 +71,6 @@ class NanoappLoader {
  public:
   NanoappLoader() = delete;
 
-  explicit NanoappLoader(void *elfInput, bool mapIntoTcm) {
-    mBinary = static_cast<uint8_t *>(elfInput);
-    mIsTcmBinary = mapIntoTcm;
-  }
-
   /**
    * Factory method to create a NanoappLoader Instance after loading
    * the buffer containing the ELF binary.
@@ -51,7 +81,7 @@ class NanoappLoader {
    * @return Class instance on successful load and verification,
    *     nullptr otherwise.
    */
-  static void *create(void *elfInput, bool mapIntoTcm);
+  static NanoappLoader *create(void *elfInput, bool mapIntoTcm);
 
   /**
    * Closes and destroys the NanoappLoader instance.
@@ -82,15 +112,51 @@ class NanoappLoader {
    * Registers a function provided through atexit during static initialization
    * that should be called prior to unloading a nanoapp.
    *
-   * @param function Function that should be invoked prior to unloading a
+   * @param callback Callback info that should be invoked prior to unloading a
    *     nanoapp.
    */
-  void registerAtexitFunction(void (*function)(void));
+  void registerAtexitFunction(struct AtExitCallback &cb);
+
+  /**
+   * Rounds the given address down to the closest alignment boundary.
+   *
+   * The alignment follows ELF's p_align semantics:
+   *
+   * [p_align] holds the value to which the segments are aligned in memory and
+   * in the file. Loadable process segments must have congruent values for
+   * p_vaddr and p_offset, modulo the page size. Values of zero and one mean no
+   * alignment is required. Otherwise, p_align should be a positive, integral
+   * power of two, and p_vaddr should equal p_offset, modulo p_align.
+   *
+   * @param virtualAddr The address to be rounded.
+   * @param alignment Alignment to which the address is rounded to.
+   * @return An address that is a multiple of the platform's alignment and is
+   *     less than or equal to virtualAddr.
+   */
+  static uintptr_t roundDownToAlign(uintptr_t virtualAddr, size_t alignment);
+
+  /**
+   * Returns true if a token database is found in the nanoapp ELF binary and
+   * pass the database offset and database size to the caller.
+   *
+   * @param offset Pointer to the size offset of the token database from the
+   * start of the address of the ELF binary in bytes.
+   * @param size Pointer to the size of the token database section in the ELF
+   * binary in bytes.
+   */
+  bool getTokenDatabaseSectionInfo(uint32_t *offset, size_t *size);
 
  private:
+  explicit NanoappLoader(void *elfInput, bool mapIntoTcm) {
+    mBinary = static_cast<uint8_t *>(elfInput);
+    mIsTcmBinary = mapIntoTcm;
+  }
+
   /**
    * Opens the ELF binary. This maps the binary into memory, resolves symbols,
    * and invokes any static initializers.
+   *
+   * <p>This function must be called before any symbol-finding functions.
    *
    * @return true if all required opening steps were completed.
    */
@@ -115,38 +181,39 @@ class NanoappLoader {
   using SectionHeader = ElfW(Shdr);
 
   //! Name of various segments in the ELF that need to be looked up
-  static constexpr const char *kSymTableName = ".symtab";
-  static constexpr const char *kStrTableName = ".strtab";
+  static constexpr const char *kDynsymTableName = ".dynsym";
+  static constexpr const char *kDynstrTableName = ".dynstr";
   static constexpr const char *kInitArrayName = ".init_array";
   static constexpr const char *kFiniArrayName = ".fini_array";
-  // For now, assume all segments are 4K aligned.
-  static constexpr size_t kBinaryAlignment = 4096;
+  static constexpr const char *kTokenTableName = ".pw_tokenizer.entries";
 
   //! Pointer to the table of all the section names.
   char *mSectionNamesPtr = nullptr;
-  //! Pointer to the table of symbol names of defined symbols.
-  char *mStringTablePtr = nullptr;
-  //! Pointer to the table of symbol information for defined symbols.
-  uint8_t *mSymbolTablePtr = nullptr;
+  //! Pointer to the table of dynamic symbol names for defined symbols.
+  char *mDynamicStringTablePtr = nullptr;
+  //! Pointer to the table of dynamic symbol information for defined symbols.
+  uint8_t *mDynamicSymbolTablePtr = nullptr;
   //! Pointer to the array of section header entries.
   SectionHeader *mSectionHeadersPtr = nullptr;
   //! Number of SectionHeaders pointed to by mSectionHeadersPtr.
   size_t mNumSectionHeaders = 0;
-  //! Size of the data pointed to by mSymbolTablePtr.
-  size_t mSymbolTableSize = 0;
+  //! Size of the data pointed to by mDynamicSymbolTablePtr.
+  size_t mDynamicSymbolTableSize = 0;
 
   //! The ELF that is being mapped into the system. This pointer will be invalid
   //! after open returns.
   uint8_t *mBinary = nullptr;
   //! The starting location of the memory that has been mapped into the system.
   uint8_t *mMapping = nullptr;
+  //! The span of memory that has been mapped into the system.
+  size_t mMemorySpan = 0;
   //! The difference between where the first load segment was mapped into
   //! virtual memory and what the virtual load offset was of that segment.
   ElfAddr mLoadBias = 0;
   //! Dynamic vector containing functions that should be invoked prior to
   //! unloading this nanoapp. Note that functions are stored in the order they
   //! were added and should be called in reverse.
-  DynamicVector<void (*)(void)> mAtexitFunctions;
+  DynamicVector<struct AtExitCallback> mAtexitFunctions;
   //! Whether this loader instance is managing a TCM nanoapp binary.
   bool mIsTcmBinary = false;
 
@@ -221,33 +288,39 @@ class NanoappLoader {
   bool verifySectionHeaders();
 
   /**
-   * Retrieves the symbol name of data located at the given position in the
-   * symbol table.
+   * Retrieves the symbol at the given position in the symbol table.
    *
    * @param posInSymbolTable The position in the symbol table where information
    *     about the symbol can be found.
-   * @return The symbol's name or nullptr if not found.
+   * @return The symbol or nullptr if not found.
    */
-  const char *getDataName(size_t posInSymbolTable);
+  ElfSym *getDynamicSymbol(size_t posInSymbolTable);
 
   /**
-   * Retrieves the name of the section header located at the given offset in the
-   * section name table.
+   * Retrieves the symbol name.
    *
-   * @param headerOffset The offset in the section names table where the header
-   *     is located.
+   * @param symbol A pointer to the symbol.
+   * @return The symbol's name or nullptr if not found.
+   */
+  const char *getDataName(const ElfSym *symbol);
+
+  /**
+   * Retrieves the target address of the symbol.
+   *
+   * @param symbol A pointer to the symbol.
+   * @return The target address or nullptr if the symbol is not defined.
+   */
+  void *getSymbolTarget(const ElfSym *symbol);
+
+  /**
+   * Retrieves the name of the section header located at the given offset in
+   * the section name table.
+   *
+   * @param headerOffset The offset in the section names table where the
+   * header is located.
    * @return The section's name or the empty string if the offset is 0.
    */
   const char *getSectionHeaderName(size_t headerOffset);
-
-  /**
-   * Rounds the given address down to the closest alignment boundary.
-   *
-   * @param virtualAddr The address to be rounded.
-   * @return An address that is a multiple of the platform's alignment and is
-   *     less than or equal to virtualAddr.
-   */
-  uintptr_t roundDownToAlign(uintptr_t virtualAddr);
 
   /**
    * Frees any data that was allocated as part of loading the ELF into memory.
@@ -296,7 +369,9 @@ class NanoappLoader {
    * @return The ELF header for the binary being loaded. nullptr if it doesn't
    *    exist or no binary is being loaded.
    */
-  ElfHeader *getElfHeader();
+  ElfHeader *getElfHeader() {
+    return reinterpret_cast<ElfHeader *>(mBinary);
+  }
 
   /**
    * @return The array of program headers for the binary being loaded. nullptr
@@ -311,23 +386,11 @@ class NanoappLoader {
   size_t getProgramHeaderArraySize();
 
   /**
-   * @return An array of characters containing the symbol names for dynamic
-   *    symbols inside the binary being loaded. nullptr if it doesn't exist or
-   *    no binary is being loaded.
+   * Verifies dynamic tables that must exist in the ELF header.
+   *
+   * @return true if all the required tables exist, otherwise false.
    */
-  char *getDynamicStringTable();
-
-  /**
-   * @return An array of dynamic symbol information for the binary being loaded.
-   *     nullptr if it doesn't exist or no binary is being loaded.
-   */
-  uint8_t *getDynamicSymbolTable();
-
-  /**
-   * @return The size of the array of dynamic symbol information for the binary
-   *     being loaded. 0 if it doesn't exist or no binary is being loaded.
-   */
-  size_t getDynamicSymbolTableSize();
+  bool verifyDynamicTables();
 
   /**
    * Returns the first entry in the dynamic header that has a tag that matches
@@ -338,6 +401,18 @@ class NanoappLoader {
    * @return The value found at the entry. 0 if the entry isn't found.
    */
   static ElfWord getDynEntry(DynamicHeader *dyn, int field);
+
+  /**
+   * Handle relocation for entries in the specified table.
+   *
+   * <p> this function must return true if the table is not required or is
+   * empty. If the entry is present when not expected, it must return false.
+   *
+   * @param dyn The dynamic header for the binary.
+   * @param tableTag The dynamic tag (DT_x) of the relocation table.
+   * @return True if success or unsupported, false if failure.
+   */
+  bool relocateTable(DynamicHeader *dyn, int tableTag);
 };
 
 }  // namespace chre

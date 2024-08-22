@@ -21,6 +21,12 @@
 #include <iostream>
 
 #include "chre/platform/fatal_error.h"
+#include "chre/platform/shared/bt_snoop_log.h"
+
+void chrePlatformBtSnoopLog(BtSnoopDirection /*direction*/,
+                            const uint8_t * /*buffer*/, size_t /*size*/) {
+  // Unimplemented in this platform
+}
 
 namespace chre {
 

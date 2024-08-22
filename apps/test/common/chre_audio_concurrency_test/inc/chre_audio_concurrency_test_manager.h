@@ -17,11 +17,11 @@
 #ifndef CHRE_AUDIO_CONCURRENCY_TEST_MANAGER_H_
 #define CHRE_AUDIO_CONCURRENCY_TEST_MANAGER_H_
 
-#include <chre.h>
 #include <cinttypes>
 
 #include "chre/util/optional.h"
 #include "chre/util/singleton.h"
+#include "chre_api/chre.h"
 
 namespace chre {
 
@@ -33,8 +33,9 @@ namespace audio_concurrency_test {
 class Manager {
  public:
   enum class TestStep : uint8_t {
-    ENABLE_AUDIO = 0,
+    ENABLE_AUDIO = 0,  // without gap verification.
     VERIFY_AUDIO_RESUME,
+    ENABLE_AUDIO_WITH_GAP_VERIFICATION,
   };
 
   ~Manager();
@@ -50,9 +51,9 @@ class Manager {
     uint16_t hostEndpointId;
     TestStep step;
 
-    TestSession(uint16_t id, TestStep step) {
+    TestSession(uint16_t id, TestStep currentStep) {
       this->hostEndpointId = id;
-      this->step = step;
+      this->step = currentStep;
     }
   };
 
@@ -114,7 +115,12 @@ class Manager {
    */
   void handleAudioDataEvent(const chreAudioDataEvent *data);
 
-  // Use the first audio source available for this test.
+  /**
+   * @param data The audio status data.
+   */
+  void handleAudioSourceStatusEvent(const chreAudioSourceStatusEvent *data);
+
+  //! Use the first audio source available for this test.
   static constexpr uint32_t kAudioHandle = 0;
 
   //! The audio source to use for this test.
@@ -128,6 +134,16 @@ class Manager {
 
   //! True if CHRE audio is enabled for this nanoapp.
   bool mAudioEnabled = false;
+
+  //! The last timestamp seen at the end of the last audio buffer.
+  Optional<uint64_t> mLastAudioBufferEndTimestampNs;
+
+  //! True if there is a gap between the audio buffers.
+  bool mSawSuspendAudioEvent = false;
+
+  //! If true, verify gaps between audio data events are accompanied with
+  //! the appropriate status change event.
+  bool mVerifyAudioGaps = false;
 };
 
 // The audio concurrency test manager singleton.

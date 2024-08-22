@@ -175,3 +175,165 @@ This release adds request timeout support at the client and addresses several bu
   - Client registration cleanup
   - Reset handling fixes
   - Testing improvements
+
+### 2023-01
+
+Update CHPP to make it possible to use different link layers on the same platform.
+
+**Before:**
+
+The link layer API is defined by:
+
+- A few global functions:
+  - `chppPlatformLinkInit`
+  - `chppPlatformLinkDeinit`
+  - `chppPlatformLinkSend`
+  - `chppPlatformLinkDoWork`
+  - `chppPlatformLinkReset`
+
+- A few defines:
+  - `CHPP_PLATFORM_LINK_TX_MTU_BYTES`
+  - `CHPP_PLATFORM_LINK_RX_MTU_BYTES`
+  - `CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS`
+
+**After:**
+
+In order to be able to use different link layers, the link layer API is now defined by
+
+- A `ChppLinkApi` API struct composed of pointers to the entry points:
+  - `init`
+  - `deinit`
+  - `send`
+  - `doWork`
+  - `reset`
+  - `getConfig` [added]
+  - `getTxBuffer` [added]
+- A free form state,
+- A `ChppLinkConfiguration` struct replacing the former defines.
+
+#### Migration
+
+You first need to create a `struct` holding the state of the link layer.
+This state `struct` is free form but would usually contain:
+- The TX buffer - it was owned by the transport layer in the previous version.
+  The TX buffer size must be added to the configuration `ChppLinkConfiguration` struct.
+  You can compute the size from your former `CHPP_PLATFORM_LINK_TX_MTU_BYTES`.
+  The formula to use is `min(CHPP_PLATFORM_LINK_TX_MTU_BYTES, 1024) + CHPP_TRANSPORT_ENCODING_OVERHEAD_BYTES`.
+  For example if your `CHPP_PLATFORM_LINK_TX_MTU_BYTES` was 2048, the TX buffer size should be `1024 + CHPP_TRANSPORT_ENCODING_OVERHEAD_BYTES`.
+  Note that 1024 (or whatever the value of the min is) is the effective payload.
+  The TX buffer will be slightly larger to accommodate the transport layer encoding overhead.
+- A pointer to the transport layer state which is required for the transport layer callbacks
+
+You need to create an instance of `ChppLinkApi` with pointers to the link functions.
+The API of the existing function have changed. They now take a `void *` pointer to the free form link state where they used to take a `struct ChppPlatformLinkParameters *`. You should cast that `void* linkContext` pointer to the type of your free form state.
+
+The `init` function now takes a second `struct ChppTransportState *transportContext` parameter. That function should store it in the state as it will be needed later to callback into the transport layer. The `init` function might store the `ChppLinkConfiguration` configuration in the state (if the configuration varies across link layer instances).
+
+The `send` function does not take a pointer to the TX buffer (`uint8_t *buf`) any more. That's because this buffer is now owned by the link layer and part of the link state.
+
+The added `getConfig` function returns the configuration `ChppLinkConfiguration` struct. The configuration might be shared across link instances or specific to a given instance.
+
+The added `getTxBuffer` function returns a pointer to the TX buffer that is part in the state.
+
+Then you need to create the `ChppLinkConfiguration` struct. It contains the size of TX buffer, the size of the RX buffer. Those are equivalent to the former defines. Note that `CHPP_PLATFORM_TRANSPORT_TIMEOUT_MS` was not used and has been deleted.
+
+Other changes:
+
+- You need to pass the link state and the link `ChppLinkApi` struct when initializing the transport layer with `chppTransportInit`.
+- When calling the `chppLinkSendDoneCb` and `chppWorkThreadSignalFromLink` from the link layer the first parameter should now be a pointer to the transport layer. You would typically retrieve that pointer from the link state where you should have stored it in the `init` function.
+
+### 2023-03
+
+The `chppRegisterService` signature changes from
+
+```
+uint8_t chppRegisterService(struct ChppAppState *appContext,
+                            void *serviceContext,
+                            const struct ChppService *newService);
+```
+
+to
+
+```
+void chppRegisterService(struct ChppAppState *appContext, void *serviceContext,
+                         struct ChppServiceState *serviceState,
+                         const struct ChppService *newService);
+```
+
+The handle which used to be returned is now populated in `serviceState`.
+`service->appContext` is also initialized to the passed `appContext`.
+
+This change makes the signature and behavior consistent with `chreRegisterClient`.
+
+### 2023-08
+
+Services can now send requests and receive responses from clients.
+
+The changes to the public API of the different layers are described below.
+Check the inline documentation for more information.
+
+**Breaking changes**
+
+- `ChppClientState` and `ChppServiceState` have been unified into `ChppEndpointState`.
+
+#### app.c / app.h
+
+**Breaking changes**
+
+- Move all sync primitives to a new `struct ChppSyncResponse`,
+- Renamed `ChppClient.rRStateCount` to `ChppClient.outReqCount`. The content and meaning stay the same,
+- Split `struct ChppRequestResponseState` to `struct ChppOutgoingRequestState` and `struct ChppIncomingRequestState`. Both the struct have the same layout and usage as the former `struct`. Having different types is only to make code clearer as both clients and services now support both incoming and outgoing requests,
+- Renamed `ChppAppState.nextClientRequestTimeoutNs` to `ChppAppState.nextRequestTimeoutNs`. The content and meaning stay the same,
+- Renamed `CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE` to `CHPP_REQUEST_TIMEOUT_INFINITE`.
+
+**Added APIs**
+
+- Added `chppAllocResponseTypedArray` and `chppAllocResponseFixed` to allocate responses. Those can be used by both clients and services. They call the added `chppAllocResponse`,
+- Added `CHPP_MESSAGE_TYPE_SERVICE_REQUEST` and  `CHPP_MESSAGE_TYPE_CLIENT_RESPONSE` to the message types (`ChppMessageType`). Used for requests sent by the services and the corresponding responses sent by the client,
+- Added `ChppService.responseDispatchFunctionPtr` to handle client responses,
+- Added `ChppService.outReqCount` holding the number of commands supported by the service (0 when the service can not send requests),
+- Added `ChppClient.requestDispatchFunctionPtr` to handle service requests,
+- Added `ChppAppState.registeredServiceStates` to track service states,
+- Added `ChppAppState.nextServiceRequestTimeoutNs` to track when the next service sent request will timeout,
+- Added `chppTimestampIncomingRequest` to be used by both clients and services,
+- Added `chppTimestampOutgoingRequest` to be used by both clients and services,
+- Added `chppTimestampIncomingResponse` to be used by both clients and services,
+- Added `chppTimestampOutgoingResponse` to be used by both clients and services,
+- Added `chppSendTimestampedResponseOrFail` to be used by both clients and services,
+- Added `chppSendTimestampedRequestOrFail` to be used by both clients and services,
+- Added `chppWaitForResponseWithTimeout` to be used by both clients and services.
+
+#### clients.c / clients.h
+
+**Breaking changes**
+
+- Renamed `ChppClientState.rRStates` to `outReqStates` - the new type is `ChppOutgoingRequestState`. The content and meaning stay the same,
+- Nest all sync primitive in `ChppClientState` into a `struct ChppSyncResponse syncResponse`,
+- `chppRegisterClient` takes a `ChppOutgoingRequestState` instead of the former `ChppRequestResponseState`,
+- `chppClientTimestampRequest` is replaced with `chppTimestampOutgoingRequest` in the app layer. Parameters are different,
+- `chppClientTimestampResponse` is replaced with `chppTimestampIncomingResponse` in the app layer. Parameters are different,
+- `chppSendTimestampedRequestOrFail` is renamed to `chppClientSendTimestampedRequestOrFail`. It takes a `ChppOutgoingRequestState` instead of the former `ChppRequestResponseState`,
+- `chppSendTimestampedRequestAndWait` is renamed to `chppClientSendTimestampedRequestAndWait`. It takes a `ChppOutgoingRequestState` instead of the former `ChppRequestResponseState`,
+- `chppSendTimestampedRequestAndWaitTimeout` is renamed to `chppClientSendTimestampedRequestAndWaitTimeout`. It takes a `ChppOutgoingRequestState` instead of the former `ChppRequestResponseState`,
+- `chppClientSendOpenRequest` takes a `ChppOutgoingRequestState` instead of the former `ChppRequestResponseState`.
+
+#### services.c / services.h
+
+**Breaking changes**
+
+- Replaced `chppAllocServiceResponseTypedArray` with `chppAllocResponseTypedArray` in the app layer,
+- Replaced `chppAllocServiceResponseFixed` with `chppAllocResponseFixed` in the app layer,
+- Replaced `chppAllocServiceResponse` with `chppAllocResponse` in the app layer,
+- `chppRegisterService` now takes and additional `struct ChppOutgoingRequestState *` to track outgoing requests. `NULL` when the service do not send requests.
+
+**Added APIs**
+
+- Added `chppAllocServiceRequestFixed` and `chppAllocServiceRequestTypedArray` to allocate service requests. They call the added `chppAllocServiceRequest`,
+- Added `ChppServiceState.outReqStates` to track outgoing requests,
+- Added `ChppServiceState.transaction` to track app layer packet number,
+- Added `ChppServiceState.syncResponse` for sync responses,
+- Added `chppAllocServiceRequest`,
+- Added `chppAllocServiceRequestCommand`,
+- Added `chppServiceSendTimestampedRequestOrFail`,
+- Added `chppServiceSendTimestampedRequestAndWaitTimeout`,
+- Added `chppServiceCloseOpenRequests` to close pending requests on reset.

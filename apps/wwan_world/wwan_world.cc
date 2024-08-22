@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include <chre.h>
 #include <cinttypes>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
-
-#define LOG_TAG "[WwanWorld]"
+#include "chre_api/chre.h"
 
 #ifdef CHRE_NANOAPP_INTERNAL
 namespace chre {
@@ -31,7 +30,8 @@ namespace {
 const uint32_t kCellInfoCookie = 0x1337;
 
 //! The interval for cell info requests.
-const Nanoseconds kCellInfoInterval = Nanoseconds(Seconds(10));
+const chre::Nanoseconds kCellInfoInterval =
+    chre::Nanoseconds(chre::Seconds(10));
 
 //! A handle for  the cyclic timer to request periodic cell info.
 uint32_t gCellInfoTimerHandle;
@@ -187,6 +187,8 @@ bool nanoappStart() {
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   switch (eventType) {
     case CHRE_EVENT_TIMER:
       handleTimerEvent(eventData);

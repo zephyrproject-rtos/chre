@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <chre.h>
 #include <cinttypes>
 #include <cmath>
 
@@ -22,12 +21,11 @@
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/nanoapp/wifi.h"
 #include "chre/util/time.h"
+#include "chre_api/chre.h"
 
 using chre::kOneMillisecondInNanoseconds;
 using chre::Nanoseconds;
 using chre::Seconds;
-
-#define LOG_TAG "[WifiWorld]"
 
 //#define WIFI_WORLD_VERBOSE_WIFI_RESULT_LOGS
 
@@ -375,6 +373,8 @@ bool nanoappStart() {
 
 void nanoappHandleEvent(uint32_t senderInstanceId, uint16_t eventType,
                         const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   switch (eventType) {
     case CHRE_EVENT_WIFI_ASYNC_RESULT:
       handleWifiAsyncResult(static_cast<const chreAsyncResult *>(eventData));

@@ -37,6 +37,11 @@ ifeq ($(CHRE_AUDIO_SUPPORT_ENABLED), true)
 COMMON_CFLAGS += -DCHRE_AUDIO_SUPPORT_ENABLED
 endif
 
+# Optional BLE support
+ifeq ($(CHRE_BLE_SUPPORT_ENABLED), true)
+COMMON_CFLAGS += -DCHRE_BLE_SUPPORT_ENABLED
+endif
+
 # Optional GNSS support.
 ifeq ($(CHRE_GNSS_SUPPORT_ENABLED), true)
 COMMON_CFLAGS += -DCHRE_GNSS_SUPPORT_ENABLED
@@ -57,6 +62,24 @@ ifeq ($(CHRE_WWAN_SUPPORT_ENABLED), true)
 COMMON_CFLAGS += -DCHRE_WWAN_SUPPORT_ENABLED
 endif
 
+# Optional tokenized logging support.
+ifeq ($(CHRE_TOKENIZED_LOGGING_ENABLED), true)
+COMMON_CFLAGS += -DCHRE_TOKENIZED_LOGGING_ENABLED
+include $(CHRE_PREFIX)/external/pigweed/pw_tokenizer.mk
+endif
+
+# Optional nanoapp tokenized logging support.
+ifeq ($(CHRE_NANOAPP_TOKENIZED_LOGGING_SUPPORT_ENABLED), true)
+COMMON_CFLAGS += -DCHRE_NANOAPP_TOKENIZED_LOGGING_SUPPORT_ENABLED
+include $(CHRE_PREFIX)/external/pigweed/pw_tokenizer.mk
+endif
+
+# Optional tokenized tracing support.
+ifeq ($(CHRE_TRACING_ENABLED), true)
+COMMON_CFLAGS += -DCHRE_TRACING_ENABLED
+include $(CHRE_PREFIX)/external/pigweed/pw_trace.mk
+endif
+
 # Optional on-device unit tests support
 include $(CHRE_PREFIX)/test/test.mk
 
@@ -75,7 +98,7 @@ endif
 # arbitrary epoch. This will roll over 16 bits after ~7 years, but patch version
 # is scoped to the API version, so we can adjust the offset when a new API
 # version is released.
-EPOCH=$(shell $(DATE_CMD) --date='2017-01-01' +%s)
+EPOCH=$(shell $(DATE_CMD) --date='2023-01-01' +%s)
 CHRE_PATCH_VERSION = $(shell echo $$(((`$(DATE_CMD) +%s` - $(EPOCH)) / (60 * 60))))
 endif
 
@@ -96,15 +119,14 @@ include $(CHRE_PREFIX)/pal/pal.mk
 include $(CHRE_PREFIX)/platform/platform.mk
 include $(CHRE_PREFIX)/util/util.mk
 
-# Supported Variants Includes. Not all CHRE variants are supported by this
-# implementation of CHRE. Example: this CHRE implementation is never built for
-# google_cm4_nanohub as Nanohub itself is a CHRE implementation.
+# Supported variants includes.
 ifneq ($(CHRE_TARGET_EXTENSION),)
 include $(CHRE_TARGET_EXTENSION)
 endif
+include $(CHRE_PREFIX)/build/variant/aosp_cm4_exynos-embos.mk
+include $(CHRE_PREFIX)/build/variant/aosp_riscv55e03_tinysys.mk
+include $(CHRE_PREFIX)/build/variant/aosp_riscv55e300_tinysys.mk
 include $(CHRE_PREFIX)/build/variant/google_arm64_android.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagonv55_slpi-see.mk
-include $(CHRE_PREFIX)/build/variant/google_hexagonv60_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv62_slpi-uimg.mk
 include $(CHRE_PREFIX)/build/variant/google_hexagonv65_adsp-see.mk

@@ -140,6 +140,10 @@ constexpr Nanoseconds operator-(const Nanoseconds &nanos_a,
   return Nanoseconds(nanos_a.toRawNanoseconds() - nanos_b.toRawNanoseconds());
 }
 
+constexpr Nanoseconds operator*(const Nanoseconds &nanos, uint64_t multiplier) {
+  return Nanoseconds(nanos.toRawNanoseconds() * multiplier);
+}
+
 constexpr bool operator>=(const Nanoseconds &nanos_a,
                           const Nanoseconds &nanos_b) {
   return nanos_a.toRawNanoseconds() >= nanos_b.toRawNanoseconds();

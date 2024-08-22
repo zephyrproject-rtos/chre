@@ -73,17 +73,23 @@ static const struct ChppService kWifiServiceConfig = {
  * (RR) functionality.
  */
 struct ChppWifiServiceState {
-  struct ChppServiceState service;   // WiFi service state
+  struct ChppEndpointState service;  // CHPP service state
   const struct chrePalWifiApi *api;  // WiFi PAL API
 
   // Based on chre/pal/wifi.h and chrePalWifiApi
-  struct ChppRequestResponseState open;             // Service init state
-  struct ChppRequestResponseState close;            // Service deinit state
-  struct ChppRequestResponseState getCapabilities;  // Get Capabilities state
-  struct ChppRequestResponseState
+  struct ChppIncomingRequestState open;             // Service init state
+  struct ChppIncomingRequestState close;            // Service deinit state
+  struct ChppIncomingRequestState getCapabilities;  // Get Capabilities state
+  struct ChppIncomingRequestState
       configureScanMonitorAsync;  // Configure scan monitor state
-  struct ChppRequestResponseState requestScanAsync;     // Request scan state
-  struct ChppRequestResponseState requestRangingAsync;  // Request ranging state
+  struct ChppIncomingRequestState requestScanAsync;     // Request scan state
+  struct ChppIncomingRequestState requestRangingAsync;  // Request ranging state
+  struct ChppIncomingRequestState
+      requestNanSubscribe;  // Request Nan Subscription state
+  struct ChppIncomingRequestState
+      requestNanSubscribeCancel;  // Request Nan Subscription cancelation state
+  struct ChppIncomingRequestState
+      requestNanRangingAsync;  // Request NAN ranging state
 };
 
 // Note: The CHRE PAL API only allows for one definition - see comment in WWAN
@@ -114,6 +120,15 @@ static enum ChppAppErrorCode chppWifiServiceRequestScanAsync(
 static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
     struct ChppWifiServiceState *wifiServiceContext,
     struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len);
+static enum ChppAppErrorCode chppWifiServiceRequestNanSubscribe(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len);
+static enum ChppAppErrorCode chppWifiServiceRequestNanSubscribeCancel(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len);
+static bool chppWifiServiceRequestNanRanging(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len);
 
 static void chppWifiServiceScanMonitorStatusChangeCallback(bool enabled,
                                                            uint8_t errorCode);
@@ -122,6 +137,16 @@ static void chppWifiServiceScanResponseCallback(bool pending,
 static void chppWifiServiceScanEventCallback(struct chreWifiScanEvent *event);
 static void chppWifiServiceRangingEventCallback(
     uint8_t errorCode, struct chreWifiRangingEvent *event);
+static void chppWifiServiceNanIdentifierCallback(uint8_t errorCode,
+                                                 uint32_t subscriptionId);
+static void chppWifiServiceNanDiscoveryCallback(
+    struct chreWifiNanDiscoveryEvent *event);
+static void chppWifiServiceNanLostCallback(uint32_t subscriptionId,
+                                           uint32_t publisherId);
+static void chppWifiServiceNanTerminatedCallback(uint32_t reason,
+                                                 uint32_t subscriptionId);
+static void chppWifiServiceNanSubscriptionCanceledCallback(
+    uint8_t errorCode, uint32_t subscriptionId);
 
 /************************************************
  *  Private Functions
@@ -149,53 +174,77 @@ static enum ChppAppErrorCode chppDispatchWifiRequest(void *serviceContext,
 
   struct ChppWifiServiceState *wifiServiceContext =
       (struct ChppWifiServiceState *)serviceContext;
-  struct ChppRequestResponseState *rRState = NULL;
+  struct ChppIncomingRequestState *inReqState = NULL;
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
   bool dispatched = true;
 
   switch (rxHeader->command) {
     case CHPP_WIFI_OPEN: {
-      rRState = &wifiServiceContext->open;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->open;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceOpen(wifiServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WIFI_CLOSE: {
-      rRState = &wifiServiceContext->close;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->close;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceClose(wifiServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WIFI_GET_CAPABILITIES: {
-      rRState = &wifiServiceContext->getCapabilities;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->getCapabilities;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceGetCapabilities(wifiServiceContext, rxHeader);
       break;
     }
 
     case CHPP_WIFI_CONFIGURE_SCAN_MONITOR_ASYNC: {
-      rRState = &wifiServiceContext->configureScanMonitorAsync;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->configureScanMonitorAsync;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceConfigureScanMonitorAsync(wifiServiceContext,
                                                        rxHeader, buf, len);
       break;
     }
 
     case CHPP_WIFI_REQUEST_SCAN_ASYNC: {
-      rRState = &wifiServiceContext->requestScanAsync;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->requestScanAsync;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceRequestScanAsync(wifiServiceContext, rxHeader, buf,
                                               len);
       break;
     }
 
     case CHPP_WIFI_REQUEST_RANGING_ASYNC: {
-      rRState = &wifiServiceContext->requestRangingAsync;
-      chppServiceTimestampRequest(rRState, rxHeader);
+      inReqState = &wifiServiceContext->requestRangingAsync;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
       error = chppWifiServiceRequestRangingAsync(wifiServiceContext, rxHeader,
                                                  buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_REQUEST_NAN_SUB: {
+      inReqState = &wifiServiceContext->requestNanSubscribe;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
+      error = chppWifiServiceRequestNanSubscribe(wifiServiceContext, rxHeader,
+                                                 buf, len);
+      break;
+    }
+
+    case CHPP_WIFI_REQUEST_NAN_SUB_CANCEL: {
+      inReqState = &wifiServiceContext->requestNanSubscribeCancel;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
+      error = chppWifiServiceRequestNanSubscribeCancel(wifiServiceContext,
+                                                       rxHeader, buf, len);
+      break;
+    };
+
+    case CHPP_WIFI_REQUEST_NAN_RANGING_ASYNC: {
+      inReqState = &wifiServiceContext->requestNanRangingAsync;
+      chppTimestampIncomingRequest(inReqState, rxHeader);
+      error = chppWifiServiceRequestNanRanging(wifiServiceContext, rxHeader,
+                                               buf, len);
       break;
     }
 
@@ -208,8 +257,8 @@ static enum ChppAppErrorCode chppDispatchWifiRequest(void *serviceContext,
 
   if (dispatched == true && error != CHPP_APP_ERROR_NONE) {
     // Request was dispatched but an error was returned. Close out
-    // chppServiceTimestampRequest()
-    chppServiceTimestampResponse(rRState);
+    // chppTimestampIncomingRequest()
+    chppTimestampOutgoingResponse(inReqState);
   }
 
   return error;
@@ -233,35 +282,39 @@ static enum ChppAppErrorCode chppWifiServiceOpen(
       .scanResponseCallback = chppWifiServiceScanResponseCallback,
       .scanEventCallback = chppWifiServiceScanEventCallback,
       .rangingEventCallback = chppWifiServiceRangingEventCallback,
+      .nanServiceIdentifierCallback = chppWifiServiceNanIdentifierCallback,
+      .nanServiceDiscoveryCallback = chppWifiServiceNanDiscoveryCallback,
+      .nanServiceLostCallback = chppWifiServiceNanLostCallback,
+      .nanServiceTerminatedCallback = chppWifiServiceNanTerminatedCallback,
+      .nanSubscriptionCanceledCallback =
+          chppWifiServiceNanSubscriptionCanceledCallback,
   };
 
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
   if (wifiServiceContext->service.openState == CHPP_OPEN_STATE_OPENED) {
-    CHPP_LOGE("WiFi service already open");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "WiFi service already open");
     error = CHPP_APP_ERROR_INVALID_COMMAND;
 
   } else if (!wifiServiceContext->api->open(
                  wifiServiceContext->service.appContext->systemApi,
                  &palCallbacks)) {
-    CHPP_LOGE("WiFi PAL open failed");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false, "WiFi PAL open failed");
     error = CHPP_APP_ERROR_BEYOND_CHPP;
 
   } else {
-    CHPP_LOGI("WiFi service opened");
+    CHPP_LOGD("WiFi service opened");
     wifiServiceContext->service.openState = CHPP_OPEN_STATE_OPENED;
 
     struct ChppAppHeader *response =
-        chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+        chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
     size_t responseLen = sizeof(*response);
 
     if (response == NULL) {
       CHPP_LOG_OOM();
       error = CHPP_APP_ERROR_OOM;
     } else {
-      chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
+      chppSendTimestampedResponseOrFail(wifiServiceContext->service.appContext,
                                         &wifiServiceContext->open, response,
                                         responseLen);
     }
@@ -286,17 +339,17 @@ static enum ChppAppErrorCode chppWifiServiceClose(
   wifiServiceContext->api->close();
   wifiServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
 
-  CHPP_LOGI("WiFi service closed");
+  CHPP_LOGD("WiFi service closed");
 
   struct ChppAppHeader *response =
-      chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+      chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
   size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
     CHPP_LOG_OOM();
     error = CHPP_APP_ERROR_OOM;
   } else {
-    chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
+    chppSendTimestampedResponseOrFail(wifiServiceContext->service.appContext,
                                       &wifiServiceContext->close, response,
                                       responseLen);
   }
@@ -315,7 +368,7 @@ static void chppWifiServiceNotifyReset(void *serviceContext) {
   if (wifiServiceContext->service.openState != CHPP_OPEN_STATE_OPENED) {
     CHPP_LOGW("WiFi service reset but wasn't open");
   } else {
-    CHPP_LOGI("WiFi service reset. Closing");
+    CHPP_LOGD("WiFi service reset. Closing");
     wifiServiceContext->service.openState = CHPP_OPEN_STATE_CLOSED;
     wifiServiceContext->api->close();
   }
@@ -335,9 +388,8 @@ static enum ChppAppErrorCode chppWifiServiceGetCapabilities(
     struct ChppAppHeader *requestHeader) {
   enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
 
-  struct ChppWifiGetCapabilitiesResponse *response =
-      chppAllocServiceResponseFixed(requestHeader,
-                                    struct ChppWifiGetCapabilitiesResponse);
+  struct ChppWifiGetCapabilitiesResponse *response = chppAllocResponseFixed(
+      requestHeader, struct ChppWifiGetCapabilitiesResponse);
   size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
@@ -349,7 +401,7 @@ static enum ChppAppErrorCode chppWifiServiceGetCapabilities(
     CHPP_LOGD("chppWifiServiceGetCapabilities returning 0x%" PRIx32
               ", %" PRIuSIZE " bytes",
               response->params.capabilities, responseLen);
-    chppSendTimestampedResponseOrFail(&wifiServiceContext->service,
+    chppSendTimestampedResponseOrFail(wifiServiceContext->service.appContext,
                                       &wifiServiceContext->getCapabilities,
                                       response, responseLen);
   }
@@ -479,7 +531,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
 
     } else {
       struct ChppAppHeader *response =
-          chppAllocServiceResponseFixed(requestHeader, struct ChppAppHeader);
+          chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
       size_t responseLen = sizeof(*response);
 
       if (response == NULL) {
@@ -487,7 +539,7 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
         error = CHPP_APP_ERROR_OOM;
       } else {
         chppSendTimestampedResponseOrFail(
-            &wifiServiceContext->service,
+            wifiServiceContext->service.appContext,
             &wifiServiceContext->requestRangingAsync, response, responseLen);
       }
     }
@@ -499,6 +551,114 @@ static enum ChppAppErrorCode chppWifiServiceRequestRangingAsync(
     CHPP_FREE_AND_NULLIFY(chre);
   }
 
+  return error;
+}
+
+static enum ChppAppErrorCode chppWifiServiceRequestNanSubscribe(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
+  struct chreWifiNanSubscribeConfig *chreConfig =
+      chppWifiNanSubscribeConfigToChre((struct ChppWifiNanSubscribeConfig *)buf,
+                                       len);
+  if (chreConfig == NULL) {
+    CHPP_LOGE(
+        "WifiServiceNanSubscribeConfig CHPP -> CHRE conversion failed."
+        "Input len: %" PRIuSIZE,
+        len);
+    error = CHPP_APP_ERROR_INVALID_ARG;
+  } else {
+    if (!wifiServiceContext->api->nanSubscribe(chreConfig)) {
+      error = CHPP_APP_ERROR_UNSPECIFIED;
+
+    } else {
+      struct ChppAppHeader *response =
+          chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
+
+      if (response == NULL) {
+        CHPP_LOG_OOM();
+        error = CHPP_APP_ERROR_OOM;
+      } else {
+        chppSendTimestampedResponseOrFail(
+            wifiServiceContext->service.appContext,
+            &wifiServiceContext->requestNanSubscribe, response, responseLen);
+      }
+    }
+  }
+  return error;
+}
+
+static enum ChppAppErrorCode chppWifiServiceRequestNanSubscribeCancel(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
+  if (len < sizeof(struct ChppWifiNanSubscribeCancelRequest)) {
+    CHPP_LOGE(
+        "WifiServiceRequestNanSubscribecancel invalid input len = %" PRIuSIZE,
+        len);
+    error = CHPP_APP_ERROR_INVALID_ARG;
+  } else {
+    struct ChppWifiNanSubscribeCancelRequest *chppRequest =
+        (struct ChppWifiNanSubscribeCancelRequest *)buf;
+    uint32_t subscriptionId = chppRequest->subscriptionId;
+    if (!wifiServiceContext->api->nanSubscribeCancel(subscriptionId)) {
+      error = CHPP_APP_ERROR_UNSPECIFIED;
+
+    } else {
+      struct ChppAppHeader *response =
+          chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
+
+      if (response == NULL) {
+        CHPP_LOG_OOM();
+        error = CHPP_APP_ERROR_OOM;
+      } else {
+        chppSendTimestampedResponseOrFail(
+            wifiServiceContext->service.appContext,
+            &wifiServiceContext->requestNanSubscribeCancel, response,
+            responseLen);
+      }
+    }
+  }
+  return error;
+}
+
+static bool chppWifiServiceRequestNanRanging(
+    struct ChppWifiServiceState *wifiServiceContext,
+    struct ChppAppHeader *requestHeader, uint8_t *buf, size_t len) {
+  enum ChppAppErrorCode error = CHPP_APP_ERROR_NONE;
+
+  struct chreWifiNanRangingParams *chreParams = chppWifiNanRangingParamsToChre(
+      (struct ChppWifiNanRangingParams *)buf, len);
+  if (chreParams == NULL) {
+    CHPP_LOGE(
+        "WifiServiceRequestNanRanging CHPP -> CHRE conversion failed. "
+        "Input len: %" PRIuSIZE,
+        len);
+    error = CHPP_APP_ERROR_INVALID_ARG;
+
+  } else {
+    if (!wifiServiceContext->api->requestNanRanging(chreParams)) {
+      error = CHPP_APP_ERROR_UNSPECIFIED;
+
+    } else {
+      struct ChppAppHeader *response =
+          chppAllocResponseFixed(requestHeader, struct ChppAppHeader);
+      size_t responseLen = sizeof(*response);
+
+      if (response == NULL) {
+        CHPP_LOG_OOM();
+        error = CHPP_APP_ERROR_OOM;
+      } else {
+        chppSendTimestampedResponseOrFail(
+            wifiServiceContext->service.appContext,
+            &wifiServiceContext->requestNanRangingAsync, response, responseLen);
+      }
+    }
+  }
   return error;
 }
 
@@ -519,8 +679,8 @@ static void chppWifiServiceScanMonitorStatusChangeCallback(bool enabled,
   };
 
   struct ChppWifiConfigureScanMonitorAsyncResponse *response =
-      chppAllocServiceResponseFixed(
-          &requestHeader, struct ChppWifiConfigureScanMonitorAsyncResponse);
+      chppAllocResponseFixed(&requestHeader,
+                             struct ChppWifiConfigureScanMonitorAsyncResponse);
   size_t responseLen = sizeof(*response);
 
   if (response == NULL) {
@@ -532,7 +692,7 @@ static void chppWifiServiceScanMonitorStatusChangeCallback(bool enabled,
     response->params.errorCode = errorCode;
 
     chppSendTimestampedResponseOrFail(
-        &gWifiServiceContext.service,
+        gWifiServiceContext.service.appContext,
         &gWifiServiceContext.configureScanMonitorAsync, response, responseLen);
   }
 }
@@ -552,7 +712,7 @@ static void chppWifiServiceScanResponseCallback(bool pending,
       .command = CHPP_WIFI_REQUEST_SCAN_ASYNC,
   };
 
-  struct ChppWifiRequestScanResponse *response = chppAllocServiceResponseFixed(
+  struct ChppWifiRequestScanResponse *response = chppAllocResponseFixed(
       &requestHeader, struct ChppWifiRequestScanResponse);
   size_t responseLen = sizeof(*response);
 
@@ -564,7 +724,7 @@ static void chppWifiServiceScanResponseCallback(bool pending,
     response->params.pending = pending;
     response->params.errorCode = errorCode;
 
-    chppSendTimestampedResponseOrFail(&gWifiServiceContext.service,
+    chppSendTimestampedResponseOrFail(gWifiServiceContext.service.appContext,
                                       &gWifiServiceContext.requestScanAsync,
                                       response, responseLen);
   }
@@ -637,15 +797,21 @@ static void chppWifiServiceRangingEventCallback(
   }
 
   if (notification != NULL) {
+    uint16_t command = CHPP_WIFI_REQUEST_RANGING_ASYNC;
+
+    // Per CHRE's API contract, only one kind of ranging request can be pending
+    // at a time - use the higher of the two for the notification.
+    uint8_t transaction =
+        MAX(gWifiServiceContext.requestRangingAsync.transaction,
+            gWifiServiceContext.requestNanRangingAsync.transaction);
     notification->header.handle = gWifiServiceContext.service.handle;
     notification->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
-    notification->header.transaction =
-        gWifiServiceContext.requestRangingAsync.transaction;
+    notification->header.transaction = transaction;
+    notification->header.command = command;
     notification->header.error =
         (notificationLen > sizeof(struct ChppAppHeader))
             ? CHPP_APP_ERROR_NONE
             : CHPP_APP_ERROR_CONVERSION_FAILED;
-    notification->header.command = CHPP_WIFI_REQUEST_RANGING_ASYNC;
 
     if (errorCode != CHRE_ERROR_NONE) {
       notification->header.error = CHPP_APP_ERROR_BEYOND_CHPP;
@@ -660,6 +826,184 @@ static void chppWifiServiceRangingEventCallback(
   gWifiServiceContext.api->releaseRangingEvent(event);
 }
 
+/**
+ * PAL callback with NAN service subscription identifier information.
+ *
+ * @param errorCode Error code indicating if a NAN subscription failed. The
+ *        subscriptionId field is only valid if the error code is
+ *        CHRE_ERROR_NONE.
+ * @param subscriptionId The ID assigned to the service subscription request.
+ *        This value is only valid if the error code is CHRE_ERROR_NONE.
+ */
+static void chppWifiServiceNanIdentifierCallback(uint8_t errorCode,
+                                                 uint32_t subscriptionId) {
+  size_t idLen = sizeof(struct ChppWifiNanServiceIdentifier);
+  struct ChppWifiNanServiceIdentifier *id = chppMalloc(idLen);
+  if (id == NULL) {
+    CHPP_LOG_OOM();
+  } else {
+    id->header.command = CHPP_WIFI_REQUEST_NAN_SUB;
+    id->header.handle = gWifiServiceContext.service.handle;
+    id->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    id->header.error = CHPP_APP_ERROR_NONE;
+    id->header.transaction =
+        gWifiServiceContext.requestNanSubscribe.transaction;
+    id->errorCode = errorCode;
+    id->subscriptionId = subscriptionId;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, id, idLen);
+  }
+}
+
+/**
+ * PAL callback with NAN service discovery information.
+ *
+ * @param event Information about a discovered publishing service.
+ */
+static void chppWifiServiceNanDiscoveryCallback(
+    struct chreWifiNanDiscoveryEvent *event) {
+  struct ChppWifiNanDiscoveryEventWithHeader *notif = NULL;
+  size_t notifLen = 0;
+
+  if (!chppWifiNanDiscoveryEventFromChre(event, &notif, &notifLen)) {
+    CHPP_LOGE("Discovery event conversion failed");
+    notif = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notif == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notifLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notif != NULL) {
+    notif->header.handle = gWifiServiceContext.service.handle;
+    notif->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    notif->header.error = (notifLen > sizeof(struct ChppAppHeader))
+                              ? CHPP_APP_ERROR_NONE
+                              : CHPP_APP_ERROR_CONVERSION_FAILED;
+    notif->header.command = CHPP_WIFI_NOTIFICATION_NAN_SERVICE_DISCOVERY;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, notif,
+        notifLen);
+  }
+
+  if (event != NULL) {
+    gWifiServiceContext.api->releaseNanDiscoveryEvent(event);
+  }
+}
+
+/**
+ * PAL callback invoked when a publishing NAN service goes away.
+ *
+ * @param subscriptionId ID of the subscribing service.
+ * @param publisherId ID of the publishing service that has gone away.
+ */
+static void chppWifiServiceNanLostCallback(uint32_t subscriptionId,
+                                           uint32_t publisherId) {
+  struct chreWifiNanSessionLostEvent chreEvent = {
+      .id = subscriptionId,
+      .peerId = publisherId,
+  };
+  struct ChppWifiNanSessionLostEventWithHeader *notif = NULL;
+  size_t notifLen = 0;
+
+  if (!chppWifiNanSessionLostEventFromChre(&chreEvent, &notif, &notifLen)) {
+    CHPP_LOGE("Session lost event conversion failed");
+    notif = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notif == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notifLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notif != NULL) {
+    notif->header.handle = gWifiServiceContext.service.handle;
+    notif->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    notif->header.error = (notifLen > sizeof(struct ChppAppHeader))
+                              ? CHPP_APP_ERROR_NONE
+                              : CHPP_APP_ERROR_CONVERSION_FAILED;
+    notif->header.command = CHPP_WIFI_NOTIFICATION_NAN_SERVICE_LOST;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, notif,
+        notifLen);
+  }
+}
+
+/**
+ * PAL callback invoked when a NAN service subscription is terminated.
+ *
+ * @param reason Error code indicating the reason for the termination.
+ * @param subscriptionId The subscription ID of the terminated NAN service.
+ */
+static void chppWifiServiceNanTerminatedCallback(uint32_t reason,
+                                                 uint32_t subscriptionId) {
+  uint8_t chreReason = (uint8_t)reason;
+  struct chreWifiNanSessionTerminatedEvent chreEvent = {
+      .id = subscriptionId,
+      .reason = chreReason,
+  };
+  struct ChppWifiNanSessionTerminatedEventWithHeader *notif = NULL;
+  size_t notifLen = 0;
+
+  if (!chppWifiNanSessionTerminatedEventFromChre(&chreEvent, &notif,
+                                                 &notifLen)) {
+    CHPP_LOGE("Session terminated event conversion failed");
+    notif = chppMalloc(sizeof(struct ChppAppHeader));
+    if (notif == NULL) {
+      CHPP_LOG_OOM();
+    } else {
+      notifLen = sizeof(struct ChppAppHeader);
+    }
+  }
+
+  if (notif != NULL) {
+    notif->header.handle = gWifiServiceContext.service.handle;
+    notif->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    notif->header.error = (notifLen > sizeof(struct ChppAppHeader))
+                              ? CHPP_APP_ERROR_NONE
+                              : CHPP_APP_ERROR_CONVERSION_FAILED;
+    notif->header.command = CHPP_WIFI_NOTIFICATION_NAN_SERVICE_TERMINATED;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, notif,
+        notifLen);
+  }
+}
+
+/**
+ * PAL callback invoked when a NAN service subscription is canceled.
+ *
+ * @param errorCode A value in @ref chreError indicating the result of the
+ *        cancelation, with CHRE_ERROR_NONE indicating success.
+ * @param subscriptionId The subscription ID of the canceled NAN service.
+ */
+static void chppWifiServiceNanSubscriptionCanceledCallback(
+    uint8_t errorCode, uint32_t subscriptionId) {
+  size_t responseLen = sizeof(struct ChppWifiNanSubscriptionCanceledResponse);
+  struct ChppWifiNanSubscriptionCanceledResponse *response =
+      chppMalloc(responseLen);
+  if (response == NULL) {
+    CHPP_LOG_OOM();
+  } else {
+    response->header.command = CHPP_WIFI_REQUEST_NAN_SUB_CANCEL;
+    response->header.handle = gWifiServiceContext.service.handle;
+    response->header.type = CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION;
+    response->header.error = CHPP_APP_ERROR_NONE;
+    response->header.transaction =
+        gWifiServiceContext.requestNanSubscribeCancel.transaction;
+    response->errorCode = errorCode;
+    response->subscriptionId = subscriptionId;
+
+    chppEnqueueTxDatagramOrFail(
+        gWifiServiceContext.service.appContext->transportContext, response,
+        responseLen);
+  }
+}
+
 /************************************************
  *  Public Functions
  ***********************************************/
@@ -670,15 +1014,13 @@ void chppRegisterWifiService(struct ChppAppState *appContext) {
   chppCheckWifiScanEventNotificationReset();
 
   if (gWifiServiceContext.api == NULL) {
-    CHPP_LOGE(
-        "WiFi PAL API version not compatible with CHPP. Cannot register WiFi "
-        "service");
-    CHPP_DEBUG_ASSERT(false);
+    CHPP_DEBUG_ASSERT_LOG(false,
+                          "WiFi PAL API incompatible. Cannot register service");
 
   } else {
-    gWifiServiceContext.service.appContext = appContext;
-    gWifiServiceContext.service.handle = chppRegisterService(
-        appContext, (void *)&gWifiServiceContext, &kWifiServiceConfig);
+    chppRegisterService(appContext, (void *)&gWifiServiceContext,
+                        &gWifiServiceContext.service, NULL /*outReqStates*/,
+                        &kWifiServiceConfig);
     CHPP_DEBUG_ASSERT(gWifiServiceContext.service.handle);
   }
 }

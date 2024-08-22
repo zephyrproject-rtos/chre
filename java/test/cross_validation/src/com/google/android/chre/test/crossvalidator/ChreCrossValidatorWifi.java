@@ -41,6 +41,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,8 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
     private static final long AWAIT_WIFI_SCAN_RESULT_TIMEOUT_SEC = 30;
 
     private static final long NANO_APP_ID = 0x476f6f6754000005L;
+
+    private static final int CHRE_SCAN_SIZE_DEFAULT = 100;
 
     /**
      * Wifi capabilities flags listed in
@@ -85,7 +88,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
         Assert.assertTrue("Nanoapp given to cross validator is not the designated chre cross"
                 + " validation nanoapp.",
                 nanoAppBinary.getNanoAppId() == NANO_APP_ID);
-        Context context = InstrumentationRegistry.getInstrumentation().getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         mWifiScanReceiver = new BroadcastReceiver() {
             @Override
@@ -102,7 +105,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
         context.registerReceiver(mWifiScanReceiver, intentFilter);
     }
 
-    @Override public void validate() throws AssertionError {
+    @Override public void validate() throws AssertionError, InterruptedException {
         mCollectingData.set(true);
         sendStepStartMessage(Step.CAPABILITIES);
         waitForMessageFromNanoapp();
@@ -111,7 +114,7 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
                           chreWifiHasCapabilities(mWifiCapabilities.get()));
 
         mCollectingData.set(true);
-        sendStepStartMessage(Step.SETUP);
+        sendSetupMessage(CHRE_SCAN_SIZE_DEFAULT);
 
         waitForMessageFromNanoapp();
         mCollectingData.set(false);
@@ -132,8 +135,12 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
      * Send step start message to nanoapp.
      */
     private void sendStepStartMessage(Step step) {
+        sendStepStartMessage(step, makeStepStartMessage(step));
+    }
+
+    private void sendStepStartMessage(Step step, NanoAppMessage message) {
         mStep.set(step);
-        sendMessageToNanoApp(makeStepStartMessage(step));
+        sendMessageToNanoApp(message);
     }
 
     /**
@@ -162,14 +169,25 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
     }
 
     /**
+    * Send SETUP message to the nanoapp with the chre scan size
+    */
+    private void sendSetupMessage(int chreScanSize) {
+        int messageType = ChreCrossValidationWifi.MessageType.STEP_START_VALUE;
+        ChreCrossValidationWifi.StepStartCommand stepStartCommand =
+                ChreCrossValidationWifi.StepStartCommand.newBuilder()
+                .setStep(Step.SETUP).setChreScanCapacity(chreScanSize).build();
+        NanoAppMessage message = NanoAppMessage.createMessageToNanoApp(
+                mNappBinary.getNanoAppId(), messageType, stepStartCommand.toByteArray());
+        sendStepStartMessage(Step.SETUP, message);
+    }
+
+    /**
      * Wait for a messaage from the nanoapp.
      */
-    private void waitForMessageFromNanoapp() {
-        try {
-            mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_SEC, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail("Interrupted while awaiting " + getCurrentStepName() + " step");
-        }
+    private void waitForMessageFromNanoapp() throws InterruptedException {
+        boolean success =
+                mAwaitDataLatch.await(AWAIT_STEP_RESULT_MESSAGE_TIMEOUT_SEC, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: wait for message from nanoapp", success);
         mAwaitDataLatch = new CountDownLatch(1);
         Assert.assertTrue("Timed out while waiting for step result in " + getCurrentStepName()
                 + " step", mDidReceiveNanoAppMessage.get());
@@ -188,18 +206,31 @@ public class ChreCrossValidatorWifi extends ChreCrossValidatorBase {
             && (capabilities.getWifiCapabilities() & WIFI_CAPABILITIES_ON_DEMAND_SCAN) != 0;
     }
 
-    private void waitForApScanResults() {
-        try {
-            mAwaitApWifiSetupScan.await(AWAIT_WIFI_SCAN_RESULT_TIMEOUT_SEC, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail("Interrupted while awaiting ap wifi scan result");
-        }
+    private void waitForApScanResults() throws InterruptedException {
+        boolean success =
+                mAwaitApWifiSetupScan.await(AWAIT_WIFI_SCAN_RESULT_TIMEOUT_SEC, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: wait for ap scan results", success);
         Assert.assertTrue("AP wifi scan result failed asynchronously", mApWifiScanSuccess.get());
     }
 
     private void sendWifiScanResultsToChre() {
         List<ScanResult> results = mWifiManager.getScanResults();
         Assert.assertTrue("No wifi scan results returned from AP", !results.isEmpty());
+
+        // CHRE does not currently support 6 GHz results, so filter these results from the list
+        int logsRemoved = 0;
+        Iterator<ScanResult> iter = results.iterator();
+        while (iter.hasNext()) {
+            ScanResult current = iter.next();
+            if (current.getBand() == ScanResult.WIFI_BAND_6_GHZ) {
+                iter.remove();
+                logsRemoved++;
+            }
+        }
+        if (logsRemoved > 0) {
+            Log.i(TAG, "Filtering out 6 GHz band scan result for CHRE, total=" + logsRemoved);
+        }
+
         for (int i = 0; i < results.size(); i++) {
             sendMessageToNanoApp(makeWifiScanResultMessage(results.get(i), results.size(), i));
         }

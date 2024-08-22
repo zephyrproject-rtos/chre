@@ -63,6 +63,50 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+/**
+ * Obtain the number of arguments passed into a macro up till 20 args
+ */
+#define VA_NUM_ARGS(...)                                                       \
+  VA_NUM_ARGS_IMPL(__VA_ARGS__, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, \
+                   8, 7, 6, 5, 4, 3, 2, 1)
+#define VA_NUM_ARGS_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, \
+                         _13, _14_, _15, _16, _17, _18, _19, _20, N, ...)   \
+  N
+
+/**
+ * Concats two preprocessor tokens together.
+ * If passed in args are macros, they are resolved first, then concat'd
+ */
+#define MACRO_CONCAT2(x, y) x##y
+#define MACRO_CONCAT(x, y) MACRO_CONCAT2(x, y)
+
+/**
+ * Get a list of types of the passed in parameters to TYPE_LIST(...)
+ */
+#define TYPE_LIST_1(a) decltype(a)
+#define TYPE_LIST_2(a, ...) decltype(a), TYPE_LIST_1(__VA_ARGS__)
+#define TYPE_LIST_3(a, ...) decltype(a), TYPE_LIST_2(__VA_ARGS__)
+#define TYPE_LIST_4(a, ...) decltype(a), TYPE_LIST_3(__VA_ARGS__)
+#define TYPE_LIST_5(a, ...) decltype(a), TYPE_LIST_4(__VA_ARGS__)
+#define TYPE_LIST_6(a, ...) decltype(a), TYPE_LIST_5(__VA_ARGS__)
+#define TYPE_LIST_7(a, ...) decltype(a), TYPE_LIST_6(__VA_ARGS__)
+#define TYPE_LIST_8(a, ...) decltype(a), TYPE_LIST_7(__VA_ARGS__)
+#define TYPE_LIST_9(a, ...) decltype(a), TYPE_LIST_8(__VA_ARGS__)
+#define TYPE_LIST_10(a, ...) decltype(a), TYPE_LIST_9(__VA_ARGS__)
+#define TYPE_LIST_11(a, ...) decltype(a), TYPE_LIST_10(__VA_ARGS__)
+#define TYPE_LIST_12(a, ...) decltype(a), TYPE_LIST_11(__VA_ARGS__)
+#define TYPE_LIST_13(a, ...) decltype(a), TYPE_LIST_12(__VA_ARGS__)
+#define TYPE_LIST_14(a, ...) decltype(a), TYPE_LIST_13(__VA_ARGS__)
+#define TYPE_LIST_15(a, ...) decltype(a), TYPE_LIST_14(__VA_ARGS__)
+#define TYPE_LIST_16(a, ...) decltype(a), TYPE_LIST_15(__VA_ARGS__)
+#define TYPE_LIST_17(a, ...) decltype(a), TYPE_LIST_16(__VA_ARGS__)
+#define TYPE_LIST_18(a, ...) decltype(a), TYPE_LIST_17(__VA_ARGS__)
+#define TYPE_LIST_19(a, ...) decltype(a), TYPE_LIST_18(__VA_ARGS__)
+#define TYPE_LIST_20(a, ...) decltype(a), TYPE_LIST_19(__VA_ARGS__)
+
+#define TYPE_LIST(...) \
+  MACRO_CONCAT(TYPE_LIST_, VA_NUM_ARGS(__VA_ARGS__))(__VA_ARGS__)
+
 // Compiler-specific functionality
 #if defined(__clang__) || defined(__GNUC__)
 

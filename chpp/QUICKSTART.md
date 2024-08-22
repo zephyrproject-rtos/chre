@@ -4,7 +4,7 @@ This guide focuses on integrating and porting CHPP to your desired platform. For
 
 ## CHPP Transport Layer Integration
 
-### 1. Platform-specific functionality
+### Platform-specific functionality
 
 Implement the platform-specific functionality utilized by CHPP. These can be found in chpp/platform and include:
 
@@ -17,43 +17,32 @@ Implement the platform-specific functionality utilized by CHPP. These can be fou
 
 Sample Linux implementations are provided.
 
-### 1. Link-Layer APIs
+### Link-Layer APIs
 
-The APIs that are needed to tie CHPP to the serial port are as follows. Details are provided in link.h.
+You need to create a `ChppLinkApi` API struct and a `ChppLinkConfiguration` configuration struct for your link layer.
+See details in link.h.
 
-1. void chppPlatformLinkInit(\*params)
-1. void chppPlatformLinkDeinit(\*params)
-1. void chppPlatformLinkReset(\*params)
-1. enum ChppLinkErrorCode chppPlatformLinkSend(\*params, \*buf, len)
-1. Depending on implementation, void chppLinkSendDoneCb(\*params)
-1. void chppPlatformLinkDoWork(\*params)
-1. bool chppRxDataCb(\*context, \*buf, len)
-1. Optionally, chppRxPacketCompleteCb(\*context)
+### Initialization
 
-In addition, the system must implement and initialize the platform-specific linkParams data structure as part of platform_link.h
+In order to initialize CHPP, it is necessary to:
 
-### 1. Initialization
-
-In order to initialize CHPP, it is necessary to
-
-1. Allocate the transportContext and appContext structs that hold the state for each instance of the application and transport layers (in any order)
+1. Allocate the linkContext, transportContext, and appContext structs that hold the state for each instance of the application, transport, and link layers (in any order)
 1. Call the layers’ initialization functions, chppTransportInit and chppAppInit (in any order)
-1. Initialize the platform-specific linkParams struct (part of the transport struct)
 1. Call chppWorkThreadStart to start the main thread for CHPP's Transport Layer
 
-### 1. Testing
+### Testing
 
 Several unit tests are provided in transport_test.c. In addition, loopback functionality is already implemented in CHPP, and can be used for testing. For details on crafting a loopback datagram, please refer to README.md and the transport layer unit tests (transport_test.c).
 
-### 1. Termination
+### Termination
 
-In order to terminate CHPP's main transport layer thread, it is necessary to
+In order to terminate CHPP's main transport layer thread, it is necessary to:
 
 1. Call chppWorkThreadStop() to stop the main worker thread.
 1. Call the layers’ deinitialization functions, chppTransportDeinit and chppAppDeinit (in any order)
-1. Deallocate the transportContext, appContext, and the platform-specific linkParams structs
+1. Deallocate the transportContext, appContext, and the linkContext structs
 
-### 1. Single-threaded systems
+### Single-threaded systems
 
 If the system does not support multi-threading, the chppWorkThreadHandleSignal method can be used to directly handle signals without using chppWorkThreadStart.
 
@@ -63,7 +52,7 @@ For such systems, chppTransportGetTimeUntilNextDoWorkNs() can be used to replica
 
 ## CHPP Services Integration
 
-CHPP provides several predefined services (including Loopback Test, Service Discovery), as well as three standard services that follow the CHRE PAL API to simplify integration and testing. CHPP allows for custom services as well, as described in README.md. The standard services included in CHPP are
+CHPP provides several predefined services (including Loopback Test, Service Discovery), as well as three standard services that follow the CHRE PAL API to simplify integration and testing. CHPP allows for custom services as well, as described in README.md. The standard services included in CHPP are:
 
 1. WWAN
 1. WiFi

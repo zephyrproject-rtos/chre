@@ -17,8 +17,8 @@
 #ifndef CHRE_PAL_SENSOR_H_
 #define CHRE_PAL_SENSOR_H_
 
-#include <cstdbool>
-#include <cstdint>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "chre/pal/system.h"
 #include "chre/pal/version.h"
@@ -33,8 +33,13 @@ extern "C" {
  */
 #define CHRE_PAL_SENSOR_API_V1_3 CHRE_PAL_CREATE_API_VERSION(1, 3)
 
+/**
+ * Fix the signature of getSensors.
+ */
+#define CHRE_PAL_SENSOR_API_V1_4 CHRE_PAL_CREATE_API_VERSION(1, 4)
+
 // v1.0-v1.2 skipped to avoid confusion with older versions of the CHRE API.
-#define CHRE_PAL_SENSOR_API_CURRENT_VERSION CHRE_PAL_SENSOR_API_V1_3
+#define CHRE_PAL_SENSOR_API_CURRENT_VERSION CHRE_PAL_SENSOR_API_V1_4
 
 /**
  * ID value that must be returned from flush() if request IDs are not
@@ -169,7 +174,7 @@ struct chrePalSensorApi {
    * function. The PAL must also free any memory (e.g. the sensor array if it
    * was dynamically allocated) inside this function.
    */
-  void (*close)();
+  void (*close)(void);
 
   /**
    * Creates a chreSensorInfo struct for every CHRE-supported sensor that is
@@ -203,7 +208,7 @@ struct chrePalSensorApi {
    *     true if all sensors are available. If false, the sensors array may be
    *     partially filled.
    */
-  bool (*getSensors)(struct chreSensorInfo *const *sensors,
+  bool (*getSensors)(const struct chreSensorInfo **sensors,
                      uint32_t *arraySize);
 
   /**

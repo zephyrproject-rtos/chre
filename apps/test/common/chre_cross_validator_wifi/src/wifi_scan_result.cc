@@ -16,14 +16,11 @@
 
 #include "wifi_scan_result.h"
 
-#include <chre.h>
-
 #include "chre/util/nanoapp/log.h"
+#include "chre_api/chre.h"
 
 #include <stdio.h>
 #include <cstring>
-
-#define LOG_TAG "ChreCrossValidatorWifi"
 
 WifiScanResult::WifiScanResult(pb_istream_t *apWifiScanResultStream) {
   memset(mSsid, 0, CHRE_WIFI_SSID_MAX_LEN);

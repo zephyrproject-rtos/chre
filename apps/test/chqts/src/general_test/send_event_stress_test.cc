@@ -20,7 +20,7 @@
 
 #include <shared/send_message.h>
 
-#include <chre.h>
+#include "chre_api/chre.h"
 
 using nanoapp_testing::sendFatalFailureToHost;
 using nanoapp_testing::sendSuccessToHost;
@@ -84,8 +84,12 @@ void SendEventStressTest::setUp(uint32_t messageSize,
     sendFatalFailureToHost("Insufficient events available");
   }
 
-  // sCompleteCallbacksLeft may be 0 or 1 at this point.  We don't care.
-  // We just know we also expect all the sEventsLeft to have callbacks.
+  // If kMaxEventsToSend events are sent, we need to reset
+  // sCompleteCallbacksLeft because we only expect at most sEventsLeft to have
+  // callbacks.
+  if (sEventsLeft == kMaxEventsToSend) {
+    sCompleteCallbacksLeft = 0;
+  }
   sCompleteCallbacksLeft += sEventsLeft;
 
   sInMethod = false;
@@ -151,6 +155,9 @@ void SendEventStressTest::completeCallback(uint16_t eventType, void *data) {
     // It's too late for the Host to catch this failure, but perhaps
     // the abort will screw up our unload, and trigger a failure that way.
     sendFatalFailureToHost("completeCallback called too many times");
+  } else if (sEventsLeft <= 0 && sCompleteCallbacksLeft > 0) {
+    sendFatalFailureToHost(
+        "completeCallback called less times than events sent");
   }
 }
 

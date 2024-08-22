@@ -25,7 +25,7 @@
 
 #ifdef CHRE_IS_NANOAPP_BUILD
 
-#include <chre.h>
+#include "chre_api/chre.h"
 
 /**
  * Provides the CHRE_ASSERT macro that uses chreAbort to abort the nanoapp upon

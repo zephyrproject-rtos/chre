@@ -50,9 +50,9 @@ void chppRegisterWifiClient(struct ChppAppState *appContext);
 void chppDeregisterWifiClient(struct ChppAppState *appContext);
 
 /**
- * @return The ChppClientState pointer to the WiFi client.
+ * @return The ChppEndpointState pointer to the WiFi client.
  */
-struct ChppClientState *getChppWifiClientState(void);
+struct ChppEndpointState *getChppWifiClientState(void);
 
 #ifndef CHPP_CLIENT_ENABLED_CHRE_WIFI
 /**

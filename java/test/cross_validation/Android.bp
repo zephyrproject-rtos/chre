@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package {
+    default_team: "trendy_team_context_hub",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "system_chre_license"
@@ -35,5 +36,5 @@ java_library {
         "guava",
     ],
 
-    sdk_version: "system_current",
+    sdk_version: "test_current",
 }

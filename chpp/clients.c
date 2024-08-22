@@ -50,8 +50,8 @@
  *  Prototypes
  ***********************************************/
 
-static bool chppIsClientApiReady(struct ChppClientState *clientState);
-ChppClientDeinitFunction *chppGetClientDeinitFunction(
+static bool chppIsClientApiReady(struct ChppEndpointState *clientState);
+static ChppClientDeinitFunction *chppGetClientDeinitFunction(
     struct ChppAppState *context, uint8_t index);
 
 /************************************************
@@ -65,9 +65,11 @@ ChppClientDeinitFunction *chppGetClientDeinitFunction(
  *
  * @param clientState State of the client sending the client request.
  *
- * @return Indicates whetherthe client is ready.
+ * @return Indicates whether the client is ready.
  */
-static bool chppIsClientApiReady(struct ChppClientState *clientState) {
+static bool chppIsClientApiReady(struct ChppEndpointState *clientState) {
+  CHPP_DEBUG_NOT_NULL(clientState);
+
   bool result = false;
 
   if (clientState->initialized) {
@@ -109,8 +111,10 @@ static bool chppIsClientApiReady(struct ChppClientState *clientState) {
  *
  * @return Pointer to the match notification function.
  */
-ChppClientDeinitFunction *chppGetClientDeinitFunction(
+static ChppClientDeinitFunction *chppGetClientDeinitFunction(
     struct ChppAppState *context, uint8_t index) {
+  CHPP_DEBUG_NOT_NULL(context);
+
   return context->registeredClients[index]->deinitFunctionPtr;
 }
 
@@ -120,6 +124,8 @@ ChppClientDeinitFunction *chppGetClientDeinitFunction(
 
 void chppRegisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_DEBUG_NOT_NULL(context);
+
   CHPP_LOGD("Registering Clients");
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
@@ -143,6 +149,8 @@ void chppRegisterCommonClients(struct ChppAppState *context) {
 
 void chppDeregisterCommonClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_DEBUG_NOT_NULL(context);
+
   CHPP_LOGD("Deregistering Clients");
 
 #ifdef CHPP_CLIENT_ENABLED_WWAN
@@ -165,42 +173,45 @@ void chppDeregisterCommonClients(struct ChppAppState *context) {
 }
 
 void chppRegisterClient(struct ChppAppState *appContext, void *clientContext,
-                        struct ChppClientState *clientState,
-                        struct ChppRequestResponseState *rRStates,
+                        struct ChppEndpointState *clientState,
+                        struct ChppOutgoingRequestState *outReqStates,
                         const struct ChppClient *newClient) {
   CHPP_NOT_NULL(newClient);
+  CHPP_DEBUG_NOT_NULL(appContext);
+  CHPP_DEBUG_NOT_NULL(clientContext);
+  CHPP_DEBUG_NOT_NULL(clientState);
+  CHPP_DEBUG_NOT_NULL(newClient);
 
   if (appContext->registeredClientCount >= CHPP_MAX_REGISTERED_CLIENTS) {
     CHPP_LOGE("Max clients registered: %" PRIu8,
               appContext->registeredClientCount);
-
-  } else {
-    clientState->appContext = appContext;
-    clientState->rRStates = rRStates;
-    clientState->index = appContext->registeredClientCount;
-
-    appContext->registeredClientContexts[appContext->registeredClientCount] =
-        clientContext;
-    appContext->registeredClientStates[appContext->registeredClientCount] =
-        clientState;
-    appContext->registeredClients[appContext->registeredClientCount] =
-        newClient;
-
-    char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
-    chppUuidToStr(newClient->descriptor.uuid, uuidText);
-    CHPP_LOGD("Client # %" PRIu8 " UUID=%s, version=%" PRIu8 ".%" PRIu8
-              ".%" PRIu16 ", min_len=%" PRIuSIZE,
-              appContext->registeredClientCount, uuidText,
-              newClient->descriptor.version.major,
-              newClient->descriptor.version.minor,
-              newClient->descriptor.version.patch, newClient->minLength);
-
-    appContext->registeredClientCount++;
+    return;
   }
+  clientState->appContext = appContext;
+  clientState->outReqStates = outReqStates;
+  clientState->index = appContext->registeredClientCount;
+  clientState->context = clientContext;
+  appContext->registeredClientStates[appContext->registeredClientCount] =
+      clientState;
+
+  appContext->registeredClients[appContext->registeredClientCount] = newClient;
+
+  char uuidText[CHPP_SERVICE_UUID_STRING_LEN];
+  chppUuidToStr(newClient->descriptor.uuid, uuidText);
+  CHPP_LOGD("Client # %" PRIu8 " UUID=%s, version=%" PRIu8 ".%" PRIu8
+            ".%" PRIu16 ", min_len=%" PRIuSIZE,
+            appContext->registeredClientCount, uuidText,
+            newClient->descriptor.version.major,
+            newClient->descriptor.version.minor,
+            newClient->descriptor.version.patch, newClient->minLength);
+
+  appContext->registeredClientCount++;
 }
 
 void chppInitBasicClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_DEBUG_NOT_NULL(context);
+
   CHPP_LOGD("Initializing basic clients");
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
@@ -218,21 +229,23 @@ void chppInitBasicClients(struct ChppAppState *context) {
 #endif
 }
 
-void chppClientInit(struct ChppClientState *clientState, uint8_t handle) {
+void chppClientInit(struct ChppEndpointState *clientState, uint8_t handle) {
+  CHPP_DEBUG_NOT_NULL(clientState);
   CHPP_ASSERT_LOG(!clientState->initialized,
                   "Client H#%" PRIu8 " already initialized", handle);
 
   if (!clientState->everInitialized) {
     clientState->handle = handle;
-    chppMutexInit(&clientState->responseMutex);
-    chppConditionVariableInit(&clientState->responseCondVar);
+    chppMutexInit(&clientState->syncResponse.mutex);
+    chppConditionVariableInit(&clientState->syncResponse.condVar);
     clientState->everInitialized = true;
   }
 
   clientState->initialized = true;
 }
 
-void chppClientDeinit(struct ChppClientState *clientState) {
+void chppClientDeinit(struct ChppEndpointState *clientState) {
+  CHPP_DEBUG_NOT_NULL(clientState);
   CHPP_ASSERT_LOG(clientState->initialized,
                   "Client H#%" PRIu8 " already deinitialized",
                   clientState->handle);
@@ -242,6 +255,8 @@ void chppClientDeinit(struct ChppClientState *clientState) {
 
 void chppDeinitBasicClients(struct ChppAppState *context) {
   UNUSED_VAR(context);
+  CHPP_DEBUG_NOT_NULL(context);
+
   CHPP_LOGD("Deinitializing basic clients");
 
 #ifdef CHPP_CLIENT_ENABLED_LOOPBACK
@@ -260,6 +275,7 @@ void chppDeinitBasicClients(struct ChppAppState *context) {
 }
 
 void chppDeinitMatchedClients(struct ChppAppState *context) {
+  CHPP_DEBUG_NOT_NULL(context);
   CHPP_LOGD("Deinitializing matched clients");
 
   for (uint8_t i = 0; i < context->discoveredServiceCount; i++) {
@@ -274,211 +290,79 @@ void chppDeinitMatchedClients(struct ChppAppState *context) {
                 (clientDeinitFunction != NULL));
 
       if (clientDeinitFunction != NULL) {
-        clientDeinitFunction(context->registeredClientContexts[clientIndex]);
+        clientDeinitFunction(
+            context->registeredClientStates[clientIndex]->context);
       }
     }
   }
 }
 
 struct ChppAppHeader *chppAllocClientRequest(
-    struct ChppClientState *clientState, size_t len) {
-  CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
-
-  struct ChppAppHeader *result = chppMalloc(len);
-  if (result != NULL) {
-    result->handle = clientState->handle;
-    result->type = CHPP_MESSAGE_TYPE_CLIENT_REQUEST;
-    result->transaction = clientState->transaction;
-    result->error = CHPP_APP_ERROR_NONE;
-    result->command = CHPP_APP_COMMAND_NONE;
-
-    clientState->transaction++;
-  }
-  return result;
+    struct ChppEndpointState *clientState, size_t len) {
+  CHPP_DEBUG_NOT_NULL(clientState);
+  return chppAllocRequest(CHPP_MESSAGE_TYPE_CLIENT_REQUEST, clientState, len);
 }
 
 struct ChppAppHeader *chppAllocClientRequestCommand(
-    struct ChppClientState *clientState, uint16_t command) {
-  struct ChppAppHeader *result =
+    struct ChppEndpointState *clientState, uint16_t command) {
+  struct ChppAppHeader *request =
       chppAllocClientRequest(clientState, sizeof(struct ChppAppHeader));
 
-  if (result != NULL) {
-    result->command = command;
+  if (request != NULL) {
+    request->command = command;
   }
-  return result;
+  return request;
 }
 
-void chppClientTimestampRequest(struct ChppClientState *clientState,
-                                struct ChppRequestResponseState *rRState,
-                                struct ChppAppHeader *requestHeader,
-                                uint64_t timeoutNs) {
-  if (rRState->requestState == CHPP_REQUEST_STATE_REQUEST_SENT) {
-    CHPP_LOGE("Dupe req ID=%" PRIu8 " existing ID=%" PRIu8 " from t=%" PRIu64,
-              requestHeader->transaction, rRState->transaction,
-              rRState->requestTimeNs / CHPP_NSEC_PER_MSEC);
+bool chppClientSendTimestampedRequestOrFail(
+    struct ChppEndpointState *clientState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len,
+    uint64_t timeoutNs) {
+  CHPP_DEBUG_NOT_NULL(clientState);
+  CHPP_DEBUG_NOT_NULL(outReqState);
+  CHPP_DEBUG_NOT_NULL(buf);
 
-    // Clear a possible pending timeout from the previous request
-    rRState->responseTimeNs = CHPP_TIME_MAX;
-    chppClientRecalculateNextTimeout(clientState->appContext);
-  }
-
-  rRState->requestTimeNs = chppGetCurrentTimeNs();
-  rRState->requestState = CHPP_REQUEST_STATE_REQUEST_SENT;
-  rRState->transaction = requestHeader->transaction;
-
-  if (timeoutNs == CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE) {
-    rRState->responseTimeNs = CHPP_TIME_MAX;
-
-  } else {
-    rRState->responseTimeNs = timeoutNs + rRState->requestTimeNs;
-
-    clientState->appContext->nextRequestTimeoutNs = MIN(
-        clientState->appContext->nextRequestTimeoutNs, rRState->responseTimeNs);
-  }
-
-  CHPP_LOGD("Timestamp req ID=%" PRIu8 " at t=%" PRIu64 " timeout=%" PRIu64
-            " (requested=%" PRIu64 "), next timeout=%" PRIu64,
-            rRState->transaction, rRState->requestTimeNs / CHPP_NSEC_PER_MSEC,
-            rRState->responseTimeNs / CHPP_NSEC_PER_MSEC,
-            timeoutNs / CHPP_NSEC_PER_MSEC,
-            clientState->appContext->nextRequestTimeoutNs / CHPP_NSEC_PER_MSEC);
-}
-
-bool chppClientTimestampResponse(struct ChppClientState *clientState,
-                                 struct ChppRequestResponseState *rRState,
-                                 const struct ChppAppHeader *responseHeader) {
-  bool success = false;
-  uint64_t responseTime = chppGetCurrentTimeNs();
-
-  switch (rRState->requestState) {
-    case CHPP_REQUEST_STATE_NONE: {
-      CHPP_LOGE("Resp with no req t=%" PRIu64,
-                responseTime / CHPP_NSEC_PER_MSEC);
-      break;
-    }
-
-    case CHPP_REQUEST_STATE_RESPONSE_RCV: {
-      CHPP_LOGE("Extra resp at t=%" PRIu64 " for req t=%" PRIu64,
-                responseTime / CHPP_NSEC_PER_MSEC,
-                rRState->requestTimeNs / CHPP_NSEC_PER_MSEC);
-      break;
-    }
-
-    case CHPP_REQUEST_STATE_RESPONSE_TIMEOUT: {
-      CHPP_LOGE("Late resp at t=%" PRIu64 " for req t=%" PRIu64,
-                responseTime / CHPP_NSEC_PER_MSEC,
-                rRState->requestTimeNs / CHPP_NSEC_PER_MSEC);
-      break;
-    }
-
-    case CHPP_REQUEST_STATE_REQUEST_SENT: {
-      if (responseHeader->transaction != rRState->transaction) {
-        CHPP_LOGE("Invalid resp ID=%" PRIu8 " at t=%" PRIu64
-                  " expected=%" PRIu8,
-                  responseHeader->transaction,
-                  responseTime / CHPP_NSEC_PER_MSEC, rRState->transaction);
-      } else {
-        rRState->requestState = (responseTime > rRState->responseTimeNs)
-                                    ? CHPP_REQUEST_STATE_RESPONSE_TIMEOUT
-                                    : CHPP_REQUEST_STATE_RESPONSE_RCV;
-        success = true;
-
-        CHPP_LOGD(
-            "Timestamp resp ID=%" PRIu8 " req t=%" PRIu64 " resp t=%" PRIu64
-            " timeout t=%" PRIu64 " (RTT=%" PRIu64 ", timeout = %s)",
-            rRState->transaction, rRState->requestTimeNs / CHPP_NSEC_PER_MSEC,
-            responseTime / CHPP_NSEC_PER_MSEC,
-            rRState->responseTimeNs / CHPP_NSEC_PER_MSEC,
-            (responseTime - rRState->requestTimeNs) / CHPP_NSEC_PER_MSEC,
-            (responseTime > rRState->responseTimeNs) ? "yes" : "no");
-      }
-      break;
-    }
-
-    default: {
-      CHPP_DEBUG_ASSERT(false);
-    }
-  }
-
-  if (success) {
-    if (rRState->responseTimeNs ==
-        clientState->appContext->nextRequestTimeoutNs) {
-      // This was the next upcoming timeout
-      chppClientRecalculateNextTimeout(clientState->appContext);
-    }
-    rRState->responseTimeNs = responseTime;
-  }
-  return success;
-}
-
-bool chppSendTimestampedRequestOrFail(struct ChppClientState *clientState,
-                                      struct ChppRequestResponseState *rRState,
-                                      void *buf, size_t len,
-                                      uint64_t timeoutNs) {
-  CHPP_ASSERT(len >= CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION);
   if (!chppIsClientApiReady(clientState)) {
     CHPP_FREE_AND_NULLIFY(buf);
     return false;
   }
 
-  chppClientTimestampRequest(clientState, rRState, buf, timeoutNs);
-  clientState->responseReady = false;
-
-  bool success = chppEnqueueTxDatagramOrFail(
-      clientState->appContext->transportContext, buf, len);
-
-  // Failure to enqueue a TX datagram means that a request was known to be not
-  // transmitted. We explicitly set requestState to be in the NONE state, so
-  // that unintended app layer timeouts do not occur.
-  if (!success) {
-    rRState->requestState = CHPP_REQUEST_STATE_NONE;
-  }
-
-  return success;
+  return chppSendTimestampedRequestOrFail(clientState, outReqState, buf, len,
+                                          timeoutNs);
 }
 
-bool chppSendTimestampedRequestAndWait(struct ChppClientState *clientState,
-                                       struct ChppRequestResponseState *rRState,
-                                       void *buf, size_t len) {
-  return chppSendTimestampedRequestAndWaitTimeout(
-      clientState, rRState, buf, len, CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT);
+bool chppClientSendTimestampedRequestAndWait(
+    struct ChppEndpointState *clientState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len) {
+  return chppClientSendTimestampedRequestAndWaitTimeout(
+      clientState, outReqState, buf, len, CHPP_REQUEST_TIMEOUT_DEFAULT);
 }
 
-bool chppSendTimestampedRequestAndWaitTimeout(
-    struct ChppClientState *clientState,
-    struct ChppRequestResponseState *rRState, void *buf, size_t len,
+bool chppClientSendTimestampedRequestAndWaitTimeout(
+    struct ChppEndpointState *clientState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len,
     uint64_t timeoutNs) {
-  bool result = chppSendTimestampedRequestOrFail(
-      clientState, rRState, buf, len, CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
+  bool result = chppClientSendTimestampedRequestOrFail(
+      clientState, outReqState, buf, len, CHPP_REQUEST_TIMEOUT_INFINITE);
 
-  if (result) {
-    chppMutexLock(&clientState->responseMutex);
-
-    while (result && !clientState->responseReady) {
-      result = chppConditionVariableTimedWait(&clientState->responseCondVar,
-                                              &clientState->responseMutex,
-                                              timeoutNs);
-    }
-    if (!clientState->responseReady) {
-      rRState->requestState = CHPP_REQUEST_STATE_RESPONSE_TIMEOUT;
-      CHPP_LOGE("Response timeout after %" PRIu64 " ms",
-                timeoutNs / CHPP_NSEC_PER_MSEC);
-      result = false;
-    }
-
-    chppMutexUnlock(&clientState->responseMutex);
+  if (!result) {
+    return false;
   }
 
-  return result;
+  return chppWaitForResponseWithTimeout(&clientState->syncResponse, outReqState,
+                                        timeoutNs);
 }
 
-void chppClientPseudoOpen(struct ChppClientState *clientState) {
+void chppClientPseudoOpen(struct ChppEndpointState *clientState) {
   clientState->pseudoOpen = true;
 }
 
-bool chppClientSendOpenRequest(struct ChppClientState *clientState,
-                               struct ChppRequestResponseState *openRRState,
+bool chppClientSendOpenRequest(struct ChppEndpointState *clientState,
+                               struct ChppOutgoingRequestState *openReqState,
                                uint16_t openCommand, bool blocking) {
+  CHPP_NOT_NULL(clientState);
+  CHPP_NOT_NULL(openReqState);
+
   bool result = false;
   uint8_t priorState = clientState->openState;
 
@@ -490,37 +374,39 @@ bool chppClientSendOpenRequest(struct ChppClientState *clientState,
       chppAllocClientRequestCommand(clientState, openCommand);
 
   if (request == NULL) {
-    CHPP_LOG_OOM();
+    return false;
+  }
 
+  clientState->openState = CHPP_OPEN_STATE_OPENING;
+
+  if (blocking) {
+    CHPP_LOGD("Opening service - blocking");
+    result = chppClientSendTimestampedRequestAndWait(clientState, openReqState,
+                                                     request, sizeof(*request));
   } else {
-    clientState->openState = CHPP_OPEN_STATE_OPENING;
+    CHPP_LOGD("Opening service - non-blocking");
+    result = chppClientSendTimestampedRequestOrFail(
+        clientState, openReqState, request, sizeof(*request),
+        CHPP_REQUEST_TIMEOUT_INFINITE);
+  }
 
-    if (blocking) {
-      CHPP_LOGD("Opening service - blocking");
-      result = chppSendTimestampedRequestAndWait(clientState, openRRState,
-                                                 request, sizeof(*request));
-    } else {
-      CHPP_LOGD("Opening service - non-blocking");
-      result = chppSendTimestampedRequestOrFail(
-          clientState, openRRState, request, sizeof(*request),
-          CHPP_CLIENT_REQUEST_TIMEOUT_INFINITE);
-    }
+  if (!result) {
+    CHPP_LOGE("Service open fail from state=%" PRIu8 " psudo=%d blocking=%d",
+              priorState, clientState->pseudoOpen, blocking);
+    clientState->openState = CHPP_OPEN_STATE_CLOSED;
 
-    if (!result) {
-      CHPP_LOGE("Service open fail from state=%" PRIu8 " psudo=%d blocking=%d",
-                priorState, clientState->pseudoOpen, blocking);
-      clientState->openState = CHPP_OPEN_STATE_CLOSED;
-
-    } else if (blocking) {
-      result = (clientState->openState == CHPP_OPEN_STATE_OPENED);
-    }
+  } else if (blocking) {
+    result = (clientState->openState == CHPP_OPEN_STATE_OPENED);
   }
 
   return result;
 }
 
-void chppClientProcessOpenResponse(struct ChppClientState *clientState,
+void chppClientProcessOpenResponse(struct ChppEndpointState *clientState,
                                    uint8_t *buf, size_t len) {
+  CHPP_DEBUG_NOT_NULL(clientState);
+  CHPP_DEBUG_NOT_NULL(buf);
+
   UNUSED_VAR(len);  // Necessary depending on assert macro below
   // Assert condition already guaranteed by chppAppProcessRxDatagram() but
   // checking again since this is a public function
@@ -531,68 +417,18 @@ void chppClientProcessOpenResponse(struct ChppClientState *clientState,
     CHPP_LOGE("Service open failed at service");
     clientState->openState = CHPP_OPEN_STATE_CLOSED;
   } else {
-    CHPP_LOGI("Service open succeeded at service");
+    CHPP_LOGD("Service open succeeded at service");
     clientState->openState = CHPP_OPEN_STATE_OPENED;
   }
 }
 
-void chppClientRecalculateNextTimeout(struct ChppAppState *context) {
-  context->nextRequestTimeoutNs = CHPP_TIME_MAX;
-
-  for (uint8_t clientIdx = 0; clientIdx < context->registeredClientCount;
-       clientIdx++) {
-    for (uint16_t cmdIdx = 0;
-         cmdIdx < context->registeredClients[clientIdx]->rRStateCount;
-         cmdIdx++) {
-      struct ChppRequestResponseState *rRState =
-          &context->registeredClientStates[clientIdx]->rRStates[cmdIdx];
-
-      if (rRState->requestState == CHPP_REQUEST_STATE_REQUEST_SENT) {
-        context->nextRequestTimeoutNs =
-            MIN(context->nextRequestTimeoutNs, rRState->responseTimeNs);
-      }
-    }
-  }
-
-  CHPP_LOGD("nextReqTimeout=%" PRIu64,
-            context->nextRequestTimeoutNs / CHPP_NSEC_PER_MSEC);
-}
-
-void chppClientCloseOpenRequests(struct ChppClientState *clientState,
+void chppClientCloseOpenRequests(struct ChppEndpointState *clientState,
                                  const struct ChppClient *client,
                                  bool clearOnly) {
-  bool recalcNeeded = false;
+  UNUSED_VAR(client);
+  chppCloseOpenRequests(clientState, CHPP_ENDPOINT_CLIENT, clearOnly);
+}
 
-  for (uint16_t cmdIdx = 0; cmdIdx < client->rRStateCount; cmdIdx++) {
-    if (clientState->rRStates[cmdIdx].requestState ==
-        CHPP_REQUEST_STATE_REQUEST_SENT) {
-      recalcNeeded = true;
-
-      CHPP_LOGE("Closing open req #%" PRIu16 " clear %d", cmdIdx, clearOnly);
-
-      if (clearOnly) {
-        clientState->rRStates[cmdIdx].requestState =
-            CHPP_REQUEST_STATE_RESPONSE_TIMEOUT;
-      } else {
-        struct ChppAppHeader *response =
-            chppMalloc(sizeof(struct ChppAppHeader));
-        if (response == NULL) {
-          CHPP_LOG_OOM();
-        } else {
-          response->handle = clientState->handle;
-          response->type = CHPP_MESSAGE_TYPE_SERVICE_RESPONSE;
-          response->transaction = clientState->rRStates[cmdIdx].transaction;
-          response->error = CHPP_APP_ERROR_TIMEOUT;
-          response->command = cmdIdx;
-
-          chppAppProcessRxDatagram(clientState->appContext, (uint8_t *)response,
-                                   sizeof(struct ChppAppHeader));
-        }
-      }
-    }
-  }
-
-  if (recalcNeeded) {
-    chppClientRecalculateNextTimeout(clientState->appContext);
-  }
+struct ChppAppHeader *chppAllocClientNotification(size_t len) {
+  return chppAllocNotification(CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION, len);
 }

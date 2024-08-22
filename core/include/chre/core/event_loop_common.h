@@ -57,6 +57,22 @@ enum class SystemCallbackType : uint16_t {
   DelayedFatalError,
   GnssRequestResyncEvent,
   SendBufferedLogMessage,
+  HostEndpointConnected,
+  HostEndpointDisconnected,
+  WifiNanServiceIdEvent,
+  WifiNanServiceDiscoveryEvent,
+  WifiNanServiceSessionLostEvent,
+  WifiNanServiceTerminatedEvent,
+  WifiNanAvailabilityEvent,
+  DeferredMetricPostEvent,
+  BleAdvertisementEvent,
+  BleScanResponse,
+  BleRequestResyncEvent,
+  RequestTimeoutEvent,
+  BleReadRssiEvent,
+  BleFlushComplete,
+  BleFlushTimeout,
+  PulseResponse,
 };
 
 //! Deferred/delayed callbacks use the event subsystem but are invariably sent
@@ -65,13 +81,6 @@ enum class SystemCallbackType : uint16_t {
 //! @see Event
 using SystemEventCallbackFunction = void(uint16_t type, void *data,
                                          void *extraData);
-
-/**
- * Generic event free callback that can be used by any event where the event
- * data is allocated via memoryAlloc, and no special processing is needed in the
- * event complete callback other than freeing the event data.
- */
-void freeEventDataCallback(uint16_t eventType, void *eventData);
 
 }  // namespace chre
 

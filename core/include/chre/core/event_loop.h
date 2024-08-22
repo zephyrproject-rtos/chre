@@ -26,12 +26,15 @@
 #include "chre/platform/power_control_manager.h"
 #include "chre/platform/system_time.h"
 #include "chre/util/dynamic_vector.h"
-#include "chre/util/fixed_size_blocking_queue.h"
 #include "chre/util/non_copyable.h"
-#include "chre/util/synchronized_memory_pool.h"
 #include "chre/util/system/debug_dump.h"
+#include "chre/util/system/stats_container.h"
 #include "chre/util/unique_ptr.h"
 #include "chre_api/chre/event.h"
+
+#ifdef CHRE_STATIC_EVENT_LOOP
+#include "chre/util/fixed_size_blocking_queue.h"
+#include "chre/util/synchronized_memory_pool.h"
 
 // These default values can be overridden in the variant-specific makefile.
 #ifndef CHRE_MAX_EVENT_COUNT
@@ -40,6 +43,20 @@
 
 #ifndef CHRE_MAX_UNSCHEDULED_EVENT_COUNT
 #define CHRE_MAX_UNSCHEDULED_EVENT_COUNT 96
+#endif
+#else
+#include "chre/util/blocking_segmented_queue.h"
+#include "chre/util/synchronized_expandable_memory_pool.h"
+
+// These default values can be overridden in the variant-specific makefile.
+#ifndef CHRE_EVENT_PER_BLOCK
+#define CHRE_EVENT_PER_BLOCK 24
+#endif
+
+#ifndef CHRE_MAX_EVENT_BLOCKS
+#define CHRE_MAX_EVENT_BLOCKS 4
+#endif
+
 #endif
 
 namespace chre {
@@ -52,8 +69,13 @@ namespace chre {
 class EventLoop : public NonCopyable {
  public:
   EventLoop()
-      : mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
-        mRunning(true) {}
+      :
+#ifndef CHRE_STATIC_EVENT_LOOP
+        mEvents(kMaxEventBlock),
+#endif
+        mTimeLastWakeupBucketCycled(SystemTime::getMonotonicTime()),
+        mRunning(true) {
+  }
 
   /**
    * Synchronous callback used with forEachNanoapp
@@ -73,7 +95,7 @@ class EventLoop : public NonCopyable {
    *        Must not be null.
    * @return true if the given app ID was found and instanceId was populated
    */
-  bool findNanoappInstanceIdByAppId(uint64_t appId, uint32_t *instanceId) const;
+  bool findNanoappInstanceIdByAppId(uint64_t appId, uint16_t *instanceId) const;
 
   /*
    * Checks if the new wakeup buckets need to be pushed to nanoapps because the
@@ -130,10 +152,12 @@ class EventLoop : public NonCopyable {
    * @param instanceId The nanoapp's unique instance identifier
    * @param allowSystemNanoappUnload If false, this function will reject
    *        attempts to unload a system nanoapp
+   * @param nanoappStarted Indicates whether the nanoapp successfully started
    *
    * @return true if the nanoapp with the given instance ID was found & unloaded
    */
-  bool unloadNanoapp(uint32_t instanceId, bool allowSystemNanoappUnload);
+  bool unloadNanoapp(uint16_t instanceId, bool allowSystemNanoappUnload,
+                     bool nanoappStarted = true);
 
   /**
    * Executes the loop that blocks on the event queue and delivers received
@@ -172,7 +196,7 @@ class EventLoop : public NonCopyable {
    */
   void postEventOrDie(uint16_t eventType, void *eventData,
                       chreEventCompleteFunction *freeCallback,
-                      uint32_t targetInstanceId = kBroadcastInstanceId,
+                      uint16_t targetInstanceId = kBroadcastInstanceId,
                       uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
@@ -199,8 +223,8 @@ class EventLoop : public NonCopyable {
   bool postLowPriorityEventOrFree(
       uint16_t eventType, void *eventData,
       chreEventCompleteFunction *freeCallback,
-      uint32_t senderInstanceId = kSystemInstanceId,
-      uint32_t targetInstanceId = kBroadcastInstanceId,
+      uint16_t senderInstanceId = kSystemInstanceId,
+      uint16_t targetInstanceId = kBroadcastInstanceId,
       uint16_t targetGroupMask = kDefaultTargetGroupMask);
 
   /**
@@ -267,7 +291,7 @@ class EventLoop : public NonCopyable {
    * @param instanceId The nanoapp instance ID to search for.
    * @return a pointer to the found nanoapp or nullptr if no match was found.
    */
-  Nanoapp *findNanoappByInstanceId(uint32_t instanceId) const;
+  Nanoapp *findNanoappByInstanceId(uint16_t instanceId) const;
 
   /**
    * Looks for an app with the given ID and if found, populates info with its
@@ -284,7 +308,7 @@ class EventLoop : public NonCopyable {
    *
    * @see chreGetNanoappInfoByInstanceId
    */
-  bool populateNanoappInfoForInstanceId(uint32_t instanceId,
+  bool populateNanoappInfoForInstanceId(uint16_t instanceId,
                                         struct chreNanoappInfo *info) const;
 
   /**
@@ -310,29 +334,60 @@ class EventLoop : public NonCopyable {
     return mPowerControlManager;
   }
 
+  inline uint32_t getMaxEventQueueSize() const {
+    return mEventPoolUsage.getMax();
+  }
+
+  inline uint32_t getMeanEventQueueSize() const {
+    return mEventPoolUsage.getMean();
+  }
+
+  inline uint32_t getNumEventsDropped() const {
+    return mNumDroppedLowPriEvents;
+  }
+
  private:
+#ifdef CHRE_STATIC_EVENT_LOOP
   //! The maximum number of events that can be active in the system.
   static constexpr size_t kMaxEventCount = CHRE_MAX_EVENT_COUNT;
-
-  //! The minimum number of events to reserve in the event pool for high
-  //! priority events.
-  static constexpr size_t kMinReservedHighPriorityEventCount = 16;
 
   //! The maximum number of events that are awaiting to be scheduled. These
   //! events are in a queue to be distributed to apps.
   static constexpr size_t kMaxUnscheduledEventCount =
       CHRE_MAX_UNSCHEDULED_EVENT_COUNT;
 
-  //! The time interval of nanoapp wakeup buckets, adjust in conjuction with
+  //! The memory pool to allocate incoming events from.
+  SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
+
+  //! The blocking queue of incoming events from the system that have not been
+  //! distributed out to apps yet.
+  FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
+
+#else
+  //! The maximum number of event that can be stored in a block in mEventPool.
+  static constexpr size_t kEventPerBlock = CHRE_EVENT_PER_BLOCK;
+
+  //! The maximum number of event blocks that mEventPool can hold.
+  static constexpr size_t kMaxEventBlock = CHRE_MAX_EVENT_BLOCKS;
+
+  static constexpr size_t kMaxEventCount =
+      CHRE_EVENT_PER_BLOCK * CHRE_MAX_EVENT_BLOCKS;
+
+  //! The memory pool to allocate incoming events from.
+  SynchronizedExpandableMemoryPool<Event, kEventPerBlock, kMaxEventBlock>
+      mEventPool;
+
+  //! The blocking queue of incoming events from the system that have not been
+  //! distributed out to apps yet.
+  BlockingSegmentedQueue<Event *, kEventPerBlock> mEvents;
+#endif
+  //! The time interval of nanoapp wakeup buckets, adjust in conjunction with
   //! Nanoapp::kMaxSizeWakeupBuckets.
   static constexpr Nanoseconds kIntervalWakeupBucket =
       Nanoseconds(180 * kOneMinuteInNanoseconds);
 
   //! The last time wakeup buckets were pushed onto the nanoapps.
   Nanoseconds mTimeLastWakeupBucketCycled;
-
-  //! The memory pool to allocate incoming events from.
-  SynchronizedMemoryPool<Event, kMaxEventCount> mEventPool;
 
   //! The timer used schedule timed events for tasks running in this event loop.
   TimerPool mTimerPool;
@@ -348,10 +403,6 @@ class EventLoop : public NonCopyable {
   //! the thread context of this EventLoop.
   mutable Mutex mNanoappsLock;
 
-  //! The blocking queue of incoming events from the system that have not been
-  //! distributed out to apps yet.
-  FixedSizeBlockingQueue<Event *, kMaxUnscheduledEventCount> mEvents;
-
   //! Indicates whether the event loop is running.
   AtomicBool mRunning;
 
@@ -365,8 +416,11 @@ class EventLoop : public NonCopyable {
   //! The object which manages power related controls.
   PowerControlManager mPowerControlManager;
 
-  //! The maximum number of events ever waiting in the event pool.
-  size_t mMaxEventPoolUsage = 0;
+  //! The stats collection used to collect event pool usage
+  StatsContainer<uint32_t> mEventPoolUsage;
+
+  //! The number of events dropped due to capacity limits
+  uint32_t mNumDroppedLowPriEvents = 0;
 
   /**
    * Modifies the run loop state so it no longer iterates on new events. This
@@ -384,26 +438,30 @@ class EventLoop : public NonCopyable {
    */
   bool allocateAndPostEvent(uint16_t eventType, void *eventData,
                             chreEventCompleteFunction *freeCallback,
-                            uint32_t senderInstanceId,
-                            uint32_t targetInstanceId,
+                            bool isLowPriority, uint16_t senderInstanceId,
+                            uint16_t targetInstanceId,
                             uint16_t targetGroupMask);
+  /**
+   * Remove some low priority events from back of the queue.
+   *
+   * @param removeNum Number of low priority events to be removed.
+   * @return False if cannot remove any low priority event.
+   */
+  bool removeLowPriorityEventsFromBack(size_t removeNum);
 
   /**
-   * Do one round of Nanoapp event delivery, only considering events in
-   * Nanoapps' own queues (not mEvents).
+   * Determine if there are space for high priority event.
+   * During the processing of determining the vacant space, it might
+   * remove low priority events to make space for high priority event.
    *
-   * @return true if there are more events pending in Nanoapps' own queues
+   * @return true if there are no space for a new high priority event.
    */
-  bool deliverEvents();
+  bool hasNoSpaceForHighPriorityEvent();
 
   /**
-   * Delivers the next event pending in the Nanoapp's queue, and takes care of
-   * freeing events once they have been delivered to all nanoapps. Must only be
-   * called after confirming that the app has at least 1 pending event.
-   *
-   * @return true if the nanoapp has another event pending in its queue
+   * Delivers the next event pending to the Nanoapp.
    */
-  bool deliverNextEvent(const UniquePtr<Nanoapp> &app);
+  void deliverNextEvent(const UniquePtr<Nanoapp> &app, Event *event);
 
   /**
    * Given an event pulled from the main incoming event queue (mEvents), deliver
@@ -422,11 +480,6 @@ class EventLoop : public NonCopyable {
    * long as postEvent() will accept them.
    */
   void flushInboundEventQueue();
-
-  /**
-   * Delivers events pending in Nanoapps' own queues until they are all empty.
-   */
-  void flushNanoappEventQueues();
 
   /**
    * Call after when an Event has been delivered to all intended recipients.
@@ -457,7 +510,7 @@ class EventLoop : public NonCopyable {
    * @param instanceId Nanoapp instance identifier
    * @return Nanoapp with the given instanceId, or nullptr if not found
    */
-  Nanoapp *lookupAppByInstanceId(uint32_t instanceId) const;
+  Nanoapp *lookupAppByInstanceId(uint16_t instanceId) const;
 
   /**
    * Sends an event with payload struct chreNanoappInfo populated from the given
@@ -476,8 +529,20 @@ class EventLoop : public NonCopyable {
    * be any pending events in this nanoapp's queue, and there must not be any
    * outstanding events sent by this nanoapp, as they may reference the
    * nanoapp's own memory (even if there is no free callback).
+   *
+   * @param index Index of the nanoapp in the list of nanoapps managed by event
+   * loop.
+   * @param nanoappStarted Indicates whether the nanoapp successfully started
    */
-  void unloadNanoappAtIndex(size_t index);
+  void unloadNanoappAtIndex(size_t index, bool nanoappStarted = true);
+
+  /**
+   * Logs dangling resources when a nanoapp is unloaded.
+   *
+   * @param name The name of the resource.
+   * @param count The number of dangling resources.
+   */
+  void logDanglingResources(const char *name, uint32_t count);
 };
 
 }  // namespace chre

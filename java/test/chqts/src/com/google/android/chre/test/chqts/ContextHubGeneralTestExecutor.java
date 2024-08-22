@@ -15,6 +15,12 @@
  */
 package com.google.android.chre.test.chqts;
 
+import android.app.Instrumentation;
+import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.location.ContextHubClient;
 import android.hardware.location.ContextHubClientCallback;
 import android.hardware.location.ContextHubInfo;
@@ -25,6 +31,7 @@ import android.hardware.location.NanoAppMessage;
 import android.util.Log;
 
 import com.google.android.utils.chre.ChreTestUtil;
+import com.google.android.utils.chre.SettingsUtil;
 
 import org.junit.Assert;
 
@@ -73,6 +80,28 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
     private AtomicReference<String> mErrorString = new AtomicReference<>(null);
 
     private long mThreadId;
+
+    private final Instrumentation mInstrumentation =
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation();
+
+    private final Context mContext = mInstrumentation.getTargetContext();
+
+    private final SettingsUtil mSettingsUtil;
+
+    private boolean mInitialBluetoothEnabled = false;
+
+    public static class BluetoothUpdateListener {
+        public CountDownLatch mBluetoothLatch = new CountDownLatch(1);
+
+        public BroadcastReceiver mBluetoothUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
+                    mBluetoothLatch.countDown();
+                }
+            }
+        };
+    }
 
     /**
      * A container class to describe a general_test nanoapp.
@@ -145,6 +174,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
             mNanoAppIdSet.add(test.getNanoAppBinary().getNanoAppId());
         }
+        mSettingsUtil = new SettingsUtil(mContext);
     }
 
     @Override
@@ -198,9 +228,11 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         mCountDownLatch = new CountDownLatch(1);
 
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
-        Assert.assertTrue(mContextHubClient != null);
 
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
+            if (test.getTestName() == ContextHubTestConstants.TestNames.BASIC_BLE_TEST) {
+                handleBleTestSetup();
+            }
             if (test.loadAtInit()) {
                 ChreTestUtil.loadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo,
                         test.getNanoAppBinary());
@@ -210,10 +242,33 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         mErrorString.set(null);
     }
 
+    private void handleBleTestSetup() {
+        mInitialBluetoothEnabled = mSettingsUtil.isBluetoothEnabled();
+        Log.i(TAG, "Initial bluetooth setting enabled: " + mInitialBluetoothEnabled);
+        if (mInitialBluetoothEnabled) {
+            return;
+        }
+        BluetoothUpdateListener bluetoothUpdateListener = new BluetoothUpdateListener();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        mContext.registerReceiver(bluetoothUpdateListener.mBluetoothUpdateReceiver, filter);
+        mSettingsUtil.setBluetooth(true /* enable */);
+        try {
+            bluetoothUpdateListener.mBluetoothLatch.await(10, TimeUnit.SECONDS);
+            Assert.assertTrue(mSettingsUtil.isBluetoothEnabled());
+            Log.i(TAG, "Bluetooth enabled successfully");
+            // Wait a few seconds to ensure setting is propagated to CHRE path
+            // TODO(b/302018530): Remove Thread.sleep calls for CHRE settings propagation
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
     /**
      * Run the test.
      */
-    public void run(long timeoutSeconds) {
+    public void run(long timeoutSeconds) throws InterruptedException {
         mThreadId = Thread.currentThread().getId();
 
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
@@ -223,13 +278,7 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
             }
         }
 
-        boolean success = false;
-        try {
-            success = mCountDownLatch.await(timeoutSeconds, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
-        }
-
+        boolean success = mCountDownLatch.await(timeoutSeconds, TimeUnit.SECONDS);
         Assert.assertTrue("Test timed out", success);
     }
 
@@ -249,6 +298,10 @@ public abstract class ContextHubGeneralTestExecutor extends ContextHubClientCall
         // TODO: If the nanoapp aborted (i.e. test failed), wait for CHRE reset or nanoapp abort
         // callback, and otherwise assert unload success.
         for (GeneralTestNanoApp test : mGeneralTestNanoAppList) {
+            if (test.getTestName() == ContextHubTestConstants.TestNames.BASIC_BLE_TEST
+                    && !mInitialBluetoothEnabled) {
+                mSettingsUtil.setBluetooth(mInitialBluetoothEnabled);
+            }
             ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo,
                     test.getNanoAppBinary().getNanoAppId());
         }

@@ -28,94 +28,114 @@
 
 namespace chre {
 
-template <typename ObjectType>
-UniquePtr<ObjectType>::UniquePtr() : mObject(nullptr) {}
+template <typename ObjectOrArrayType>
+UniquePtr<ObjectOrArrayType>::UniquePtr() : mObject(nullptr) {}
 
-template <typename ObjectType>
-UniquePtr<ObjectType>::UniquePtr(ObjectType *object) : mObject(object) {}
+template <typename ObjectOrArrayType>
+UniquePtr<ObjectOrArrayType>::UniquePtr(
+    typename UniquePtr<ObjectOrArrayType>::ObjectType *object)
+    : mObject(object) {}
 
-template <typename ObjectType>
-UniquePtr<ObjectType>::UniquePtr(UniquePtr<ObjectType> &&other) {
+template <typename ObjectOrArrayType>
+UniquePtr<ObjectOrArrayType>::UniquePtr(UniquePtr<ObjectOrArrayType> &&other) {
   mObject = other.mObject;
   other.mObject = nullptr;
 }
 
-template <typename ObjectType>
-template <typename OtherObjectType>
-UniquePtr<ObjectType>::UniquePtr(UniquePtr<OtherObjectType> &&other) {
+template <typename ObjectOrArrayType>
+template <typename OtherObjectOrArrayType>
+UniquePtr<ObjectOrArrayType>::UniquePtr(
+    UniquePtr<OtherObjectOrArrayType> &&other) {
+  static_assert(std::is_array_v<ObjectOrArrayType> ==
+                    std::is_array_v<OtherObjectOrArrayType>,
+                "UniquePtr conversion not supported across array and non-array "
+                "types");
   mObject = other.mObject;
   other.mObject = nullptr;
 }
 
-template <typename ObjectType>
-UniquePtr<ObjectType>::~UniquePtr() {
+template <typename ObjectOrArrayType>
+UniquePtr<ObjectOrArrayType>::~UniquePtr() {
   reset();
 }
 
-template <typename ObjectType>
-bool UniquePtr<ObjectType>::isNull() const {
+template <typename ObjectOrArrayType>
+bool UniquePtr<ObjectOrArrayType>::isNull() const {
   return (mObject == nullptr);
 }
 
-template <typename ObjectType>
-ObjectType *UniquePtr<ObjectType>::get() const {
+template <typename ObjectOrArrayType>
+typename UniquePtr<ObjectOrArrayType>::ObjectType *
+UniquePtr<ObjectOrArrayType>::get() const {
   return mObject;
 }
 
-template <typename ObjectType>
-ObjectType *UniquePtr<ObjectType>::release() {
+template <typename ObjectOrArrayType>
+typename UniquePtr<ObjectOrArrayType>::ObjectType *
+UniquePtr<ObjectOrArrayType>::release() {
   ObjectType *obj = mObject;
   mObject = nullptr;
   return obj;
 }
 
-template <typename ObjectType>
-void UniquePtr<ObjectType>::reset(ObjectType *object) {
+template <typename ObjectOrArrayType>
+void UniquePtr<ObjectOrArrayType>::reset(ObjectType *object) {
   CHRE_ASSERT(object == nullptr || mObject != object);
 
   reset();
   mObject = object;
 }
 
-template <typename ObjectType>
-void UniquePtr<ObjectType>::reset() {
+template <typename ObjectOrArrayType>
+void UniquePtr<ObjectOrArrayType>::reset() {
   if (mObject != nullptr) {
-    mObject->~ObjectType();
+    if constexpr (!std::is_trivially_destructible_v<ObjectType>) {
+      mObject->~ObjectType();
+    }
     memoryFree(mObject);
     mObject = nullptr;
   }
 }
 
-template <typename ObjectType>
-ObjectType *UniquePtr<ObjectType>::operator->() const {
+template <typename ObjectOrArrayType>
+typename UniquePtr<ObjectOrArrayType>::ObjectType *
+UniquePtr<ObjectOrArrayType>::operator->() const {
+  static_assert(!std::is_array_v<ObjectOrArrayType>,
+                "UniquePtr<T>::operator-> is not supported for array types");
   return get();
 }
 
-template <typename ObjectType>
-ObjectType &UniquePtr<ObjectType>::operator*() const {
+template <typename ObjectOrArrayType>
+typename UniquePtr<ObjectOrArrayType>::ObjectType &
+UniquePtr<ObjectOrArrayType>::operator*() const {
+  static_assert(!std::is_array_v<ObjectOrArrayType>,
+                "UniquePtr<T>::operator* is not supported for array types");
   return *get();
 }
 
-template <typename ObjectType>
-ObjectType &UniquePtr<ObjectType>::operator[](size_t index) const {
+template <typename ObjectOrArrayType>
+typename UniquePtr<ObjectOrArrayType>::ObjectType &
+UniquePtr<ObjectOrArrayType>::operator[](size_t index) const {
+  static_assert(std::is_array_v<ObjectOrArrayType>,
+                "UniquePtr<T>::operator[] is only allowed when T is an array");
   return get()[index];
 }
 
-template <typename ObjectType>
-bool UniquePtr<ObjectType>::operator==(
-    const UniquePtr<ObjectType> &other) const {
+template <typename ObjectOrArrayType>
+bool UniquePtr<ObjectOrArrayType>::operator==(
+    const UniquePtr<ObjectOrArrayType> &other) const {
   return mObject == other.get();
 }
 
-template <typename ObjectType>
-bool UniquePtr<ObjectType>::operator!=(
-    const UniquePtr<ObjectType> &other) const {
+template <typename ObjectOrArrayType>
+bool UniquePtr<ObjectOrArrayType>::operator!=(
+    const UniquePtr<ObjectOrArrayType> &other) const {
   return !(*this == other);
 }
 
-template <typename ObjectType>
-UniquePtr<ObjectType> &UniquePtr<ObjectType>::operator=(
-    UniquePtr<ObjectType> &&other) {
+template <typename ObjectOrArrayType>
+UniquePtr<ObjectOrArrayType> &UniquePtr<ObjectOrArrayType>::operator=(
+    UniquePtr<ObjectOrArrayType> &&other) {
   reset();
   mObject = other.mObject;
   other.mObject = nullptr;
@@ -126,6 +146,11 @@ template <typename ObjectType, typename... Args>
 inline UniquePtr<ObjectType> MakeUnique(Args &&... args) {
   return UniquePtr<ObjectType>(
       memoryAlloc<ObjectType>(std::forward<Args>(args)...));
+}
+
+template <typename ObjectArrayType>
+UniquePtr<ObjectArrayType> MakeUniqueArray(size_t count) {
+  return UniquePtr<ObjectArrayType>(memoryAllocArray<ObjectArrayType>(count));
 }
 
 template <typename ObjectType>

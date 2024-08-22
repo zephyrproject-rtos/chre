@@ -17,6 +17,8 @@
 
 #include "gtest/gtest.h"
 
+#include <cassert>
+
 #include "chre/util/non_copyable.h"
 #include "chre/util/optional.h"
 

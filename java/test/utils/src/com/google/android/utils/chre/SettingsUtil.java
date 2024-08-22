@@ -53,6 +53,19 @@ public class SettingsUtil {
         };
     }
 
+    private class AirplaneModeListener {
+        protected CountDownLatch mAirplaneModeLatch = new CountDownLatch(1);
+
+        protected BroadcastReceiver mAirplaneModeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(intent.getAction())) {
+                    mAirplaneModeLatch.countDown();
+                }
+            }
+        };
+    }
+
     public SettingsUtil(Context context) {
         mContext = context;
         mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -103,7 +116,7 @@ public class SettingsUtil {
      * @param enable True to enable location, false to disable it.
      * @param timeoutSeconds The maximum amount of time in seconds to wait.
      */
-    public void setLocationMode(boolean enable, long timeoutSeconds) {
+    public void setLocationMode(boolean enable, long timeoutSeconds) throws InterruptedException {
         if (isLocationEnabled() != enable) {
             LocationUpdateListener listener = new LocationUpdateListener();
 
@@ -112,14 +125,11 @@ public class SettingsUtil {
                     new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
             mLocationManager.setLocationEnabledForUser(enable, UserHandle.CURRENT);
 
-            try {
-                listener.mLocationLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+            boolean success = listener.mLocationLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+            Assert.assertTrue("Timeout waiting for signal: set location mode", success);
 
-                // Wait 1 additional second to make sure setting gets propagated to CHRE
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Assert.fail("InterruptedException while waiting for location update");
-            }
+            // Wait 1 additional second to make sure setting gets propagated to CHRE
+            Thread.sleep(1000);
 
             Assert.assertTrue(isLocationEnabled() == enable);
 
@@ -132,5 +142,77 @@ public class SettingsUtil {
      */
     public boolean isLocationEnabled() {
         return mLocationManager.isLocationEnabledForUser(UserHandle.CURRENT);
+    }
+
+    /**
+     * Sets the bluetooth mode to be on or off
+     *
+     * @param enable        if true, turn bluetooth on; otherwise, turn bluetooth off
+     */
+    public void setBluetooth(boolean enable) {
+        String value = enable ? "enable" : "disable";
+        ChreTestUtil.executeShellCommand(mInstrumentation, "svc bluetooth " + value);
+    }
+
+    /**
+     * @param enable true to enable always bluetooth scanning.
+     */
+    public void setBluetoothScanningSettings(boolean enable) {
+        String value = enable ? "1" : "0";
+        ChreTestUtil.executeShellCommand(
+                mInstrumentation, "settings put global ble_scan_always_enabled " + value);
+    }
+
+    /**
+     * @return true if bluetooth is enabled, false otherwise
+     */
+    public boolean isBluetoothEnabled() {
+        String out = ChreTestUtil.executeShellCommand(
+                mInstrumentation, "settings get global bluetooth_on");
+        return ChreTestUtil.convertToIntegerOrFail(out) == 1;
+    }
+
+    /**
+     * @return true if the bluetooth scanning is always enabled.
+     */
+    public boolean isBluetoothScanningAlwaysEnabled() {
+        String out = ChreTestUtil.executeShellCommand(
+                mInstrumentation, "settings get global ble_scan_always_enabled");
+
+        // by default, this setting returns null, which is equivalent to 0 or disabled
+        return ChreTestUtil.convertToIntegerOrReturnZero(out) > 0;
+    }
+
+    /**
+     * Sets the airplane mode on the device.
+     * @param enable True to enable airplane mode, false to disable it.
+     */
+    public void setAirplaneMode(boolean enable) throws InterruptedException {
+        if (isAirplaneModeOn() != enable) {
+            AirplaneModeListener listener = new AirplaneModeListener();
+            mContext.registerReceiver(
+                    listener.mAirplaneModeReceiver,
+                    new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED));
+
+            String value = enable ? "enable" : "disable";
+            ChreTestUtil.executeShellCommand(
+                    mInstrumentation, "cmd connectivity airplane-mode " + value);
+
+            boolean success = listener.mAirplaneModeLatch.await(10, TimeUnit.SECONDS);
+            Assert.assertTrue("Timeout waiting for signal: set airplane mode", success);
+            // Wait 1 additional second to make sure setting gets propagated to CHRE
+            Thread.sleep(1000);
+            Assert.assertTrue(isAirplaneModeOn() == enable);
+            mContext.unregisterReceiver(listener.mAirplaneModeReceiver);
+        }
+    }
+
+    /**
+     * @return true if the airplane mode is currently enabled.
+     */
+    public boolean isAirplaneModeOn() {
+        String out = ChreTestUtil.executeShellCommand(
+                mInstrumentation, "settings get global airplane_mode_on");
+        return ChreTestUtil.convertToIntegerOrFail(out) > 0;
     }
 }

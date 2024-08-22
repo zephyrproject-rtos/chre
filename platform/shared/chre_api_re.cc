@@ -26,6 +26,39 @@
 using chre::EventLoopManager;
 using chre::EventLoopManagerSingleton;
 
+DLL_EXPORT uint32_t chreGetCapabilities() {
+  uint32_t capabilities = CHRE_CAPABILITIES_NONE;
+
+#ifdef CHRE_SUPPORTS_RELIABLE_MESSAGES
+  capabilities |= CHRE_CAPABILITIES_RELIABLE_MESSAGES;
+#endif
+
+  return capabilities;
+}
+
+DLL_EXPORT uint32_t chreGetMessageToHostMaxSize() {
+#ifdef CHRE_SUPPORTS_RELIABLE_MESSAGES
+
+#ifndef CHRE_LARGE_PAYLOAD_MAX_SIZE
+  static_assert(false,
+                "CHRE_LARGE_PAYLOAD_MAX_SIZE must be defined if "
+                "CHRE_SUPPORTS_RELIABLE_MESSAGES is enabled");
+#else
+  static_assert(CHRE_LARGE_PAYLOAD_MAX_SIZE >= CHRE_MESSAGE_TO_HOST_MAX_SIZE,
+                "CHRE_LARGE_PAYLOAD_MAX_SIZE must be greater than or equal to "
+                "CHRE_MESSAGE_TO_HOST_MAX_SIZE");
+
+  static_assert(CHRE_LARGE_PAYLOAD_MAX_SIZE >= 32000,
+                "CHRE_LARGE_PAYLOAD_MAX_SIZE must be greater than or equal to "
+                "32000 when CHRE_SUPPORTS_RELIABLE_MESSAGES is enabled");
+  return CHRE_LARGE_PAYLOAD_MAX_SIZE;
+#endif
+
+#else
+  return CHRE_MESSAGE_TO_HOST_MAX_SIZE;
+#endif
+}
+
 DLL_EXPORT uint64_t chreGetTime() {
   return chre::SystemTime::getMonotonicTime().toRawNanoseconds();
 }

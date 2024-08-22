@@ -19,15 +19,17 @@
 #include <algorithm>
 #include <cinttypes>
 
-#include <chre.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/optional.h"
 #include "chre/util/time.h"
+#include "chre_api/chre.h"
 #include "chre_cross_validation_sensor.nanopb.h"
+#include "send_message.h"
 
 #define LOG_TAG "[ChreCrossValidator]"
 
@@ -39,6 +41,8 @@ namespace {
 
 bool decodeSensorName(pb_istream_t *stream, const pb_field_s *field,
                       void **arg) {
+  UNUSED_VAR(field);
+
   unsigned char *name = static_cast<unsigned char *>(*arg);
 
   if (stream->bytes_left > kMaxSensorNameSize - 1) return false;
@@ -194,6 +198,8 @@ bool Manager::encodeProximitySensorDatapointValue(pb_ostream_t *stream,
 bool Manager::encodeStepCounterSensorDatapointValue(pb_ostream_t *stream,
                                                     const pb_field_t *field,
                                                     void *const *arg) {
+  UNUSED_VAR(field);
+
   const auto *sensorUint64DataSample =
       static_cast<const chreSensorUint64Data::chreSensorUint64SampleData *>(
           *arg);
@@ -298,6 +304,8 @@ bool Manager::encodeProximitySensorDatapoints(pb_ostream_t *stream,
 bool Manager::encodeStepCounterSensorDatapoints(pb_ostream_t *stream,
                                                 const pb_field_t *field,
                                                 void *const *arg) {
+  UNUSED_VAR(field);
+
   const auto *sensorStepCounterData =
       static_cast<const chreSensorUint64Data *>(*arg);
   uint64_t currentTimestamp = sensorStepCounterData->header.baseTimestamp +
@@ -605,42 +613,19 @@ void Manager::handleStepCounterData(
 }
 
 void Manager::sendDataToHost(const chre_cross_validation_sensor_Data &data) {
-  sendMessageToHost(
-      mCrossValidatorState->hostEndpoint,
-      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_DATA,
-      chre_cross_validation_sensor_Data_fields, &data);
+  test_shared::sendMessageToHost(
+      mCrossValidatorState->hostEndpoint, &data,
+      chre_cross_validation_sensor_Data_fields,
+      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_DATA);
 }
 
 void Manager::sendInfoResponse(
     uint16_t hostEndpoint,
     const chre_cross_validation_sensor_SensorInfoResponse &infoResponse) {
-  sendMessageToHost(
-      hostEndpoint,
-      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_INFO_RESPONSE,
-      chre_cross_validation_sensor_SensorInfoResponse_fields, &infoResponse);
-}
-
-void Manager::sendMessageToHost(uint16_t hostEndpoint, uint16_t messageType,
-                                const pb_field_t fields[],
-                                const void *srcStruct) {
-  size_t encodedSize;
-  if (!pb_get_encoded_size(&encodedSize, fields, srcStruct)) {
-    LOGE("Could not get encoded size of proto message");
-  } else {
-    pb_byte_t *buffer = static_cast<pb_byte_t *>(chreHeapAlloc(encodedSize));
-    if (buffer == nullptr) {
-      LOG_OOM();
-    } else {
-      pb_ostream_t ostream = pb_ostream_from_buffer(buffer, encodedSize);
-      if (!pb_encode(&ostream, fields, srcStruct)) {
-        LOGE("Could not encode proto message");
-      } else if (!chreSendMessageToHostEndpoint(
-                     static_cast<void *>(buffer), encodedSize, messageType,
-                     hostEndpoint, heapFreeMessageCallback)) {
-        LOGE("Could not send message to host");
-      }
-    }
-  }
+  test_shared::sendMessageToHost(
+      hostEndpoint, &infoResponse,
+      chre_cross_validation_sensor_SensorInfoResponse_fields,
+      chre_cross_validation_sensor_MessageType_CHRE_CROSS_VALIDATION_INFO_RESPONSE);
 }
 
 bool Manager::processSensorData(const chreSensorDataHeader &header,

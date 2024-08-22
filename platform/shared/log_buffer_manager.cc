@@ -17,6 +17,9 @@
 #include "chre/platform/shared/log_buffer_manager.h"
 
 #include "chre/core/event_loop_manager.h"
+#include "chre/platform/assert.h"
+#include "chre/platform/shared/bt_snoop_log.h"
+#include "chre/platform/shared/generated/host_messages_generated.h"
 #include "chre/util/lock_guard.h"
 
 void chrePlatformLogToBuffer(chreLogLevel chreLogLevel, const char *format,
@@ -29,7 +32,21 @@ void chrePlatformLogToBuffer(chreLogLevel chreLogLevel, const char *format,
   va_end(args);
 }
 
+void chrePlatformEncodedLogToBuffer(chreLogLevel level, const uint8_t *msg,
+                                    size_t msgSize) {
+  if (chre::LogBufferManagerSingleton::isInitialized()) {
+    chre::LogBufferManagerSingleton::get()->logEncoded(level, msg, msgSize);
+  }
+}
+
+void chrePlatformBtSnoopLog(BtSnoopDirection direction, const uint8_t *buffer,
+                            size_t size) {
+  chre::LogBufferManagerSingleton::get()->logBtSnoop(direction, buffer, size);
+}
+
 namespace chre {
+
+using LogType = fbs::LogType;
 
 void LogBufferManager::onLogsReady() {
   LockGuard<Mutex> lockGuard(mFlushLogsMutex);
@@ -106,18 +123,29 @@ void LogBufferManager::log(chreLogLevel logLevel, const char *formatStr, ...) {
   va_end(args);
 }
 
-void LogBufferManager::logVa(chreLogLevel logLevel, const char *formatStr,
-                             va_list args) {
-  LogBufferLogLevel logBufLogLevel = chreToLogBufferLogLevel(logLevel);
+uint32_t LogBufferManager::getTimestampMs() {
   uint64_t timeNs = SystemTime::getMonotonicTime().toRawNanoseconds();
-  uint32_t timeMs =
-      static_cast<uint32_t>(timeNs / kOneMillisecondInNanoseconds);
-  // Copy the va_list before getting size from vsnprintf so that the next
-  // argument that will be accessed in buffer.handleLogVa is the starting one.
-  va_list getSizeArgs;
-  va_copy(getSizeArgs, args);
-  size_t logSize = vsnprintf(nullptr, 0, formatStr, getSizeArgs);
-  va_end(getSizeArgs);
+  return static_cast<uint32_t>(timeNs / kOneMillisecondInNanoseconds);
+}
+
+void LogBufferManager::bufferOverflowGuard(size_t logSize, LogType type) {
+  switch (type) {
+    case LogType::STRING:
+      logSize += LogBuffer::kStringLogOverhead;
+      break;
+    case LogType::TOKENIZED:
+      logSize += LogBuffer::kTokenizedLogOffset;
+      break;
+    case LogType::BLUETOOTH:
+      logSize += LogBuffer::kBtSnoopLogOffset;
+      break;
+    case LogType::NANOAPP_TOKENIZED:
+      logSize += LogBuffer::kNanoappTokenizedLogOffset;
+      break;
+    default:
+      CHRE_ASSERT_LOG(false, "Received unexpected log message type");
+      break;
+  }
   if (mPrimaryLogBuffer.logWouldCauseOverflow(logSize)) {
     LockGuard<Mutex> lockGuard(mFlushLogsMutex);
     if (!mLogFlushToHostPending) {
@@ -125,7 +153,49 @@ void LogBufferManager::logVa(chreLogLevel logLevel, const char *formatStr,
       mPrimaryLogBuffer.transferTo(mSecondaryLogBuffer);
     }
   }
-  mPrimaryLogBuffer.handleLogVa(logBufLogLevel, timeMs, formatStr, args);
+}
+
+void LogBufferManager::logVa(chreLogLevel logLevel, const char *formatStr,
+                             va_list args) {
+  // Copy the va_list before getting size from vsnprintf so that the next
+  // argument that will be accessed in buffer.handleLogVa is the starting one.
+  va_list getSizeArgs;
+  va_copy(getSizeArgs, args);
+  size_t logSize = vsnprintf(nullptr, 0, formatStr, getSizeArgs);
+  va_end(getSizeArgs);
+  bufferOverflowGuard(logSize, LogType::STRING);
+  mPrimaryLogBuffer.handleLogVa(chreToLogBufferLogLevel(logLevel),
+                                getTimestampMs(), formatStr, args);
+}
+
+void LogBufferManager::logBtSnoop(BtSnoopDirection direction,
+                                  const uint8_t *buffer, size_t size) {
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  bufferOverflowGuard(size, LogType::BLUETOOTH);
+  mPrimaryLogBuffer.handleBtLog(direction, getTimestampMs(), buffer, size);
+#else
+  UNUSED_VAR(direction);
+  UNUSED_VAR(buffer);
+  UNUSED_VAR(size);
+#endif  // CHRE_BLE_SUPPORT_ENABLED
+}
+
+void LogBufferManager::logEncoded(chreLogLevel logLevel,
+                                  const uint8_t *encodedLog,
+                                  size_t encodedLogSize) {
+  bufferOverflowGuard(encodedLogSize, LogType::TOKENIZED);
+  mPrimaryLogBuffer.handleEncodedLog(chreToLogBufferLogLevel(logLevel),
+                                     getTimestampMs(), encodedLog,
+                                     encodedLogSize);
+}
+
+void LogBufferManager::logNanoappTokenized(chreLogLevel logLevel,
+                                           uint16_t instanceId,
+                                           const uint8_t *msg, size_t msgSize) {
+  bufferOverflowGuard(msgSize, LogType::NANOAPP_TOKENIZED);
+  mPrimaryLogBuffer.handleNanoappTokenizedLog(chreToLogBufferLogLevel(logLevel),
+                                              getTimestampMs(), instanceId, msg,
+                                              msgSize);
 }
 
 LogBufferLogLevel LogBufferManager::chreToLogBufferLogLevel(

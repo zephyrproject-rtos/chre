@@ -25,7 +25,7 @@ namespace chre {
 template <typename ElementType, size_t kSize>
 template <typename... Args>
 ElementType *SynchronizedMemoryPool<ElementType, kSize>::allocate(
-    Args &&... args) {
+    Args &&...args) {
   LockGuard<Mutex> lock(mMutex);
   return mMemoryPool.allocate(args...);
 }

@@ -49,9 +49,8 @@ inline std::vector<uint8_t> getSubVector(const std::vector<uint8_t> &source,
 FragmentedLoadTransaction::FragmentedLoadTransaction(
     uint32_t transactionId, uint64_t appId, uint32_t appVersion,
     uint32_t appFlags, uint32_t targetApiVersion,
-    const std::vector<uint8_t> &appBinary, size_t fragmentSize) {
-  mTransactionId = transactionId;
-
+    const std::vector<uint8_t> &appBinary, size_t fragmentSize)
+    : mTransactionId(transactionId), mNanoappId(appId) {
   // Start with fragmentId at 1 since 0 is used to indicate
   // legacy behavior at CHRE
   size_t fragmentId = 1;
@@ -64,7 +63,7 @@ FragmentedLoadTransaction::FragmentedLoadTransaction(
           getSubVector(appBinary, byteIndex, fragmentSize));
     } else {
       mFragmentRequests.emplace_back(
-          fragmentId++, transactionId,
+          fragmentId++, transactionId, appId,
           getSubVector(appBinary, byteIndex, fragmentSize));
     }
 

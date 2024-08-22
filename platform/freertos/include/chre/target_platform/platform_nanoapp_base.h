@@ -144,6 +144,8 @@ class PlatformNanoappBase {
   /**
    * Calls through to openNanoappFromBuffer or openNanoappFromFile, depending on
    * how this nanoapp was loaded.
+   *
+   * @return true if the nanoapp is successfully opened.
    */
   bool openNanoapp();
 
@@ -163,6 +165,12 @@ class PlatformNanoappBase {
    * @return A char array containing the version string for this nanoapp.
    */
   const char *getAppVersionString(size_t *length) const;
+
+  /**
+   * Send the app id, token database offset and size to the host. Do nothing
+   * if the token database section is not found in the nanoapp binary.
+   */
+  void sendTokenDatabaseInfo();
 
   /** If this app needs to access DRAM to function, enables DRAM access. */
   inline void enableDramAccessIfRequired() const {

@@ -27,12 +27,13 @@
 
 #include <cinttypes>
 
-#include <chre.h>
 #include <pb_encode.h>
 
+#include "chre/util/macros.h"
 #include "chre/util/nanoapp/callbacks.h"
 #include "chre/util/nanoapp/log.h"
 #include "chre/util/time.h"
+#include "chre_api/chre.h"
 #include "pts_chre.nanopb.h"
 
 #define LOG_TAG "[PtsAudioEnableDisable]"
@@ -170,6 +171,8 @@ void handleTimer() {
 
 extern "C" void nanoappHandleEvent(uint32_t senderInstanceId,
                                    uint16_t eventType, const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   if (!gTestRunning && eventType != CHRE_EVENT_MESSAGE_FROM_HOST) {
     return;
   }

@@ -26,6 +26,16 @@
 
 namespace chre {
 
+namespace util::internal {
+
+// Backport of C++20's std::is_unbounded_array_v
+template <typename>
+constexpr bool is_unbounded_array_v = false;
+template <typename T>
+constexpr bool is_unbounded_array_v<T[]> = true;
+
+}  // namespace util::internal
+
 template <typename ElementType>
 inline void destroy(ElementType *first, size_t count) {
   for (size_t i = 0; i < count; i++) {
@@ -91,7 +101,7 @@ inline void uninitializedMoveOrCopy(ElementType *source, size_t count,
   static_assert(std::is_move_constructible<ElementType>() ||
                     std::is_copy_constructible<ElementType>(),
                 "Object must be copy- or move- constructible to use "
-                "unintializedMoveOrCopy");
+                "uninitializedMoveOrCopy");
   uninitializedMoveOrCopy(
       source, count, dest, std::false_type(),
       typename std::is_move_constructible<ElementType>::type());
@@ -111,12 +121,43 @@ inline void uninitializedMoveOrCopy(ElementType *source, size_t count,
 
 template <typename T, typename... Args>
 inline T *memoryAlloc(Args &&... args) {
-  auto *storage = static_cast<T *>(memoryAlloc(sizeof(T)));
+  T *storage = nullptr;
+  if constexpr (alignof(T) > alignof(std::max_align_t)) {
+    storage = memoryAlignedAlloc<T>();
+  } else {
+    storage = static_cast<T *>(memoryAlloc(sizeof(T)));
+  }
+
   if (storage != nullptr) {
     new (storage) T(std::forward<Args>(args)...);
   }
 
   return storage;
+}
+
+template <typename T>
+typename std::remove_extent<T>::type *memoryAllocArray(size_t count) {
+  static_assert(util::internal::is_unbounded_array_v<T>,
+                "memoryAllocArray is only supported for unbounded array types, "
+                "e.g. int[]");
+  // If this limitation becomes an issue, the solution is just to create a
+  // version of memoryAlignedAlloc() that accepts size_t as a parameter
+  static_assert(alignof(T) <= alignof(std::max_align_t),
+                "Additional alignment in memoryAllocArray isn't supported");
+  using BaseType = typename std::remove_extent<T>::type;
+  auto *ptr = static_cast<BaseType *>(memoryAlloc(count * sizeof(BaseType)));
+  if (ptr != nullptr) {
+    new (ptr) BaseType[count];
+  }
+  return ptr;
+}
+
+template <typename T>
+void memoryFreeAndDestroy(T *element) {
+  if (element != nullptr) {
+    element->~T();
+    memoryFree(element);
+  }
 }
 
 }  // namespace chre

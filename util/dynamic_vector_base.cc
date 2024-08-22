@@ -35,8 +35,10 @@ bool DynamicVectorBase::doReserve(size_t newCapacity, size_t elementSize) {
   if (!success) {
     void *newData = memoryAlloc(newCapacity * elementSize);
     if (newData != nullptr) {
-      memcpy(newData, mData, mSize * elementSize);
-      memoryFree(mData);
+      if (mData != nullptr) {
+        memcpy(newData, mData, mSize * elementSize);
+        memoryFree(mData);
+      }
       mData = newData;
       mCapacity = newCapacity;
       success = true;

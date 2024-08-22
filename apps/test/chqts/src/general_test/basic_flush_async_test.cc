@@ -22,6 +22,11 @@
 #include <shared/send_message.h>
 #include <shared/time_util.h>
 
+#include <chre/util/nanoapp/log.h>
+#include "chre/util/macros.h"
+
+#define LOG_TAG "[BasicFlushAsyncTest]"
+
 using nanoapp_testing::kOneMillisecondInNanoseconds;
 using nanoapp_testing::kOneSecondInNanoseconds;
 using nanoapp_testing::sendFatalFailureToHost;
@@ -31,6 +36,8 @@ namespace general_test {
 
 void BasicSensorFlushAsyncTest::setUp(uint32_t messageSize,
                                       const void *message) {
+  UNUSED_VAR(message);
+
   constexpr uint64_t kFlushTestLatencyNs = 2 * kOneSecondInNanoseconds;
   constexpr uint64_t kFlushTestStartTimerValueNs =
       kFlushTestLatencyNs / 2;  // start the test at (now + 1/2*latency)
@@ -78,6 +85,8 @@ void BasicSensorFlushAsyncTest::setUp(uint32_t messageSize,
 void BasicSensorFlushAsyncTest::handleEvent(uint32_t senderInstanceId,
                                             uint16_t eventType,
                                             const void *eventData) {
+  UNUSED_VAR(senderInstanceId);
+
   switch (eventType) {
     case CHRE_EVENT_SENSOR_ACCELEROMETER_DATA:
       handleDataReceived(
@@ -159,9 +168,8 @@ void BasicSensorFlushAsyncTest::handleFlushComplete(
     ASSERT_GE(mLatestSensorDataTimestamp, oldestValidTimestamp,
               "Received very old data");
 
-    chreLog(CHRE_LOG_INFO,
-            "Flush test: flush request to complete time: %" PRIu64 " ms",
-            (chreGetTime() - mFlushRequestTime) / kOneMillisecondInNanoseconds);
+    LOGI("Flush test: flush request to complete time: %" PRIu64 " ms",
+         (chreGetTime() - mFlushRequestTime) / kOneMillisecondInNanoseconds);
 
     // verify event data
     ASSERT_NE(eventData, nullptr, "null event data");

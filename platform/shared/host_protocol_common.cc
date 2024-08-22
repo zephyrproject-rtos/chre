@@ -29,14 +29,24 @@ namespace chre {
 void HostProtocolCommon::encodeNanoappMessage(
     FlatBufferBuilder &builder, uint64_t appId, uint32_t messageType,
     uint16_t hostEndpoint, const void *messageData, size_t messageDataLen,
-    uint32_t permissions, uint32_t messagePermissions) {
+    uint32_t permissions, uint32_t messagePermissions, bool wokeHost,
+    bool isReliable, uint32_t messageSequenceNumber) {
   auto messageDataOffset = builder.CreateVector(
       static_cast<const uint8_t *>(messageData), messageDataLen);
 
   auto nanoappMessage = fbs::CreateNanoappMessage(
       builder, appId, messageType, hostEndpoint, messageDataOffset,
-      messagePermissions, permissions);
+      messagePermissions, permissions, wokeHost, isReliable,
+      messageSequenceNumber);
   finalize(builder, fbs::ChreMessage::NanoappMessage, nanoappMessage.Union());
+}
+
+void HostProtocolCommon::encodeMessageDeliveryStatus(
+    FlatBufferBuilder &builder, uint32_t messageSequenceNumber,
+    uint8_t errorCode) {
+  auto status = fbs::CreateMessageDeliveryStatus(builder, messageSequenceNumber,
+                                                 errorCode);
+  finalize(builder, fbs::ChreMessage::MessageDeliveryStatus, status.Union());
 }
 
 Offset<Vector<int8_t>> HostProtocolCommon::addStringAsByteVector(

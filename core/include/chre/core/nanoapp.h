@@ -18,14 +18,20 @@
 #define CHRE_CORE_NANOAPP_H_
 
 #include <cinttypes>
+#include <cstdint>
+#include <limits>
 
 #include "chre/core/event.h"
 #include "chre/core/event_ref_queue.h"
+#include "chre/platform/heap_block_header.h"
 #include "chre/platform/platform_nanoapp.h"
+#include "chre/platform/system_time.h"
 #include "chre/util/dynamic_vector.h"
 #include "chre/util/fixed_size_vector.h"
 #include "chre/util/system/debug_dump.h"
 #include "chre/util/system/napp_permissions.h"
+#include "chre/util/system/stats_container.h"
+#include "chre_api/chre/event.h"
 
 namespace chre {
 
@@ -42,22 +48,36 @@ namespace chre {
  */
 class Nanoapp : public PlatformNanoapp {
  public:
+  /** @see chrePublishRpcServices */
+  static constexpr size_t kMaxRpcServices = UINT8_MAX;
+  static_assert(
+      std::numeric_limits<decltype(chreNanoappInfo::rpcServiceCount)>::max() >=
+          kMaxRpcServices,
+      "Revisit the constant");
+
   Nanoapp();
-  ~Nanoapp();
+
+  // The nanoapp instance ID should only come from the event loop manager. This
+  // constructor should never be called except for use in unit tests.
+  Nanoapp(uint16_t instanceId);
+
+  /**
+   * Calls the start function of the nanoapp. For dynamically loaded nanoapps,
+   * this must also result in calling through to any of the nanoapp's static
+   * global constructors/init functions, etc., prior to invoking the
+   * nanoappStart.
+   *
+   * @return true if the app was able to start successfully
+   *
+   * @see nanoappStart
+   */
+  bool start();
 
   /**
    * @return The unique identifier for this Nanoapp instance
    */
-  uint32_t getInstanceId() const {
+  uint16_t getInstanceId() const {
     return mInstanceId;
-  }
-
-  /**
-   * Assigns an instance ID to this Nanoapp. This must be called prior to
-   * starting this Nanoapp.
-   */
-  void setInstanceId(uint32_t instanceId) {
-    mInstanceId = instanceId;
   }
 
   /**
@@ -88,11 +108,9 @@ class Nanoapp : public PlatformNanoapp {
   }
 
   /**
-   * @return true if the nanoapp should receive broadcast events with the given
-   *         type
+   * @return true if the nanoapp should receive broadcast event
    */
-  bool isRegisteredForBroadcastEvent(uint16_t eventType,
-                                     uint16_t targetGroupIdMask) const;
+  bool isRegisteredForBroadcastEvent(const Event *event) const;
 
   /**
    * Updates the Nanoapp's registration so that it will receive broadcast events
@@ -117,22 +135,6 @@ class Nanoapp : public PlatformNanoapp {
    */
   void unregisterForBroadcastEvent(
       uint16_t eventType, uint16_t groupIdMask = kDefaultTargetGroupMask);
-
-  /**
-   * Adds an event to this nanoapp's queue of pending events.
-   */
-  void postEvent(Event *event) {
-    mEventQueue.push(event);
-  }
-
-  /**
-   * Indicates whether there are any pending events in this apps queue.
-   *
-   * @return true if there are events waiting to be processed
-   */
-  bool hasPendingEvent() {
-    return !mEventQueue.empty();
-  }
 
   /**
    * Configures whether nanoapp info events will be sent to the nanoapp.
@@ -171,12 +173,11 @@ class Nanoapp : public PlatformNanoapp {
   void configureUserSettingEvent(uint8_t setting, bool enable);
 
   /**
-   * Sends the next event in the queue to the nanoapp and returns the processed
-   * event. The hasPendingEvent() method should be tested before invoking this.
+   * Sends an event to the nanoapp to be processed.
    *
-   * @return A pointer to the processed event
+   * @param event A pointer to the event to be processed
    */
-  Event *processNextEvent();
+  void processEvent(Event *event);
 
   /**
    * Log info about a single host wakeup that this nanoapp triggered by storing
@@ -184,14 +185,23 @@ class Nanoapp : public PlatformNanoapp {
    */
   void blameHostWakeup();
 
+  /**
+   * Log info about a single message sent to the host that this nanoapp
+   * triggered by storing the count of messages in mNumMessagesSentSinceBoot.
+   */
+  void blameHostMessageSent();
+
   /*
    * If buckets not full, then just pushes a 0 to back of buckets. If full, then
    * shifts down all buckets from back to front and sets back to 0, losing the
    * latest bucket value that was in front.
    *
-   * @param numBuckets the number of buckets to cycle into to mWakeupBuckets
+   * With nanoapps tracking their cycling time, there is no reason to ever
+   * cycle more than one bucket at a time. Doing more wastes valuable data
+   *
+   * @param timestamp the current time when this bucket was created
    */
-  void cycleWakeupBuckets(size_t numBuckets);
+  void cycleWakeupBuckets(Nanoseconds timestamp);
 
   /**
    * Prints state in a string buffer. Must only be called from the context of
@@ -202,12 +212,116 @@ class Nanoapp : public PlatformNanoapp {
   void logStateToBuffer(DebugDumpWrapper &debugDump) const;
 
   /**
+   * Prints header for memory allocation and event processing time stats table
+   * in a string buffer. Must only be called from the context of the main CHRE
+   * thread.
+   *
+   * @param debugDump The object that is printed into for debug dump logs.
+   */
+  void logMemAndComputeHeader(DebugDumpWrapper &debugDump) const;
+
+  /**
+   * Prints memory allocation and event processing time stats in a string
+   * buffer. Must only be called from the context of the main CHRE thread.
+   *
+   * @param debugDump The object that is printed into for debug dump logs.
+   */
+  void logMemAndComputeEntry(DebugDumpWrapper &debugDump) const;
+
+  /**
+   * Prints header for wakeup and host message stats table in a string buffer.
+   * Must only be called from the context of the main CHRE thread.
+   *
+   * @param debugDump The object that is printed into for debug dump logs.
+   */
+  void logMessageHistoryHeader(DebugDumpWrapper &debugDump) const;
+
+  /**
+   * Prints wakeup and host message stats in a string buffer. Must only be
+   * called from the context of the main CHRE thread.
+   *
+   * @param debugDump The object that is printed into for debug dump logs.
+   */
+  void logMessageHistoryEntry(DebugDumpWrapper &debugDump) const;
+
+  /**
    * @return true if the nanoapp is permitted to use the provided permission.
    */
   bool permitPermissionUse(uint32_t permission) const;
 
+  /**
+   * Configures notification updates for a given host endpoint.
+   *
+   * @param hostEndpointId The ID of the host endpoint.
+   * @param enable true to enable notifications.
+   *
+   * @return true if the configuration is successful.
+   */
+  bool configureHostEndpointNotifications(uint16_t hostEndpointId, bool enable);
+
+  /**
+   * Publishes RPC services for this nanoapp.
+   *
+   * @param services A pointer to the list of RPC services to publish.
+   *   Can be null if numServices is 0.
+   * @param numServices The number of services to publish, i.e. the length of
+   * the services array.
+   *
+   * @return true if the publishing is successful.
+   */
+  bool publishRpcServices(struct chreNanoappRpcService *services,
+                          size_t numServices);
+
+  /**
+   * @return The list of RPC services published by this nanoapp.
+   */
+  const DynamicVector<struct chreNanoappRpcService> &getRpcServices() const {
+    return mRpcServices;
+  }
+
+  /**
+   * Adds a block of memory to the linked list of headers.
+   *
+   * @see getFirstHeapBlock
+   * @see chreHeapAlloc
+   */
+  void linkHeapBlock(HeapBlockHeader *header);
+
+  /**
+   * Removes a block of memory from the linked list of headers.
+   *
+   * @see getFirstHeapBlock
+   * @see chreHeapFree
+   */
+  void unlinkHeapBlock(HeapBlockHeader *header);
+
+  /**
+   * @return A pointer to the first allocated heap block.
+   */
+  HeapBlockHeader *getFirstHeapBlock() {
+    return mFirstHeader;
+  }
+
  private:
-  uint32_t mInstanceId = kInvalidInstanceId;
+  uint16_t mInstanceId = kInvalidInstanceId;
+
+  //! The total number of wakeup counts for a nanoapp.
+  uint32_t mNumWakeupsSinceBoot = 0;
+
+  //! The total number of messages sent to host by this nanoapp.
+  uint32_t mNumMessagesSentSinceBoot = 0;
+
+  //! The total time in ms spend processing events by this nanoapp.
+  uint64_t mEventProcessTimeSinceBoot = 0;
+
+  /**
+   * Head of the singly linked list of heap block headers.
+   *
+   * The list is used to free all the memory allocated by the nanoapp.
+   *
+   * @see MemoryManager
+   */
+  HeapBlockHeader *mFirstHeader = nullptr;
 
   //! The total memory allocated by the nanoapp in bytes.
   size_t mTotalAllocatedBytes = 0;
@@ -215,13 +329,31 @@ class Nanoapp : public PlatformNanoapp {
   //! The peak total number of bytes allocated by the nanoapp.
   size_t mPeakAllocatedBytes = 0;
 
+  //! Container for "bucketed" stats associated with wakeup logging
+  struct BucketedStats {
+    BucketedStats(uint16_t wakeupCount_, uint16_t hostMessageCount_,
+                  uint64_t eventProcessTime_, uint64_t creationTimestamp_)
+        : wakeupCount(wakeupCount_),
+          hostMessageCount(hostMessageCount_),
+          eventProcessTime(eventProcessTime_),
+          creationTimestamp(creationTimestamp_) {}
+
+    uint16_t wakeupCount = 0;
+    uint16_t hostMessageCount = 0;
+    uint64_t eventProcessTime = 0;
+    uint64_t creationTimestamp = 0;
+  };
+
   //! The number of buckets for wakeup logging, adjust along with
-  //! EventLoop::kIntervalWakupBucketInMins.
-  static constexpr size_t kMaxSizeWakeupBuckets = 4;
+  //! EventLoop::kIntervalWakeupBucket.
+  static constexpr size_t kMaxSizeWakeupBuckets = 5;
 
   //! A fixed size buffer of buckets that keeps track of the number of host
   //! wakeups over time intervals.
-  FixedSizeVector<uint16_t, kMaxSizeWakeupBuckets> mWakeupBuckets;
+  FixedSizeVector<BucketedStats, kMaxSizeWakeupBuckets> mWakeupBuckets;
+
+  //! Collects process time in nanoseconds of each event
+  StatsContainer<uint64_t> mEventProcessTime;
 
   //! Metadata needed for keeping track of the registered events for this
   //! nanoapp.
@@ -239,7 +371,14 @@ class Nanoapp : public PlatformNanoapp {
   // who care about them).
   DynamicVector<EventRegistration> mRegisteredEvents;
 
-  EventRefQueue mEventQueue;
+  //! The registered host endpoints to receive notifications for.
+  DynamicVector<uint16_t> mRegisteredHostEndpoints;
+
+  //! The list of RPC services for this nanoapp.
+  DynamicVector<struct chreNanoappRpcService> mRpcServices;
+
+  //! Whether nanoappStart is being executed.
+  bool mIsInNanoappStart = false;
 
   //! @return index of event registration if found. mRegisteredEvents.size() if
   //!     not.
@@ -252,6 +391,11 @@ class Nanoapp : public PlatformNanoapp {
    * @param event The pointer to the event
    */
   void handleGnssMeasurementDataEvent(const Event *event);
+
+  bool isRegisteredForHostEndpointNotifications(uint16_t hostEndpointId) const {
+    return mRegisteredHostEndpoints.find(hostEndpointId) !=
+           mRegisteredHostEndpoints.size();
+  }
 };
 
 }  // namespace chre

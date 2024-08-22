@@ -17,6 +17,10 @@ TARGET_SO_LATE_LIBS = $(GOOGLE_HEXAGONV66_ADSP-SEE_LATE_LIBS)
 TARGET_PLATFORM_ID = 0x476f6f676c000007
 HEXAGON_ARCH = v66
 
+# Define build target and settings for building rust archives for this variant
+RUST_TARGET_DIR = $(CHRE_PREFIX)/build/rust
+RUST_TARGET = hexagonv66_rust_target
+
 TARGET_CFLAGS += $(SLPI_CFLAGS)
 TARGET_VARIANT_SRCS += $(SLPI_SRCS)
 

@@ -35,18 +35,24 @@ const chrePalGnssCallbacks PlatformGnssBase::sGnssCallbacks = {
 PlatformGnss::~PlatformGnss() {
   if (mGnssApi != nullptr) {
     LOGD("Platform GNSS closing");
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     mGnssApi->close();
     LOGD("Platform GNSS closed");
   }
 }
 
 void PlatformGnss::init() {
-  prePalApiCall();
+  prePalApiCall(PalType::GNSS);
   mGnssApi = chrePalGnssGetApi(CHRE_PAL_GNSS_API_CURRENT_VERSION);
   if (mGnssApi != nullptr) {
     if (!mGnssApi->open(&gChrePalSystemApi, &sGnssCallbacks)) {
       LOGE("GNSS PAL open returned false");
+
+#ifdef CHRE_TELEMETRY_SUPPORT_ENABLED
+      EventLoopManagerSingleton::get()->getTelemetryManager().onPalOpenFailure(
+          TelemetryManager::PalType::GNSS);
+#endif  // CHRE_TELEMETRY_SUPPORT_ENABLED
+
       mGnssApi = nullptr;
     } else {
       LOGD("Opened GNSS PAL version 0x%08" PRIx32, mGnssApi->moduleVersion);
@@ -59,7 +65,7 @@ void PlatformGnss::init() {
 
 uint32_t PlatformGnss::getCapabilities() {
   if (mGnssApi != nullptr) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     return mGnssApi->getCapabilities();
   } else {
     return CHRE_GNSS_CAPABILITIES_NONE;
@@ -69,7 +75,7 @@ uint32_t PlatformGnss::getCapabilities() {
 bool PlatformGnss::controlLocationSession(bool enable, Milliseconds minInterval,
                                           Milliseconds minTimeToNextFix) {
   if (mGnssApi != nullptr) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     return mGnssApi->controlLocationSession(
         enable, static_cast<uint32_t>(minInterval.getMilliseconds()),
         static_cast<uint32_t>(minTimeToNextFix.getMilliseconds()));
@@ -80,7 +86,7 @@ bool PlatformGnss::controlLocationSession(bool enable, Milliseconds minInterval,
 
 void PlatformGnss::releaseLocationEvent(chreGnssLocationEvent *event) {
   if (mGnssApi != nullptr) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     mGnssApi->releaseLocationEvent(event);
   }
 }
@@ -110,7 +116,7 @@ void PlatformGnssBase::locationEventCallback(
 bool PlatformGnss::controlMeasurementSession(bool enable,
                                              Milliseconds minInterval) {
   if (mGnssApi != nullptr) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     return mGnssApi->controlMeasurementSession(
         enable, static_cast<uint32_t>(minInterval.getMilliseconds()));
   } else {
@@ -120,7 +126,7 @@ bool PlatformGnss::controlMeasurementSession(bool enable,
 
 void PlatformGnss::releaseMeasurementDataEvent(chreGnssDataEvent *event) {
   if (mGnssApi != nullptr) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     mGnssApi->releaseMeasurementDataEvent(event);
   }
 }
@@ -129,7 +135,7 @@ bool PlatformGnss::configurePassiveLocationListener(bool enable) {
   bool success = false;
   if (mGnssApi != nullptr &&
       mGnssApi->moduleVersion >= CHRE_PAL_GNSS_API_V1_2) {
-    prePalApiCall();
+    prePalApiCall(PalType::GNSS);
     success = mGnssApi->configurePassiveLocationListener(enable);
   }
   return success;

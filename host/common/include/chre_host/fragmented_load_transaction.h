@@ -29,6 +29,10 @@
 namespace android {
 namespace chre {
 
+// A special fragment id indicating the loading is not started yet. First
+// fragment starts from id 1.
+static constexpr uint32_t kNoFragmentId = 0;
+
 /**
  * A struct which represents a single fragmented request. The caller should use
  * this class along with FragmentedLoadTransaction to get global attributes for
@@ -46,8 +50,8 @@ struct FragmentedLoadRequest {
   std::vector<uint8_t> binary;
 
   FragmentedLoadRequest(size_t fragmentId, uint32_t transactionId,
-                        const std::vector<uint8_t> &binary)
-      : FragmentedLoadRequest(fragmentId, transactionId, 0, 0, 0, 0, 0,
+                        uint64_t appId, const std::vector<uint8_t> &binary)
+      : FragmentedLoadRequest(fragmentId, transactionId, appId, 0, 0, 0, 0,
                               binary) {}
 
   FragmentedLoadRequest(size_t fragmentId, uint32_t transactionId,
@@ -111,10 +115,15 @@ class FragmentedLoadTransaction {
     return mTransactionId;
   }
 
+  uint64_t getNanoappId() const {
+    return mNanoappId;
+  }
+
  private:
   std::vector<FragmentedLoadRequest> mFragmentRequests;
   size_t mCurrentRequestIndex = 0;
   uint32_t mTransactionId;
+  uint64_t mNanoappId;
 
   static constexpr size_t kDefaultFragmentSize =
       CHRE_HOST_DEFAULT_FRAGMENT_SIZE;

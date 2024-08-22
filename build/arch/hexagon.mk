@@ -54,6 +54,15 @@ TARGET_CFLAGS += -D__V_DYNAMIC__
 # run on Hexagon vs. other architectures
 TARGET_CFLAGS += -DQDSP6
 
+# Declare support for std headers that the QC SDK contains so that libs like
+# pigweed don't try to redefine functionality.
+TARGET_CFLAGS += -D__cpp_lib_byte=201603L
+TARGET_CFLAGS += -D__cpp_lib_integer_sequence=201304L
+TARGET_CFLAGS += -D__cpp_lib_is_null_pointer=201309L
+TARGET_CFLAGS += -D__cpp_lib_logical_traits=201510L
+TARGET_CFLAGS += -D__cpp_lib_nonmember_container_access=201411L
+TARGET_CFLAGS += -D__cpp_lib_transformation_trait_aliases=201304L
+
 # Hexagon Shared Object Linker Flags ###########################################
 
 TARGET_SO_LDFLAGS += --gc-sections
@@ -71,6 +80,7 @@ TARGET_SO_LDFLAGS += --no-threads
 HEXAGON_LIB_PATH = $(HEXAGON_TOOLS_PREFIX)/Tools/target/hexagon/lib
 TARGET_SO_EARLY_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/initS.o
 TARGET_SO_LATE_LIBS += $(HEXAGON_LIB_PATH)/$(HEXAGON_ARCH)/G0/pic/finiS.o
+TARGET_SO_LATE_LIBS += $(LDLIBS)
 
 # Supported Hexagon Architectures ##############################################
 

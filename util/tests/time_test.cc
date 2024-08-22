@@ -225,3 +225,9 @@ TEST(Time, NanosecGreaterThan) {
   EXPECT_TRUE(t3 > t1);
   EXPECT_FALSE(t1 > t3);
 }
+
+TEST(Time, NanosecOperatorStar) {
+  Nanoseconds t1(100);
+  Nanoseconds t2 = t1 * 500;
+  EXPECT_EQ(t2.toRawNanoseconds(), 100 * 500);
+}

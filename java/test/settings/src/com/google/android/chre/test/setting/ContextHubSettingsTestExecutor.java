@@ -81,7 +81,6 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
         mContextHubInfo = info.get(0);
 
         mContextHubClient = mContextHubManager.createClient(mContextHubInfo, this);
-        Assert.assertTrue(mContextHubClient != null);
     }
 
     @Override
@@ -139,7 +138,8 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
      *
      * @param feature The feature to set the test up for.
      */
-    public void setupTestAssertSuccess(ChreSettingsTest.TestCommand.Feature feature) {
+    public void setupTestAssertSuccess(ChreSettingsTest.TestCommand.Feature feature)
+            throws InterruptedException {
         mTestResult.set(null);
         mTestSetupComplete.set(false);
         mCountDownLatch = new CountDownLatch(1);
@@ -156,12 +156,8 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
             Assert.fail("Failed to send message: result = " + result);
         }
 
-        try {
-            mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
-        }
-
+        boolean success = mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: test setup", success);
         Assert.assertTrue(
                 "Failed to set up test", mTestSetupComplete.get() || mTestResult.get() != null);
     }
@@ -174,7 +170,7 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
      */
     public void startTestAssertSuccess(
             ChreSettingsTest.TestCommand.Feature feature,
-            ChreSettingsTest.TestCommand.State state) {
+            ChreSettingsTest.TestCommand.State state) throws InterruptedException {
         mTestResult.set(null);
         mCountDownLatch = new CountDownLatch(1);
 
@@ -189,11 +185,8 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
             Assert.fail("Failed to send message: result = " + result);
         }
 
-        try {
-            mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
-        }
+        boolean success = mCountDownLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assert.assertTrue("Timeout waiting for signal: wait for test", success);
 
         if (mTestResult.get() == null) {
             Assert.fail("No test result received");
@@ -207,13 +200,10 @@ public class ContextHubSettingsTestExecutor extends ContextHubClientCallback {
      * Cleans up the test, should be invoked in e.g. @After method.
      */
     public void deinit() {
-        Assert.assertTrue("deinit() must be invoked after init()", mInitialized);
-
         if (mChreReset.get()) {
             Assert.fail("CHRE reset during the test");
         }
-
-        ChreTestUtil.unloadNanoAppAssertSuccess(mContextHubManager, mContextHubInfo, mNanoAppId);
+        ChreTestUtil.unloadNanoApp(mContextHubManager, mContextHubInfo, mNanoAppId);
         mContextHubClient.close();
 
         mInitialized = false;

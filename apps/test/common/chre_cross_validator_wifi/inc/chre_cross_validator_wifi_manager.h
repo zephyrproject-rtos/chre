@@ -17,19 +17,19 @@
 #ifndef CHRE_CROSS_VALIDATOR_WIFI_MANAGER_H_
 #define CHRE_CROSS_VALIDATOR_WIFI_MANAGER_H_
 
-#include <cinttypes>
-#include <cstdint>
-
-#include <chre.h>
 #include <pb_common.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-#include "chre/util/singleton.h"
+#include <cinttypes>
+#include <cstdint>
 
+#include "chre/util/dynamic_vector.h"
+#include "chre/util/singleton.h"
+#include "chre_api/chre.h"
+#include "chre_api/chre/wifi.h"
 #include "chre_cross_validation_wifi.nanopb.h"
 #include "chre_test_common.nanopb.h"
-
 #include "wifi_scan_result.h"
 
 namespace chre {
@@ -61,40 +61,17 @@ class Manager {
   //! Struct that holds some information about the state of the cross validator
   CrossValidatorState mCrossValidatorState;
 
-  // TODO: Find a better max scan results val
-  static constexpr uint8_t kMaxScanResults = UINT8_MAX;
-  WifiScanResult mApScanResults[kMaxScanResults];
-  WifiScanResult mChreScanResults[kMaxScanResults];
+  DynamicVector<WifiScanResult> mApScanResults;
+  DynamicVector<chreWifiScanResult> mChreScanResults;
 
-  //! The current index that cross validator should assign to when a new scan
-  //! result comes in.
-  uint8_t mChreScanResultsI = 0;
-
-  uint8_t mChreScanResultsSize = 0;
-  uint8_t mApScanResultsSize = 0;
-
-  //! The number of wifi scan results processed from CHRE apis
-  uint8_t mNumResultsProcessed = 0;
+  // The expected max chre scan results to be validated. This number is an
+  // arbritray number we assume that CHRE can handle. It is perfectly fine for
+  // CHRE to receive more result.
+  uint8_t mExpectedMaxChreResultCanHandle = 100;
 
   //! Bools indicating that data collection is complete for each side
   bool mApDataCollectionDone = false;
   bool mChreDataCollectionDone = false;
-
-  /**
-   * This is the fraction of the number of results in the greater set of
-   * scan results between the AP and CHRE that the lesser set can differ by.
-   * Increasing this value will increase the relative amount that AP and CHRE
-   * results sizes can differ by.
-   *
-   * Ex: AP_results_size = 8
-   *     CHRE_results_size = 7
-   *     kMaxDiffNumResultsFraction = 0.25
-   *
-   *     CHRE_results_size is valid because it is >= 8 - 8 * 0.25 = 6
-   */
-  // TODO(b/185026344): Perfect this number. Consider using an abolute
-  // difference instead of a percentage difference also.
-  static constexpr float kMaxDiffNumResultsFraction = 0.25f;
 
   /**
    * Handle a message from the host.
@@ -131,15 +108,6 @@ class Manager {
       uint32_t capabilitiesFromChre);
 
   /**
-   * Encode the proto message and send to host.
-   *
-   * @param message The proto message struct pointer.
-   * @param fields The fields descriptor of the proto message to encode.
-   * @param messageType The message type of the message.
-   */
-  void encodeAndSendMessageToHost(const void *message, const pb_field_t *fields,
-                                  uint32_t messageType);
-  /**
    * Handle a wifi scan result data message sent from AP.
    *
    * @param hostData The message.
@@ -170,17 +138,15 @@ class Manager {
   /**
    * Get the scan result that has the same bssid as the scan result passed.
    *
-   * @param results        The array of scan results to search through.
-   * @param resultsSize    The number of valid scan result objects in the array
-   *                       passed.
+   * @param results        The list of scan results to search through.
    * @param queryResult    The result to search with.
-   * @param resultIndexOut The pointer where the scan result index will be
-   *                       copied to if the result was found.
-   * @return true if the scan result was found.
+   *
+   * @return               The index of the matched scan result in the list if
+   *                       found, otherwise SIZE_MAX.
    */
-  bool getMatchingScanResult(WifiScanResult *results, uint8_t resultsSize,
-                             const WifiScanResult &queryResult,
-                             uint8_t *resultIndexOut);
+  size_t getMatchingScanResultIndex(
+      const DynamicVector<WifiScanResult> &results,
+      const WifiScanResult &queryResult);
 
   /**
    * Setup WiFi scan monitoring from CHRE apis.

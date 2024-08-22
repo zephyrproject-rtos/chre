@@ -16,7 +16,9 @@
 
 #include "chre/core/init.h"
 
+#ifdef CHRE_ENABLE_CHPP
 #include "chpp/platform/chpp_init.h"
+#endif
 #include "chre/core/event_loop_manager.h"
 #include "chre/core/static_nanoapps.h"
 #include "chre/platform/shared/dram_vote_client.h"
@@ -33,9 +35,19 @@ namespace chre {
 namespace freertos {
 namespace {
 
-constexpr configSTACK_DEPTH_TYPE kChreTaskStackDepthWords = 0x800;
-
+#ifdef CHRE_FREERTOS_TASK_PRIORITY
+constexpr UBaseType_t kChreTaskPriority =
+    tskIDLE_PRIORITY + CHRE_FREERTOS_TASK_PRIORITY;
+#else
 constexpr UBaseType_t kChreTaskPriority = tskIDLE_PRIORITY + 1;
+#endif
+
+#ifdef CHRE_FREERTOS_STACK_DEPTH_IN_WORDS
+constexpr configSTACK_DEPTH_TYPE kChreTaskStackDepthWords =
+    CHRE_FREERTOS_STACK_DEPTH_IN_WORDS;
+#else
+constexpr configSTACK_DEPTH_TYPE kChreTaskStackDepthWords = 0x800;
+#endif
 
 TaskHandle_t gChreTaskHandle;
 
@@ -58,7 +70,7 @@ uint8_t gPrimaryLogBufferData[CHRE_LOG_BUFFER_DATA_SIZE];
 // runs on, CHRE might create additional threads, which are cleaned up when
 // CHRE exits.
 void chreThreadEntry(void *context) {
-  DramVoteClientSingleton::init();
+  UNUSED_VAR(context);
 
   chre::init();
   chre::EventLoopManagerSingleton::get()->lateInit();
@@ -77,6 +89,8 @@ void chreThreadEntry(void *context) {
 
 #ifdef CHRE_USE_BUFFERED_LOGGING
 void chreFlushLogsToHostThreadEntry(void *context) {
+  UNUSED_VAR(context);
+
   // Never exits
   chre::LogBufferManagerSingleton::get()->startSendLogsToHostLoop();
 }
@@ -91,15 +105,9 @@ const char *getChreFlushTaskName();
 BaseType_t init() {
   BaseType_t rc = pdPASS;
 
-#ifdef CHRE_USE_BUFFERED_LOGGING
-  chre::LogBufferManagerSingleton::init(gPrimaryLogBufferData,
-                                        gSecondaryLogBufferData,
-                                        sizeof(gPrimaryLogBufferData));
+  DramVoteClientSingleton::init();
 
-  rc = xTaskCreate(chreFlushLogsToHostThreadEntry, getChreFlushTaskName(),
-                   kChreTaskStackDepthWords, nullptr /* args */,
-                   kChreTaskPriority, &gChreFlushTaskHandle);
-#endif
+  rc = initLogger();
 
   if (rc == pdPASS) {
     rc = xTaskCreate(chreThreadEntry, getChreTaskName(),
@@ -109,8 +117,26 @@ BaseType_t init() {
 
   CHRE_ASSERT(rc == pdPASS);
 
+#ifdef CHRE_ENABLE_CHPP
   chpp::init();
+#endif
 
+  return rc;
+}
+
+BaseType_t initLogger() {
+  BaseType_t rc = pdPASS;
+#ifdef CHRE_USE_BUFFERED_LOGGING
+  if (!chre::LogBufferManagerSingleton::isInitialized()) {
+    chre::LogBufferManagerSingleton::init(gPrimaryLogBufferData,
+                                          gSecondaryLogBufferData,
+                                          sizeof(gPrimaryLogBufferData));
+
+    rc = xTaskCreate(chreFlushLogsToHostThreadEntry, getChreFlushTaskName(),
+                     kChreTaskStackDepthWords, nullptr /* args */,
+                     kChreTaskPriority, &gChreFlushTaskHandle);
+  }
+#endif
   return rc;
 }
 
@@ -121,7 +147,9 @@ void deinit() {
     chre::EventLoopManagerSingleton::get()->getEventLoop().stop();
   }
 
+#ifdef CHRE_ENABLE_CHPP
   chpp::deinit();
+#endif
 }
 
 const char *getChreTaskName() {

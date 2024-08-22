@@ -24,7 +24,7 @@
 #define CHRE_FASTRPC_DAEMON_H_
 
 #include "chre/platform/slpi/fastrpc.h"
-#include "chre_host/daemon_base.h"
+#include "chre_host/fbs_daemon_base.h"
 #include "chre_host/st_hal_lpma_handler.h"
 
 #include <utils/SystemClock.h>
@@ -32,16 +32,10 @@
 #include <optional>
 #include <thread>
 
-#ifdef CHRE_USE_TOKENIZED_LOGGING
-#include "chre_host/tokenized_log_message_parser.h"
-#else
-#include "chre_host/log_message_parser_base.h"
-#endif
-
 namespace android {
 namespace chre {
 
-class FastRpcChreDaemon : public ChreDaemonBase {
+class FastRpcChreDaemon : public FbsDaemonBase {
  public:
   FastRpcChreDaemon();
 
@@ -70,15 +64,10 @@ class FastRpcChreDaemon : public ChreDaemonBase {
     mLpmaHandler.enable(enabled);
   }
 
-  ChreLogMessageParserBase *getLogger() override {
-    return &mLogger;
-  }
-
  private:
   std::optional<std::thread> mMonitorThread;
   std::optional<std::thread> mMsgToHostThread;
   std::atomic_bool mCrashDetected = false;
-  ChreLogMessageParserBase mLogger;
   StHalLpmaHandler mLpmaHandler;
 
   /**
@@ -93,7 +82,7 @@ class FastRpcChreDaemon : public ChreDaemonBase {
    *
    * @return clock drift offset in nanoseconds
    */
-  int64_t getTimeOffset(bool *success);
+  int64_t getTimeOffset(bool *success) override;
 
   /**
    * Entry point for the thread that blocks in a FastRPC call to monitor for

@@ -53,7 +53,7 @@ class AtomicBool : public AtomicBoolBase, public NonCopyable {
    */
   operator bool() const {
     return load();
-  };
+  }
 
   /**
    * Atomically loads the current value of the atomic object.

@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// CHRE flat buffers declaration.
+///
+/// New fields declaration should be added at the end.
+/// See https://flatbuffers.dev/md__schemas.html for details.
+
 namespace chre.fbs;
 
 /// Represents a message sent to/from a nanoapp from/to a client on the host
@@ -37,6 +42,28 @@ table NanoappMessage {
   /// For messages from a nanoaapp to the host, this must be a superset of
   /// message_permissions.
   permissions:uint;
+
+  // If true, the message has awakened the host AP (i.e. the AP has transitioned
+  // from suspend to awake as a result of this message transfer). This field is
+  // only valid for messages originating from a nanoapp.
+  woke_host:bool = false;
+
+  // Whether the message is reliable.
+  // The receiver acknowledges reliable messages by sending a status back.
+  // The status contains the message delivery status.
+  is_reliable:bool;
+
+  // The message sequence number used for reliable messages.
+  message_sequence_number:uint;
+}
+
+// Status of sending a reliable message.
+table MessageDeliveryStatus {
+  // The message sequence number.
+  message_sequence_number:uint;
+
+  // Error code.
+  error_code:byte;
 }
 
 table HubInfoRequest {}
@@ -61,7 +88,7 @@ table HubInfoResponse {
   sleep_power:float;
   peak_power:float;
 
-  /// Maximum size message that can be sent to a nanoapp
+  /// Maximum size regular message that can be sent to a nanoapp
   max_msg_len:uint;
 
   /// @see chreGetPlatformId()
@@ -70,10 +97,21 @@ table HubInfoResponse {
   /// @see chreGetVersion()
   chre_platform_version:uint;
 
+  /// Whether reliable messages are supported
+  supports_reliable_messages:bool = false;
+
   // TODO: list of connected sensors
 }
 
 table NanoappListRequest {}
+
+/// Metadata regarding a Nanoapp RPC service. See the Android API
+/// core/java/android/hardware/location/NanoAppRpcService.java for more details
+/// on how this value is used by the Android application.
+table NanoappRpcService {
+  id: ulong;
+  version: uint;
+}
 
 table NanoappListEntry {
   app_id:ulong;
@@ -89,6 +127,9 @@ table NanoappListEntry {
   /// Nanoapp permissions, if supported. Nanoapp permissions are required on
   /// CHRE API v1.5+, and are defined in chre/util/system/napp_permissions.h
   permissions:uint;
+
+  /// The list of RPC services supported by this nanoapp.
+  rpc_services:[NanoappRpcService];
 
   // TODO: memory usage
 }
@@ -180,6 +221,22 @@ table LoadNanoappResponse {
   // TODO: detailed error code?
 }
 
+/// Contains information needed for the host to load the token database for the
+/// nanoapp. This message is only sent if a token database section is found in
+/// the nanoapp elf binary.
+table NanoappTokenDatabaseInfo {
+  instance_id:uint;
+
+  app_id:ulong;
+
+  /// The size offset of the token database from the start of the address of
+  /// the ELF binary in bytes.
+  database_offset_bytes:uint;
+
+  /// The size of the token database section in the ELF binary in bytes.
+  database_size_bytes:uint;
+}
+
 table UnloadNanoappRequest {
   transaction_id:uint;
 
@@ -259,6 +316,7 @@ enum Setting : byte {
   WIFI_AVAILABLE,
   AIRPLANE_MODE,
   MICROPHONE,
+  BLE_AVAILABLE,
 }
 
 /// An enum describing the state of a setting.
@@ -276,22 +334,79 @@ table SettingChangeMessage {
   state:SettingState = DISABLED;
 }
 
+// An enum describing the level of a log.
+enum LogLevel : byte {
+  ERROR = 1,
+  WARNING = 2,
+  INFO = 3,
+  DEBUG = 4,
+  VERBOSE = 5,
+}
+
+// An enum describing the type of a log.
+enum LogType : byte {
+  STRING = 0,
+  TOKENIZED = 1,
+  BLUETOOTH = 2,
+  NANOAPP_TOKENIZED = 3,
+}
+
+// An enum indicating the direction of a BT snoop log.
+enum BtSnoopDirection : byte {
+  INCOMING_FROM_BT_CONTROLLER = 0,
+  OUTGOING_TO_ARBITER = 1,
+}
+
 /// Represents V2 log messages from CHRE.
 table LogMessageV2 {
   /// A buffer containing formatted log data. A flat array is used here to avoid
   /// overhead in serializing and deserializing. The format is as follows:
   ///
-  /// uint8_t                 - LogBuffer log level (1 = error, 2 = warn,
-  ///                                                3 = info,  4 = debug,
-  ///                                                5 = verbose)
+  /// uint8_t                 - Log metadata, encoded as follows:
+  ///                           [EI(Upper nibble) | Level(Lower nibble)]
+  ///                            * Log Type
+  ///                              (0 = No encoding, 1 = Tokenized log,
+  ///                               2 = BT snoop log, 3 = Nanoapp Tokenized log)
+  ///                            * LogBuffer log level (1 = error, 2 = warn,
+  ///                                                   3 = info,  4 = debug,
+  ///                                                   5 = verbose)
   /// uint32_t, little-endian - timestamp in milliseconds
-  /// char[]                  - message to log
-  /// char, \0                - null-terminator
+  /// char[]                  - Log data buffer
+  ///
+  /// The log data buffer format is as follows:
+  /// * Unencoded (string) logs: The log buffer can be interpreted as a NULL
+  ///   terminated string (eg: pass to string manipulation functions, get its
+  ///   size via strlen(), etc.).
+  ///
+  /// * Tokenized logs: The first byte of the log buffer indicates the size of
+  ///   the actual encoded data to follow. For example, if a tokenized log of
+  ///   size 24 bytes were to be represented, a buffer of size 25 bytes would
+  ///   be needed to encode this as: [Size(1B) | Data(24B)]. A decoder would
+  ///   then have to decode this starting from a 1 byte offset from the
+  ///   received buffer.
+  ///
+  /// * Bt Snoop logs: The first byte of the log buffer indicates the direction
+  ///   of the bt snoop log, depending on whether it is incoming for the BT
+  ///   controller or outgoing to the arbiter. The second byte indicates the size
+  ///   of the actual BT payload followed. For example, if a bt snoop log of
+  ///   size 24 bytes were to be represented, a buffer of size 26 bytes would
+  ///   be needed to encode this as: [Direction(1B) | Size(1B) | Data(24B)].
+  ///
+  /// * Tokenized nanoapp logs: This log type is specifically for nanoapps with
+  ///   tokenized logs enabled. The first two bytes is the instance ID of the
+  ///   nanoapp which sends this tokenized log message. This instance ID will be
+  ///   used to map to the corresponding detokenizer in the log message parser.
+  ///   The rest is similar to tokenized logs with one byte of the size followed
+  ///   by the payload. For example, if a nanoapp tokenized log of size 24 bytes
+  ///   were to be sent, a buffer of size 27 bytes would be to encoded as:
+  ///   [InstanceId (2B) | Size(1B) | Data(24B)].
   ///
   /// This pattern repeats until the end of the buffer for multiple log
   /// messages. The last byte will always be a null-terminator. There are no
   /// padding bytes between these fields. Treat this like a packed struct and be
   /// cautious with unaligned access when reading/writing this buffer.
+  /// Note that the log message might not be null-terminated if an encoding is
+  /// used.
   buffer:[byte];
 
   /// The number of logs dropped since CHRE started
@@ -306,6 +421,68 @@ table SelfTestResponse {
   // True if the self-test succeeded.
   success:bool;
 }
+
+// Message sent whenever a host endpoint has connected with the Context Hub.
+// CHRE may receive messages from this host afterwards.
+table HostEndpointConnected {
+  /// The host-side endpoint that has connected to the framework.
+  host_endpoint:ushort;
+
+  /// The type of host endpoint, which should be any of the CHRE_HOST_ENDPOINT_TYPE_*
+  /// values defined in the chre_api/chre/event.h.
+  type:ubyte;
+
+  /// The (optional) package name associated with the host endpoint.
+  package_name:[byte];
+
+  /// The (optional) attribution tag associated with this host.
+  attribution_tag:[byte];
+}
+
+// Message sent whenever a host endpoint has disconnected from the Context Hub.
+table HostEndpointDisconnected {
+  /// The host-side endpoint that has disconnected from the framework.
+  host_endpoint:ushort;
+}
+
+// Represents metric messages from CHRE
+table MetricLog {
+  // A unique identifier for the encoded metric message.
+  id:uint;
+
+  // The metric data, which is encoded using a custom-defined protocol. This
+  // same protocol must be used to decode the data at the host side for consumption.
+  encoded_metric:[byte];
+}
+
+// A container to store batched metrics messages
+table BatchedMetricLog {
+  // The batched metrics
+  metrics: [MetricLog];
+}
+
+// NAN enable request sent from CHRE to the host.
+table NanConfigurationRequest {
+  enable:bool;
+}
+
+// NAN status message sent from the host to CHRE whenever a change in the NAN
+// enabled state is detected. Note that this update can be sent to CHRE either
+// as a response to a configuration request, or from out of band if NAN was
+// disabled by an external agent.
+table NanConfigurationUpdate {
+  enabled:bool;
+}
+
+// Debug configurastion that will be send from Android AP to CHRE during boot time
+table DebugConfiguration {
+  // Should HealthMonitor::onFailure crash when receiving a false condition
+  health_monitor_failure_crash:bool;
+}
+
+// Pulse messages are used to check if CHRE is up running.
+table PulseRequest {}
+table PulseResponse {}
 
 /// A union that joins together all possible messages. Note that in FlatBuffers,
 /// unions have an implicit type
@@ -343,6 +520,24 @@ union ChreMessage {
 
   SelfTestRequest,
   SelfTestResponse,
+
+  HostEndpointConnected,
+  HostEndpointDisconnected,
+
+  MetricLog,
+  BatchedMetricLog,
+
+  NanConfigurationRequest,
+  NanConfigurationUpdate,
+
+  DebugConfiguration,
+
+  PulseRequest,
+  PulseResponse,
+
+  NanoappTokenDatabaseInfo,
+
+  MessageDeliveryStatus,
 }
 
 struct HostAddress {

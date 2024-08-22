@@ -24,6 +24,7 @@
 #include "chpp/condition_variable.h"
 #include "chpp/macros.h"
 #include "chpp/transport.h"
+#include "chre_api/chre/common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,32 @@ extern "C" {
 /************************************************
  *  Public Definitions
  ***********************************************/
+
+/**
+ * Allocates a variable-length response message of a specific type.
+ *
+ * @param requestHeader request header, as per chppAllocResponse().
+ * @param type Type of response which includes an arrayed member.
+ * @param count number of items in the array of arrayField.
+ * @param arrayField The arrayed member field.
+ *
+ * @return Pointer to allocated memory.
+ */
+#define chppAllocResponseTypedArray(requestHeader, type, count, arrayField) \
+  (type *)chppAllocResponse(                                                \
+      requestHeader,                                                        \
+      sizeof(type) + (count)*sizeof_member(type, arrayField[0]))
+
+/**
+ * Allocates a response message of a specific type and its corresponding length.
+ *
+ * @param requestHeader request header, as per chppAllocResponse().
+ * @param type Type of response.
+ *
+ * @return Pointer to allocated memory.
+ */
+#define chppAllocResponseFixed(requestHeader, type) \
+  (type *)chppAllocResponse(requestHeader, sizeof(type))
 
 /**
  * Maximum number of services that can be registered by CHPP (not including
@@ -58,6 +85,25 @@ extern "C" {
   MAX(CHPP_MAX_REGISTERED_SERVICES, CHPP_MAX_REGISTERED_CLIENTS)
 #endif
 
+#define CHPP_REQUEST_TIMEOUT_INFINITE CHPP_TIME_MAX
+
+#if defined(CHPP_REQUEST_TIMEOUT_DEFAULT) && \
+    defined(CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT)
+// Build systems should prefer to only set CHPP_REQUEST_TIMEOUT_DEFAULT
+#error Can not set both CHPP_REQUEST_TIMEOUT_DEFAULT and CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT
+#endif
+
+// For backwards compatibility with vendor build systems
+#ifdef CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT
+#define CHPP_REQUEST_TIMEOUT_DEFAULT CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT
+#undef CHPP_CLIENT_REQUEST_TIMEOUT_DEFAULT
+#endif
+
+// If not customized in the build, we default to CHRE expectations
+#ifndef CHPP_REQUEST_TIMEOUT_DEFAULT
+#define CHPP_REQUEST_TIMEOUT_DEFAULT CHRE_ASYNC_RESULT_TIMEOUT_NS
+#endif
+
 /**
  * Default value for reserved fields.
  */
@@ -72,6 +118,14 @@ extern "C" {
  * App layer command at initialization.
  */
 #define CHPP_APP_COMMAND_NONE 0
+
+/**
+ * Type of endpoint (either client or service)
+ */
+enum ChppEndpointType {
+  CHPP_ENDPOINT_CLIENT = 0,
+  CHPP_ENDPOINT_SERVICE = 1,
+};
 
 /**
  * Handle Numbers in ChppAppHeader
@@ -114,6 +168,13 @@ enum ChppMessageType {
 
   //! Notification from service. Client shall not respond.
   CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION = 3,
+
+  //! Request from service. Needs response from client.
+  CHPP_MESSAGE_TYPE_SERVICE_REQUEST = 4,
+
+  //! Response from client (with the same Command and Transaction ID as the
+  //! service request).
+  CHPP_MESSAGE_TYPE_CLIENT_RESPONSE = 5,
 };
 
 /**
@@ -188,11 +249,11 @@ struct ChppAppHeader {
 } CHPP_PACKED_ATTR;
 CHPP_PACKED_END
 
-//! Minimum length of a header that includes upto the transaction ID
-#define CHPP_APP_MIN_LEN_HEADER_WITH_TRANSACTION (3 * sizeof(uint8_t))
-
 /**
- * Function type that dispatches incoming datagrams for any client or service
+ * Function type that dispatches incoming datagrams for any client or service.
+ *
+ * The buffer is freed shortly after the function returns.
+ * User code must make a copy for later processing if needed.
  */
 typedef enum ChppAppErrorCode(ChppDispatchFunction)(void *context, uint8_t *buf,
                                                     size_t len);
@@ -232,6 +293,17 @@ typedef void(ChppNotifierFunction)(void *context);
 #define CHPP_SERVICE_NAME_MAX_LEN (15 + 1)
 
 /**
+ * Support for sync response.
+ *
+ * @see chppClientSendTimestampedRequestAndWaitTimeout.
+ */
+struct ChppSyncResponse {
+  struct ChppMutex mutex;
+  struct ChppConditionVariable condVar;
+  bool ready;
+};
+
+/**
  * CHPP definition of a service descriptor as sent over the wire.
  */
 CHPP_PACKED_START
@@ -255,19 +327,31 @@ struct ChppService {
   //! Service Descriptor as sent over the wire.
   struct ChppServiceDescriptor descriptor;
 
-  //! Pointer to the function that is used to notify the service if CHPP is
-  //! reset.
+  //! Notifies the service if CHPP is reset.
   ChppNotifierFunction *resetNotifierFunctionPtr;
 
-  //! Pointer to the function that dispatches incoming client requests for the
-  //! service.
+  //! Dispatches incoming client requests.
+  //! When an error is returned by the dispatch function it is logged and an
+  //! error response is automatically sent to the remote endpoint.
   ChppDispatchFunction *requestDispatchFunctionPtr;
 
-  //! Pointer to the function that dispatches incoming client notifications for
-  //! the service.
+  //! Dispatches incoming client notifications.
+  //! Errors returned by the dispatch function are logged.
   ChppDispatchFunction *notificationDispatchFunctionPtr;
 
-  //! Minimum valid length of datagrams for the service.
+  //! Dispatches incoming client responses.
+  //! Errors returned by the dispatch function are logged.
+  ChppDispatchFunction *responseDispatchFunctionPtr;
+
+  //! Number of outgoing requests supported by this service.
+  //! ChppAppHeader.command must be in the range [0, outReqCount - 1]
+  //! ChppEndpointState.outReqStates must contains that many elements.
+  uint16_t outReqCount;
+
+  //! Minimum valid length of datagrams for the service:
+  //! - client requests
+  //! - client notifications
+  //! - client responses
   size_t minLength;
 };
 
@@ -290,38 +374,45 @@ struct ChppClient {
   //! Client descriptor.
   struct ChppClientDescriptor descriptor;
 
-  //! Pointer to the function that is used to notify the client if CHPP is
-  //! reset.
+  //! Notifies the client if CHPP is reset.
   ChppNotifierFunction *resetNotifierFunctionPtr;
 
-  //! Pointer to the function that is used to notify the client if CHPP is
-  //! matched to a service.
+  //! Notifies the client if CHPP is matched to a service.
   ChppNotifierFunction *matchNotifierFunctionPtr;
 
-  //! Pointer to the function that dispatches incoming service responses for the
-  //! client.
+  //! Dispatches incoming service responses.
   //! Service responses are only dispatched to clients that have been opened or
-  //! are in the process of being (re)opened. @see ChppOpenState
+  //! are in the process of being (re)opened. @see ChppOpenState.
+  //! Errors returned by the dispatch function are logged.
   ChppDispatchFunction *responseDispatchFunctionPtr;
 
-  //! Pointer to the function that dispatches incoming service notifications for
-  //! the client.
+  //! Dispatches incoming service notifications.
   //! Service notifications are only dispatched to clients that have been
   //! opened. @see ChppOpenState
+  //! Errors returned by the dispatch function are logged.
   ChppDispatchFunction *notificationDispatchFunctionPtr;
 
-  //! Pointer to the function that initializes the client (after it is matched
-  //! with a service at discovery) and assigns it its handle number.
+  //! Dispatches incoming service requests.
+  //! When an error is returned by the dispatch function it is logged and an
+  //! error response is automatically sent to the remote endpoint.
+  ChppDispatchFunction *requestDispatchFunctionPtr;
+
+  //! Initializes the client (after it is matched with a service at discovery)
+  //! and assigns it its handle number.
   ChppClientInitFunction *initFunctionPtr;
 
-  //! Pointer to the function that deinitializes the client.
+  //! Deinitializes the client.
   ChppClientDeinitFunction *deinitFunctionPtr;
 
-  //! Number of request-response states in the rRStates array. This is a
-  //! uint16_t to match the uint16_t command in struct ChppAppHeader.
-  uint16_t rRStateCount;
+  //! Number of outgoing requests supported by this client.
+  //! ChppAppHeader.command must be in the range [0, outReqCount - 1]
+  //! ChppEndpointState.outReqStates must contains that many elements.
+  uint16_t outReqCount;
 
-  //! Minimum valid length of datagrams for the service.
+  //! Minimum valid length of datagrams for the service:
+  //! - service responses
+  //! - service notifications
+  //! - service requests
   size_t minLength;
 };
 
@@ -329,28 +420,51 @@ struct ChppClient {
  * Request status for clients.
  */
 enum ChppRequestState {
-  CHPP_REQUEST_STATE_NONE = 0,              // No request sent ever
-  CHPP_REQUEST_STATE_REQUEST_SENT = 1,      // Sent but no response yet
-  CHPP_REQUEST_STATE_RESPONSE_RCV = 2,      // Sent and response received
-  CHPP_REQUEST_STATE_RESPONSE_TIMEOUT = 3,  // Timeout. Responded as need be
+  CHPP_REQUEST_STATE_NONE = 0,              //!< No request sent ever
+  CHPP_REQUEST_STATE_REQUEST_SENT = 1,      //!< Sent, waiting for a response
+  CHPP_REQUEST_STATE_RESPONSE_RCV = 2,      //!< Sent and response received
+  CHPP_REQUEST_STATE_RESPONSE_TIMEOUT = 3,  //!< Timeout. Responded as need be
 };
 
 /**
- * Maintains the basic state for each request/response functionality of a
- * client or service.
- * Any number of these may be included in the (context) status variable of a
- * client or service (one per every every request/response functionality).
+ * State of each outgoing request and their response.
+ *
+ * There must be as many ChppOutgoingRequestState in the client or service state
+ * (ChppEndpointState) as the number of commands they support.
  */
-struct ChppRequestResponseState {
+struct ChppOutgoingRequestState {
   uint64_t requestTimeNs;  // Time of the last request
-  uint64_t
-      responseTimeNs;  // If requestState is CHPP_REQUEST_STATE_REQUEST_SENT,
-                       // indicates the timeout time for the request
-                       // If requestState is CHPP_REQUEST_STATE_RESPONSE_RCV,
-                       // indicates when the response was received
-
+  // When requestState is CHPP_REQUEST_STATE_REQUEST_SENT,
+  // indicates the timeout time for the request.
+  // When requestState is CHPP_REQUEST_STATE_RESPONSE_RCV,
+  // indicates when the response was received.
+  uint64_t responseTimeNs;
   uint8_t requestState;  // From enum ChppRequestState
   uint8_t transaction;   // Transaction ID for the last request/response
+};
+
+/**
+ * State of each incoming request and their response.
+ *
+ * There must be as many ChppIncomingRequestState in the client or service state
+ * as the number of commands supported by the other side (corresponding service
+ * for a client and corresponding client for a service).
+ *
+ * Contrary to ChppOutgoingRequestState those are not part of
+ * CChppEndpointState. They must be stored to and retrieved from the context
+ * passed to chppRegisterClient / chppRegisterService.
+ *
+ * Note: while ChppIncomingRequestState and ChppOutgoingRequestState have the
+ * same layout, we want the types to be distinct to be enforced at compile time.
+ * Using a typedef would make both types equivalent.
+ *
+ * @see ChppOutgoingRequestState for field details.
+ */
+struct ChppIncomingRequestState {
+  uint64_t requestTimeNs;
+  uint64_t responseTimeNs;
+  uint8_t requestState;
+  uint8_t transaction;
 };
 
 /**
@@ -369,6 +483,36 @@ struct ChppClientServiceSet {
 struct ChppLoopbackClientState;
 struct ChppTimesyncClientState;
 
+/**
+ * CHPP state of a client or a service.
+ *
+ * This is the CHPP internal client/service state.
+ * Their private state is store in the context field.
+ */
+struct ChppEndpointState {
+  struct ChppAppState *appContext;  // Pointer to app layer context
+
+  // State for the outgoing requests.
+  // It must accommodate Chpp{Client,Service}.outReqCount elements.
+  // It also tracks corresponding incoming responses.
+  // NULL when outReqCount = 0.
+  struct ChppOutgoingRequestState *outReqStates;
+
+  void *context;  //!< Private state of the endpoint.
+
+  struct ChppSyncResponse syncResponse;
+
+  uint8_t index;        //!< Index (in ChppAppState lists).
+  uint8_t handle;       //!< Handle used to match client and service.
+  uint8_t transaction;  //!< Next Transaction ID to be used.
+
+  uint8_t openState;  //!< see enum ChppOpenState
+
+  bool pseudoOpen : 1;       //!< Client to be opened upon a reset
+  bool initialized : 1;      //!< Client is initialized
+  bool everInitialized : 1;  //!< Client sync primitives initialized
+};
+
 struct ChppAppState {
   struct ChppTransportState *transportContext;  // Pointing to transport context
 
@@ -378,18 +522,19 @@ struct ChppAppState {
 
   const struct ChppService *registeredServices[CHPP_MAX_REGISTERED_SERVICES];
 
-  void *registeredServiceContexts[CHPP_MAX_REGISTERED_SERVICES];
+  struct ChppEndpointState
+      *registeredServiceStates[CHPP_MAX_REGISTERED_SERVICES];
 
   uint8_t registeredClientCount;  // Number of clients currently registered
 
   const struct ChppClient *registeredClients[CHPP_MAX_REGISTERED_CLIENTS];
 
-  const struct ChppClientState
-      *registeredClientStates[CHPP_MAX_REGISTERED_CLIENTS];
+  struct ChppEndpointState *registeredClientStates[CHPP_MAX_REGISTERED_CLIENTS];
 
-  void *registeredClientContexts[CHPP_MAX_REGISTERED_CLIENTS];
-
-  uint64_t nextRequestTimeoutNs;
+  // When the first outstanding request sent from the client timeouts.
+  uint64_t nextClientRequestTimeoutNs;
+  // When the first outstanding request sent from the service timeouts.
+  uint64_t nextServiceRequestTimeoutNs;
 
   uint8_t
       clientIndexOfServiceIndex[CHPP_MAX_DISCOVERED_SERVICES];  // Lookup table
@@ -499,6 +644,268 @@ void chppUuidToStr(const uint8_t uuid[CHPP_SERVICE_UUID_LEN],
  * @return CHRE error (from enum chreError).
  */
 uint8_t chppAppErrorToChreError(uint8_t error);
+
+/**
+ * Handles logging and error conversion when an app layer response is too short.
+ *
+ * @param buf Input data. Cannot be null.
+ * @param len Length of input data in bytes.
+ * @param responseName Name of the request/response to be logged.
+ *
+ * @return CHRE error (from enum chreError).
+ */
+uint8_t chppAppShortResponseErrorHandler(uint8_t *buf, size_t len,
+                                         const char *responseName);
+
+/**
+ * Allocates a notification of a specified length.
+ *
+ * This function is internal. Instead use either
+ * - chppAllocClientNotification
+ * - or chppAllocServiceNotification
+ *
+ * The caller must initialize at least the handle and command fields of the
+ * ChppAppHeader.
+ *
+ * @param type CHPP_MESSAGE_TYPE_CLIENT_NOTIFICATION or
+ *        CHPP_MESSAGE_TYPE_SERVICE_NOTIFICATION.
+ * @param len Length of the notification (including header) in bytes. Note
+ *        that the specified length must be at least equal to the length of the
+ *        app layer header.
+ *
+ * @return Pointer to allocated memory.
+ */
+struct ChppAppHeader *chppAllocNotification(uint8_t type, size_t len);
+
+/**
+ * Allocates a request message.
+ *
+ * This function is internal. Instead use either:
+ * - chppAllocClientRequest
+ * - or chppAllocServiceRequest
+ *
+ * @param type CHPP_MESSAGE_TYPE_CLIENT_REQUEST or
+ *        CHPP_MESSAGE_TYPE_SERVICE_REQUEST.
+ * @param endpointState State of the endpoint.
+ * @param len Length of the response message (including header) in bytes. Note
+ *        that the specified length must be at least equal to the length of the
+ *        app layer header.
+ *
+ * @return Pointer to allocated memory.
+ */
+struct ChppAppHeader *chppAllocRequest(uint8_t type,
+                                       struct ChppEndpointState *endpointState,
+                                       size_t len);
+
+/**
+ * Allocates a response message of a specified length, populating the (app
+ * layer) response header according to the provided request (app layer) header.
+ *
+ * This function can be used to allocate either client or service response.
+ *
+ * @param requestHeader request header.
+ * @param len Length of the response message (including header) in bytes. Note
+ *        that the specified length must be at least equal to the length of the
+ *        app layer header.
+ *
+ * @return Pointer to allocated memory.
+ */
+struct ChppAppHeader *chppAllocResponse(
+    const struct ChppAppHeader *requestHeader, size_t len);
+
+/**
+ * This function shall be called for all incoming requests in order to
+ * A) Timestamp them, and
+ * B) Save their Transaction ID
+ *
+ * This function prints an error message if a duplicate request is received
+ * while outstanding request is still pending without a response.
+ *
+ * @param inReqState State of the request/response.
+ * @param requestHeader Request header.
+ */
+void chppTimestampIncomingRequest(struct ChppIncomingRequestState *inReqState,
+                                  const struct ChppAppHeader *requestHeader);
+
+/**
+ * This function shall be called for all outgoing requests in order to
+ * A) Timestamp them, and
+ * B) Save their Transaction ID
+ *
+ * This function prints an error message if a duplicate request is sent
+ * while outstanding request is still pending without a response.
+ *
+ * @param appState App layer state.
+ * @param outReqState state of the request/response.
+ * @param requestHeader Client request header.
+ * @param timeoutNs The timeout.
+ */
+void chppTimestampOutgoingRequest(struct ChppAppState *appState,
+                                  struct ChppOutgoingRequestState *outReqState,
+                                  const struct ChppAppHeader *requestHeader,
+                                  uint64_t timeoutNs);
+
+/**
+ * This function shall be called for incoming responses to a request in
+ * order to
+ * A) Verify the correct transaction ID
+ * B) Timestamp them, and
+ * C) Mark them as fulfilled
+ *
+ * This function prints an error message if a response is received without an
+ * outstanding request.
+ *
+ * @param appState App layer state.
+ * @param outReqState state of the request/response.
+ * @param requestHeader Request header.
+ *
+ * @return false if there is an error. true otherwise.
+ */
+bool chppTimestampIncomingResponse(struct ChppAppState *appState,
+                                   struct ChppOutgoingRequestState *outReqState,
+                                   const struct ChppAppHeader *responseHeader);
+
+/**
+ * This function shall be called for the outgoing response to a request in order
+ * to:
+ * A) Timestamp them, and
+ * B) Mark them as fulfilled part of the request/response's
+ *    ChppOutgoingRequestState struct.
+ *
+ * For most responses, it is expected that chppSendTimestampedResponseOrFail()
+ * shall be used to both timestamp and send the response in one shot.
+ *
+ * @param inReqState State of the request/response.
+ * @return The last response time (CHPP_TIME_NONE for the first response).
+ */
+uint64_t chppTimestampOutgoingResponse(
+    struct ChppIncomingRequestState *inReqState);
+
+/**
+ * Timestamps a response using chppTimestampOutgoingResponse() and enqueues it
+ * using chppEnqueueTxDatagramOrFail().
+ *
+ * Refer to their respective documentation for details.
+ *
+ * This function logs an error message if a response is attempted without an
+ * outstanding request.
+ *
+ * @param appState App layer state.
+ * @param inReqState State of the request/response.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ *
+ * @return whether the datagram was successfully enqueued. false means that the
+ *         queue was full and the payload discarded.
+ */
+bool chppSendTimestampedResponseOrFail(
+    struct ChppAppState *appState, struct ChppIncomingRequestState *inReqState,
+    void *buf, size_t len);
+
+/**
+ * Timestamps and enqueues a request.
+ *
+ * This function is internal. User either:
+ * - chppClientSendTimestampedRequestOrFail
+ * - or chppServiceSendTimestampedRequestOrFail
+ *
+ * Note that the ownership of buf is taken from the caller when this method is
+ * invoked.
+ *
+ * @param endpointState state of the endpoint.
+ * @param outReqState state of the request/response.
+ * @param buf Datagram payload allocated through chppMalloc. Cannot be null.
+ * @param len Datagram length in bytes.
+ * @param timeoutNs Time in nanoseconds before a timeout response is generated.
+ *        Zero means no timeout response.
+ *
+ * @return True informs the sender that the datagram was successfully enqueued.
+ *         False informs the sender that the queue was full and the payload
+ *         discarded.
+ */
+bool chppSendTimestampedRequestOrFail(
+    struct ChppEndpointState *endpointState,
+    struct ChppOutgoingRequestState *outReqState, void *buf, size_t len,
+    uint64_t timeoutNs);
+
+/**
+ * Wait for a response to be received.
+ *
+ * @param syncResponse sync primitives.
+ * @param outReqState state of the request/response.
+ * @param timeoutNs Time in nanoseconds before a timeout response is generated.
+ */
+bool chppWaitForResponseWithTimeout(
+    struct ChppSyncResponse *syncResponse,
+    struct ChppOutgoingRequestState *outReqState, uint64_t timeoutNs);
+
+/**
+ * Returns the state of a registered endpoint.
+ *
+ * @param appState State of the app layer.
+ * @param index Index of the client or service.
+ * @param type Type of the endpoint to return.
+ * @return state of the client or service.
+ */
+struct ChppEndpointState *getRegisteredEndpointState(
+    struct ChppAppState *appState, uint8_t index, enum ChppEndpointType type);
+
+/**
+ * Returns the number of possible outgoing requests.
+ *
+ * @param appState State of the app layer.
+ * @param index Index of the client or service.
+ * @param type Type of the endpoint to return.
+ * @return The number of possible outgoing requests.
+ */
+uint16_t getRegisteredEndpointOutReqCount(struct ChppAppState *appState,
+                                          uint8_t index,
+                                          enum ChppEndpointType type);
+
+/**
+ * Returns the number of registered endpoints of the given type.
+ *
+ * @param appState State of the app layer.
+ * @param type Type of the endpoint to return.
+ * @return The number of endpoints.
+ */
+uint8_t getRegisteredEndpointCount(struct ChppAppState *appState,
+                                   enum ChppEndpointType type);
+
+/**
+ * Recalculates the next upcoming request timeout.
+ *
+ * The timeout is updated in the app layer state.
+ *
+ * @param appState State of the app layer.
+ * @param type Type of the endpoint.
+ */
+void chppRecalculateNextTimeout(struct ChppAppState *appState,
+                                enum ChppEndpointType type);
+
+/**
+ * Returns a pointer to the next request timeout for the given endpoint type.
+ *
+ * @param appState State of the app layer.
+ * @param type Type of the endpoint.
+ * @return Pointer to the timeout in nanoseconds.
+ */
+uint64_t *getNextRequestTimeoutNs(struct ChppAppState *appState,
+                                  enum ChppEndpointType type);
+
+/**
+ * Closes any remaining open requests by simulating a timeout.
+ *
+ * This function is used when an endpoint is reset.
+ *
+ * @param endpointState State of the endpoint.
+ * @param type The type of the endpoint.
+ * @param clearOnly If true, indicates that a timeout response shouldn't be
+ *        sent. This must only be set if the requests are being cleared as
+ *        part of the closing.
+ */
+void chppCloseOpenRequests(struct ChppEndpointState *endpointState,
+                           enum ChppEndpointType type, bool clearOnly);
 
 #ifdef __cplusplus
 }

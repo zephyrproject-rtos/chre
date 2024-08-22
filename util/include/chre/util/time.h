@@ -21,6 +21,9 @@
 
 namespace chre {
 
+//! The number of seconds in one day.
+constexpr uint64_t kOneDayInSeconds(60 * 60 * 24);
+
 //! The number of milliseconds in one min.
 constexpr uint64_t kOneMinuteInMilliseconds(60000);
 
@@ -253,6 +256,15 @@ constexpr Nanoseconds operator+(const Nanoseconds &nanos_a,
  */
 constexpr Nanoseconds operator-(const Nanoseconds &nanos_a,
                                 const Nanoseconds &nanos_b);
+
+/**
+ * Multiplies a nanosecond and a uint64_t.
+ *
+ * @param nanos the nanoseconds duration
+ * @param multiplier the multiplier
+ * @return the multiplication of the nanoseconds duration and the multiplier
+ */
+constexpr Nanoseconds operator*(const Nanoseconds &nanos, uint64_t multiplier);
 
 /**
  * Performs a greater than or equal to comparison on two nanoseconds values.

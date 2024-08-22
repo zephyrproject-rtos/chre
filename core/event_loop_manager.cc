@@ -16,15 +16,12 @@
 
 #include "chre/core/event_loop_manager.h"
 
+#include "chre/platform/atomic.h"
 #include "chre/platform/fatal_error.h"
 #include "chre/platform/memory.h"
 #include "chre/util/lock_guard.h"
 
 namespace chre {
-
-void freeEventDataCallback(uint16_t /*eventType*/, void *eventData) {
-  memoryFree(eventData);
-}
 
 Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
   chre::Nanoapp *currentNanoapp =
@@ -34,19 +31,20 @@ Nanoapp *EventLoopManager::validateChreApiCall(const char *functionName) {
   return currentNanoapp;
 }
 
-uint32_t EventLoopManager::getNextInstanceId() {
-  ++mLastInstanceId;
+uint16_t EventLoopManager::getNextInstanceId() {
+  // Get the next available instance ID and mask off the upper 16 bit.
+  uint16_t instanceId =
+      static_cast<uint16_t>(mNextInstanceId.fetch_increment() & 0x0000FFFF);
 
-  // ~4 billion instance IDs should be enough for anyone... if we need to
+  // 65536 instance IDs should be enough for normal use cases. If we need to
   // support wraparound for stress testing load/unload, then we can set a flag
   // when wraparound occurs and use EventLoop::findNanoappByInstanceId to ensure
   // we avoid conflicts
-  if (mLastInstanceId == kBroadcastInstanceId ||
-      mLastInstanceId == kSystemInstanceId) {
+  if (instanceId == kBroadcastInstanceId || instanceId == kSystemInstanceId) {
     FATAL_ERROR("Exhausted instance IDs!");
   }
 
-  return mLastInstanceId;
+  return instanceId;
 }
 
 void EventLoopManager::lateInit() {
@@ -69,6 +67,10 @@ void EventLoopManager::lateInit() {
 #ifdef CHRE_AUDIO_SUPPORT_ENABLED
   mAudioRequestManager.init();
 #endif  // CHRE_AUDIO_SUPPORT_ENABLED
+
+#ifdef CHRE_BLE_SUPPORT_ENABLED
+  mBleRequestManager.init();
+#endif  // CHRE_BLE_SUPPORT_ENABLED
 }
 
 // Explicitly instantiate the EventLoopManagerSingleton to reduce codesize.

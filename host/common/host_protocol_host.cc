@@ -102,6 +102,15 @@ void HostProtocolHost::encodeHubInfoRequest(FlatBufferBuilder &builder) {
   finalize(builder, fbs::ChreMessage::HubInfoRequest, request.Union());
 }
 
+void HostProtocolHost::encodeDebugConfiguration(FlatBufferBuilder &builder) {
+#ifdef CHRE_HEALTH_MONITOR_CHECK_CRASH
+  auto request = fbs::CreateDebugConfiguration(builder, true);
+#else
+  auto request = fbs::CreateDebugConfiguration(builder, false);
+#endif  // CHRE_HEALTH_MONITOR_CHECK_CRASH
+  finalize(builder, fbs::ChreMessage::DebugConfiguration, request.Union());
+}
+
 void HostProtocolHost::encodeFragmentedLoadNanoappRequest(
     flatbuffers::FlatBufferBuilder &builder,
     const FragmentedLoadRequest &request, bool respondBeforeStart) {
@@ -211,6 +220,39 @@ void HostProtocolHost::encodeSelfTestRequest(
     flatbuffers::FlatBufferBuilder &builder) {
   auto request = fbs::CreateSelfTestRequest(builder);
   finalize(builder, fbs::ChreMessage::SelfTestRequest, request.Union());
+}
+
+void HostProtocolHost::encodeHostEndpointConnected(
+    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId,
+    uint8_t type, const std::string &packageName,
+    const std::string &attributionTag) {
+  std::vector<int8_t> packageNameVec(packageName.begin(), packageName.end());
+  packageNameVec.push_back('\0');
+  std::vector<int8_t> attributionTagVec(attributionTag.begin(),
+                                        attributionTag.end());
+  attributionTagVec.push_back('\0');
+
+  auto message = fbs::CreateHostEndpointConnectedDirect(
+      builder, hostEndpointId, type, &packageNameVec, &attributionTagVec);
+  finalize(builder, fbs::ChreMessage::HostEndpointConnected, message.Union());
+}
+
+void HostProtocolHost::encodeHostEndpointDisconnected(
+    flatbuffers::FlatBufferBuilder &builder, uint16_t hostEndpointId) {
+  auto message = fbs::CreateHostEndpointDisconnected(builder, hostEndpointId);
+  finalize(builder, fbs::ChreMessage::HostEndpointDisconnected,
+           message.Union());
+}
+
+void HostProtocolHost::encodeNanconfigurationUpdate(
+    flatbuffers::FlatBufferBuilder &builder, bool nanEnabled) {
+  auto message = fbs::CreateNanConfigurationUpdate(builder, nanEnabled);
+  finalize(builder, fbs::ChreMessage::NanConfigurationUpdate, message.Union());
+}
+
+void HostProtocolHost::encodePulseRequest(FlatBufferBuilder &builder) {
+  auto message = fbs::CreatePulseRequest(builder);
+  finalize(builder, fbs::ChreMessage::PulseRequest, message.Union());
 }
 
 }  // namespace chre

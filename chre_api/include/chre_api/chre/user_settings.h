@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// IWYU pragma: private, include "chre_api/chre.h"
+// IWYU pragma: friend chre/.*\.h
+
 #ifndef _CHRE_USER_SETTINGS_H_
 #define _CHRE_USER_SETTINGS_H_
 
@@ -37,10 +40,18 @@ extern "C" {
 /**
  * The user settings that nanoapps can request notifications for on a status
  * change.
- * Note that the WIFI Available setting indicates the overall availability
+ *
+ * NOTE: The WIFI available setting indicates the overall availability
  * of WIFI related functionality. For example, if wifi is disabled for
- * connectivity but enabled for location, the WIFI Available setting is
+ * connectivity but enabled for location, the WIFI available setting is
  * enabled.
+ *
+ * NOTE: The BLE available setting is the logical OR of the main Bluetooth
+ * setting and the Bluetooth scanning setting found under Location settings.
+ * Note that this indicates whether the user is allowing Bluetooth to be used,
+ * however the system may still fully power down the BLE chip in some scenarios
+ * if no request for it exists on the Android host side. See the
+ * chreBleStartScanAsync() API documentation for more information.
  *
  * @defgroup CHRE_USER_SETTINGS
  * @{
@@ -49,6 +60,7 @@ extern "C" {
 #define CHRE_USER_SETTING_WIFI_AVAILABLE       UINT8_C(1)
 #define CHRE_USER_SETTING_AIRPLANE_MODE        UINT8_C(2)
 #define CHRE_USER_SETTING_MICROPHONE           UINT8_C(3)
+#define CHRE_USER_SETTING_BLE_AVAILABLE        UINT8_C(4)
 
 /** @} */
 
@@ -70,8 +82,9 @@ extern "C" {
 #define CHRE_EVENT_SETTING_CHANGED_WIFI_AVAILABLE   CHRE_SETTING_EVENT_ID(1)
 #define CHRE_EVENT_SETTING_CHANGED_AIRPLANE_MODE    CHRE_SETTING_EVENT_ID(2)
 #define CHRE_EVENT_SETTING_CHANGED_MICROPHONE       CHRE_SETTING_EVENT_ID(3)
+#define CHRE_EVENT_SETTING_CHANGED_BLE_AVAILABLE    CHRE_SETTING_EVENT_ID(4)
 
-#if CHRE_EVENT_SETTING_CHANGED_MICROPHONE > CHRE_EVENT_SETTING_CHANGED_LAST_EVENT
+#if CHRE_EVENT_SETTING_CHANGED_BLE_AVAILABLE > CHRE_EVENT_SETTING_CHANGED_LAST_EVENT
 #error Too many setting changed events.
 #endif
 

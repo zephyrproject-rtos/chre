@@ -51,9 +51,9 @@ static void chppDiscoveryDiscoverAll(
       sizeof(struct ChppAppHeader) +
       context->registeredServiceCount * sizeof(struct ChppServiceDescriptor);
 
-  struct ChppDiscoveryResponse *response = chppAllocServiceResponseTypedArray(
-      requestHeader, struct ChppDiscoveryResponse,
-      context->registeredServiceCount, services);
+  struct ChppDiscoveryResponse *response =
+      chppAllocResponseTypedArray(requestHeader, struct ChppDiscoveryResponse,
+                                  context->registeredServiceCount, services);
 
   if (response == NULL) {
     CHPP_LOG_OOM();

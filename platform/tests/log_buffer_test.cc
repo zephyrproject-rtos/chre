@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <string>
 
+#include "chre/core/event.h"
 #include "chre/platform/atomic.h"
 #include "chre/platform/condition_variable.h"
 #include "chre/platform/mutex.h"
+#include "chre/platform/shared/bt_snoop_log.h"
 #include "chre/platform/shared/log_buffer.h"
+
+using testing::ContainerEq;
 
 namespace chre {
 
@@ -35,7 +40,6 @@ class TestLogBufferCallback : public LogBufferCallbackInterface {
 };
 
 static constexpr size_t kDefaultBufferSize = 1024;
-static constexpr size_t kBytesBeforeLogData = 5;
 
 // Helpers
 void copyStringWithOffset(char *destination, const char *source,
@@ -59,9 +63,8 @@ TEST(LogBuffer, HandleOneLogAndCopy) {
   size_t bytesCopied =
       logBuffer.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
 
-  EXPECT_EQ(bytesCopied, strlen(testLogStr) +
-                             kBytesBeforeLogData /*loglevel, timestamp*/ + 1);
-  copyStringWithOffset(testedBuffer, outBuffer, strlen(testLogStr) + 1);
+  EXPECT_EQ(bytesCopied, strlen(testLogStr) + LogBuffer::kLogDataOffset + 1);
+  copyStringWithOffset(testedBuffer, outBuffer, LogBuffer::kLogDataOffset);
   EXPECT_TRUE(strcmp(testedBuffer, testLogStr) == 0);
 }
 
@@ -82,12 +85,11 @@ TEST(LogBuffer, HandleTwoLogsAndCopy) {
       logBuffer.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
 
   EXPECT_EQ(bytesCopied, strlen(testLogStr) + strlen(testLogStr2) +
-                             2 * kBytesBeforeLogData /*loglevel, timestamp*/ +
-                             2);
-  copyStringWithOffset(testedBuffer, outBuffer, kBytesBeforeLogData);
+                             2 * LogBuffer::kLogDataOffset + 2);
+  copyStringWithOffset(testedBuffer, outBuffer, LogBuffer::kLogDataOffset);
   EXPECT_TRUE(strcmp(testedBuffer, testLogStr) == 0);
   copyStringWithOffset(testedBuffer, outBuffer,
-                       2 * kBytesBeforeLogData + strlen(testLogStr) + 1);
+                       2 * LogBuffer::kLogDataOffset + strlen(testLogStr) + 1);
   EXPECT_TRUE(strcmp(testedBuffer, testLogStr2) == 0);
 }
 
@@ -114,7 +116,7 @@ TEST(LogBuffer, FailOnHandleLargerLogThanBufferSize) {
   char outBuffer[kOutBufferSize];
   // Note the size of this log is too big to fit in the buffer that we are
   // using for the LogBuffer object
-  std::string testLogStrStr(1025, 'a');
+  std::string testLogStrStr(kDefaultBufferSize + 1, 'a');
   TestLogBufferCallback callback;
 
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
@@ -128,32 +130,190 @@ TEST(LogBuffer, FailOnHandleLargerLogThanBufferSize) {
   EXPECT_EQ(bytesCopied, 0);
 }
 
-TEST(LogBuffer, LogOverwritten) {
+TEST(LogBuffer, StringLogOverwritten) {
   char buffer[kDefaultBufferSize];
   constexpr size_t kOutBufferSize = 200;
   char outBuffer[kOutBufferSize];
-  char testedBuffer[kOutBufferSize];
   TestLogBufferCallback callback;
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
 
-  // This for loop adds 1060 bytes of data through the buffer which is > than
-  // 1024
-  for (size_t i = 0; i < 10; i++) {
-    std::string testLogStrStr(100, 'a' + i);
+  constexpr size_t kLogPayloadSize = 100;
+  constexpr size_t kBufferUsePerLog = LogBuffer::kLogDataOffset +
+                                      LogBuffer::kStringLogOverhead +
+                                      kLogPayloadSize;
+  constexpr int kNumInsertions = 10;
+  constexpr int kNumLogDropsExpected =
+      kNumInsertions - kDefaultBufferSize / kBufferUsePerLog;
+  static_assert(kNumLogDropsExpected > 0);
+
+  // This for loop adds 1060 (kNumInsertions * kBufferUsePerLog) bytes of data
+  // through the buffer which is > than 1024.
+  for (size_t i = 0; i < kNumInsertions; i++) {
+    std::string testLogStrStr(kLogPayloadSize, 'a' + i);
     const char *testLogStr = testLogStrStr.c_str();
     logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   }
-  size_t numLogsDropped;
-  size_t bytesCopied =
-      logBuffer.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
-  memcpy(testedBuffer, outBuffer + kBytesBeforeLogData, 101);
+  EXPECT_EQ(logBuffer.getBufferSize(),
+            (kNumInsertions - kNumLogDropsExpected) * kBufferUsePerLog);
+  EXPECT_EQ(logBuffer.getNumLogsDropped(), kNumLogDropsExpected);
 
-  // Should have read out the second from front test log string which is 'a' + 1
-  // = 'b'
-  EXPECT_TRUE(strcmp(testedBuffer, std::string(100, 'b').c_str()) == 0);
-  EXPECT_EQ(bytesCopied, kBytesBeforeLogData + 100 + 1);
-  // Should have dropped the first log
-  EXPECT_EQ(numLogsDropped, 1);
+  for (size_t i = logBuffer.getNumLogsDropped(); i < kNumInsertions; i++) {
+    // Should have read out the i-th from front test log string which a string
+    // log 'a' + i.
+    size_t numLogsDropped;
+    size_t bytesCopied =
+        logBuffer.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
+    EXPECT_TRUE(strcmp(outBuffer + LogBuffer::kLogDataOffset,
+                       std::string(kLogPayloadSize, 'a' + i).c_str()) == 0);
+    EXPECT_EQ(bytesCopied, kBufferUsePerLog);
+  }
+}
+
+TEST(LogBuffer, TokenizedLogOverwritten) {
+  char buffer[kDefaultBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  constexpr size_t kLogPayloadSize = 100;
+  constexpr size_t kBufferUsePerLog = LogBuffer::kLogDataOffset +
+                                      LogBuffer::kTokenizedLogOffset +
+                                      kLogPayloadSize;
+  constexpr int kNumInsertions = 10;
+  constexpr int kNumLogDropsExpected =
+      kNumInsertions - kDefaultBufferSize / kBufferUsePerLog;
+  static_assert(kNumLogDropsExpected > 0);
+
+  // This for loop adds 1060 (kNumInsertions * kBufferUsePerLog) bytes of data
+  // through the buffer which is > than 1024.
+  for (size_t i = 0; i < kNumInsertions; i++) {
+    std::vector<uint8_t> testData(kLogPayloadSize, i);
+    logBuffer.handleEncodedLog(LogBufferLogLevel::INFO, 0, testData.data(),
+                               testData.size());
+  }
+  EXPECT_EQ(logBuffer.getBufferSize(),
+            (kNumInsertions - kNumLogDropsExpected) * kBufferUsePerLog);
+  EXPECT_EQ(logBuffer.getNumLogsDropped(), kNumLogDropsExpected);
+
+  for (size_t i = logBuffer.getNumLogsDropped(); i < kNumInsertions; i++) {
+    // Should have read out the i-th from front test log data which is an
+    // integer i.
+    std::vector<uint8_t> outBuffer(kBufferUsePerLog, 0x77);
+    size_t numLogsDropped;
+    size_t bytesCopied =
+        logBuffer.copyLogs(outBuffer.data(), outBuffer.size(), &numLogsDropped);
+
+    // Validate that the log size in Tokenized log header matches the expected
+    // log size.
+    EXPECT_EQ(outBuffer[LogBuffer::kLogDataOffset], kLogPayloadSize);
+
+    outBuffer.erase(outBuffer.begin(), outBuffer.begin() +
+                                           LogBuffer::kLogDataOffset +
+                                           LogBuffer::kTokenizedLogOffset);
+    EXPECT_THAT(outBuffer,
+                ContainerEq(std::vector<uint8_t>(kLogPayloadSize, i)));
+    EXPECT_EQ(bytesCopied, kBufferUsePerLog);
+  }
+}
+
+TEST(LogBuffer, BtSnoopLogOverwritten) {
+  char buffer[kDefaultBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  constexpr size_t kLogPayloadSize = 100;
+  constexpr size_t kBufferUsePerLog = LogBuffer::kLogDataOffset +
+                                      LogBuffer::kBtSnoopLogOffset +
+                                      kLogPayloadSize;
+  constexpr int kNumInsertions = 10;
+  constexpr int kNumLogDropsExpected =
+      kNumInsertions - kDefaultBufferSize / kBufferUsePerLog;
+  static_assert(kNumLogDropsExpected > 0);
+
+  // This for loop adds 1070 (kNumInsertions * kBufferUsePerLog) bytes of data
+  // through the buffer which is > than 1024.
+  for (size_t i = 0; i < kNumInsertions; i++) {
+    std::vector<uint8_t> testData(kLogPayloadSize, i);
+    logBuffer.handleBtLog(BtSnoopDirection::INCOMING_FROM_BT_CONTROLLER, 0,
+                          testData.data(), testData.size());
+  }
+  EXPECT_EQ(logBuffer.getBufferSize(),
+            (kNumInsertions - kNumLogDropsExpected) * kBufferUsePerLog);
+  EXPECT_EQ(logBuffer.getNumLogsDropped(), kNumLogDropsExpected);
+
+  for (size_t i = logBuffer.getNumLogsDropped(); i < kNumInsertions; i++) {
+    // Should have read out the i-th from front test log data which is an
+    // integer i.
+    std::vector<uint8_t> outBuffer(kBufferUsePerLog, 0x77);
+    size_t numLogsDropped;
+    size_t bytesCopied =
+        logBuffer.copyLogs(outBuffer.data(), outBuffer.size(), &numLogsDropped);
+
+    // Validate that the Bt Snoop log header matches the expected log direction
+    // and size.
+    constexpr int kBtSnoopLogHeaderSizeOffset = 1;
+    EXPECT_EQ(
+        static_cast<BtSnoopDirection>(outBuffer[LogBuffer::kLogDataOffset]),
+        BtSnoopDirection::INCOMING_FROM_BT_CONTROLLER);
+    EXPECT_EQ(
+        outBuffer[LogBuffer::kLogDataOffset + kBtSnoopLogHeaderSizeOffset],
+        kLogPayloadSize);
+
+    outBuffer.erase(outBuffer.begin(), outBuffer.begin() +
+                                           LogBuffer::kLogDataOffset +
+                                           LogBuffer::kBtSnoopLogOffset);
+    EXPECT_THAT(outBuffer,
+                ContainerEq(std::vector<uint8_t>(kLogPayloadSize, i)));
+    EXPECT_EQ(bytesCopied, kBufferUsePerLog);
+  }
+}
+
+TEST(LogBuffer, NanoappTokenizedLogOverwritten) {
+  char buffer[kDefaultBufferSize];
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  constexpr size_t kInstanceIdSize = 2;
+  constexpr size_t kLogPayloadSize = 100;
+  constexpr size_t kBufferUsePerLog = LogBuffer::kLogDataOffset +
+                                      LogBuffer::kNanoappTokenizedLogOffset +
+                                      kLogPayloadSize;
+  constexpr int kNumInsertions = 10;
+  constexpr int kNumLogDropsExpected =
+      kNumInsertions - kDefaultBufferSize / kBufferUsePerLog;
+  static_assert(kNumLogDropsExpected > 0);
+
+  // This for loop adds 1080 (kNumInsertions * kBufferUsePerLog) bytes of data
+  // through the buffer which is > than 1024.
+  for (size_t i = 0; i < kNumInsertions; i++) {
+    std::vector<uint8_t> testData(kLogPayloadSize, i);
+    logBuffer.handleNanoappTokenizedLog(LogBufferLogLevel::INFO, 0,
+                                        chre::kSystemInstanceId,
+                                        testData.data(), testData.size());
+  }
+  EXPECT_EQ(logBuffer.getBufferSize(),
+            (kNumInsertions - kNumLogDropsExpected) * kBufferUsePerLog);
+  EXPECT_EQ(logBuffer.getNumLogsDropped(), kNumLogDropsExpected);
+
+  for (size_t i = logBuffer.getNumLogsDropped(); i < kNumInsertions; i++) {
+    // Should have read out the i-th from front test log data which is an
+    // integer i.
+    std::vector<uint8_t> outBuffer(kBufferUsePerLog, 0x77);
+    size_t numLogsDropped;
+    size_t bytesCopied =
+        logBuffer.copyLogs(outBuffer.data(), outBuffer.size(), &numLogsDropped);
+
+    // Validate that the log size in the nanoapp tokenized log header matches
+    // the expected log size.
+    EXPECT_EQ(outBuffer[LogBuffer::kLogDataOffset + kInstanceIdSize],
+              kLogPayloadSize);
+
+    outBuffer.erase(outBuffer.begin(),
+                    outBuffer.begin() + LogBuffer::kLogDataOffset +
+                        LogBuffer::kNanoappTokenizedLogOffset);
+    EXPECT_THAT(outBuffer,
+                ContainerEq(std::vector<uint8_t>(kLogPayloadSize, i)));
+    EXPECT_EQ(bytesCopied, kBufferUsePerLog);
+  }
 }
 
 TEST(LogBuffer, CopyIntoEmptyBuffer) {
@@ -207,16 +367,16 @@ TEST(LogBuffer, TruncateLongLog) {
   char outBuffer[kOutBufferSize];
   TestLogBufferCallback callback;
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
-  std::string testStr(256, 'a');
+  std::string testStr(LogBuffer::kLogMaxSize + 1, 'a');
 
   logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testStr.c_str());
   size_t numLogsDropped;
   size_t bytesCopied =
       logBuffer.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
 
-  // Should truncate the logs down to the kLogMaxSize value of 255 by the time
-  // it is copied out.
-  EXPECT_EQ(bytesCopied, 255);
+  // Should truncate the logs down to the kLogMaxSize + kLogDataOffset by the
+  // time it is copied out.
+  EXPECT_EQ(bytesCopied, LogBuffer::kLogMaxSize + LogBuffer::kLogDataOffset);
 }
 
 TEST(LogBuffer, WouldCauseOverflowTest) {
@@ -224,28 +384,33 @@ TEST(LogBuffer, WouldCauseOverflowTest) {
   TestLogBufferCallback callback;
   LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
 
-  // With an empty buffer inerting one character should not overflow
-  // ASSERT because if this fails the next ASSERT statement is undefined most
-  // likely.
+  // With an empty buffer inserting an empty string (only null terminator)
+  // should not overflow ASSERT because if this fails the next ASSERT statement
+  // is undefined most likely.
   ASSERT_FALSE(logBuffer.logWouldCauseOverflow(1));
 
-  // This for loop adds 1000 bytes of data. There is 24 bytes of space left in
-  // the buffer after this loop.
+  // This for loop adds 1000 bytes of data (kLogPayloadSize + kStringLogOverhead
+  // + kLogDataOffset). There is 24 bytes of space left in the buffer after this
+  // loop.
+  constexpr size_t kLogPayloadSize = 94;
   for (size_t i = 0; i < 10; i++) {
-    std::string testLogStrStr(94, 'a');
+    std::string testLogStrStr(kLogPayloadSize, 'a');
     const char *testLogStr = testLogStrStr.c_str();
     logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
   }
 
-  std::string testLogStrStr(11, 'a');
+  // This adds 18 (kLogPayloadSize + kStringLogOverhead + kLogDataOffset) bytes
+  // of data. After this log entry there is room enough for a log of character
+  // size 1.
+  constexpr size_t kLastLogPayloadSize = 12;
+  std::string testLogStrStr(kLastLogPayloadSize, 'a');
   const char *testLogStr = testLogStrStr.c_str();
-  // After this log entry there is room enough for a log of character size 1.
   logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr);
 
-  // There should be just enough space for this log
+  // There should be just enough space for this log.
   ASSERT_FALSE(logBuffer.logWouldCauseOverflow(1));
 
-  // Inserting any more than a one char log should cause overflow
+  // Inserting any more than a one char log should cause overflow.
   ASSERT_TRUE(logBuffer.logWouldCauseOverflow(2));
 }
 
@@ -271,16 +436,71 @@ TEST(LogBuffer, TransferTest) {
   // The logs should have the text of each of the logs pushed onto the From
   // buffer in FIFO ordering.
   logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
-  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str1) == 0);
+  ASSERT_TRUE(strcmp(outBuffer + LogBuffer::kLogDataOffset, str1) == 0);
   logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
-  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str2) == 0);
+  ASSERT_TRUE(strcmp(outBuffer + LogBuffer::kLogDataOffset, str2) == 0);
   logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
-  ASSERT_TRUE(strcmp(outBuffer + kBytesBeforeLogData, str3) == 0);
+  ASSERT_TRUE(strcmp(outBuffer + LogBuffer::kLogDataOffset, str3) == 0);
 
   size_t bytesCopied =
       logBufferTo.copyLogs(outBuffer, kOutBufferSize, &numLogsDropped);
   // There should have been no logs left in the To buffer for that last copyLogs
   ASSERT_EQ(bytesCopied, 0);
+}
+
+TEST(LogBuffer, GetLogDataLengthTest) {
+  char buffer[kDefaultBufferSize];
+
+  TestLogBufferCallback callback;
+  LogBuffer logBuffer(&callback, buffer, kDefaultBufferSize);
+
+  constexpr size_t kLogPayloadSize = 10;
+  constexpr size_t kBufferUseStringLog = LogBuffer::kLogDataOffset +
+                                         LogBuffer::kStringLogOverhead +
+                                         kLogPayloadSize;
+  constexpr size_t kBufferUseTokenizedLog = LogBuffer::kLogDataOffset +
+                                            LogBuffer::kTokenizedLogOffset +
+                                            kLogPayloadSize;
+  constexpr size_t kBufferUseBtSnoopLog = LogBuffer::kLogDataOffset +
+                                          LogBuffer::kBtSnoopLogOffset +
+                                          kLogPayloadSize;
+
+  uint8_t mCurrentLogStartingIndex = 0;
+
+  std::string testLogStr(kLogPayloadSize, 'a');
+  logBuffer.handleLog(LogBufferLogLevel::INFO, 0, testLogStr.c_str());
+  EXPECT_EQ(logBuffer.getLogDataLength(
+                mCurrentLogStartingIndex + LogBuffer::kLogDataOffset,
+                LogType::STRING),
+            LogBuffer::kStringLogOverhead + kLogPayloadSize);
+  mCurrentLogStartingIndex += kBufferUseStringLog;
+
+  std::vector<uint8_t> testLogTokenized(kLogPayloadSize, 0x77);
+  logBuffer.handleEncodedLog(LogBufferLogLevel::INFO, 0,
+                             testLogTokenized.data(), testLogTokenized.size());
+  EXPECT_EQ(logBuffer.getLogDataLength(
+                mCurrentLogStartingIndex + LogBuffer::kLogDataOffset,
+                LogType::TOKENIZED),
+            LogBuffer::kTokenizedLogOffset + kLogPayloadSize);
+  mCurrentLogStartingIndex += kBufferUseTokenizedLog;
+
+  std::vector<uint8_t> testLogBtSnoop(kLogPayloadSize, 0x77);
+  logBuffer.handleBtLog(BtSnoopDirection::INCOMING_FROM_BT_CONTROLLER, 0,
+                        testLogBtSnoop.data(), testLogBtSnoop.size());
+  EXPECT_EQ(logBuffer.getLogDataLength(
+                mCurrentLogStartingIndex + LogBuffer::kLogDataOffset,
+                LogType::BLUETOOTH),
+            LogBuffer::kBtSnoopLogOffset + kLogPayloadSize);
+  mCurrentLogStartingIndex += kBufferUseBtSnoopLog;
+
+  std::vector<uint8_t> testLogNanoappTokenized(kLogPayloadSize, 0x77);
+  logBuffer.handleNanoappTokenizedLog(LogBufferLogLevel::INFO, 0,
+                                      kSystemInstanceId, testLogBtSnoop.data(),
+                                      testLogBtSnoop.size());
+  EXPECT_EQ(logBuffer.getLogDataLength(
+                mCurrentLogStartingIndex + LogBuffer::kLogDataOffset,
+                LogType::NANOAPP_TOKENIZED),
+            LogBuffer::kNanoappTokenizedLogOffset + kLogPayloadSize);
 }
 
 // TODO(srok): Add multithreaded tests

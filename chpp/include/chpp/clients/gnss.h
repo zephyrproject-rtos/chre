@@ -50,9 +50,9 @@ void chppRegisterGnssClient(struct ChppAppState *appContext);
 void chppDeregisterGnssClient(struct ChppAppState *appContext);
 
 /**
- * @return The ChppClientState pointer to the GNSS client.
+ * @return The ChppEndpointState pointer to the GNSS client.
  */
-struct ChppClientState *getChppGnssClientState(void);
+struct ChppEndpointState *getChppGnssClientState(void);
 
 #ifndef CHPP_CLIENT_ENABLED_CHRE_GNSS
 /**

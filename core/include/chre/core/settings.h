@@ -28,10 +28,9 @@ enum class Setting : uint8_t {
   WIFI_AVAILABLE,
   AIRPLANE_MODE,
   MICROPHONE,
+  BLE_AVAILABLE,
   SETTING_MAX,
 };
-
-enum class SettingState : int8_t { UNKNOWN = -1, DISABLED = 0, ENABLED };
 
 /**
  * Stores latest setting state and is responsible for sending setting updates
@@ -47,7 +46,7 @@ class SettingManager {
    * @param setting The setting to update.
    * @param state The state of the setting.
    */
-  void postSettingChange(Setting setting, SettingState state);
+  void postSettingChange(Setting setting, bool enabled);
 
   /**
    * Gets the current state of a given setting. Must be called from the context
@@ -55,10 +54,9 @@ class SettingManager {
    *
    * @param setting The setting to check the current state of.
    *
-   * @return The current state of the setting, SETTING_STATE_UNKNOWN if the
-   * provided setting is invalid.
+   * @return True if the setting is enabled.
    */
-  SettingState getSettingState(Setting setting);
+  bool getSettingEnabled(Setting setting);
 
   /**
    * Gets the current state of a given setting, but returns the state as an
@@ -85,11 +83,11 @@ class SettingManager {
       static_cast<size_t>(Setting::SETTING_MAX);
 
   //! The current state for each setting.
-  SettingState mSettingStateList[kNumSettings];
+  bool mSettingStateList[kNumSettings];
 
-  void setSettingState(Setting setting, SettingState state);
+  void setSettingState(Setting setting, bool enabled);
 
-  const char *getSettingStateString(Setting setting);
+  const char *getSettingEnabledString(Setting setting);
 
   static void settingChangedCallback(uint16_t type, void *data,
                                      void *extraData);
