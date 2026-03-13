@@ -18,7 +18,6 @@
 #define CHRE_CORE_DEBUG_DUMP_MANAGER_H_
 
 #include <cstdarg>
-#include <cstdbool>
 #include <cstdint>
 
 #include "chre/core/nanoapp.h"

@@ -17,7 +17,6 @@
 #ifndef CHRE_PLATFORM_PLATFORM_DEBUG_DUMP_MANAGER_H_
 #define CHRE_PLATFORM_PLATFORM_DEBUG_DUMP_MANAGER_H_
 
-#include <cstdbool>
 #include <cstddef>
 
 #include "chre/target_platform/platform_debug_dump_manager_base.h"
