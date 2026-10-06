@@ -1,2 +1,2 @@
-future==0.18.2
+future==0.18.3
 pyclibrary==0.1.4
