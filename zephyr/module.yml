@@ -13,6 +13,8 @@
 # limitations under the License.
 
 name: chre
+samples:
+  - zephyr/sample
 build:
   cmake: ./platform/zephyr
   kconfig: ./platform/zephyr/Kconfig
